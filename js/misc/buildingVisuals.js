@@ -115,7 +115,7 @@ function initIronPattern(ctx) {
 
   const imgData = pCtx.getImageData(0, 0, 64, 64);
   const data = imgData.data;
-  
+
   for (let y = 0; y < 64; y++) {
     for (let x = 0; x < 64; x++) {
       const i = (y * 64 + x) * 4;
@@ -123,7 +123,7 @@ function initIronPattern(ctx) {
       let noise = (Math.random() - 0.5) * 20;
       if (diag === 0) noise -= 10;
       else if (diag === 2) noise += 10;
-      
+
       data[i] = Math.max(0, Math.min(255, data[i] + noise));
       data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
       data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
@@ -590,8 +590,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
 
   let topY = 0;
   if (id === "core") topY = -200;
-  else if (id === "crystal")
-    topY = -(100 + tier * 10) - 30;
+  else if (id === "crystal") topY = -(100 + tier * 10) - 30;
   else if (id === "stone") topY = -140;
   else if (id === "copper") topY = -90;
   else if (id === "iron") topY = -100;
@@ -651,7 +650,8 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
     };
 
     const targetOffset = getOffset(id, tier);
-    const startOffset = prevTier >= 0 ? getOffset(id, prevTier) : getOffset(id, 0);
+    const startOffset =
+      prevTier >= 0 ? getOffset(id, prevTier) : getOffset(id, 0);
     const offset = startOffset + (targetOffset - startOffset) * animProgress;
 
     levelText.style.position = "absolute";
@@ -1003,7 +1003,6 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
           ctx.shadowBlur = heat * 10;
           ctx.shadowColor = `rgba(255, 100, 50, ${heat})`;
           ctx.fill();
-          
         }
       }
     }
@@ -1208,12 +1207,12 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       const orbitRot = t * 1.5 + (i * Math.PI * 2) / numShards;
       const sx = Math.cos(orbitRot) * orbitRadius;
       const sz = Math.sin(orbitRot) * orbitRadius;
-      
+
       // Determine if this shard is front or back based on its Z position
       // For getRotated, since it rotates around Y, the final Z determines depth.
       const rp = getRotated(sx, 0, sz);
       const isShardFront = rp.z <= 0;
-      
+
       if (isFront !== isShardFront) continue;
 
       const sy = -h / 2;
@@ -1240,7 +1239,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
   };
-
 
   // --- Tier 8/4 Rainbow Beam Calculations ---
   // If we draw beams *behind* the prism, we should do it before drawing faces.
@@ -1275,14 +1273,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-
-
   // --- Tier 8/4 Rainbow Beam (drawn under prism faces) ---
   if (tier4Prog > 0 && tier8Prog < 1) {
     ctx.save();
     ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
     ctx.globalCompositeOperation = "lighter";
-
 
     ctx.restore();
   }
@@ -1292,10 +1287,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = tier8Prog;
     ctx.globalCompositeOperation = "lighter";
 
-
     ctx.restore();
   }
-
 
   // Ensure center is calculated early so we can draw the beams
   const center = project(0, -h / 2, 0);
@@ -1626,7 +1619,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-
   faces.forEach((f) => {
     let c = f.baseColor;
     ctx.fillStyle = `rgba(${c[0] * f.light}, ${c[1] * f.light}, ${c[2] * f.light}, ${glassAlpha * 0.9})`;
@@ -1642,7 +1634,13 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   });
 
   // Draw back edges of inner prism
-  if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+  if (
+    tier2Prog > 0 &&
+    typeof ipts !== "undefined" &&
+    typeof ifaces !== "undefined" &&
+    ifaces &&
+    ifaces.iedges
+  ) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
     ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
@@ -1683,12 +1681,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.lineCap = "round";
 
     const pulse = 0.5 + 0.5 * Math.sin(t * 4);
-    
+
     // Draw resonating outer back edges
     ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
     ctx.lineWidth = 1 + 6 * pulse;
-    
-    
+
     ctx.beginPath();
     edges
       .filter((e) => !e.isFront)
@@ -1699,13 +1696,18 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
 
     // Draw resonating inner back edges
-    if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+    if (
+      tier2Prog > 0 &&
+      typeof ipts !== "undefined" &&
+      typeof ifaces !== "undefined" &&
+      ifaces &&
+      ifaces.iedges
+    ) {
       ctx.save();
       ctx.globalAlpha = tier6Prog * tier2Prog;
       ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
       ctx.lineWidth = 1 + 6 * pulse;
-      
-      
+
       ctx.beginPath();
       ifaces.iedges
         .filter((e) => !e.isFront)
@@ -1716,8 +1718,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       ctx.stroke();
       ctx.restore();
     }
-
-    
 
     ctx.restore();
   }
@@ -1738,10 +1738,10 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       for (let i = 0; i < numArcs; i++) {
         // Create a rapid flicker effect by changing indices frequently
         const timeIndex = Math.floor(t * 15 + i * 2);
-        
+
         const idx1 = Math.floor(hash(timeIndex) * points.length);
         const idx2 = Math.floor(hash(timeIndex + 1) * points.length);
-        
+
         if (idx1 !== idx2) {
           const p1 = points[idx1];
           const p2 = points[idx2];
@@ -1749,21 +1749,21 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
           // Draw jagged line
           ctx.beginPath();
           ctx.moveTo(p1.x, p1.y);
-          
+
           const segments = 4;
           for (let j = 1; j < segments; j++) {
             const tPos = j / segments;
             const baseX = p1.x + (p2.x - p1.x) * tPos;
             const baseY = p1.y + (p2.y - p1.y) * tPos;
-            
+
             // Add jitter perpendicular to the line
             const jitterX = (hash(timeIndex + j * 0.1) - 0.5) * 15;
             const jitterY = (hash(timeIndex + j * 0.2) - 0.5) * 15;
-            
+
             ctx.lineTo(baseX + jitterX, baseY + jitterY);
           }
           ctx.lineTo(p2.x, p2.y);
-          
+
           const flickerIntensity = 0.5 + 0.5 * hash(timeIndex + 0.5);
           ctx.strokeStyle = `rgba(255, 182, 193, ${flickerIntensity})`;
           ctx.stroke();
@@ -1779,7 +1779,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-
   // --- Post-Prism Light Effects ---
 
   // Tier 1: Pink Sparkles
@@ -1789,7 +1788,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
     const numSparkles = 15;
     for (let i = 0; i < numSparkles; i++) {
-	  const sparkleT = (t + i * (1 / numSparkles)) % 1;
+      const sparkleT = (t + i * (1 / numSparkles)) % 1;
       const hash1 = (Math.sin(i * 12.9898) * 43758.5453) % 1;
       const hash2 = (Math.cos(i * 78.233) * 43758.5453) % 1;
       const hash3 = (Math.sin(i * 45.123) * 43758.5453) % 1;
@@ -1846,7 +1845,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     const beamW = (6 + Math.sin(t * 5) * 2 + t7WidthAdd) * (1 - tier8Prog);
 
     ctx.fillStyle = "rgba(255, 255, 255, 1)";
-    
+
     ctx.beginPath();
     ctx.moveTo(center.x - beamW, center.y - 2000);
     ctx.lineTo(center.x + beamW, center.y - 2000);
@@ -1857,14 +1856,17 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Glowing impact point
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(center.x, center.y, (8 + t7WidthAdd / 2) * (1 - tier8Prog), 0, Math.PI * 2);
+    ctx.arc(
+      center.x,
+      center.y,
+      (8 + t7WidthAdd / 2) * (1 - tier8Prog),
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
-
 
     ctx.restore();
   }
-
-
 
   // --- Tier 8: Symmetrical Zenith ---
   if (tier8Prog > 0) {
@@ -1900,12 +1902,17 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(center.x, center.y, corePulse, 0, Math.PI * 2);
     ctx.fill();
 
-
     ctx.restore();
   }
 
   // Draw FRONT edges of the inner prism
-  if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+  if (
+    tier2Prog > 0 &&
+    typeof ipts !== "undefined" &&
+    typeof ifaces !== "undefined" &&
+    ifaces &&
+    ifaces.iedges
+  ) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
     ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
@@ -1946,7 +1953,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.lineCap = "round";
 
     const pulse = 0.5 + 0.5 * Math.sin(t * 4);
-    
+
     // Draw resonating outer front edges
     ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
     ctx.lineWidth = 1 + 6 * pulse;
@@ -1960,7 +1967,13 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
 
     // Draw resonating inner front edges
-    if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+    if (
+      tier2Prog > 0 &&
+      typeof ipts !== "undefined" &&
+      typeof ifaces !== "undefined" &&
+      ifaces &&
+      ifaces.iedges
+    ) {
       ctx.save();
       ctx.globalAlpha = tier6Prog * tier2Prog;
       ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
@@ -1975,8 +1988,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       ctx.stroke();
       ctx.restore();
     }
-
-    
 
     ctx.restore();
   }
@@ -2396,9 +2407,19 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.fillRect(siloX + 8, siloY + 2, 3, containerHeight - 4);
       } else {
         ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.fillRect(siloX + containerWidth - 8, siloY + 2, 5, containerHeight - 4);
+        ctx.fillRect(
+          siloX + containerWidth - 8,
+          siloY + 2,
+          5,
+          containerHeight - 4,
+        );
         ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
-        ctx.fillRect(siloX + containerWidth - 11, siloY + 2, 3, containerHeight - 4);
+        ctx.fillRect(
+          siloX + containerWidth - 11,
+          siloY + 2,
+          3,
+          containerHeight - 4,
+        );
       }
 
       // Metal caps (Top and Bottom of Silo)
@@ -2628,23 +2649,32 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
 
   // Common function for drawing lightning bolts
-  const drawLightning = (sx, sy, ex, ey, segments, jitter, color, lineWidth) => {
+  const drawLightning = (
+    sx,
+    sy,
+    ex,
+    ey,
+    segments,
+    jitter,
+    color,
+    lineWidth,
+  ) => {
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    
+
     ctx.beginPath();
     ctx.moveTo(sx, sy);
     for (let j = 1; j < segments; j++) {
-        const tPos = j / segments;
-        const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
-        const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
-        ctx.lineTo(px, py);
+      const tPos = j / segments;
+      const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
+      const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
+      ctx.lineTo(px, py);
     }
     ctx.lineTo(ex, ey);
     ctx.stroke();
-    
+
     // Core (white)
     ctx.strokeStyle = "rgba(255,255,255,0.9)";
     ctx.lineWidth = lineWidth * 0.4;
@@ -2674,45 +2704,81 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   if (tier1Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier1Prog;
-    
+
     // Large copper coils wrapping around the tall prongs
     ctx.strokeStyle = "#e99f79"; // bright copper
     ctx.lineWidth = 2;
     const numCoils = 3 + Math.floor(10 * tier1Prog); // Less dense coils
     const coilSpacing = prongHeight / numCoils;
-    for(let i=0; i<numCoils; i++) {
+    for (let i = 0; i < numCoils; i++) {
       ctx.beginPath();
-      ctx.moveTo(-prongOffset - 8, -40 - prongHeight + 5 + i*coilSpacing);
-      ctx.lineTo(-prongOffset + 8, -40 - prongHeight + 7 + i*coilSpacing);
+      ctx.moveTo(-prongOffset - 8, -40 - prongHeight + 5 + i * coilSpacing);
+      ctx.lineTo(-prongOffset + 8, -40 - prongHeight + 7 + i * coilSpacing);
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(prongOffset - 8, -40 - prongHeight + 5 + i*coilSpacing);
-      ctx.lineTo(prongOffset + 8, -40 - prongHeight + 7 + i*coilSpacing);
+      ctx.moveTo(prongOffset - 8, -40 - prongHeight + 5 + i * coilSpacing);
+      ctx.lineTo(prongOffset + 8, -40 - prongHeight + 7 + i * coilSpacing);
       ctx.stroke();
     }
 
     // Faint glow
     const pulse = 0.5 + 0.5 * Math.sin(t * 3);
     const topY = -40 - prongHeight;
-    const glowRad = ctx.createRadialGradient(-prongOffset, topY, 0, -prongOffset, topY, 20 + 10*tier1Prog);
+    const glowRad = ctx.createRadialGradient(
+      -prongOffset,
+      topY,
+      0,
+      -prongOffset,
+      topY,
+      20 + 10 * tier1Prog,
+    );
     glowRad.addColorStop(0, `rgba(0, 200, 255, ${0.4 * pulse})`);
     glowRad.addColorStop(1, "rgba(0, 200, 255, 0)");
     ctx.fillStyle = glowRad;
-    ctx.beginPath(); ctx.arc(-prongOffset, topY, 20 + 10*tier1Prog, 0, Math.PI*2); ctx.fill();
-    
-    const glowRad2 = ctx.createRadialGradient(prongOffset, topY, 0, prongOffset, topY, 20 + 10*tier1Prog);
+    ctx.beginPath();
+    ctx.arc(-prongOffset, topY, 20 + 10 * tier1Prog, 0, Math.PI * 2);
+    ctx.fill();
+
+    const glowRad2 = ctx.createRadialGradient(
+      prongOffset,
+      topY,
+      0,
+      prongOffset,
+      topY,
+      20 + 10 * tier1Prog,
+    );
     glowRad2.addColorStop(0, `rgba(0, 200, 255, ${0.4 * pulse})`);
     glowRad2.addColorStop(1, "rgba(0, 200, 255, 0)");
     ctx.fillStyle = glowRad2;
-    ctx.beginPath(); ctx.arc(prongOffset, topY, 20 + 10*tier1Prog, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(prongOffset, topY, 20 + 10 * tier1Prog, 0, Math.PI * 2);
+    ctx.fill();
 
     // Occasional static spark
     if (Math.random() > 0.9) {
-      drawLightning(-prongOffset, topY, -prongOffset + (Math.random()-0.5)*20, topY - Math.random()*20, 2, 5, "rgba(100, 200, 255, 0.6)", 1);
+      drawLightning(
+        -prongOffset,
+        topY,
+        -prongOffset + (Math.random() - 0.5) * 20,
+        topY - Math.random() * 20,
+        2,
+        5,
+        "rgba(100, 200, 255, 0.6)",
+        1,
+      );
     }
     if (Math.random() > 0.9) {
-      drawLightning(prongOffset, topY, prongOffset + (Math.random()-0.5)*20, topY - Math.random()*20, 2, 5, "rgba(100, 200, 255, 0.6)", 1);
+      drawLightning(
+        prongOffset,
+        topY,
+        prongOffset + (Math.random() - 0.5) * 20,
+        topY - Math.random() * 20,
+        2,
+        5,
+        "rgba(100, 200, 255, 0.6)",
+        1,
+      );
     }
 
     ctx.restore();
@@ -2789,9 +2855,18 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   ctx.fillRect(-60 - extraBaseWidth, -40, 120 + extraBaseWidth * 2, 5);
 
   // Tier 0 Occasional Lightning Spark to center (From top of prongs)
-  if (Math.random() > 0.90) {
+  if (Math.random() > 0.9) {
     const yPos = -40 - prongHeight; // Top of the prongs
-    drawLightning(-prongOffset, yPos, prongOffset, yPos, 4, 10, "rgba(0, 200, 255, 0.6)", 1.5);
+    drawLightning(
+      -prongOffset,
+      yPos,
+      prongOffset,
+      yPos,
+      4,
+      10,
+      "rgba(0, 200, 255, 0.6)",
+      1.5,
+    );
   }
   // Tier 3 (Tesla Nodes)
   if (tier3Prog > 0) {
@@ -2838,29 +2913,47 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       { x: -74 - extraBaseWidth, y: -45 },
       { x: 74 + extraBaseWidth, y: -45 },
       { x: -54 - extraBaseWidth, y: -65 },
-      { x: 54 + extraBaseWidth, y: -65 }
+      { x: 54 + extraBaseWidth, y: -65 },
     ];
 
     for (let i = 0; i < nodePositions.length; i++) {
       drawTeslaNode(nodePositions[i].x, nodePositions[i].y, i);
     }
-    
+
     // Connect left nodes (0 and 2) to avoid crossing the center
     if (Math.random() > 0.95) {
       const p1 = nodePositions[0];
       const p2 = nodePositions[2];
       const bobY1 = p1.y + Math.sin(t * 2 + 0) * 5;
       const bobY2 = p2.y + Math.sin(t * 2 + 2) * 5;
-      drawLightning(p1.x, bobY1, p2.x, bobY2, 4, 8, "rgba(100, 255, 255, 0.5)", 1.5);
+      drawLightning(
+        p1.x,
+        bobY1,
+        p2.x,
+        bobY2,
+        4,
+        8,
+        "rgba(100, 255, 255, 0.5)",
+        1.5,
+      );
     }
-    
+
     // Connect right nodes (1 and 3) to avoid crossing the center
     if (Math.random() > 0.95) {
       const p1 = nodePositions[1];
       const p2 = nodePositions[3];
       const bobY1 = p1.y + Math.sin(t * 2 + 1) * 5;
       const bobY2 = p2.y + Math.sin(t * 2 + 3) * 5;
-      drawLightning(p1.x, bobY1, p2.x, bobY2, 4, 8, "rgba(100, 255, 255, 0.5)", 1.5);
+      drawLightning(
+        p1.x,
+        bobY1,
+        p2.x,
+        bobY2,
+        4,
+        8,
+        "rgba(100, 255, 255, 0.5)",
+        1.5,
+      );
     }
 
     ctx.restore();
@@ -2868,167 +2961,115 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
   // Tier 4 (Cyan Stepped Pyramid with Floating Rings and Glowing Orb)
 
-    const drawTier7Rings = (isFrontPass) => {
-      if (tier7Prog <= 0) return;
+  const drawTier7Rings = (isFrontPass) => {
+    if (tier7Prog <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
+    ctx.globalCompositeOperation = "lighter";
+
+    const ringCenterY = -150; // Orbiting high above to prevent ground clipping
+
+    ctx.save();
+    ctx.translate(0, ringCenterY);
+
+    const numRings = 4;
+    for (let i = 0; i < numRings; i++) {
       ctx.save();
-      ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
-      ctx.globalCompositeOperation = "lighter";
-      
-      const ringCenterY = -150; // Orbiting high above to prevent ground clipping
-      
-      ctx.save();
-      ctx.translate(0, ringCenterY);
-      
-      const numRings = 4;
-      for (let i = 0; i < numRings; i++) {
-          ctx.save();
-          
-          // Rings have different, nested radii
-          const ringRadius = 90 + i * 25;
-          
-          // Constrain angles for 3D rotation so they don't clip into the upright Tier 4 Tesla Coil
-          // We restrict angleX (tilt) to a small range (e.g., -PI/8 to PI/8)
-          // The Rings can spin freely around Y, but with limited tilt in X and Z.
-          // Rings act like a gyroscope: fixed tilt per ring, spinning around Y.
-          const angleX = Math.PI / 3; // Tilt them so they look like rings (fixed)
-          const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2); // Orbit over time, offset per ring
-          const angleZ = 0; // Not needed, Z rotation on an XY circle is invisible
 
-          // 3x3 Rotation matrix to calculate true 2D projection and Z-depth
-          const sinX = Math.sin(angleX), cosX = Math.cos(angleX);
-          const sinY = Math.sin(angleY);
-          const cosY = Math.cos(angleY);
+      // Rings have different, nested radii
+      const ringRadius = 90 + i * 25;
 
-          const sinZ = Math.sin(angleZ), cosZ = Math.cos(angleZ);
-          
-          // Elements of the combined rotation matrix R = Ry * Rx * Rz
-          const r00 = cosY * cosZ + sinY * sinX * sinZ;
-          const r01 = -cosY * sinZ + sinY * sinX * cosZ;
-          const r10 = cosX * sinZ;
-          const r11 = cosX * cosZ;
-          const r20 = -sinY * cosZ + cosY * sinX * sinZ;
-          const r21 = sinY * sinZ + cosY * sinX * cosZ;
-          
-          // Apply the exact affine transform for the 2D projection
-          ctx.transform(r00, r10, r01, r11, 0, 0);
-          
-          // Z = r20 * cos(a) + r21 * sin(a)
-          // We want to find the angles where Z = 0 (the split between front and back)
-          // Z = 0 => r20 * cos(a) + r21 * sin(a) = 0 => tan(a) = -r20 / r21
-          const theta0 = Math.atan2(-r20, r21);
-          
-          // Check Z at mid-point (theta0 + PI/2)
-          const zAtMid = r20 * Math.cos(theta0 + Math.PI/2) + r21 * Math.sin(theta0 + Math.PI/2);
-          const isMidFront = zAtMid >= 0;
-          
-          let startAngle, endAngle;
-          if (isFrontPass) {
-            startAngle = isMidFront ? theta0 : theta0 + Math.PI;
-            endAngle = startAngle + Math.PI;
-          } else {
-            startAngle = isMidFront ? theta0 + Math.PI : theta0;
-            endAngle = startAngle + Math.PI;
-          }
-          
-          // Draw the ring path
-          ctx.beginPath();
-          ctx.arc(0, 0, ringRadius, startAngle, endAngle);
-          
-          ctx.restore(); // Restore here so strokes and nodes aren't squashed
+      // Constrain angles for 3D rotation so they don't clip into the upright Tier 4 Tesla Coil
+      // We restrict angleX (tilt) to a small range (e.g., -PI/8 to PI/8)
+      // The Rings can spin freely around Y, but with limited tilt in X and Z.
+      // Rings act like a gyroscope: fixed tilt per ring, spinning around Y.
+      const angleX = Math.PI / 3; // Tilt them so they look like rings (fixed)
+      const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2); // Orbit over time, offset per ring
+      const angleZ = 0; // Not needed, Z rotation on an XY circle is invisible
 
-          ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
-          ctx.lineWidth = 4;
-          ctx.stroke();
+      // 3x3 Rotation matrix to calculate true 2D projection and Z-depth
+      const sinX = Math.sin(angleX),
+        cosX = Math.cos(angleX);
+      const sinY = Math.sin(angleY);
+      const cosY = Math.cos(angleY);
 
-          // Inner core of the ring
-          ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
+      const sinZ = Math.sin(angleZ),
+        cosZ = Math.cos(angleZ);
 
-          // Add energy nodes on the ring
-          const numNodes = 3;
-          for (let j = 0; j < numNodes; j++) {
-              const nodeAngle = t * 3 + (j * Math.PI * 2) / numNodes;
-              
-              // Normalize nodeAngle to [0, 2PI]
-              let normNodeAngle = nodeAngle % (Math.PI * 2);
-              if (normNodeAngle < 0) normNodeAngle += Math.PI * 2;
+      // Elements of the combined rotation matrix R = Ry * Rx * Rz
+      const r00 = cosY * cosZ + sinY * sinX * sinZ;
+      const r01 = -cosY * sinZ + sinY * sinX * cosZ;
+      const r10 = cosX * sinZ;
+      const r11 = cosX * cosZ;
+      const r20 = -sinY * cosZ + cosY * sinX * sinZ;
+      const r21 = sinY * sinZ + cosY * sinX * cosZ;
 
-              let nodeIsFront = false;
-              
-              // Calculate continuous z-depth to ensure node logic exactly matches arc logic
-              const nz = r20 * Math.cos(nodeAngle) + r21 * Math.sin(nodeAngle);
-              nodeIsFront = nz >= 0;
+      // Apply the exact affine transform for the 2D projection
+      ctx.transform(r00, r10, r01, r11, 0, 0);
 
-              if (nodeIsFront === isFrontPass) {
-                  const nx = Math.cos(nodeAngle) * ringRadius;
-                  const ny = Math.sin(nodeAngle) * ringRadius;
-                  
-                  const px = r00 * nx + r01 * ny;
-                  const py = r10 * nx + r11 * ny;
-                  
-                  ctx.save();
-                  ctx.translate(px, py);
-                  
-                  const pScale = 0.85 + nz * 0.35;
-                  ctx.scale(pScale, pScale);
-                  
-                  const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
-                  sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
-                  sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
-                  sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
-                  ctx.fillStyle = sglow;
-                  ctx.beginPath();
-                  ctx.arc(0, 0, 16, 0, Math.PI * 2);
-                  ctx.fill();
+      // Z = r20 * cos(a) + r21 * sin(a)
+      // We want to find the angles where Z = 0 (the split between front and back)
+      // Z = 0 => r20 * cos(a) + r21 * sin(a) = 0 => tan(a) = -r20 / r21
+      const theta0 = Math.atan2(-r20, r21);
 
-                  ctx.fillStyle = "#fff";
-                  ctx.beginPath();
-                  ctx.arc(0, 0, 5, 0, Math.PI * 2);
-                  ctx.fill();
-                  
-                  ctx.restore();
-              }
-          }
+      // Check Z at mid-point (theta0 + PI/2)
+      const zAtMid =
+        r20 * Math.cos(theta0 + Math.PI / 2) +
+        r21 * Math.sin(theta0 + Math.PI / 2);
+      const isMidFront = zAtMid >= 0;
+
+      let startAngle, endAngle;
+      if (isFrontPass) {
+        startAngle = isMidFront ? theta0 : theta0 + Math.PI;
+        endAngle = startAngle + Math.PI;
+      } else {
+        startAngle = isMidFront ? theta0 + Math.PI : theta0;
+        endAngle = startAngle + Math.PI;
       }
-      
-      ctx.restore();
-      ctx.restore();
-    };
 
-    const drawT5Particles = (isFront) => {
-      if (tier5Prog <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = tier5Prog;
-      
-      const numRings = 3;
-      const numParticles = 3;
-      const orbitSpeed = 4;
+      // Draw the ring path
+      ctx.beginPath();
+      ctx.arc(0, 0, ringRadius, startAngle, endAngle);
 
-      for (let r = 0; r < numRings; r++) {
-        const ringYOffset = -80 - r * 50;
-        const ringWidth = 120 - r * 20;
-        const ringHeight = 30; // Matches tier 4 squashed ring
-        
-        for (let i = 0; i < numParticles; i++) {
-          const dir = (r % 2 === 0) ? 1 : -1;
-          const angle = t * orbitSpeed * dir + (i * Math.PI * 2) / numParticles + (r * Math.PI / 3);
-          
-          const depth = Math.sin(angle);
-          
-          if (isFront && depth < 0) continue;
-          if (!isFront && depth >= 0) continue;
-          
-          const x = Math.cos(angle) * ringWidth;
-          const y = ringYOffset + depth * ringHeight;
-          
+      ctx.restore(); // Restore here so strokes and nodes aren't squashed
+
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Inner core of the ring
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Add energy nodes on the ring
+      const numNodes = 3;
+      for (let j = 0; j < numNodes; j++) {
+        const nodeAngle = t * 3 + (j * Math.PI * 2) / numNodes;
+
+        // Normalize nodeAngle to [0, 2PI]
+        let normNodeAngle = nodeAngle % (Math.PI * 2);
+        if (normNodeAngle < 0) normNodeAngle += Math.PI * 2;
+
+        let nodeIsFront = false;
+
+        // Calculate continuous z-depth to ensure node logic exactly matches arc logic
+        const nz = r20 * Math.cos(nodeAngle) + r21 * Math.sin(nodeAngle);
+        nodeIsFront = nz >= 0;
+
+        if (nodeIsFront === isFrontPass) {
+          const nx = Math.cos(nodeAngle) * ringRadius;
+          const ny = Math.sin(nodeAngle) * ringRadius;
+
+          const px = r00 * nx + r01 * ny;
+          const py = r10 * nx + r11 * ny;
+
           ctx.save();
-          ctx.translate(x, y);
-          
-          const pScale = 0.85 + depth * 0.35;
-          ctx.globalAlpha = tier5Prog;
+          ctx.translate(px, py);
+
+          const pScale = 0.85 + nz * 0.35;
           ctx.scale(pScale, pScale);
-          
+
           const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
           sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
           sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
@@ -3042,23 +3083,82 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
           ctx.beginPath();
           ctx.arc(0, 0, 5, 0, Math.PI * 2);
           ctx.fill();
-          
+
           ctx.restore();
         }
       }
-      
-      ctx.restore();
-    };
+    }
+
+    ctx.restore();
+    ctx.restore();
+  };
+
+  const drawT5Particles = (isFront) => {
+    if (tier5Prog <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+
+    const numRings = 3;
+    const numParticles = 3;
+    const orbitSpeed = 4;
+
+    for (let r = 0; r < numRings; r++) {
+      const ringYOffset = -80 - r * 50;
+      const ringWidth = 120 - r * 20;
+      const ringHeight = 30; // Matches tier 4 squashed ring
+
+      for (let i = 0; i < numParticles; i++) {
+        const dir = r % 2 === 0 ? 1 : -1;
+        const angle =
+          t * orbitSpeed * dir +
+          (i * Math.PI * 2) / numParticles +
+          (r * Math.PI) / 3;
+
+        const depth = Math.sin(angle);
+
+        if (isFront && depth < 0) continue;
+        if (!isFront && depth >= 0) continue;
+
+        const x = Math.cos(angle) * ringWidth;
+        const y = ringYOffset + depth * ringHeight;
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        const pScale = 0.85 + depth * 0.35;
+        ctx.globalAlpha = tier5Prog;
+        ctx.scale(pScale, pScale);
+
+        const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
+        sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+        sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
+        sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
+        ctx.fillStyle = sglow;
+        ctx.beginPath();
+        ctx.arc(0, 0, 16, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    ctx.restore();
+  };
 
   if (tier4Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier4Prog;
-    
+
     const steps = 8;
     const stepHeight = 20;
     const baseWidth = 80;
     const numRings = 3;
-    
+
     drawTier7Rings(false);
 
     // 1) Draw the BACK HALF of the Floating Rings first (so they are behind the pyramid)
@@ -3070,7 +3170,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.translate(0, ringYOffset);
       const ringWidth = 120 - r * 20;
       const ringHeight = 30; // perspective squash
-      
+
       // Add cyan glow applied on top of the rings synced with orb. Glow size/intensity pulses.
       ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
       ctx.shadowBlur = 10 + pulse * 30;
@@ -3080,7 +3180,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       ctx.ellipse(0, 0, ringWidth, ringHeight, 0, Math.PI, 0); // top half (back)
       ctx.stroke();
-      
+
       // Add a pure white core to the back part of the ring for intense electric look
       ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
       ctx.lineWidth = 2;
@@ -3088,41 +3188,48 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       ctx.ellipse(0, 0, ringWidth, ringHeight, 0, Math.PI, 0); // top half (back)
       ctx.stroke();
-      
+
       ctx.restore();
     }
-    
+
     drawT5Particles(false);
 
     // 2) Draw the Stepped Pyramid (covers the back half of the rings)
     for (let i = 0; i < steps; i++) {
       const y = -40 - i * stepHeight;
       const width = baseWidth - i * 8; // Gets narrower at the top
-      
+
       if (copperPattern) {
         ctx.fillStyle = copperPattern;
       } else {
         ctx.fillStyle = "#b6673f";
       }
-      
-      ctx.fillRect(-width/2, y - stepHeight, width, stepHeight);
-      
+
+      ctx.fillRect(-width / 2, y - stepHeight, width, stepHeight);
+
       // Highlight edges for stepped look
       ctx.strokeStyle = "#00ffff"; // Cyan edges
       ctx.lineWidth = 1;
       ctx.globalAlpha = tier4Prog * 0.3; // subtle
-      ctx.strokeRect(-width/2, y - stepHeight, width, stepHeight);
+      ctx.strokeRect(-width / 2, y - stepHeight, width, stepHeight);
       ctx.globalAlpha = tier4Prog;
     }
 
     // 3) The Glowing Orb at the top
     const orbY = -40 - steps * stepHeight - 10;
     const orbRadius = 25;
-    
+
     // pulse removed
-    
+
     // Outer glow for Orb
-    const orbGlow = ctx.createRadialGradient(0, orbY, 10, 0, orbY, 60 + pulse * 20);
+    const orbGlow = ctx.createRadialGradient(
+      0,
+      orbY,
+      10,
+      0,
+      orbY,
+      60 + pulse * 20,
+    );
     orbGlow.addColorStop(0, `rgba(0, 255, 255, ${0.8 * tier4Prog})`);
     orbGlow.addColorStop(0.5, `rgba(0, 150, 255, ${0.4 * tier4Prog})`);
     orbGlow.addColorStop(1, "rgba(0, 0, 255, 0)");
@@ -3136,7 +3243,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     ctx.beginPath();
     ctx.arc(0, orbY, orbRadius, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // Cyan inner shadow/gradient on Orb
     const orbInner = ctx.createRadialGradient(0, orbY, 0, 0, orbY, orbRadius);
     orbInner.addColorStop(0, "rgba(255,255,255,1)");
@@ -3155,7 +3262,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.translate(0, ringYOffset);
       const ringWidth = 120 - r * 20;
       const ringHeight = 30; // perspective squash
-      
+
       // Add cyan glow applied on top of the rings synced with orb. Glow size/intensity pulses.
       ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
       ctx.shadowBlur = 10 + pulse * 30;
@@ -3165,7 +3272,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       ctx.ellipse(0, 0, ringWidth, ringHeight, 0, 0, Math.PI); // bottom half (front)
       ctx.stroke();
-      
+
       // Add a pure white core to the front part of the ring for intense electric look
       ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
       ctx.lineWidth = 2;
@@ -3173,7 +3280,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       ctx.ellipse(0, 0, ringWidth, ringHeight, 0, 0, Math.PI); // bottom half (front)
       ctx.stroke();
-      
+
       ctx.restore();
     }
 
@@ -3187,7 +3294,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   if (tier6Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier6Prog;
-    
+
     const orbY = -40 - 8 * 20 - 10; // orb is at y = -210
     const ringRadiusX = 70;
     const ringRadiusY = 20;
@@ -3195,47 +3302,51 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     const orbitSpeed = 3;
 
     for (let i = 0; i < numSatellites; i++) {
-        const angle = t * orbitSpeed + (i * Math.PI * 2) / numSatellites;
-        const px = Math.cos(angle) * ringRadiusX;
-        // Orbiting around the top orb
-        const py = orbY + Math.sin(angle) * ringRadiusY + Math.sin(t * 5 + i) * 10;
-        const depth = Math.sin(angle);
-        
-        // Pseudo-3D scale
-        const scale = 0.6 + depth * 0.4;
-        
-        ctx.save();
-        ctx.translate(px, py);
-        ctx.scale(scale, scale); 
-        
-        // Crown node glow
-        const nodeGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
-        nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${1.0 * tier6Prog})`);
-        nodeGlow.addColorStop(0.4, `rgba(0, 255, 255, ${0.8 * tier6Prog})`);
-        nodeGlow.addColorStop(1, "rgba(0, 200, 255, 0)");
-        
-        ctx.fillStyle = nodeGlow;
+      const angle = t * orbitSpeed + (i * Math.PI * 2) / numSatellites;
+      const px = Math.cos(angle) * ringRadiusX;
+      // Orbiting around the top orb
+      const py =
+        orbY + Math.sin(angle) * ringRadiusY + Math.sin(t * 5 + i) * 10;
+      const depth = Math.sin(angle);
+
+      // Pseudo-3D scale
+      const scale = 0.6 + depth * 0.4;
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(scale, scale);
+
+      // Crown node glow
+      const nodeGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
+      nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${1.0 * tier6Prog})`);
+      nodeGlow.addColorStop(0.4, `rgba(0, 255, 255, ${0.8 * tier6Prog})`);
+      nodeGlow.addColorStop(1, "rgba(0, 200, 255, 0)");
+
+      ctx.fillStyle = nodeGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 25, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Node core
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Connect nodes to the orb with arcs
+      if (Math.random() > 0.8) {
+        ctx.strokeStyle = `rgba(150, 255, 255, ${0.5 * tier6Prog})`;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(0, 0, 25, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(
+          -px + (Math.random() - 0.5) * 10,
+          orbY - py + (Math.random() - 0.5) * 10,
+        );
+        ctx.stroke();
+      }
 
-        // Node core
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(0, 0, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Connect nodes to the orb with arcs
-        if (Math.random() > 0.8) {
-          ctx.strokeStyle = `rgba(150, 255, 255, ${0.5 * tier6Prog})`;
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(-px + (Math.random() - 0.5) * 10, orbY - py + (Math.random() - 0.5) * 10);
-          ctx.stroke();
-        }
-
-        ctx.restore();
+      ctx.restore();
     }
 
     ctx.restore();
@@ -3245,15 +3356,22 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   if (tier8Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier8Prog;
-    
+
     const steps = 8;
     const stepHeight = 20;
     const orbY = -40 - steps * stepHeight - 10;
-    
+
     // Blinding plasma sphere enveloping the orb
     const pulse = 0.5 + 0.5 * Math.sin(t * 12);
-    
-    const glowRad = ctx.createRadialGradient(0, orbY, 20, 0, orbY, 100 + pulse * 40);
+
+    const glowRad = ctx.createRadialGradient(
+      0,
+      orbY,
+      20,
+      0,
+      orbY,
+      100 + pulse * 40,
+    );
     glowRad.addColorStop(0, "rgba(255, 255, 255, 1.0)");
     glowRad.addColorStop(0.3, "rgba(0, 255, 255, 0.8)");
     glowRad.addColorStop(1, "rgba(0, 100, 255, 0)");
@@ -3264,26 +3382,53 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
     // Chaotic white-hot lightning firing OUT in ALL directions (360 degrees)
     const numBolts = 4 + Math.floor(Math.random() * 4);
-    for(let i=0; i<numBolts; i++) {
+    for (let i = 0; i < numBolts; i++) {
       // Random angle in 360 degrees
       const angle = Math.random() * Math.PI * 2;
       // Random distance outwards
       const dist = 100 + Math.random() * 150;
-      
+
       const destX = Math.cos(angle) * dist;
       const destY = orbY + Math.sin(angle) * dist;
-      
-      drawLightning(0, orbY, destX, destY, 6, 20, "rgba(200, 255, 255, 0.9)", 3 + Math.random()*3);
+
+      drawLightning(
+        0,
+        orbY,
+        destX,
+        destY,
+        6,
+        20,
+        "rgba(200, 255, 255, 0.9)",
+        3 + Math.random() * 3,
+      );
     }
-    
+
     // Small occasional side arcs from the pyramid base
     if (Math.random() > 0.5) {
-       drawLightning(-40, -60, -100 - Math.random()*40, -60 + (Math.random()-0.5)*40, 4, 15, "rgba(100, 255, 255, 0.7)", 2);
+      drawLightning(
+        -40,
+        -60,
+        -100 - Math.random() * 40,
+        -60 + (Math.random() - 0.5) * 40,
+        4,
+        15,
+        "rgba(100, 255, 255, 0.7)",
+        2,
+      );
     }
     if (Math.random() > 0.5) {
-       drawLightning(40, -60, 100 + Math.random()*40, -60 + (Math.random()-0.5)*40, 4, 15, "rgba(100, 255, 255, 0.7)", 2);
+      drawLightning(
+        40,
+        -60,
+        100 + Math.random() * 40,
+        -60 + (Math.random() - 0.5) * 40,
+        4,
+        15,
+        "rgba(100, 255, 255, 0.7)",
+        2,
+      );
     }
-    
+
     // Calculate and shoot lightning from orb to Tier 5 particles, and outwards from them
     if (tier5Prog > 0) {
       const numRings = 3;
@@ -3294,43 +3439,68 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
         const ringYOffset = -80 - r * 50;
         const ringWidth = 120 - r * 20;
         const ringHeight = 30;
-        
+
         for (let i = 0; i < numParticles; i++) {
           // Only occasionally strike a particle
           if (Math.random() > 0.85) continue;
 
-          const dir = (r % 2 === 0) ? 1 : -1;
-          const angle = t * orbitSpeed * dir + (i * Math.PI * 2) / numParticles + (r * Math.PI / 3);
-          
+          const dir = r % 2 === 0 ? 1 : -1;
+          const angle =
+            t * orbitSpeed * dir +
+            (i * Math.PI * 2) / numParticles +
+            (r * Math.PI) / 3;
+
           const depth = Math.sin(angle);
           const x = Math.cos(angle) * ringWidth;
           const y = ringYOffset + depth * ringHeight;
-          
+
           // Strike from orb to particle
-          drawLightning(0, orbY, x, y, 4, 15, "rgba(150, 255, 255, 0.9)", 2 + Math.random());
-          
+          drawLightning(
+            0,
+            orbY,
+            x,
+            y,
+            4,
+            15,
+            "rgba(150, 255, 255, 0.9)",
+            2 + Math.random(),
+          );
+
           // Strike from particle outwards
           const numOutwardBolts = 1 + Math.floor(Math.random() * 2);
-          for(let b = 0; b < numOutwardBolts; b++) {
-             // Add random spread to the angle outward
-             const outAngle = angle + (Math.random() - 0.5);
-             const dist = 60 + Math.random() * 100;
-             const endX = x + Math.cos(outAngle) * dist;
-             const endY = y + Math.sin(outAngle) * dist;
-             
-             drawLightning(x, y, endX, endY, 4, 15, "rgba(200, 255, 255, 0.9)", 1.5 + Math.random()*1.5);
+          for (let b = 0; b < numOutwardBolts; b++) {
+            // Add random spread to the angle outward
+            const outAngle = angle + (Math.random() - 0.5);
+            const dist = 60 + Math.random() * 100;
+            const endX = x + Math.cos(outAngle) * dist;
+            const endY = y + Math.sin(outAngle) * dist;
+
+            drawLightning(
+              x,
+              y,
+              endX,
+              endY,
+              4,
+              15,
+              "rgba(200, 255, 255, 0.9)",
+              1.5 + Math.random() * 1.5,
+            );
           }
         }
       }
     }
-
 
     ctx.restore();
   }
 }
 
 function drawRefinery(ctx, t, tier, prevTier, animProgress) {
-  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
+  const getProg = (targetTier) =>
+    tier >= targetTier && prevTier < targetTier
+      ? animProgress
+      : tier >= targetTier
+        ? 1
+        : 0;
   const t1 = getProg(1);
   const t2 = getProg(2);
   const t3 = getProg(3);
@@ -3340,7 +3510,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   const t7 = getProg(7);
   const t8 = getProg(8);
 
-  if (!ironPattern && typeof activeCtx !== 'undefined' && activeCtx) {
+  if (!ironPattern && typeof activeCtx !== "undefined" && activeCtx) {
     initIronPattern(activeCtx);
   } else if (!ironPattern) {
     initIronPattern(ctx);
@@ -3352,24 +3522,33 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   const sparkColor = "rgba(255, 255, 0, 0.9)"; // Bright yellow
 
   // Common function for drawing lightning bolts
-  const drawLightning = (sx, sy, ex, ey, segments, jitter, color, lineWidth) => {
+  const drawLightning = (
+    sx,
+    sy,
+    ex,
+    ey,
+    segments,
+    jitter,
+    color,
+    lineWidth,
+  ) => {
     ctx.save();
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    
+
     ctx.beginPath();
     ctx.moveTo(sx, sy);
     for (let j = 1; j < segments; j++) {
-        const tPos = j / segments;
-        const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
-        const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
-        ctx.lineTo(px, py);
+      const tPos = j / segments;
+      const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
+      const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
+      ctx.lineTo(px, py);
     }
     ctx.lineTo(ex, ey);
     ctx.stroke();
-    
+
     // Core (white)
     ctx.strokeStyle = "rgba(255,255,255,0.9)";
     ctx.lineWidth = lineWidth * 0.4;
@@ -3377,365 +3556,579 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
-
   // Helper to draw fluid pipes
   const drawFluidPipe = (pts, width, fluidColor, flowSpeed, alpha = 1) => {
-      if (alpha <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      
-      // Outer pipe
-      ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
-      ctx.lineWidth = width;
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    // Outer pipe
+    ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+
+    // Shadow overlay
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = width * 0.7;
+    ctx.stroke();
+
+    // Specular highlight
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = width * 0.2;
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      if (i === 0) ctx.moveTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
+      else ctx.lineTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
+    }
+    ctx.stroke();
+
+    // Fluid slit
+    if (fluidColor) {
+      ctx.strokeStyle = "#1a1a1a";
+      ctx.lineWidth = width * 0.35;
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
-      for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
       ctx.stroke();
 
-      // Shadow overlay
-      ctx.strokeStyle = "rgba(0,0,0,0.4)";
-      ctx.lineWidth = width * 0.7;
-      ctx.stroke();
-      
-      // Specular highlight
-      ctx.strokeStyle = "rgba(255,255,255,0.3)";
+      ctx.strokeStyle = fluidColor;
       ctx.lineWidth = width * 0.2;
-      ctx.beginPath();
-      for(let i=0; i<pts.length; i++) {
-          if(i===0) ctx.moveTo(pts[i].x - width*0.15, pts[i].y - width*0.15);
-          else ctx.lineTo(pts[i].x - width*0.15, pts[i].y - width*0.15);
-      }
+      const dashLen = width * 2.5;
+      ctx.setLineDash([dashLen, dashLen * 1.5]);
+      ctx.lineDashOffset = -t * flowSpeed * 20;
       ctx.stroke();
 
-      // Fluid slit
-      if (fluidColor) {
-         ctx.strokeStyle = "#1a1a1a";
-         ctx.lineWidth = width * 0.35;
-         ctx.beginPath();
-         ctx.moveTo(pts[0].x, pts[0].y);
-         for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-         ctx.stroke();
-         
-         ctx.strokeStyle = fluidColor;
-         ctx.lineWidth = width * 0.2;
-         const dashLen = width * 2.5;
-         ctx.setLineDash([dashLen, dashLen * 1.5]);
-         ctx.lineDashOffset = -t * flowSpeed * 20;
-         ctx.stroke();
-         
-         ctx.shadowColor = fluidColor;
-         ctx.shadowBlur = width;
-         ctx.stroke();
-         ctx.setLineDash([]);
-         ctx.shadowBlur = 0;
-      }
-      ctx.restore();
+      ctx.shadowColor = fluidColor;
+      ctx.shadowBlur = width;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
   };
 
   // Helper for tanks
   const drawTank = (x, y, w, h, fluidColor, fillLevel, alpha = 1) => {
-      if (alpha <= 0) return;
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+
+    // Back frame
+    ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
+    ctx.fillRect(-w / 2, -h, w, h);
+
+    // Fluid
+    if (fluidColor) {
+      const fHeight = h;
+      const yOff = -fHeight;
+      ctx.fillStyle = fluidColor;
+      ctx.fillRect(-w / 2 + 2, yOff, w - 4, fHeight);
+
+      // Bubbles
       ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.translate(x, y);
+      ctx.beginPath();
+      ctx.rect(-w / 2 + 2, yOff, w - 4, fHeight);
+      ctx.clip();
 
-      // Back frame
-      ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
-      ctx.fillRect(-w/2, -h, w, h);
+      for (let i = 0; i < 8; i++) {
+        const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
+        const bubbleX =
+          -w / 2 + 4 + ((i * 5) % (w - 8)) + Math.sin(t * 3 + i) * 2;
+        const bubbleY = -bubbleT * fHeight;
+        const bubbleRadius = 1 + (i % 3);
 
-      // Fluid
-      if (fluidColor) {
-          const fHeight = h;
-          const yOff = -fHeight;
-          ctx.fillStyle = fluidColor;
-          ctx.fillRect(-w/2 + 2, yOff, w - 4, fHeight);
-
-          // Bubbles
-          ctx.save();
+        if (bubbleY > yOff + bubbleRadius) {
+          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
           ctx.beginPath();
-          ctx.rect(-w/2 + 2, yOff, w - 4, fHeight);
-          ctx.clip();
-          
-          for (let i = 0; i < 8; i++) {
-              const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
-              const bubbleX = -w/2 + 4 + ((i * 5) % (w - 8)) + Math.sin(t * 3 + i) * 2;
-              const bubbleY = -bubbleT * fHeight;
-              const bubbleRadius = 1 + (i % 3);
-              
-              if (bubbleY > yOff + bubbleRadius) {
-                  ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-                  ctx.beginPath();
-                  ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
-                  ctx.fill();
-              }
-          }
-          ctx.restore();
+          ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-
-      // Metal Caps
-      ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
-      ctx.fillRect(-w/2 - 2, -h - 4, w + 4, 6);
-      ctx.fillRect(-w/2 - 2, -2, w + 4, 6);
-
       ctx.restore();
+    }
+
+    // Metal Caps
+    ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
+    ctx.fillRect(-w / 2 - 2, -h - 4, w + 4, 6);
+    ctx.fillRect(-w / 2 - 2, -2, w + 4, 6);
+
+    ctx.restore();
   };
 
+  // ----------------------------------------------------
   // ----------------------------------------------------
   // Tier 0: Small Container
   // ----------------------------------------------------
   ctx.save();
   ctx.globalAlpha = 1.0;
-  
+
   const tankW = 50;
   const tankH = 60;
-  
+
   // Draw pipe first so it sits behind the tank
-  // Simplified single pipe leading out
-  drawFluidPipe([{x: 0, y: baseY - tankH + 10}, {x: 0, y: baseY - tankH - 15}, {x: 60, y: baseY - tankH - 15}, {x: 60, y: baseY}], 8, oilColor, 2.5, 1.0);
+  drawFluidPipe(
+    [
+      { x: 0, y: baseY - tankH + 10 },
+      { x: 0, y: baseY - tankH - 15 },
+      { x: 60, y: baseY - tankH - 15 },
+      { x: 60, y: baseY },
+    ],
+    8,
+    oilColor,
+    2.5,
+    1.0,
+  );
 
   // Central Small Tank sitting directly on the base platform
-  drawTank(0, baseY - 4, tankW, tankH, oilColor, 0.7 + 0.1 * Math.sin(t * 1.5), 1.0);
-  
+  drawTank(
+    0,
+    baseY - 4,
+    tankW,
+    tankH,
+    oilColor,
+    0.7 + 0.1 * Math.sin(t * 1.5),
+    1.0,
+  );
   ctx.restore();
 
   // ----------------------------------------------------
-  // Tier 1: Auxiliary Tanks & Piping
+  // Tier 1: Auxiliary Tank
   // ----------------------------------------------------
   if (t1 > 0) {
-      // Flanking black oil tanks with static fills
-      drawTank(-40, baseY - 20, 30, 50, oilColor, 0.6, t1);
-      drawTank(40, baseY - 20, 30, 50, oilColor, 0.8, t1);
-      
-      // Short piping connecting flanking tanks to central tank area
-      drawFluidPipe([{x: -25, y: baseY - 30}, {x: -15, y: baseY - 30}, {x: -15, y: baseY - 40}], 6, oilColor, 2, t1);
-      drawFluidPipe([{x: 25, y: baseY - 30}, {x: 15, y: baseY - 30}, {x: 15, y: baseY - 40}], 6, oilColor, 2.5, t1);
+    const leftTankX = -70;
+    drawFluidPipe(
+      [
+        { x: leftTankX, y: baseY - tankH + 10 },
+        { x: leftTankX, y: baseY - tankH - 15 },
+        { x: 0, y: baseY - tankH - 15 },
+      ],
+      8,
+      oilColor,
+      2.5,
+      t1,
+    );
+    drawTank(
+      leftTankX,
+      baseY - 4,
+      tankW,
+      tankH,
+      oilColor,
+      0.6 + 0.1 * Math.sin(t * 1.5 + 1),
+      t1,
+    );
   }
 
   // ----------------------------------------------------
   // Tier 2: Enhanced Processing Units
   // ----------------------------------------------------
   if (t2 > 0) {
-      // Add pressure gauges / vents on top of the flanking tanks
-      ctx.save();
-      ctx.globalAlpha = t2;
-      ctx.fillStyle = "#888";
-      ctx.fillRect(-45, baseY - 55, 10, 10);
-      ctx.fillRect(35, baseY - 55, 10, 10);
-      
-      ctx.fillStyle = "#ffaa00";
-      ctx.beginPath();
-      ctx.arc(-40, baseY - 50, 3, 0, Math.PI * 2);
-      ctx.arc(40, baseY - 50, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    const rightStructX = 70;
 
-      // Additional secondary pipeline network
-      drawFluidPipe([{x: -55, y: baseY - 10}, {x: -70, y: baseY - 10}, {x: -70, y: baseY - 60}, {x: -10, y: baseY - 60}], 4, oilColor, 1.5, t2);
+    ctx.save();
+    ctx.globalAlpha = t2;
+    ctx.fillStyle = ironPattern ? ironPattern : "#6b7a82";
+
+    // Thin columns
+    ctx.fillRect(rightStructX - 15, baseY - 100, 12, 100);
+    ctx.fillRect(rightStructX + 5, baseY - 100, 12, 100);
+
+    // Caps on columns
+    ctx.fillStyle = "#4a4d50";
+    ctx.fillRect(rightStructX - 17, baseY - 102, 16, 4);
+    ctx.fillRect(rightStructX + 3, baseY - 102, 16, 4);
+
+    // Connecting pipe from T0 tank to T2 columns
+    drawFluidPipe(
+      [
+        { x: 25, y: baseY - 20 },
+        { x: rightStructX - 15, y: baseY - 20 },
+      ],
+      6,
+      oilColor,
+      2,
+      t2,
+    );
+
+    ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 3: Advanced Refinement Stages
+  // Tier 3: Structured Framing & Catwalks
   // ----------------------------------------------------
   if (t3 > 0) {
-      // Large background refinement silos
-      drawTank(-80, baseY - 20, 40, 80, "#444", 0.75, t3);
-      drawTank(80, baseY - 20, 40, 80, "#444", 0.4, t3);
+    ctx.save();
+    ctx.globalAlpha = t3;
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 4;
 
-      // Connecting heavy pipelines
-      drawFluidPipe([{x: -60, y: baseY - 40}, {x: -20, y: baseY - 40}, {x: -20, y: baseY - 50}], 10, oilColor, 3, t3);
-      drawFluidPipe([{x: 60, y: baseY - 40}, {x: 20, y: baseY - 40}, {x: 20, y: baseY - 50}], 10, oilColor, 3, t3);
+    // Catwalk spanning across the tanks
+    ctx.beginPath();
+    ctx.moveTo(-90, baseY - 70);
+    ctx.lineTo(90, baseY - 70);
+    ctx.stroke();
+
+    // Railing
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-90, baseY - 85);
+    ctx.lineTo(90, baseY - 85);
+    ctx.stroke();
+
+    // Railing posts
+    for (let px = -90; px <= 90; px += 15) {
+      ctx.beginPath();
+      ctx.moveTo(px, baseY - 85);
+      ctx.lineTo(px, baseY - 70);
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 4: The Central Electrical Core
+  // Tier 4: Central Organized Manifold Core (Chaotic but logical pipes)
   // ----------------------------------------------------
   if (t4 > 0) {
-      ctx.save();
-      ctx.globalAlpha = t4;
-      
-      // Floating glowing electrical core above the central tank
-      const coreY = baseY - 110 + Math.sin(t * 2) * 5;
-      
-      // Core base / cradle
-      ctx.fillStyle = "#333";
-      ctx.fillRect(-15, coreY + 15, 30, 10);
-      
-      // The Core itself
-      const gradient = ctx.createRadialGradient(0, coreY, 0, 0, coreY, 20);
-      gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
-      gradient.addColorStop(0.3, "rgba(0, 200, 255, 0.9)");
-      gradient.addColorStop(1, "rgba(0, 100, 255, 0)");
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(0, coreY, 25, 0, Math.PI * 2);
-      ctx.fill();
+    const coreY = baseY - 110;
+    const pipeColor = "rgba(0, 200, 255, 0.9)"; // Cyan neon fluid
 
-      // Core stabilizing rings
-      ctx.strokeStyle = "rgba(0, 200, 255, 0.8)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(0, coreY, 30, 8, 0, 0, Math.PI * 2);
-      ctx.stroke();
+    // A dense, organized lattice of angular routing
+    // Many vertical and horizontal segments with 45 degree bends
+    drawFluidPipe(
+      [
+        { x: -30, y: baseY - 70 },
+        { x: -30, y: coreY + 10 },
+        { x: -10, y: coreY - 10 },
+        { x: -10, y: coreY - 40 },
+      ],
+      6,
+      pipeColor,
+      3,
+      t4,
+    );
+    drawFluidPipe(
+      [
+        { x: 30, y: baseY - 70 },
+        { x: 30, y: coreY + 10 },
+        { x: 10, y: coreY - 10 },
+        { x: 10, y: coreY - 40 },
+      ],
+      6,
+      pipeColor,
+      3,
+      t4,
+    );
 
-      ctx.beginPath();
-      ctx.ellipse(0, coreY, 30, 8, Math.PI/4, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.restore();
+    drawFluidPipe(
+      [
+        { x: -45, y: baseY - 70 },
+        { x: -45, y: coreY - 20 },
+        { x: -25, y: coreY - 40 },
+        { x: 0, y: coreY - 40 },
+      ],
+      5,
+      pipeColor,
+      2,
+      t4,
+    );
+    drawFluidPipe(
+      [
+        { x: 45, y: baseY - 70 },
+        { x: 45, y: coreY - 20 },
+        { x: 25, y: coreY - 40 },
+        { x: 0, y: coreY - 40 },
+      ],
+      5,
+      pipeColor,
+      2,
+      t4,
+    );
+
+    // Dense horizontal bus
+    for (let i = 0; i < 4; i++) {
+      drawFluidPipe(
+        [
+          { x: -50, y: coreY + 20 - i * 10 },
+          { x: 50, y: coreY + 20 - i * 10 },
+        ],
+        4,
+        pipeColor,
+        4,
+        t4,
+      );
+    }
+
+    // Vertical intersecting runs
+    drawFluidPipe(
+      [
+        { x: -20, y: coreY + 30 },
+        { x: -20, y: coreY - 50 },
+      ],
+      4,
+      pipeColor,
+      3,
+      t4,
+    );
+    drawFluidPipe(
+      [
+        { x: 20, y: coreY + 30 },
+        { x: 20, y: coreY - 50 },
+      ],
+      4,
+      pipeColor,
+      3,
+      t4,
+    );
+    drawFluidPipe(
+      [
+        { x: 0, y: coreY + 30 },
+        { x: 0, y: coreY - 50 },
+      ],
+      8,
+      pipeColor,
+      5,
+      t4,
+    ); // Central thick pipe
   }
 
   // ----------------------------------------------------
-  // Tier 5: Energized Fluid Paths
+  // Tier 5: Cooling Fins & High-Vents
   // ----------------------------------------------------
   if (t5 > 0) {
-      // Electrified blue coolant/energy lines feeding into the core cradle
-      const energyColor = "rgba(0, 255, 255, 0.9)";
-      drawFluidPipe([{x: -80, y: baseY - 84}, {x: -80, y: baseY - 100}, {x: -20, y: baseY - 100}], 6, energyColor, 0, t5);
-      drawFluidPipe([{x: 80, y: baseY - 84}, {x: 80, y: baseY - 100}, {x: 20, y: baseY - 100}], 6, energyColor, 0, t5);
+    ctx.save();
+    ctx.globalAlpha = t5;
 
-      // Energy pulsing nodes along the lines
-      ctx.save();
-      ctx.globalAlpha = t5 * (0.5 + 0.5 * Math.abs(Math.sin(t * 3)));
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.arc(-50, baseY - 100, 4, 0, Math.PI * 2);
-      ctx.arc(50, baseY - 100, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    // Giant radiators framing the core
+    ctx.fillStyle = "#2a2a2a";
+    ctx.fillRect(-80, baseY - 160, 20, 70);
+    ctx.fillRect(60, baseY - 160, 20, 70);
+
+    ctx.fillStyle = "#ff4400"; // Glowing red heat
+    for (let i = 0; i < 6; i++) {
+      const pulse = (Math.sin(t * 2 + i) + 1) / 2;
+      ctx.globalAlpha = t5 * (0.5 + 0.5 * pulse);
+      ctx.fillRect(-78, baseY - 155 + i * 11, 16, 4);
+      ctx.fillRect(62, baseY - 155 + i * 11, 16, 4);
+    }
+    ctx.globalAlpha = t5;
+
+    // Connect radiators to core
+    drawFluidPipe(
+      [
+        { x: -60, y: baseY - 130 },
+        { x: -40, y: baseY - 130 },
+        { x: -20, y: baseY - 110 },
+      ],
+      5,
+      "rgba(255, 68, 0, 0.8)",
+      2,
+      t5,
+    );
+    drawFluidPipe(
+      [
+        { x: 60, y: baseY - 130 },
+        { x: 40, y: baseY - 130 },
+        { x: 20, y: baseY - 110 },
+      ],
+      5,
+      "rgba(255, 68, 0, 0.8)",
+      2,
+      t5,
+    );
+
+    ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 6: High-Capacity Overdrive Silos
+  // Tier 6: High-Voltage Electrification Outer Shell
   // ----------------------------------------------------
   if (t6 > 0) {
-      // Massive outer background silos for super-refined output
-      drawTank(-130, baseY - 20, 45, 110, "#222", 0.9, t6);
-      drawTank(130, baseY - 20, 45, 110, "#222", 0.85, t6);
-      
-      // Neon accent strips on the new silos
-      ctx.save();
-      ctx.globalAlpha = t6;
-      ctx.fillStyle = "rgba(0, 200, 255, 0.6)";
-      ctx.fillRect(-125, baseY - 100, 4, 80);
-      ctx.fillRect(121, baseY - 100, 4, 80);
-      ctx.restore();
+    // Huge overarching angled structural pipes (the upside-down V frame)
+    const frameColor = ironPattern ? ironPattern : "#334";
+
+    ctx.save();
+    ctx.globalAlpha = t6;
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = frameColor;
+    ctx.lineJoin = "miter";
+
+    ctx.beginPath();
+    // Left leg
+    ctx.moveTo(-110, baseY);
+    ctx.lineTo(-80, baseY - 200);
+    ctx.lineTo(-30, baseY - 240);
+    // Right leg
+    ctx.moveTo(110, baseY);
+    ctx.lineTo(80, baseY - 200);
+    ctx.lineTo(30, baseY - 240);
+
+    // Top connector
+    ctx.moveTo(-30, baseY - 240);
+    ctx.lineTo(30, baseY - 240);
+
+    ctx.stroke();
+
+    // Inner blue neon trace along the frame
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#00ffff";
+    ctx.stroke();
+
+    // Large structural rings binding it
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "#222";
+    ctx.beginPath();
+    ctx.moveTo(-100, baseY - 100);
+    ctx.lineTo(-90, baseY - 100);
+    ctx.moveTo(100, baseY - 100);
+    ctx.lineTo(90, baseY - 100);
+    ctx.stroke();
+
+    ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 7: Structural Reinforcements & Complex Manifolds
+  // Tier 7: Extreme Magnetic Containment
   // ----------------------------------------------------
   if (t7 > 0) {
-      // Cross-bracing and dense piping manifolds
-      ctx.save();
-      ctx.globalAlpha = t7;
-      ctx.strokeStyle = "#555";
-      ctx.lineWidth = 4;
-      
-      // Trusses
-      ctx.beginPath();
-      ctx.moveTo(-107, baseY - 110);
-      ctx.lineTo(-60, baseY - 84);
-      ctx.moveTo(107, baseY - 110);
-      ctx.lineTo(60, baseY - 84);
-      ctx.stroke();
-      
-      ctx.restore();
+    const coreY = baseY - 130;
+    ctx.save();
+    ctx.globalAlpha = t7;
 
-      // Additional complex multi-colored pipelines wrapping the structure
-      drawFluidPipe([{x: -110, y: baseY - 20}, {x: -90, y: baseY - 20}, {x: -90, y: baseY - 10}, {x: -70, y: baseY - 10}], 5, "#ff3300", 1, t7);
-      drawFluidPipe([{x: 110, y: baseY - 20}, {x: 90, y: baseY - 20}, {x: 90, y: baseY - 10}, {x: 70, y: baseY - 10}], 5, "#ff3300", 1, t7);
+    // Massive containment rings spinning around the upper core
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 8;
+
+    ctx.beginPath();
+    ctx.ellipse(0, coreY, 70, 20, t * 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(0, coreY, 80, 25, -t * 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Glowing warning lights on the rings
+    ctx.fillStyle = "#ff0000";
+    const pX = Math.cos(t * 2) * 70;
+    const pY = Math.sin(t * 2) * 20;
+    ctx.beginPath();
+    ctx.arc(pX, coreY + pY, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // Massive vertical power feeds dropping down from the top frame
+    drawFluidPipe(
+      [
+        { x: -20, y: baseY - 240 },
+        { x: -20, y: baseY - 170 },
+      ],
+      10,
+      "rgba(0, 255, 255, 0.9)",
+      5,
+      t7,
+    );
+    drawFluidPipe(
+      [
+        { x: 20, y: baseY - 240 },
+        { x: 20, y: baseY - 170 },
+      ],
+      10,
+      "rgba(0, 255, 255, 0.9)",
+      5,
+      t7,
+    );
   }
 
   // ----------------------------------------------------
-  // Tier 8: Chaotic Climax - The Nexus Reactor
+  // Tier 8: The Massive Energy / Lightning Core
   // ----------------------------------------------------
   if (t8 > 0) {
-      ctx.save();
-      ctx.globalAlpha = t8;
+    ctx.save();
+    ctx.globalAlpha = t8;
 
-      // The core goes into absolute overdrive (larger, brighter, chaotic)
-      const coreY = baseY - 110 + Math.sin(t * 2) * 5;
-      
-      // Intense Aura
-      const aura = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 70);
-      aura.addColorStop(0, "rgba(255, 255, 255, 0.8)");
-      aura.addColorStop(0.2, "rgba(0, 255, 255, 0.6)");
-      aura.addColorStop(0.6, "rgba(0, 100, 255, 0.2)");
-      aura.addColorStop(1, "rgba(0, 0, 255, 0)");
-      ctx.fillStyle = aura;
-      ctx.beginPath();
-      ctx.arc(0, coreY, 70, 0, Math.PI * 2);
-      ctx.fill();
+    const coreY = baseY - 130;
 
-      // Chaotic Lightning Arcs from the Core to various tanks
-      ctx.strokeStyle = "rgba(150, 255, 255, 0.9)";
-      ctx.lineWidth = 2;
-      
-      const drawLightning = (startX, startY, endX, endY) => {
-          ctx.beginPath();
-          ctx.moveTo(startX, startY);
-          
-          const steps = 4;
-          let currX = startX;
-          let currY = startY;
-          
-          for (let i = 1; i <= steps; i++) {
-              const tStep = i / steps;
-              const targetX = startX + (endX - startX) * tStep;
-              const targetY = startY + (endY - startY) * tStep;
-              
-              // Add chaotic jitter
-              currX = targetX + (Math.random() - 0.5) * 20;
-              currY = targetY + (Math.random() - 0.5) * 20;
-              
-              if (i === steps) {
-                  currX = endX;
-                  currY = endY;
-              }
-              
-              ctx.lineTo(currX, currY);
-          }
-          ctx.stroke();
-      };
+    // Intense cyan radial glow behind the core
+    const aura = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 150);
+    aura.addColorStop(0, "rgba(255, 255, 255, 1)");
+    aura.addColorStop(0.2, "rgba(0, 255, 255, 0.9)");
+    aura.addColorStop(0.5, "rgba(0, 150, 255, 0.4)");
+    aura.addColorStop(1, "rgba(0, 50, 255, 0)");
+    ctx.fillStyle = aura;
+    ctx.beginPath();
+    ctx.arc(0, coreY, 150, 0, Math.PI * 2);
+    ctx.fill();
 
-      // Arc every few frames to create a flickering effect
-      if (Math.random() > 0.3) drawLightning(0, coreY, -80, baseY - 84);
-      if (Math.random() > 0.3) drawLightning(0, coreY, 80, baseY - 84);
-      if (Math.random() > 0.5) drawLightning(0, coreY, -130, baseY - 110);
-      if (Math.random() > 0.5) drawLightning(0, coreY, 130, baseY - 110);
+    // Thick, intersecting white elliptical orbits (atom-like structure)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.lineWidth = 6;
 
-      // Overdrive rings
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.lineWidth = 3;
-      
-      const ringAngle1 = t * 3;
-      const ringAngle2 = -t * 2.5;
+    ctx.beginPath();
+    ctx.ellipse(0, coreY, 60, 20, t * 4, 0, Math.PI * 2);
+    ctx.stroke();
 
-      ctx.beginPath();
-      ctx.ellipse(0, coreY, 45, 12, ringAngle1, 0, Math.PI * 2);
-      ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, coreY, 60, 20, -t * 3 + Math.PI / 3, 0, Math.PI * 2);
+    ctx.stroke();
 
-      ctx.beginPath();
-      ctx.ellipse(0, coreY, 50, 8, ringAngle2, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.restore();
+    ctx.beginPath();
+    ctx.ellipse(0, coreY, 60, 20, t * 5 + Math.PI / 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Bright white central sphere
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(0, coreY, 15 + Math.sin(t * 10) * 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chaotic lightning bolts striking from the core to the structural legs and base
+    for (let i = 0; i < 4; i++) {
+      // Rapid flashing based on random chance
+      if (Math.random() > 0.3) {
+        // Targets for lightning (legs and ground)
+        const targets = [
+          { x: -80, y: baseY - 100 },
+          { x: 80, y: baseY - 100 },
+          { x: -30, y: baseY - 240 },
+          { x: 30, y: baseY - 240 },
+          { x: -110, y: baseY },
+          { x: 110, y: baseY },
+          { x: -50, y: baseY - 20 },
+          { x: 50, y: baseY - 20 },
+        ];
+        const target = targets[Math.floor(Math.random() * targets.length)];
+
+        drawLightning(
+          0,
+          coreY,
+          target.x,
+          target.y,
+          6,
+          30,
+          "rgba(0, 255, 255, 0.9)",
+          4,
+        );
+      }
+    }
+
+    ctx.restore();
   }
 
   // Base platform (Tier 0)
   ctx.save();
   ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
-  ctx.fillRect(-baseWidth/2, baseY, baseWidth, 20);
+  ctx.fillRect(-baseWidth / 2, baseY, baseWidth, 20);
   ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
-  ctx.fillRect(-baseWidth/2, baseY, baseWidth, 4);
-  ctx.fillRect(-baseWidth/2, baseY + 16, baseWidth, 4);
+  ctx.fillRect(-baseWidth / 2, baseY, baseWidth, 4);
+  ctx.fillRect(-baseWidth / 2, baseY + 16, baseWidth, 4);
   ctx.restore();
 }
-
-
 
 function drawVault(ctx, t, tier) {
   ctx.fillStyle = "#d4b22c";
