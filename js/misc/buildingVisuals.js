@@ -3663,21 +3663,22 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
   // ----------------------------------------------------
   // ----------------------------------------------------
-  // Tier 0: Small Container
+  // Tier 0 & 1: Tanks and Piping
   // ----------------------------------------------------
   ctx.save();
   ctx.globalAlpha = 1.0;
 
   const tankW = 50;
   const tankH = 60;
+  // Adjusted left tank position to perfectly mirror the right processing unit space
+  const leftTankX = -76;
 
-  // Draw pipe first so it sits behind the tank
+  // Draw the vertical drop for the middle tank first, stopping slightly below the horizontal line
+  // so that its round line cap doesn't poke out the top of the horizontal pipe.
   drawFluidPipe(
     [
       { x: 0, y: baseY - tankH + 10 },
-      { x: 0, y: baseY - tankH - 15 },
-      { x: 60, y: baseY - tankH - 15 },
-      { x: 60, y: baseY },
+      { x: 0, y: baseY - tankH - 11 }, // Stops 4px below the horizontal centerline
     ],
     8,
     oilColor,
@@ -3685,6 +3686,42 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     1.0,
   );
 
+  // Draw the main continuous extending pipe
+  let mainPts = [];
+  if (t1 > 0) {
+    const horizDist = Math.abs(leftTankX);
+    const vertDist = 25; // 10 to -15 is 25
+    const totalDist = horizDist + vertDist;
+    const currentDist = totalDist * t1;
+    
+    if (currentDist <= horizDist) {
+      const curX = 0 - currentDist;
+      mainPts = [
+        { x: curX, y: baseY - tankH - 15 },
+        { x: 60, y: baseY - tankH - 15 },
+        { x: 60, y: baseY },
+      ];
+    } else {
+      const remaining = currentDist - horizDist;
+      const curY = (baseY - tankH - 15) + remaining;
+      mainPts = [
+        { x: leftTankX, y: curY },
+        { x: leftTankX, y: baseY - tankH - 15 },
+        { x: 60, y: baseY - tankH - 15 },
+        { x: 60, y: baseY },
+      ];
+    }
+  } else {
+    // Just Tier 0
+    mainPts = [
+      { x: 0, y: baseY - tankH - 15 },
+      { x: 60, y: baseY - tankH - 15 },
+      { x: 60, y: baseY },
+    ];
+  }
+  drawFluidPipe(mainPts, 8, oilColor, 2.5, 1.0);
+
+  // 3. Draw the tanks
   // Central Small Tank sitting directly on the base platform
   drawTank(
     0,
@@ -3695,24 +3732,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     0.7 + 0.1 * Math.sin(t * 1.5),
     1.0,
   );
-  ctx.restore();
-
-  // ----------------------------------------------------
-  // Tier 1: Auxiliary Tank
-  // ----------------------------------------------------
+  
+  // Left Auxiliary Tank
   if (t1 > 0) {
-    const leftTankX = -70;
-    drawFluidPipe(
-      [
-        { x: leftTankX, y: baseY - tankH + 10 },
-        { x: leftTankX, y: baseY - tankH - 15 },
-        { x: 0, y: baseY - tankH - 15 },
-      ],
-      8,
-      oilColor,
-      2.5,
-      t1,
-    );
     drawTank(
       leftTankX,
       baseY - 4,
@@ -3723,37 +3745,26 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       t1,
     );
   }
+  ctx.restore();
 
   // ----------------------------------------------------
-  // Tier 2: Enhanced Processing Units
+  // Tier 2: Enhanced Processing Unit
   // ----------------------------------------------------
   if (t2 > 0) {
-    const rightStructX = 70;
+    const rightStructX = 90; 
 
     ctx.save();
     ctx.globalAlpha = t2;
-    ctx.fillStyle = ironPattern ? ironPattern : "#6b7a82";
+    // Solid dark gray instead of ironPattern
+    ctx.fillStyle = "#3a3a3a"; 
 
-    // Thin columns
-    ctx.fillRect(rightStructX - 15, baseY - 100, 12, 100);
-    ctx.fillRect(rightStructX + 5, baseY - 100, 12, 100);
+    // Single cylinder
+    const cylinderWidth = 32;
+    ctx.fillRect(rightStructX - cylinderWidth/2, baseY - 100, cylinderWidth, 100);
 
-    // Caps on columns
-    ctx.fillStyle = "#4a4d50";
-    ctx.fillRect(rightStructX - 17, baseY - 102, 16, 4);
-    ctx.fillRect(rightStructX + 3, baseY - 102, 16, 4);
-
-    // Connecting pipe from T0 tank to T2 columns
-    drawFluidPipe(
-      [
-        { x: 25, y: baseY - 20 },
-        { x: rightStructX - 15, y: baseY - 20 },
-      ],
-      6,
-      oilColor,
-      2,
-      t2,
-    );
+    // Cap on cylinder
+    ctx.fillStyle = "#2a2a2a";
+    ctx.fillRect(rightStructX - cylinderWidth/2 - 2, baseY - 102, cylinderWidth + 4, 4);
 
     ctx.restore();
   }
