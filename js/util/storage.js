@@ -439,17 +439,7 @@ export function clearActiveSlot() {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
-    if (e.key === KEYS.SAVE_SLOT) {
-      if (e.newValue === null) {
-        _activeSlotCache = null;
-      } else {
-        const n = parseInt(e.newValue, 10);
-        _activeSlotCache = Number.isFinite(n) && n > 0 ? n : null;
-      }
-      try {
-         window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: _activeSlotCache } }));
-      } catch {}
-    } else if (_activeSlotCache != null && e.key === `ccc:instanceId:${_activeSlotCache}`) {
+    if (_activeSlotCache != null && e.key === `ccc:instanceId:${_activeSlotCache}`) {
       if (e.newValue !== null && e.newValue !== _myInstanceId) {
         try {
           window.dispatchEvent(new CustomEvent('duplicateInstanceDetected'));
@@ -545,7 +535,7 @@ export function setHasOpenedSaveSlot(value) {
 }
 
 export function setSavedArea(areaID, slot = getActiveSlot()) {
-  if (slot == null || areaID === 0) return; // AREAS.MENU = 0
+  if (slot == null || areaID === 0 || areaID === 666) return; // AREAS.MENU = 0, AREAS.JAIL = 666
   localStorage.setItem(`${KEYS.CURRENT_AREA}:${slot}`, areaID);
 }
 
