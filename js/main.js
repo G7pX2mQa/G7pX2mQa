@@ -9,6 +9,25 @@ import { RESOURCE_REGISTRY } from './game/offlinePanel.js';
 import { setHtmlOrText } from './util/uiHelpers.js';
 import { settingsManager } from "./game/settingsManager.js";
 
+// -------------------- STORAGE OVERRIDE --------------------
+// Prevent saving when duplicate instance is detected or in JAIL
+const originalSetItem = localStorage.setItem.bind(localStorage);
+const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+
+localStorage.setItem = function(key, value) {
+    if (window.__duplicateInstanceDetected || window.currentArea === 666) {
+        return;
+    }
+    return originalSetItem(key, value);
+};
+
+localStorage.removeItem = function(key) {
+    if (window.__duplicateInstanceDetected || window.currentArea === 666) {
+        return;
+    }
+    return originalRemoveItem(key);
+};
+
 export const FONT_MAP = {
   1: 'font-tinos',
   4: 'font-arimo',
@@ -1743,6 +1762,8 @@ window.addEventListener('duplicateInstanceDetected', () => {
 			fontSize: 'clamp(20px, 2.8vw, 26px)',
             zIndex: '2147483647',
             textAlign: 'center',
+			userSelect: 'none',
+			WebkitUserSelect: 'none',
             padding: '20px'
         });
         
