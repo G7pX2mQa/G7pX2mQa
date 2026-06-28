@@ -1,5 +1,6 @@
 // js/util/audioManager.js
 import { settingsManager } from '../game/settingsManager.js';
+import { AREAS } from '../main.js';
 
 let audioContext = null;
 let masterGain = null;
@@ -125,6 +126,7 @@ export async function loadAudio(src) {
  * @param {string} [options.type='sfx'] - 'sfx' or 'music'.
  */
 export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx' } = {}) {
+  if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
   const ctx = getAudioContext();
   const url = new URL(src, document.baseURI).href;
   
