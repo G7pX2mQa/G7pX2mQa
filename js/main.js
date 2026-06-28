@@ -165,6 +165,9 @@ let getMutationState;
 let setDebugPanelAccess;
 let applyStatMultiplierOverride;
 let startGameLoop;
+let stopGameLoop;
+let pauseGameLoop;
+let resumeGameLoop;
 let registerTick;
 let registerFrame;
 let notifyGameSessionStarted;
@@ -308,7 +311,6 @@ function showLoader(text = 'Loading assets...', onSkip) {
 
   const wrap = document.createElement('div');
   wrap.style.textAlign = 'center';
-  wrap.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
 
   const label = document.createElement('div');
   label.textContent = text;
@@ -565,6 +567,12 @@ function enterAreaFromSaveSlot(areaID) {
 
 export function enterArea(areaID) {
   if (currentArea === areaID) return;
+
+  if (areaID === AREAS.MENU) {
+    if (typeof pauseGameLoop === 'function') pauseGameLoop();
+  } else {
+    if (typeof resumeGameLoop === 'function') resumeGameLoop();
+  }
 
   if (waterSystem && typeof waterSystem.clearSimulations === 'function') {
       waterSystem.clearSimulations();
@@ -1290,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
   ({ initGlobalOverlayEsc } = escModule);
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
-  ({ startGameLoop, registerTick, registerFrame } = gameLoopModule);
+  ({ startGameLoop, stopGameLoop, pauseGameLoop, resumeGameLoop, registerTick, registerFrame } = gameLoopModule);
   const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
   const { initWorkshopSystem } = workshopTabModule;
   const { initAutomationEffects } = automationEffectsModule;
@@ -1390,17 +1398,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   await nextFrame();
 
   finishAndHideLoader(loader);
-  
-  // Ensure we start with no active slot so game loops don't run for a lingering slot ID
-  try {
-    if (typeof storageModule.clearActiveSlot === 'function') {
-      storageModule.clearActiveSlot();
-    } else if (storageModule && storageModule.KEYS && storageModule.KEYS.SAVE_SLOT) {
-      localStorage.removeItem(storageModule.KEYS.SAVE_SLOT);
-    }
-  } catch {}
 
   startGameLoop();
+  if (currentArea === AREAS.MENU) {
+    pauseGameLoop();
+  }
   initOfflineTracker(() => currentArea !== AREAS.MENU);
 
   try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
@@ -1431,6 +1433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initSlots(async () => {
+    if (window.__duplicateInstanceDetected) return;
     const slot = getActiveSlot();
     try {
       const stored = localStorage.getItem(`ccc:activePlaytime:${slot}`);
@@ -1701,3 +1704,47 @@ function generateMenuBackground(manifest) {
     `;
   }
 }
+
+
+// -------------------- DUPLICATE INSTANCE DETECTION --------------------
+window.__duplicateInstanceDetected = false;
+window.addEventListener('duplicateInstanceDetected', () => {
+    window.__duplicateInstanceDetected = true;
+    if (typeof stopGameLoop === 'function') {
+        stopGameLoop();
+    }
+    
+    // Hide everything else in the body
+    Array.from(document.body.children).forEach(child => {
+        if (child.id !== 'duplicate-instance-screen' && child.tagName !== 'SCRIPT') {
+            child.style.display = 'none';
+        }
+    });
+    
+    // Show duplicate message
+    let dupScreen = document.getElementById('duplicate-instance-screen');
+    if (!dupScreen) {
+        dupScreen = document.createElement('div');
+        dupScreen.id = 'duplicate-instance-screen';
+        Object.assign(dupScreen.style, {
+            position: 'fixed',
+            inset: '0',
+            background: '#000',
+            color: '#fff',
+            display: 'grid',
+            placeItems: 'center',
+			fontSize: 'clamp(20px, 2.8vw, 26px)',
+            zIndex: '2147483647',
+            textAlign: 'center',
+            padding: '20px'
+        });
+        
+        const textSpan = document.createElement('span');
+        textSpan.style.opacity = '0.9';
+        textSpan.innerHTML = 'Duplicate instance detected. Please only play on one instance at a time. The current instance has been terminated.';
+        dupScreen.appendChild(textSpan);
+        
+        document.body.appendChild(dupScreen);
+    }
+    dupScreen.style.display = 'grid';
+});
