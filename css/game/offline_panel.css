@@ -176,6 +176,8 @@
     cursor: pointer;
     touch-action: manipulation;
     transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .offline-close-btn:hover {
