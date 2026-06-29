@@ -2818,6 +2818,15 @@ export function initResetSystem() {
     try { mutationUnsub(); } catch {}
     mutationUnsub = null;
   }
+  window.addEventListener('setting:changed', (e) => {
+    if (e?.detail?.key === 'coin_mutation_visual') {
+      const sprite = getMutationCoinSprite();
+      if (typeof window !== 'undefined' && window.spawner && typeof window.spawner.setCoinSprite === 'function') {
+        try { window.spawner.setCoinSprite(sprite); } catch {}
+      }
+    }
+  });
+
   mutationUnsub = onMutationChange(() => {
     const sprite = getMutationCoinSprite();
     if (typeof window !== 'undefined' && window.spawner && typeof window.spawner.setCoinSprite === 'function') {
