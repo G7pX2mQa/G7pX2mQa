@@ -3902,12 +3902,12 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Back prism
     drawPrism3D(
       87, baseY, 16, 90, 16,
-      "#4a4a4a", "#3a3a3a", "#2a2a2a", t1, undefined, "bodyOnly"
+      "#4a4a4a", "#3a3a3a", "#2a2a2a", t1, t, "bodyOnly"
     );
     // Front prism
     drawPrism3D(
       82, baseY, 16, 90, 16,
-      "#555555", "#444444", "#333333", t1, undefined, "bodyOnly"
+      "#555555", "#444444", "#333333", t1, t, "bodyOnly"
     );
     // Unified cap
     drawPrism3D(
