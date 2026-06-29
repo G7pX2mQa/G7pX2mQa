@@ -3711,9 +3711,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       // Right to top-back-right corner
       ctx.lineTo(right + dx, top + dy);
       // Down to bottom-right of side cap
-      ctx.lineTo(right + dx, mainTop + dy);
-      // Back left to center bottom corner of cap
-      ctx.lineTo(right, mainTop);
+      ctx.lineTo(right + dx, mainTop);
       // Back left to start
       ctx.lineTo(left, mainTop);
       ctx.closePath();
