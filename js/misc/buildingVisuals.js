@@ -3557,7 +3557,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   };
 
   // Helper to draw fluid pipes
-  const drawFluidPipe = (pathsOrPts, width, fluidColor, flowSpeed, alpha = 1) => {
+  const drawFluidPipe = (pathsOrPts, width, fluidColor, flowSpeed, alpha = 1, capStyle = "round") => {
     if (alpha <= 0) return;
     const isMulti = pathsOrPts.length > 0 && Array.isArray(pathsOrPts[0]);
     const paths = isMulti ? pathsOrPts : [pathsOrPts];
@@ -3565,7 +3565,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.lineJoin = "round";
-    ctx.lineCap = "round";
+    ctx.lineCap = capStyle;
 
     // Outer pipe
     ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
@@ -3620,6 +3620,132 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+  };
+
+
+  const drawPrism3D = (x, y, w, h, d, colorTop, colorFront, colorSide, alpha, t_anim) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+
+    const dx = d * 0.7;
+    const dy = -d * 0.4;
+
+    const left = x - w / 2;
+    const right = x + w / 2;
+    const top = y - h;
+    const bottom = y;
+    
+    const capHeight = 12;
+    const isRefinery = t_anim !== undefined;
+
+    // The line where the main color ends and the cap begins
+    const mainTop = isRefinery ? top + capHeight : top;
+
+    // --- Fill the main body ---
+    // Side face
+    ctx.fillStyle = colorSide;
+    ctx.beginPath();
+    ctx.moveTo(right, bottom);
+    ctx.lineTo(right + dx, bottom);
+    ctx.lineTo(right + dx, mainTop + dy);
+    ctx.lineTo(right, mainTop);
+    ctx.closePath();
+    ctx.fill();
+
+    // Front face
+    ctx.fillStyle = colorFront;
+    ctx.beginPath();
+    ctx.moveTo(left, bottom);
+    ctx.lineTo(right, bottom);
+    ctx.lineTo(right, mainTop);
+    ctx.lineTo(left, mainTop);
+    ctx.closePath();
+    ctx.fill();
+
+    // --- Draw the lines up to mainTop ---
+    ctx.beginPath();
+    // Front face outline
+    ctx.moveTo(left, mainTop);
+    ctx.lineTo(left, bottom);
+    ctx.lineTo(right, bottom);
+    ctx.lineTo(right, mainTop);
+    // Side face outline (bottom and right edge)
+    ctx.moveTo(right, bottom);
+    ctx.lineTo(right + dx, bottom);
+    ctx.lineTo(right + dx, mainTop + dy);
+    // The vertical line separating front and side
+    ctx.moveTo(right, bottom);
+    ctx.lineTo(right, mainTop);
+    
+    // Horizontal line if it's NOT a refinery cap (i.e. standard top)
+    if (!isRefinery) {
+        ctx.moveTo(left, mainTop);
+        ctx.lineTo(right, mainTop);
+        ctx.lineTo(right + dx, mainTop + dy);
+    }
+    
+    ctx.stroke();
+
+    // --- Draw the top/cap ---
+    if (isRefinery) {
+      // The entire cap block should just be a single black polygon without inner lines.
+      // We will trace the outer perimeter of the cap area.
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      // Start at bottom-left of front cap
+      ctx.moveTo(left, mainTop);
+      // Up to top-left of front face
+      ctx.lineTo(left, top);
+      // Up-right to top-back corner
+      ctx.lineTo(left + dx, top + dy);
+      // Right to top-back-right corner
+      ctx.lineTo(right + dx, top + dy);
+      // Down to bottom-right of side cap
+      ctx.lineTo(right + dx, mainTop + dy);
+      // Back left to center bottom corner of cap
+      ctx.lineTo(right, mainTop);
+      // Back left to start
+      ctx.lineTo(left, mainTop);
+      ctx.closePath();
+      ctx.fill();
+      
+      // We do not stroke this so there are no lines in or around the black part.
+
+      // Smoke particles emitting from the top cap
+      const cx = x + dx / 2;
+      const cy = top + dy / 2;
+
+      ctx.globalAlpha = alpha * 0.7;
+      for (let i = 0; i < 4; i++) {
+         const pT = (t_anim * 0.5 + i * 0.25) % 1;
+         if (pT > 0) {
+             const px = cx + (Math.sin(t_anim * 3 + i) * 5) * pT;
+             const py = cy - (pT * 30);
+             const pr = 3 + pT * 10;
+             
+             ctx.fillStyle = `rgba(100, 100, 100, ${1 - pT})`;
+             ctx.beginPath();
+             ctx.arc(px, py, pr, 0, Math.PI * 2);
+             ctx.fill();
+         }
+      }
+    } else {
+        // Standard top face
+        ctx.fillStyle = colorTop;
+        ctx.beginPath();
+        ctx.moveTo(left, top);
+        ctx.lineTo(right, top);
+        ctx.lineTo(right + dx, top + dy);
+        ctx.lineTo(left + dx, top + dy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
     }
 
     ctx.restore();
@@ -3718,9 +3844,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(oldPts, 8, oilColor, 2.5, 1.0 - t1);
+    drawFluidPipe(oldPts, 8, oilColor, 2.5, 1.0 - t1, "butt");
     
-    drawFluidPipe(allPts, 8, oilColor, 2.5, t1);
+    drawFluidPipe(allPts, 8, oilColor, 2.5, t1, "butt");
     
   } else {
     let allPts = [];
@@ -3733,7 +3859,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(allPts, 8, oilColor, 2.5, 1.0);
+    drawFluidPipe(allPts, 8, oilColor, 2.5, 1.0, "butt");
   }
 
   // 3. Draw the tanks
@@ -3760,26 +3886,84 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       t1,
     );
   }
+
+  // Right Side Prisms (Moved from Tier 2, now rectangular prisms)
+  if (t1 > 0) {
+    // Original cylinder: x=90, width=32 -> min_x=74, max_x=106
+    // We set w=16, d=16 (dx=11.2). Total x extent is w + dx = 27.2.
+    // To span 74 to 106 (32px):
+    // Front prism: x=82 -> left=74, right+dx = 90+11.2 = 101.2
+    // Back prism: x=87 -> left=79, right+dx = 95+11.2 = 106.2
+    // Height=90 for both. Grounded at baseY.
+    
+    // Back prism
+    drawPrism3D(
+      87, baseY, 16, 90, 16,
+      "#4a4a4a", "#3a3a3a", "#2a2a2a", t1, t
+    );
+    // Front prism
+    drawPrism3D(
+      82, baseY, 16, 90, 16,
+      "#555555", "#444444", "#333333", t1, t
+    );
+  }
+
   ctx.restore();
 
   // ----------------------------------------------------
-  // Tier 2: Enhanced Processing Unit
+  // Tier 2: Enhanced Processing Unit (Cooling Tower)
   // ----------------------------------------------------
   if (t2 > 0) {
-    const rightStructX = 90; 
-
+    // Left side cooling tower
+    const ctX = -130;
+    const ctY = baseY - 4;
+    
     ctx.save();
     ctx.globalAlpha = t2;
-    // Solid dark gray instead of ironPattern
-    ctx.fillStyle = "#3a3a3a"; 
+    ctx.translate(ctX, ctY);
+    
+    // Draw Cooling Tower
+    ctx.fillStyle = "#3a3a3a";
+    ctx.strokeStyle = "#1a1a1a";
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    ctx.moveTo(-30, 0); // Bottom left
+    ctx.quadraticCurveTo(-15, -60, -20, -100); // Left curve
+    ctx.lineTo(20, -100); // Top
+    ctx.quadraticCurveTo(15, -60, 30, 0); // Right curve
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
 
-    // Single cylinder
-    const cylinderWidth = 32;
-    ctx.fillRect(rightStructX - cylinderWidth/2, baseY - 100, cylinderWidth, 100);
-
-    // Cap on cylinder
+    // Top rim
     ctx.fillStyle = "#2a2a2a";
-    ctx.fillRect(rightStructX - cylinderWidth/2 - 2, baseY - 102, cylinderWidth + 4, 4);
+    ctx.beginPath();
+    ctx.ellipse(0, -100, 22, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Inner hole
+    ctx.fillStyle = "#111";
+    ctx.beginPath();
+    ctx.ellipse(0, -100, 16, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Steam particles
+    ctx.globalAlpha = t2 * 0.7;
+    for (let i = 0; i < 5; i++) {
+        const pT = (t * 0.3 + i * 0.2) % 1;
+        if (pT > 0) {
+            const px = (Math.sin(t * 2 + i) * 10) * pT;
+            const py = -100 - (pT * 60);
+            const pr = 5 + pT * 15;
+            
+            ctx.fillStyle = `rgba(200, 200, 200, ${1 - pT})`;
+            ctx.beginPath();
+            ctx.arc(px, py, pr, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
 
     ctx.restore();
   }
