@@ -166,6 +166,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
     const merchantImg = new Image();
     merchantImg.src = 'img/misc/merchant.webp';
+    const evilMerchantImg = new Image();
+    evilMerchantImg.src = 'img/misc/evil_merchant.webp';
 
     // Expose global for testing
     window.secretBossHpForTesting = (hp) => { if (hp !== undefined) { bossHp = hp; updateBossHpUI(); } return bossHp; };
@@ -1620,18 +1622,24 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         // Boss (Static in background just behind the highest sand layer)
         let bossTopY = 0;
-        if (merchantImg.complete && merchantImg.naturalWidth > 0) {
+        
+        let currentMerchantImg = merchantImg;
+        if (bossHp > 0 && bossHp <= 100 && evilMerchantImg.complete && evilMerchantImg.naturalWidth > 0) {
+            currentMerchantImg = evilMerchantImg;
+        }
+
+        if (currentMerchantImg.complete && currentMerchantImg.naturalWidth > 0) {
             // Massive boss
             // Bound by both width and height to prevent overwhelming widescreen displays
             const maxBossWidth = width * 0.7;
             const maxBossHeight = height * 0.65; // nearly covering the sun, but leaving room for HP bar
             
             let bossWidth = maxBossWidth;
-            let bossHeight = (bossWidth / merchantImg.naturalWidth) * merchantImg.naturalHeight;
+            let bossHeight = (bossWidth / currentMerchantImg.naturalWidth) * currentMerchantImg.naturalHeight;
             
             if (bossHeight > maxBossHeight) {
                 bossHeight = maxBossHeight;
-                bossWidth = (bossHeight / merchantImg.naturalHeight) * merchantImg.naturalWidth;
+                bossWidth = (bossHeight / currentMerchantImg.naturalHeight) * currentMerchantImg.naturalWidth;
             }
             
             // Fixed horizontal position
@@ -1653,7 +1661,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             ctx.save();
             // Translate to boss center
             ctx.translate(bossX, bossBottomY - bossHeight / 2 + deathFallY);
-            ctx.drawImage(merchantImg, -bossWidth / 2, -bossHeight / 2, bossWidth, bossHeight);
+            ctx.drawImage(currentMerchantImg, -bossWidth / 2, -bossHeight / 2, bossWidth, bossHeight);
             
             // Eye black glow
             const drawBolts = (bolts) => {
