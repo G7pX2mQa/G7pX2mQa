@@ -3626,8 +3626,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   };
 
 
-  const drawPrism3D = (x, y, w, h, d, colorTop, colorFront, colorSide, alpha, t_anim) => {
+  const drawPrism3D = (x, y, w, h, d, colorTop, colorFront, colorSide, alpha, t_anim, mode = "all") => {
     if (alpha <= 0) return;
+    if (mode === "none") return;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.lineWidth = 1.5;
@@ -3647,7 +3648,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // The line where the main color ends and the cap begins
     const mainTop = isRefinery ? top + capHeight : top;
 
-    // --- Fill the main body ---
+    if (mode === "all" || mode === "bodyOnly") {
+      // --- Fill the main body ---
     // Side face
     ctx.fillStyle = colorSide;
     ctx.beginPath();
@@ -3691,9 +3693,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     }
     
     ctx.stroke();
+    }
 
     // --- Draw the top/cap ---
-    if (isRefinery) {
+    if (mode === "all" || mode === "capOnly") {
+      if (isRefinery) {
       // The entire cap block should just be a single black polygon without inner lines.
       // We will trace the outer perimeter of the cap area.
       ctx.fillStyle = "#000000";
@@ -3746,6 +3750,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+      }
     }
 
     ctx.restore();
@@ -3899,12 +3904,17 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Back prism
     drawPrism3D(
       87, baseY, 16, 90, 16,
-      "#4a4a4a", "#3a3a3a", "#2a2a2a", t1, t
+      "#4a4a4a", "#3a3a3a", "#2a2a2a", t1, undefined, "bodyOnly"
     );
     // Front prism
     drawPrism3D(
       82, baseY, 16, 90, 16,
-      "#555555", "#444444", "#333333", t1, t
+      "#555555", "#444444", "#333333", t1, undefined, "bodyOnly"
+    );
+    // Unified cap
+    drawPrism3D(
+      84.5, baseY, 21, 90, 16,
+      "#000000", "#000000", "#000000", t1, t, "capOnly"
     );
   }
 
