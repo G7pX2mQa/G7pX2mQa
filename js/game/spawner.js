@@ -1,7 +1,7 @@
 // js/game/spawner.js
 
 import { takePreloadedAudio } from '../util/audioCache.js';
-import { getMutationState, onMutationChange } from './mutationSystem.js';
+import { getMutationState, onMutationChange, getRandomMutationCoinSprite } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import { isSurgeActive, getTsunamiExponentWithCombo } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
@@ -440,6 +440,8 @@ export function createSpawner(config = {}) {
                      valMult = COIN_VALUE_MULTS[sizeIndex];
                 }
                 const forceDom = sizeIndex >= 4;
+				
+                const assignedSrc = currentCoinSrc === 'RANDOM' ? getRandomMutationCoinSprite() : currentCoinSrc;
 
                 let el = null;
                 if (forceDom) {
@@ -448,7 +450,7 @@ export function createSpawner(config = {}) {
                     el.style.height = `${size}px`;
                     el.className = `coin coin--size-${sizeIndex}`;
                     if (el.firstChild) {
-                         el.firstChild.src = getPreRenderedCoinUrl(currentCoinSrc, size);
+                         el.firstChild.src = getPreRenderedCoinUrl(assignedSrc, size);
                     }
                     
                     el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
@@ -464,7 +466,7 @@ export function createSpawner(config = {}) {
                 const coinObj = {
                     mutationLevel: mutationUnlockedSnapshot ? mutationLevelSnapshot.toString() : '0',
                     el,
-                    src: currentCoinSrc,
+                    src: assignedSrc,
                     x: coin.x0,
                     y: coin.y0,
                     rot: -10,
