@@ -1254,6 +1254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'sounds/The_Cove.ogg',
 	'sounds/Underwater_Cavern.ogg',
 	'sounds/area_connector.ogg',
+	'sounds/awaiting_the_jaws_of_death.ogg',
     'sounds/bomb_column_construction.ogg',
     'sounds/boss_death.ogg',
 	'sounds/building_tier_up.ogg',
