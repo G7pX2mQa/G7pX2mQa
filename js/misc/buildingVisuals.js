@@ -3557,8 +3557,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   };
 
   // Helper to draw fluid pipes
-  const drawFluidPipe = (pts, width, fluidColor, flowSpeed, alpha = 1) => {
+  const drawFluidPipe = (pathsOrPts, width, fluidColor, flowSpeed, alpha = 1) => {
     if (alpha <= 0) return;
+    const isMulti = pathsOrPts.length > 0 && Array.isArray(pathsOrPts[0]);
+    const paths = isMulti ? pathsOrPts : [pathsOrPts];
+
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.lineJoin = "round";
@@ -3568,8 +3571,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
     ctx.lineWidth = width;
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    for (const pts of paths) {
+      if (pts.length === 0) continue;
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    }
     ctx.stroke();
 
     // Shadow overlay
@@ -3581,9 +3587,12 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = "rgba(255,255,255,0.3)";
     ctx.lineWidth = width * 0.2;
     ctx.beginPath();
-    for (let i = 0; i < pts.length; i++) {
-      if (i === 0) ctx.moveTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
-      else ctx.lineTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
+    for (const pts of paths) {
+      if (pts.length === 0) continue;
+      for (let i = 0; i < pts.length; i++) {
+        if (i === 0) ctx.moveTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
+        else ctx.lineTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
+      }
     }
     ctx.stroke();
 
@@ -3592,8 +3601,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.strokeStyle = "#1a1a1a";
       ctx.lineWidth = width * 0.35;
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      for (const pts of paths) {
+        if (pts.length === 0) continue;
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      }
       ctx.stroke();
 
       ctx.strokeStyle = fluidColor;
@@ -3609,10 +3621,10 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.setLineDash([]);
       ctx.shadowBlur = 0;
     }
+
     ctx.restore();
   };
 
-  // Helper for tanks
   const drawTank = (x, y, w, h, fluidColor, fillLevel, alpha = 1) => {
     if (alpha <= 0) return;
     ctx.save();
@@ -3673,53 +3685,56 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   // Adjusted left tank position to perfectly mirror the right processing unit space
   const leftTankX = -76;
 
-  // Draw the vertical drop for the middle tank first, stopping slightly below the horizontal line
-  // so that its round line cap doesn't poke out the top of the horizontal pipe.
-  drawFluidPipe(
-    [
-      { x: 0, y: baseY - tankH + 10 },
-      { x: 0, y: baseY - tankH - 11 }, // Stops 4px below the horizontal centerline
-    ],
-    8,
-    oilColor,
-    2.5,
-    1.0,
-  );
-
-  // Draw the main continuous extending pipe
-  let mainPts = [];
+  // When combining lines in one stroke via our modified drawFluidPipe,
+  // overlaps do not create extra inner/outer borders! We can just pass all segments together.
+  
   if (t1 > 0) {
-    const horizDist = Math.abs(leftTankX);
-    const vertDist = 25; // 10 to -15 is 25
-    const totalDist = horizDist + vertDist;
-    const currentDist = totalDist * t1;
+    let allPts = [];
+    allPts.push([
+      { x: 0, y: baseY - tankH + 10 },
+      { x: 0, y: baseY - tankH - 15 }, 
+    ]);
+    allPts.push([
+      { x: leftTankX, y: baseY - tankH + 10 },
+      { x: leftTankX, y: baseY - tankH - 15 },
+    ]);
     
-    if (currentDist <= horizDist) {
-      const curX = 0 - currentDist;
-      mainPts = [
-        { x: curX, y: baseY - tankH - 15 },
-        { x: 60, y: baseY - tankH - 15 },
-        { x: 60, y: baseY },
-      ];
-    } else {
-      const remaining = currentDist - horizDist;
-      const curY = (baseY - tankH - 15) + remaining;
-      mainPts = [
-        { x: leftTankX, y: curY },
-        { x: leftTankX, y: baseY - tankH - 15 },
-        { x: 60, y: baseY - tankH - 15 },
-        { x: 60, y: baseY },
-      ];
-    }
-  } else {
-    // Just Tier 0
-    mainPts = [
+    // Instead of doing distance-based drawing (which is hard to multi-line smoothly),
+    // we just use simple alpha cross-fade from T0 to T1 for simplicity in multi-line.
+    allPts.push([
+      { x: leftTankX, y: baseY - tankH - 15 },
+      { x: 60, y: baseY - tankH - 15 },
+      { x: 60, y: baseY },
+    ]);
+    
+    // Fade out original
+    let oldPts = [];
+    oldPts.push([
+      { x: 0, y: baseY - tankH + 10 },
+      { x: 0, y: baseY - tankH - 15 }, 
+    ]);
+    oldPts.push([
       { x: 0, y: baseY - tankH - 15 },
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
-    ];
+    ]);
+    drawFluidPipe(oldPts, 8, oilColor, 2.5, 1.0 - t1);
+    
+    drawFluidPipe(allPts, 8, oilColor, 2.5, t1);
+    
+  } else {
+    let allPts = [];
+    allPts.push([
+      { x: 0, y: baseY - tankH + 10 },
+      { x: 0, y: baseY - tankH - 15 }, 
+    ]);
+    allPts.push([
+      { x: 0, y: baseY - tankH - 15 },
+      { x: 60, y: baseY - tankH - 15 },
+      { x: 60, y: baseY },
+    ]);
+    drawFluidPipe(allPts, 8, oilColor, 2.5, 1.0);
   }
-  drawFluidPipe(mainPts, 8, oilColor, 2.5, 1.0);
 
   // 3. Draw the tanks
   // Central Small Tank sitting directly on the base platform
