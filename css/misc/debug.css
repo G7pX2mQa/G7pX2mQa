@@ -596,7 +596,7 @@
 /* Jail Styles */
 /* Force toggle visually on and evil red in jail */
 .debug-panel.is-jailed .flag-slider {
-    background-color: #aa0000 !important;
+    background-color: #ff0000 !important;
 }
 .debug-panel.is-jailed .flag-slider:before {
     transform: translateX(26px) !important;
