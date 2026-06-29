@@ -3945,7 +3945,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Unified cap
     drawPrism3D(
       84.5, baseY, 21, 90, 16,
-      "#000000", "#000000", "#000000", t1, t, "capOnly"
+      [ironPattern, 'rgba(0, 0, 0, 0.8)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], t1, t, "capOnly"
     );
   }
 
