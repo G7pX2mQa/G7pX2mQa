@@ -844,6 +844,7 @@ export function bindDelveTabHotkey(sheetEl) {
   sheetEl.__delveHotkeyBound = true;
 
   document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey) return;
     // Check if the overlay for this sheet is open
     const overlayEl = sheetEl.closest('.merchant-overlay');
     if (!overlayEl || !overlayEl.classList.contains('is-open')) return;
