@@ -788,6 +788,11 @@ export function enterArea(areaID) {
       };
       applyMutationSprite();
       onMutationChangeGame?.(applyMutationSprite);
+      window.addEventListener('setting:changed', (e) => {
+        if (e?.detail?.key === 'coin_mutation_visual') {
+          applyMutationSprite();
+        }
+      });
       const pickup = initCoinPickup({ spawner }); // uses default playfield
       window.coinPickupController = pickup;
       if (spawner && typeof spawner.setDependencies === 'function') {
