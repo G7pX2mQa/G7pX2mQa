@@ -458,33 +458,26 @@ export function createBaseSpawner(config = {}) {
             ctx.clearRect(0, 0, canvases[0].width, canvases[0].height);
             ctx.restore();
 
-            // Collect all items into buckets by sizeIndex
-            const buckets = [];
-            for (let i = 0; i < numLayers; i++) {
-                buckets.push([]);
-            }
-            
+            // Collect all items
+            const toDraw = [];
             const count = activeItems.length;
             for (let i = 0; i < count; i++) {
                 const c = activeItems[i];
                 if (c && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
-                    const layer = c.sizeIndex || 0;
-                    if (!buckets[layer]) buckets[layer] = [];
-                    buckets[layer].push(c);
+                    toDraw.push(c);
                 }
             }
             
-            for (let b = 0; b < buckets.length; b++) {
-                const bucket = buckets[b];
-                if (!bucket) continue;
-                for (let i = 0; i < bucket.length; i++) {
-                    const c = bucket[i];
-                    if (!c.settled) {
-                        const state = getItemState(c, now);
-                        onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
-                    } else {
-                        onDrawSingleSettledItem(ctx, c);
-                    }
+            // Sort by sizeIndex (Z-index layer)
+            toDraw.sort((a, b) => (a.sizeIndex || 0) - (b.sizeIndex || 0));
+            
+            for (let i = 0; i < toDraw.length; i++) {
+                const c = toDraw[i];
+                if (!c.settled) {
+                    const state = getItemState(c, now);
+                    onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
+                } else {
+                    onDrawSingleSettledItem(ctx, c);
                 }
             }
 
@@ -521,12 +514,8 @@ export function createBaseSpawner(config = {}) {
                         ctx.clearRect(r.cx, r.cy, r.cSize, r.cSize);
                     }
                     
-                    // Collect items intersecting with regions into buckets
-                    const buckets = [];
-                    for (let i = 0; i < numLayers; i++) {
-                        buckets.push([]);
-                    }
-                    
+                    // Collect items intersecting with regions
+                    const toDraw = [];
                     const count = activeItems.length;
                     for (let j = 0; j < count; j++) {
                         const c = activeItems[j];
@@ -553,23 +542,20 @@ export function createBaseSpawner(config = {}) {
                         }
                         
                         if (intersects) {
-                             const layer = c.sizeIndex || 0;
-                             if (!buckets[layer]) buckets[layer] = [];
-                             buckets[layer].push(c);
+                             toDraw.push(c);
                         }
                     }
                     
-                    for (let b = 0; b < buckets.length; b++) {
-                        const bucket = buckets[b];
-                        if (!bucket) continue;
-                        for (let i = 0; i < bucket.length; i++) {
-                            const c = bucket[i];
-                            if (!c.settled) {
-                                const state = getItemState(c, now);
-                                onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
-                            } else {
-                                onDrawSingleSettledItem(ctx, c);
-                            }
+                    // Sort intersecting items by layer index
+                    toDraw.sort((a, b) => (a.sizeIndex || 0) - (b.sizeIndex || 0));
+                    
+                    for (let i = 0; i < toDraw.length; i++) {
+                        const c = toDraw[i];
+                        if (!c.settled) {
+                            const state = getItemState(c, now);
+                            onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
+                        } else {
+                            onDrawSingleSettledItem(ctx, c);
                         }
                     }
                     
