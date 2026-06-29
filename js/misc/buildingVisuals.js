@@ -18,6 +18,29 @@ let globalPrismAngle = 0; // Integrated angle for smooth prism rotation
 
 const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
+let wasRunningBeforeHide = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (activeCanvas) {
+      activeCanvas.style.display = 'none';
+    }
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+      wasRunningBeforeHide = true;
+    }
+  } else {
+    if (activeCanvas) {
+      activeCanvas.style.display = '';
+    }
+    if (wasRunningBeforeHide && activeCanvas && activeCtx) {
+      lastTime = performance.now();
+      loop(performance.now());
+      wasRunningBeforeHide = false;
+    }
+  }
+});
+
 const imageCache = {};
 let stonePattern = null;
 let copperPattern = null;
@@ -179,7 +202,17 @@ export function startCanvasLoop(id, canvasEl) {
       currentLevelNum = 1;
     });
 
-  loop(performance.now());
+  if (document.hidden) {
+    if (activeCanvas) {
+      activeCanvas.style.display = 'none';
+    }
+    wasRunningBeforeHide = true;
+  } else {
+    if (activeCanvas) {
+      activeCanvas.style.display = '';
+    }
+	loop(performance.now());
+  }
 }
 
 export function stopCanvasLoop() {
@@ -187,6 +220,7 @@ export function stopCanvasLoop() {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
+  wasRunningBeforeHide = false;
   activeCanvas = null;
   activeCtx = null;
   currentBuildingId = null;
