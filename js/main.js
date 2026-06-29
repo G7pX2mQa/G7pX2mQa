@@ -1425,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // No longer using pendingPreloadedAudio since audioManager handles buffering internally
 
   window.addEventListener('beforeunload', (e) => {
+    if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
     if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
       e.preventDefault();
       e.returnValue = '';
