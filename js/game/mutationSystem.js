@@ -950,28 +950,33 @@ export function getMutationGainMultiplier() {
   return mult;
 }
 
+
+export function getRandomMutationCoinSprite() {
+  let highest = 0;
+  try {
+    const hLevel = getHighestMutationLevel();
+    if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
+      const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= 15 || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
+      if (s !== 'Infinity') {
+        highest = parseInt(s, 10);
+      } else {
+        highest = MAX_MUTATION_VISUAL;
+      }
+    }
+  } catch (e) {}
+  highest = Math.min(highest, MAX_MUTATION_VISUAL);
+  
+  const randIdx = Math.floor(Math.random() * (highest + 1));
+  if (randIdx === 0) return 'img/currencies/coin/coin.webp';
+  return `img/mutations/m${randIdx}.webp`;
+}
+
 export function getMutationCoinSprite() {
   const visualSetting = settingsManager.get('coin_mutation_visual');
 
   if (visualSetting !== 'Default') {
     if (visualSetting === 'Random') {
-      let highest = 0;
-      try {
-        const hLevel = getHighestMutationLevel();
-        if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-          const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= 15 || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
-          if (s !== 'Infinity') {
-            highest = parseInt(s, 10);
-          } else {
-            highest = MAX_MUTATION_VISUAL;
-          }
-        }
-      } catch (e) {}
-      highest = Math.min(highest, MAX_MUTATION_VISUAL);
-      
-      const randIdx = Math.floor(Math.random() * (highest + 1));
-      if (randIdx === 0) return 'img/currencies/coin/coin.webp';
-      return `img/mutations/m${randIdx}.webp`;
+      return 'RANDOM';
     }
     
     // Exact option like "M5", "M20" etc.
