@@ -3682,27 +3682,39 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // The line where the main color ends and the cap begins
     const mainTop = isRefinery ? top + capHeight : top;
 
+    const fillFace = (colorArg) => {
+      if (Array.isArray(colorArg)) {
+        ctx.fillStyle = colorArg[0];
+        ctx.fill();
+        if (colorArg[1]) {
+          ctx.fillStyle = colorArg[1];
+          ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = colorArg;
+        ctx.fill();
+      }
+    };
+
     if (mode === "all" || mode === "bodyOnly") {
       // --- Fill the main body ---
     // Side face
-    ctx.fillStyle = colorSide;
     ctx.beginPath();
     ctx.moveTo(right, bottom);
     ctx.lineTo(right + dx, bottom);
     ctx.lineTo(right + dx, mainTop + dy);
     ctx.lineTo(right, mainTop);
     ctx.closePath();
-    ctx.fill();
+    fillFace(colorSide);
 
     // Front face
-    ctx.fillStyle = colorFront;
     ctx.beginPath();
     ctx.moveTo(left, bottom);
     ctx.lineTo(right, bottom);
     ctx.lineTo(right, mainTop);
     ctx.lineTo(left, mainTop);
     ctx.closePath();
-    ctx.fill();
+    fillFace(colorFront);
 
     // --- Draw the lines up to mainTop ---
     ctx.beginPath();
@@ -3734,7 +3746,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       if (isRefinery) {
       // The entire cap block should just be a single black polygon without inner lines.
       // We will trace the outer perimeter of the cap area.
-      ctx.fillStyle = "#000000";
       ctx.beginPath();
       // Start at bottom-left of front cap
       ctx.moveTo(left, mainTop);
@@ -3749,7 +3760,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       // Back left to start
       ctx.lineTo(left, mainTop);
       ctx.closePath();
-      ctx.fill();
+      fillFace(colorTop);
       
       // We do not stroke this so there are no lines in or around the black part.
 
@@ -3773,14 +3784,13 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       }
     } else {
         // Standard top face
-        ctx.fillStyle = colorTop;
         ctx.beginPath();
         ctx.moveTo(left, top);
         ctx.lineTo(right, top);
         ctx.lineTo(right + dx, top + dy);
         ctx.lineTo(left + dx, top + dy);
         ctx.closePath();
-        ctx.fill();
+        fillFace(colorTop);
         ctx.stroke();
       }
     }
@@ -3857,14 +3867,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: 0, y: baseY - tankH + 10 },
       { x: 0, y: baseY - tankH - 15 }, 
     ]);
+    // The main flow path from the left tank to the right processor, made as one continuous line so the corners format properly
     allPts.push([
       { x: leftTankX, y: baseY - tankH + 10 },
-      { x: leftTankX, y: baseY - tankH - 15 },
-    ]);
-    
-    // Instead of doing distance-based drawing (which is hard to multi-line smoothly),
-    // we just use simple alpha cross-fade from T0 to T1 for simplicity in multi-line.
-    allPts.push([
       { x: leftTankX, y: baseY - tankH - 15 },
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
@@ -3874,9 +3879,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     let oldPts = [];
     oldPts.push([
       { x: 0, y: baseY - tankH + 10 },
-      { x: 0, y: baseY - tankH - 15 }, 
-    ]);
-    oldPts.push([
       { x: 0, y: baseY - tankH - 15 },
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
@@ -3889,9 +3891,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     let allPts = [];
     allPts.push([
       { x: 0, y: baseY - tankH + 10 },
-      { x: 0, y: baseY - tankH - 15 }, 
-    ]);
-    allPts.push([
       { x: 0, y: baseY - tankH - 15 },
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
@@ -3933,15 +3932,15 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Back prism: x=87 -> left=79, right+dx = 95+11.2 = 106.2
     // Height=90 for both. Grounded at baseY.
     
-    // Back prism
+    // Back prism (Right-most)
     drawPrism3D(
       87, baseY, 16, 90, 16,
-      "#4a4a4a", "#3a3a3a", "#2a2a2a", t1, t, "bodyOnly"
+      [ironPattern, 'rgba(0, 0, 0, 0.8)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], [ironPattern, 'rgba(0, 0, 0, 0.6)'], t1, t, "bodyOnly"
     );
-    // Front prism
+    // Front prism (Middle)
     drawPrism3D(
       82, baseY, 16, 90, 16,
-      "#555555", "#444444", "#333333", t1, t, "bodyOnly"
+      [ironPattern, 'rgba(0, 0, 0, 0.8)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], [ironPattern, 'rgba(0, 0, 0, 0.3)'], t1, t, "bodyOnly"
     );
     // Unified cap
     drawPrism3D(
