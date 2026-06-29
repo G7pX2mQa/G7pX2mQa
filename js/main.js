@@ -667,7 +667,8 @@ export function enterArea(areaID) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: '2147483645' // below debug panel
+              zIndex: '2147483645', // below debug panel
+              cursor: 'none'
           });
           
           const img = document.createElement('img');
