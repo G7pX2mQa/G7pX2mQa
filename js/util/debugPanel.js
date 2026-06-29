@@ -1514,7 +1514,7 @@ function updateActionLogDisplay() {
             formattedMessage = 'You are in Jail';
         }
 
-        return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}${window.currentArea === 666 ? '' : ':'}</span><span class="action-log-message">${formattedMessage}</span></div>`;
+        return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}${window.currentArea === 666 ? ': ' : ':'}</span><span class="action-log-message">${formattedMessage}</span></div>`;
     }).join('');
 }
 
@@ -5213,6 +5213,17 @@ function buildDebugPanel() {
     
     if (window.currentArea === 666) {
         panel.classList.add('is-jailed');
+        // Update panel title
+        const panelTitle = panel.querySelector(".debug-panel-title");
+        if (panelTitle) {
+            panelTitle.textContent = "Jail Panel";
+        }
+        // Update toggle button
+        const toggleBtn = document.getElementById(DEBUG_PANEL_TOGGLE_ID);
+        if (toggleBtn) {
+            toggleBtn.textContent = "Jail Panel";
+        }
+
         
         // Update info lines
         const infoLinesElements = panel.querySelectorAll('.debug-panel-info-line');
@@ -5250,7 +5261,11 @@ function buildDebugPanel() {
         }
         
         nodesToUpdate.forEach(n => {
-            n.nodeValue = 'You are in Jail';
+            if (n.parentElement && n.parentElement.classList.contains('action-log-time')) {
+                n.nodeValue = 'You are in Jail: ';
+            } else {
+                n.nodeValue = 'You are in Jail';
+            }
         });
         
         // Update inputs
