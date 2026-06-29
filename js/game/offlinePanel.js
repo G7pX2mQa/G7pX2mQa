@@ -370,6 +370,12 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         if (!val) return;
         if (typeof val.isZero === 'function' && val.isZero()) return;
 
+        if (val instanceof BigNum) {
+            if (!val.isInfinite() && val.cmp(BigNum.fromInt(1)) < 0) return;
+        } else if (Number(val) < 1) {
+            return;
+        }
+
         if (key === 'research_levels') {
             if (Array.isArray(val)) {
                 val.forEach(item => {
