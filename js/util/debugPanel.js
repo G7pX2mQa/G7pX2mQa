@@ -4963,7 +4963,7 @@ function buildMiscContent(content) {
 	
 	const allUnlockedOption = document.createElement('option');
     allUnlockedOption.value = 'allUnlocked';
-    allUnlockedOption.textContent = 'All Unlocked Stats & Currs';
+    allUnlockedOption.textContent = 'All Unlocked Stats & Currencies';
     resetSelect.appendChild(allUnlockedOption);
 
     const allOption = document.createElement('option');
