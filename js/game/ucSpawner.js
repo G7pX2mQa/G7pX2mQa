@@ -3,6 +3,7 @@ import { IS_MOBILE } from '../main.js';
 import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
+import { bigNumIsInfinite } from '../util/bigNum.js';
 
 export const UC_MATERIAL_DATA = [
     { name: 'stone', start: 0, max: 0, value: 1, sfx: 'sounds/stone.ogg' },
@@ -214,7 +215,7 @@ export function createUcSpawner(config = {}) {
                         jitterMs: item.coin.jitterMs,
                         isRemoved: false,
                         settled: false,
-                        dieAt: now + cycleMs * 2, // remove relatively soon
+                        dieAt: now + Math.max(200, cycleMs * 2), // remove relatively soon
                         size: baseSize,
                         preAllocatedItems: []
                     };
@@ -232,7 +233,7 @@ export function createUcSpawner(config = {}) {
                             isPreAllocatedMaterial: true,
                             isRemoved: false,
                             settled: false,
-                            dieAt: now + cycleMs * 2, // dies with placeholder if unused
+                            dieAt: now + Math.max(200, cycleMs * 2), // dies with placeholder if unused
                             startTime: now + cycleMs * 2
                         };
                         preAllocObj.index = activeItems.length;
