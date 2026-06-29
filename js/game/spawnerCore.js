@@ -490,9 +490,9 @@ export function createBaseSpawner(config = {}) {
                 for (let i = 0; i < dirtyRegions.length; i++) {
                     const r = dirtyRegions[i];
                     const pad = 8;
-                    const cx = r.x - pad;
-                    const cy = r.y - pad;
-                    const cSize = r.size + (pad * 2);
+                    const cx = Math.floor(r.x - pad);
+                    const cy = Math.floor(r.y - pad);
+                    const cSize = Math.ceil(r.size + (pad * 2)) + 1;
                     
                     regions.push({
                         minX: cx, maxX: cx + cSize,
