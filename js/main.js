@@ -1823,7 +1823,8 @@ window.addEventListener('duplicateInstanceDetected', () => {
             textAlign: 'center',
 			userSelect: 'none',
 			WebkitUserSelect: 'none',
-            padding: '20px'
+            padding: '20px',
+            cursor: 'none'
         });
         
         const textSpan = document.createElement('span');
