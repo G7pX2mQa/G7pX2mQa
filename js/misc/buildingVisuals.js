@@ -3683,7 +3683,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   const tankW = 50;
   const tankH = 60;
   // Adjusted left tank position to perfectly mirror the right processing unit space
-  const leftTankX = -78;
+  const leftTankX = -79;
 
   // When combining lines in one stroke via our modified drawFluidPipe,
   // overlaps do not create extra inner/outer borders! We can just pass all segments together.
