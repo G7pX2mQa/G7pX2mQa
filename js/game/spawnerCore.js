@@ -345,6 +345,7 @@ export function createBaseSpawner(config = {}) {
         if (idx !== -1) {
             activeItems[idx] = null;
             garbageCount++;
+            canvasDirty = true;
         }
         
         if (itemObj.el) {
@@ -374,6 +375,7 @@ export function createBaseSpawner(config = {}) {
             if (idx !== -1) {
                 activeItems[idx] = null;
                 garbageCount++;
+                canvasDirty = true;
             }
             if (itemElOrObj._coinObj) itemElOrObj._coinObj = null;
         }
