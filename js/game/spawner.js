@@ -463,10 +463,17 @@ export function createSpawner(config = {}) {
                     }
                 }
                 
+                let srcIdForSort = 0;
+                if (assignedSrc) {
+                    const m = assignedSrc.match(/m(\d+)\.webp/);
+                    if (m) srcIdForSort = parseInt(m[1], 10);
+                }
+
                 const coinObj = {
                     mutationLevel: mutationUnlockedSnapshot ? mutationLevelSnapshot.toString() : '0',
                     el,
                     src: assignedSrc,
+                    srcId: srcIdForSort,
                     x: coin.x0,
                     y: coin.y0,
                     rot: -10,
