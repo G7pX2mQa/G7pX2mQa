@@ -176,21 +176,37 @@ export function createBaseSpawner(config = {}) {
 
     const canvases = [];
     const contexts = [];
-    let canvasDirty = false;
+    const inMemoryCanvases = [];
+    const inMemoryContexts = [];
+    let staticCanvasDirty = false;
 
     if (refs.c) {
-        // We only create ONE canvas, but we'll still keep it in `canvases[0]` and `contexts[0]`
-        // and when rendering, we'll sort the settled items by their `sizeIndex` so they appear layered.
         const canvas = document.createElement('canvas');
         canvas.style.position = 'absolute';
         canvas.style.inset = '0';
         canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '10'; // Unified z-index base
+        canvas.style.zIndex = '10'; 
         refs.c.appendChild(canvas);
         
         const ctx = canvas.getContext('2d', { alpha: true });
         canvases.push(canvas);
         contexts.push(ctx);
+    }
+
+    function getInMemoryContext(layer, w, h, dpr) {
+        if (!inMemoryCanvases[layer]) {
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d', { alpha: true });
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
+            inMemoryCanvases[layer] = canvas;
+            inMemoryContexts[layer] = ctx;
+        }
+        return inMemoryContexts[layer];
     }
 
     let fxCanvas = null;
@@ -251,8 +267,24 @@ export function createBaseSpawner(config = {}) {
                 }
             }
         });
+
+        for (let i = 0; i < inMemoryCanvases.length; i++) {
+            const canvas = inMemoryCanvases[i];
+            if (canvas) {
+                canvas.width = pfRect.width * dpr;
+                canvas.height = pfRect.height * dpr;
+                
+                const ctx = inMemoryContexts[i];
+                if (ctx) {
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.scale(dpr, dpr);
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
+                }
+            }
+        }
         
-        canvasDirty = true;
+        staticCanvasDirty = true;
 
         if (fxCanvas) {
              fxCanvas.width = pfRect.width * dpr;
@@ -286,8 +318,7 @@ export function createBaseSpawner(config = {}) {
     const activeItems = [];
     let garbageCount = 0;
     const newlySettledBuffer = [];
-    const dirtyRegions = [];
-
+    
     function makeItem() {
         const el = document.createElement('div');
         el.className = 'coin'; // Maintain generic class, can be overridden by consumer
@@ -345,19 +376,12 @@ export function createBaseSpawner(config = {}) {
         if (idx !== -1) {
             activeItems[idx] = null;
             garbageCount++;
-            canvasDirty = true;
+            staticCanvasDirty = true;
         }
         
         if (itemObj.el) {
             releaseItem(itemObj.el);
             itemObj.el = null;
-        } else {
-            dirtyRegions.push({
-                layer: itemObj.sizeIndex || 0,
-                x: itemObj.x,
-                y: itemObj.y,
-                size: itemObj.size || baseItemSize
-            });
         }
         onRemoveItem(itemObj);
     }
@@ -375,7 +399,7 @@ export function createBaseSpawner(config = {}) {
             if (idx !== -1) {
                 activeItems[idx] = null;
                 garbageCount++;
-                canvasDirty = true;
+                staticCanvasDirty = true;
             }
             if (itemElOrObj._coinObj) itemElOrObj._coinObj = null;
         }
@@ -421,169 +445,111 @@ export function createBaseSpawner(config = {}) {
     }
 
     function drawItems(now) {
-        if (newlySettledBuffer.length > 0) {
+        const mainCtx = contexts[0];
+        if (!mainCtx) return;
+
+        let dpr = Math.max(Math.min(window.devicePixelRatio || 1, 2.0), 1);
+        if (typeof settingsManager !== "undefined") {
+            const quality = settingsManager.get("graphics_quality") ?? 10;
+            if (quality < 4) dpr = Math.max(0.5, dpr * 0.5);
+            else if (quality < 8) dpr = Math.max(0.75, dpr * 0.75);
+        }
+
+        const w = canvases[0].width;
+        const h = canvases[0].height;
+
+        // If items settled, stamp them onto their respective in-memory layer contexts without a full redraw
+        if (newlySettledBuffer.length > 0 && !staticCanvasDirty) {
             for (let i = 0; i < newlySettledBuffer.length; i++) {
                 const c = newlySettledBuffer[i];
-                if (!c.isRemoved && c.settled && !c.el) {
-                    dirtyRegions.push({
-                        layer: c.sizeIndex || 0,
-                        x: c.x,
-                        y: c.y,
-                        size: c.size || baseItemSize
-                    });
+                if (c && !c.isRemoved && c.settled && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
+                    const layer = c.sizeIndex || 0;
+                    const ctx = getInMemoryContext(layer, w, h, dpr);
+                    onDrawSingleSettledItem(ctx, c);
                 }
             }
             newlySettledBuffer.length = 0;
+        } else if (newlySettledBuffer.length > 0 && staticCanvasDirty) {
+            // If dirty, they will be drawn anyway during the full redraw
+            newlySettledBuffer.length = 0;
         }
 
-        let hasMovingItems = false;
-        for (let i = 0; i < activeItems.length; i++) {
-            const c = activeItems[i];
-            if (c && !c.settled && !c.isRemoved && !c.el) {
-                hasMovingItems = true;
-                break;
-            }
-        }
-        
-        if (hasMovingItems) {
-            canvasDirty = true;
-        }
-
-        if (!canvasDirty && dirtyRegions.length === 0) return;
-        
-        const ctx = contexts[0];
-        if (!ctx) return;
-
-        if (canvasDirty) {
-            ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvases[0].width, canvases[0].height);
-            ctx.restore();
-
-            // Collect all items into buckets by sizeIndex
-            const buckets = [];
-            for (let i = 0; i < numLayers; i++) {
-                buckets.push([]);
-            }
-            
-            const count = activeItems.length;
-            for (let i = 0; i < count; i++) {
-                const c = activeItems[i];
-                if (c && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
-                    const layer = c.sizeIndex || 0;
-                    if (!buckets[layer]) buckets[layer] = [];
-                    buckets[layer].push(c);
+        if (staticCanvasDirty) {
+            // Clear all offscreen layer canvases
+            for (let i = 0; i < inMemoryCanvases.length; i++) {
+                if (inMemoryContexts[i] && inMemoryCanvases[i]) {
+                    inMemoryContexts[i].save();
+                    inMemoryContexts[i].setTransform(1, 0, 0, 1, 0, 0);
+                    inMemoryContexts[i].clearRect(0, 0, inMemoryCanvases[i].width, inMemoryCanvases[i].height);
+                    inMemoryContexts[i].restore();
                 }
             }
+
+            const staticBuckets = [];
+            const count = activeItems.length;
             
-            for (let b = 0; b < buckets.length; b++) {
-                const bucket = buckets[b];
+            for (let i = 0; i < count; i++) {
+                const c = activeItems[i];
+                if (c && c.settled && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
+                    const layer = c.sizeIndex || 0;
+                    if (!staticBuckets[layer]) staticBuckets[layer] = [];
+                    staticBuckets[layer].push(c);
+                }
+            }
+
+            for (let b = 0; b < staticBuckets.length; b++) {
+                const bucket = staticBuckets[b];
                 if (!bucket) continue;
                 
                 bucket.sort((a, b) => (a.srcId || 0) - (b.srcId || 0));
                 
+                const ctx = getInMemoryContext(b, w, h, dpr);
                 for (let i = 0; i < bucket.length; i++) {
-                    const c = bucket[i];
-                    if (!c.settled) {
-                        const state = getItemState(c, now);
-                        onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
-                    } else {
-                        onDrawSingleSettledItem(ctx, c);
-                    }
+                    onDrawSingleSettledItem(ctx, bucket[i]);
                 }
             }
+            
+            staticCanvasDirty = false;
+        }
 
-            canvasDirty = false;
-            dirtyRegions.length = 0;
-        } else {
-            if (dirtyRegions.length > 0) {
-                // Group all dirty regions into one list
-                const regions = [];
-                for (let i = 0; i < dirtyRegions.length; i++) {
-                    const r = dirtyRegions[i];
-                    const pad = 8;
-                    const cx = Math.floor(r.x - pad);
-                    const cy = Math.floor(r.y - pad);
-                    const cSize = Math.ceil(r.size + (pad * 2)) + 1;
-                    
-                    regions.push({
-                        minX: cx, maxX: cx + cSize,
-                        minY: cy, maxY: cy + cSize,
-                        cx, cy, cSize
-                    });
+        // Always redraw main composite canvas
+        mainCtx.save();
+        mainCtx.setTransform(1, 0, 0, 1, 0, 0);
+        mainCtx.clearRect(0, 0, canvases[0].width, canvases[0].height);
+        mainCtx.restore();
+
+        const dynamicBuckets = [];
+        const count = activeItems.length;
+        
+        for (let i = 0; i < count; i++) {
+            const c = activeItems[i];
+            if (c && !c.settled && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
+                const layer = c.sizeIndex || 0;
+                if (!dynamicBuckets[layer]) dynamicBuckets[layer] = [];
+                dynamicBuckets[layer].push(c);
+            }
+        }
+
+        const maxLayer = Math.max(inMemoryCanvases.length, dynamicBuckets.length);
+
+        for (let layer = 0; layer < maxLayer; layer++) {
+            // Draw static/settled items for this layer
+            if (inMemoryCanvases[layer]) {
+                mainCtx.save();
+                mainCtx.setTransform(1, 0, 0, 1, 0, 0); // drawImage works 1:1 on device pixels
+                mainCtx.drawImage(inMemoryCanvases[layer], 0, 0);
+                mainCtx.restore();
+            }
+
+            // Draw moving items for this layer
+            const movingBucket = dynamicBuckets[layer];
+            if (movingBucket) {
+                movingBucket.sort((a, b) => (a.srcId || 0) - (b.srcId || 0));
+                for (let i = 0; i < movingBucket.length; i++) {
+                    const c = movingBucket[i];
+                    const state = getItemState(c, now);
+                    onDrawSingleSettledItem(mainCtx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
                 }
-                
-                if (regions.length > 0) {
-                    ctx.save();
-                    ctx.beginPath();
-                    for (let rIdx = 0; rIdx < regions.length; rIdx++) {
-                        const r = regions[rIdx];
-                        ctx.rect(r.cx, r.cy, r.cSize, r.cSize);
-                    }
-                    ctx.clip();
-                    for (let rIdx = 0; rIdx < regions.length; rIdx++) {
-                        const r = regions[rIdx];
-                        ctx.clearRect(r.cx, r.cy, r.cSize, r.cSize);
-                    }
-                    
-                    // Collect items intersecting with regions into buckets
-                    const buckets = [];
-                    for (let i = 0; i < numLayers; i++) {
-                        buckets.push([]);
-                    }
-                    
-                    const count = activeItems.length;
-                    for (let j = 0; j < count; j++) {
-                        const c = activeItems[j];
-                        if (!c || c.isRemoved || c.el || c.isHiddenPreAllocated || c.isStrikePlaceholder) continue;
-                        
-                        const cSize2 = c.size || baseItemSize;
-                        let cMinX = c.x, cMaxX = c.x + cSize2, cMinY = c.y, cMaxY = c.y + cSize2;
-                        
-                        if (!c.settled) {
-                            const state = getItemState(c, now);
-                            cMinX = state.x;
-                            cMaxX = state.x + cSize2;
-                            cMinY = state.y;
-                            cMaxY = state.y + cSize2;
-                        }
-                        
-                        let intersects = false;
-                        for (let rIdx = 0; rIdx < regions.length; rIdx++) {
-                            const r = regions[rIdx];
-                            if (cMaxX > r.minX && cMinX < r.maxX && cMaxY > r.minY && cMinY < r.maxY) {
-                                intersects = true;
-                                break;
-                            }
-                        }
-                        
-                        if (intersects) {
-                             const layer = c.sizeIndex || 0;
-                             if (!buckets[layer]) buckets[layer] = [];
-                             buckets[layer].push(c);
-                        }
-                    }
-                    
-                    for (let b = 0; b < buckets.length; b++) {
-                        const bucket = buckets[b];
-                        if (!bucket) continue;
-                        
-                        bucket.sort((a, b) => (a.srcId || 0) - (b.srcId || 0));
-                        
-                        for (let i = 0; i < bucket.length; i++) {
-                            const c = bucket[i];
-                            if (!c.settled) {
-                                const state = getItemState(c, now);
-                                onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
-                            } else {
-                                onDrawSingleSettledItem(ctx, c);
-                            }
-                        }
-                    }
-                    
-                    ctx.restore();
-                }
-                dirtyRegions.length = 0;
             }
         }
     }
@@ -599,7 +565,7 @@ export function createBaseSpawner(config = {}) {
       let rawDt = now - last;
       let dt = rawDt / 1000;
       if (rawDt > 250) {
-          canvasDirty = true;
+          staticCanvasDirty = true;
       }
       last = now;
       if (dt > 0.1) dt = 0.1;
@@ -700,6 +666,17 @@ export function createBaseSpawner(config = {}) {
             ctx.clearRect(0, 0, canvases[i].width, canvases[i].height);
             ctx.restore();
         });
+
+        // Clear all in-memory static canvases so ghost items do not remain
+        for (let i = 0; i < inMemoryCanvases.length; i++) {
+            if (inMemoryContexts[i] && inMemoryCanvases[i]) {
+                inMemoryContexts[i].save();
+                inMemoryContexts[i].setTransform(1, 0, 0, 1, 0, 0);
+                inMemoryContexts[i].clearRect(0, 0, inMemoryCanvases[i].width, inMemoryCanvases[i].height);
+                inMemoryContexts[i].restore();
+            }
+        }
+
         if (fxCtx && fxCanvas) {
             fxCtx.save();
             fxCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -707,8 +684,7 @@ export function createBaseSpawner(config = {}) {
             fxCtx.restore();
         }
         newlySettledBuffer.length = 0;
-        dirtyRegions.length = 0;
-        canvasDirty = false;
+        staticCanvasDirty = false;
         if (resetType !== 'underwater_cavern') {
             clearBacklog();
         }
@@ -732,13 +708,7 @@ export function createBaseSpawner(config = {}) {
         c.el = el;
         refs.c.appendChild(el);
         
-        dirtyRegions.push({
-            layer: c.sizeIndex || 0,
-            x: c.x,
-            y: c.y,
-            size: c.size || baseItemSize
-        });
-        
+        staticCanvasDirty = true;
         return el;
     }
 
@@ -746,7 +716,7 @@ export function createBaseSpawner(config = {}) {
         if (!document.hidden) {
           if (typeof shouldAutoResume === 'function' && !shouldAutoResume()) return;
           if (typeof window !== 'undefined' && (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive)) return;
-          canvasDirty = true;
+          staticCanvasDirty = true;
           if (!rafId) start();
         }
     });
@@ -765,7 +735,7 @@ export function createBaseSpawner(config = {}) {
         spawnBurst,
         getActiveItems: () => activeItems,
         getItemState,
-        forceCanvasRedraw: () => { canvasDirty = true; },
+        forceCanvasRedraw: () => { staticCanvasDirty = true; },
         getRefs: () => refs,
     };
 }
