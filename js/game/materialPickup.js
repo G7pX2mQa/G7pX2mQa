@@ -116,7 +116,7 @@ export function initUcPickup({
   function playSound(matType) {
     const now = performance.now();
     const lastAt = lastPlayedAt.get(matType) || 0;
-    if ((now - lastAt) < 40) return; 
+    if ((now - lastAt) < 20) return; 
     lastPlayedAt.set(matType, now);
     
     const matIndex = UC_MATERIAL_DATA.findIndex(d => d.name === matType);
