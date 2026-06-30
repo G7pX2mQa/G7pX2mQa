@@ -473,6 +473,7 @@ export function createUcSpawner(config = {}) {
                                     preAlloc.rot = -10;
                                     preAlloc.scale = 0.96;
                                     preAlloc.src = `img/materials/${UC_MATERIALS[j]}.webp`;
+                                    preAlloc.srcId = j;
                                     preAlloc.bMinX = Math.min(spawnX, endX) - size;
                                     preAlloc.bMaxX = Math.max(spawnX, endX) + size;
                                     preAlloc.bMinY = Math.min(c.startY, endY) - size;
