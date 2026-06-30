@@ -1236,6 +1236,8 @@ function createLockToggle(storageKey, { onToggle } = {}) {
         refresh();
     });
 
+    document.addEventListener('debugStorageLocksChanged', refresh);
+
     refresh();
     return { button, refresh };
 }
@@ -3817,13 +3819,17 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
             add(DP_KEYS.level(resolvedSlot));
             add(DP_KEYS.progress(resolvedSlot));
         }
+        if (statKey === 'pp' || statKey === 'ppLevel' || statKey === 'ppProgress') {
+            add(PP_KEYS.level(resolvedSlot));
+            add(PP_KEYS.progress(resolvedSlot));
+        }
     };
 
     if (target === 'all') {
         Object.values(CURRENCIES).forEach(addCurrencyKeys);
-        addStatKeys('xp');
-        addStatKeys('mutation');
-        addStatKeys('dp');
+        getAreas().forEach((area) => {
+            area.stats.forEach((stat) => addStatKeys(stat.key));
+        });
         STAT_MULTIPLIERS.forEach(({ key }) => addStatMultiplier(key));
         return Array.from(keys);
     }
@@ -3837,6 +3843,7 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
         if (getXpState()?.unlocked) addStatKeys('xp');
         if (getMutationState()?.unlocked) addStatKeys('mutation');
         if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
+        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) addStatKeys('pp');
         return Array.from(keys);
     }
 
@@ -3845,6 +3852,7 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
         if (getXpState()?.unlocked) addStatKeys('xp');
         if (getMutationState()?.unlocked) addStatKeys('mutation');
         if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
+        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) addStatKeys('pp');
         return Array.from(keys);
     }
 
@@ -3890,15 +3898,22 @@ function resetStatsAndMultipliers(target) {
 
         const zero = BigNum.fromInt(0);
 
-        // XP + MP (mutation) + DP state → 0
+        // Reset all states
         applyXpState({ level: zero, progress: zero });
         applyMutationState({ level: zero, progress: zero });
         if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+        if (window.ppSystem && typeof window.ppSystem.getPpState === 'function') applyPpState({ level: zero, progress: zero });
 
-        // For stats, behave like the stat multiplier debug field:
-        // create a temporary 1x override that will be auto-cleared on the next
-        // normal game multiplier update (XP Value, MP Value, etc.).
+        let statCount = 0;
+        getAreas().forEach((area) => {
+            area.stats.forEach((stat) => {
+                statCount++;
+                try { setDebugStatMultiplierOverride(stat.key, BigNum.fromInt(1)); } catch {}
+            });
+        });
+        
         STAT_MULTIPLIERS.forEach(({ key }) => {
+            statCount++;
             try { setDebugStatMultiplierOverride(key, BigNum.fromInt(1)); } catch {}
         });
 
@@ -3912,7 +3927,7 @@ function resetStatsAndMultipliers(target) {
             }
         } catch {}
 
-        const totalCount = Object.values(CURRENCIES).length + STAT_MULTIPLIERS.length + 2; // XP + MP
+        const totalCount = Object.values(CURRENCIES).length + statCount;
         return { label: '[GOLD]all[/GOLD] currency/stats', count: totalCount };
     }
 
@@ -3951,6 +3966,14 @@ function resetStatsAndMultipliers(target) {
             if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
                 if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
                 try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) {
+                applyPpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -3999,6 +4022,14 @@ function resetStatsAndMultipliers(target) {
             if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
                 if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
                 try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) {
+                applyPpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -4073,6 +4104,16 @@ function resetStatsAndMultipliers(target) {
         if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
         try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
         return 'DP';
+    }
+
+    if (
+        statKey === 'pp' ||
+        statKey === 'ppLevel' ||
+        statKey === 'ppProgress'
+    ) {
+        applyPpState({ level: zero, progress: zero });
+        try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
+        return 'PP';
     }
 
     // Fallback: generic stat multiplier reset -> same semantics as the debug stat input
@@ -4978,13 +5019,26 @@ function buildMiscContent(content) {
 
     const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || DEFAULT_MISC_RESET_SELECTION, getActiveSlot());
 
-    const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
-    resetSelect.addEventListener('change', () => {
-        debugPanelMiscResetSelection = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
+    // We create a standalone toggle button that doesn't actually lock/unlock anything on click
+    const resetLockToggle = {
+        button: document.createElement('button'),
+        isLocked: false,
+        refresh: function() {
+            this.button.textContent = this.isLocked ? 'L' : 'UL';
+            this.button.classList.toggle('locked', this.isLocked);
+        }
+    };
+    resetLockToggle.button.type = 'button';
+    resetLockToggle.button.className = 'debug-lock-button';
+    resetLockToggle.button.addEventListener('click', () => {
+        resetLockToggle.isLocked = !resetLockToggle.isLocked;
         resetLockToggle.refresh();
     });
-
     resetLockToggle.refresh();
+    
+    resetSelect.addEventListener('change', () => {
+        debugPanelMiscResetSelection = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
+    });
 
     resetRow.appendChild(resetSelect);
     resetRow.appendChild(resetLockToggle.button);
@@ -4996,17 +5050,22 @@ function buildMiscContent(content) {
     resetBtn.addEventListener('click', () => {
         const target = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
         const lockKeys = resolveResetLockKeys();
-        const shouldRelock = resetLockToggle.isLocked();
 
         const performReset = (logEntry = true) => {
             const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target))
                 ?? { label: target, count: 0 };
 
-            if (shouldRelock) {
-                lockKeys.forEach((key) => lockStorageKey(key));
+            // Apply the UI toggle state directly to the affected items
+            const updatedLockKeys = resolveResetLockKeys();
+            if (resetLockToggle.isLocked) {
+                updatedLockKeys.forEach((key) => lockStorageKey(key));
+            } else {
+                updatedLockKeys.forEach((key) => unlockStorageKey(key));
             }
 
-            resetLockToggle.refresh();
+            // Dispatch a custom event to notify all individual lock toggles to refresh their UI state
+            document.dispatchEvent(new CustomEvent('debugStorageLocksChanged'));
+
             flagDebugUsage();
 
             if (logEntry) {
