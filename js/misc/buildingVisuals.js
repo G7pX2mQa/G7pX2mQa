@@ -4098,7 +4098,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t4;
 
     const columnY = baseY - 115; // Starts exactly on top of catwalk
-    const columnH = 120;
+    const columnH = 150;
     const columnW = 100;
 
     // Four pipes connecting to the Distillation Column (Drawn FIRST so they are behind)
@@ -4126,7 +4126,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.beginPath();
     ctx.moveTo(-columnW/2, columnY);
     ctx.lineTo(-columnW/2, columnY - columnH);
-    ctx.arc(0, columnY - columnH, columnW/2, Math.PI, 0);
+    ctx.lineTo(columnW/2, columnY - columnH);
     ctx.lineTo(columnW/2, columnY);
     ctx.closePath();
     
@@ -4160,6 +4160,135 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.stroke();
       ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; // Restore for next loop
     }
+
+    // Warning stripes at the base
+    const stripeH = 8;
+    const stripeY = columnY - stripeH;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-columnW/2, stripeY, columnW, stripeH);
+    ctx.clip();
+    
+    ctx.fillStyle = "#ffcc00"; // Yellow
+    ctx.fillRect(-columnW/2, stripeY, columnW, stripeH);
+    ctx.fillStyle = "#111111"; // Black
+    for(let sx = -columnW/2 - 20; sx < columnW/2 + 20; sx += 15) {
+        ctx.beginPath();
+        ctx.moveTo(sx, stripeY + stripeH);
+        ctx.lineTo(sx + 10, stripeY);
+        ctx.lineTo(sx + 18, stripeY);
+        ctx.lineTo(sx + 8, stripeY + stripeH);
+        ctx.fill();
+    }
+    
+    // Slight shadow on top of the stripes to match column curvature
+    ctx.fillStyle = gradient;
+    ctx.fillRect(-columnW/2, stripeY, columnW, stripeH);
+    ctx.restore();
+
+    // Access hatch (submarine style)
+    const hatchX = 0;
+    const hatchY = columnY - 20;
+    const hatchR = 12;
+    
+    // Outer hatch ring
+    ctx.beginPath();
+    ctx.arc(hatchX, hatchY, hatchR, 0, Math.PI * 2);
+    ctx.fillStyle = "#5c6173";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#222";
+    ctx.stroke();
+    
+    // Inner hatch door
+    ctx.beginPath();
+    ctx.arc(hatchX, hatchY, hatchR - 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#454957";
+    ctx.fill();
+    ctx.stroke();
+    
+    // Hatch wheel
+    ctx.strokeStyle = "#999";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(hatchX, hatchY, 4, 0, Math.PI * 2);
+    ctx.moveTo(hatchX - 4, hatchY);
+    ctx.lineTo(hatchX + 4, hatchY);
+    ctx.moveTo(hatchX, hatchY - 4);
+    ctx.lineTo(hatchX, hatchY + 4);
+    ctx.stroke();
+
+    // Ladder
+    const ladderX = -38;
+    const ladderW = 10;
+    const ladderStartY = columnY; // Starts at base
+    const ladderEndY = columnY - 110; // Goes up near the top
+    
+    // Ladder rails
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ladderX - ladderW/2, ladderStartY);
+    ctx.lineTo(ladderX - ladderW/2, ladderEndY);
+    ctx.moveTo(ladderX + ladderW/2, ladderStartY);
+    ctx.lineTo(ladderX + ladderW/2, ladderEndY);
+    ctx.stroke();
+    
+    // Ladder rungs
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let ry = ladderStartY - 5; ry > ladderEndY; ry -= 6) {
+        ctx.moveTo(ladderX - ladderW/2, ry);
+        ctx.lineTo(ladderX + ladderW/2, ry);
+    }
+    ctx.stroke();
+    
+    // Ladder safety cage (semi-circles around the ladder)
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let cy = ladderStartY - 20; cy > ladderEndY + 10; cy -= 15) {
+        ctx.moveTo(ladderX - ladderW/2 - 2, cy);
+        ctx.bezierCurveTo(ladderX - ladderW - 5, cy, ladderX + ladderW + 5, cy, ladderX + ladderW/2 + 2, cy);
+    }
+    // Vertical cage bars
+    ctx.moveTo(ladderX - ladderW - 1, ladderStartY - 20);
+    ctx.lineTo(ladderX - ladderW - 1, ladderEndY + 15);
+    ctx.moveTo(ladderX + ladderW + 1, ladderStartY - 20);
+    ctx.lineTo(ladderX + ladderW + 1, ladderEndY + 15);
+    ctx.stroke();
+
+    // Observation platform with railings wrapping around the column
+    const platY = ladderEndY;
+    const platExt = 12; // Extends out from the column by 12px on each side
+    const platW = columnW + platExt * 2;
+    const railingH = 15;
+    
+    // Platform base
+    ctx.fillStyle = "#333333";
+    ctx.fillRect(-platW/2, platY, platW, 4);
+    
+    // Railings (Vertical posts)
+    ctx.strokeStyle = "#555555";
+    ctx.lineWidth = 2;
+    const numPosts = 7;
+    for(let i=0; i<numPosts; i++) {
+        const postX = -platW/2 + (platW / (numPosts-1)) * i;
+        ctx.beginPath();
+        ctx.moveTo(postX, platY);
+        ctx.lineTo(postX, platY - railingH);
+        ctx.stroke();
+    }
+    
+    // Railings (Horizontal bars)
+    ctx.beginPath();
+    // Top rail
+    ctx.moveTo(-platW/2, platY - railingH);
+    ctx.lineTo(platW/2, platY - railingH);
+    // Mid rail
+    ctx.moveTo(-platW/2, platY - railingH/2);
+    ctx.lineTo(platW/2, platY - railingH/2);
+    ctx.stroke();
 
     ctx.restore();
   }
