@@ -726,7 +726,11 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
           if (formattedBaseBonus.endsWith('.00')) {
              formattedBaseBonus = baseMult.toFixed(0);
           }
-          milestone.description[0] = `Multiplies PP value by <span style="color:#00e5ff">${formattedBaseBonus}x</span> compounding per Surge after 200`;
+          if (effectiveNerf === 1) {
+              milestone.description[0] = `Doubles PP value per Surge after 200`;
+          } else {
+              milestone.description[0] = `Multiplies PP value by <span style="color:#00e5ff">${formattedBaseBonus}x</span> compounding per Surge after 200`;
+          }
 
           if (currentLevel >= 200) {
             let multBn = BigNum.fromInt(1);
