@@ -225,8 +225,13 @@ export function setMusicVolume(volumePercentage) {
     }
 }
 
+let isUnderwaterState = false;
+let isWarpingState = false;
+
 export function setAudioUnderwater(underwater) {
+    isUnderwaterState = underwater;
     if (!musicFilter && !sfxFilter) return;
+    if (isWarpingState) return;
     const frequency = underwater ? 600 : 22050;
     try {
         const now = audioContext.currentTime;
@@ -242,4 +247,32 @@ export function setAudioUnderwater(underwater) {
         if (musicFilter) musicFilter.frequency.value = frequency;
         if (sfxFilter) sfxFilter.frequency.value = frequency;
     }
+}
+
+export function applyWarpDrownEffect(durationInSeconds) {
+    if (!musicFilter && !sfxFilter) return;
+    isWarpingState = true;
+    try {
+        const now = audioContext.currentTime;
+        const currentFreq = isUnderwaterState ? 600 : 22050;
+        const targetFreq = 50; // low pass filter value for the drowned effect
+        if (musicFilter) {
+            musicFilter.frequency.cancelScheduledValues(now);
+            musicFilter.frequency.setValueAtTime(currentFreq, now);
+            musicFilter.frequency.exponentialRampToValueAtTime(targetFreq, now + durationInSeconds);
+        }
+        if (sfxFilter) {
+            sfxFilter.frequency.cancelScheduledValues(now);
+            sfxFilter.frequency.setValueAtTime(currentFreq, now);
+            sfxFilter.frequency.exponentialRampToValueAtTime(targetFreq, now + durationInSeconds);
+        }
+    } catch {
+        if (musicFilter) musicFilter.frequency.value = 50;
+        if (sfxFilter) sfxFilter.frequency.value = 50;
+    }
+}
+
+export function removeWarpDrownEffect() {
+    isWarpingState = false;
+    setAudioUnderwater(isUnderwaterState);
 }
