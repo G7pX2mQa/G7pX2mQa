@@ -4098,8 +4098,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t4;
 
     const columnY = baseY - 115; // Starts exactly on top of catwalk
-    const columnH = 150;
-    const columnW = 40;
+    const columnH = 120;
+    const columnW = 100;
 
     // Four pipes connecting to the Distillation Column (Drawn FIRST so they are behind)
     const pipeTargetY = columnY - 80;
@@ -4173,7 +4173,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
     // Dual Reactor Cores attached to the sides of the distillation column
     const coreY = baseY - 115 - 75; // Middle of the distillation column
-    const columnW = 40;
+    const columnW = 100;
     
     const drawReactorCore = (x, isLeft) => {
       ctx.save();
