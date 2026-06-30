@@ -951,22 +951,28 @@ export function getMutationGainMultiplier() {
 }
 
 
+let cachedHighestLevelRef = null;
+let cachedHighestVisual = 0;
+
 export function getRandomMutationCoinSprite() {
-  let highest = 0;
-  try {
-    const hLevel = getHighestMutationLevel();
-    if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-      const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= 15 || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
-      if (s !== 'Infinity') {
-        highest = parseInt(s, 10);
-      } else {
-        highest = MAX_MUTATION_VISUAL;
+  const hLevel = getHighestMutationLevel();
+  if (hLevel !== cachedHighestLevelRef) {
+    cachedHighestLevelRef = hLevel;
+    let highest = 0;
+    try {
+      if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
+        const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= 15 || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
+        if (s !== 'Infinity') {
+          highest = parseInt(s, 10);
+        } else {
+          highest = MAX_MUTATION_VISUAL;
+        }
       }
-    }
-  } catch (e) {}
-  highest = Math.min(highest, MAX_MUTATION_VISUAL);
+    } catch (e) {}
+    cachedHighestVisual = Math.min(highest, MAX_MUTATION_VISUAL);
+  }
   
-  const randIdx = Math.floor(Math.random() * (highest + 1));
+  const randIdx = Math.floor(Math.random() * (cachedHighestVisual + 1));
   if (randIdx === 0) return 'img/currencies/coin/coin.webp';
   return `img/mutations/m${randIdx}.webp`;
 }
