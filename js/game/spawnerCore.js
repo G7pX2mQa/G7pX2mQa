@@ -588,7 +588,11 @@ export function createBaseSpawner(config = {}) {
     function loop(now) {
       if (!M.pfRect) computeMetrics();
 
-      let dt = (now - last) / 1000;
+      let rawDt = now - last;
+      let dt = rawDt / 1000;
+      if (rawDt > 250) {
+          canvasDirty = true;
+      }
       last = now;
       if (dt > 0.1) dt = 0.1;
       
@@ -734,6 +738,7 @@ export function createBaseSpawner(config = {}) {
         if (!document.hidden) {
           if (typeof shouldAutoResume === 'function' && !shouldAutoResume()) return;
           if (typeof window !== 'undefined' && (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive)) return;
+          canvasDirty = true;
           if (!rafId) start();
         }
     });
