@@ -277,6 +277,9 @@ const toBn = (x) => BN.fromAny(x ?? 0);
 function effectBN(fn) {
   return (level) => {
     const L = toBn(level);
+      if (L.isInfinite?.()) return BigNum.fromAny('Infinity');
+
+
     let out;
     try { out = fn({ L, BN }); } catch { out = 1; }
     if (out instanceof BN) return out;
@@ -292,6 +295,9 @@ export const E = {
     const pStr = String(pNum);
     return (level) => {
       const L = toBn(level);
+      if (L.isInfinite?.()) return BigNum.fromAny('Infinity');
+
+
       try {
         const plain = L.inf || L.e >= 15 ? 'Infinity' : L.toPlainIntegerString?.();
         if (plain && plain !== 'Infinity' && plain.length <= 15) {
@@ -317,6 +323,9 @@ catch {
     const xStr = String(xNum);
     return (level) => {
       const L = toBn(level);
+      if (L.isInfinite?.()) return BigNum.fromAny('Infinity');
+
+
       try {
         const plain = L.inf || L.e >= 15 ? 'Infinity' : L.toPlainIntegerString?.();
         if (plain && plain !== 'Infinity' && plain.length <= 15) {
@@ -342,6 +351,9 @@ catch {
 
     return (level) => {
       const L = toBn(level);
+      if (L.isInfinite?.()) return BigNum.fromAny('Infinity');
+
+
 
       if (log10b > 0) {
         const approxLevelLog = approxLog10BigNum(L);
@@ -1200,6 +1212,7 @@ function hmLevelCapForEvolutions(evolutions) {
 }
 
 function hmMilestoneHits(levelBn, milestoneLevel) {
+  if (levelBn?.isInfinite?.()) return Infinity;
   if (!levelBn || typeof milestoneLevel !== 'number') return 0;
   const approxDigits = Math.floor(approxLog10BigNum(levelBn)) + 1;
   if (!Number.isFinite(approxDigits)) return 0;
