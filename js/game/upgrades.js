@@ -1383,6 +1383,17 @@ function hmNextMilestoneLevel(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
   if (!milestones.length) return null;
 
   let best = null;
+
+  // Include evolution levels (multiples of HM_EVOLUTION_INTERVAL) as milestones
+  try {
+    const lvlNum = levelBigNumToNumber(levelBn);
+    const interval = Number(HM_EVOLUTION_INTERVAL);
+    if (Number.isFinite(lvlNum) && interval > 0) {
+      const nextEvolutionLvl = (Math.floor(lvlNum / interval) + 1) * interval;
+      best = BigNum.fromAny(nextEvolutionLvl.toString());
+    }
+  } catch {}
+
   for (const m of milestones) {
     const lvl = Math.max(0, Math.floor(Number(m?.level ?? m?.lvl ?? 0)));
     const hits = hmMilestoneHits(levelBn, lvl);
