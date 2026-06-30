@@ -526,7 +526,7 @@ export function initCoinPickup({
     // Debounce slightly for default sound to avoid overwhelming accumulation
     if (src === resolvedSrc) {
         const now = performance.now();
-        if ((now - lastAt) < 40) return; 
+        if ((now - lastAt) < 20) return; 
         lastAt = now;
     }
     
