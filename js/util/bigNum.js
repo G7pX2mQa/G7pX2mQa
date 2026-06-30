@@ -660,6 +660,11 @@ export function bigNumFromLog10(log10Value, noFuzz = false) {
   }
   
   if (log10Value <= -1e12) return BigNum.fromInt(0);
+
+  if (!noFuzz) {
+    log10Value += 1e-14;
+  }
+
   const p = BigNum.DEFAULT_PRECISION;
   let intPart = Math.floor(log10Value);
   let frac = log10Value - intPart;
