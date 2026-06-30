@@ -3953,616 +3953,385 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   ctx.restore();
 
   // ----------------------------------------------------
-  // Tier 2: Heating Furnaces (Energy infusion)
+  // Tier 2: High Voltage Electrical Boxes
   // ----------------------------------------------------
   if (t2 > 0) {
     ctx.save();
     ctx.globalAlpha = t2;
 
-    const drawFurnace = (fx, fy) => {
-      ctx.save();
-      ctx.translate(fx, fy);
-      
-      // Main furnace body
-      ctx.fillStyle = "#2a2a2a";
-      ctx.strokeStyle = "#1a1a1a";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.rect(-25, -40, 50, 40);
-      ctx.fill();
-      ctx.stroke();
-
-      // Top cap
-      ctx.fillStyle = "#3a3a3a";
-      ctx.beginPath();
-      ctx.moveTo(-30, -40);
-      ctx.lineTo(30, -40);
-      ctx.lineTo(20, -55);
-      ctx.lineTo(-20, -55);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Furnace grill / opening
-      ctx.fillStyle = "#111";
-      ctx.beginPath();
-      ctx.rect(-15, -30, 30, 20);
-      ctx.fill();
-
-      // Pulsing heat glow inside the furnace
-      const pulse = (Math.sin(t * 4 + fx) + 1) / 2; // 0 to 1
-      const heatAlpha = 0.5 + 0.5 * pulse;
-      
-      ctx.fillStyle = `rgba(255, 68, 0, ${heatAlpha})`; // Orange/red glow
-      ctx.beginPath();
-      ctx.rect(-12, -27, 24, 14);
-      ctx.fill();
-      
-      // Intense hot core
-      ctx.fillStyle = `rgba(255, 200, 0, ${heatAlpha * 0.8})`; // Yellow/white inner glow
-      ctx.beginPath();
-      ctx.rect(-6, -23, 12, 6);
-      ctx.fill();
-
-      // Small vents on side
-      ctx.fillStyle = "#111";
-      ctx.fillRect(-20, -35, 4, 25);
-      ctx.fillRect(16, -35, 4, 25);
-      
-      // Heat shimmer / exhaust above furnace
-      for (let i = 0; i < 3; i++) {
-        const pT = (t * 0.5 + i * 0.33) % 1;
-        if (pT > 0) {
-          const px = (Math.sin(t * 3 + i) * 4) * pT;
-          const py = -55 - (pT * 20);
-          const pr = 4 + pT * 8;
-          ctx.fillStyle = `rgba(255, 100, 0, ${(1 - pT) * 0.4})`;
-          ctx.beginPath();
-          ctx.arc(px, py, pr, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      ctx.restore();
-    };
-
-    // Draw left and right furnaces beside the main base
-    drawFurnace(-120, baseY);
-    drawFurnace(120, baseY);
 
     ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 3: Industrial Scaffolding & Initial Piping
+  // Tier 3: Catwalk and Supports
   // ----------------------------------------------------
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
-    
-    // Scaffolding support pillars
-    ctx.strokeStyle = "#444";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    [-100, -70, 70, 100].forEach(px => {
-      ctx.moveTo(px, baseY);
-      ctx.lineTo(px, baseY - 120);
-    });
-    ctx.stroke();
 
-    // Cross beams
+    // Supports for the catwalk, starting from on top of the electrical boxes
+    // Electrical boxes are at y = baseY - 60, going up to catwalk at baseY - 120
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    
+    // Left Box Supports (Box is at x = -150)
+    ctx.moveTo(-160, baseY - 40);
+    ctx.lineTo(-160, baseY - 120);
+    ctx.moveTo(-140, baseY - 40);
+    ctx.lineTo(-140, baseY - 120);
+    
+    // Right Box Supports (Box is at x = 150)
+    ctx.moveTo(140, baseY - 40);
+    ctx.lineTo(140, baseY - 120);
+    ctx.moveTo(160, baseY - 40);
+    ctx.lineTo(160, baseY - 120);
+    ctx.stroke();
+    
+    // X-bracing for supports
     ctx.lineWidth = 4;
     ctx.beginPath();
-    [-40, -80, -120].forEach(py => {
-      ctx.moveTo(-110, baseY + py);
-      ctx.lineTo(-60, baseY + py);
-      ctx.moveTo(110, baseY + py);
-      ctx.lineTo(60, baseY + py);
-    });
+    ctx.moveTo(-160, baseY - 40); ctx.lineTo(-140, baseY - 120);
+    ctx.moveTo(-160, baseY - 120); ctx.lineTo(-140, baseY - 40);
+    ctx.moveTo(140, baseY - 40); ctx.lineTo(160, baseY - 120);
+    ctx.moveTo(140, baseY - 120); ctx.lineTo(160, baseY - 40);
     ctx.stroke();
 
-    // X-braces
+    // The Catwalk stretching across the entire width of the iron base
+    ctx.fillStyle = "#333";
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 2;
+    // Iron base goes from -170 to 170
+    const catwalkW = 340;
+    const catwalkH = 10;
+    const catwalkY = baseY - 120;
+    
+    // Main walkway
+    ctx.fillRect(-catwalkW/2, catwalkY, catwalkW, catwalkH);
+    ctx.strokeRect(-catwalkW/2, catwalkY, catwalkW, catwalkH);
+    
+    // Railings
+    ctx.strokeStyle = "#777";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    for (let py = -40; py >= -120; py -= 40) {
-      ctx.moveTo(-100, baseY + py);
-      ctx.lineTo(-70, baseY + py + 40);
-      ctx.moveTo(-100, baseY + py + 40);
-      ctx.lineTo(-70, baseY + py);
-      
-      ctx.moveTo(100, baseY + py);
-      ctx.lineTo(70, baseY + py + 40);
-      ctx.moveTo(100, baseY + py + 40);
-      ctx.lineTo(70, baseY + py);
+    ctx.moveTo(-catwalkW/2, catwalkY - 15);
+    ctx.lineTo(catwalkW/2, catwalkY - 15);
+    // Railing posts
+    for(let px = -catwalkW/2; px <= catwalkW/2; px += 20) {
+      ctx.moveTo(px, catwalkY);
+      ctx.lineTo(px, catwalkY - 15);
     }
     ctx.stroke();
-
-    // Initial dark piping rising from the furnaces up into the central area
-    drawFluidPipe(
-      [
-        { x: -120, y: baseY - 55 },
-        { x: -120, y: baseY - 90 },
-        { x: -50, y: baseY - 90 },
-      ],
-      8,
-      null, // No fluid glow yet, just the physical pipe
-      0,
-      t3
-    );
-    drawFluidPipe(
-      [
-        { x: 120, y: baseY - 55 },
-        { x: 120, y: baseY - 90 },
-        { x: 50, y: baseY - 90 },
-      ],
-      8,
-      null,
-      0,
-      t3
-    );
 
     ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 4: The Distribution Manifold (Logical routing)
+  // Tier 4: Distillation Column & Piping
   // ----------------------------------------------------
   if (t4 > 0) {
-    const coreY = baseY - 110;
-    const pipeColor = "rgba(255, 100, 0, 0.9)"; // Heated deep orange fluid
+    ctx.save();
+    ctx.globalAlpha = t4;
 
-    // Connect the initial dark pipes (Tier 3) to the central manifold
-    // Left side feed
-    drawFluidPipe(
-      [
-        { x: -50, y: baseY - 90 },
-        { x: -30, y: baseY - 90 },
-        { x: -15, y: coreY },
-      ],
-      8,
-      pipeColor,
-      2,
-      t4,
-    );
-    // Right side feed
-    drawFluidPipe(
-      [
-        { x: 50, y: baseY - 90 },
-        { x: 30, y: baseY - 90 },
-        { x: 15, y: coreY },
-      ],
-      8,
-      pipeColor,
-      2,
-      t4,
-    );
+    const columnY = baseY - 120; // Starts exactly on top of catwalk
+    const columnH = 150;
+    const columnW = 40;
 
-    // The central horizontal manifold (the main distribution bus)
-    drawFluidPipe(
-      [
-        { x: -60, y: coreY },
-        { x: 60, y: coreY },
-      ],
-      12,
-      pipeColor,
-      1,
-      t4,
-    );
+    // Background Shadow for the Distillation Column
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(-columnW/2 + 4, columnY - columnH + 4, columnW, columnH);
 
-    // Vertical secondary pipes distributing the heated oil upwards
-    for (let i = -2; i <= 2; i++) {
-      if (i === 0) continue; // Leave center open for later tiers
-      const px = i * 15;
-      drawFluidPipe(
-        [
-          { x: px, y: coreY },
-          { x: px, y: coreY - 40 - Math.abs(i) * 10 },
-          { x: px > 0 ? px + 10 : px - 10, y: coreY - 50 - Math.abs(i) * 10 },
-        ],
-        4,
-        pipeColor,
-        3,
-        t4,
-      );
+    // Main Silo Body
+    ctx.fillStyle = "#8c92ac"; // Light steel blue-grey
+    ctx.strokeStyle = "#2c3e50"; // Darker outline
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    // Start at bottom center on the catwalk
+    ctx.rect(-columnW/2, columnY - columnH, columnW, columnH);
+    ctx.fill();
+    ctx.stroke();
+
+    // Silo Dome / Top
+    ctx.beginPath();
+    ctx.arc(0, columnY - columnH, columnW/2, Math.PI, 0);
+    ctx.fill();
+    ctx.stroke();
+
+    // Horizontal structural rings / levels on the column
+    ctx.strokeStyle = "#5a6a7a";
+    ctx.lineWidth = 2;
+    for (let h = columnY - 30; h >= columnY - columnH; h -= 30) {
+      ctx.beginPath();
+      ctx.moveTo(-columnW/2, h);
+      ctx.lineTo(columnW/2, h);
+      ctx.stroke();
     }
+    
+    // Four pipes connecting to the Distillation Column
+    const pipeTargetY = columnY - 80;
+    const pipeColor = "rgba(227, 197, 20, 0.8)"; // Golden yellow energy
+    
+    // 1. Left electrical box to column
+    drawFluidPipe([
+      { x: -150, y: baseY - 40 },
+      { x: -150, y: pipeTargetY },
+      { x: -columnW/2, y: pipeTargetY }
+    ], 6, pipeColor, 2, t4);
+    
+    // 2. Right electrical box to column
+    drawFluidPipe([
+      { x: 150, y: baseY - 40 },
+      { x: 150, y: pipeTargetY },
+      { x: columnW/2, y: pipeTargetY }
+    ], 6, pipeColor, 2, t4);
+    
+    // 3. Gap between left and right oil tanks (roughly center) -> column
+    // The tanks are at roughly -60 and +60. Center gap is 0.
+    drawFluidPipe([
+      { x: -30, y: baseY - 45 }, // Start below catwalk
+      { x: -30, y: pipeTargetY - 20 },
+      { x: -10, y: columnY - 20 } // Goes straight up into the bottom
+    ], 6, pipeColor, 2, t4);
+
+    // 4. Gap between right oil tank and tier 1 prism -> column
+    // Right tank is around +60. Prism is +90. Gap is roughly +75.
+    drawFluidPipe([
+      { x: 40, y: baseY - 45 },
+      { x: 40, y: pipeTargetY - 40 },
+      { x: 10, y: pipeTargetY - 40 }
+    ], 6, pipeColor, 2, t4);
+
+    ctx.restore();
   }
 
-  // ----------------------------------------------------
-  // Tier 5: High-Pressure Pump Stations
+    // ----------------------------------------------------
+  // Tier 5: Fractionation Rings
   // ----------------------------------------------------
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
     
-    const coreY = baseY - 110;
-    const pipeColor = "rgba(255, 150, 0, 0.9)"; // Brighter orange as pressure builds
+    const coreY = baseY - 120; // At the catwalk/base of the distillation column
     
-    const drawPump = (px, py, phaseOffset) => {
-      ctx.save();
-      ctx.translate(px, py);
+    // Draw rings around the distillation column
+    const numRings = 3;
+    const ringSpacing = 40; // Rings go up the column
+    const baseRingW = 60; // Wider than the column (40)
+    
+    for (let i = 0; i < numRings; i++) {
+      const ringY = coreY - 40 - (i * ringSpacing);
+      const phaseOffset = i * 2;
       
-      // Pump body housing
-      ctx.fillStyle = "#333";
-      ctx.strokeStyle = "#111";
-      ctx.lineWidth = 2;
+      ctx.save();
+      ctx.translate(0, ringY);
+      
+      // Floating animation for the rings
+      const floatY = Math.sin(t * 2 + phaseOffset) * 3;
+      ctx.translate(0, floatY);
+      
+      // Ring body
       ctx.beginPath();
-      ctx.arc(0, 0, 20, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.ellipse(0, 0, baseRingW / 2, 12, 0, 0, Math.PI * 2);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#444";
       ctx.stroke();
       
-      // Internal glowing fluid chamber
-      ctx.fillStyle = "rgba(255, 100, 0, 0.5)";
+      // Energy flow within the ring
       ctx.beginPath();
-      ctx.arc(0, 0, 14, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Animated mechanical piston/rotor inside the pump
-      const cycle = Math.sin(t * 8 + phaseOffset); // Fast pumping action
-      const pistonY = cycle * 6;
-      
-      ctx.fillStyle = "#666";
-      ctx.fillRect(-8, -14, 16, 14 + pistonY);
-      
-      // Piston cap
-      ctx.fillStyle = "#aaa";
-      ctx.fillRect(-10, pistonY - 4, 20, 4);
-
-      // Warning lights indicating high pressure
-      ctx.fillStyle = cycle > 0.5 ? "#ff0000" : "#550000";
-      ctx.beginPath();
-      ctx.arc(0, -20, 3, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.ellipse(0, 0, baseRingW / 2 - 2, 10, 0, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(255, 150, 0, ${0.5 + 0.5 * Math.sin(t * 3 + phaseOffset)})`; // Glowing orange
+      ctx.stroke();
       
       ctx.restore();
-    };
-
-    // Draw Left and Right pumps attached to the distribution manifold
-    drawPump(-60, coreY, 0);
-    drawPump(60, coreY, Math.PI); // Out of phase
-
-    // Connect pumps upwards to continue the flow
-    drawFluidPipe(
-      [
-        { x: -60, y: coreY - 20 },
-        { x: -60, y: coreY - 60 },
-        { x: -40, y: coreY - 80 },
-      ],
-      6,
-      pipeColor,
-      4,
-      t5,
-    );
-    drawFluidPipe(
-      [
-        { x: 60, y: coreY - 20 },
-        { x: 60, y: coreY - 60 },
-        { x: 40, y: coreY - 80 },
-      ],
-      6,
-      pipeColor,
-      4,
-      t5,
-    );
-
+    }
+    
     ctx.restore();
   }
 
-  // ----------------------------------------------------
+    // ----------------------------------------------------
   // Tier 6: Energized Conduit Frame
   // ----------------------------------------------------
   if (t6 > 0) {
-    // Huge overarching angled structural pipes acting as conduits
-    const frameColor = ironPattern ? ironPattern : "#334";
-
     ctx.save();
     ctx.globalAlpha = t6;
-    ctx.lineWidth = 16; // Thicker conduits
-    ctx.strokeStyle = frameColor;
+
+    // Use pure electric yellow for the frame glow
+    const frameGlow = "rgba(255, 255, 0, 0.9)";
+    ctx.strokeStyle = frameGlow;
+    ctx.lineWidth = 4;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
+    // Adjust left edge to -120 and right edge to +120 (iron base width is 240)
     const drawFramePath = () => {
       ctx.beginPath();
-      // Left leg
-      ctx.moveTo(-110, baseY);
-      ctx.lineTo(-80, baseY - 180);
+      // Left leg starts at -120, moves up and to the right
+      ctx.moveTo(-120, baseY);
+      ctx.lineTo(-90, baseY - 180);
       ctx.lineTo(-30, baseY - 230);
+      
       // Top connector
       ctx.lineTo(30, baseY - 230);
-      // Right leg
-      ctx.lineTo(80, baseY - 180);
-      ctx.lineTo(110, baseY);
+      
+      // Right leg starts at +120, moves up and to the left
+      ctx.lineTo(90, baseY - 180);
+      ctx.lineTo(120, baseY);
     };
 
+    // Draw the static frame outline
+    ctx.strokeStyle = "#333"; // Dark metallic frame base
+    ctx.lineWidth = 8;
     drawFramePath();
     ctx.stroke();
 
-    // Shadow inner track
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "#111";
-    drawFramePath();
-    ctx.stroke();
-
-    // Animated energy pulses surging through the conduits
+    // Draw the glowing pure yellow outline
     ctx.lineWidth = 4;
-    ctx.lineDashOffset = -t * 40; // Fast moving dashes
-    ctx.setLineDash([15, 40]);
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.9)"; // High-energy cyan
+    ctx.strokeStyle = frameGlow;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = frameGlow;
     drawFramePath();
     ctx.stroke();
     
-    // Add glow to the energy pulses
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "rgba(0, 255, 255, 1)";
-    drawFramePath();
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.setLineDash([]); // Reset line dash
-
-    // Dynamic, spinning structural binding rings
-    const ringY = baseY - 120;
+    // Animate energy pulses converging to the center
+    // We use lineDash to create "pulses"
     ctx.lineWidth = 6;
+    ctx.strokeStyle = "#FFFFFF"; // Bright white core for the pulse
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = "rgba(255, 255, 0, 1)";
     
-    const drawDynamicRing = (rx) => {
-      ctx.save();
-      ctx.translate(rx, ringY);
-      
-      // Ring mount
-      ctx.strokeStyle = "#222";
-      ctx.beginPath();
-      ctx.moveTo(0, -10);
-      ctx.lineTo(rx > 0 ? -15 : 15, -20);
-      ctx.stroke();
-      
-      // Spinning inner element
-      ctx.rotate(t * 3 * (rx > 0 ? 1 : -1));
-      ctx.strokeStyle = "#444";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 15, 5, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Energy nodes on ring
-      ctx.fillStyle = "rgba(0, 255, 255, 0.8)";
-      ctx.beginPath();
-      ctx.arc(-15, 0, 3, 0, Math.PI * 2);
-      ctx.arc(15, 0, 3, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.restore();
-    };
-
-    drawDynamicRing(-95);
-    drawDynamicRing(95);
+    const pulseLength = 40;
+    const gapLength = 800; // Big gap so we only see one or two pulses per side
+    ctx.setLineDash([pulseLength, gapLength]);
+    
+    // Speed of convergence
+    const speed = 150;
+    
+    // Left side pulse (moving from start to center)
+    ctx.save();
+    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
+    ctx.beginPath();
+    ctx.moveTo(-120, baseY);
+    ctx.lineTo(-90, baseY - 180);
+    ctx.lineTo(-30, baseY - 230);
+    ctx.lineTo(0, baseY - 230); // Stop at center
+    ctx.stroke();
+    ctx.restore();
+    
+    // Right side pulse (moving from end to center)
+    // To make it move backwards, we draw the path in reverse
+    ctx.save();
+    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
+    ctx.beginPath();
+    ctx.moveTo(120, baseY);
+    ctx.lineTo(90, baseY - 180);
+    ctx.lineTo(30, baseY - 230);
+    ctx.lineTo(0, baseY - 230); // Stop at center
+    ctx.stroke();
+    ctx.restore();
 
     ctx.restore();
   }
 
-  // ----------------------------------------------------
-  // Tier 7: Plasma Infusion Chambers
+    // ----------------------------------------------------
+  // Tier 7: Atmospheric Plasma Vents
   // ----------------------------------------------------
   if (t7 > 0) {
-    const coreY = baseY - 110;
+    ctx.save();
+    ctx.globalAlpha = t7;
     
-    // Draw plasma infusion chambers at the top of the vertical pipes (from tier 4)
-    const drawChamber = (cx, cy) => {
+    const ventY = baseY - 250; // High above the core, exhausting out of the frame
+    
+    const drawPlasmaVent = (vx, vy, phaseOffset) => {
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.globalAlpha = t7;
+      ctx.translate(vx, vy);
       
-      // Chamber casing
+      // Vent nozzle
       ctx.fillStyle = "#222";
-      ctx.strokeStyle = "#111";
-      ctx.lineWidth = 2;
+      ctx.fillRect(-10, 0, 20, -15);
+      
+      // Plasma flame exhaust
+      const flameIntensity = 0.5 + 0.5 * Math.sin(t * 10 + phaseOffset);
+      const flameH = 20 + flameIntensity * 30; // Flickering height
+      
+      const flameGrad = ctx.createLinearGradient(0, -15, 0, -15 - flameH);
+      flameGrad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+      flameGrad.addColorStop(0.3, "rgba(0, 255, 255, 0.8)"); // Cyan/blue plasma
+      flameGrad.addColorStop(1, "rgba(0, 50, 255, 0)");
+      
+      ctx.fillStyle = flameGrad;
       ctx.beginPath();
-      ctx.rect(-12, -20, 24, 40);
-      ctx.fill();
-      ctx.stroke();
-      
-      // Transparent glass window
-      ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-      ctx.beginPath();
-      ctx.rect(-8, -16, 16, 32);
-      ctx.fill();
-      
-      // Fluid transition: Orange -> Cyan/Purple (Infusion)
-      const grad = ctx.createLinearGradient(0, 16, 0, -16);
-      grad.addColorStop(0, "rgba(255, 100, 0, 0.8)"); // Incoming heated oil
-      
-      // Turbulent boiling animation
-      const shift = Math.sin(t * 5 + cx) * 0.2;
-      grad.addColorStop(0.4 + shift, "rgba(255, 150, 0, 0.9)"); // Boiling point
-      grad.addColorStop(0.6 + shift, "rgba(100, 0, 255, 0.9)"); // Energy flash (Purple)
-      grad.addColorStop(1, "rgba(0, 255, 255, 0.9)"); // Fully infused (Cyan)
-      
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.rect(-8, -16, 16, 32);
+      ctx.moveTo(-8, -15);
+      ctx.lineTo(0, -15 - flameH);
+      ctx.lineTo(8, -15);
       ctx.fill();
       
-      // Energy containment rings on the chamber
-      ctx.strokeStyle = "#444";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(-12, -10); ctx.lineTo(12, -10);
-      ctx.moveTo(-12, 10); ctx.lineTo(12, 10);
-      ctx.stroke();
-
-      // Small glowing nodes
-      ctx.fillStyle = "rgba(0, 255, 255, 0.8)";
-      ctx.beginPath();
-      ctx.arc(-14, 0, 3, 0, Math.PI * 2);
-      ctx.arc(14, 0, 3, 0, Math.PI * 2);
-      ctx.fill();
-
       ctx.restore();
     };
-
-    // Draw chambers above the vertical pipes
-    for (let i = -2; i <= 2; i++) {
-      if (i === 0) continue;
-      const px = i * 15;
-      const py = coreY - 60 - Math.abs(i) * 10;
-      drawChamber(px > 0 ? px + 10 : px - 10, py);
-    }
     
-    // Draw fully infused pipes leading from the chambers towards the center
-    const infusedColor = "rgba(0, 255, 255, 0.9)"; // Fully energized oil
+    // Draw vents on top of the tier 6 frame corners
+    drawPlasmaVent(-90, baseY - 180, 0);
+    drawPlasmaVent(90, baseY - 180, 2);
     
-    // Outer chambers to inner area
-    drawFluidPipe(
-      [
-        { x: -40, y: coreY - 80 },
-        { x: -40, y: coreY - 110 },
-        { x: -20, y: coreY - 110 },
-      ],
-      4,
-      infusedColor,
-      5, // Fast flow
-      t7,
-    );
-    drawFluidPipe(
-      [
-        { x: 40, y: coreY - 80 },
-        { x: 40, y: coreY - 110 },
-        { x: 20, y: coreY - 110 },
-      ],
-      4,
-      infusedColor,
-      5,
-      t7,
-    );
+    // Draw vents on top of the central distillation column
+    drawPlasmaVent(-15, baseY - 270, 1);
+    drawPlasmaVent(15, baseY - 270, 3);
     
-    // Inner chambers to center
-    drawFluidPipe(
-      [
-        { x: -25, y: coreY - 70 },
-        { x: -25, y: coreY - 90 },
-        { x: -10, y: coreY - 90 },
-      ],
-      4,
-      infusedColor,
-      5,
-      t7,
-    );
-    drawFluidPipe(
-      [
-        { x: 25, y: coreY - 70 },
-        { x: 25, y: coreY - 90 },
-        { x: 10, y: coreY - 90 },
-      ],
-      4,
-      infusedColor,
-      5,
-      t7,
-    );
+    ctx.restore();
   }
 
   // ----------------------------------------------------
   // Tier 8: The Hyper-Manifold Surge
   // ----------------------------------------------------
-  if (t8 > 0) {
+    // ----------------------------------------------------
+  // Tier 8: Supercharged Distillation Core
+  // ----------------------------------------------------
+if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
 
-    const coreY = baseY - 110;
+    const coreY = baseY - 195; // Middle of the distillation column
     
-    // Intense central manifold glow (overloading the distribution system)
-    const aura = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 120);
+    // Core pulsing aura (upgrade to the column)
+    const aura = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 100);
     aura.addColorStop(0, "rgba(255, 255, 255, 1)");
-    aura.addColorStop(0.3, "rgba(0, 255, 255, 0.8)");
-    aura.addColorStop(0.7, "rgba(255, 100, 0, 0.4)"); // Mix of heated oil and pure energy
-    aura.addColorStop(1, "rgba(0, 0, 0, 0)");
+    aura.addColorStop(0.2, "rgba(255, 0, 255, 0.8)"); // Magenta/purple intense heat
+    aura.addColorStop(1, "rgba(255, 0, 255, 0)");
+    
     ctx.fillStyle = aura;
-    ctx.beginPath();
-    ctx.arc(0, coreY, 120, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Central Surge Core: Replaces the gap in the middle of the manifold with an intensely glowing hub
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(0, coreY, 16 + Math.sin(t * 15) * 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = "#00ffff";
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = "lighter";
     
-    const surgeColor = "rgba(255, 255, 255, 0.9)";
-    const fastFlow = 15;
-
-    // Hyper-energized thick pipes extending from the central core
-    drawFluidPipe(
-      [
-        { x: -80, y: coreY },
-        { x: -20, y: coreY },
-        { x: 0, y: coreY },
-      ],
-      16, // Expanding main pipe
-      surgeColor,
-      fastFlow,
-      t8,
-    );
-    drawFluidPipe(
-      [
-        { x: 80, y: coreY },
-        { x: 20, y: coreY },
-        { x: 0, y: coreY },
-      ],
-      16,
-      surgeColor,
-      fastFlow,
-      t8,
-    );
+    // Pulse animation
+    const pulse = 1.0 + 0.2 * Math.sin(t * 8);
+    ctx.save();
+    ctx.translate(0, coreY);
+    ctx.scale(pulse, pulse);
+    ctx.beginPath();
+    ctx.arc(0, 0, 100, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
     
-    // Overdriven vertical central pipes shooting down to base and up to frame
-    drawFluidPipe(
-      [
-        { x: 0, y: coreY - 100 },
-        { x: 0, y: coreY + 100 },
-      ],
-      12,
-      surgeColor,
-      fastFlow,
-      t8,
-    );
-
-    // Lightning arcs jumping specifically *between* the manifold pipes
+    // Encasing core reactor shields (spinning around the center)
+    ctx.globalCompositeOperation = "source-over";
+    ctx.translate(0, coreY);
+    ctx.rotate(t * 2);
+    
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#f0f";
+    
     for (let i = 0; i < 4; i++) {
-      if (Math.random() > 0.4) {
-        // Manifold junction points
-        const nodes = [
-          { x: -60, y: coreY },
-          { x: 60, y: coreY },
-          { x: -30, y: coreY - 60 },
-          { x: 30, y: coreY - 60 },
-          { x: -15, y: coreY - 80 },
-          { x: 15, y: coreY - 80 },
-          { x: 0, y: coreY - 100 },
-          { x: 0, y: coreY },
-        ];
-        
-        // Pick two distinct random nodes to arc between
-        const n1 = nodes[Math.floor(Math.random() * nodes.length)];
-        let n2 = nodes[Math.floor(Math.random() * nodes.length)];
-        while(n1 === n2) {
-          n2 = nodes[Math.floor(Math.random() * nodes.length)];
-        }
-
-        drawLightning(
-          n1.x,
-          n1.y,
-          n2.x,
-          n2.y,
-          5,
-          15, // Tighter jitter since it's constrained between pipes
-          "rgba(0, 255, 255, 0.9)",
-          4,
-        );
-      }
+      ctx.beginPath();
+      ctx.arc(0, 0, 35, (i * Math.PI) / 2, (i * Math.PI) / 2 + Math.PI / 4);
+      ctx.stroke();
     }
 
     ctx.restore();
   }
+
+
 
   // Base platform (Tier 0)
   ctx.save();
@@ -4572,6 +4341,78 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   ctx.fillRect(-baseWidth / 2, baseY, baseWidth, 4);
   ctx.fillRect(-baseWidth / 2, baseY + 16, baseWidth, 4);
   ctx.restore();
+
+  // Draw Tier 2 Electrical Boxes and Sparks on top of everything (including the iron base)
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    const drawElectricalBox = (bx, by) => {
+      ctx.save();
+      ctx.translate(bx, by);
+      
+      const boxW = 60;
+      const boxH = 60;
+      const lw = 4;
+      
+      // Prevent stroke clipping by drawing the rect slightly smaller
+      const pathW = boxW - lw;
+      const pathH = boxH - lw;
+      const pathX = -pathW / 2;
+      const pathY = -pathH - lw / 2;
+      
+      // Box body
+      ctx.fillStyle = "#111111"; // Very dark/black box
+      ctx.fillRect(pathX, pathY, pathW, pathH);
+      ctx.strokeStyle = "#000000"; // Black outline
+      ctx.lineWidth = lw;
+      ctx.strokeRect(pathX, pathY, pathW, pathH);
+      
+      // High voltage symbol (lightning bolt) in the center
+      ctx.save();
+      ctx.translate(0, -boxH/2); // Center of the box
+      ctx.scale(1.5, 1.5);
+      ctx.fillStyle = "#e3c514"; // Yellow lightning
+      ctx.beginPath();
+      ctx.moveTo(3, -10); 
+      ctx.lineTo(-5, 2); 
+      ctx.lineTo(-1, 2); 
+      ctx.lineTo(-4, 12); 
+      ctx.lineTo(5, -2); 
+      ctx.lineTo(1, -2); 
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Sparks flying from the edges of it infrequently (every 3 seconds)
+      const sparkCycle = (t + Math.abs(bx)) % 3.0;
+      if (sparkCycle < 0.15) {
+        ctx.strokeStyle = sparkColor;
+        ctx.lineWidth = 2;
+        // Generate 1-2 sparks
+        for (let i = 0; i < 2; i++) {
+          const side = Math.random() > 0.5 ? 1 : -1;
+          const sparkX = (boxW/2) * side;
+          const sparkY = -boxH + Math.random() * boxH;
+          
+          ctx.beginPath();
+          ctx.moveTo(sparkX, sparkY);
+          const extX = sparkX + side * (10 + Math.random() * 15);
+          const extY = sparkY + (Math.random() - 0.5) * 20;
+          ctx.lineTo(extX, extY);
+          ctx.lineTo(extX + side * (5 + Math.random() * 10), extY + (Math.random() - 0.5) * 10);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    };
+
+    // Draw left and right electrical boxes on the ground
+    drawElectricalBox(-150, baseY + 20);
+    drawElectricalBox(150, baseY + 20);
+
+    ctx.restore();
+  }
 }
 
 function drawVault(ctx, t, tier) {
@@ -4659,6 +4500,78 @@ function drawCentrifuge(ctx, t, tier) {
   ctx.fill();
 
   ctx.restore();
+
+  // Draw Tier 2 Electrical Boxes and Sparks on top of everything (including the iron base)
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    const drawElectricalBox = (bx, by) => {
+      ctx.save();
+      ctx.translate(bx, by);
+      
+      const boxW = 60;
+      const boxH = 60;
+      const lw = 4;
+      
+      // Prevent stroke clipping by drawing the rect slightly smaller
+      const pathW = boxW - lw;
+      const pathH = boxH - lw;
+      const pathX = -pathW / 2;
+      const pathY = -pathH - lw / 2;
+      
+      // Box body
+      ctx.fillStyle = "#111111"; // Very dark/black box
+      ctx.fillRect(pathX, pathY, pathW, pathH);
+      ctx.strokeStyle = "#000000"; // Black outline
+      ctx.lineWidth = lw;
+      ctx.strokeRect(pathX, pathY, pathW, pathH);
+      
+      // High voltage symbol (lightning bolt) in the center
+      ctx.save();
+      ctx.translate(0, -boxH/2); // Center of the box
+      ctx.scale(1.5, 1.5);
+      ctx.fillStyle = "#e3c514"; // Yellow lightning
+      ctx.beginPath();
+      ctx.moveTo(3, -10); 
+      ctx.lineTo(-5, 2); 
+      ctx.lineTo(-1, 2); 
+      ctx.lineTo(-4, 12); 
+      ctx.lineTo(5, -2); 
+      ctx.lineTo(1, -2); 
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Sparks flying from the edges of it infrequently (every 3 seconds)
+      const sparkCycle = (t + Math.abs(bx)) % 3.0;
+      if (sparkCycle < 0.15) {
+        ctx.strokeStyle = sparkColor;
+        ctx.lineWidth = 2;
+        // Generate 1-2 sparks
+        for (let i = 0; i < 2; i++) {
+          const side = Math.random() > 0.5 ? 1 : -1;
+          const sparkX = (boxW/2) * side;
+          const sparkY = -boxH + Math.random() * boxH;
+          
+          ctx.beginPath();
+          ctx.moveTo(sparkX, sparkY);
+          const extX = sparkX + side * (10 + Math.random() * 15);
+          const extY = sparkY + (Math.random() - 0.5) * 20;
+          ctx.lineTo(extX, extY);
+          ctx.lineTo(extX + side * (5 + Math.random() * 10), extY + (Math.random() - 0.5) * 10);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    };
+
+    // Draw left and right electrical boxes on the ground
+    drawElectricalBox(-150, baseY + 20);
+    drawElectricalBox(150, baseY + 20);
+
+    ctx.restore();
+  }
 }
 
 function drawBeacon(ctx, t, tier) {
@@ -4687,6 +4600,78 @@ function drawBeacon(ctx, t, tier) {
   ctx.fill();
 
   ctx.restore();
+
+  // Draw Tier 2 Electrical Boxes and Sparks on top of everything (including the iron base)
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    const drawElectricalBox = (bx, by) => {
+      ctx.save();
+      ctx.translate(bx, by);
+      
+      const boxW = 60;
+      const boxH = 60;
+      const lw = 4;
+      
+      // Prevent stroke clipping by drawing the rect slightly smaller
+      const pathW = boxW - lw;
+      const pathH = boxH - lw;
+      const pathX = -pathW / 2;
+      const pathY = -pathH - lw / 2;
+      
+      // Box body
+      ctx.fillStyle = "#111111"; // Very dark/black box
+      ctx.fillRect(pathX, pathY, pathW, pathH);
+      ctx.strokeStyle = "#000000"; // Black outline
+      ctx.lineWidth = lw;
+      ctx.strokeRect(pathX, pathY, pathW, pathH);
+      
+      // High voltage symbol (lightning bolt) in the center
+      ctx.save();
+      ctx.translate(0, -boxH/2); // Center of the box
+      ctx.scale(1.5, 1.5);
+      ctx.fillStyle = "#e3c514"; // Yellow lightning
+      ctx.beginPath();
+      ctx.moveTo(3, -10); 
+      ctx.lineTo(-5, 2); 
+      ctx.lineTo(-1, 2); 
+      ctx.lineTo(-4, 12); 
+      ctx.lineTo(5, -2); 
+      ctx.lineTo(1, -2); 
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Sparks flying from the edges of it infrequently (every 3 seconds)
+      const sparkCycle = (t + Math.abs(bx)) % 3.0;
+      if (sparkCycle < 0.15) {
+        ctx.strokeStyle = sparkColor;
+        ctx.lineWidth = 2;
+        // Generate 1-2 sparks
+        for (let i = 0; i < 2; i++) {
+          const side = Math.random() > 0.5 ? 1 : -1;
+          const sparkX = (boxW/2) * side;
+          const sparkY = -boxH + Math.random() * boxH;
+          
+          ctx.beginPath();
+          ctx.moveTo(sparkX, sparkY);
+          const extX = sparkX + side * (10 + Math.random() * 15);
+          const extY = sparkY + (Math.random() - 0.5) * 20;
+          ctx.lineTo(extX, extY);
+          ctx.lineTo(extX + side * (5 + Math.random() * 10), extY + (Math.random() - 0.5) * 10);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    };
+
+    // Draw left and right electrical boxes on the ground
+    drawElectricalBox(-150, baseY + 20);
+    drawElectricalBox(150, baseY + 20);
+
+    ctx.restore();
+  }
 }
 
 function drawSingularity(ctx, t, tier) {
