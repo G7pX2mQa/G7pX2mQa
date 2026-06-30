@@ -501,8 +501,6 @@ export function createBaseSpawner(config = {}) {
                 const bucket = staticBuckets[b];
                 if (!bucket) continue;
                 
-                bucket.sort((a, b) => (a.srcId || 0) - (b.srcId || 0));
-                
                 const ctx = getInMemoryContext(b, w, h, dpr);
                 for (let i = 0; i < bucket.length; i++) {
                     onDrawSingleSettledItem(ctx, bucket[i]);
@@ -544,7 +542,6 @@ export function createBaseSpawner(config = {}) {
             // Draw moving items for this layer
             const movingBucket = dynamicBuckets[layer];
             if (movingBucket) {
-                movingBucket.sort((a, b) => (a.srcId || 0) - (b.srcId || 0));
                 for (let i = 0; i < movingBucket.length; i++) {
                     const c = movingBucket[i];
                     const state = getItemState(c, now);
