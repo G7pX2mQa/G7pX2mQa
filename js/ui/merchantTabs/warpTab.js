@@ -1,6 +1,6 @@
 import { getActiveSlot } from '../../util/storage.js';
 import { formatTimeCompact, calculateOfflineRewards, grantOfflineRewards, showOfflinePanel } from '../../game/offlinePanel.js';
-import { playAudio } from '../../util/audioManager.js';
+import { playAudio, applyWarpDrownEffect, removeWarpDrownEffect } from '../../util/audioManager.js';
 import { settingsManager } from '../../game/settingsManager.js';
 
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
@@ -116,14 +116,17 @@ function performWarp() {
         updateWarpTab();
     }, 1000);
     
-    // warpSfx.play();
-    playAudio(WARP_SFX_SRC, { volume: 0.5 });
+        // warpSfx.play();
+    playAudio(WARP_SFX_SRC, { volume: 1.0, type: 'ui' });
+
+    applyWarpDrownEffect(7.25);
     
     if (settingsManager.get('warp_vfx')) {
         triggerWarpVisuals();
     }
     
     setTimeout(() => {
+        removeWarpDrownEffect();
         const rewards = calculateOfflineRewards(WARP_DURATION_SEC);
         grantOfflineRewards(rewards);
         showOfflinePanel(rewards, WARP_DURATION_SEC * 1000);
@@ -191,7 +194,7 @@ export function initWarpTab(panel) {
                 <p>Use your Warps wisely as they only recharge once every hour</p>
             </div>
             <div class="warp-warning-container" style="display: none; text-align: center; margin-top: 0rem;">
-                <p style="color: yellow; font-weight: bold; margin: 0; margin-bottom: 0.5rem;">Photosensitivity warning: The Warp sequence intensely alters the game's colors in a way that may trigger discomfort for people with photosensitive epilepsy<br>You may disable Warp's visual effects in the main settings</p>
+                <p style="color: yellow; font-weight: bold; margin: 0; margin-bottom: 0.5rem;">Photosensitivity warning: Warping intensely alters the game's colors in a way that may trigger discomfort for people with photosensitive epilepsy<br>You may disable Warp's visual effects in the main settings</p>
                 <button type="button" class="warp-ack-btn">Click here to acknowledge this warning and hide it</button>
             </div>
             <div class="warp-status">
