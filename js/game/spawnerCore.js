@@ -479,6 +479,9 @@ export function createBaseSpawner(config = {}) {
             for (let b = 0; b < buckets.length; b++) {
                 const bucket = buckets[b];
                 if (!bucket) continue;
+                
+                bucket.sort((a, b) => (a.srcId || 0) - (b.srcId || 0));
+                
                 for (let i = 0; i < bucket.length; i++) {
                     const c = bucket[i];
                     if (!c.settled) {
@@ -564,6 +567,9 @@ export function createBaseSpawner(config = {}) {
                     for (let b = 0; b < buckets.length; b++) {
                         const bucket = buckets[b];
                         if (!bucket) continue;
+                        
+                        bucket.sort((a, b) => (a.srcId || 0) - (b.srcId || 0));
+                        
                         for (let i = 0; i < bucket.length; i++) {
                             const c = bucket[i];
                             if (!c.settled) {
