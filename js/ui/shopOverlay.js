@@ -1781,7 +1781,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           placeAfterCursor(costs);
           
           const costLabel = getCurrencyLabel(model.upg.costType, nextPriceBn);
-          const costHtml = `Cost: ${iconHTML} ${bank[model.upg.costType].fmt(nextPriceBn)} ${costLabel}`;
+          let formattedCost = bank[model.upg.costType].fmt(nextPriceBn);
+          if (formattedCost.includes('infinity-symbol')) {
+              formattedCost = formattedCost.replace('class="infinity-symbol"', 'class="infinity-symbol" style="position:relative; top:-1px;"');
+          }
+          const costHtml = `Cost: ${iconHTML} ${formattedCost} ${costLabel}`;
           
           const lineCost = ensureChild(costs, 'cost-line', 'div');
           if (!lineCost.className.includes('upg-line')) lineCost.className = 'upg-line cost-line';
