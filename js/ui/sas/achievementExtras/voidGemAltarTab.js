@@ -5,6 +5,7 @@ import { BigNum, bigNumFromLog10 } from '../../../util/bigNum.js';
 import { playAudio, applyAudioDrownEffect, removeAudioDrownEffect } from '../../../util/audioManager.js';
 import { registerTick } from '../../../game/gameLoop.js';
 import { settingsManager } from '../../../game/settingsManager.js';
+import { setHtmlOrText } from '../../../util/uiHelpers.js';
 
 const VOID_LEVEL_KEY = (slot) => `ccc:voidLevel:${slot}`;
 
@@ -394,11 +395,19 @@ export function updateVoidGemAltarTab() {
     const currentVoidLevel = getVoidLevel();
 
     if (gemCounterEl) {
-        gemCounterEl.textContent = typeof formatNumber === 'function' ? formatNumber(voidGemsAmount) : voidGemsAmount.toString();
+        let text = typeof formatNumber === 'function' ? formatNumber(voidGemsAmount) : voidGemsAmount.toString();
+        if (text.includes('infinity-symbol')) {
+             text = text.replace('class="infinity-symbol"', 'class="infinity-symbol void-text-black"');
+        }
+        setHtmlOrText(gemCounterEl, text);
     }
 
     if (levelIndicatorEl) {
-        levelIndicatorEl.textContent = typeof formatNumber === 'function' ? formatNumber(currentVoidLevel) : currentVoidLevel.toString();
+        let text = typeof formatNumber === 'function' ? formatNumber(currentVoidLevel) : currentVoidLevel.toString();
+        if (text.includes('infinity-symbol')) {
+             text = text.replace('class="infinity-symbol"', 'class="infinity-symbol void-level-text-black"');
+        }
+        setHtmlOrText(levelIndicatorEl, text);
     }
 
     if (feedBtn) {
