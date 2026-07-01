@@ -1370,13 +1370,14 @@ function playDialogueExplosion() {
       
     }
 
-    update() {
-      this.x += this.vx;
-      this.y += this.vy;
-      this.vy += this.gravity;
-      this.life -= this.decay;
-      this.size *= 0.98;
+    update(timeScale = 1) {
+      this.x += this.vx * timeScale;
+      this.y += this.vy * timeScale;
+      this.vy += this.gravity * timeScale;
+      this.life -= this.decay * timeScale;
+      this.size *= Math.pow(0.98, timeScale);
     }
+
 
     draw(ctx) {
       if (this.life <= 0) return;
@@ -1417,19 +1418,26 @@ function playDialogueExplosion() {
         // Base sizes roughly scaled by the multiplier
         const pSize = (Math.random() * 150 + 50) * sizeMultiplier;
         
-        particles.push(new Particle(centerX, centerY, isLong, angle, speed, pSize));
+                particles.push(new Particle(centerX, centerY, isLong, angle, speed, pSize));
       }
     }
   };
 
-  const animate = () => {
+  let lastTime = performance.now();
+  const animate = (time) => {
     if (!isAnimating) return;
     
+    const dt = time - lastTime;
+    lastTime = time;
+    // Cap dt to prevent massive jumps if tab is backgrounded
+    const safeDt = Math.min(dt, 100);
+    const timeScale = safeDt / (1000 / 120);
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-      p.update();
+      p.update(timeScale);
       p.draw(ctx);
       if (p.life <= 0) {
         particles.splice(i, 1);
@@ -1439,7 +1447,10 @@ function playDialogueExplosion() {
     requestAnimationFrame(animate);
   };
   
-  requestAnimationFrame(animate);
+  requestAnimationFrame((time) => {
+    lastTime = time;
+    animate(time);
+  });
 
   window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
