@@ -4305,11 +4305,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = ironPattern ? ironPattern : "#555555";
     ctx.beginPath();
     // Top rail
-    ctx.moveTo(-platW/2 - 1, platY - railingH);
-    ctx.lineTo(platW/2 + 1, platY - railingH);
+    ctx.moveTo(-platW/1.99 - 1, platY - railingH);
+    ctx.lineTo(platW/1.99 + 1, platY - railingH);
     // Mid rail
-    ctx.moveTo(-platW/2 - 1, platY - railingH/2);
-    ctx.lineTo(platW/2 + 1, platY - railingH/2);
+    ctx.moveTo(-platW/1.99 - 1, platY - railingH/2);
+    ctx.lineTo(platW/1.99 + 1, platY - railingH/2);
     ctx.stroke();
     ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
     ctx.stroke();
