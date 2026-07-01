@@ -28,7 +28,7 @@ export function getNotationMode(E, notation = currentNumberNotation) {
 
 const EXT_SUFFIX_UNITS = ['', 'U', 'D', 'T', 'Qd', 'Qn', 'Sx', 'Sp', 'Oc', 'No'];
 const EXT_SUFFIX_TENS = ['', 'De', 'Vt', 'Tg', 'qg', 'Qg', 'sg', 'Sg', 'Og', 'Ng'];
-const EXT_SUFFIX_HUNDREDS = ['', 'Ce', 'Dn', 'Tc', 'Qe', 'Qu', 'Sc', 'St', 'Oe', 'Ne'];
+const EXT_SUFFIX_HUNDREDS = ['', 'Ce', 'Du', 'Tr', 'Qa', 'Qi', 'Se', 'Si', 'Ot', 'Ne'];
 const EXT_SUFFIX_TIERS = ['', 'Mi', 'Mc', 'Na', 'Pc', 'Fm', 'At', 'Zp', 'Yc', 'Xn', 'Ve', 'Me'];
 
 function getAbbreviation(illion) {
