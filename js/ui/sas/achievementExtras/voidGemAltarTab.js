@@ -132,13 +132,14 @@ function playVoidExplosion() {
             this.gravity = 0.3; // Fall down
         }
 
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += this.gravity;
-            this.life -= this.decay;
-            this.size *= 0.98; // Shrink as they fall
+        update(timeScale = 1) {
+            this.x += this.vx * timeScale;
+            this.y += this.vy * timeScale;
+            this.vy += this.gravity * timeScale;
+            this.life -= this.decay * timeScale;
+            this.size *= Math.pow(0.98, timeScale);
         }
+
 
         draw(ctx) {
             if (this.life <= 0) return;
@@ -159,13 +160,20 @@ function playVoidExplosion() {
         particles.push(new Particle(centerX, centerY));
     }
 
-    const animate = () => {
+    const animate = (time) => {
         if (!isAnimating) return;
+        
+        const dt = time - lastTime;
+        lastTime = time;
+        // Cap dt to prevent massive jumps if tab is backgrounded
+        const safeDt = Math.min(dt, 100);
+        const timeScale = safeDt / (1000 / 120);
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
-            p.update();
+            p.update(timeScale);
             p.draw(ctx);
             if (p.life <= 0) {
                 particles.splice(i, 1);
@@ -179,7 +187,11 @@ function playVoidExplosion() {
         }
     };
     
-    requestAnimationFrame(animate);
+    let lastTime = performance.now();
+    requestAnimationFrame((time) => {
+        lastTime = time;
+        animate(time);
+    });
 
     const onResize = () => {
         canvas.width = window.innerWidth;
