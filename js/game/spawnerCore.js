@@ -1,3 +1,4 @@
+
 // js/game/spawnerCore.js
 import { IS_MOBILE } from '../main.js';
 import { settingsManager } from './settingsManager.js';
@@ -599,7 +600,7 @@ export function createBaseSpawner(config = {}) {
       }
 
       drawItems(now);
-      if (garbageCount > 50) {
+      if (garbageCount > Math.max(500, activeItems.length * 0.1)) {
           onGarbageCollect(activeItems);
           let w = 0;
           for (let r = 0; r < activeItems.length; r++) {
