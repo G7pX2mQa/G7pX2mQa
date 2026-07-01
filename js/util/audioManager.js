@@ -226,12 +226,12 @@ export function setMusicVolume(volumePercentage) {
 }
 
 let isUnderwaterState = false;
-let warpInstances = 0;
+let drownInstances = 0;
 
 export function setAudioUnderwater(underwater) {
     isUnderwaterState = underwater;
     if (!musicFilter && !sfxFilter) return;
-    if (warpInstances > 0) return;
+    if (drownInstances > 0) return;
     const frequency = underwater ? 600 : 22050;
     try {
         const now = audioContext.currentTime;
@@ -249,9 +249,9 @@ export function setAudioUnderwater(underwater) {
     }
 }
 
-export function applyWarpDrownEffect(durationInSeconds) {
+export function applyAudioDrownEffect(durationInSeconds) {
     if (!musicFilter && !sfxFilter) return;
-    warpInstances++;
+    drownInstances++;
     try {
         const now = audioContext.currentTime;
         // Start from current frequency, dropping further for each instance
@@ -259,8 +259,8 @@ export function applyWarpDrownEffect(durationInSeconds) {
         let currentMusicFreq = musicFilter ? musicFilter.frequency.value : baseFreq;
         let currentSfxFreq = sfxFilter ? sfxFilter.frequency.value : baseFreq;
 
-        // Decrease the target and mid frequencies for each overlapping warp sequence
-        const intensityFactor = Math.pow(0.5, warpInstances - 1);
+        // Decrease the target and mid frequencies for each overlapping drown sequence
+        const intensityFactor = Math.pow(0.5, drownInstances - 1);
         const midFreq = isUnderwaterState ? Math.max(10, 300 * intensityFactor) : Math.max(10, 2000 * intensityFactor);
         const targetFreq = Math.max(10, 30 * intensityFactor);
         
@@ -283,9 +283,9 @@ export function applyWarpDrownEffect(durationInSeconds) {
     }
 }
 
-export function removeWarpDrownEffect() {
-    if (warpInstances > 0) warpInstances--;
-    if (warpInstances === 0) {
+export function removeAudioDrownEffect() {
+    if (drownInstances > 0) drownInstances--;
+    if (drownInstances === 0) {
         setAudioUnderwater(isUnderwaterState);
     }
 }
