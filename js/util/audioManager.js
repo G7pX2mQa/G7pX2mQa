@@ -244,8 +244,18 @@ export function setAudioUnderwater(underwater) {
             sfxFilter.frequency.setValueAtTime(frequency, now);
         }
     } catch {
-        if (musicFilter) musicFilter.frequency.value = frequency;
-        if (sfxFilter) sfxFilter.frequency.value = frequency;
+        if (musicFilter) {
+            try {
+                musicFilter.frequency.cancelScheduledValues(audioContext.currentTime);
+                musicFilter.frequency.value = frequency;
+            } catch(e) {}
+        }
+        if (sfxFilter) {
+            try {
+                sfxFilter.frequency.cancelScheduledValues(audioContext.currentTime);
+                sfxFilter.frequency.value = frequency;
+            } catch(e) {}
+        }
     }
 }
 
@@ -254,12 +264,11 @@ export function applyAudioDrownEffect(durationInSeconds) {
     drownInstances++;
     try {
         const now = audioContext.currentTime;
-        // Start from current frequency, dropping further for each instance
         const baseFreq = isUnderwaterState ? 600 : 22050;
+        
         let currentMusicFreq = musicFilter ? musicFilter.frequency.value : baseFreq;
         let currentSfxFreq = sfxFilter ? sfxFilter.frequency.value : baseFreq;
 
-        // Decrease the target and mid frequencies for each overlapping drown sequence
         const intensityFactor = Math.pow(0.5, drownInstances - 1);
         const midFreq = isUnderwaterState ? Math.max(10, 300 * intensityFactor) : Math.max(10, 2000 * intensityFactor);
         const targetFreq = Math.max(10, 30 * intensityFactor);
@@ -267,19 +276,28 @@ export function applyAudioDrownEffect(durationInSeconds) {
         if (musicFilter) {
             musicFilter.frequency.cancelScheduledValues(now);
             musicFilter.frequency.setValueAtTime(currentMusicFreq, now);
-            // Drop more aggressively in the first second
-            musicFilter.frequency.exponentialRampToValueAtTime(midFreq, now + 1.0);
-            musicFilter.frequency.exponentialRampToValueAtTime(targetFreq, now + durationInSeconds);
+            musicFilter.frequency.linearRampToValueAtTime(midFreq, now + 1.0);
+            musicFilter.frequency.linearRampToValueAtTime(targetFreq, now + durationInSeconds);
         }
         if (sfxFilter) {
             sfxFilter.frequency.cancelScheduledValues(now);
             sfxFilter.frequency.setValueAtTime(currentSfxFreq, now);
-            sfxFilter.frequency.exponentialRampToValueAtTime(midFreq, now + 1.0);
-            sfxFilter.frequency.exponentialRampToValueAtTime(targetFreq, now + durationInSeconds);
+            sfxFilter.frequency.linearRampToValueAtTime(midFreq, now + 1.0);
+            sfxFilter.frequency.linearRampToValueAtTime(targetFreq, now + durationInSeconds);
         }
     } catch {
-        if (musicFilter) musicFilter.frequency.value = 50;
-        if (sfxFilter) sfxFilter.frequency.value = 50;
+        if (musicFilter) {
+            try {
+                musicFilter.frequency.cancelScheduledValues(audioContext.currentTime);
+                musicFilter.frequency.value = 50;
+            } catch(e) {}
+        }
+        if (sfxFilter) {
+            try {
+                sfxFilter.frequency.cancelScheduledValues(audioContext.currentTime);
+                sfxFilter.frequency.value = 50;
+            } catch(e) {}
+        }
     }
 }
 
