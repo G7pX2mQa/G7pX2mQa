@@ -746,7 +746,6 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             }
             
             let formattedBonus = formatMultForUi(multBn);
-            if (multBn.isInfinite?.()) formattedBonus = 'Infinity';
             milestone.description.push(`Current bonus: ${formattedBonus}x`);
           }
       }
