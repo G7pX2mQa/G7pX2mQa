@@ -5,6 +5,7 @@ import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
 import { bigNumIsInfinite } from '../util/bigNum.js';
 
+
 export const UC_MATERIAL_DATA = [
     { name: 'stone', start: 0, max: 0, value: 1, sfx: 'sounds/stone.ogg' },
     { name: 'copper', start: 1, max: 24, value: 10, sfx: 'sounds/copper.ogg' },
@@ -149,7 +150,7 @@ export function createUcSpawner(config = {}) {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     let currentRate = materialsPerSecond;
-
+    
     const base = createBaseSpawner({
         playfieldSelector,
         waterSelector: '#water-background',
@@ -185,11 +186,18 @@ export function createUcSpawner(config = {}) {
             const itemsToAdd = spawns.length + batchLength;
             if (maxActiveItems !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveItems) {
                 let numToRemove = (activeItems.length - garbageCount + itemsToAdd) - maxActiveItems;
-                for (let i = 0; i < activeItems.length && numToRemove > 0; i++) {
-                    if (activeItems[i] && !activeItems[i].isStrikePlaceholder && !activeItems[i].isHiddenPreAllocated) {
-                        removeItem(activeItems[i], i);
-                        numToRemove--;
+                numToRemove += Math.floor(maxActiveItems * 0.05);
+                
+                let b = 0;
+                while (numToRemove > 0 && b < UC_MATERIALS.length) {
+                    for (let i = 0, len = activeItems.length; i < len && numToRemove > 0; i++) {
+                        const c = activeItems[i];
+                        if (c && !c.isRemoved && !c.isStrikePlaceholder && !c.isHiddenPreAllocated && (c.sizeIndex || 0) === b) {
+                            removeItem(c, i);
+                            numToRemove--;
+                        }
                     }
+                    b++;
                 }
             }
             return spawns;
