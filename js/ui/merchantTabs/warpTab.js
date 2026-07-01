@@ -1,6 +1,6 @@
 import { getActiveSlot } from '../../util/storage.js';
 import { formatTimeCompact, calculateOfflineRewards, grantOfflineRewards, showOfflinePanel } from '../../game/offlinePanel.js';
-import { playAudio, applyWarpDrownEffect, removeWarpDrownEffect } from '../../util/audioManager.js';
+import { playAudio, applyAudioDrownEffect, removeAudioDrownEffect } from '../../util/audioManager.js';
 import { settingsManager } from "../../game/settingsManager.js";
 import { registerTick } from "../../game/gameLoop.js";
 
@@ -104,7 +104,7 @@ function performWarp() {
         // warpSfx.play();
     playAudio(WARP_SFX_SRC, { volume: 1.0, type: 'ui' });
 
-    applyWarpDrownEffect(7.25);
+    applyAudioDrownEffect(7.25);
     
     let overlay = null;
     let stage2Triggered = false;
@@ -131,7 +131,7 @@ function performWarp() {
                 if (unsub) unsub();
                 if (overlay) overlay.remove();
                 
-                removeWarpDrownEffect();
+                removeAudioDrownEffect();
                 const rewards = calculateOfflineRewards(WARP_DURATION_SEC);
                 grantOfflineRewards(rewards);
                 showOfflinePanel(rewards, WARP_DURATION_SEC * 1000);
