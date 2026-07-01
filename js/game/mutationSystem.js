@@ -954,7 +954,7 @@ export function getMutationGainMultiplier() {
 let cachedHighestLevelRef = null;
 let cachedHighestVisual = 0;
 
-export function getRandomMutationCoinSprite() {
+export function getRandomMutationCoinId() {
   const hLevel = getHighestMutationLevel();
   if (hLevel !== cachedHighestLevelRef) {
     cachedHighestLevelRef = hLevel;
@@ -972,7 +972,11 @@ export function getRandomMutationCoinSprite() {
     cachedHighestVisual = Math.min(highest, MAX_MUTATION_VISUAL);
   }
   
-  const randIdx = Math.floor(Math.random() * (cachedHighestVisual + 1));
+  return Math.floor(Math.random() * (cachedHighestVisual + 1));
+}
+
+export function getRandomMutationCoinSprite() {
+  const randIdx = getRandomMutationCoinId();
   if (randIdx === 0) return 'img/currencies/coin/coin.webp';
   return `img/mutations/m${randIdx}.webp`;
 }
