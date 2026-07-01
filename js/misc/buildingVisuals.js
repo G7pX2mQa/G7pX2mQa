@@ -4244,88 +4244,104 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   }
 
     // ----------------------------------------------------
-  // Tier 5: Dual Reactor Cores
+  // Tier 5: Reinforced Support Scaffolding
   // ----------------------------------------------------
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
 
-    // Dual Reactor Cores attached to the sides of the distillation column
-    const coreY = baseY - 115 - 75; // Middle of the distillation column
+    // Heavy-duty metal scaffolding reinforcing the distillation column
+    const columnY = baseY - 115;
+    const columnH = 150;
     const columnW = 100;
     
-    const drawReactorCore = (x, isLeft) => {
+    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
+    ctx.lineJoin = "bevel";
+    
+    const drawScaffoldSide = (isLeft) => {
       ctx.save();
-      ctx.translate(x, coreY);
+      const dir = isLeft ? -1 : 1;
+      const xStart = dir * (columnW / 2);
+      const xOuter = dir * (columnW / 2 + 30);
       
-      // Floating animation offset
-      const floatY = Math.sin(t * 2 + (isLeft ? 0 : 1)) * 3;
-      ctx.translate(0, floatY);
-      
-      // Connection bracket to main column
-      ctx.fillStyle = ironPattern ? ironPattern : "#555";
-      const bracketDir = isLeft ? 1 : -1;
-      ctx.fillRect(bracketDir * 15, -10, bracketDir * 20, 20);
-      
-      // Reactor Core Body
-      const coreW = 30;
-      const coreH = 80;
-      
-      // Draw outer shell
-      ctx.fillStyle = ironPattern ? ironPattern : "#333";
+      // Vertical main support pillars
+      ctx.lineWidth = 8;
       ctx.beginPath();
-      ctx.roundRect(-coreW/2, -coreH/2, coreW, coreH, 5);
-      ctx.fill();
+      ctx.moveTo(xOuter, columnY);
+      ctx.lineTo(xOuter, columnY - columnH + 20);
+      ctx.stroke();
       
-      // 3D Shading on shell
-      const gradient = ctx.createLinearGradient(-coreW/2, 0, coreW/2, 0);
-      gradient.addColorStop(0, "rgba(255, 255, 255, 0.3)");
-      gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
-      gradient.addColorStop(1, "rgba(0, 0, 0, 0.5)");
-      ctx.fillStyle = gradient;
-      ctx.fill();
-      
-      // Inner glowing liquid/plasma window
-      const windowW = 16;
-      const windowH = 60;
-      ctx.fillStyle = "#111"; // Dark backing
-      ctx.fillRect(-windowW/2, -windowH/2, windowW, windowH);
-      
-      // Liquid glow level
-      const pulse = 0.5 + 0.5 * Math.sin(t * 5 + (isLeft ? 0 : Math.PI));
-      const liqH = windowH * (0.6 + 0.4 * pulse); // Height fluctuates
-      const yOff = windowH/2 - liqH;
-      
-      const glowGrad = ctx.createLinearGradient(0, windowH/2, 0, -windowH/2);
-      glowGrad.addColorStop(0, "rgba(255, 100, 0, 1)"); // Orange hot bottom
-      glowGrad.addColorStop(0.5, "rgba(255, 200, 0, 0.8)"); // Yellow middle
-      glowGrad.addColorStop(1, "rgba(255, 255, 255, 0.2)"); // White hot top
-      
-      ctx.fillStyle = glowGrad;
-      ctx.fillRect(-windowW/2, yOff, windowW, liqH);
-      
-      // Glass reflection
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.fillRect(-windowW/2, -windowH/2, windowW/3, windowH);
-      
-      // Horizontal vents
-      ctx.strokeStyle = "#000";
+      // Outer pillar highlight
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
       ctx.lineWidth = 2;
-      for(let y = -windowH/2 + 5; y < windowH/2; y += 10) {
+      ctx.beginPath();
+      ctx.moveTo(xOuter - dir * 2, columnY);
+      ctx.lineTo(xOuter - dir * 2, columnY - columnH + 20);
+      ctx.stroke();
+      
+      ctx.strokeStyle = ironPattern ? ironPattern : "#333";
+      
+      // Horizontal crossbeams connecting to column
+      ctx.lineWidth = 6;
+      for (let h = columnY - 20; h >= columnY - columnH + 20; h -= 35) {
+        ctx.beginPath();
+        ctx.moveTo(xStart, h);
+        ctx.lineTo(xOuter, h);
+        ctx.stroke();
+        
+        // Diagonal bracing (X pattern)
+        if (h - 35 >= columnY - columnH + 20) {
+          ctx.lineWidth = 4;
           ctx.beginPath();
-          ctx.moveTo(-coreW/2 + 2, y);
-          ctx.lineTo(-windowW/2, y);
-          ctx.moveTo(windowW/2, y);
-          ctx.lineTo(coreW/2 - 2, y);
+          // Diagonal 1
+          ctx.moveTo(xStart, h);
+          ctx.lineTo(xOuter, h - 35);
           ctx.stroke();
+          // Diagonal 2
+          ctx.beginPath();
+          ctx.moveTo(xOuter, h);
+          ctx.lineTo(xStart, h - 35);
+          ctx.stroke();
+          ctx.lineWidth = 6; // Restore horizontal line width
+        }
       }
+      
+      // Angle support at the base
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(xOuter, columnY - 30);
+      ctx.lineTo(xOuter + dir * 20, columnY);
+      ctx.stroke();
+      
+      // Footing pad
+      ctx.fillStyle = ironPattern ? ironPattern : "#222";
+      ctx.fillRect(xOuter - 10, columnY - 4, 20, 8);
+      ctx.fillRect(xOuter + dir * 20 - 10, columnY - 4, 20, 8);
       
       ctx.restore();
     };
+
+    drawScaffoldSide(true);
+    drawScaffoldSide(false);
     
-    // Draw left and right reactor cores
-    drawReactorCore(-columnW/2 - 25, true);
-    drawReactorCore(columnW/2 + 25, false);
+    // Front safety railing wrapping around the lower section
+    const railY = columnY - 40;
+    ctx.strokeStyle = "#ffaa00"; // Industrial warning orange/yellow
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-columnW/2 - 30, railY);
+    ctx.lineTo(-columnW/2, railY + 10); // curve around column
+    ctx.lineTo(columnW/2, railY + 10);
+    ctx.lineTo(columnW/2 + 30, railY);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(-columnW/2 - 30, railY - 10);
+    ctx.lineTo(-columnW/2, railY);
+    ctx.lineTo(columnW/2, railY);
+    ctx.lineTo(columnW/2 + 30, railY - 10);
+    ctx.stroke();
+
     ctx.restore();
   }
 
@@ -4336,16 +4352,15 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t6;
 
-    // Use pure electric yellow for the frame glow
-    const frameGlow = "rgba(255, 255, 0, 0.9)";
+    // Use pure white for the frame glow
+    const frameGlow = "rgba(255, 255, 255, 0.9)"; // White base
     ctx.strokeStyle = frameGlow;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
     // Adjust left edge to -120 and right edge to +120 (iron base width is 240)
     // Max out height just above distillation column (column top is at baseY - 115 - 150 = baseY - 265)
-    // We'll set the top to baseY - 270
-    const frameTopY = baseY - 270;
+    const frameTopY = baseY - 267;
     
     // Because we are overlapping Tier 2, we start the frame at baseY
     
@@ -4353,40 +4368,34 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       // Left leg
       ctx.moveTo(-120, baseY);
-      ctx.lineTo(-90, frameTopY + 50);
-      ctx.lineTo(-30, frameTopY);
+      ctx.lineTo(-120, frameTopY);
       
       // Top connector
-      ctx.lineTo(30, frameTopY);
+      ctx.lineTo(120, frameTopY);
       
       // Right leg
-      ctx.lineTo(90, frameTopY + 50);
       ctx.lineTo(120, baseY);
     };
 
-    // Fill with iron pattern
-    ctx.fillStyle = ironPattern ? ironPattern : "#333";
+    // Fill with white color (since user asked for inverse colors, white background, yellow pulse)
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
     
     // To fill it properly, we need a closed shape with thickness
     ctx.beginPath();
     // Outer edge (left to right)
     ctx.moveTo(-125, baseY);
-    ctx.lineTo(-95, frameTopY + 50);
-    ctx.lineTo(-30, frameTopY - 5);
-    ctx.lineTo(30, frameTopY - 5);
-    ctx.lineTo(95, frameTopY + 50);
+    ctx.lineTo(-125, frameTopY - 5);
+    ctx.lineTo(125, frameTopY - 5);
     ctx.lineTo(125, baseY);
     // Inner edge (right to left)
     ctx.lineTo(115, baseY);
-    ctx.lineTo(85, frameTopY + 55);
-    ctx.lineTo(30, frameTopY + 5);
-    ctx.lineTo(-30, frameTopY + 5);
-    ctx.lineTo(-85, frameTopY + 55);
+    ctx.lineTo(115, frameTopY + 5);
+    ctx.lineTo(-115, frameTopY + 5);
     ctx.lineTo(-115, baseY);
     ctx.closePath();
     ctx.fill();
 
-    // Draw the glowing pure yellow outline
+    // Draw the white outline
     ctx.lineWidth = 4;
     ctx.strokeStyle = frameGlow;
     ctx.shadowBlur = 15;
@@ -4397,7 +4406,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Animate energy pulses converging to the center
     // Increased frequency: smaller gap
     ctx.lineWidth = 6;
-    ctx.strokeStyle = "#FFFFFF"; // Bright white core for the pulse
+    ctx.strokeStyle = "#FFFF00"; // Pure bright yellow
     ctx.shadowBlur = 25;
     ctx.shadowColor = "rgba(255, 255, 0, 1)";
     
@@ -4413,8 +4422,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
     ctx.beginPath();
     ctx.moveTo(-120, baseY);
-    ctx.lineTo(-90, frameTopY + 50);
-    ctx.lineTo(-30, frameTopY);
+    ctx.lineTo(-120, frameTopY);
     ctx.lineTo(0, frameTopY); // Stop at center
     ctx.stroke();
     ctx.restore();
@@ -4425,8 +4433,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
     ctx.beginPath();
     ctx.moveTo(120, baseY);
-    ctx.lineTo(90, frameTopY + 50);
-    ctx.lineTo(30, frameTopY);
+    ctx.lineTo(120, frameTopY);
     ctx.lineTo(0, frameTopY); // Stop at center
     ctx.stroke();
     ctx.restore();
@@ -4434,188 +4441,243 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   }
 
     // ----------------------------------------------------
-  // Tier 7: Orbital Energy Siphons
+  // Tier 7: High-Pressure Pumping Station
   // ----------------------------------------------------
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
 
-    // Orbital Energy Siphons floating above the catwalk
-    const siphonY = baseY - 200; // Floating height
-    const columnTop = baseY - 265;
+    // Heavy mechanical pumping stations on the catwalk
+    const catwalkY = baseY - 115;
     
-    const drawOrbitalSiphon = (x, isLeft) => {
+    const drawPumpStation = (x, isLeft) => {
       ctx.save();
-      ctx.translate(x, siphonY);
+      ctx.translate(x, catwalkY);
       
-      // Floating animation
-      const floatY = Math.sin(t * 3 + (isLeft ? 0 : Math.PI)) * 5;
-      ctx.translate(0, floatY);
+      const pumpW = 40;
+      const pumpH = 30;
       
-      // Tilted rotation for the rings
-      ctx.rotate(isLeft ? 0.3 : -0.3);
-      
-      // Magnetic Siphon Ring
-      const ringW = 40;
-      const ringH = 15;
-      
+      // Main pump block
+      ctx.fillStyle = ironPattern ? ironPattern : "#2a2a2a";
       ctx.beginPath();
-      ctx.ellipse(0, 0, ringW, ringH, 0, 0, Math.PI * 2);
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = "#444";
-      ctx.stroke();
-      
-      // Inner glowing core ring
-      ctx.beginPath();
-      ctx.ellipse(0, 0, ringW - 4, ringH - 2, 0, 0, Math.PI * 2);
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(0, 255, 255, 0.9)";
-      ctx.stroke();
-      
-      // Center energy ball
-      const pulse = 1 + 0.2 * Math.sin(t * 10);
-      const ballGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 10 * pulse);
-      ballGrad.addColorStop(0, "rgba(255, 255, 255, 1)");
-      ballGrad.addColorStop(0.5, "rgba(0, 255, 255, 0.8)");
-      ballGrad.addColorStop(1, "rgba(0, 255, 255, 0)");
-      
-      ctx.fillStyle = ballGrad;
-      ctx.beginPath();
-      ctx.arc(0, 0, 10 * pulse, 0, Math.PI * 2);
+      ctx.roundRect(-pumpW/2, -pumpH, pumpW, pumpH, 3);
       ctx.fill();
-      
-      // Energy beam projecting down to the column
-      // We need to un-rotate to project straight to the column top
-      ctx.restore(); // Undo rotation and translation
-      
-      ctx.save();
-      
-      // Start point is the floating siphon
-      const startX = x;
-      const startY = siphonY + floatY;
-      
-      // Target point is the side of the distillation column top
-      const targetX = (isLeft ? -1 : 1) * 20;
-      const targetY = columnTop + 20; // Hit slightly below the very top
-      
-      const beamGrad = ctx.createLinearGradient(startX, startY, targetX, targetY);
-      beamGrad.addColorStop(0, "rgba(0, 255, 255, 0.8)");
-      beamGrad.addColorStop(1, "rgba(0, 255, 255, 0)");
-      
-      ctx.strokeStyle = beamGrad;
-      ctx.lineWidth = 4 + 2 * Math.sin(t * 15); // Flickering beam width
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(targetX, targetY);
-      ctx.stroke();
-      
-      // Inner hot core of the beam
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.strokeStyle = "rgba(0,0,0,0.6)";
       ctx.lineWidth = 2;
       ctx.stroke();
       
+      // Motor housing (cylinder on top)
+      const motorW = 24;
+      const motorH = 15;
+      ctx.fillStyle = ironPattern ? ironPattern : "#444";
+      ctx.fillRect(-motorW/2, -pumpH - motorH, motorW, motorH);
+      
+      // Animated piston/crank
+      // Fast pumping animation
+      const pumpAnim = Math.sin(t * 12 + (isLeft ? 0 : Math.PI));
+      const pistonY = -pumpH - motorH - 5 + pumpAnim * 5;
+      
+      // Piston rod
+      ctx.fillStyle = "#bbb";
+      ctx.fillRect(-3, pistonY, 6, 10 - pumpAnim * 5);
+      
+      // Piston head
+      ctx.fillStyle = "#888";
+      ctx.fillRect(-10, pistonY - 4, 20, 8);
+      
+      // Flywheel
+      ctx.save();
+      ctx.translate(isLeft ? -pumpW/2 - 5 : pumpW/2 + 5, -pumpH/2);
+      ctx.rotate(t * 10 * (isLeft ? 1 : -1));
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
+      ctx.fillStyle = ironPattern ? ironPattern : "#333";
+      ctx.fill();
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Flywheel spokes
+      for(let i=0; i<4; i++) {
+        ctx.rotate(Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(12, 0);
+        ctx.stroke();
+      }
+      ctx.restore();
+      
+      // Thick pipe connecting pump to column
+      // Column width is 100, so edge is at x = +/- 50
+      const dir = isLeft ? 1 : -1;
+      const pipeStartX = dir * (pumpW/2);
+      const pipeEndX = (isLeft ? -50 : 50);
+      
+      // Draw pipe over the scaffolding
+      ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
+      ctx.lineWidth = 12;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      
+      ctx.beginPath();
+      ctx.moveTo(pipeStartX, -10);
+      ctx.lineTo(pipeStartX + dir * 15, -10);
+      ctx.lineTo(pipeEndX, -30);
+      ctx.stroke();
+      
+      // Pipe shadow & highlight
+      ctx.strokeStyle = "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 12;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
       ctx.restore();
     };
     
-    // Draw left and right orbital siphons
-    drawOrbitalSiphon(-80, true);
-    drawOrbitalSiphon(80, false);
+    // Draw left and right pumping stations on the catwalk
+    // Placement further out from the column (column is 100 wide, radius 50)
+    drawPumpStation(-100, true);
+    drawPumpStation(100, false);
+    
     ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 8: Astral Fluid Helix & Stellar Geyser
+  // Tier 8: Overcharged Distillation (Dark Alloy & Neon Core)
   // ----------------------------------------------------
   if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
 
-    const columnTop = baseY - 265;
-    const coreY = baseY - 190; // Center of column
+    const columnY = baseY - 115;
+    const columnH = 150;
+    const columnW = 100;
+    const columnTop = columnY - columnH;
 
-    // The Astral Fluid Helix wrapping around/inside the column
-    ctx.lineWidth = 6;
-    ctx.lineCap = "round";
+    // 1. Dark Alloy Outer Shell Overlay
+    ctx.fillStyle = ironPattern ? ironPattern : "#1a1c23";
     
-    // Draw two spiraling fluid lines
-    const spiralHeight = 150;
-    const spiralRadius = 25; // Slightly wider than column radius (20)
-    
-    for (let h = 0; h < 2; h++) { // Two helices
-      ctx.beginPath();
-      const phase = h * Math.PI;
-      const isCyan = h === 0;
-      
-      // Helix color (Cyan vs Magenta fluid)
-      ctx.strokeStyle = isCyan ? "rgba(0, 255, 255, 0.9)" : "rgba(255, 0, 255, 0.9)";
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = ctx.strokeStyle;
-      
-      for (let y = 0; y <= spiralHeight; y += 5) {
-        // y is going UP from the base of the column to the top
-        const progress = y / spiralHeight;
-        const currentY = baseY - 115 - y;
-        
-        // Spiraling X position
-        const currentX = Math.sin(progress * Math.PI * 4 + t * 5 + phase) * spiralRadius;
-        
-        // Z-sorting (roughly) - if it's "behind" the column, we could reduce alpha or skip it,
-        // but it looks cool if it overlays the column completely like a containment field
-        if (y === 0) {
-          ctx.moveTo(currentX, currentY);
-        } else {
-          ctx.lineTo(currentX, currentY);
-        }
-      }
-      ctx.stroke();
-    }
-    
-    // Stellar Geyser erupting from the top
-    ctx.globalCompositeOperation = "lighter";
-    
-    // Geyser core beam
-    const geyserGrad = ctx.createLinearGradient(0, columnTop, 0, columnTop - 250);
-    geyserGrad.addColorStop(0, "rgba(255, 255, 255, 1)");
-    geyserGrad.addColorStop(0.2, "rgba(0, 255, 255, 0.8)");
-    geyserGrad.addColorStop(0.5, "rgba(255, 0, 255, 0.6)");
-    geyserGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-    
-    ctx.fillStyle = geyserGrad;
-    
-    // Width pulses
-    const beamW = 20 + 10 * Math.sin(t * 15);
     ctx.beginPath();
-    ctx.moveTo(-beamW/2, columnTop);
-    ctx.lineTo(beamW/2, columnTop);
-    ctx.lineTo(beamW * 1.5, columnTop - 250);
-    ctx.lineTo(-beamW * 1.5, columnTop - 250);
+    ctx.moveTo(-columnW/2, columnY);
+    ctx.lineTo(-columnW/2, columnTop);
+    ctx.lineTo(columnW/2, columnTop);
+    ctx.lineTo(columnW/2, columnY);
+    ctx.closePath();
     ctx.fill();
     
-    // Erupting droplets
-    for (let i = 0; i < 20; i++) {
-        // Cycle droplets
-        const dropT = (t * 2 + i * 0.13) % 1; 
+    // Sleek dark shading overlay
+    const darkGrad = ctx.createLinearGradient(-columnW/2, 0, columnW/2, 0);
+    darkGrad.addColorStop(0, "rgba(255, 255, 255, 0.2)");
+    darkGrad.addColorStop(0.2, "rgba(0, 0, 0, 0.4)");
+    darkGrad.addColorStop(0.8, "rgba(0, 0, 0, 0.8)");
+    darkGrad.addColorStop(1, "rgba(0, 0, 0, 0.95)");
+    
+    ctx.fillStyle = darkGrad;
+    ctx.fill();
+
+    // 2. Transparent Neon Fluid Windows
+    const windowW = 40;
+    const windowH = 120;
+    const windowY = columnY - 15; // Bottom of window
+    
+    // Window Recess (Dark background)
+    ctx.fillStyle = "#0a0c10";
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.fill();
+    
+    // Inner shadow for depth
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Neon fluid bubbling up
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.clip();
+    
+    // Pumping/Surging fluid level animation
+    const surge = 0.5 + 0.5 * Math.sin(t * 3);
+    const fluidH = windowH * (0.4 + 0.6 * surge);
+    const fluidTop = windowY - fluidH;
+    
+    // Neon Cyan gradient
+    const neonGrad = ctx.createLinearGradient(0, windowY, 0, windowY - windowH);
+    neonGrad.addColorStop(0, "rgba(0, 150, 255, 0.9)");
+    neonGrad.addColorStop(0.5, "rgba(0, 255, 255, 0.8)");
+    neonGrad.addColorStop(1, "rgba(200, 255, 255, 0.6)");
+    
+    ctx.fillStyle = neonGrad;
+    ctx.fillRect(-windowW/2, fluidTop, windowW, fluidH);
+    
+    // High-speed upward bubbles
+    const bubbleCount = 15;
+    for(let i=0; i<bubbleCount; i++) {
+      const bT = (t * 4 + i * 0.3) % 1; // Fast upward movement
+      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(t * 8 + i)*2;
+      const by = windowY - bT * windowH;
+      
+      if (by > fluidTop) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.beginPath();
+        ctx.arc(bx, by, 1 + (i%3), 0, Math.PI*2);
+        ctx.fill();
         
-        // X spread increases as it goes up and falls down
-        // It shoots up high, then arches outwards
-        // We'll simulate a simple fountain arc
-        const startX = (Math.random() - 0.5) * 10;
-        const vx = (i % 2 === 0 ? 1 : -1) * (10 + (i * 3) % 40); // Spread velocity
-        const vy = -150 - ((i * 17) % 100); // Initial upward velocity
-        
-        // Physics formula: y = vy * t + 0.5 * g * t^2
-        const gravity = 400; 
-        const dropX = startX + vx * dropT * 2;
-        const dropY = columnTop + (vy * dropT * 2) + (0.5 * gravity * (dropT * 2) * (dropT * 2));
-        
-        // Only draw if above the base
-        if (dropY < baseY) {
-            ctx.fillStyle = i % 2 === 0 ? "rgba(0, 255, 255, 0.9)" : "rgba(255, 0, 255, 0.9)";
-            ctx.beginPath();
-            ctx.arc(dropX, dropY, 2 + Math.random() * 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        // Add a cyan glow to bubbles
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = "#00ffff";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
     }
+    ctx.restore(); // Remove clip
+    
+    // Glass reflection on window
+    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2 + 2, windowY - windowH + 2, windowW/3, windowH - 4, 8);
+    ctx.fill();
+    
+    // High-tech window frame
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.stroke();
+
+    // 3. Glowing Horizontal Containment Bands
+    ctx.lineWidth = 4;
+    for(let h = columnY - 25; h >= columnTop; h -= 30) {
+      // Band base
+      ctx.strokeStyle = "#111";
+      ctx.beginPath();
+      ctx.moveTo(-columnW/2, h);
+      ctx.lineTo(columnW/2, h);
+      ctx.stroke();
+      
+      // Neon pulse running along the bands
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(-columnW/2, h);
+      ctx.lineTo(columnW/2, h);
+      ctx.strokeStyle = "#00ffff";
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = "#00ffff";
+      
+      const dashLen = 30;
+      const gapLen = 70;
+      ctx.setLineDash([dashLen, gapLen]);
+      // Alternate direction for bands
+      const dir = (h % 20 === 0) ? 1 : -1;
+      ctx.lineDashOffset = - (t * 150 * dir) % (dashLen + gapLen);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 
