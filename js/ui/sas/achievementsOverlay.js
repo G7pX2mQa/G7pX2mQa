@@ -246,11 +246,16 @@ function openAchievementDetails(achievement) {
 
     const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(Number(Math.round(achievement.rewardAmount)), 0);
 
+    let formattedReward = formatNumber(actualReward);
+    if (formattedReward.includes('infinity-symbol')) {
+        formattedReward = formattedReward.replace('class="infinity-symbol"', 'class="infinity-symbol" style="position:relative; top:-1px;"');
+    }
+
     let contentHtml = `
         <div class="upg-desc centered">${achievement.desc}</div>
         <div class="upg-info">
             <div class="effect-wrapper">
-                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${formatNumber(actualReward)} Rainbow Gems</span></div>
+                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${formattedReward} Rainbow Gems</span></div>
             </div>
         </div>
     `;
