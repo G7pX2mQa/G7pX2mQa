@@ -4143,10 +4143,33 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.fillStyle = gradient;
     ctx.fill();
 
+    // Silo Top (3D effect cylinder top)
+    const siloTopY = columnY - columnH;
+    const siloEllipseH = 5; // Semi-minor axis representing depth
+    ctx.beginPath();
+    ctx.ellipse(0, siloTopY, columnW/2, siloEllipseH, 0, 0, Math.PI * 2);
+    ctx.fillStyle = ironPattern ? ironPattern : "#8c92ac";
+    ctx.fill();
+    
+    // Top shading / depth bevel
+    const topGradient = ctx.createRadialGradient(0, siloTopY - 5, 0, 0, siloTopY, columnW/2);
+    topGradient.addColorStop(0, "rgba(255, 255, 255, 0.3)");
+    topGradient.addColorStop(0.6, "rgba(0, 0, 0, 0.2)");
+    topGradient.addColorStop(1, "rgba(0, 0, 0, 0.7)");
+    ctx.fillStyle = topGradient;
+    ctx.fill();
+    
+    
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, siloTopY, columnW/2, siloEllipseH, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
     // Horizontal structural rings / levels on the column
     ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; // Use transparent dark stroke instead of solid color
     ctx.lineWidth = 2;
-    for (let h = columnY - 30; h >= columnY - columnH; h -= 30) {
+    for (let h = columnY - 30; h > columnY - columnH; h -= 30) {
       ctx.beginPath();
       ctx.moveTo(-columnW/2, h);
       ctx.lineTo(columnW/2, h);
@@ -4194,7 +4217,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Outer hatch ring
     ctx.beginPath();
     ctx.arc(hatchX, hatchY, hatchR, 0, Math.PI * 2);
-    ctx.fillStyle = "#5c6173";
+    ctx.fillStyle = ironPattern ? ironPattern : "#5c6173";
+    ctx.fill();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#222";
@@ -4203,12 +4228,14 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Inner hatch door
     ctx.beginPath();
     ctx.arc(hatchX, hatchY, hatchR - 3, 0, Math.PI * 2);
-    ctx.fillStyle = "#454957";
+    ctx.fillStyle = ironPattern ? ironPattern : "#454957";
+    ctx.fill();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.fill();
     ctx.stroke();
     
     // Hatch wheel
-    ctx.strokeStyle = "#999";
+    ctx.strokeStyle = ironPattern ? ironPattern : "#999";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(hatchX, hatchY, 4, 0, Math.PI * 2);
@@ -4225,7 +4252,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     const ladderEndY = columnY - 110; // Goes up near the top
     
     // Ladder rails
-    ctx.strokeStyle = "#333";
+    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(ladderX - ladderW/2, ladderStartY);
@@ -4233,8 +4260,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.moveTo(ladderX + ladderW/2, ladderStartY);
     ctx.lineTo(ladderX + ladderW/2, ladderEndY);
     ctx.stroke();
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.stroke();
     
     // Ladder rungs
+    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (let ry = ladderStartY - 5; ry > ladderEndY; ry -= 6) {
@@ -4242,22 +4272,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
         ctx.lineTo(ladderX + ladderW/2, ry);
     }
     ctx.stroke();
-    
-    // Ladder safety cage (semi-circles around the ladder)
-    ctx.strokeStyle = "#222";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let cy = ladderStartY - 20; cy > ladderEndY + 10; cy -= 15) {
-        ctx.moveTo(ladderX - ladderW/2 - 2, cy);
-        ctx.bezierCurveTo(ladderX - ladderW - 5, cy, ladderX + ladderW + 5, cy, ladderX + ladderW/2 + 2, cy);
-    }
-    // Vertical cage bars
-    ctx.moveTo(ladderX - ladderW - 1, ladderStartY - 20);
-    ctx.lineTo(ladderX - ladderW - 1, ladderEndY + 15);
-    ctx.moveTo(ladderX + ladderW + 1, ladderStartY - 20);
-    ctx.lineTo(ladderX + ladderW + 1, ladderEndY + 15);
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
     ctx.stroke();
-
+    
     // Observation platform with railings wrapping around the column
     const platY = ladderEndY;
     const platExt = 12; // Extends out from the column by 12px on each side
@@ -4265,29 +4282,36 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     const railingH = 15;
     
     // Platform base
-    ctx.fillStyle = "#333333";
-    ctx.fillRect(-platW/2, platY, platW, 4);
+    ctx.fillStyle = ironPattern ? ironPattern : "#333333";
+    ctx.fillRect(-platW/2 - 1, platY, platW + 2, 4);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(-platW/2 - 1, platY, platW + 2, 4);
     
     // Railings (Vertical posts)
-    ctx.strokeStyle = "#555555";
+    ctx.strokeStyle = ironPattern ? ironPattern : "#555555";
     ctx.lineWidth = 2;
     const numPosts = 7;
+    ctx.beginPath();
     for(let i=0; i<numPosts; i++) {
         const postX = -platW/2 + (platW / (numPosts-1)) * i;
-        ctx.beginPath();
         ctx.moveTo(postX, platY);
         ctx.lineTo(postX, platY - railingH);
-        ctx.stroke();
     }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.stroke();
     
     // Railings (Horizontal bars)
+    ctx.strokeStyle = ironPattern ? ironPattern : "#555555";
     ctx.beginPath();
     // Top rail
-    ctx.moveTo(-platW/2, platY - railingH);
-    ctx.lineTo(platW/2, platY - railingH);
+    ctx.moveTo(-platW/2 - 1, platY - railingH);
+    ctx.lineTo(platW/2 + 1, platY - railingH);
     // Mid rail
-    ctx.moveTo(-platW/2, platY - railingH/2);
-    ctx.lineTo(platW/2, platY - railingH/2);
+    ctx.moveTo(-platW/2 - 1, platY - railingH/2);
+    ctx.lineTo(platW/2 + 1, platY - railingH/2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
     ctx.stroke();
 
     ctx.restore();
