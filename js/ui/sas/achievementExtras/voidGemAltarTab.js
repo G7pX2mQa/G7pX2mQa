@@ -2,7 +2,8 @@ import { bank, getActiveSlot } from '../../../util/storage.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState } from '../../../game/achievements.js';
 import { formatNumber } from '../../../util/numFormat.js';
 import { BigNum, bigNumFromLog10 } from '../../../util/bigNum.js';
-import { playAudio } from '../../../util/audioManager.js';
+import { playAudio, applyAudioDrownEffect, removeAudioDrownEffect } from '../../../util/audioManager.js';
+import { registerTick } from '../../../game/gameLoop.js';
 import { settingsManager } from '../../../game/settingsManager.js';
 
 const VOID_LEVEL_KEY = (slot) => `ccc:voidLevel:${slot}`;
@@ -209,111 +210,9 @@ function playVoidExplosion() {
     }, 5000);
 }
 
-function triggerVoidVisuals() {
-    const overlay = document.createElement('div');
-    overlay.className = 'void-overlay';
-    
-    const vortex = document.createElement('div');
-    vortex.className = 'void-vortex';
-    overlay.appendChild(vortex);
+// Moved to inline logic for unified tick loop inside the click handler
+// function triggerVoidVisuals() removed
 
-    document.body.appendChild(overlay);
-
-    let isExploded = false;
-    let isStage2 = false;
-
-    // Spawn debris representing chunks of the screen being sucked in
-    const spawnInterval = setInterval(() => {
-        if (isExploded || !overlay.parentElement) {
-            clearInterval(spawnInterval);
-            return;
-        }
-
-        const numDebris = isStage2 ? 15 : 3; // Spawn way more during stage 2
-
-        for (let i = 0; i < numDebris; i++) {
-            const debris = document.createElement('div');
-            debris.className = 'void-debris';
-
-            // Randomly place along the edge of the screen
-            const edge = Math.floor(Math.random() * 4);
-            let startX, startY;
-            if (edge === 0) { // Top
-                startX = Math.random() * window.innerWidth;
-                startY = -50;
-            } else if (edge === 1) { // Right
-                startX = window.innerWidth + 50;
-                startY = Math.random() * window.innerHeight;
-            } else if (edge === 2) { // Bottom
-                startX = Math.random() * window.innerWidth;
-                startY = window.innerHeight + 50;
-            } else { // Left
-                startX = -50;
-                startY = Math.random() * window.innerHeight;
-            }
-
-            // Random size and color to look like UI chunks
-            const size = 10 + Math.random() * 40;
-            debris.style.width = `${size}px`;
-            debris.style.height = `${size}px`;
-            debris.style.left = `${startX}px`;
-            debris.style.top = `${startY}px`;
-            
-            // Randomly assign a color to look like UI pieces (dark grays, blacks, faint UI colors)
-            const colors = ['#111', '#222', '#333', '#1a1a2e', '#0f0f1a'];
-            debris.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            
-            // Target center
-            const targetX = window.innerWidth / 2;
-            const targetY = window.innerHeight / 2;
-            
-            // Much faster travel time during stage 2
-            const duration = isStage2 
-                ? 200 + Math.random() * 500 
-                : 1000 + Math.random() * 1500; 
-            
-            // We will animate it using a simple transition
-            debris.style.transition = `transform ${duration}ms cubic-bezier(0.5, 0, 1, 0.5), opacity ${duration}ms ease-in`;
-            
-            overlay.appendChild(debris);
-
-            // Trigger reflow
-            debris.getBoundingClientRect();
-
-            const deltaX = targetX - startX - (size / 2);
-            const deltaY = targetY - startY - (size / 2);
-            const rotate = (Math.random() - 0.5) * 720; // Spin while flying
-
-            debris.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0) rotate(${rotate}deg)`;
-            debris.style.opacity = '0';
-
-            setTimeout(() => {
-                if (debris.parentElement) debris.remove();
-            }, duration);
-        }
-
-    }, 30); // Spawn rapidly
-
-    // Stage 2: Crazier buildup (7.777)
-    setTimeout(() => {
-        isStage2 = true;
-        if (overlay) overlay.classList.add('stage-2');
-    }, 7777);
-
-    // Climax (9.5s)
-    setTimeout(() => {
-        isExploded = true;
-        clearInterval(spawnInterval);
-        if (overlay) {
-            overlay.style.transition = 'opacity 500ms ease-out';
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                if (overlay.parentElement) overlay.remove();
-            }, 500);
-        }
-        playVoidExplosion(); // Trigger the particle explosion
-    }, 9500);
-}
 
 export function initVoidGemAltarTab(panel) {
     if (bank.rainbowGems) bank.rainbowGems.mult.set(getRainbowGemMultiplier());
@@ -344,25 +243,130 @@ export function initVoidGemAltarTab(panel) {
         updateVoidGemAltarTab(); // Update button state
 
         // Audio sequence
-        let buildupAudio = playAudio('sounds/void_buildup.ogg', { volume: 0.8 });
+        let buildupAudio = playAudio('sounds/void_buildup.ogg', { volume: 0.6, type: 'ui' });
+        
+        applyAudioDrownEffect(9.5);
 
+        let overlay = null;
         if (settingsManager.get('warp_vfx') !== false) {
-            triggerVoidVisuals();
+            overlay = document.createElement('div');
+            overlay.className = 'void-overlay';
+            
+            const vortex = document.createElement('div');
+            vortex.className = 'void-vortex';
+            overlay.appendChild(vortex);
+
+            document.body.appendChild(overlay);
         }
 
-        setTimeout(() => {
-            if (buildupAudio && typeof buildupAudio.stop === 'function') {
-                buildupAudio.stop();
-            }
-            playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
+        let isExploded = false;
+        let isStage2 = false;
+        let voidTimeAccumulator = 0;
+        let debrisTimeAccumulator = 0;
 
-            if (feedVoidGem()) {
-                // Actually give reward
-                updateVoidGemAltarTab();
+        let unsub = null;
+        unsub = registerTick((dt) => {
+            if (!document.hidden) {
+                voidTimeAccumulator += dt;
+                debrisTimeAccumulator += dt;
+
+                // Debris spawning
+                if (overlay && overlay.parentElement && !isExploded) {
+                    // Spawn every ~0.03 seconds (30ms)
+                    if (debrisTimeAccumulator >= 0.03) {
+                        debrisTimeAccumulator = 0;
+                        
+                        const numDebris = isStage2 ? 15 : 3;
+
+                        for (let i = 0; i < numDebris; i++) {
+                            const debris = document.createElement('div');
+                            debris.className = 'void-debris';
+
+                            const edge = Math.floor(Math.random() * 4);
+                            let startX, startY;
+                            if (edge === 0) {
+                                startX = Math.random() * window.innerWidth;
+                                startY = -50;
+                            } else if (edge === 1) {
+                                startX = window.innerWidth + 50;
+                                startY = Math.random() * window.innerHeight;
+                            } else if (edge === 2) {
+                                startX = Math.random() * window.innerWidth;
+                                startY = window.innerHeight + 50;
+                            } else {
+                                startX = -50;
+                                startY = Math.random() * window.innerHeight;
+                            }
+
+                            const size = 10 + Math.random() * 40;
+                            debris.style.width = `${size}px`;
+                            debris.style.height = `${size}px`;
+                            debris.style.left = `${startX}px`;
+                            debris.style.top = `${startY}px`;
+                            
+                            const colors = ['#111', '#222', '#333', '#1a1a2e', '#0f0f1a'];
+                            debris.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                            
+                            const targetX = window.innerWidth / 2;
+                            const targetY = window.innerHeight / 2;
+                            
+                            const duration = isStage2 
+                                ? 200 + Math.random() * 500 
+                                : 1000 + Math.random() * 1500; 
+                            
+                            debris.style.transition = `transform ${duration}ms cubic-bezier(0.5, 0, 1, 0.5), opacity ${duration}ms ease-in`;
+                            
+                            overlay.appendChild(debris);
+
+                            debris.getBoundingClientRect(); // Trigger reflow
+
+                            const deltaX = targetX - startX - (size / 2);
+                            const deltaY = targetY - startY - (size / 2);
+                            const rotate = (Math.random() - 0.5) * 720;
+
+                            debris.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0) rotate(${rotate}deg)`;
+                            debris.style.opacity = '0';
+
+                            // CSS transition handles animation. We just clean it up later.
+                            setTimeout(() => {
+                                if (debris.parentElement) debris.remove();
+                            }, duration);
+                        }
+                    }
+                }
+
+                if (voidTimeAccumulator >= 7.777 && !isStage2) {
+                    isStage2 = true;
+                    if (overlay) overlay.classList.add('stage-2');
+                }
+
+                if (voidTimeAccumulator >= 9.5 && !isExploded) {
+                    isExploded = true;
+                    if (unsub) unsub();
+                    
+                    if (buildupAudio && typeof buildupAudio.stop === 'function') {
+                        buildupAudio.stop();
+                    }
+                    removeAudioDrownEffect();
+                    playAudio('sounds/explosion_long.ogg', { volume: 1.0, type: 'ui' });
+
+                    if (overlay) {
+                        overlay.style.transition = 'opacity 500ms ease-out';
+                        overlay.style.opacity = '0';
+                        setTimeout(() => {
+                            if (overlay.parentElement) overlay.remove();
+                        }, 500);
+                        playVoidExplosion();
+                    }
+
+                    if (feedVoidGem()) {
+                        updateVoidGemAltarTab();
+                    }
+                    isFeeding = false;
+                    updateVoidGemAltarTab();
+                }
             }
-            isFeeding = false;
-            updateVoidGemAltarTab();
-        }, 9500);
+        });
     });
 
     updateVoidGemAltarTab();
