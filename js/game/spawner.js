@@ -1,7 +1,7 @@
 // js/game/spawner.js
 
 import { takePreloadedAudio } from '../util/audioCache.js';
-import { getMutationState, onMutationChange, getRandomMutationCoinSprite } from './mutationSystem.js';
+import { getMutationState, onMutationChange, getRandomMutationCoinSprite, getRandomMutationCoinId } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import { isSurgeActive, getTsunamiExponentWithCombo } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
@@ -380,31 +380,21 @@ export function createSpawner(config = {}) {
 
             const itemsToAdd = 1 + batchLength;
             if (maxActiveCoins !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveCoins) {
+                // Batch removal: Instead of clearing just the overflow (which causes massive lag every frame),
+                // we clear the overflow PLUS 5% of max active coins to batch removals together.
                 let numToRemove = (activeItems.length - garbageCount + itemsToAdd) - maxActiveCoins;
-                for (let i = 0; i < activeItems.length && numToRemove > 0; i++) {
-                    let indexToRemove = -1;
-                    let minSizeIndex = Infinity;
-                    
-                    for (let j = 0; j < activeItems.length; j++) {
-                        const c = activeItems[j];
-                        if (c) {
-                            const sizeIdx = c.sizeIndex || 0;
-                            if (sizeIdx < minSizeIndex) {
-                                minSizeIndex = sizeIdx;
-                                indexToRemove = j;
-                                if (minSizeIndex === 0) {
-                                    break;
-                                }
-                            }
+                numToRemove += Math.floor(maxActiveCoins * 0.05);
+                
+                let b = 0;
+                while (numToRemove > 0 && b < 7) {
+                    for (let i = 0, len = activeItems.length; i < len && numToRemove > 0; i++) {
+                        const c = activeItems[i];
+                        if (c && !c.isRemoved && (c.sizeIndex || 0) === b) {
+                            removeItem(c, i);
+                            numToRemove--;
                         }
                     }
-
-                    if (indexToRemove !== -1) {
-                        removeItem(activeItems[indexToRemove], indexToRemove);
-                        numToRemove--;
-                    } else {
-                        break;
-                    }
+                    b++;
                 }
             }
 
@@ -441,7 +431,13 @@ export function createSpawner(config = {}) {
                 }
                 const forceDom = sizeIndex >= 4;
 				
-                const assignedSrc = currentCoinSrc === 'RANDOM' ? getRandomMutationCoinSprite() : currentCoinSrc;
+                let assignedSrc = currentCoinSrc;
+                let srcIdForSort = currentCoinSrcId;
+                if (currentCoinSrc === 'RANDOM') {
+                    const randId = getRandomMutationCoinId();
+                    srcIdForSort = randId;
+                    assignedSrc = randId === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${randId}.webp`;
+                }
 
                 let el = null;
                 if (forceDom) {
@@ -461,12 +457,6 @@ export function createSpawner(config = {}) {
                     } else {
                       el.dataset.mutationLevel = '0';
                     }
-                }
-                
-                let srcIdForSort = 0;
-                if (assignedSrc) {
-                    const m = assignedSrc.match(/m(\d+)\.webp/);
-                    if (m) srcIdForSort = parseInt(m[1], 10);
                 }
 
                 const coinObj = {
@@ -803,9 +793,15 @@ export function createSpawner(config = {}) {
         }
     });
 
+    let currentCoinSrcId = 0;
     function setCoinSprite(src) {
       if (!src) return;
       currentCoinSrc = src;
+      currentCoinSrcId = 0;
+      if (src && src !== 'RANDOM') {
+          const m = src.match(/m(\d+)\.webp/);
+          if (m) currentCoinSrcId = parseInt(m[1], 10);
+      }
     }
 
     function findItemTargetsInRadius(centerX, centerY, radius, useVisualHitbox) {
