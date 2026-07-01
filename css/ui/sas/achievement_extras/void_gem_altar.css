@@ -246,3 +246,12 @@
     /* Make some look like torn shapes */
     border-radius: 2px;
 }
+
+.void-text-black.infinity-symbol,
+.void-level-text-black.infinity-symbol {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-shadow: none !important;
+    color: #fff200;
+}
