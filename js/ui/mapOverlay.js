@@ -317,7 +317,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 if (window.spawner && typeof window.spawner.stopAllWaveSounds === "function") {
                     window.spawner.stopAllWaveSounds();
                 }
-                enterArea(node.areaId);
+                enterArea(node.areaId, 0.5);
                 
                 if (typeof window !== "undefined") {
                     if (currentArea === AREAS.STARTER_COVE) {
