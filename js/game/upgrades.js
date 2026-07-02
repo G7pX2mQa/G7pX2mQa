@@ -2474,7 +2474,11 @@ export const REGISTRY = [
     id: 5,
     tie: UPGRADE_TIES.BOOK_VALUE_I,
     title: "Book Value",
-    desc: "Doubles Books gained when increasing XP Level",
+    get desc() {
+      return getCurrentSurgeLevel() >= 3
+        ? "Doubles the Books generated from Surge 3"
+        : "Doubles Books gained when increasing XP Level";
+    },
     lvlCap: 1,
     baseCost: 10,
     costType: "books",
