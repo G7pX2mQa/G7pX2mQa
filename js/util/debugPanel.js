@@ -4907,8 +4907,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 persistActionLog([], slot);
                 updateActionLogDisplay();
-                flagDebugUsage();
-                logAction('Action log wiped and reset.');
+                logAction('Action log wiped.');
             },
         },
         {
@@ -4949,6 +4948,13 @@ function buildMiscContent(content) {
 
                 flagDebugUsage();
                 logAction(`Performed OP Time Warp for ${formatNumber(seconds)} seconds.`);
+            }
+        },
+        {
+            label: 'Toggle Hitboxes',
+            onClick: () => {
+                window.__showHitboxes = !window.__showHitboxes;
+                logAction(`Toggled hitboxes ${window.__showHitboxes ? 'on' : 'off'}.`);
             }
         },
     ];
