@@ -731,16 +731,16 @@ export function getBookProductionRate() {
   if (baseRate.cmp(1) < 0) baseRate = BigNum.fromInt(1);
 
   // Apply multipliers
+    if (isSurgeActive(8)) {
+    baseRate = applyTsunamiNerf(baseRate);
+  }
+
   if (bank.books?.mult) {
     const mult = bank.books.mult.get();
     baseRate = baseRate.mulBigNumInteger(mult);
   }
   
   baseRate = applyStatMultiplierOverride('books', baseRate);
-
-  if (isSurgeActive(8)) {
-    baseRate = applyTsunamiNerf(baseRate);
-  }
 
   return baseRate;
 }
