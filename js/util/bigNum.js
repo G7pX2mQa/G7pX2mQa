@@ -177,7 +177,7 @@ export class BigNum {
     if (this._isNaN || b._isNaN) return new BigNum(NaN, 0, this.p);
 
     if (this.inf) {
-      if (b.inf) return new BigNum(NaN, 0, this.p);
+      if (b.inf) return this.clone();
       return this.clone();
     }
     if (b.isZero()) return this.clone();
@@ -363,7 +363,7 @@ export class BigNum {
     
     // Handle infinite cases
     if (this.inf) {
-        if (b.inf) return new BigNum(NaN, 0, this.p);
+        if (b.inf) return this.clone();
         return this.clone(); // inf / finite -> inf
     }
     if (b.inf) {
