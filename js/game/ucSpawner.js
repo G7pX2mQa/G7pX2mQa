@@ -185,16 +185,37 @@ export function createUcSpawner(config = {}) {
 
             const itemsToAdd = spawns.length + batchLength;
             if (maxActiveItems !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveItems) {
-                let numToRemove = (activeItems.length - garbageCount + itemsToAdd) - maxActiveItems;
-                numToRemove += Math.floor(maxActiveItems * 0.05);
+                let strictOverflow = (activeItems.length - garbageCount + itemsToAdd) - maxActiveItems;
+                let bufferToRemove = Math.floor(maxActiveItems * 0.05);
+                let totalToRemove = strictOverflow + bufferToRemove;
                 
+                // Sweep 1: Only settled items (avoid deleting falling materials)
                 let b = 0;
-                while (numToRemove > 0 && b < UC_MATERIALS.length) {
-                    for (let i = 0, len = activeItems.length; i < len && numToRemove > 0; i++) {
+                while (totalToRemove > 0 && b < UC_MATERIALS.length) {
+                    let targetForThisLayer = (b === 0) ? totalToRemove : strictOverflow;
+                    
+                    if (targetForThisLayer > 0) {
+                        for (let i = 0, len = activeItems.length; i < len && targetForThisLayer > 0; i++) {
+                            const c = activeItems[i];
+                            if (c && !c.isRemoved && !c.isStrikePlaceholder && !c.isHiddenPreAllocated && c.settled && (c.sizeIndex || 0) === b) {
+                                removeItem(c, i);
+                                strictOverflow--;
+                                totalToRemove--;
+                                targetForThisLayer--;
+                            }
+                        }
+                    }
+                    b++;
+                }
+
+                // Sweep 2: Fallback to unsettled ONLY if we strictly need to clear space
+                b = 0;
+                while (strictOverflow > 0 && b < UC_MATERIALS.length) {
+                    for (let i = 0, len = activeItems.length; i < len && strictOverflow > 0; i++) {
                         const c = activeItems[i];
                         if (c && !c.isRemoved && !c.isStrikePlaceholder && !c.isHiddenPreAllocated && (c.sizeIndex || 0) === b) {
                             removeItem(c, i);
-                            numToRemove--;
+                            strictOverflow--;
                         }
                     }
                     b++;
