@@ -75,14 +75,14 @@ localStorage.setItem = function(key, value) {
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
-    return originalSetItem(key, value);
+    return Object.getPrototypeOf(localStorage).setItem.call(localStorage, key, value);
 };
 
 localStorage.removeItem = function(key) {
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
-    return originalRemoveItem(key);
+    return Object.getPrototypeOf(localStorage).removeItem.call(localStorage, key);
 };
 
 export const IS_MOBILE = (() => {
