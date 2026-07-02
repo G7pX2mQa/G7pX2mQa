@@ -112,7 +112,7 @@ function renderPinnedAreas() {
                     if (window.spawner && typeof window.spawner.stopAllWaveSounds === 'function') {
                         window.spawner.stopAllWaveSounds();
                     }
-                    enterArea(node.areaId);
+                    enterArea(node.areaId, 0.5);
                     
                     // Delay music and spawner start until we are actually in the new area
                     if (typeof window !== 'undefined') {
