@@ -550,6 +550,42 @@ export function createBaseSpawner(config = {}) {
                 }
             }
         }
+
+        if (window.__showHitboxes) {
+            mainCtx.save();
+            mainCtx.strokeStyle = 'rgb(0, 255, 0)';
+            mainCtx.lineWidth = 2;
+
+            for (let i = 0; i < activeItems.length; i++) {
+                const c = activeItems[i];
+                if (c && !c.isRemoved && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
+                    const state = c.settled ? { x: c.x, y: c.y } : getItemState(c, now);
+                    const size = c.size || 0;
+                    if (size > 0) {
+                        const cx = state.x + size / 2;
+                        const cy = state.y + size / 2;
+                        
+                        mainCtx.beginPath();
+                        if (config.playfieldSelector === '#uc-playfield') {
+                            // Visual hitbox logic from ucSpawner:
+                            // effectiveR = Math.max(w * 0.5, radius)
+                            // We don't have the brush radius here, but the item's hitbox part is size * 0.5.
+                            // The collision check scales dy by 2, making the hitbox an ellipse.
+                            // So rx = size * 0.5, ry = size * 0.25
+                            const rx = size * 0.5;
+                            const ry = size * 0.25;
+                            mainCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                        } else {
+                            // Visual hitbox logic from spawner:
+                            const r = size / 2;
+                            mainCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                        }
+                        mainCtx.stroke();
+                    }
+                }
+            }
+            mainCtx.restore();
+        }
     }
 
     let rate = itemsPerSecond;
