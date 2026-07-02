@@ -155,8 +155,13 @@ export function createBaseSpawner(config = {}) {
         onDrawSingleSettledItem = () => {},
         onEnsureItemVisual = () => {},
         onRemoveItem = () => {},
-        onClearPlayfield = () => {}
+        onClearPlayfield = () => {},
+        onDrawHitbox = null
     } = config;
+
+    if (typeof onDrawHitbox !== 'function') {
+        throw new Error('[BaseSpawner] Fatal: onDrawHitbox must be defined in the spawner configuration.');
+    }
 
     const refs = {
         pf: document.querySelector(playfieldSelector),
@@ -565,22 +570,7 @@ export function createBaseSpawner(config = {}) {
                         const cx = state.x + size / 2;
                         const cy = state.y + size / 2;
                         
-                        mainCtx.beginPath();
-                        if (config.playfieldSelector === '#uc-playfield') {
-                            // Visual hitbox logic from ucSpawner:
-                            // effectiveR = Math.max(w * 0.5, radius)
-                            // We don't have the brush radius here, but the item's hitbox part is size * 0.5.
-                            // The collision check scales dy by 2, making the hitbox an ellipse.
-                            // So rx = size * 0.5, ry = size * 0.25
-                            const rx = size * 0.5;
-                            const ry = size * 0.25;
-                            mainCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-                        } else {
-                            // Visual hitbox logic from spawner:
-                            const r = size / 2;
-                            mainCtx.arc(cx, cy, r, 0, Math.PI * 2);
-                        }
-                        mainCtx.stroke();
+                        onDrawHitbox(mainCtx, c, cx, cy, size);
                     }
                 }
             }
