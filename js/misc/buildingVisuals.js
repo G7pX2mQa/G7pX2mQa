@@ -1914,7 +1914,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Let's do straight down splitting into two huge rainbows perfectly symmetric
 
     const inAngle = -Math.PI / 2; // straight up/down
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.fillStyle = ironPattern ? ironPattern : "#1a1c23";
 
     // Draw incoming thick white beam
     const beamW = 15 + Math.sin(t * 10) * 5;
@@ -3770,8 +3770,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       const cy = top + dy / 2;
 
       ctx.globalAlpha = alpha * 0.7;
+      const smokeSpeed = typeof t8 !== 'undefined' && t8 > 0 ? 1.5 : 0.5;
       for (let i = 0; i < 4; i++) {
-         const pT = (t_anim * 0.5 + i * 0.25) % 1;
+         const pT = (t_anim * smokeSpeed + i * 0.25) % 1;
          if (pT > 0) {
              const px = cx + (Math.sin(t_anim * 3 + i) * 5) * pT;
              const py = cy - (pT * 30);
@@ -3799,7 +3800,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
-  const drawTank = (x, y, w, h, fluidColor, fillLevel, alpha = 1) => {
+  const drawTank = (x, y, w, h, fluidColor, fillLevel, alpha = 1, isTier8 = false) => {
     if (alpha <= 0) return;
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -3822,20 +3823,24 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.rect(-w / 2 + 2, yOff, w - 4, fHeight);
       ctx.clip();
 
+      let bubbles = [];
       for (let i = 0; i < 8; i++) {
-        const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
+        const speedMult = isTier8 ? 4 : 0.5;
+        const bubbleT = (t * speedMult + i * 0.43) % 1; // 0 to 1 cycle
         const bubbleX =
           -w / 2 + 4 + ((i * 5) % (w - 8)) + Math.sin(t * 3 + i) * 2;
         const bubbleY = -bubbleT * fHeight;
         const bubbleRadius = 1 + (i % 3);
 
         if (bubbleY > yOff + bubbleRadius) {
+          bubbles.push({x: bubbleX, y: bubbleY});
           ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
           ctx.beginPath();
           ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
           ctx.fill();
         }
       }
+      
       ctx.restore();
     }
 
@@ -3922,6 +3927,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     oilColor,
     0.7 + 0.1 * Math.sin(t * 1.5),
     1.0,
+    t8 > 0
   );
   
   // Left Auxiliary Tank
@@ -3934,6 +3940,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       oilColor,
       0.6 + 0.1 * Math.sin(t * 1.5 + 1),
       t1,
+      t8 > 0
     );
   }
 
@@ -4264,11 +4271,13 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       const xStart = dir * (columnW / 2);
       const xOuter = dir * (columnW / 2 + 30);
       
+      const scaffoldTopY = columnY - 95; // Lower than observation platform (columnY - 110)
+      
       // Vertical main support pillars
       ctx.lineWidth = 8;
       ctx.beginPath();
       ctx.moveTo(xOuter, columnY);
-      ctx.lineTo(xOuter, columnY - columnH + 20);
+      ctx.lineTo(xOuter, scaffoldTopY);
       ctx.stroke();
       
       // Outer pillar highlight
@@ -4276,21 +4285,21 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(xOuter - dir * 2, columnY);
-      ctx.lineTo(xOuter - dir * 2, columnY - columnH + 20);
+      ctx.lineTo(xOuter - dir * 2, scaffoldTopY);
       ctx.stroke();
       
       ctx.strokeStyle = ironPattern ? ironPattern : "#333";
       
       // Horizontal crossbeams connecting to column
       ctx.lineWidth = 6;
-      for (let h = columnY - 20; h >= columnY - columnH + 20; h -= 35) {
+      for (let h = columnY - 20; h >= scaffoldTopY; h -= 35) {
         ctx.beginPath();
         ctx.moveTo(xStart, h);
         ctx.lineTo(xOuter, h);
         ctx.stroke();
         
         // Diagonal bracing (X pattern)
-        if (h - 35 >= columnY - columnH + 20) {
+        if (h - 35 >= scaffoldTopY) {
           ctx.lineWidth = 4;
           ctx.beginPath();
           // Diagonal 1
@@ -4324,364 +4333,10 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     drawScaffoldSide(true);
     drawScaffoldSide(false);
     
-    // Front safety railing wrapping around the lower section
-    const railY = columnY - 40;
-    ctx.strokeStyle = "#ffaa00"; // Industrial warning orange/yellow
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-columnW/2 - 30, railY);
-    ctx.lineTo(-columnW/2, railY + 10); // curve around column
-    ctx.lineTo(columnW/2, railY + 10);
-    ctx.lineTo(columnW/2 + 30, railY);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(-columnW/2 - 30, railY - 10);
-    ctx.lineTo(-columnW/2, railY);
-    ctx.lineTo(columnW/2, railY);
-    ctx.lineTo(columnW/2 + 30, railY - 10);
-    ctx.stroke();
-
     ctx.restore();
   }
 
     // ----------------------------------------------------
-  // Tier 6: Energized Conduit Frame
-  // ----------------------------------------------------
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-
-    // Use pure white for the frame glow
-    const frameGlow = "rgba(255, 255, 255, 0.9)"; // White base
-    ctx.strokeStyle = frameGlow;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    // Adjust left edge to -120 and right edge to +120 (iron base width is 240)
-    // Max out height just above distillation column (column top is at baseY - 115 - 150 = baseY - 265)
-    const frameTopY = baseY - 267;
-    
-    // Because we are overlapping Tier 2, we start the frame at baseY
-    
-    const drawFramePath = () => {
-      ctx.beginPath();
-      // Left leg
-      ctx.moveTo(-120, baseY);
-      ctx.lineTo(-120, frameTopY);
-      
-      // Top connector
-      ctx.lineTo(120, frameTopY);
-      
-      // Right leg
-      ctx.lineTo(120, baseY);
-    };
-
-    // Fill with white color (since user asked for inverse colors, white background, yellow pulse)
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    
-    // To fill it properly, we need a closed shape with thickness
-    ctx.beginPath();
-    // Outer edge (left to right)
-    ctx.moveTo(-125, baseY);
-    ctx.lineTo(-125, frameTopY - 5);
-    ctx.lineTo(125, frameTopY - 5);
-    ctx.lineTo(125, baseY);
-    // Inner edge (right to left)
-    ctx.lineTo(115, baseY);
-    ctx.lineTo(115, frameTopY + 5);
-    ctx.lineTo(-115, frameTopY + 5);
-    ctx.lineTo(-115, baseY);
-    ctx.closePath();
-    ctx.fill();
-
-    // Draw the white outline
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = frameGlow;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = frameGlow;
-    drawFramePath();
-    ctx.stroke();
-    
-    // Animate energy pulses converging to the center
-    // Increased frequency: smaller gap
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "#FFFF00"; // Pure bright yellow
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = "rgba(255, 255, 0, 1)";
-    
-    const pulseLength = 30;
-    const gapLength = 100; // Much smaller gap for more frequent pulses
-    ctx.setLineDash([pulseLength, gapLength]);
-    
-    // Speed of convergence
-    const speed = 250;
-    
-    // Left side pulse (moving from start to center)
-    ctx.save();
-    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
-    ctx.beginPath();
-    ctx.moveTo(-120, baseY);
-    ctx.lineTo(-120, frameTopY);
-    ctx.lineTo(0, frameTopY); // Stop at center
-    ctx.stroke();
-    ctx.restore();
-    
-    // Right side pulse (moving from end to center)
-    // To make it move backwards, we draw the path in reverse
-    ctx.save();
-    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
-    ctx.beginPath();
-    ctx.moveTo(120, baseY);
-    ctx.lineTo(120, frameTopY);
-    ctx.lineTo(0, frameTopY); // Stop at center
-    ctx.stroke();
-    ctx.restore();
-    ctx.restore();
-  }
-
-    // ----------------------------------------------------
-  // Tier 7: High-Pressure Pumping Station
-  // ----------------------------------------------------
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-
-    // Heavy mechanical pumping stations on the catwalk
-    const catwalkY = baseY - 115;
-    
-    const drawPumpStation = (x, isLeft) => {
-      ctx.save();
-      ctx.translate(x, catwalkY);
-      
-      const pumpW = 40;
-      const pumpH = 30;
-      
-      // Main pump block
-      ctx.fillStyle = ironPattern ? ironPattern : "#2a2a2a";
-      ctx.beginPath();
-      ctx.roundRect(-pumpW/2, -pumpH, pumpW, pumpH, 3);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.6)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Motor housing (cylinder on top)
-      const motorW = 24;
-      const motorH = 15;
-      ctx.fillStyle = ironPattern ? ironPattern : "#444";
-      ctx.fillRect(-motorW/2, -pumpH - motorH, motorW, motorH);
-      
-      // Animated piston/crank
-      // Fast pumping animation
-      const pumpAnim = Math.sin(t * 12 + (isLeft ? 0 : Math.PI));
-      const pistonY = -pumpH - motorH - 5 + pumpAnim * 5;
-      
-      // Piston rod
-      ctx.fillStyle = "#bbb";
-      ctx.fillRect(-3, pistonY, 6, 10 - pumpAnim * 5);
-      
-      // Piston head
-      ctx.fillStyle = "#888";
-      ctx.fillRect(-10, pistonY - 4, 20, 8);
-      
-      // Flywheel
-      ctx.save();
-      ctx.translate(isLeft ? -pumpW/2 - 5 : pumpW/2 + 5, -pumpH/2);
-      ctx.rotate(t * 10 * (isLeft ? 1 : -1));
-      
-      ctx.beginPath();
-      ctx.arc(0, 0, 12, 0, Math.PI * 2);
-      ctx.fillStyle = ironPattern ? ironPattern : "#333";
-      ctx.fill();
-      ctx.strokeStyle = "#111";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Flywheel spokes
-      for(let i=0; i<4; i++) {
-        ctx.rotate(Math.PI / 2);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(12, 0);
-        ctx.stroke();
-      }
-      ctx.restore();
-      
-      // Thick pipe connecting pump to column
-      // Column width is 100, so edge is at x = +/- 50
-      const dir = isLeft ? 1 : -1;
-      const pipeStartX = dir * (pumpW/2);
-      const pipeEndX = (isLeft ? -50 : 50);
-      
-      // Draw pipe over the scaffolding
-      ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
-      ctx.lineWidth = 12;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      
-      ctx.beginPath();
-      ctx.moveTo(pipeStartX, -10);
-      ctx.lineTo(pipeStartX + dir * 15, -10);
-      ctx.lineTo(pipeEndX, -30);
-      ctx.stroke();
-      
-      // Pipe shadow & highlight
-      ctx.strokeStyle = "rgba(0,0,0,0.5)";
-      ctx.lineWidth = 12;
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(255,255,255,0.2)";
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      ctx.restore();
-    };
-    
-    // Draw left and right pumping stations on the catwalk
-    // Placement further out from the column (column is 100 wide, radius 50)
-    drawPumpStation(-100, true);
-    drawPumpStation(100, false);
-    
-    ctx.restore();
-  }
-
-  // ----------------------------------------------------
-  // Tier 8: Overcharged Distillation (Dark Alloy & Neon Core)
-  // ----------------------------------------------------
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-
-    const columnY = baseY - 115;
-    const columnH = 150;
-    const columnW = 100;
-    const columnTop = columnY - columnH;
-
-    // 1. Dark Alloy Outer Shell Overlay
-    ctx.fillStyle = ironPattern ? ironPattern : "#1a1c23";
-    
-    ctx.beginPath();
-    ctx.moveTo(-columnW/2, columnY);
-    ctx.lineTo(-columnW/2, columnTop);
-    ctx.lineTo(columnW/2, columnTop);
-    ctx.lineTo(columnW/2, columnY);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Sleek dark shading overlay
-    const darkGrad = ctx.createLinearGradient(-columnW/2, 0, columnW/2, 0);
-    darkGrad.addColorStop(0, "rgba(255, 255, 255, 0.2)");
-    darkGrad.addColorStop(0.2, "rgba(0, 0, 0, 0.4)");
-    darkGrad.addColorStop(0.8, "rgba(0, 0, 0, 0.8)");
-    darkGrad.addColorStop(1, "rgba(0, 0, 0, 0.95)");
-    
-    ctx.fillStyle = darkGrad;
-    ctx.fill();
-
-    // 2. Transparent Neon Fluid Windows
-    const windowW = 40;
-    const windowH = 120;
-    const windowY = columnY - 15; // Bottom of window
-    
-    // Window Recess (Dark background)
-    ctx.fillStyle = "#0a0c10";
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.fill();
-    
-    // Inner shadow for depth
-    ctx.strokeStyle = "rgba(0,0,0,0.8)";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    // Neon fluid bubbling up
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.clip();
-    
-    // Pumping/Surging fluid level animation
-    const surge = 0.5 + 0.5 * Math.sin(t * 3);
-    const fluidH = windowH * (0.4 + 0.6 * surge);
-    const fluidTop = windowY - fluidH;
-    
-    // Neon Cyan gradient
-    const neonGrad = ctx.createLinearGradient(0, windowY, 0, windowY - windowH);
-    neonGrad.addColorStop(0, "rgba(0, 150, 255, 0.9)");
-    neonGrad.addColorStop(0.5, "rgba(0, 255, 255, 0.8)");
-    neonGrad.addColorStop(1, "rgba(200, 255, 255, 0.6)");
-    
-    ctx.fillStyle = neonGrad;
-    ctx.fillRect(-windowW/2, fluidTop, windowW, fluidH);
-    
-    // High-speed upward bubbles
-    const bubbleCount = 15;
-    for(let i=0; i<bubbleCount; i++) {
-      const bT = (t * 4 + i * 0.3) % 1; // Fast upward movement
-      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(t * 8 + i)*2;
-      const by = windowY - bT * windowH;
-      
-      if (by > fluidTop) {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-        ctx.beginPath();
-        ctx.arc(bx, by, 1 + (i%3), 0, Math.PI*2);
-        ctx.fill();
-        
-        // Add a cyan glow to bubbles
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = "#00ffff";
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-    }
-    ctx.restore(); // Remove clip
-    
-    // Glass reflection on window
-    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2 + 2, windowY - windowH + 2, windowW/3, windowH - 4, 8);
-    ctx.fill();
-    
-    // High-tech window frame
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.6)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.stroke();
-
-    // 3. Glowing Horizontal Containment Bands
-    ctx.lineWidth = 4;
-    for(let h = columnY - 25; h >= columnTop; h -= 30) {
-      // Band base
-      ctx.strokeStyle = "#111";
-      ctx.beginPath();
-      ctx.moveTo(-columnW/2, h);
-      ctx.lineTo(columnW/2, h);
-      ctx.stroke();
-      
-      // Neon pulse running along the bands
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(-columnW/2, h);
-      ctx.lineTo(columnW/2, h);
-      ctx.strokeStyle = "#00ffff";
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = "#00ffff";
-      
-      const dashLen = 30;
-      const gapLen = 70;
-      ctx.setLineDash([dashLen, gapLen]);
-      // Alternate direction for bands
-      const dir = (h % 20 === 0) ? 1 : -1;
-      ctx.lineDashOffset = - (t * 150 * dir) % (dashLen + gapLen);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.restore();
-  }
-
-  // ----------------------------------------------------
   // Tier 2: High Voltage Electrical Boxes
   // ----------------------------------------------------
   // Draw Tier 2 Electrical Boxes and Sparks on top of everything (including the iron base)
@@ -4731,8 +4386,10 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
 
       // Sparks flying from the edges of it infrequently (every 3 seconds)
-      const sparkCycle = (t + Math.abs(bx)) % 3.0;
-      if (sparkCycle < 0.15) {
+      const interval = t8 > 0 ? 0.05 : 3.0;
+      const threshold = t8 > 0 ? 0.05 : 0.15;
+      const sparkCycle = (t + Math.abs(bx)) % interval;
+      if (sparkCycle < threshold) {
         ctx.strokeStyle = sparkColor;
         ctx.lineWidth = 2;
         // Generate 1-2 sparks
@@ -4760,6 +4417,256 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
+
+
+  // ----------------------------------------------------
+  // Tier 6: Energized Conduit Frame
+  // ----------------------------------------------------
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+
+    // Use pure white for the frame glow
+    const frameGlow = "rgba(255, 255, 255, 0.9)"; // White base
+    ctx.strokeStyle = frameGlow;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    // Adjust left edge to -120 and right edge to +120 (iron base width is 240)
+    // Max out height just above distillation column (column top is at baseY - 115 - 150 = baseY - 265)
+    const frameTopY = baseY - 267;
+    
+    // Because we are overlapping Tier 2, we start the frame at baseY
+    
+    const drawFramePath = () => {
+      ctx.beginPath();
+      // Left leg
+      ctx.moveTo(-120, baseY);
+      ctx.lineTo(-120, frameTopY);
+      
+      // Top connector
+      ctx.lineTo(120, frameTopY);
+      
+      // Right leg
+      ctx.lineTo(120, baseY);
+    };
+
+    // Fill with white color (since user asked for inverse colors, white background, yellow pulse)
+    ctx.fillStyle = ironPattern ? ironPattern : "#1a1c23";
+    
+    // To fill it properly, we need a closed shape with thickness
+    ctx.beginPath();
+    // Outer edge (left to right)
+    ctx.moveTo(-125, baseY);
+    ctx.lineTo(-125, frameTopY - 5);
+    ctx.lineTo(125, frameTopY - 5);
+    ctx.lineTo(125, baseY);
+    // Inner edge (right to left)
+    ctx.lineTo(115, baseY);
+    ctx.lineTo(115, frameTopY + 5);
+    ctx.lineTo(-115, frameTopY + 5);
+    ctx.lineTo(-115, baseY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw thin glowing white strip in the middle
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "rgba(255, 255, 255, 1)";
+    drawFramePath();
+    ctx.stroke();
+    
+    // Animate energy pulses converging to the center
+    // Increased frequency: smaller gap
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "#FFFF00"; // Pure bright yellow
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = "rgba(255, 255, 0, 1)";
+    
+    const pulseLength = 30;
+    const gapLength = 100; // Much smaller gap for more frequent pulses
+    ctx.setLineDash([pulseLength, gapLength]);
+    
+    // Speed of convergence
+    const speed = t8 > 0 ? 750 : 250;
+    
+    // Left side pulse (moving from start to center)
+    ctx.save();
+    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
+    ctx.beginPath();
+    ctx.moveTo(-120, baseY);
+    ctx.lineTo(-120, frameTopY);
+    ctx.lineTo(0, frameTopY); // Stop at center
+    ctx.stroke();
+    ctx.restore();
+    
+    // Right side pulse (moving from end to center)
+    // To make it move backwards, we draw the path in reverse
+    ctx.save();
+    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
+    ctx.beginPath();
+    ctx.moveTo(120, baseY);
+    ctx.lineTo(120, frameTopY);
+    ctx.lineTo(0, frameTopY); // Stop at center
+    ctx.stroke();
+    ctx.restore();
+    ctx.restore();
+  }
+
+    // ----------------------------------------------------
+  // Tier 7: Under-Catwalk Energy Containment Core
+  // ----------------------------------------------------
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+
+    const coreY = baseY - 80; // Suspended beneath the catwalk (which is at baseY - 115)
+    
+    // Core housing
+    ctx.fillStyle = ironPattern ? ironPattern : "#222";
+    ctx.beginPath();
+    ctx.roundRect(-40, coreY - 30, 80, 60, 10);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    // Glowing venting stacks
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-30, coreY - 35, 15, 5);
+    ctx.fillRect(15, coreY - 35, 15, 5);
+
+    // Inner glowing sphere
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, coreY, 20, 0, Math.PI * 2);
+    ctx.fillStyle = "#000";
+    ctx.fill();
+    ctx.clip();
+    
+    const corePulse = 0.5 + 0.5 * Math.sin(t * 5);
+    const grad = ctx.createRadialGradient(0, coreY, 0, 0, coreY, 20);
+    grad.addColorStop(0, "rgba(0, 255, 255, 1)");
+    grad.addColorStop(0.5, `rgba(0, 150, 255, ${0.8 + 0.2*corePulse})`);
+    grad.addColorStop(1, "rgba(0, 0, 50, 0.8)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(-20, coreY - 20, 40, 40);
+    
+    // Rotating energy ring
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    ctx.lineDashOffset = -t * 50;
+    ctx.beginPath();
+    ctx.arc(0, coreY, 15, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.restore();
+    
+    // Containment rings around the housing
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-45, coreY - 10);
+    ctx.lineTo(45, coreY - 10);
+    ctx.moveTo(-45, coreY + 10);
+    ctx.lineTo(45, coreY + 10);
+    ctx.stroke();
+    
+    // Support struts connecting to catwalk
+    ctx.strokeStyle = ironPattern ? ironPattern : "#444";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(-20, coreY - 30);
+    ctx.lineTo(-20, baseY - 115);
+    ctx.moveTo(20, coreY - 30);
+    ctx.lineTo(20, baseY - 115);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ----------------------------------------------------
+  // Tier 8: Overcharged Distillation (Dark Alloy & Neon Core)
+  // ----------------------------------------------------
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+
+    const columnY = baseY - 115;
+    const columnH = 150;
+    const columnW = 100;
+    const columnTop = columnY - columnH;
+
+
+
+    // 2. Transparent Neon Fluid Windows
+    const windowW = 40;
+    const windowH = 120;
+    const windowY = columnY - 15; // Bottom of window
+    
+    // Window Recess (Dark background)
+    ctx.fillStyle = "#0a0c10";
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.fill();
+    
+    // Inner shadow for depth
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Neon fluid bubbling up
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.clip();
+    
+    // Oil fluid level (always full)
+    const fluidH = windowH;
+    const fluidTop = windowY - fluidH;
+    
+    ctx.fillStyle = oilColor;
+    ctx.fillRect(-windowW/2, fluidTop, windowW, fluidH);
+    
+    // High-speed upward bubbles and lightning sparks
+    const bubbleCount = 15;
+    let bubbles = [];
+    for(let i=0; i<bubbleCount; i++) {
+      const bT = (t * 4 + i * 0.3) % 1; // Fast upward movement
+      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(t * 8 + i)*2;
+      const by = windowY - bT * windowH;
+      
+      if (by > fluidTop) {
+        bubbles.push({x: bx, y: by});
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.beginPath();
+        ctx.arc(bx, by, 1 + (i%3), 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+    
+    ctx.restore(); // Remove clip
+    
+    // Glass reflection on window
+    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2 + 2, windowY - windowH + 2, windowW/3, windowH - 4, 8);
+    ctx.fill();
+    
+    // High-tech window frame
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.stroke();
+
+
+
+    ctx.restore();
+  }
+
 }
 
 function drawVault(ctx, t, tier) {
