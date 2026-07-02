@@ -3902,9 +3902,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(oldPts, 8, oilColor, 2.5, 1.0 - t1, "butt");
+    drawFluidPipe(oldPts, 8, oilColor, 2.5 + 5 * t8, 1.0 - t1, "butt");
     
-    drawFluidPipe(allPts, 8, oilColor, 2.5, t1, "butt");
+    drawFluidPipe(allPts, 8, oilColor, 2.5 + 5 * t8, t1, "butt");
     
   } else {
     let allPts = [];
@@ -3914,7 +3914,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(allPts, 8, oilColor, 2.5, 1.0, "butt");
+    drawFluidPipe(allPts, 8, oilColor, 2.5 + 5 * t8, 1.0, "butt");
   }
 
   // 3. Draw the tanks
@@ -4024,6 +4024,92 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   }
 
   // ----------------------------------------------------
+  // Tier 5: Reinforced Support Scaffolding
+  // ----------------------------------------------------
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5;
+
+    // Heavy-duty metal scaffolding reinforcing the distillation column
+    const columnY = baseY - 115;
+    const columnH = 150;
+    const columnW = 100;
+    
+    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
+    ctx.lineJoin = "bevel";
+    
+    const drawScaffoldSide = (isLeft) => {
+      ctx.save();
+      const dir = isLeft ? -1 : 1;
+      const xStart = dir * (columnW / 2 - 5);
+      const xOuter = dir * (columnW / 2 + 30);
+      
+      const scaffoldTopY = columnY - 95; // Lower than observation platform (columnY - 110)
+      
+      // Vertical main support pillars
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(xOuter, columnY);
+      ctx.lineTo(xOuter, scaffoldTopY);
+      ctx.stroke();
+      
+      // Outer pillar highlight
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(xOuter - dir * 2, columnY);
+      ctx.lineTo(xOuter - dir * 2, scaffoldTopY);
+      ctx.stroke();
+      
+      ctx.strokeStyle = ironPattern ? ironPattern : "#333";
+      
+      // Horizontal crossbeams connecting to column
+      ctx.lineWidth = 6;
+      for (let h = columnY - 20; h >= scaffoldTopY; h -= 35) {
+        ctx.beginPath();
+        ctx.moveTo(xStart, h);
+        ctx.lineTo(xOuter, h);
+        ctx.stroke();
+        
+        // Diagonal bracing (X pattern)
+        if (h - 35 >= scaffoldTopY) {
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          // Diagonal 1
+          ctx.moveTo(xStart, h);
+          ctx.lineTo(xOuter, h - 35);
+          ctx.stroke();
+          // Diagonal 2
+          ctx.beginPath();
+          ctx.moveTo(xOuter, h);
+          ctx.lineTo(xStart, h - 35);
+          ctx.stroke();
+          ctx.lineWidth = 6; // Restore horizontal line width
+        }
+      }
+      
+      // Angle support at the base
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(xOuter, columnY - 30);
+      ctx.lineTo(xOuter + dir * 20, columnY);
+      ctx.stroke();
+      
+      // Footing pad
+      ctx.fillStyle = ironPattern ? ironPattern : "#222";
+      ctx.fillRect(xOuter - 10, columnY - 4, 20, 8);
+      ctx.fillRect(xOuter + dir * 20 - 10, columnY - 4, 20, 8);
+      
+      ctx.restore();
+    };
+
+    drawScaffoldSide(true);
+    drawScaffoldSide(false);
+    
+    ctx.restore();
+  }
+
+    // ----------------------------------------------------
   // Tier 4: Distillation Column & Piping
   // ----------------------------------------------------
   if (t4 > 0) {
@@ -4043,14 +4129,14 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: -150, y: baseY - 40 },
       { x: -150, y: pipeTargetY },
       { x: -columnW/2 + 5, y: pipeTargetY } // Slightly inside so no gap
-    ], 6, pipeColor, 2, t4);
+    ], 6, pipeColor, 2 + 18 * t8, t4);
     
     // 2. Right electrical box to column
     drawFluidPipe([
       { x: 150, y: baseY - 40 },
       { x: 150, y: pipeTargetY },
       { x: columnW/2 - 5, y: pipeTargetY } // Slightly inside so no gap
-    ], 6, pipeColor, 2, t4);
+    ], 6, pipeColor, 2 + 18 * t8, t4);
     
     // Main Silo Body
     ctx.fillStyle = ironPattern ? ironPattern : "#8c92ac";
@@ -4208,6 +4294,83 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
     ctx.stroke();
     
+
+
+  // ----------------------------------------------------
+  // Tier 8: Overcharged Distillation (Dark Alloy & Neon Core)
+  // ----------------------------------------------------
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+
+    const columnY = baseY - 115;
+    const columnH = 150;
+    const columnW = 100;
+    const columnTop = columnY - columnH;
+
+
+
+    // 2. Transparent Neon Fluid Windows
+    const windowW = 40;
+    const windowH = 78;
+    const windowY = columnY - 36; // Centered vertically
+    
+    // Window Recess (Dark background)
+    ctx.fillStyle = "#0a0c10";
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.fill();
+    
+    // Inner shadow for depth
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Neon fluid bubbling up
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
+    ctx.clip();
+    
+    // Oil fluid level (always full)
+    const fluidH = windowH;
+    const fluidTop = windowY - fluidH;
+    
+    ctx.fillStyle = oilColor;
+    ctx.fillRect(-windowW/2, fluidTop, windowW, fluidH);
+    
+    // High-speed upward bubbles and lightning sparks
+    const bubbleCount = 15;
+    let bubbles = [];
+    for(let i=0; i<bubbleCount; i++) {
+      const bT = (t * 4 + i * 0.3) % 1; // Fast upward movement
+      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(t * 8 + i)*2;
+      const by = windowY - bT * windowH;
+      
+      if (by > fluidTop) {
+        bubbles.push({x: bx, y: by});
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.beginPath();
+        ctx.arc(bx, by, 1 + (i%3), 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+    
+    ctx.restore(); // Remove clip
+    
+    // Glass reflection on window
+    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.beginPath();
+    ctx.roundRect(-windowW/2 + 2, windowY - windowH + 2, windowW/3, windowH - 4, 8);
+    ctx.fill();
+    
+
+
+
+
+    ctx.restore();
+  }
+
     // Observation platform with railings wrapping around the column
     const platY = ladderEndY;
     const platExt = 12; // Extends out from the column by 12px on each side
@@ -4247,92 +4410,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
     ctx.stroke();
 
-    ctx.restore();
-  }
-
-    // ----------------------------------------------------
-  // Tier 5: Reinforced Support Scaffolding
-  // ----------------------------------------------------
-  if (t5 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t5;
-
-    // Heavy-duty metal scaffolding reinforcing the distillation column
-    const columnY = baseY - 115;
-    const columnH = 150;
-    const columnW = 100;
-    
-    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
-    ctx.lineJoin = "bevel";
-    
-    const drawScaffoldSide = (isLeft) => {
-      ctx.save();
-      const dir = isLeft ? -1 : 1;
-      const xStart = dir * (columnW / 2);
-      const xOuter = dir * (columnW / 2 + 30);
-      
-      const scaffoldTopY = columnY - 95; // Lower than observation platform (columnY - 110)
-      
-      // Vertical main support pillars
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(xOuter, columnY);
-      ctx.lineTo(xOuter, scaffoldTopY);
-      ctx.stroke();
-      
-      // Outer pillar highlight
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(xOuter - dir * 2, columnY);
-      ctx.lineTo(xOuter - dir * 2, scaffoldTopY);
-      ctx.stroke();
-      
-      ctx.strokeStyle = ironPattern ? ironPattern : "#333";
-      
-      // Horizontal crossbeams connecting to column
-      ctx.lineWidth = 6;
-      for (let h = columnY - 20; h >= scaffoldTopY; h -= 35) {
-        ctx.beginPath();
-        ctx.moveTo(xStart, h);
-        ctx.lineTo(xOuter, h);
-        ctx.stroke();
-        
-        // Diagonal bracing (X pattern)
-        if (h - 35 >= scaffoldTopY) {
-          ctx.lineWidth = 4;
-          ctx.beginPath();
-          // Diagonal 1
-          ctx.moveTo(xStart, h);
-          ctx.lineTo(xOuter, h - 35);
-          ctx.stroke();
-          // Diagonal 2
-          ctx.beginPath();
-          ctx.moveTo(xOuter, h);
-          ctx.lineTo(xStart, h - 35);
-          ctx.stroke();
-          ctx.lineWidth = 6; // Restore horizontal line width
-        }
-      }
-      
-      // Angle support at the base
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(xOuter, columnY - 30);
-      ctx.lineTo(xOuter + dir * 20, columnY);
-      ctx.stroke();
-      
-      // Footing pad
-      ctx.fillStyle = ironPattern ? ironPattern : "#222";
-      ctx.fillRect(xOuter - 10, columnY - 4, 20, 8);
-      ctx.fillRect(xOuter + dir * 20 - 10, columnY - 4, 20, 8);
-      
-      ctx.restore();
-    };
-
-    drawScaffoldSide(true);
-    drawScaffoldSide(false);
-    
     ctx.restore();
   }
 
@@ -4434,21 +4511,21 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
     // Adjust left edge to -120 and right edge to +120 (iron base width is 240)
     // Max out height just above distillation column (column top is at baseY - 115 - 150 = baseY - 265)
-    const frameTopY = baseY - 267;
+    const frameTopY = baseY - 282;
     
     // Because we are overlapping Tier 2, we start the frame at baseY
     
     const drawFramePath = () => {
       ctx.beginPath();
       // Left leg
-      ctx.moveTo(-120, baseY);
-      ctx.lineTo(-120, frameTopY);
+      ctx.moveTo(-115, baseY);
+      ctx.lineTo(-115, frameTopY);
       
       // Top connector
-      ctx.lineTo(120, frameTopY);
+      ctx.lineTo(115, frameTopY);
       
       // Right leg
-      ctx.lineTo(120, baseY);
+      ctx.lineTo(115, baseY);
     };
 
     // Fill with white color (since user asked for inverse colors, white background, yellow pulse)
@@ -4457,15 +4534,15 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // To fill it properly, we need a closed shape with thickness
     ctx.beginPath();
     // Outer edge (left to right)
-    ctx.moveTo(-125, baseY);
-    ctx.lineTo(-125, frameTopY - 5);
-    ctx.lineTo(125, frameTopY - 5);
-    ctx.lineTo(125, baseY);
+    ctx.moveTo(-120, baseY);
+    ctx.lineTo(-120, frameTopY - 5);
+    ctx.lineTo(120, frameTopY - 5);
+    ctx.lineTo(120, baseY);
     // Inner edge (right to left)
-    ctx.lineTo(115, baseY);
-    ctx.lineTo(115, frameTopY + 5);
-    ctx.lineTo(-115, frameTopY + 5);
-    ctx.lineTo(-115, baseY);
+    ctx.lineTo(110, baseY);
+    ctx.lineTo(110, frameTopY + 5);
+    ctx.lineTo(-110, frameTopY + 5);
+    ctx.lineTo(-110, baseY);
     ctx.closePath();
     ctx.fill();
 
@@ -4495,8 +4572,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
     ctx.beginPath();
-    ctx.moveTo(-120, baseY);
-    ctx.lineTo(-120, frameTopY);
+    ctx.moveTo(-115, baseY);
+    ctx.lineTo(-115, frameTopY);
     ctx.lineTo(0, frameTopY); // Stop at center
     ctx.stroke();
     ctx.restore();
@@ -4506,8 +4583,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
     ctx.beginPath();
-    ctx.moveTo(120, baseY);
-    ctx.lineTo(120, frameTopY);
+    ctx.moveTo(115, baseY);
+    ctx.lineTo(115, frameTopY);
     ctx.lineTo(0, frameTopY); // Stop at center
     ctx.stroke();
     ctx.restore();
@@ -4515,158 +4592,89 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   }
 
     // ----------------------------------------------------
-  // Tier 7: Under-Catwalk Energy Containment Core
+  // Tier 7: Twin Tesla Coils
   // ----------------------------------------------------
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
 
-    const coreY = baseY - 80; // Suspended beneath the catwalk (which is at baseY - 115)
+    const coreY = baseY - 80;
     
-    // Core housing
-    ctx.fillStyle = ironPattern ? ironPattern : "#222";
-    ctx.beginPath();
-    ctx.roundRect(-40, coreY - 30, 80, 60, 10);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.8)";
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    
-    // Glowing venting stacks
-    ctx.fillStyle = "#111";
-    ctx.fillRect(-30, coreY - 35, 15, 5);
-    ctx.fillRect(15, coreY - 35, 15, 5);
-
-    // Inner glowing sphere
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, coreY, 20, 0, Math.PI * 2);
-    ctx.fillStyle = "#000";
-    ctx.fill();
-    ctx.clip();
-    
-    const corePulse = 0.5 + 0.5 * Math.sin(t * 5);
-    const grad = ctx.createRadialGradient(0, coreY, 0, 0, coreY, 20);
-    grad.addColorStop(0, "rgba(0, 255, 255, 1)");
-    grad.addColorStop(0.5, `rgba(0, 150, 255, ${0.8 + 0.2*corePulse})`);
-    grad.addColorStop(1, "rgba(0, 0, 50, 0.8)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(-20, coreY - 20, 40, 40);
-    
-    // Rotating energy ring
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 10]);
-    ctx.lineDashOffset = -t * 50;
-    ctx.beginPath();
-    ctx.arc(0, coreY, 15, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.restore();
-    
-    // Containment rings around the housing
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-45, coreY - 10);
-    ctx.lineTo(45, coreY - 10);
-    ctx.moveTo(-45, coreY + 10);
-    ctx.lineTo(45, coreY + 10);
-    ctx.stroke();
-    
-    // Support struts connecting to catwalk
-    ctx.strokeStyle = ironPattern ? ironPattern : "#444";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(-20, coreY - 30);
-    ctx.lineTo(-20, baseY - 115);
-    ctx.moveTo(20, coreY - 30);
-    ctx.lineTo(20, baseY - 115);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  // ----------------------------------------------------
-  // Tier 8: Overcharged Distillation (Dark Alloy & Neon Core)
-  // ----------------------------------------------------
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-
-    const columnY = baseY - 115;
-    const columnH = 150;
-    const columnW = 100;
-    const columnTop = columnY - columnH;
-
-
-
-    // 2. Transparent Neon Fluid Windows
-    const windowW = 40;
-    const windowH = 120;
-    const windowY = columnY - 15; // Bottom of window
-    
-    // Window Recess (Dark background)
-    ctx.fillStyle = "#0a0c10";
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.fill();
-    
-    // Inner shadow for depth
-    ctx.strokeStyle = "rgba(0,0,0,0.8)";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    // Neon fluid bubbling up
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.clip();
-    
-    // Oil fluid level (always full)
-    const fluidH = windowH;
-    const fluidTop = windowY - fluidH;
-    
-    ctx.fillStyle = oilColor;
-    ctx.fillRect(-windowW/2, fluidTop, windowW, fluidH);
-    
-    // High-speed upward bubbles and lightning sparks
-    const bubbleCount = 15;
-    let bubbles = [];
-    for(let i=0; i<bubbleCount; i++) {
-      const bT = (t * 4 + i * 0.3) % 1; // Fast upward movement
-      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(t * 8 + i)*2;
-      const by = windowY - bT * windowH;
-      
-      if (by > fluidTop) {
-        bubbles.push({x: bx, y: by});
-        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    // Draw the Tesla Coils
+    const drawCoil = (cx) => {
+        ctx.save();
+        ctx.translate(cx, coreY + 30); 
+        ctx.translate(0, -65); 
+        
+        // Base mount to catwalk
+        ctx.fillStyle = ironPattern ? ironPattern : "#333";
+        ctx.fillRect(-15, 0, 30, 10);
+        
+        // Coil shaft
+        ctx.fillStyle = "#111";
+        ctx.fillRect(-8, 10, 16, 40);
+        
+        // Copper winding
+        ctx.strokeStyle = "#c87d3e";
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(bx, by, 1 + (i%3), 0, Math.PI*2);
+        for (let y = 12; y < 48; y += 6) {
+            ctx.moveTo(-9, y);
+            ctx.lineTo(9, y + 4);
+        }
+        ctx.stroke();
+        
+        // Top dome (pointing down)
+        const pulse = 0.5 + 0.5 * Math.sin(t * 10);
+        ctx.fillStyle = `rgba(150, 200, 255, ${0.8 + 0.2 * pulse})`;
+        ctx.beginPath();
+        ctx.arc(0, 50, 15, 0, Math.PI, true); // Semi-circle pointing down
         ctx.fill();
-      }
+        
+        ctx.restore();
+    };
+    
+    drawCoil(-60);
+    drawCoil(60);
+    
+    // Lightning Arcs between the two domes
+    const sx = -60;
+    const sy = coreY - 15;
+    const ex = 60;
+    const ey = coreY - 15;
+    
+    // Draw 3 chaotic arcs
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let arc = 0; arc < 3; arc++) {
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        
+        const segments = 8;
+        for (let i = 1; i < segments; i++) {
+            const p = i / segments;
+            const px = sx + (ex - sx) * p;
+            const py = sy + (ey - sy) * p;
+            
+            // Jitter
+            const jitterX = (Math.random() - 0.5) * 15;
+            const jitterY = (Math.random() - 0.5) * 25;
+            
+            ctx.lineTo(px + jitterX, py + jitterY);
+        }
+        ctx.lineTo(ex, ey);
+        
+        ctx.lineWidth = 2 + Math.random() * 2;
+        ctx.strokeStyle = `rgba(150, 200, 255, ${0.5 + Math.random() * 0.5})`;
+        ctx.stroke();
+        
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.stroke();
     }
-    
-    ctx.restore(); // Remove clip
-    
-    // Glass reflection on window
-    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2 + 2, windowY - windowH + 2, windowW/3, windowH - 4, 8);
-    ctx.fill();
-    
-    // High-tech window frame
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.6)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.stroke();
-
-
 
     ctx.restore();
   }
-
 }
 
 function drawVault(ctx, t, tier) {
