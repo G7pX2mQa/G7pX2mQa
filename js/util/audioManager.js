@@ -125,7 +125,7 @@ export async function loadAudio(src) {
  * @param {boolean} [options.loop=false] - Whether to loop.
  * @param {string} [options.type='sfx'] - 'sfx' or 'music'.
  */
-export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx' } = {}) {
+export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0 } = {}) {
   if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
   const ctx = getAudioContext();
   const url = new URL(src, document.baseURI).href;
@@ -143,7 +143,19 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         source.loop = loop;
         
         const gainNode = ctx.createGain();
-        gainNode.gain.value = volume;
+        
+        if (fadeDuration > 0) {
+            gainNode.gain.value = 0;
+            try {
+                const now = ctx.currentTime;
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(volume, now + fadeDuration);
+            } catch (e) {
+                gainNode.gain.value = volume;
+            }
+        } else {
+            gainNode.gain.value = volume;
+        }
         
         source.connect(gainNode);
         
@@ -157,8 +169,25 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         }
 
         source.start(0);
+        
+        let stopTimeout = null;
+        
         return {
-            stop: () => {
+            stop: (fadeOutDuration = 0) => {
+                if (stopTimeout) clearTimeout(stopTimeout);
+                if (fadeOutDuration > 0) {
+                    try {
+                        const now = ctx.currentTime;
+                        const currentVol = gainNode.gain.value;
+                        gainNode.gain.cancelScheduledValues(now);
+                        gainNode.gain.setValueAtTime(currentVol, now);
+                        gainNode.gain.linearRampToValueAtTime(0, now + fadeOutDuration);
+                        stopTimeout = setTimeout(() => {
+                            try { source.stop(); } catch {}
+                        }, fadeOutDuration * 1000);
+                        return;
+                    } catch (e) {}
+                }
                 try { source.stop(); } catch {}
             },
             source,
@@ -176,14 +205,57 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
   // Note: Fallback does NOT support the filter effect as it bypasses Web Audio graph.
   try {
       const a = new Audio(url);
-      a.volume = volume;
+      
+      let fadeInterval = null;
+      let stopTimeout = null;
+      
+      if (fadeDuration > 0) {
+          a.volume = 0;
+          const steps = 20;
+          const stepTime = (fadeDuration * 1000) / steps;
+          const volStep = volume / steps;
+          let currentVol = 0;
+          
+          fadeInterval = setInterval(() => {
+              currentVol += volStep;
+              if (currentVol >= volume) {
+                  currentVol = volume;
+                  clearInterval(fadeInterval);
+              }
+              a.volume = currentVol;
+          }, stepTime);
+      } else {
+          a.volume = volume;
+      }
+      
       if (typeof a.playbackRate !== 'undefined') {
           a.playbackRate = playbackRate;
       }
       a.loop = loop;
       a.play().catch(() => {});
+      
       return {
-          stop: () => {
+          stop: (fadeOutDuration = 0) => {
+              if (fadeInterval) clearInterval(fadeInterval);
+              if (stopTimeout) clearTimeout(stopTimeout);
+              
+              if (fadeOutDuration > 0) {
+                  const steps = 20;
+                  const stepTime = (fadeOutDuration * 1000) / steps;
+                  const volStep = a.volume / steps;
+                  let currentVol = a.volume;
+                  
+                  fadeInterval = setInterval(() => {
+                      currentVol -= volStep;
+                      if (currentVol <= 0) {
+                          currentVol = 0;
+                          clearInterval(fadeInterval);
+                          try { a.pause(); a.currentTime = 0; } catch {}
+                      }
+                      try { a.volume = currentVol; } catch {}
+                  }, stepTime);
+                  return;
+              }
               try { a.pause(); a.currentTime = 0; } catch {}
           },
           element: a
