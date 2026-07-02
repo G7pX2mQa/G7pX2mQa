@@ -3722,11 +3722,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     // Front face outline
     ctx.moveTo(left, mainTop);
     ctx.lineTo(left, bottom);
-    ctx.lineTo(right, bottom);
+    ctx.moveTo(right, bottom); // Lift pen, don't draw bottom line
     ctx.lineTo(right, mainTop);
     // Side face outline (bottom and right edge)
     ctx.moveTo(right, bottom);
-    ctx.lineTo(right + dx, bottom);
+    ctx.moveTo(right + dx, bottom); // Lift pen, don't draw bottom line
     ctx.lineTo(right + dx, mainTop + dy);
     // The vertical line separating front and side
     ctx.moveTo(right, bottom);
@@ -4349,7 +4349,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       
       if (by > fluidTop) {
         bubbles.push({x: bx, y: by});
-        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
         ctx.beginPath();
         ctx.arc(bx, by, 1 + (i%3), 0, Math.PI*2);
         ctx.fill();
@@ -4592,86 +4592,109 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   }
 
     // ----------------------------------------------------
-  // Tier 7: Twin Tesla Coils
+  // Tier 7: Magnetic Separation Disks
   // ----------------------------------------------------
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
 
-    const coreY = baseY - 80;
-    
-    // Draw the Tesla Coils
-    const drawCoil = (cx) => {
+    const coreY = baseY - 105; // Base of catwalk
+
+    const drawDiskStack = (cx) => {
         ctx.save();
-        ctx.translate(cx, coreY + 30); 
-        ctx.translate(0, -65); 
+        ctx.translate(cx, coreY); 
         
         // Base mount to catwalk
         ctx.fillStyle = ironPattern ? ironPattern : "#333";
-        ctx.fillRect(-15, 0, 30, 10);
+        ctx.fillRect(-15, 0, 30, 8);
         
-        // Coil shaft
+        // Central shaft
         ctx.fillStyle = "#111";
-        ctx.fillRect(-8, 10, 16, 40);
+        ctx.fillRect(-4, 8, 8, 60);
+
+        const numDisks = 4;
+        const diskSpacing = 12;
         
-        // Copper winding
-        ctx.strokeStyle = "#c87d3e";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        for (let y = 12; y < 48; y += 6) {
-            ctx.moveTo(-9, y);
-            ctx.lineTo(9, y + 4);
+        for (let i = 0; i < numDisks; i++) {
+            const diskY = 15 + i * diskSpacing;
+            
+            // Disk rotation (tilt pseudo-3D)
+            ctx.save();
+            ctx.translate(0, diskY);
+            // Counter-rotating disks
+            const spinDir = i % 2 === 0 ? 1 : -1;
+            ctx.scale(1, 0.3); // Squash to make ellipse
+            
+            const diskPulse = 0.5 + 0.5 * Math.sin(t * 3 + i);
+            
+            // Outer glowing ring
+            ctx.beginPath();
+            ctx.arc(0, 0, 22 + diskPulse * 2, 0, Math.PI * 2);
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + diskPulse * 0.4})`;
+            ctx.stroke();
+            
+            // Inner disk body
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, 0, Math.PI * 2);
+            ctx.fillStyle = "#1a1a1a";
+            ctx.fill();
+            
+            // Inner core glow
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200, 255, 255, ${0.8 + diskPulse * 0.2})`;
+            ctx.fill();
+            
+            // Rotating nodes on the disk
+            ctx.rotate(t * 2 * spinDir);
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(15, 0, 3, 0, Math.PI * 2);
+            ctx.arc(-15, 0, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
         }
-        ctx.stroke();
-        
-        // Top dome (pointing down)
-        const pulse = 0.5 + 0.5 * Math.sin(t * 10);
-        ctx.fillStyle = `rgba(150, 200, 255, ${0.8 + 0.2 * pulse})`;
+
+        // Downward electric energy wave along the shaft
+        const waveT = (t * 1.5) % 1;
+        const waveY = 8 + waveT * 60;
         ctx.beginPath();
-        ctx.arc(0, 50, 15, 0, Math.PI, true); // Semi-circle pointing down
-        ctx.fill();
+        ctx.ellipse(0, waveY, 12, 4, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(150, 255, 255, ${1 - waveT})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
         
         ctx.restore();
     };
     
-    drawCoil(-60);
-    drawCoil(60);
+    drawDiskStack(-70);
+    drawDiskStack(70);
     
-    // Lightning Arcs between the two domes
-    const sx = -60;
-    const sy = coreY - 15;
-    const ex = 60;
-    const ey = coreY - 15;
+    // Subtle cyan energy field connecting the two setups horizontally
+    // Between the shafts, sweeping up and down
+    const fieldSweep = 0.5 + 0.5 * Math.sin(t * 2);
+    const fieldY = coreY + 20 + fieldSweep * 35;
     
-    // Draw 3 chaotic arcs
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    for (let arc = 0; arc < 3; arc++) {
-        ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        
-        const segments = 8;
-        for (let i = 1; i < segments; i++) {
-            const p = i / segments;
-            const px = sx + (ex - sx) * p;
-            const py = sy + (ey - sy) * p;
-            
-            // Jitter
-            const jitterX = (Math.random() - 0.5) * 15;
-            const jitterY = (Math.random() - 0.5) * 25;
-            
-            ctx.lineTo(px + jitterX, py + jitterY);
-        }
-        ctx.lineTo(ex, ey);
-        
-        ctx.lineWidth = 2 + Math.random() * 2;
-        ctx.strokeStyle = `rgba(150, 200, 255, ${0.5 + Math.random() * 0.5})`;
-        ctx.stroke();
-        
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.stroke();
-    }
+    ctx.beginPath();
+    ctx.moveTo(-70, fieldY);
+    ctx.lineTo(70, fieldY);
+    
+    const fieldGrad = ctx.createLinearGradient(-70, 0, 70, 0);
+    fieldGrad.addColorStop(0, "rgba(0, 255, 255, 0)");
+    fieldGrad.addColorStop(0.2, "rgba(0, 255, 255, 0.4)");
+    fieldGrad.addColorStop(0.5, "rgba(200, 255, 255, 0.6)");
+    fieldGrad.addColorStop(0.8, "rgba(0, 255, 255, 0.4)");
+    fieldGrad.addColorStop(1, "rgba(0, 255, 255, 0)");
+    
+    ctx.strokeStyle = fieldGrad;
+    ctx.lineWidth = 6 + Math.sin(t * 8) * 2;
+    ctx.stroke();
+    
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.stroke();
 
     ctx.restore();
   }
