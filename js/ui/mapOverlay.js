@@ -543,10 +543,10 @@ export function openMapOverlay(unlockedNodeId = null) {
                                 setMapNodeInteractiveCursor(nodeBtn.btn, false);
                                 
                                 const pinBtn = nodeBtn.btn.querySelector('.map-node-pin-btn');
-                                if (pinBtn) pinBtn.style.display = 'none';
+                                if (pinBtn) pinBtn.style.display = '';
                             }
                             
-                            window.__mapSequenceActive = false;
+                            window.__mapSequenceActive = false; window.dispatchEvent(new Event('pinnedAreas:changed'));
                             window.__mapSequenceTarget = null;
                             
                             try {
@@ -558,7 +558,7 @@ export function openMapOverlay(unlockedNodeId = null) {
                             }
                         }, 4500);
                     } else {
-                        window.__mapSequenceActive = false;
+                        window.__mapSequenceActive = false; window.dispatchEvent(new Event('pinnedAreas:changed'));
                         
                         try {
                             checkAchievements();
