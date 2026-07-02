@@ -380,18 +380,40 @@ export function createSpawner(config = {}) {
 
             const itemsToAdd = 1 + batchLength;
             if (maxActiveCoins !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveCoins) {
-                // Batch removal: Instead of clearing just the overflow (which causes massive lag every frame),
-                // we clear the overflow PLUS 5% of max active coins to batch removals together.
-                let numToRemove = (activeItems.length - garbageCount + itemsToAdd) - maxActiveCoins;
-                numToRemove += Math.floor(maxActiveCoins * 0.05);
+                // Base overflow that MUST be removed
+                let strictOverflow = (activeItems.length - garbageCount + itemsToAdd) - maxActiveCoins;
+                // Buffer to prevent constant lagging (only applied to the lowest tier)
+                let bufferToRemove = Math.floor(maxActiveCoins * 0.05);
+                let totalToRemove = strictOverflow + bufferToRemove;
                 
+                // Sweep 1: Only settled items (avoid deleting falling coins)
                 let b = 0;
-                while (numToRemove > 0 && b < 7) {
-                    for (let i = 0, len = activeItems.length; i < len && numToRemove > 0; i++) {
+                while (totalToRemove > 0 && b < 7) {
+                    // Only apply the bulk buffer to sizeIndex 0. Rarer coins are only deleted if strictly over max capacity.
+                    let targetForThisLayer = (b === 0) ? totalToRemove : strictOverflow;
+                    
+                    if (targetForThisLayer > 0) {
+                        for (let i = 0, len = activeItems.length; i < len && targetForThisLayer > 0; i++) {
+                            const c = activeItems[i];
+                            if (c && !c.isRemoved && c.settled && (c.sizeIndex || 0) === b) {
+                                removeItem(c, i);
+                                strictOverflow--;
+                                totalToRemove--;
+                                targetForThisLayer--;
+                            }
+                        }
+                    }
+                    b++;
+                }
+                
+                // Sweep 2: Fallback to unsettled ONLY if we still strictly need to clear space
+                b = 0;
+                while (strictOverflow > 0 && b < 7) {
+                    for (let i = 0, len = activeItems.length; i < len && strictOverflow > 0; i++) {
                         const c = activeItems[i];
                         if (c && !c.isRemoved && (c.sizeIndex || 0) === b) {
                             removeItem(c, i);
-                            numToRemove--;
+                            strictOverflow--;
                         }
                     }
                     b++;
