@@ -590,6 +590,14 @@ export function createUcSpawner(config = {}) {
             }
         },
 
+        onDrawHitbox: (ctx, c, cx, cy, size) => {
+            ctx.beginPath();
+            const rx = size * 0.5;
+            const ry = size * 0.25;
+            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        },
+
         onEnsureItemVisual: (el, c) => {
             const size = c.size || baseSize;
             el.style.width = `${size}px`;
