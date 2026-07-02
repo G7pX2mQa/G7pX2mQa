@@ -432,6 +432,11 @@ export function createSpawner(config = {}) {
             const newCoins = [];
             const now = performance.now();
             let hasWaves = false;
+            
+            let burstRandomId = null;
+            if (currentCoinSrc === 'RANDOM') {
+                burstRandomId = getRandomMutationCoinId();
+            }
 
             for (const { wave, coin, sizeIndex } of batch) {
                 if (wave && settingsManager.get('spawn_vessels')) {
@@ -456,7 +461,7 @@ export function createSpawner(config = {}) {
                 let assignedSrc = currentCoinSrc;
                 let srcIdForSort = currentCoinSrcId;
                 if (currentCoinSrc === 'RANDOM') {
-                    const randId = getRandomMutationCoinId();
+                    const randId = burstRandomId !== null ? burstRandomId : getRandomMutationCoinId();
                     srcIdForSort = randId;
                     assignedSrc = randId === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${randId}.webp`;
                 }
