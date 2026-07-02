@@ -167,7 +167,6 @@ function formatExponentString(rawDigits, sign = '') {
     if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
     let head = ds.slice(0, totalDigits);
     const nextDigit = ds.charCodeAt(totalDigits) || 48;
-    // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
     let intStr, fracStr, finalExpStr;
     if (head.length > totalDigits) { 
@@ -194,7 +193,6 @@ function formatExponentString(rawDigits, sign = '') {
   if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
   let head = ds.slice(0, totalDigits);
   const nextDigit = ds.charCodeAt(totalDigits) || 48;
-  // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
   let finalE = E;
   if (head.length > totalDigits) {
@@ -408,7 +406,6 @@ function _formatNumber(bn) {
 
     let head = s.slice(0, totalDigits);
     const nextDigit = s.charCodeAt(totalDigits) || 48;
-    // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
     let intStr, fracStr;
     if (head.length > totalDigits) {
@@ -446,7 +443,6 @@ function _formatNumber(bn) {
 
     let head = s.slice(0, totalDigits);
     const nextDigit = s.charCodeAt(totalDigits) || 48;
-    // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
     let intStr, fracStr;
     if (head.length > totalDigits) {
@@ -487,7 +483,6 @@ function _formatNumber(bn) {
 
   let head = s.slice(0, totalDigits);
   const nextDigit = s.charCodeAt(totalDigits) || 48;
-  // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
   let intStr, fracStr;
   if (head.length > totalDigits) {
