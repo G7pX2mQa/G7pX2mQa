@@ -545,11 +545,11 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 ----------------------------*/
 let delayAreaMusicForSaveSlotLoad = false;
 
-function startAreaMusic(areaID, src, volume = 1.0) {
+function startAreaMusic(areaID, src, volume = 1.0, fadeDuration = 0) {
   const delay = delayAreaMusicForSaveSlotLoad;
   const startMusic = () => {
     if (currentArea !== areaID) return;
-    currentMusic = playAudio(src, { loop: true, type: 'music', volume: volume });
+    currentMusic = playAudio(src, { loop: true, type: 'music', volume: volume, fadeDuration: fadeDuration });
     if (typeof unpauseNotifications === "function") unpauseNotifications();
   };
 
@@ -599,7 +599,7 @@ function enterAreaFromSaveSlot(areaID) {
   }
 }
 
-export function enterArea(areaID) {
+export function enterArea(areaID, fadeDuration = 0) {
   if (currentArea === areaID) return;
   if (currentArea === AREAS.JAIL) return;
 
@@ -636,7 +636,7 @@ export function enterArea(areaID) {
   }
 
   if (currentMusic) {
-    currentMusic.stop();
+    currentMusic.stop(fadeDuration);
     currentMusic = null;
   }
 
@@ -881,7 +881,7 @@ export function enterArea(areaID) {
         try { initPpSystem(); } catch {}
       }
 	  
-      startAreaMusic(AREAS.STARTER_COVE, 'sounds/The_Cove.ogg');
+      startAreaMusic(AREAS.STARTER_COVE, 'sounds/The_Cove.ogg', 1.0, fadeDuration);
 
       // Config for water layers
       const FG_LAYER_COUNT = 1;
@@ -995,7 +995,7 @@ export function enterArea(areaID) {
       
       document.body.style.backgroundColor = '#000';
       
-      startAreaMusic(AREAS.UNDERWATER_CAVERN, 'sounds/Underwater_Cavern.ogg', 0.75);
+      startAreaMusic(AREAS.UNDERWATER_CAVERN, 'sounds/Underwater_Cavern.ogg', 0.75, fadeDuration);
       
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
