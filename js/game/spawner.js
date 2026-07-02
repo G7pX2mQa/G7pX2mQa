@@ -789,6 +789,13 @@ export function createSpawner(config = {}) {
             }
         },
 
+        onDrawHitbox: (ctx, c, cx, cy, size) => {
+            ctx.beginPath();
+            const r = size / 2;
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+        },
+
         onEnsureItemVisual: (el, c) => {
             const size = c.size || baseCoinSize;
             el.style.width = `${size}px`;
