@@ -4120,23 +4120,59 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     const columnH = 150;
     const columnW = 100;
 
-    // Four pipes connecting to the Distillation Column (Drawn FIRST so they are behind)
-    const pipeTargetY = columnY - 80;
+    // Pipes connecting to the Distillation Column (Drawn FIRST so they are behind)
     const pipeColor = "rgba(227, 197, 20, 0.8)"; // Golden yellow energy
     
-    // 1. Left electrical box to column
-    drawFluidPipe([
-      { x: -150, y: baseY - 40 },
-      { x: -150, y: pipeTargetY },
-      { x: -columnW/2 + 5, y: pipeTargetY } // Slightly inside so no gap
-    ], 6, pipeColor, 2 + 18 * t8, t4);
+    // Array of configuration for the pipes on the left side.
+    // { xOffset, heightPercent }
+    // The main T4 pipe is at x=-150, 50% height
+    // The others are Tier 7 pipes at varying heights
+    const leftPipeConfigs = [
+      { x: -170, pct: 0.75, tierAlpha: t7 },
+      { x: -160, pct: 0.625, tierAlpha: t7 },
+      { x: -150, pct: 0.50, tierAlpha: t4 }, // Existing T4 pipe
+      { x: -140, pct: 0.375, tierAlpha: t7 },
+      { x: -130, pct: 0.25, tierAlpha: t7 },
+    ];
     
-    // 2. Right electrical box to column
-    drawFluidPipe([
-      { x: 150, y: baseY - 40 },
-      { x: 150, y: pipeTargetY },
-      { x: columnW/2 - 5, y: pipeTargetY } // Slightly inside so no gap
-    ], 6, pipeColor, 2 + 18 * t8, t4);
+    for (const conf of leftPipeConfigs) {
+      if (conf.tierAlpha > 0) {
+        const pTargetY = columnY - (columnH * conf.pct);
+        ctx.save();
+        // Since we are in the t4 block which has ctx.globalAlpha = t4, we need to temporarily
+        // reset it to 1 to allow drawFluidPipe to draw at the correct t7 alpha.
+        ctx.globalAlpha = 1;
+        drawFluidPipe([
+          { x: conf.x, y: baseY - 40 },
+          { x: conf.x, y: pTargetY },
+          { x: -columnW/2 + 5, y: pTargetY } // Slightly inside so no gap
+        ], 6, pipeColor, 2 + 18 * t8, conf.tierAlpha);
+        ctx.restore();
+      }
+    }
+
+    // Array of configuration for the pipes on the right side.
+    const rightPipeConfigs = [
+      { x: 130, pct: 0.25, tierAlpha: t7 },
+      { x: 140, pct: 0.375, tierAlpha: t7 },
+      { x: 150, pct: 0.50, tierAlpha: t4 }, // Existing T4 pipe
+      { x: 160, pct: 0.625, tierAlpha: t7 },
+      { x: 170, pct: 0.75, tierAlpha: t7 },
+    ];
+    
+    for (const conf of rightPipeConfigs) {
+      if (conf.tierAlpha > 0) {
+        const pTargetY = columnY - (columnH * conf.pct);
+        ctx.save();
+        ctx.globalAlpha = 1;
+        drawFluidPipe([
+          { x: conf.x, y: baseY - 40 },
+          { x: conf.x, y: pTargetY },
+          { x: columnW/2 - 5, y: pTargetY } // Slightly inside so no gap
+        ], 6, pipeColor, 2 + 18 * t8, conf.tierAlpha);
+        ctx.restore();
+      }
+    }
     
     // Main Silo Body
     ctx.fillStyle = ironPattern ? ironPattern : "#8c92ac";
@@ -4591,113 +4627,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-    // ----------------------------------------------------
-  // Tier 7: Magnetic Separation Disks
-  // ----------------------------------------------------
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-
-    const coreY = baseY - 105; // Base of catwalk
-
-    const drawDiskStack = (cx) => {
-        ctx.save();
-        ctx.translate(cx, coreY); 
-        
-        // Base mount to catwalk
-        ctx.fillStyle = ironPattern ? ironPattern : "#333";
-        ctx.fillRect(-15, 0, 30, 8);
-        
-        // Central shaft
-        ctx.fillStyle = "#111";
-        ctx.fillRect(-4, 8, 8, 60);
-
-        const numDisks = 4;
-        const diskSpacing = 12;
-        
-        for (let i = 0; i < numDisks; i++) {
-            const diskY = 15 + i * diskSpacing;
-            
-            // Disk rotation (tilt pseudo-3D)
-            ctx.save();
-            ctx.translate(0, diskY);
-            // Counter-rotating disks
-            const spinDir = i % 2 === 0 ? 1 : -1;
-            ctx.scale(1, 0.3); // Squash to make ellipse
-            
-            const diskPulse = 0.5 + 0.5 * Math.sin(t * 3 + i);
-            
-            // Outer glowing ring
-            ctx.beginPath();
-            ctx.arc(0, 0, 22 + diskPulse * 2, 0, Math.PI * 2);
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + diskPulse * 0.4})`;
-            ctx.stroke();
-            
-            // Inner disk body
-            ctx.beginPath();
-            ctx.arc(0, 0, 20, 0, Math.PI * 2);
-            ctx.fillStyle = "#1a1a1a";
-            ctx.fill();
-            
-            // Inner core glow
-            ctx.beginPath();
-            ctx.arc(0, 0, 10, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(200, 255, 255, ${0.8 + diskPulse * 0.2})`;
-            ctx.fill();
-            
-            // Rotating nodes on the disk
-            ctx.rotate(t * 2 * spinDir);
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.arc(15, 0, 3, 0, Math.PI * 2);
-            ctx.arc(-15, 0, 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-        }
-
-        // Downward electric energy wave along the shaft
-        const waveT = (t * 1.5) % 1;
-        const waveY = 8 + waveT * 60;
-        ctx.beginPath();
-        ctx.ellipse(0, waveY, 12, 4, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(150, 255, 255, ${1 - waveT})`;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        
-        ctx.restore();
-    };
-    
-    drawDiskStack(-70);
-    drawDiskStack(70);
-    
-    // Subtle cyan energy field connecting the two setups horizontally
-    // Between the shafts, sweeping up and down
-    const fieldSweep = 0.5 + 0.5 * Math.sin(t * 2);
-    const fieldY = coreY + 20 + fieldSweep * 35;
-    
-    ctx.beginPath();
-    ctx.moveTo(-70, fieldY);
-    ctx.lineTo(70, fieldY);
-    
-    const fieldGrad = ctx.createLinearGradient(-70, 0, 70, 0);
-    fieldGrad.addColorStop(0, "rgba(0, 255, 255, 0)");
-    fieldGrad.addColorStop(0.2, "rgba(0, 255, 255, 0.4)");
-    fieldGrad.addColorStop(0.5, "rgba(200, 255, 255, 0.6)");
-    fieldGrad.addColorStop(0.8, "rgba(0, 255, 255, 0.4)");
-    fieldGrad.addColorStop(1, "rgba(0, 255, 255, 0)");
-    
-    ctx.strokeStyle = fieldGrad;
-    ctx.lineWidth = 6 + Math.sin(t * 8) * 2;
-    ctx.stroke();
-    
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.stroke();
-
-    ctx.restore();
-  }
 }
 
 function drawVault(ctx, t, tier) {
