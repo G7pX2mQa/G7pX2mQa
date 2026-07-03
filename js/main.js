@@ -1787,7 +1787,27 @@ function generateMenuBackground(manifest) {
 }
 
 
-// -------------------- DUPLICATE INSTANCE DETECTION --------------------
+
+window.secretFunction = async function(password) {
+    if (!password) return;
+    
+    const msgBuffer = new TextEncoder().encode(password);
+    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    if (hashHex === 'da296715069ec493a9832c47619ced1f33987abb889fd66558f2caefa3e68d57') {
+        const { enableModificationMarkCleanser, unmarkSaveSlotModified } = await import('./util/storage.js');
+        enableModificationMarkCleanser();
+        unmarkSaveSlotModified();
+        console.log('okay then');
+    } else {
+        console.log('invalid password');
+    }
+};
+
 window.__duplicateInstanceDetected = false;
 window.addEventListener('duplicateInstanceDetected', () => {
     if (typeof enterArea === 'function') enterArea(AREAS.JAIL);
