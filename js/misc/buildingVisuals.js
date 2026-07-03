@@ -15,6 +15,10 @@ let tierUpAnimTime = 0;
 let previousTier = 0;
 let globalDiskAngle = 0; // Integrated angle for smooth accretion disk rotation
 let globalPrismAngle = 0; // Integrated angle for smooth prism rotation
+let globalRefineryAnimTime = 0; // Integrated time for smooth refinery animations
+let globalRefineryPipeTime = 0;
+let globalRefineryTankTime = 0;
+
 
 const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
@@ -306,6 +310,32 @@ function loop(currentTime) {
     globalPrismAngle += dt * prismSpeedMult;
   }
 
+  let refinerySpeedMult = 1.0;
+  let refineryPipeSpeedMult = 1.0;
+  let refineryTankSpeedMult = 1.0;
+  if (currentBuildingId === "iron") {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress =
+        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
+    }
+    const tier8Prog =
+      drawTier >= 8 && previousTier < 8 ? animProgress : drawTier >= 8 ? 1 : 0;
+    
+    refinerySpeedMult = 1.0 + tier8Prog * 2.0; 
+
+    refineryPipeSpeedMult = 1.0 + tier8Prog * 9.0;
+    
+    refineryTankSpeedMult = 1.0 + tier8Prog * 7.0;
+  }
+  globalRefineryAnimTime += dt * refinerySpeedMult;
+  globalRefineryPipeTime += dt * refineryPipeSpeedMult;
+  globalRefineryTankTime += dt * refineryTankSpeedMult;
+
+
   if (activeCanvas && activeCtx) {
     draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
   }
@@ -318,7 +348,7 @@ function getTier() {
   for (let i = 0; i < TIERS.length; i++) {
     if (currentLevelNum >= TIERS[i]) t = i + 1;
   }
-  return t; // 0 to 9
+  return t; // 0 to 8
 }
 
 function draw(ctx, width, height, t) {
@@ -662,7 +692,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   else if (id === "crystal") drawPrism(ctx, t, tier, prevTier, animProgress);
   else if (id === "stone") drawFoundry(ctx, t, tier, prevTier, animProgress);
   else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
-  else if (id === "iron") drawRefinery(ctx, t, tier, prevTier, animProgress);
+  else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
   else if (id === "pure_gold") drawVault(ctx, t, tier);
   else if (id === "diamond") drawOilRig(ctx, t, tier);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier);
@@ -3529,7 +3559,10 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   }
 }
 
-function drawRefinery(ctx, t, tier, prevTier, animProgress) {
+function drawRefinery(ctx, times, tier, prevTier, animProgress) {
+  const t = times.base;
+  const tPipe = times.pipe;
+  const tTank = times.tank;
   const getProg = (targetTier) =>
     tier >= targetTier && prevTier < targetTier
       ? animProgress
@@ -3647,7 +3680,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.lineWidth = width * 0.2;
       const dashLen = width * 2.5;
       ctx.setLineDash([dashLen, dashLen * 1.5]);
-      ctx.lineDashOffset = -t * flowSpeed * 20;
+      ctx.lineDashOffset = -tPipe * flowSpeed * 20;
       ctx.stroke();
 
       ctx.shadowColor = fluidColor;
@@ -3770,7 +3803,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       const cy = top + dy / 2;
 
       ctx.globalAlpha = alpha * 0.7;
-      const smokeSpeed = typeof t8 !== 'undefined' && t8 > 0 ? 1.5 : 0.5;
+      const smokeSpeed = 0.5; // Speed scaled via globalRefineryAnimTime
       for (let i = 0; i < 4; i++) {
          const pT = (t_anim * smokeSpeed + i * 0.25) % 1;
          if (pT > 0) {
@@ -3825,10 +3858,10 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
       let bubbles = [];
       for (let i = 0; i < 8; i++) {
-        const speedMult = isTier8 ? 4 : 0.5;
-        const bubbleT = (t * speedMult + i * 0.43) % 1; // 0 to 1 cycle
+        const speedMult = 0.5;
+        const bubbleT = (tTank * speedMult + i * 0.43) % 1; // 0 to 1 cycle
         const bubbleX =
-          -w / 2 + 4 + ((i * 5) % (w - 8)) + Math.sin(t * 3 + i) * 2;
+          -w / 2 + 4 + ((i * 5) % (w - 8)) + Math.sin(tTank * 3 + i) * 2;
         const bubbleY = -bubbleT * fHeight;
         const bubbleRadius = 1 + (i % 3);
 
@@ -3902,9 +3935,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(oldPts, 8, oilColor, 2.5 + 5 * t8, 1.0 - t1, "butt");
+    drawFluidPipe(oldPts, 8, oilColor, 2.5, 1.0 - t1, "butt");
     
-    drawFluidPipe(allPts, 8, oilColor, 2.5 + 5 * t8, t1, "butt");
+    drawFluidPipe(allPts, 8, oilColor, 2.5, t1, "butt");
     
   } else {
     let allPts = [];
@@ -3914,7 +3947,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(allPts, 8, oilColor, 2.5 + 5 * t8, 1.0, "butt");
+    drawFluidPipe(allPts, 8, oilColor, 2.5, 1.0, "butt");
   }
 
   // 3. Draw the tanks
@@ -4146,7 +4179,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
           { x: conf.x, y: baseY - 40 },
           { x: conf.x, y: pTargetY },
           { x: -columnW/2 + 5, y: pTargetY } // Slightly inside so no gap
-        ], 6, pipeColor, 2 + 18 * t8, conf.tierAlpha);
+        ], 6, pipeColor, 2, conf.tierAlpha);
         ctx.restore();
       }
     }
@@ -4169,7 +4202,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
           { x: conf.x, y: baseY - 40 },
           { x: conf.x, y: pTargetY },
           { x: columnW/2 - 5, y: pTargetY } // Slightly inside so no gap
-        ], 6, pipeColor, 2 + 18 * t8, conf.tierAlpha);
+        ], 6, pipeColor, 2, conf.tierAlpha);
         ctx.restore();
       }
     }
@@ -4379,8 +4412,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     const bubbleCount = 15;
     let bubbles = [];
     for(let i=0; i<bubbleCount; i++) {
-      const bT = (t * 4 + i * 0.3) % 1; // Fast upward movement
-      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(t * 8 + i)*2;
+      const bT = (tTank * 0.5 + i * 0.3) % 1; // Fast upward movement, scaling smoothly from 0.5 to 4.0
+      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(tTank * 1 + i)*2;
       const by = windowY - bT * windowH;
       
       if (by > fluidTop) {
@@ -4394,11 +4427,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     
     ctx.restore(); // Remove clip
     
-    // Glass reflection on window
-    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2 + 2, windowY - windowH + 2, windowW/3, windowH - 4, 8);
-    ctx.fill();
     
 
 
@@ -4499,10 +4527,20 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
 
       // Sparks flying from the edges of it infrequently (every 3 seconds)
-      const interval = t8 > 0 ? 0.05 : 3.0;
-      const threshold = t8 > 0 ? 0.05 : 0.15;
+
+      // Sparks flying from the edges of it infrequently (every 3 seconds)
+      // At tier 8, it becomes continuous.
+      const interval = 3.0;
+      const threshold = 0.15;
       const sparkCycle = (t + Math.abs(bx)) % interval;
-      if (sparkCycle < threshold) {
+      
+      // Calculate a probability of an extra spark to simulate the high frequency of Tier 8 without modulo jumping
+      const t8Prog = typeof t8 !== 'undefined' ? t8 : 0;
+      const extraSparkProb = t8Prog * 1.0; // 100% chance of a spark per frame at max t8
+      const hash = Math.abs(Math.sin(t * 123.456 + bx)) % 1;
+      
+      if (sparkCycle < threshold || hash < extraSparkProb) {
+
         ctx.strokeStyle = sparkColor;
         ctx.lineWidth = 2;
         // Generate 1-2 sparks
@@ -4602,7 +4640,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.setLineDash([pulseLength, gapLength]);
     
     // Speed of convergence
-    const speed = t8 > 0 ? 750 : 250;
+    const speed = 250;
     
     // Left side pulse (moving from start to center)
     ctx.save();
