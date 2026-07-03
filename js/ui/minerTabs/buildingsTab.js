@@ -137,7 +137,7 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
         } else {
             if (needsTwoLines) {
                 badge.classList.add('two-line');
-                badge.innerHTML = `<span class="badge-lvl">${level}</span><span class="badge-plus">(+${formatNumber(plusLevel)})</span>`;
+                setHtmlOrText(badge, `<span class="badge-lvl">${level}</span><span class="badge-plus">(+${formatNumber(plusLevel)})</span>`);
             } else if (hasPlus) {
                 badge.textContent = `${level} (+${formatNumber(plusLevel)})`;
             } else {
