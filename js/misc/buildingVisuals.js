@@ -728,7 +728,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   else if (id === "stone") drawFoundry(ctx, t, tier, prevTier, animProgress);
   else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
   else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
-  else if (id === "pure_gold") drawVault(ctx, t, tier);
+  else if (id === "pure_gold") drawVault(ctx, t, tier, prevTier, animProgress);
   else if (id === "diamond") drawOilRig(ctx, t, tier);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier);
   else if (id === "ruby") drawRadiator(ctx, t, tier);
@@ -4705,178 +4705,413 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 
 }
 
-function drawVault(ctx, t, tier) {
+function drawVault(ctx, t, tier, prevTier, animProgress) {
   if (!pureGoldPattern && activeCtx) {
     initPureGoldPattern(activeCtx);
   } else if (!pureGoldPattern) {
     initPureGoldPattern(ctx);
   }
 
-  const fillGold = pureGoldPattern ? pureGoldPattern : "#f0c94c";
+  const fillGold = pureGoldPattern ? pureGoldPattern : "#FFD700";
+  const darkMetal = ironPattern ? ironPattern : "#333333";
   
-  // Tier 0: Foundation / Pedestal
-  ctx.fillStyle = fillGold;
-  ctx.fillRect(-70, -20, 140, 20); // Base foundation
-  
-  // Tier 1: Main Structure
-  if (tier >= 1) {
-    ctx.fillRect(-60, -80, 120, 60); // Main vault body
+  // Progress helpers for smooth fading
+  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
+
+  const t0 = getProg(0);
+  const t1 = getProg(1);
+  const t2 = getProg(2);
+  const t3 = getProg(3);
+  const t4 = getProg(4);
+  const t5 = getProg(5);
+  const t6 = getProg(6);
+  const t7 = getProg(7);
+  const t8 = getProg(8);
+
+  // --- Utility Functions for this building ---
+  const drawCyberLine = (x1, y1, x2, y2, color, width, alpha) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const drawPolygon = (points, fill, stroke, strokeW, alpha) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.closePath();
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = strokeW || 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  // --- Tier 0: Foundation / Pedestal ---
+  if (t0 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
     
-    // Add some panel lines to the gold body for detail
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+    // Main base
+    ctx.fillStyle = fillGold;
+    ctx.fillRect(-80, -20, 160, 20);
+    
+    // Industrial trims
+    ctx.fillStyle = darkMetal;
+    ctx.fillRect(-85, -5, 10, 5);
+    ctx.fillRect(75, -5, 10, 5);
+    
+    // Grating lines
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = -70; i <= 70; i += 10) {
+      ctx.moveTo(i, -20);
+      ctx.lineTo(i, 0);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // --- Tier 1: Main Structure ---
+  if (t1 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t1;
+    
+    // Heavily armored vault body
+    drawPolygon([
+      {x: -70, y: -20}, {x: -60, y: -90}, {x: 60, y: -90}, {x: 70, y: -20}
+    ], fillGold, darkMetal, 3, t1);
+    
+    // Beveled edge highlights
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-40, -80); ctx.lineTo(-40, -20);
-    ctx.moveTo(40, -80); ctx.lineTo(40, -20);
-    ctx.moveTo(-60, -50); ctx.lineTo(60, -50);
+    ctx.moveTo(-60, -90); ctx.lineTo(-50, -80); ctx.lineTo(-50, -20);
+    ctx.moveTo(60, -90); ctx.lineTo(50, -80); ctx.lineTo(50, -20);
+    ctx.moveTo(-50, -80); ctx.lineTo(50, -80);
     ctx.stroke();
-  }
-  
-  // Tier 2: Vault Door
-  if (tier >= 2) {
-    ctx.fillStyle = ironPattern ? ironPattern : "#888";
+
+    // Dark metallic seams
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(0, -50, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#333";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-  }
-  
-  // Tier 3: Security Scanners/Lights
-  if (tier >= 3) {
-    ctx.fillStyle = "#ff3333"; // Red security lights
-    const glow = Math.sin(t * 3) * 0.5 + 0.5;
-    ctx.globalAlpha = 0.5 + 0.5 * glow;
-    ctx.beginPath();
-    ctx.arc(-35, -50, 4, 0, Math.PI * 2);
-    ctx.arc(35, -50, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1.0;
-    
-    // Scanner beams
-    ctx.fillStyle = "rgba(255, 51, 51, 0.2)";
-    ctx.beginPath();
-    ctx.moveTo(-35, -50);
-    ctx.lineTo(-70, -10);
-    ctx.lineTo(-20, -10);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(35, -50);
-    ctx.lineTo(70, -10);
-    ctx.lineTo(20, -10);
-    ctx.fill();
-  }
-  
-  // Tier 4: Core Feature - Wheel Lock
-  if (tier >= 4) {
-    const lockAngle = (tier >= 8) ? t * 2 : Math.sin(t) * 0.5; // Smooth back-and-forth or constant rotation
-    
-    ctx.save();
-    ctx.translate(0, -50);
-    ctx.rotate(lockAngle);
-    
-    ctx.fillStyle = "#444";
-    ctx.beginPath();
-    ctx.arc(0, 0, 10, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Spokes
-    ctx.strokeStyle = "#555";
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 4; i++) {
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(0, -18);
-      ctx.stroke();
-      ctx.rotate(Math.PI / 2);
-    }
-    
-    // Outer handle ring
-    ctx.beginPath();
-    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.moveTo(-30, -90); ctx.lineTo(-30, -20);
+    ctx.moveTo(30, -90); ctx.lineTo(30, -20);
     ctx.stroke();
     
     ctx.restore();
   }
-  
-  // Tier 5: Structural Reinforcements (Pillars)
-  if (tier >= 5) {
-    ctx.fillStyle = fillGold;
-    ctx.fillRect(-75, -90, 15, 90);
-    ctx.fillRect(60, -90, 15, 90);
-    
-    ctx.fillStyle = ironPattern ? ironPattern : "#555";
-    ctx.fillRect(-80, -95, 25, 10);
-    ctx.fillRect(55, -95, 25, 10);
-  }
-  
-  // Tier 6: Energy Conduits / Power Pipes
-  if (tier >= 6) {
-    ctx.strokeStyle = "#00ffff"; // Cyan energy
-    ctx.lineWidth = 4;
-    
-    // Pulsing energy effect
-    ctx.setLineDash([10, 10]);
-    ctx.lineDashOffset = -t * 20;
-    
-    ctx.beginPath();
-    ctx.moveTo(-65, -20);
-    ctx.lineTo(-65, -90);
-    ctx.lineTo(-40, -90);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(65, -20);
-    ctx.lineTo(65, -90);
-    ctx.lineTo(40, -90);
-    ctx.stroke();
-    
-    ctx.setLineDash([]); // Reset line dash
-  }
-  
-  // Tier 7: Additional Roof Storage / Defenses
-  if (tier >= 7) {
-    ctx.fillStyle = ironPattern ? ironPattern : "#666";
-    ctx.beginPath();
-    ctx.moveTo(-40, -80);
-    ctx.lineTo(-20, -110);
-    ctx.lineTo(20, -110);
-    ctx.lineTo(40, -80);
-    ctx.fill();
-    ctx.stroke();
-    
-    // Glowing core indicator on roof
-    ctx.fillStyle = "#00ff00";
-    ctx.beginPath();
-    ctx.arc(0, -95, 6, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // Tier 8: Enhanced Wheel Lock / Glowing Core
-  if (tier >= 8) {
-    // Add extra rotating rings to the lock
+
+  // --- Tier 2: Basic Security/Door ---
+  if (t2 > 0) {
     ctx.save();
+    ctx.globalAlpha = t2;
+    
+    // Main circular door housing
+    ctx.fillStyle = darkMetal;
+    ctx.beginPath();
+    ctx.arc(0, -50, 35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    
+    // Inner door layer
+    ctx.fillStyle = "#555";
+    ctx.beginPath();
+    ctx.arc(0, -50, 25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Heavy bolts
+    ctx.fillStyle = fillGold;
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const bx = Math.cos(angle) * 30;
+      const by = -50 + Math.sin(angle) * 30;
+      ctx.beginPath();
+      ctx.arc(bx, by, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    ctx.restore();
+  }
+
+  // --- Tier 3: Sensors & Tech ---
+  if (t3 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+    
+    // Glowing conduits connecting from base
+    const pulse = (Math.sin(t * 3) + 1) / 2;
+    drawCyberLine(-45, -20, -45, -50, "rgba(0, 255, 255, " + (0.5 + pulse * 0.5) + ")", 3, t3);
+    drawCyberLine(45, -20, 45, -50, "rgba(0, 255, 255, " + (0.5 + pulse * 0.5) + ")", 3, t3);
+    
+    // Scanners mounted on sides
+    ctx.fillStyle = darkMetal;
+    ctx.fillRect(-65, -60, 10, 20);
+    ctx.fillRect(55, -60, 10, 20);
+    
+    // Scanner light
+    ctx.fillStyle = "#ff3333";
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 10 * pulse;
+    ctx.beginPath();
+    ctx.arc(-60, -50, 4, 0, Math.PI * 2);
+    ctx.arc(60, -50, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    // Holographic panels projecting
+    ctx.fillStyle = "rgba(0, 255, 255, 0.2)";
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.8)";
+    ctx.lineWidth = 1;
+    const hover = Math.sin(t * 2) * 2;
+    
+    // Left panel
+    ctx.beginPath();
+    ctx.moveTo(-90, -70 + hover);
+    ctx.lineTo(-70, -75 + hover);
+    ctx.lineTo(-70, -55 + hover);
+    ctx.lineTo(-90, -50 + hover);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    
+    // Right panel
+    ctx.beginPath();
+    ctx.moveTo(90, -70 - hover);
+    ctx.lineTo(70, -75 - hover);
+    ctx.lineTo(70, -55 - hover);
+    ctx.lineTo(90, -50 - hover);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // --- Tier 4: Core Feature - Quantum/Energy Lock ---
+  if (t4 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t4;
     ctx.translate(0, -50);
     
-    // Counter-rotating outer ring
-    ctx.rotate(-t * 1.5);
-    ctx.strokeStyle = "#d4af37"; // Golden accent
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 22, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Glowing center
-    ctx.fillStyle = "#fff"; // Intense bright center
+    // Central energy pool
+    ctx.fillStyle = "#00ffff";
     ctx.shadowColor = "#00ffff";
     ctx.shadowBlur = 15;
     ctx.beginPath();
-    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.arc(0, 0, 15, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0; // Reset shadow
+    ctx.shadowBlur = 0;
     
+    // Rotating quantum lock pieces
+    const rotSpeed = t * 1.5;
+    ctx.rotate(rotSpeed);
+    
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    
+    // Inner mechanical lock arms
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(5, 0);
+      ctx.lineTo(20, 0);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(20, 0, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      
+      ctx.rotate((Math.PI * 2) / 3);
+    }
+    
+    ctx.restore();
+  }
+
+  // --- Tier 5: Reinforcements & Power Storage ---
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5;
+    
+    // Heavy structural pillars
+    const pillarGradient = ctx.createLinearGradient(0, -100, 0, -20);
+    pillarGradient.addColorStop(0, "#333333");
+    pillarGradient.addColorStop(1, "#FFD700");
+    
+    drawPolygon([
+      {x: -85, y: -20}, {x: -75, y: -100}, {x: -65, y: -100}, {x: -65, y: -20}
+    ], pillarGradient, "rgba(0,0,0,0.5)", 2, t5);
+    
+    drawPolygon([
+      {x: 85, y: -20}, {x: 75, y: -100}, {x: 65, y: -100}, {x: 65, y: -20}
+    ], pillarGradient, "rgba(0,0,0,0.5)", 2, t5);
+    
+    // Animated energy flowing up the pillars
+    ctx.strokeStyle = "#00ffff";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([5, 15]);
+    ctx.lineDashOffset = -t * 30;
+    
+    ctx.beginPath();
+    ctx.moveTo(-70, -20); ctx.lineTo(-70, -90);
+    ctx.moveTo(70, -20); ctx.lineTo(70, -90);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    ctx.restore();
+  }
+
+  // --- Tier 6: Defensive/Containment Field ---
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+    
+    // Floating magnetic rings
+    const ringY = -110 + Math.sin(t * 2.5) * 5;
+    
+    ctx.translate(0, ringY);
+    ctx.scale(1, 0.3); // Fake 3D perspective
+    
+    ctx.strokeStyle = "rgba(255, 215, 0, 0.8)";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(0, 0, 50, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Energy field glow
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.arc(0, 0, 55, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Connecting laser downwards
+    ctx.scale(1, 1/0.3); // reset scale
+    ctx.fillStyle = "rgba(0, 255, 255, 0.15)";
+    ctx.beginPath();
+    ctx.moveTo(-40, 0);
+    ctx.lineTo(-20, 60); // Down to door
+    ctx.lineTo(20, 60);
+    ctx.lineTo(40, 0);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.restore();
+  }
+
+  // --- Tier 7: Advanced Processing/Storage Arrays ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    
+    // Upper level servers/storage
+    ctx.fillStyle = darkMetal;
+    ctx.fillRect(-50, -130, 100, 40);
+    
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-50, -130, 100, 40);
+    
+    // Complex geometric shapes / data banks
+    for (let i = -40; i <= 40; i += 20) {
+      ctx.fillStyle = fillGold;
+      ctx.fillRect(i - 5, -125, 10, 30);
+      
+      // Fast blinking data lights
+      const blink = Math.random() > 0.5 ? "#00ff00" : "#00ffff";
+      if (Math.sin(t * 10 + i) > 0) {
+        ctx.fillStyle = blink;
+        ctx.fillRect(i - 2, -115, 4, 4);
+        ctx.fillRect(i - 2, -105, 4, 4);
+      }
+    }
+    
+    // Golden antenna
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-30, -130); ctx.lineTo(-40, -150);
+    ctx.moveTo(30, -130); ctx.lineTo(40, -150);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // --- Tier 8: Overdrive/Quantum Singularity Lock ---
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    
+    // Center of the door
+    ctx.translate(0, -50);
+    
+    // Outer massive floating holographic rings
+    ctx.rotate(-t * 2);
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.7)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 5, 2, 5]);
+    ctx.beginPath();
+    ctx.arc(0, 0, 45, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Inner intense singularity
+    ctx.rotate(t * 4);
+    const pulse = Math.sin(t * 8) * 5;
+    
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 20 + pulse);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.2, "#00ffff");
+    grad.addColorStop(0.5, "#0000ff");
+    grad.addColorStop(1, "rgba(0, 0, 255, 0)");
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 20 + pulse, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Singularity spikes
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    for(let i=0; i<8; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(25 + pulse, 0);
+      ctx.stroke();
+      ctx.rotate(Math.PI / 4);
+    }
+    
+    ctx.restore();
+
+    // Ambient intense light beam escaping upwards
+    ctx.save();
+    ctx.globalAlpha = t8 * 0.3 * (0.8 + 0.2 * Math.sin(t * 5));
+    ctx.globalCompositeOperation = "lighter";
+    const beamGrad = ctx.createLinearGradient(0, -50, 0, -200);
+    beamGrad.addColorStop(0, "rgba(0, 255, 255, 1)");
+    beamGrad.addColorStop(1, "rgba(0, 255, 255, 0)");
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(-10, -50);
+    ctx.lineTo(-30, -200);
+    ctx.lineTo(30, -200);
+    ctx.lineTo(10, -50);
+    ctx.fill();
     ctx.restore();
   }
 }
