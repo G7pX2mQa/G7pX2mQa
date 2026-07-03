@@ -20,6 +20,11 @@ let globalRefineryPipeTime = 0;
 let globalRefineryTankTime = 0;
 
 
+
+let canvasResizeObserver = null;
+let canvasIntersectionObserver = null;
+let isCanvasIntersecting = false;
+
 const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
 let wasRunningBeforeHide = false;
@@ -37,7 +42,7 @@ document.addEventListener('visibilitychange', () => {
     if (activeCanvas) {
       activeCanvas.style.display = '';
     }
-    if (wasRunningBeforeHide && activeCanvas && activeCtx) {
+    if (wasRunningBeforeHide && activeCanvas && activeCtx && isCanvasIntersecting) {
       lastTime = performance.now();
       loop(performance.now());
       wasRunningBeforeHide = false;
@@ -213,13 +218,42 @@ export function startCanvasLoop(id, canvasEl) {
     initPureGoldPattern(activeCtx);
   }
 
-  const resizeObserver = new ResizeObserver(() => {
+  if (canvasResizeObserver) {
+    canvasResizeObserver.disconnect();
+  }
+  canvasResizeObserver = new ResizeObserver(() => {
     if (!activeCanvas) return;
     const rect = activeCanvas.parentElement.getBoundingClientRect();
     activeCanvas.width = rect.width;
     activeCanvas.height = rect.height;
   });
-  resizeObserver.observe(activeCanvas.parentElement);
+  canvasResizeObserver.observe(activeCanvas.parentElement);
+
+  if (canvasIntersectionObserver) {
+    canvasIntersectionObserver.disconnect();
+  }
+  if (typeof IntersectionObserver !== 'undefined') {
+    canvasIntersectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        isCanvasIntersecting = entry.isIntersecting;
+        if (isCanvasIntersecting) {
+          if (!document.hidden && !animationFrameId && activeCanvas && activeCtx) {
+            lastTime = performance.now();
+            loop(performance.now());
+          }
+        } else {
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+            wasRunningBeforeHide = true;
+          }
+        }
+      });
+    });
+    canvasIntersectionObserver.observe(activeCanvas);
+  } else {
+    isCanvasIntersecting = true;
+  }
 
   const rect = activeCanvas.parentElement.getBoundingClientRect();
   activeCanvas.width = rect.width;
@@ -241,8 +275,8 @@ export function startCanvasLoop(id, canvasEl) {
       currentLevelNum = 1;
     });
 
-  if (document.hidden) {
-    if (activeCanvas) {
+  if (document.hidden || !isCanvasIntersecting) {
+    if (activeCanvas && document.hidden) {
       activeCanvas.style.display = 'none';
     }
     wasRunningBeforeHide = true;
@@ -258,6 +292,14 @@ export function stopCanvasLoop() {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
+  }
+  if (canvasResizeObserver) {
+    canvasResizeObserver.disconnect();
+    canvasResizeObserver = null;
+  }
+  if (canvasIntersectionObserver) {
+    canvasIntersectionObserver.disconnect();
+    canvasIntersectionObserver = null;
   }
   wasRunningBeforeHide = false;
   activeCanvas = null;
