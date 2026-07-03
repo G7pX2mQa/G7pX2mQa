@@ -22,6 +22,7 @@ import { getComboUiString } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from './collectionCore.js';
 import { setHtmlOrText } from '../util/uiHelpers.js';
+import { MAX_VISUALS } from "./spawnerCore.js";
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
@@ -619,7 +620,7 @@ export function initCoinPickup({
     const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
     const mutEnabled = typeof isMutationUnlocked === 'function' && isMutationUnlocked();
 
-    const MAX_VISUALS = 15;
+
     let visualCount = 0;
 
     const coinGroups = {};
