@@ -2964,7 +2964,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             if (hit) {
                 if (prop.type === 'coin') {
-                    playAudio('sounds/coin_pickup.ogg', { volume: COIN_VOLUME });
+                    playAudio('sounds/pickup.ogg', { volume: COIN_VOLUME });
                     // pass a property 'startTime' based on current game time for scaled animations
                     // we can just use the global variable 'lastFrameTime' which stores current timestamp
                     collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: lastFrameTime, type: 'coin' });
