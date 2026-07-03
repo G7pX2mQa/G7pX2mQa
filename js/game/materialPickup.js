@@ -13,6 +13,7 @@ import { UC_MATERIAL_DATA } from './ucSpawner.js';
 import { getLevelNumber } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID } from './automationUpgrades.js';
 import { addPp, isPpSystemUnlocked } from './ppSystem.js';
+import { MAX_VISUALS } from "./spawnerCore.js";
 
 let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
@@ -181,7 +182,7 @@ export function initUcPickup({
     if (typeof currentArea !== 'undefined' && typeof AREAS !== 'undefined' && currentArea !== AREAS.UNDERWATER_CAVERN) return;
     
     let collectedCount = 0;
-    const MAX_VISUALS = 15;
+
     let visualCount = 0;
 
     const gains = {};
