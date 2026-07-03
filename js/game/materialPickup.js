@@ -111,26 +111,19 @@ export function initUcPickup({
   let magnetController = null;
   
   const MATERIAL_VOLUME = IS_MOBILE ? 0.2 : 0.4;
-  const lastPlayedAt = new Map();
+  let lastAt = 0;
 
-  function playSound(matType) {
+  function playSound() {
     const now = performance.now();
-    const lastAt = lastPlayedAt.get(matType) || 0;
     if ((now - lastAt) < 20) return; 
-    lastPlayedAt.set(matType, now);
+    lastAt = now;
     
-    const matIndex = UC_MATERIAL_DATA.findIndex(d => d.name === matType);
-    if (matIndex !== -1) {
-      const matData = UC_MATERIAL_DATA[matIndex];
-      if (matData.sfx) {
-        const resolvedSrc = new URL(matData.sfx, document.baseURI).href;
-        const volumeMultiplier = Math.max(0.60, 1.0 - (matIndex * 0.07));
-        playAudio(resolvedSrc, { 
-            volume: MATERIAL_VOLUME * volumeMultiplier,
-            type: 'sfx'
-        });
-      }
-    }
+    const baseSrc = new URL('sounds/pickup.ogg', document.baseURI).href;
+    
+    playAudio(baseSrc, {
+        volume: MATERIAL_VOLUME,
+        type: 'sfx'
+    });
   }
 
   function isMaterial(el) {
@@ -233,10 +226,10 @@ export function initUcPickup({
     }
 
     if (collectedCount > 0) {
+        playSound();
+
         // Add to bank
         for (const [matType, count] of Object.entries(gains)) {
-            playSound(matType);
-
             // Check if currency is locked (from debug)
             let isLocked = false;
             try { isLocked = globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matType}`); } catch {}
