@@ -210,6 +210,7 @@ function verifySlotIntegrity(slot, entries) {
         markSaveSlotModified(slot);
       }
       setSlotSignature(slot, null);
+      rebuildExpectedStateForSlot(slot);
     }
     return;
   }
@@ -220,6 +221,7 @@ function verifySlotIntegrity(slot, entries) {
   }
   if (signature !== stored) {
     setSlotSignature(slot, signature);
+    rebuildExpectedStateForSlot(slot);
   }
 }
 
@@ -322,6 +324,7 @@ function init() {
   startPoopShopEnforcer();
   window.addEventListener('saveSlot:change', () => runIntegrityCheck());
   window.addEventListener('saveIntegrity:storageMutation', handleStorageMutationEvent, { passive: true });
+  window.addEventListener('saveIntegrity:rebuildSnapshot', (e) => rebuildExpectedStateForSlot(e.detail.slot));
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
