@@ -181,7 +181,7 @@ export function initUcPickup({
     if (typeof currentArea !== 'undefined' && typeof AREAS !== 'undefined' && currentArea !== AREAS.UNDERWATER_CAVERN) return;
     
     let collectedCount = 0;
-    const MAX_VISUALS = items.length >= 50 ? 5 : 15;
+    const MAX_VISUALS = 15;
     let visualCount = 0;
 
     const gains = {};
