@@ -1,9 +1,9 @@
-
 // js/game/spawnerCore.js
 import { IS_MOBILE } from '../main.js';
 import { settingsManager } from './settingsManager.js';
 
 export const MAX_ACTIVE_ITEMS_MOBILE = 2500;
+export const MAX_VISUALS = 15;
 
 export function easeOutCubic(t) {
   const f = 1 - t;
