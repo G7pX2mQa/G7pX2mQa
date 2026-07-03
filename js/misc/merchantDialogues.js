@@ -178,7 +178,7 @@ export const MERCHANT_DIALOGUES = {
   3: {
     start: 'n0',
     nodes: {
-      n0:  { type: 'line', say: 'What do you want now?', next: 'c0' },
+      n0:  { type: 'line', say: 'What would you like to discuss now?', next: 'c0' },
 
       c0:  { type: 'choice', options: [
         { label: 'I’d like to ask some questions about how the forge works.',     to: 'm1a' },
