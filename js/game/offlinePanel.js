@@ -4,6 +4,7 @@ import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
 import { bank } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
+import { setHtmlOrText } from "../util/uiHelpers.js";
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
@@ -398,7 +399,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
                     
                     const levelCount = BigNum.fromInt(item.levels);
                     const label = (levelCount.cmp(BigNum.fromInt(1)) === 0) ? 'Level' : 'Levels';
-                    text.innerHTML = `${formatNumber(levelCount)} ${label} of ${item.name}`;
+                    setHtmlOrText(text, `${formatNumber(levelCount)} ${label} of ${item.name}`);
                     
                     row.appendChild(plus);
                     row.appendChild(icon);
@@ -435,7 +436,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
                     
                     const levelCount = BigNum.fromAny(item.levels);
                     const label = (levelCount.cmp(BigNum.fromInt(1)) === 0) ? 'Level' : 'Levels';
-                    text.innerHTML = `${formatNumber(levelCount)} ${label} of ${item.name}`;
+                    setHtmlOrText(text, `${formatNumber(levelCount)} ${label} of ${item.name}`);
                     
                     row.appendChild(plus);
                     row.appendChild(icon);
