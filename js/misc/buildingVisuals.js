@@ -49,6 +49,7 @@ const imageCache = {};
 let stonePattern = null;
 let copperPattern = null;
 let ironPattern = null;
+let pureGoldPattern = null;
 
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
@@ -63,6 +64,37 @@ function getMaterialImage(matKey) {
     return img;
   }
   return null;
+}
+
+function initPureGoldPattern(ctx) {
+  if (pureGoldPattern) return;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = 64;
+  patternCanvas.height = 64;
+  const pCtx = patternCanvas.getContext("2d");
+
+  pCtx.fillStyle = "#f0c94c";
+  pCtx.fillRect(0, 0, 64, 64);
+
+  const imgData = pCtx.getImageData(0, 0, 64, 64);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 30; // Subtle hammered texture
+    data[i] = Math.max(0, Math.min(255, data[i] + noise));
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.9));
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.5));
+  }
+  pCtx.putImageData(imgData, 0, 0);
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      pureGoldPattern = targetCtx.createPattern(patternCanvas, "repeat");
+    } catch (e) {
+      console.error("Failed to create pure gold pattern", e);
+    }
+  }
 }
 
 function initCopperPattern(ctx) {
@@ -177,6 +209,9 @@ export function startCanvasLoop(id, canvasEl) {
   lastTime = performance.now();
 
   initStonePattern(activeCtx);
+  if (!pureGoldPattern) {
+    initPureGoldPattern(activeCtx);
+  }
 
   const resizeObserver = new ResizeObserver(() => {
     if (!activeCanvas) return;
@@ -2064,6 +2099,9 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
   // Base structure (Tier 0+)
   if (!stonePattern && activeCtx) {
     initStonePattern(activeCtx);
+  }
+  if (!pureGoldPattern && activeCtx) {
+    initPureGoldPattern(activeCtx);
   }
   if (stonePattern) {
     ctx.fillStyle = stonePattern;
@@ -4668,24 +4706,179 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 }
 
 function drawVault(ctx, t, tier) {
-  ctx.fillStyle = "#d4b22c";
-  ctx.fillRect(-60, -60, 120, 60);
+  if (!pureGoldPattern && activeCtx) {
+    initPureGoldPattern(activeCtx);
+  } else if (!pureGoldPattern) {
+    initPureGoldPattern(ctx);
+  }
 
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(0, -30, 20, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = "#555";
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(-10, -30);
-  ctx.lineTo(10, -30);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(0, -40);
-  ctx.lineTo(0, -20);
-  ctx.stroke();
+  const fillGold = pureGoldPattern ? pureGoldPattern : "#f0c94c";
+  
+  // Tier 0: Foundation / Pedestal
+  ctx.fillStyle = fillGold;
+  ctx.fillRect(-70, -20, 140, 20); // Base foundation
+  
+  // Tier 1: Main Structure
+  if (tier >= 1) {
+    ctx.fillRect(-60, -80, 120, 60); // Main vault body
+    
+    // Add some panel lines to the gold body for detail
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-40, -80); ctx.lineTo(-40, -20);
+    ctx.moveTo(40, -80); ctx.lineTo(40, -20);
+    ctx.moveTo(-60, -50); ctx.lineTo(60, -50);
+    ctx.stroke();
+  }
+  
+  // Tier 2: Vault Door
+  if (tier >= 2) {
+    ctx.fillStyle = ironPattern ? ironPattern : "#888";
+    ctx.beginPath();
+    ctx.arc(0, -50, 25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  }
+  
+  // Tier 3: Security Scanners/Lights
+  if (tier >= 3) {
+    ctx.fillStyle = "#ff3333"; // Red security lights
+    const glow = Math.sin(t * 3) * 0.5 + 0.5;
+    ctx.globalAlpha = 0.5 + 0.5 * glow;
+    ctx.beginPath();
+    ctx.arc(-35, -50, 4, 0, Math.PI * 2);
+    ctx.arc(35, -50, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+    
+    // Scanner beams
+    ctx.fillStyle = "rgba(255, 51, 51, 0.2)";
+    ctx.beginPath();
+    ctx.moveTo(-35, -50);
+    ctx.lineTo(-70, -10);
+    ctx.lineTo(-20, -10);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.moveTo(35, -50);
+    ctx.lineTo(70, -10);
+    ctx.lineTo(20, -10);
+    ctx.fill();
+  }
+  
+  // Tier 4: Core Feature - Wheel Lock
+  if (tier >= 4) {
+    const lockAngle = (tier >= 8) ? t * 2 : Math.sin(t) * 0.5; // Smooth back-and-forth or constant rotation
+    
+    ctx.save();
+    ctx.translate(0, -50);
+    ctx.rotate(lockAngle);
+    
+    ctx.fillStyle = "#444";
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Spokes
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -18);
+      ctx.stroke();
+      ctx.rotate(Math.PI / 2);
+    }
+    
+    // Outer handle ring
+    ctx.beginPath();
+    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.restore();
+  }
+  
+  // Tier 5: Structural Reinforcements (Pillars)
+  if (tier >= 5) {
+    ctx.fillStyle = fillGold;
+    ctx.fillRect(-75, -90, 15, 90);
+    ctx.fillRect(60, -90, 15, 90);
+    
+    ctx.fillStyle = ironPattern ? ironPattern : "#555";
+    ctx.fillRect(-80, -95, 25, 10);
+    ctx.fillRect(55, -95, 25, 10);
+  }
+  
+  // Tier 6: Energy Conduits / Power Pipes
+  if (tier >= 6) {
+    ctx.strokeStyle = "#00ffff"; // Cyan energy
+    ctx.lineWidth = 4;
+    
+    // Pulsing energy effect
+    ctx.setLineDash([10, 10]);
+    ctx.lineDashOffset = -t * 20;
+    
+    ctx.beginPath();
+    ctx.moveTo(-65, -20);
+    ctx.lineTo(-65, -90);
+    ctx.lineTo(-40, -90);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(65, -20);
+    ctx.lineTo(65, -90);
+    ctx.lineTo(40, -90);
+    ctx.stroke();
+    
+    ctx.setLineDash([]); // Reset line dash
+  }
+  
+  // Tier 7: Additional Roof Storage / Defenses
+  if (tier >= 7) {
+    ctx.fillStyle = ironPattern ? ironPattern : "#666";
+    ctx.beginPath();
+    ctx.moveTo(-40, -80);
+    ctx.lineTo(-20, -110);
+    ctx.lineTo(20, -110);
+    ctx.lineTo(40, -80);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Glowing core indicator on roof
+    ctx.fillStyle = "#00ff00";
+    ctx.beginPath();
+    ctx.arc(0, -95, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Tier 8: Enhanced Wheel Lock / Glowing Core
+  if (tier >= 8) {
+    // Add extra rotating rings to the lock
+    ctx.save();
+    ctx.translate(0, -50);
+    
+    // Counter-rotating outer ring
+    ctx.rotate(-t * 1.5);
+    ctx.strokeStyle = "#d4af37"; // Golden accent
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Glowing center
+    ctx.fillStyle = "#fff"; // Intense bright center
+    ctx.shadowColor = "#00ffff";
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0; // Reset shadow
+    
+    ctx.restore();
+  }
 }
 
 function drawOilRig(ctx, t, tier) {
