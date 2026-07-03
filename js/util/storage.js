@@ -504,7 +504,31 @@ export function hasModifiedSave(slot = getActiveSlot()) {
   catch { return false; }
 }
 
+let isModificationMarkCleanserActive = false;
+
+export function enableModificationMarkCleanser() {
+  isModificationMarkCleanserActive = true;
+}
+
+export function unmarkSaveSlotModified(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return;
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return;
+  const key = slotModifiedKey(normalized);
+  if (!key) return;
+  try {
+    localStorage.removeItem(key);
+  } catch { return; }
+  setSlotSignature(normalized, null);
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:modified', { detail: { slot: normalized } }));
+    window.dispatchEvent(new CustomEvent('saveIntegrity:storageMutation', { detail: { slot: normalized, trusted: true } }));
+    window.dispatchEvent(new CustomEvent('saveIntegrity:rebuildSnapshot', { detail: { slot: normalized } }));
+  } catch {}
+}
+
 export function markSaveSlotModified(slot = getActiveSlot()) {
+  if (isModificationMarkCleanserActive) return;
   if (typeof localStorage === 'undefined') return;
   const normalized = normalizeSlotValue(slot);
   if (normalized == null) return;
