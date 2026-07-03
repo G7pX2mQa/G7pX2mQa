@@ -409,7 +409,7 @@ export function initCoinPickup({
   coinsLayerSelector  = '.coins-layer',
   hudAmountSelector   = '.hud-top .coin-amount',
   coinSelector        = '.coin, [data-coin], .coin-sprite',
-  soundSrc            = 'sounds/coin_pickup.ogg',
+  soundSrc            = 'sounds/pickup.ogg',
   storageKey          = 'ccc:coins',
   disableAnimation    = false, // Force false to re-enable on mobile
 } = {}) {
