@@ -3268,6 +3268,10 @@ if (typeof window !== 'undefined') {
   bindUpgradeStorageWatchersForSlot(getActiveSlot());
   window.addEventListener('saveSlot:change', () => {
     upgradeStateCache.clear();
+    if (typeof pendingUpgradeSaves !== 'undefined' && pendingUpgradeSaves.clear) pendingUpgradeSaves.clear();
+    if (typeof deferredWrites !== 'undefined' && deferredWrites.clear) deferredWrites.clear();
+    if (typeof areaStateMemoryCache !== 'undefined' && areaStateMemoryCache.clear) areaStateMemoryCache.clear();
+    if (typeof areaStatePayloadCache !== 'undefined' && areaStatePayloadCache.clear) areaStatePayloadCache.clear();
     bindUpgradeStorageWatchersForSlot(getActiveSlot());
     notifyChanged();
   });
