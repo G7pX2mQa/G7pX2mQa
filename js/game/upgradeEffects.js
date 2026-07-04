@@ -528,8 +528,11 @@ export function registerXpUpgradeEffects() {
   syncBookCurrencyMultiplierFromUpgrade();
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', () => {
-      try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
-      try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+      invalidateEffectsCache();
+      setTimeout(() => {
+        try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+      }, 0);
     });
     
     window.addEventListener('surge:level:change', () => {
