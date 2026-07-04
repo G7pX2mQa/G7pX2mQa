@@ -1,6 +1,7 @@
 import { settingsManager } from "./settingsManager.js";
 import { isSurgeUnlocked } from '../ui/merchantTabs/resetTab.js';
 import { E } from './upgrades.js';
+import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 
 export const AUTOMATION_AREA_KEY = 'automation';
@@ -46,9 +47,9 @@ const UPGRADE_DEFINITIONS = [
     },
     effectSummary(level) {
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
-      if (lvl === 0) return 'Coin generation interval: None';
+      if (lvl === 0) return 'Generation interval: None';
       const intervalMs = Math.round(1000 / lvl);
-      return `Coin generation interval: ${intervalMs}ms`;
+      return `Generation interval: ${formatNumber(BigNum.fromAny(intervalMs))}ms`;
     }
   },
   {
@@ -271,9 +272,9 @@ const UPGRADE_DEFINITIONS = [
     },
     effectSummary(level) {
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
-      if (lvl === 0) return 'Material generation interval: None';
+      if (lvl === 0) return 'Generation interval: None';
       const intervalMs = Math.round(1000 / lvl);
-      return `Material generation interval: ${intervalMs}ms`;
+      return `Generation interval: ${formatNumber(BigNum.fromAny(intervalMs))}ms`;
     },
     computeLockState(ctx) {
         const sl = ctx.surgeLevel;
