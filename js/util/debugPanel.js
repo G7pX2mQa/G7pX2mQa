@@ -1199,6 +1199,7 @@ function lockStorageKey(key) {
     if (!key) return;
     ensureStorageLockPatch();
     lockedStorageKeys.add(key);
+    flagDebugUsage();
 }
 
 function unlockStorageKey(key) {
