@@ -4866,358 +4866,368 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
-  // --- Tier 0: Foundation / Pedestal ---
+  // --- Tier 0: Classic Safe ---
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
     
-    // Main base
-    ctx.fillStyle = fillGold;
-    ctx.fillRect(-80, -20, 160, 20);
+    // Main solid golden cube
+    drawPolygon([
+      {x: -60, y: 0}, {x: -60, y: -100}, {x: 60, y: -100}, {x: 60, y: 0}
+    ], fillGold, darkMetal, 4, t0);
     
-    // Industrial trims
+    // Vault door outline
+    ctx.strokeStyle = darkMetal;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-50, -90, 100, 80);
+    
+    // Central mechanical dial
     ctx.fillStyle = darkMetal;
-    ctx.fillRect(-85, -5, 10, 5);
-    ctx.fillRect(75, -5, 10, 5);
-    
-    // Grating lines
-    ctx.strokeStyle = "rgba(0,0,0,0.5)";
-    ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let i = -70; i <= 70; i += 10) {
-      ctx.moveTo(i, -20);
-      ctx.lineTo(i, 0);
-    }
+    ctx.arc(0, -50, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
     ctx.stroke();
+    
+    // Dial markers
+    ctx.save();
+    ctx.translate(0, -50);
+    ctx.rotate(t * 0.5); // Slow mechanical turn
+    for (let i = 0; i < 12; i++) {
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(18, 0);
+      ctx.stroke();
+      ctx.rotate((Math.PI * 2) / 12);
+    }
+    ctx.restore();
+    
+    // Handle
+    ctx.fillStyle = fillGold;
+    ctx.fillRect(30, -55, 10, 10);
+    ctx.strokeStyle = darkMetal;
+    ctx.strokeRect(30, -55, 10, 10);
+    
     ctx.restore();
   }
 
-  // --- Tier 1: Main Structure ---
+  // --- Tier 1: Heavy Reinforced Frame ---
   if (t1 > 0) {
     ctx.save();
     ctx.globalAlpha = t1;
     
-    // Heavily armored vault body
-    drawPolygon([
-      {x: -70, y: -20}, {x: -60, y: -90}, {x: 60, y: -90}, {x: 70, y: -20}
-    ], fillGold, darkMetal, 3, t1);
+    // Steel framing on corners
+    ctx.fillStyle = darkMetal;
     
-    // Beveled edge highlights
-    ctx.strokeStyle = "rgba(255,255,255,0.4)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-60, -90); ctx.lineTo(-50, -80); ctx.lineTo(-50, -20);
-    ctx.moveTo(60, -90); ctx.lineTo(50, -80); ctx.lineTo(50, -20);
-    ctx.moveTo(-50, -80); ctx.lineTo(50, -80);
-    ctx.stroke();
-
-    // Dark metallic seams
-    ctx.strokeStyle = "rgba(0,0,0,0.6)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-30, -90); ctx.lineTo(-30, -20);
-    ctx.moveTo(30, -90); ctx.lineTo(30, -20);
-    ctx.stroke();
+    // Left and right pillars
+    ctx.fillRect(-70, -110, 15, 110);
+    ctx.fillRect(55, -110, 15, 110);
+    // Top and bottom bars
+    ctx.fillRect(-70, -110, 140, 15);
+    ctx.fillRect(-70, -15, 140, 15);
+    
+    // Large industrial rivets
+    ctx.fillStyle = "#888";
+    for (let y = -100; y <= -20; y += 20) {
+      ctx.beginPath(); ctx.arc(-62.5, y, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(62.5, y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+    for (let x = -50; x <= 50; x += 25) {
+      ctx.beginPath(); ctx.arc(x, -102.5, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, -7.5, 3, 0, Math.PI * 2); ctx.fill();
+    }
     
     ctx.restore();
   }
 
-  // --- Tier 2: Basic Security/Door ---
+  // --- Tier 2: Electronic Upgrade ---
   if (t2 > 0) {
     ctx.save();
     ctx.globalAlpha = t2;
     
-    // Main circular door housing
-    ctx.fillStyle = darkMetal;
-    ctx.beginPath();
-    ctx.arc(0, -50, 35, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = fillGold;
-    ctx.lineWidth = 4;
-    ctx.stroke();
+    // Electronic keypad
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-45, -80, 25, 35);
     
-    // Inner door layer
+    // Blinking status lights
+    const fastBlink = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
+    ctx.fillStyle = fastBlink;
+    ctx.beginPath();
+    ctx.arc(-32.5, -73, 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Keypad grid
     ctx.fillStyle = "#555";
-    ctx.beginPath();
-    ctx.arc(0, -50, 25, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Heavy bolts
-    ctx.fillStyle = fillGold;
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const bx = Math.cos(angle) * 30;
-      const by = -50 + Math.sin(angle) * 30;
-      ctx.beginPath();
-      ctx.arc(bx, by, 3, 0, Math.PI * 2);
-      ctx.fill();
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        ctx.fillRect(-42 + c * 7, -65 + r * 7, 5, 5);
+      }
     }
+    
+    // Card reader
+    ctx.fillStyle = "#222";
+    ctx.fillRect(35, -30, 10, 20);
+    ctx.fillStyle = "#0f0"; // Ready light
+    ctx.fillRect(37, -28, 6, 2);
     
     ctx.restore();
   }
 
-  // --- Tier 3: Sensors & Tech ---
+  // --- Tier 3: External Security Sensors ---
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
     
-    // Glowing conduits connecting from base
-    const pulse = (Math.sin(t * 3) + 1) / 2;
-    drawCyberLine(-45, -20, -45, -50, "rgba(0, 255, 255, " + (0.5 + pulse * 0.5) + ")", 3, t3);
-    drawCyberLine(45, -20, 45, -50, "rgba(0, 255, 255, " + (0.5 + pulse * 0.5) + ")", 3, t3);
-    
-    // Scanners mounted on sides
+    // Side sensor pillars
     ctx.fillStyle = darkMetal;
-    ctx.fillRect(-65, -60, 10, 20);
-    ctx.fillRect(55, -60, 10, 20);
+    ctx.fillRect(-90, -80, 10, 80);
+    ctx.fillRect(80, -80, 10, 80);
     
-    // Scanner light
-    ctx.fillStyle = "#ff3333";
+    // Sweeping laser scanners
+    const sweep = Math.sin(t * 2);
+    const laserY = -40 + sweep * 30;
+    
+    ctx.strokeStyle = "rgba(255, 0, 0, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-85, laserY);
+    ctx.lineTo(85, laserY);
+    ctx.stroke();
+    
+    // Laser glow
     ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 10 * pulse;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = "#ff5555";
     ctx.beginPath();
-    ctx.arc(-60, -50, 4, 0, Math.PI * 2);
-    ctx.arc(60, -50, 4, 0, Math.PI * 2);
+    ctx.arc(-85, laserY, 3, 0, Math.PI * 2);
+    ctx.arc(85, laserY, 3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
     
-    // Holographic panels projecting
-    ctx.fillStyle = "rgba(0, 255, 255, 0.2)";
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.8)";
-    ctx.lineWidth = 1;
-    const hover = Math.sin(t * 2) * 2;
-    
-    // Left panel
-    ctx.beginPath();
-    ctx.moveTo(-90, -70 + hover);
-    ctx.lineTo(-70, -75 + hover);
-    ctx.lineTo(-70, -55 + hover);
-    ctx.lineTo(-90, -50 + hover);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    
-    // Right panel
-    ctx.beginPath();
-    ctx.moveTo(90, -70 - hover);
-    ctx.lineTo(70, -75 - hover);
-    ctx.lineTo(70, -55 - hover);
-    ctx.lineTo(90, -50 - hover);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
     ctx.restore();
   }
 
-  // --- Tier 4: Core Feature - Quantum/Energy Lock ---
+  // --- Tier 4: Core Feature - High-tech Energy Security System ---
   if (t4 > 0) {
     ctx.save();
     ctx.globalAlpha = t4;
-    ctx.translate(0, -50);
     
-    // Central energy pool
-    ctx.fillStyle = "#00ffff";
-    ctx.shadowColor = "#00ffff";
-    ctx.shadowBlur = 15;
+    // Holographic shield barrier
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.4)";
+    ctx.fillStyle = "rgba(0, 255, 255, 0.05)";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(0, 0, 15, 0, Math.PI * 2);
+    ctx.arc(0, -50, 110, Math.PI, 0); // Dome shape
+    ctx.lineTo(110, 0);
+    ctx.lineTo(-110, 0);
+    ctx.closePath();
     ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.stroke();
     
-    // Rotating quantum lock pieces
-    const rotSpeed = t * 1.5;
-    ctx.rotate(rotSpeed);
+    // Hexagonal pattern on shield (moving)
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.15)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const offsetY = (t * 20) % 30;
+    for (let x = -120; x <= 120; x += 20) {
+      for (let y = -150; y <= 20; y += 30) {
+        let drawY = y + offsetY;
+        ctx.moveTo(x, drawY);
+        ctx.lineTo(x + 10, drawY - 15);
+        ctx.lineTo(x + 20, drawY);
+        ctx.lineTo(x + 20, drawY + 15);
+        ctx.lineTo(x + 10, drawY + 30);
+        ctx.lineTo(x, drawY + 15);
+        ctx.closePath();
+      }
+    }
+    ctx.stroke();
+    ctx.restore();
     
-    ctx.strokeStyle = fillGold;
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
+    // Cybernetic lock interface (Replaces physical dial area visually)
+    ctx.translate(0, -50);
+    ctx.rotate(-t); // Counter-rotating
     
-    // Inner mechanical lock arms
-    for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = "#00ffff";
+    ctx.beginPath();
+    ctx.arc(0, 0, 25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
       ctx.beginPath();
-      ctx.moveTo(5, 0);
-      ctx.lineTo(20, 0);
+      ctx.arc(0, 0, 30, i * Math.PI / 2 + 0.1, (i+1) * Math.PI / 2 - 0.1);
       ctx.stroke();
-      
-      ctx.beginPath();
-      ctx.arc(20, 0, 4, 0, Math.PI * 2);
-      ctx.fillStyle = "#fff";
-      ctx.fill();
-      
-      ctx.rotate((Math.PI * 2) / 3);
     }
     
     ctx.restore();
   }
 
-  // --- Tier 5: Reinforcements & Power Storage ---
+  // --- Tier 5: Energy Pylons & Lightning ---
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
     
-    // Heavy structural pillars
-    const pillarGradient = ctx.createLinearGradient(0, -100, 0, -20);
-    pillarGradient.addColorStop(0, "#333333");
-    pillarGradient.addColorStop(1, "#FFD700");
+    // Back pylons
+    ctx.fillStyle = "#222";
+    ctx.fillRect(-120, -140, 15, 140);
+    ctx.fillRect(105, -140, 15, 140);
     
-    drawPolygon([
-      {x: -85, y: -20}, {x: -75, y: -100}, {x: -65, y: -100}, {x: -65, y: -20}
-    ], pillarGradient, "rgba(0,0,0,0.5)", 2, t5);
+    // Energy cores in pylons
+    const pulse = (Math.sin(t * 5) + 1) / 2;
+    ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + pulse * 0.5})`;
+    ctx.fillRect(-117, -135, 9, 20);
+    ctx.fillRect(108, -135, 9, 20);
     
-    drawPolygon([
-      {x: 85, y: -20}, {x: 75, y: -100}, {x: 65, y: -100}, {x: 65, y: -20}
-    ], pillarGradient, "rgba(0,0,0,0.5)", 2, t5);
-    
-    // Animated energy flowing up the pillars
-    ctx.strokeStyle = "#00ffff";
-    ctx.lineWidth = 3;
-    ctx.setLineDash([5, 15]);
-    ctx.lineDashOffset = -t * 30;
-    
-    ctx.beginPath();
-    ctx.moveTo(-70, -20); ctx.lineTo(-70, -90);
-    ctx.moveTo(70, -20); ctx.lineTo(70, -90);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // Animated lightning arcs to shield
+    if (Math.random() > 0.3) {
+      ctx.strokeStyle = "rgba(0, 255, 255, 0.8)";
+      ctx.lineWidth = 2;
+      
+      // Arc from left pylon
+      ctx.beginPath();
+      ctx.moveTo(-112, -125);
+      ctx.lineTo(-80 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
+      ctx.lineTo(-50, -80); // Connects to shield dome
+      ctx.stroke();
+      
+      // Arc from right pylon
+      ctx.beginPath();
+      ctx.moveTo(112, -125);
+      ctx.lineTo(80 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
+      ctx.lineTo(50, -80);
+      ctx.stroke();
+    }
     
     ctx.restore();
   }
 
-  // --- Tier 6: Defensive/Containment Field ---
+  // --- Tier 6: Floating Magnetic Lock Rings ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    // Floating magnetic rings
-    const ringY = -110 + Math.sin(t * 2.5) * 5;
+    ctx.translate(0, -50);
     
-    ctx.translate(0, ringY);
-    ctx.scale(1, 0.3); // Fake 3D perspective
-    
-    ctx.strokeStyle = "rgba(255, 215, 0, 0.8)";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(0, 0, 50, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Energy field glow
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.arc(0, 0, 55, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Connecting laser downwards
-    ctx.scale(1, 1/0.3); // reset scale
-    ctx.fillStyle = "rgba(0, 255, 255, 0.15)";
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(-20, 60); // Down to door
-    ctx.lineTo(20, 60);
-    ctx.lineTo(40, 0);
-    ctx.closePath();
-    ctx.fill();
+    // Orbiting rings
+    for (let i = 0; i < 3; i++) {
+      ctx.save();
+      // Complex 3D orbit simulation
+      const angle = t * (1 + i * 0.5) + (i * Math.PI * 2 / 3);
+      ctx.scale(1, 0.2 + i * 0.1);
+      ctx.rotate(angle);
+      
+      ctx.strokeStyle = `rgba(255, 215, 0, ${0.6 + Math.sin(t*2 + i)*0.2})`;
+      ctx.lineWidth = 4 + i;
+      ctx.beginPath();
+      ctx.arc(0, 0, 70 + i * 15, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Node on ring
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(70 + i * 15, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
     
     ctx.restore();
   }
 
-  // --- Tier 7: Advanced Processing/Storage Arrays ---
+  // --- Tier 7: Autonomous Defense Orbs ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    // Upper level servers/storage
-    ctx.fillStyle = darkMetal;
-    ctx.fillRect(-50, -130, 100, 40);
-    
-    ctx.strokeStyle = fillGold;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-50, -130, 100, 40);
-    
-    // Complex geometric shapes / data banks
-    for (let i = -40; i <= 40; i += 20) {
-      ctx.fillStyle = fillGold;
-      ctx.fillRect(i - 5, -125, 10, 30);
+    for (let i = 0; i < 4; i++) {
+      const orbT = t * 2 + (i * Math.PI / 2);
+      const radX = 140;
+      const radY = 40;
+      const ox = Math.cos(orbT) * radX;
+      const oy = -50 + Math.sin(orbT) * radY;
       
-      // Fast blinking data lights
-      const blink = Math.random() > 0.5 ? "#00ff00" : "#00ffff";
-      if (Math.sin(t * 10 + i) > 0) {
-        ctx.fillStyle = blink;
-        ctx.fillRect(i - 2, -115, 4, 4);
-        ctx.fillRect(i - 2, -105, 4, 4);
+      // Light trail
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(255, 100, 100, 0.3)";
+      ctx.lineWidth = 3;
+      for (let j = 1; j <= 5; j++) {
+        const pastT = orbT - j * 0.1;
+        ctx.lineTo(Math.cos(pastT) * radX, -50 + Math.sin(pastT) * radY);
       }
+      ctx.stroke();
+      
+      // Orb body
+      ctx.fillStyle = "#fff";
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(ox, oy, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Connecting targeting laser to ground
+      ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ox, oy);
+      ctx.lineTo(ox, 0);
+      ctx.stroke();
     }
     
-    // Golden antenna
-    ctx.strokeStyle = fillGold;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-30, -130); ctx.lineTo(-40, -150);
-    ctx.moveTo(30, -130); ctx.lineTo(40, -150);
-    ctx.stroke();
-
     ctx.restore();
   }
 
-  // --- Tier 8: Overdrive/Quantum Singularity Lock ---
+  // --- Tier 8: Overdrive (Core Feature Enhancement) ---
   if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
     
-    // Center of the door
+    // Shield goes into overdrive - intense vortex
     ctx.translate(0, -50);
+    ctx.globalCompositeOperation = "lighter";
     
-    // Outer massive floating holographic rings
-    ctx.rotate(-t * 2);
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.7)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 5, 2, 5]);
-    ctx.beginPath();
-    ctx.arc(0, 0, 45, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    // Inner intense singularity
-    ctx.rotate(t * 4);
-    const pulse = Math.sin(t * 8) * 5;
-    
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 20 + pulse);
-    grad.addColorStop(0, "#ffffff");
-    grad.addColorStop(0.2, "#00ffff");
-    grad.addColorStop(0.5, "#0000ff");
-    grad.addColorStop(1, "rgba(0, 0, 255, 0)");
+    // Swirling vortex background
+    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 120);
+    grad.addColorStop(0, `rgba(0, 255, 255, ${0.8 + Math.sin(t*10)*0.2})`);
+    grad.addColorStop(0.5, "rgba(0, 100, 255, 0.4)");
+    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
     
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(0, 0, 20 + pulse, 0, Math.PI * 2);
+    ctx.arc(0, 0, 120, 0, Math.PI * 2);
     ctx.fill();
     
-    // Singularity spikes
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1;
-    for(let i=0; i<8; i++) {
+    // Intense spiraling energy beams
+    ctx.strokeStyle = "#fff";
+    for (let i = 0; i < 8; i++) {
       ctx.beginPath();
-      ctx.moveTo(0,0);
-      ctx.lineTo(25 + pulse, 0);
+      const startAngle = t * -3 + (i * Math.PI / 4);
+      ctx.moveTo(Math.cos(startAngle) * 20, Math.sin(startAngle) * 20);
+      
+      // Spiral outward
+      for (let r = 20; r < 130; r += 10) {
+        const spiralAngle = startAngle + r * 0.02;
+        ctx.lineTo(Math.cos(spiralAngle) * r, Math.sin(spiralAngle) * r);
+      }
+      ctx.lineWidth = 2 + Math.random();
       ctx.stroke();
-      ctx.rotate(Math.PI / 4);
     }
     
-    ctx.restore();
-
-    // Ambient intense light beam escaping upwards
-    ctx.save();
-    ctx.globalAlpha = t8 * 0.3 * (0.8 + 0.2 * Math.sin(t * 5));
-    ctx.globalCompositeOperation = "lighter";
-    const beamGrad = ctx.createLinearGradient(0, -50, 0, -200);
-    beamGrad.addColorStop(0, "rgba(0, 255, 255, 1)");
-    beamGrad.addColorStop(1, "rgba(0, 255, 255, 0)");
-    ctx.fillStyle = beamGrad;
+    // Ground crackling energy
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.8)";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-10, -50);
-    ctx.lineTo(-30, -200);
-    ctx.lineTo(30, -200);
-    ctx.lineTo(10, -50);
-    ctx.fill();
+    for (let i = 0; i < 5; i++) {
+      const cx = -120 + Math.random() * 240;
+      ctx.moveTo(cx, 50); // Relative to translated 0, -50 (so y=0 is +50)
+      ctx.lineTo(cx - 10 + Math.random()*20, 50 - 10 - Math.random()*15);
+    }
+    ctx.stroke();
+
     ctx.restore();
   }
 }
