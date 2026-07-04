@@ -144,7 +144,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat', color: '#00c8fa', barText: 'Level<span class="xp-level-value">{val}</span>' },
+    { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat', barText: 'Level<span class="xp-level-value">{val}</span>' },
     { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp', baseIcon: 'img/currencies/book/book_plus_base.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
     { key: 'gold', bgGradient: 'linear-gradient(to bottom, #FF9801 0%, #FFAC15 15%, #FFC926 50%, #FFAC15 85%, #FF9801 100%)',       icon: 'img/currencies/gold/gold.webp', baseIcon: 'img/currencies/gold/gold_plus_base.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
     { 
@@ -173,7 +173,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation', plural: 'Mutations', type: 'levelStat', color: '#ff9933', barText: 'Mutation<span class="mp-level-value">{val}</span>' },
+    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation', plural: 'Mutations', type: 'levelStat', barText: 'Mutation<span class="mp-level-value">{val}</span>' },
     { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', baseIcon: 'img/currencies/magic/magic_plus_base.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
     { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp', baseIcon: 'img/currencies/gear/gear_plus_base.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
     { 
@@ -216,7 +216,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'waves_levels', icon: 'img/misc/surge.webp', baseIcon: 'img/misc/surge_plus_base.webp', singular: 'Surge', plural: 'Surges', type: 'levelStat', color: '#00eded', barText: 'Surge <span class="waves-level-value">{val}</span>' },
+    { key: 'waves_levels', icon: 'img/misc/surge.webp', baseIcon: 'img/misc/surge_plus_base.webp', singular: 'Surge', plural: 'Surges', type: 'levelStat', barText: 'Surge <span class="waves-level-value">{val}</span>' },
     { key: 'dna', bgGradient: 'repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px)',       icon: 'img/currencies/dna/dna.webp', baseIcon: 'img/currencies/dna/dna_plus_base.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
     { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels', type: 'levelStat', barText: 'Level<span class="research-level-value">{val}</span>' },
     { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels', type: 'levelStat', barText: 'Level<span class="waterwheel-level-value">{val}</span>' },
@@ -261,7 +261,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'meter of Depth', plural: 'meters of Depth', type: 'levelStat', color: '#A98060', barText: 'Depth:<span class="dp-level-value">{val}</span>m', noTextGap: true },
+    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'meter of Depth', plural: 'meters of Depth', type: 'levelStat', barText: 'Depth:<span class="dp-level-value">{val}</span>m', noTextGap: true },
 
     { key: 'cores', bgGradient: 'linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 15%, #2a2a2a 50%, #1a1a1a 85%, #0a0a0a 100%)',      icon: 'img/currencies/core/core.webp', baseIcon: 'img/currencies/core/core_plus_base.webp',   singular: 'Core',     plural: 'Cores', type: 'currency' },
     { key: 'crystals', bgGradient: 'linear-gradient(to bottom, #943276 0%, #bd53a3 15%, #e979d0 50%, #bd53a3 85%, #943276 100%)',      icon: 'img/currencies/crystal/crystal.webp', baseIcon: 'img/currencies/crystal/crystal_plus_base.webp',   singular: 'Crystal',     plural: 'Crystals', type: 'currency' },
@@ -291,7 +291,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'pp_levels', icon: 'img/stats/pp/pp.webp', singular: 'atm of Pressure', plural: 'atms of Pressure', type: 'levelStat', color: '#ff66d9', barText: 'Pressure:<span class="pp-level-value">{val}</span>atm', noTextGap: true },
+    { key: 'pp_levels', icon: 'img/stats/pp/pp.webp', singular: 'atm of Pressure', plural: 'atms of Pressure', type: 'levelStat', barText: 'Pressure:<span class="pp-level-value">{val}</span>atm', noTextGap: true },
 ];
 
 
@@ -311,6 +311,19 @@ function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
             }
         } else if (registryConfig && registryConfig.color) {
             displayStyle = registryConfig.color;
+        }
+        
+        if (!displayStyle && typeof colorKey === 'string' && colorKey.endsWith('_levels')) {
+            const baseKey = colorKey.replace('_levels', '');
+            const baseConfig = RESOURCE_REGISTRY.find(r => r.key === baseKey);
+            if (baseConfig && baseConfig.bgGradient) {
+                const match = baseConfig.bgGradient.match(/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+50%/);
+                if (match) {
+                    displayStyle = match[1];
+                }
+            } else if (baseConfig && baseConfig.color) {
+                displayStyle = baseConfig.color;
+            }
         }
         
         if (!displayStyle) {
