@@ -4819,7 +4819,7 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
   }
 
   const fillGold = pureGoldPattern ? pureGoldPattern : "#FFD700";
-  const darkMetal = ironPattern ? ironPattern : "#333333";
+  const darkMetal = "#000000";
   
   // Progress helpers for smooth fading
   const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
@@ -4866,6 +4866,57 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
+  // --- Tier 7: Massive Mechanical Lockdown Ring (Back Half) ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    
+    // Position at the base of the vault, circling it
+    // Wait, since T1 translates up, if we don't translate, we draw at 0.
+    // That's perfect because the front half will also draw at 0 (since it's drawn after T0 but we must remember to counteract the translation if T7 is drawn after T0)
+    
+    // Draw back half of the ring
+    ctx.save();
+    // Clip to upper half (behind the vault)
+    ctx.beginPath();
+    ctx.rect(-200, -100, 400, 100);
+    ctx.clip();
+    
+    ctx.lineWidth = 15;
+    ctx.strokeStyle = fillGold;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 180, 50, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = darkMetal;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 187.5, 57.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 172.5, 42.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Gear teeth rotating
+    ctx.lineWidth = 5;
+    for(let i=0; i<36; i++) {
+        let angle = i * Math.PI * 2 / 36 + t * 0.5;
+        let x1 = Math.cos(angle) * 180;
+        let y1 = Math.sin(angle) * 50;
+        let x2 = Math.cos(angle) * 195;
+        let y2 = Math.sin(angle) * 55;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+    }
+    ctx.restore();
+    ctx.restore();
+  }
+
+  // Move building up for T1 reinforcements
+  ctx.translate(0, -15 * t1);
+
   // --- Tier 0: Classic Safe ---
   if (t0 > 0) {
     ctx.save();
@@ -4904,10 +4955,22 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
     
     // Handle
-    ctx.fillStyle = fillGold;
-    ctx.fillRect(30, -55, 10, 10);
+    ctx.fillStyle = darkMetal;
+    ctx.beginPath();
+    ctx.arc(35, -50, 6, 0, Math.PI * 2); // pivot
+    ctx.fill();
+
     ctx.strokeStyle = darkMetal;
-    ctx.strokeRect(30, -55, 10, 10);
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(35, -50);
+    ctx.lineTo(35, -70); // lever arm
+    ctx.stroke();
+
+    ctx.fillStyle = fillGold;
+    ctx.fillRect(30, -75, 10, 6); // Handle grip
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(30, -75, 10, 6);
     
     ctx.restore();
   }
@@ -4917,25 +4980,23 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t1;
     
-    // Steel framing on corners
-    ctx.fillStyle = darkMetal;
-    
-    // Left and right pillars
-    ctx.fillRect(-70, -110, 15, 110);
-    ctx.fillRect(55, -110, 15, 110);
-    // Top and bottom bars
-    ctx.fillRect(-70, -110, 140, 15);
-    ctx.fillRect(-70, -15, 140, 15);
+    // Steel framing Outline
+    ctx.strokeStyle = darkMetal;
+    ctx.lineWidth = 15;
+    ctx.strokeRect(-67.5, -107.5, 135, 115);
     
     // Large industrial rivets
     ctx.fillStyle = "#888";
-    for (let y = -100; y <= -20; y += 20) {
-      ctx.beginPath(); ctx.arc(-62.5, y, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(62.5, y, 3, 0, Math.PI * 2); ctx.fill();
+    
+    // Vertical dots
+    for (let y = -95; y <= 5; y += 15) {
+      ctx.beginPath(); ctx.arc(-67.5, y, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(67.5, y, 3, 0, Math.PI * 2); ctx.fill();
     }
-    for (let x = -50; x <= 50; x += 25) {
-      ctx.beginPath(); ctx.arc(x, -102.5, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x, -7.5, 3, 0, Math.PI * 2); ctx.fill();
+    // Horizontal dots (skipping corners which are covered by vertical)
+    for (let x = -50; x <= 50; x += 16.666) {
+      ctx.beginPath(); ctx.arc(x, -107.5, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, 7.5, 3, 0, Math.PI * 2); ctx.fill();
     }
     
     ctx.restore();
@@ -4948,28 +5009,22 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     
     // Electronic keypad
     ctx.fillStyle = "#111";
-    ctx.fillRect(-45, -80, 25, 35);
+    ctx.fillRect(-48, -80, 25, 36);
     
     // Blinking status lights
     const fastBlink = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
     ctx.fillStyle = fastBlink;
     ctx.beginPath();
-    ctx.arc(-32.5, -73, 2, 0, Math.PI * 2);
+    ctx.arc(-35.5, -73, 2, 0, Math.PI * 2);
     ctx.fill();
     
     // Keypad grid
     ctx.fillStyle = "#555";
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
-        ctx.fillRect(-42 + c * 7, -65 + r * 7, 5, 5);
+        ctx.fillRect(-45 + c * 7, -65 + r * 7, 5, 5);
       }
     }
-    
-    // Card reader
-    ctx.fillStyle = "#222";
-    ctx.fillRect(35, -30, 10, 20);
-    ctx.fillStyle = "#0f0"; // Ready light
-    ctx.fillRect(37, -28, 6, 2);
     
     ctx.restore();
   }
@@ -4980,29 +5035,27 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t3;
     
     // Side sensor pillars
-    ctx.fillStyle = darkMetal;
-    ctx.fillRect(-90, -80, 10, 80);
-    ctx.fillRect(80, -80, 10, 80);
+    ctx.fillStyle = fillGold;
+    // Vault + T1 reinforcement total height is 130px (-115 to +15), top is -115, base is 15
+    ctx.fillRect(-90, -115, 10, 130);
+    ctx.fillRect(80, -115, 10, 130);
+    
+    ctx.strokeStyle = darkMetal;
+    ctx.strokeRect(-90, -115, 10, 130);
+    ctx.strokeRect(80, -115, 10, 130);
     
     // Sweeping laser scanners
     const sweep = Math.sin(t * 2);
-    const laserY = -40 + sweep * 30;
+    const laserY = -50 + sweep * 60; // sweep mostly along the new height
     
     ctx.strokeStyle = "rgba(255, 0, 0, 0.6)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-85, laserY);
-    ctx.lineTo(85, laserY);
+    ctx.moveTo(-80, laserY);
+    ctx.lineTo(80, laserY);
     ctx.stroke();
     
-    // Laser glow
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = "#ff5555";
-    ctx.beginPath();
-    ctx.arc(-85, laserY, 3, 0, Math.PI * 2);
-    ctx.arc(85, laserY, 3, 0, Math.PI * 2);
-    ctx.fill();
+    // Laser glow removed per request (laser is shooting from the inside side of the base, perpendicular to POV)
     
     ctx.restore();
   }
@@ -5012,56 +5065,51 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t4;
     
-    // Holographic shield barrier
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.4)";
-    ctx.fillStyle = "rgba(0, 255, 255, 0.05)";
-    ctx.lineWidth = 2;
+    // Smooth 3D Red Holographic Shield Barrier
+    // Create a 3D looking radial gradient for the dome
+    const domeGrad = ctx.createRadialGradient(0, -20, 10, 0, -50, 130);
+    domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
+    domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
+    domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
+    
+    ctx.fillStyle = domeGrad;
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 3;
+    
+    // Draw the main dome
     ctx.beginPath();
-    ctx.arc(0, -50, 110, Math.PI, 0); // Dome shape
-    ctx.lineTo(110, 0);
-    ctx.lineTo(-110, 0);
+    // Ellipse to make it look a bit more 3D grounded instead of flat half circle
+    ctx.ellipse(0, -50, 130, 100, 0, Math.PI, 0); 
+    // Close the bottom of the dome
+    ctx.lineTo(130, 15);
+    ctx.lineTo(-130, 15);
     ctx.closePath();
+    
     ctx.fill();
     ctx.stroke();
     
-    // Hexagonal pattern on shield (moving)
+    // 3D scanning line effect seamlessly moving up and down the dome
     ctx.save();
-    ctx.clip();
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.15)";
-    ctx.lineWidth = 1;
+    ctx.clip(); // clip to the dome shape
+    
+    const scanProgress = (Math.sin(t * 1.5) + 1) / 2; // 0 to 1
+    const scanY = 15 - scanProgress * 150; // Sweeps from bottom to top
+    
     ctx.beginPath();
-    const offsetY = (t * 20) % 30;
-    for (let x = -120; x <= 120; x += 20) {
-      for (let y = -150; y <= 20; y += 30) {
-        let drawY = y + offsetY;
-        ctx.moveTo(x, drawY);
-        ctx.lineTo(x + 10, drawY - 15);
-        ctx.lineTo(x + 20, drawY);
-        ctx.lineTo(x + 20, drawY + 15);
-        ctx.lineTo(x + 10, drawY + 30);
-        ctx.lineTo(x, drawY + 15);
-        ctx.closePath();
-      }
-    }
+    // Use an ellipse to draw the scan line so it contours to the 3D dome
+    ctx.ellipse(0, scanY, 130, 30 * (1 - Math.abs(0.5 - scanProgress)), 0, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255, 100, 100, 0.9)";
+    ctx.lineWidth = 2;
     ctx.stroke();
+    
+    // Add glow to the scan line
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 15;
+    ctx.stroke();
+    
     ctx.restore();
     
-    // Cybernetic lock interface (Replaces physical dial area visually)
-    ctx.translate(0, -50);
-    ctx.rotate(-t); // Counter-rotating
-    
-    ctx.fillStyle = "#00ffff";
-    ctx.beginPath();
-    ctx.arc(0, 0, 25, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 4; i++) {
-      ctx.beginPath();
-      ctx.arc(0, 0, 30, i * Math.PI / 2 + 0.1, (i+1) * Math.PI / 2 - 0.1);
-      ctx.stroke();
-    }
+    // Removed the "Cybernetic lock interface"
     
     ctx.restore();
   }
@@ -5071,66 +5119,98 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t5;
     
+    // Move pylons further away from forcefield (x was -120/105, moving to -145/130)
+    
     // Back pylons
-    ctx.fillStyle = "#222";
-    ctx.fillRect(-120, -140, 15, 140);
-    ctx.fillRect(105, -140, 15, 140);
+    ctx.fillStyle = fillGold;
+    ctx.fillRect(-145, -140, 15, 140);
+    ctx.fillRect(130, -140, 15, 140);
+    
+    ctx.strokeStyle = darkMetal;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-145, -140, 15, 140);
+    ctx.strokeRect(130, -140, 15, 140);
     
     // Energy cores in pylons
     const pulse = (Math.sin(t * 5) + 1) / 2;
-    ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + pulse * 0.5})`;
-    ctx.fillRect(-117, -135, 9, 20);
-    ctx.fillRect(108, -135, 9, 20);
+    ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`; // Red color
+    ctx.fillRect(-142, -135, 9, 20);
+    ctx.fillRect(133, -135, 9, 20);
     
     // Animated lightning arcs to shield
     if (Math.random() > 0.3) {
-      ctx.strokeStyle = "rgba(0, 255, 255, 0.8)";
+      ctx.strokeStyle = "rgba(255, 50, 50, 0.8)"; // Red color
       ctx.lineWidth = 2;
       
       // Arc from left pylon
       ctx.beginPath();
-      ctx.moveTo(-112, -125);
-      ctx.lineTo(-80 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
-      ctx.lineTo(-50, -80); // Connects to shield dome
+      ctx.moveTo(-137, -125);
+      ctx.lineTo(-100 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
+      ctx.lineTo(-70, -80); // Connects to shield dome
       ctx.stroke();
       
       // Arc from right pylon
       ctx.beginPath();
-      ctx.moveTo(112, -125);
-      ctx.lineTo(80 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
-      ctx.lineTo(50, -80);
+      ctx.moveTo(137, -125);
+      ctx.lineTo(100 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
+      ctx.lineTo(70, -80);
       ctx.stroke();
     }
     
     ctx.restore();
   }
 
-  // --- Tier 6: Floating Magnetic Lock Rings ---
+  // --- Tier 6: Floating Golden Defense Drones ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
     ctx.translate(0, -50);
     
-    // Orbiting rings
+    // Orbiting drones
     for (let i = 0; i < 3; i++) {
       ctx.save();
-      // Complex 3D orbit simulation
-      const angle = t * (1 + i * 0.5) + (i * Math.PI * 2 / 3);
-      ctx.scale(1, 0.2 + i * 0.1);
-      ctx.rotate(angle);
+      const angle = t * 1.5 + (i * Math.PI * 2 / 3);
+      const radiusX = 160;
+      const radiusY = 30; // 3D perspective orbit
       
-      ctx.strokeStyle = `rgba(255, 215, 0, ${0.6 + Math.sin(t*2 + i)*0.2})`;
-      ctx.lineWidth = 4 + i;
+      const droneX = Math.cos(angle) * radiusX;
+      const droneY = Math.sin(angle) * radiusY;
+      
+      // Drone bobbing effect
+      const bobY = Math.sin(t * 3 + i) * 10;
+      
+      ctx.translate(droneX, droneY + bobY - 40); // orbit around the top of the safe
+      
+      // Drone chassis
+      ctx.fillStyle = fillGold;
+      ctx.strokeStyle = darkMetal;
+      ctx.lineWidth = 1;
+      
+      // Hexagonal drone body
       ctx.beginPath();
-      ctx.arc(0, 0, 70 + i * 15, 0, Math.PI * 2);
+      for(let j=0; j<6; j++) {
+        ctx.lineTo(Math.cos(j * Math.PI / 3) * 12, Math.sin(j * Math.PI / 3) * 12);
+      }
+      ctx.closePath();
+      ctx.fill();
       ctx.stroke();
       
-      // Node on ring
-      ctx.fillStyle = "#fff";
+      // Drone core
+      ctx.fillStyle = "#ff0000";
       ctx.beginPath();
-      ctx.arc(70 + i * 15, 0, 5, 0, Math.PI * 2);
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Scanning beam from drone down to the ground
+      ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      // ground is roughly at Y=90 from this translated coordinate (since we did translate(0, -50) then translate(droneX, droneY + bobY - 40))
+      // local ground is 90 - (droneY + bobY)
+      ctx.lineTo(0, 90 - (droneY + bobY));
+      ctx.stroke();
       
       ctx.restore();
     }
@@ -5138,95 +5218,105 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 7: Autonomous Defense Orbs ---
+  // --- Tier 7: Massive Mechanical Lockdown Ring ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    for (let i = 0; i < 4; i++) {
-      const orbT = t * 2 + (i * Math.PI / 2);
-      const radX = 140;
-      const radY = 40;
-      const ox = Math.cos(orbT) * radX;
-      const oy = -50 + Math.sin(orbT) * radY;
-      
-      // Light trail
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(255, 100, 100, 0.3)";
-      ctx.lineWidth = 3;
-      for (let j = 1; j <= 5; j++) {
-        const pastT = orbT - j * 0.1;
-        ctx.lineTo(Math.cos(pastT) * radX, -50 + Math.sin(pastT) * radY);
-      }
-      ctx.stroke();
-      
-      // Orb body
-      ctx.fillStyle = "#fff";
-      ctx.shadowColor = "#ff0000";
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(ox, oy, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      
-      // Connecting targeting laser to ground
-      ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(ox, oy);
-      ctx.lineTo(ox, 0);
-      ctx.stroke();
+    // Position at the base of the vault, circling it
+    ctx.translate(0, 15 * t1); // Reverse the T1 translation to place on the ground
+    
+    // Back half is drawn before Tier 0
+    
+    // Front half of the ring is drawn after all other vault elements... 
+    // Wait, since we are inside `drawVault`, we are drawing sequentially. 
+    // If we draw front half here, it draws over the safe, which is exactly what we want!
+    ctx.save();
+    // Clip to lower half (in front of the vault)
+    ctx.beginPath();
+    ctx.rect(-200, 0, 400, 100);
+    ctx.clip();
+    
+    ctx.lineWidth = 15;
+    ctx.strokeStyle = fillGold;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 180, 50, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = darkMetal;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 187.5, 57.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 172.5, 42.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Gear teeth rotating
+    ctx.lineWidth = 5;
+    for(let i=0; i<36; i++) {
+        let angle = i * Math.PI * 2 / 36 + t * 0.5;
+        let x1 = Math.cos(angle) * 180;
+        let y1 = Math.sin(angle) * 50;
+        let x2 = Math.cos(angle) * 195;
+        let y2 = Math.sin(angle) * 55;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
     }
+    ctx.restore();
     
     ctx.restore();
   }
 
-  // --- Tier 8: Overdrive (Core Feature Enhancement) ---
+  // --- Tier 8: Aegis Matrix Shield Upgrade ---
   if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
     
-    // Shield goes into overdrive - intense vortex
+    // Enhance the Tier 4 shield directly
     ctx.translate(0, -50);
     ctx.globalCompositeOperation = "lighter";
     
-    // Swirling vortex background
-    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 120);
-    grad.addColorStop(0, `rgba(0, 255, 255, ${0.8 + Math.sin(t*10)*0.2})`);
-    grad.addColorStop(0.5, "rgba(0, 100, 255, 0.4)");
-    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    // Massive central red beam shooting into the sky
+    const beamPulse = (Math.sin(t * 10) + 1) / 2;
+    const beamGrad = ctx.createLinearGradient(-30, 0, 30, 0);
+    beamGrad.addColorStop(0, "rgba(255, 0, 0, 0)");
+    beamGrad.addColorStop(0.2, "rgba(255, 50, 50, 0.5)");
+    beamGrad.addColorStop(0.5, `rgba(255, 200, 200, ${0.8 + beamPulse * 0.2})`);
+    beamGrad.addColorStop(0.8, "rgba(255, 50, 50, 0.5)");
+    beamGrad.addColorStop(1, "rgba(255, 0, 0, 0)");
     
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, 120, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(-30, -300, 60, 300); // beam shooting way up
     
-    // Intense spiraling energy beams
-    ctx.strokeStyle = "#fff";
-    for (let i = 0; i < 8; i++) {
-      ctx.beginPath();
-      const startAngle = t * -3 + (i * Math.PI / 4);
-      ctx.moveTo(Math.cos(startAngle) * 20, Math.sin(startAngle) * 20);
+    // Interlocking geodesic energy rings around the dome
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 3; i++) {
+      ctx.save();
+      const ringAngle = t * (0.5 + i * 0.2) + (i * Math.PI / 1.5);
+      // We scale Y to make it look like a tilted 3D ring orbiting the dome
+      ctx.rotate(ringAngle);
+      ctx.scale(1, 0.3);
       
-      // Spiral outward
-      for (let r = 20; r < 130; r += 10) {
-        const spiralAngle = startAngle + r * 0.02;
-        ctx.lineTo(Math.cos(spiralAngle) * r, Math.sin(spiralAngle) * r);
-      }
-      ctx.lineWidth = 2 + Math.random();
+      // Color pulsing red/orange
+      ctx.strokeStyle = `rgba(255, ${50 + Math.sin(t*5 + i)*50}, 0, 0.8)`;
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, 140 + Math.sin(t * 2 + i) * 10, 0, Math.PI * 2);
       ctx.stroke();
+      
+      ctx.restore();
     }
     
-    // Ground crackling energy
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.8)";
-    ctx.lineWidth = 2;
+    // Hexagonal energy nodes at the top of the beam
+    ctx.fillStyle = "#ffaaaa";
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 20;
     ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const cx = -120 + Math.random() * 240;
-      ctx.moveTo(cx, 50); // Relative to translated 0, -50 (so y=0 is +50)
-      ctx.lineTo(cx - 10 + Math.random()*20, 50 - 10 - Math.random()*15);
-    }
-    ctx.stroke();
+    ctx.arc(0, -250 + Math.sin(t*4)*20, 10, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
   }
