@@ -94,8 +94,7 @@ export function formatTimeCompact(ms) {
     return rh === 0 ? `${d}d` : `${d}d ${rh}h`;
 }
 
-// Visual Priority Map
-
+// Make sure to update the resource registry extras with levelStats that don't have a levelProg
 export const RESOURCE_REGISTRY_EXTRAS = {
     'research_levels': {
         key: 'research_levels',
