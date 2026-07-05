@@ -4290,7 +4290,11 @@ function buildLabNodesDebug(container) {
                 }
                 setValue(valNum);
             }, {
-                storageKey: levelKey
+                storageKey: levelKey,
+                format: (val) => {
+                    const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
+                    return bn.toStorage?.() ?? formatBigNumForInput(val);
+                }
             });
             registerLiveBinding({
                 type: 'lab-node-level',
@@ -4324,7 +4328,11 @@ function buildLabNodesDebug(container) {
                 }
                 setValue(bn);
             }, {
-                storageKey: rpKey
+                storageKey: rpKey,
+                format: (val) => {
+                    const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
+                    return bn.toStorage?.() ?? formatBigNumForInput(val);
+                }
             });
             registerLiveBinding({
                 type: 'lab-node-rp',
