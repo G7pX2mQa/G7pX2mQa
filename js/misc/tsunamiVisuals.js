@@ -619,6 +619,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         const FADE_OUT_START = 50000;
         const FADE_OUT_DURATION = 5000;
         const IMPACT_START = 40000;
+        const VISUAL_IMPACT_START = 41000;
 
         // 1. Storm Factor (0 to 1)
         // 0s - 7.5s: 0
@@ -633,16 +634,24 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         }
 
         // Audio: Rumble (Impact)
-        let impactFactor = 0;
+        let audioImpactFactor = 0;
         if (elapsed > IMPACT_START) {
-            impactFactor = Math.max(0, (elapsed - IMPACT_START) / (STRIKE_TIME - IMPACT_START));
+            audioImpactFactor = Math.max(0, (elapsed - IMPACT_START) / (STRIKE_TIME - IMPACT_START));
+        }
+        if (elapsed > STRIKE_TIME) audioImpactFactor = 1;
+
+        if (audioImpactFactor > 0.1 && !rumbleAudio) {
+            rumbleAudio = playAudio('sounds/tsu_rumble.ogg', { volume: 0.8 });
+        }
+
+        // Visual: Waves/Shake
+        let impactFactor = 0;
+        if (elapsed > VISUAL_IMPACT_START) {
+            impactFactor = Math.max(0, (elapsed - VISUAL_IMPACT_START) / (STRIKE_TIME - VISUAL_IMPACT_START));
         }
         // Clamp impact factor to 1 until fade out completes, though elapsed > STRIKE_TIME covers it.
         if (elapsed > STRIKE_TIME) impactFactor = 1;
 
-        if (impactFactor > 0.1 && !rumbleAudio) {
-            rumbleAudio = playAudio('sounds/tsu_rumble.ogg', { volume: 0.8 });
-        }
 
         // Interpolate Palette
         const currentPalette = {
