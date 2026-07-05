@@ -149,6 +149,35 @@ export function createUcSpawner(config = {}) {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     let currentRate = materialsPerSecond;
+
+    function updateUcMetrics() {
+        const playfieldNode = document.querySelector(playfieldSelector);
+        if (playfieldNode) {
+            window._cachedUcPfRect = playfieldNode.getBoundingClientRect();
+            const waterNode = document.querySelector('#water-background');
+            window._cachedUcWRect = waterNode ? waterNode.getBoundingClientRect() : null;
+            const hud = document.getElementById('hud-bottom-wrapper') || document.getElementById('hud-bottom');
+            const hudHeight = hud ? hud.getBoundingClientRect().height : 0;
+            window._cachedUcSafeBottom = window._cachedUcPfRect.height - hudHeight;
+            const rubbleLayer = document.querySelector('.rubble-layer');
+            window._cachedUcRubbleRect = rubbleLayer ? rubbleLayer.getBoundingClientRect() : null;
+            window._lastUcMetricsTime = performance.now();
+        }
+    }
+
+    if (!window._ucMetricsObserver) {
+        window._ucMetricsObserver = new ResizeObserver(() => {
+            updateUcMetrics();
+        });
+        const pf = document.querySelector(playfieldSelector);
+        if (pf) window._ucMetricsObserver.observe(pf);
+        const rl = document.querySelector('.rubble-layer');
+        if (rl) window._ucMetricsObserver.observe(rl);
+        window.addEventListener('resize', updateUcMetrics);
+    }
+    if (!window._cachedUcPfRect) {
+        updateUcMetrics();
+    }
     
     const base = createBaseSpawner({
         playfieldSelector,
@@ -276,11 +305,14 @@ export function createUcSpawner(config = {}) {
 
             // Pickaxe Logic
             if (newItems.length > 0 && settingsManager.get('spawn_vessels')) {
-                const rubbleLayer = document.querySelector('.rubble-layer');
-                if (rubbleLayer) {
-                    // Use refs or passed metrics if possible, but here we just cache pfRect since refs is passed in.
-                    const pfRect = refs.pf ? refs.pf.getBoundingClientRect() : document.querySelector(playfieldSelector).getBoundingClientRect();
-                    const rubbleRect = rubbleLayer.getBoundingClientRect();
+                if (!window._cachedUcRubbleRect) {
+                    const rl = document.querySelector('.rubble-layer');
+                    if (rl) window._cachedUcRubbleRect = rl.getBoundingClientRect();
+                }
+                const rubbleRect = window._cachedUcRubbleRect;
+                if (rubbleRect) {
+                    // Use cached metrics
+                    const pfRect = window._cachedUcPfRect || (refs.pf ? refs.pf.getBoundingClientRect() : document.querySelector(playfieldSelector).getBoundingClientRect());
                     const pfW = pfRect.width;
 
                     // Ensure only ONE persistent pickaxe exists at a time
@@ -364,19 +396,6 @@ export function createUcSpawner(config = {}) {
         },
 
         onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
-            // Throttle bounding client rect queries to avoid layout thrashing during idle
-            if (!window._lastUcMetricsTime || now - window._lastUcMetricsTime > 1000) {
-                const playfieldNode = document.querySelector(playfieldSelector);
-                if (playfieldNode) {
-                    window._cachedUcPfRect = playfieldNode.getBoundingClientRect();
-                    const waterNode = document.querySelector('#water-background');
-                    window._cachedUcWRect = waterNode ? waterNode.getBoundingClientRect() : null;
-                    const hud = document.getElementById('hud-bottom-wrapper') || document.getElementById('hud-bottom');
-                    const hudHeight = hud ? hud.getBoundingClientRect().height : 0;
-                    window._cachedUcSafeBottom = window._cachedUcPfRect.height - hudHeight;
-                    window._lastUcMetricsTime = now;
-                }
-            }
             const pickaxe = window._ucPickaxeElement || document.getElementById('uc-pickaxe');
             if (pickaxe && pickaxe._elapsedTime !== undefined) {
                 const currentCycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
@@ -449,7 +468,7 @@ export function createUcSpawner(config = {}) {
                         }
 
                         // Use cached layout values if available (spawnerCore updates M in its loop)
-                        const pfRect = window._cachedUcPfRect || document.querySelector(playfieldSelector).getBoundingClientRect();
+                        const pfRect = window._cachedUcPfRect || { width: window.innerWidth, height: window.innerHeight, left: 0, top: 0 };
                         const wRect = window._cachedUcWRect !== undefined ? window._cachedUcWRect : null;
                         const safeBottom = window._cachedUcSafeBottom !== undefined ? window._cachedUcSafeBottom : (pfRect.height - 100);
                         
