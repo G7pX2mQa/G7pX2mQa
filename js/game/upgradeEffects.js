@@ -2,9 +2,9 @@ import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab
 import { BigNum, bigNumIsInfinite } from '../util/bigNum.js';
 import { bank, UC_MATERIALS } from '../util/storage.js';
 import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
-import { getLabWaveMultiplier } from './labNodes.js';
+import { getLabWaveMultiplier, getLabDnaMultiplier } from './labNodes.js';
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
-import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.js';
+import { getSurgeMagicMultiplier, getSurgeWaveMultiplier, getSurgeDnaMultiplier } from './surgeEffects.js';
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
 import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
@@ -334,11 +334,19 @@ export function syncCurrencyMultipliersFromUpgrades() {
     }
   } catch {}
 
-  try {
-    if (bank.DNA?.mult?.set) {
-      bank.DNA.mult.set(dnaValue);
-    } else if (bank.dna?.mult?.set) {
-      bank.dna.mult.set(dnaValue);
+try {
+    if (bank.DNA?.mult?.set || bank.dna?.mult?.set) {
+      const surgeDnaMult = getSurgeDnaMultiplier();
+      let finalDnaValue = safeMultiplyBigNum(dnaValue, surgeDnaMult);
+      
+      const labDnaMult = getLabDnaMultiplier();
+      finalDnaValue = safeMultiplyBigNum(finalDnaValue, labDnaMult);
+      
+      if (bank.DNA?.mult?.set) {
+        bank.DNA.mult.set(finalDnaValue);
+      } else if (bank.dna?.mult?.set) {
+        bank.dna.mult.set(finalDnaValue);
+      }
     }
   } catch {}
 
