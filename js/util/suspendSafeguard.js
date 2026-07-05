@@ -217,7 +217,7 @@ function notifySaveIntegrityOfStorageMutation(key, stack) {
   if (!key) return;
   const strKey = String(key);
   if (!strKey.startsWith('ccc:')) return;
-  if (strKey.startsWith("ccc:slotSig") || strKey.startsWith("ccc:slotMod")) return;
+  if (strKey.startsWith("ccc:slotSig") || strKey.startsWith("ccc:slotMod") || strKey.startsWith("ccc:debug:")) return;
   const slot = parseSlotFromKey(strKey);
   if (slot == null) return;
   try {
