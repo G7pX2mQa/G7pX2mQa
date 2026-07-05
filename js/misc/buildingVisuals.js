@@ -4877,66 +4877,18 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
-  // --- Tier 7: Massive Mechanical Lockdown Ring (Back Half) ---
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-    
-    // Position at the base of the vault, circling it
-    // Wait, since T1 translates up, if we don't translate, we draw at 0.
-    // That's perfect because the front half will also draw at 0 (since it's drawn after T0 but we must remember to counteract the translation if T7 is drawn after T0)
-    
-    // Draw back half of the ring
-    ctx.save();
-    // Clip to upper half (behind the vault)
-    ctx.beginPath();
-    ctx.rect(-200, -100, 400, 100);
-    ctx.clip();
-    
-    ctx.lineWidth = 15;
-    ctx.strokeStyle = fillGold;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 180, 50, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = darkMetal;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 187.5, 57.5, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 172.5, 42.5, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Gear teeth rotating
-    ctx.lineWidth = 5;
-    for(let i=0; i<36; i++) {
-        let angle = i * Math.PI * 2 / 36 + t * 0.5;
-        let x1 = Math.cos(angle) * 180;
-        let y1 = Math.sin(angle) * 50;
-        let x2 = Math.cos(angle) * 195;
-        let y2 = Math.sin(angle) * 55;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-    }
-    ctx.restore();
-    ctx.restore();
-  }
-
-  // Move building up for T1 reinforcements
-  ctx.translate(0, -15 * t1);
+  // Tier 7 (Seismic Lockdown Clamps) back half is no longer needed.
 
   // --- Tier 0: Classic Safe ---
-  if (t0 > 0) {
+  const drawT0Vault = (alpha) => {
+    if (alpha <= 0) return;
     ctx.save();
-    ctx.globalAlpha = t0;
+    ctx.globalAlpha = alpha;
     
     // Main solid golden cube
     drawPolygon([
       {x: -60, y: 0}, {x: -60, y: -100}, {x: 60, y: -100}, {x: 60, y: 0}
-    ], fillGold, darkMetal, 4, t0);
+    ], fillGold, darkMetal, 4, alpha);
     
     // Vault door outline
     ctx.strokeStyle = darkMetal;
@@ -4965,25 +4917,43 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
     
-    // Handle
-    ctx.fillStyle = darkMetal;
-    ctx.beginPath();
-    ctx.arc(35, -50, 6, 0, Math.PI * 2); // pivot
-    ctx.fill();
-
-    ctx.strokeStyle = darkMetal;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(35, -50);
-    ctx.lineTo(35, -70); // lever arm
-    ctx.stroke();
-
+    // Handle (rounded rectangle)
+    const drawRoundRect = (x, y, w, h, r) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    };
+    
+    drawRoundRect(31, -62, 8, 24, 4);
     ctx.fillStyle = fillGold;
-    ctx.fillRect(30, -75, 10, 6); // Handle grip
+    ctx.fill();
+    ctx.strokeStyle = darkMetal;
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(30, -75, 10, 6);
+    ctx.stroke();
     
     ctx.restore();
+  };
+
+  // Move building up for T1 reinforcements (with cross-fade for T0)
+  if (tier >= 1) {
+    if (prevTier === 0 && tier === 1) {
+      drawT0Vault(1 - t1);
+      ctx.translate(0, -15);
+      drawT0Vault(t1);
+    } else {
+      ctx.translate(0, -15);
+      drawT0Vault(1);
+    }
+  } else {
+    drawT0Vault(t0);
   }
 
   // --- Tier 1: Heavy Reinforced Frame ---
@@ -4991,23 +4961,65 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t1;
     
-    // Steel framing Outline
-    ctx.strokeStyle = darkMetal;
+    // Steel framing Outline (Darkened pure gold texture)
+    
+    // Draw thick gold stroke
+    ctx.strokeStyle = fillGold;
     ctx.lineWidth = 15;
     ctx.strokeRect(-67.5, -107.5, 135, 115);
     
+    // Draw 80% opacity black stroke on top to darken it
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.lineWidth = 15;
+    ctx.strokeRect(-67.5, -107.5, 135, 115);
+    
+    // Draw 1px black outline on edges of the thick frame
+    ctx.strokeStyle = darkMetal;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-75, -115, 150, 130); // outer bound
+    ctx.strokeRect(-60, -100, 120, 100); // inner bound
+
     // Large industrial rivets
     ctx.fillStyle = "#888";
     
-    // Vertical dots
-    for (let y = -95; y <= 5; y += 15) {
-      ctx.beginPath(); ctx.arc(-67.5, y, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(67.5, y, 3, 0, Math.PI * 2); ctx.fill();
+    // The frame is drawn at x: -67.5, y: -107.5, width: 135, height: 115
+    // Left edge: x = -67.5
+    // Right edge: x = 67.5
+    // Top edge: y = -107.5
+    // Bottom edge: y = 7.5
+    // The corner coordinates are: (-67.5, -107.5), (67.5, -107.5), (67.5, 7.5), (-67.5, 7.5)
+    
+    const corners = [
+      {x: -67.5, y: -107.5},
+      {x: 67.5, y: -107.5},
+      {x: 67.5, y: 7.5},
+      {x: -67.5, y: 7.5}
+    ];
+    
+    // Draw corners
+    for (let p of corners) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
     }
-    // Horizontal dots (skipping corners which are covered by vertical)
-    for (let x = -50; x <= 50; x += 16.666) {
+    
+    // Draw edges
+    // Distance horizontally is 135. Let's do 8 intervals (7 intermediate points)
+    // Distance vertically is 115. Let's do 7 intervals (6 intermediate points)
+    
+    const hIntervals = 8;
+    const vIntervals = 7;
+    
+    // Top and Bottom edges
+    for (let i = 1; i < hIntervals; i++) {
+      let x = -67.5 + (135 * i / hIntervals);
       ctx.beginPath(); ctx.arc(x, -107.5, 3, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(x, 7.5, 3, 0, Math.PI * 2); ctx.fill();
+    }
+    
+    // Left and Right edges
+    for (let i = 1; i < vIntervals; i++) {
+      let y = -107.5 + (115 * i / vIntervals);
+      ctx.beginPath(); ctx.arc(-67.5, y, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(67.5, y, 3, 0, Math.PI * 2); ctx.fill();
     }
     
     ctx.restore();
@@ -5018,22 +5030,22 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t2;
     
-    // Electronic keypad
+    // Electronic keypad (shifted up to y=-88 to match horizontal margin of 2px)
     ctx.fillStyle = "#111";
-    ctx.fillRect(-48, -80, 25, 36);
+    ctx.fillRect(-48, -88, 25, 36);
     
     // Blinking status lights
     const fastBlink = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
     ctx.fillStyle = fastBlink;
     ctx.beginPath();
-    ctx.arc(-35.5, -73, 2, 0, Math.PI * 2);
+    ctx.arc(-35.5, -81, 2, 0, Math.PI * 2);
     ctx.fill();
     
     // Keypad grid
     ctx.fillStyle = "#555";
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
-        ctx.fillRect(-45 + c * 7, -65 + r * 7, 5, 5);
+        ctx.fillRect(-45 + c * 7, -73 + r * 7, 5, 5);
       }
     }
     
@@ -5050,10 +5062,6 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     // Vault + T1 reinforcement total height is 130px (-115 to +15), top is -115, base is 15
     ctx.fillRect(-90, -115, 10, 130);
     ctx.fillRect(80, -115, 10, 130);
-    
-    ctx.strokeStyle = darkMetal;
-    ctx.strokeRect(-90, -115, 10, 130);
-    ctx.strokeRect(80, -115, 10, 130);
     
     // Sweeping laser scanners
     const sweep = Math.sin(t * 2);
@@ -5074,10 +5082,10 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
   // --- Tier 4: Core Feature - High-tech Energy Security System ---
   if (t4 > 0) {
     ctx.save();
-    ctx.globalAlpha = t4;
+    // Fade out as T8 comes in
+    ctx.globalAlpha = t4 * (1 - t8);
     
     // Smooth 3D Red Holographic Shield Barrier
-    // Create a 3D looking radial gradient for the dome
     const domeGrad = ctx.createRadialGradient(0, -20, 10, 0, -50, 130);
     domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
     domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
@@ -5089,39 +5097,93 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     
     // Draw the main dome
     ctx.beginPath();
-    // Ellipse to make it look a bit more 3D grounded instead of flat half circle
     ctx.ellipse(0, -50, 130, 100, 0, Math.PI, 0); 
-    // Close the bottom of the dome
     ctx.lineTo(130, 15);
     ctx.lineTo(-130, 15);
     ctx.closePath();
     
-    ctx.fill();
-    ctx.stroke();
-    
-    // 3D scanning line effect seamlessly moving up and down the dome
+    // Animated flowing 3D Hexagonal pattern
     ctx.save();
-    ctx.clip(); // clip to the dome shape
     
-    const scanProgress = (Math.sin(t * 1.5) + 1) / 2; // 0 to 1
-    const scanY = 15 - scanProgress * 150; // Sweeps from bottom to top
+    // We clip first to ensure hex lines don't leak outside, then we fill the dome over it? No, wait. 
+    // The user wants hex lines drawn UNDER the big red outline.
+    // So we first fill the dome, then draw hex lines, then stroke the dome outline!
+    ctx.fill();
+    ctx.clip(); // clip hexes to the dome shape
     
+    ctx.strokeStyle = "rgba(255, 100, 100, 0.4)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    // Use an ellipse to draw the scan line so it contours to the 3D dome
-    ctx.ellipse(0, scanY, 130, 30 * (1 - Math.abs(0.5 - scanProgress)), 0, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255, 100, 100, 0.9)";
-    ctx.lineWidth = 2;
+    
+    // Projection of hex grid to a sphere-like dome
+    // Radius of dome is approx 130
+    const hexSize = 15;
+    const scrollSpeed = 20; // units per second
+    const offsetY = (t * scrollSpeed) % (hexSize * Math.sqrt(3));
+    
+    // Draw hexes from center expanding outwards to create the spherical illusion
+    for (let row = -10; row <= 15; row++) {
+      for (let col = -10; col <= 10; col++) {
+        // Flat hex coordinates
+        let hx = col * hexSize * 1.5;
+        let hy = row * hexSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : hexSize * Math.sqrt(3) / 2) + offsetY;
+        
+        // Map 2D flat plane to spherical projection originating from pole (top of dome)
+        // Pole is roughly at (0, -150)
+        let dx = hx;
+        let dy = hy + 150; // relative to pole
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist > 200) continue; // optimization
+        
+        // Spherical warp mapping curving DOWNWARDS
+        let angle = Math.atan2(dy, dx);
+        let sphericalR = 130 * Math.sin(dist / 130);
+        let mappedX = Math.cos(angle) * sphericalR;
+        // Curve downwards from y=-50. dist=0 maps to y=-50. dist=130 maps to y=50.
+        let mappedY = -50 + (1 - Math.cos(dist / 130)) * 100;
+        
+        // Only draw inner connecting lines for a cleaner continuous pattern
+        // To do this simply, we will draw the polygon itself mapped
+        
+        // We draw individual lines for the hex outline in the mapped space
+        for (let i = 0; i < 6; i++) {
+          let a1 = i * Math.PI / 3;
+          let a2 = (i + 1) * Math.PI / 3;
+          
+          let px1 = hx + hexSize * Math.cos(a1);
+          let py1 = hy + hexSize * Math.sin(a1);
+          let px2 = hx + hexSize * Math.cos(a2);
+          let py2 = hy + hexSize * Math.sin(a2);
+          
+          // Map point 1
+          let dist1 = Math.sqrt(px1*px1 + (py1+150)*(py1+150));
+          let ang1 = Math.atan2(py1+150, px1);
+          let sR1 = 130 * Math.sin(dist1 / 130);
+          let mx1 = Math.cos(ang1) * sR1;
+          let my1 = -50 + (1 - Math.cos(dist1 / 130)) * 100;
+          
+          // Map point 2
+          let dist2 = Math.sqrt(px2*px2 + (py2+150)*(py2+150));
+          let ang2 = Math.atan2(py2+150, px2);
+          let sR2 = 130 * Math.sin(dist2 / 130);
+          let mx2 = Math.cos(ang2) * sR2;
+          let my2 = -50 + (1 - Math.cos(dist2 / 130)) * 100;
+          
+          ctx.moveTo(mx1, my1);
+          ctx.lineTo(mx2, my2);
+        }
+      }
+    }
+    
     ctx.stroke();
     
-    // Add glow to the scan line
+    // Add glow
     ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 10;
     ctx.stroke();
     
     ctx.restore();
-    
-    // Removed the "Cybernetic lock interface"
-    
     ctx.restore();
   }
 
@@ -5130,23 +5192,27 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t5;
     
-    // Move pylons further away from forcefield (x was -120/105, moving to -145/130)
+    // Moving pylons outward horizontally to not intersect with T4 forcefield
+    // And extending them to ground (y=15 is base, height=155 so y=-140)
     
-    // Back pylons
+    // Ground base height = 15. So y=-140, h=155.
+    
+    // Left pylon (shifted out to -165)
     ctx.fillStyle = fillGold;
-    ctx.fillRect(-145, -140, 15, 140);
-    ctx.fillRect(130, -140, 15, 140);
+    ctx.fillRect(-165, -140, 15, 155);
+    // Right pylon (shifted out to 150)
+    ctx.fillRect(150, -140, 15, 155);
     
     ctx.strokeStyle = darkMetal;
     ctx.lineWidth = 2;
-    ctx.strokeRect(-145, -140, 15, 140);
-    ctx.strokeRect(130, -140, 15, 140);
+    ctx.strokeRect(-165, -140, 15, 155);
+    ctx.strokeRect(150, -140, 15, 155);
     
     // Energy cores in pylons
     const pulse = (Math.sin(t * 5) + 1) / 2;
     ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`; // Red color
-    ctx.fillRect(-142, -135, 9, 20);
-    ctx.fillRect(133, -135, 9, 20);
+    ctx.fillRect(-162, -135, 9, 20);
+    ctx.fillRect(153, -135, 9, 20);
     
     // Animated lightning arcs to shield
     if (Math.random() > 0.3) {
@@ -5155,128 +5221,177 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
       
       // Arc from left pylon
       ctx.beginPath();
-      ctx.moveTo(-137, -125);
-      ctx.lineTo(-100 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
-      ctx.lineTo(-70, -80); // Connects to shield dome
+      ctx.moveTo(-157, -125);
+      ctx.lineTo(-120 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
+      ctx.lineTo(-90, -80); // Connects to shield dome
       ctx.stroke();
       
       // Arc from right pylon
       ctx.beginPath();
-      ctx.moveTo(137, -125);
-      ctx.lineTo(100 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
-      ctx.lineTo(70, -80);
+      ctx.moveTo(157, -125);
+      ctx.lineTo(120 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
+      ctx.lineTo(90, -80);
       ctx.stroke();
     }
     
     ctx.restore();
   }
 
-  // --- Tier 6: Floating Golden Defense Drones ---
+  // --- Tier 6: Dual Plasma Defense Cannons ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    ctx.translate(0, -50);
-    
-    // Orbiting drones
-    for (let i = 0; i < 3; i++) {
+    // Function to draw a single plasma cannon
+    const drawCannon = (xPos, isLeft) => {
       ctx.save();
-      const angle = t * 1.5 + (i * Math.PI * 2 / 3);
-      const radiusX = 160;
-      const radiusY = 30; // 3D perspective orbit
+      ctx.translate(xPos, 15); // Anchor to the ground
       
-      const droneX = Math.cos(angle) * radiusX;
-      const droneY = Math.sin(angle) * radiusY;
-      
-      // Drone bobbing effect
-      const bobY = Math.sin(t * 3 + i) * 10;
-      
-      ctx.translate(droneX, droneY + bobY - 40); // orbit around the top of the safe
-      
-      // Drone chassis
-      ctx.fillStyle = fillGold;
-      ctx.strokeStyle = darkMetal;
-      ctx.lineWidth = 1;
-      
-      // Hexagonal drone body
+      // Cannon Base
+      ctx.fillStyle = darkMetal;
       ctx.beginPath();
-      for(let j=0; j<6; j++) {
-        ctx.lineTo(Math.cos(j * Math.PI / 3) * 12, Math.sin(j * Math.PI / 3) * 12);
-      }
+      ctx.moveTo(-25, 0);
+      ctx.lineTo(25, 0);
+      ctx.lineTo(15, -20);
+      ctx.lineTo(-15, -20);
       ctx.closePath();
       ctx.fill();
-      ctx.stroke();
-      
-      // Drone core
-      ctx.fillStyle = "#ff0000";
-      ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Scanning beam from drone down to the ground
-      ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+      ctx.strokeStyle = fillGold;
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      // ground is roughly at Y=90 from this translated coordinate (since we did translate(0, -50) then translate(droneX, droneY + bobY - 40))
-      // local ground is 90 - (droneY + bobY)
-      ctx.lineTo(0, 90 - (droneY + bobY));
       ctx.stroke();
+      
+      // Cannon Mount (Swivel joint)
+      ctx.translate(0, -20);
+      ctx.fillStyle = fillGold;
+      ctx.beginPath();
+      ctx.arc(0, -10, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = darkMetal;
+      ctx.stroke();
+      
+      // Cannon Barrel (Rotates to scan)
+      ctx.save();
+      ctx.translate(0, -10);
+      // Scanning motion: sweep back and forth based on time, offset by side
+      const scanAngle = isLeft 
+        ? Math.sin(t * 1.5) * 0.4 - Math.PI / 4 // points mostly right/inward
+        : Math.sin(t * 1.5 + Math.PI) * 0.4 + Math.PI / 4; // points mostly left/inward
+      ctx.rotate(scanAngle);
+      
+      // Barrel body
+      ctx.fillStyle = darkMetal;
+      ctx.fillRect(-10, -40, 20, 30);
+      ctx.strokeStyle = fillGold;
+      ctx.strokeRect(-10, -40, 20, 30);
+      
+      // Plasma Emitter Nozzle
+      ctx.fillStyle = "#ff0000";
+      ctx.fillRect(-6, -45, 12, 5);
+      
+      // Plasma Glow & Energy Ring
+      const energyPulse = (Math.sin(t * 8) + 1) / 2;
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 10 + energyPulse * 10;
+      ctx.strokeStyle = `rgba(255, 50, 50, ${0.5 + energyPulse * 0.5})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, -42, 8, 3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Occasional small plasma discharge
+      if (Math.random() > 0.8) {
+        ctx.beginPath();
+        ctx.moveTo(0, -45);
+        ctx.lineTo((Math.random() - 0.5) * 20, -60 - Math.random() * 20);
+        ctx.strokeStyle = "rgba(255, 100, 100, 0.8)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
       
       ctx.restore();
-    }
+      ctx.restore();
+    };
+    
+    // Draw left and right cannons further out than the pylons
+    drawCannon(-200, true);
+    drawCannon(200, false);
     
     ctx.restore();
   }
 
-  // --- Tier 7: Massive Mechanical Lockdown Ring ---
+  // --- Tier 7: Massive Seismic Lockdown Clamps ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    // Position at the base of the vault, circling it
-    ctx.translate(0, 15 * t1); // Reverse the T1 translation to place on the ground
+    // Draw two massive clamps coming from the sides to lock the vault down
+    const drawClamp = (isLeft) => {
+      ctx.save();
+      // Reverse T1 translation to place at ground base locally, then offset
+      ctx.translate(isLeft ? -135 : 135, 15);
+      
+      // Heavy mechanical arm base
+      ctx.fillStyle = darkMetal;
+      ctx.beginPath();
+      ctx.moveTo(-20, 0);
+      ctx.lineTo(20, 0);
+      ctx.lineTo(15, -40);
+      ctx.lineTo(-15, -40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = fillGold;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Articulated joint
+      ctx.translate(0, -40);
+      ctx.fillStyle = fillGold;
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = darkMetal;
+      ctx.stroke();
+      
+      // Upper arm reaching over the vault
+      // Dynamic locking animation: Clamps engage when t7 is increasing, or just have a subtle mechanical breathing when active
+      const breath = Math.sin(t * 2) * 0.05;
+      const armAngle = isLeft ? (Math.PI / 4) + breath : -(Math.PI / 4) - breath;
+      ctx.rotate(armAngle);
+      
+      ctx.fillStyle = darkMetal;
+      ctx.fillRect(-10, -60, 20, 60);
+      ctx.strokeStyle = fillGold;
+      ctx.strokeRect(-10, -60, 20, 60);
+      
+      // The claw grasping the vault
+      ctx.translate(0, -60);
+      ctx.fillStyle = fillGold;
+      
+      // Polygon for claw
+      ctx.beginPath();
+      ctx.moveTo(-15, 0);
+      ctx.lineTo(15, 0);
+      ctx.lineTo(20, -30);
+      ctx.lineTo(-20, -30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = darkMetal;
+      ctx.stroke();
+      
+      // Locking teeth on claw
+      ctx.fillStyle = darkMetal;
+      ctx.fillRect(-15, -35, 8, 15);
+      ctx.fillRect(7, -35, 8, 15);
+      
+      // Hydraulic piston details
+      ctx.fillStyle = "#888";
+      ctx.fillRect(-4, 0, 8, 40);
+      
+      ctx.restore();
+    };
     
-    // Back half is drawn before Tier 0
-    
-    // Front half of the ring is drawn after all other vault elements... 
-    // Wait, since we are inside `drawVault`, we are drawing sequentially. 
-    // If we draw front half here, it draws over the safe, which is exactly what we want!
-    ctx.save();
-    // Clip to lower half (in front of the vault)
-    ctx.beginPath();
-    ctx.rect(-200, 0, 400, 100);
-    ctx.clip();
-    
-    ctx.lineWidth = 15;
-    ctx.strokeStyle = fillGold;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 180, 50, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = darkMetal;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 187.5, 57.5, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 172.5, 42.5, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Gear teeth rotating
-    ctx.lineWidth = 5;
-    for(let i=0; i<36; i++) {
-        let angle = i * Math.PI * 2 / 36 + t * 0.5;
-        let x1 = Math.cos(angle) * 180;
-        let y1 = Math.sin(angle) * 50;
-        let x2 = Math.cos(angle) * 195;
-        let y2 = Math.sin(angle) * 55;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-    }
-    ctx.restore();
+    drawClamp(true);
+    drawClamp(false);
     
     ctx.restore();
   }
@@ -5286,49 +5401,102 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t8;
     
-    // Enhance the Tier 4 shield directly
-    ctx.translate(0, -50);
-    ctx.globalCompositeOperation = "lighter";
+    // Encompasses every previous tier
+    // A massive version of the Tier 4 shield
     
-    // Massive central red beam shooting into the sky
-    const beamPulse = (Math.sin(t * 10) + 1) / 2;
-    const beamGrad = ctx.createLinearGradient(-30, 0, 30, 0);
-    beamGrad.addColorStop(0, "rgba(255, 0, 0, 0)");
-    beamGrad.addColorStop(0.2, "rgba(255, 50, 50, 0.5)");
-    beamGrad.addColorStop(0.5, `rgba(255, 200, 200, ${0.8 + beamPulse * 0.2})`);
-    beamGrad.addColorStop(0.8, "rgba(255, 50, 50, 0.5)");
-    beamGrad.addColorStop(1, "rgba(255, 0, 0, 0)");
+    // T4 had radius roughly 130, height -50.
+    // For T8, we want it to cover everything, including cannons (x=200) and clamps.
+    // So radius around 260. Height offset -100. Base at 15.
     
-    ctx.fillStyle = beamGrad;
-    ctx.fillRect(-30, -300, 60, 300); // beam shooting way up
+    const bigDomeGrad = ctx.createRadialGradient(0, -50, 50, 0, -100, 260);
+    bigDomeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
+    bigDomeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
+    bigDomeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
     
-    // Interlocking geodesic energy rings around the dome
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 3; i++) {
-      ctx.save();
-      const ringAngle = t * (0.5 + i * 0.2) + (i * Math.PI / 1.5);
-      // We scale Y to make it look like a tilted 3D ring orbiting the dome
-      ctx.rotate(ringAngle);
-      ctx.scale(1, 0.3);
-      
-      // Color pulsing red/orange
-      ctx.strokeStyle = `rgba(255, ${50 + Math.sin(t*5 + i)*50}, 0, 0.8)`;
-      
-      ctx.beginPath();
-      ctx.arc(0, 0, 140 + Math.sin(t * 2 + i) * 10, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.restore();
+    ctx.fillStyle = bigDomeGrad;
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 4;
+    
+    // Draw the massive dome
+    ctx.beginPath();
+    ctx.ellipse(0, -100, 260, 200, 0, Math.PI, 0); 
+    ctx.lineTo(260, 15);
+    ctx.lineTo(-260, 15);
+    ctx.closePath();
+    
+    // Fill first, then clip and draw hexes, THEN stroke outline on top
+    ctx.fill();
+    
+    // Animated flowing 3D Hexagonal pattern (Scaled up for T8)
+    ctx.save();
+    ctx.clip(); // clip to the dome shape
+    
+    ctx.strokeStyle = "rgba(255, 100, 100, 0.5)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    const hexSize = 30; // double size for the large dome
+    const scrollSpeed = 30;
+    const offsetY = (t * scrollSpeed) % (hexSize * Math.sqrt(3));
+    
+    for (let row = -10; row <= 15; row++) {
+      for (let col = -10; col <= 10; col++) {
+        let hx = col * hexSize * 1.5;
+        let hy = row * hexSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : hexSize * Math.sqrt(3) / 2) + offsetY;
+        
+        let dx = hx;
+        let dy = hy + 300; // pole offset mapped up
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist > 400) continue;
+        
+        let angle = Math.atan2(dy, dx);
+        let sphericalR = 260 * Math.sin(dist / 260);
+        let mappedX = Math.cos(angle) * sphericalR;
+        let mappedY = -100 + (1 - Math.cos(dist / 260)) * 200; 
+        
+        for (let i = 0; i < 6; i++) {
+          let a1 = i * Math.PI / 3;
+          let a2 = (i + 1) * Math.PI / 3;
+          
+          let px1 = hx + hexSize * Math.cos(a1);
+          let py1 = hy + hexSize * Math.sin(a1);
+          let px2 = hx + hexSize * Math.cos(a2);
+          let py2 = hy + hexSize * Math.sin(a2);
+          
+          let dist1 = Math.sqrt(px1*px1 + (py1+300)*(py1+300));
+          let ang1 = Math.atan2(py1+300, px1);
+          let sR1 = 260 * Math.sin(dist1 / 260);
+          let mx1 = Math.cos(ang1) * sR1;
+          let my1 = -100 + (1 - Math.cos(dist1 / 260)) * 200;
+          
+          let dist2 = Math.sqrt(px2*px2 + (py2+300)*(py2+300));
+          let ang2 = Math.atan2(py2+300, px2);
+          let sR2 = 260 * Math.sin(dist2 / 260);
+          let mx2 = Math.cos(ang2) * sR2;
+          let my2 = -100 + (1 - Math.cos(dist2 / 260)) * 200;
+          
+          ctx.moveTo(mx1, my1);
+          ctx.lineTo(mx2, my2);
+        }
+      }
     }
     
-    // Hexagonal energy nodes at the top of the beam
-    ctx.fillStyle = "#ffaaaa";
+    ctx.stroke();
+    
     ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(0, -250 + Math.sin(t*4)*20, 10, 0, Math.PI * 2);
-    ctx.fill();
-
+    ctx.shadowBlur = 15;
+    ctx.stroke();
+    
+    ctx.restore(); // restore clip
+    
+    // Stroke main dome outline on top
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 4;
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.stroke();
+    
     ctx.restore();
   }
 }
