@@ -495,24 +495,6 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
         }
     }
 
-    if (isSurgeActive(17)) {
-        if (isSurgeActive(8)) {
-            const effectiveNerf = getTsunamiExponent();
-            logMultiplier -= 5 * effectiveNerf;
-        } else {
-            logMultiplier -= 5;
-        }
-    }
-
-    if (isSurgeActive(18)) {
-        if (isSurgeActive(8)) {
-            const effectiveNerf = getTsunamiExponent();
-            logMultiplier -= 5 * effectiveNerf;
-        } else {
-            logMultiplier -= 5;
-        }
-    }
-
     const logBaseStr = logBaseVal.toFixed(18);
 
     try {
@@ -534,12 +516,6 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
         }
         
         let result = bigNumFromLog10(logVal).floorToInteger();
-
-        // Apply Lab DNA Multiplier (Node 16)
-        const labDnaMult = getLabDnaMultiplier();
-        if (labDnaMult.cmp(1) > 0) {
-            result = result.mulDecimal(labDnaMult.toScientific());
-        }
         
         const surge31Mult = getSurge31Multiplier();
         if (surge31Mult.isInfinite?.()) {
@@ -1058,24 +1034,6 @@ function recomputePendingDna() {
         }
     }
 
-    if (isSurgeActive(17)) {
-        if (isSurgeActive(8)) {
-            const effectiveNerf = getTsunamiExponent();
-            logMultiplier -= 5 * effectiveNerf;
-        } else {
-            logMultiplier -= 5;
-        }
-    }
-
-    if (isSurgeActive(18)) {
-        if (isSurgeActive(8)) {
-            const effectiveNerf = getTsunamiExponent();
-            logMultiplier -= 5 * effectiveNerf;
-        } else {
-            logMultiplier -= 5;
-        }
-    }
-
     const logBaseStr = logBaseVal.toFixed(18);
 
     // Formula: Multiplier * Base^labLevel * Base^(xpLevel/20)
@@ -1101,12 +1059,6 @@ function recomputePendingDna() {
         }
         
         let result = bigNumFromLog10(logVal).floorToInteger();
-
-        // Apply Lab DNA Multiplier (Node 16)
-        const labDnaMult = getLabDnaMultiplier();
-        if (labDnaMult.cmp(1) > 0) {
-            result = result.mulDecimal(labDnaMult.toScientific());
-        }
         
         const surge31Mult = getSurge31Multiplier();
         if (surge31Mult.isInfinite?.()) {
@@ -1501,6 +1453,9 @@ function endTsunamiSequence() {
     // 5. Resume spawning
     if (window.spawner && typeof window.spawner.start === 'function') {
         window.spawner.start();
+        if (typeof window.spawner.playEntranceWave === 'function') {
+            window.spawner.playEntranceWave();
+        }
     }
     
     // Force the progress bar to check goals synchronously before we clear the tsunami flag,
