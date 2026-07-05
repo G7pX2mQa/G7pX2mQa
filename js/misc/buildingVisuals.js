@@ -2234,13 +2234,24 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
     // Rivets
     ctx.fillStyle = "#555";
     for (let i = -60; i <= 60; i += 20) {
-      ctx.fillRect(i, -102, 4, 4);
-      ctx.fillRect(i, -7, 4, 4);
-      if (i > -60 && i < 60 && i % 40 === 0) {
-        ctx.fillRect(-72, i - 20, 4, 4);
-        ctx.fillRect(68, i - 20, 4, 4);
-      }
+      const boltX = i < 0 ? i - 4 : (i === 0 ? -2 : i);
+      ctx.fillRect(boltX, -100, 4, 4);
     }
+    
+    // Side bolts (4 on each side, spaced by 20, centered vertically)
+    const sideY = [-83.5, -63.5, -43.5, -23.5];
+    for (const y of sideY) {
+      ctx.fillRect(-70, y, 4, 4);
+      ctx.fillRect(66, y, 4, 4);
+    }
+    
+    // Bottom bolts
+    ctx.fillRect(-64, -7, 4, 4);
+    ctx.fillRect(-44, -7, 4, 4);
+    ctx.fillRect(-24, -7, 4, 4);
+    ctx.fillRect(20, -7, 4, 4);
+    ctx.fillRect(40, -7, 4, 4);
+    ctx.fillRect(60, -7, 4, 4);
 
     ctx.restore();
   }
