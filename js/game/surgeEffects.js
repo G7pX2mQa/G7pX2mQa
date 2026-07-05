@@ -1260,6 +1260,31 @@ export function getSurgeWaveMultiplier() {
     return result;
 }
 
+
+export function getSurgeDnaMultiplier() {
+    let log10Total = 0;
+    
+    if (isSurgeActive(17)) {
+        log10Total -= 5;
+    }
+    
+    if (isSurgeActive(18)) {
+        log10Total -= 5;
+    }
+    
+    if (isSurgeActive(8)) {
+        const effective = getTsunamiExponent();
+        log10Total *= effective;
+    }
+    
+    let result = BigNum.fromInt(1);
+    if (log10Total !== 0) {
+        result = bigNumFromLog10(log10Total);
+    }
+    
+    return result;
+}
+
 export function getSurgeMagicMultiplier() {
     let log10Total = 0;
     
