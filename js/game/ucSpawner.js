@@ -5,7 +5,6 @@ import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
 import { bigNumIsInfinite } from '../util/bigNum.js';
 
-
 export const UC_MATERIAL_DATA = [
     { name: 'stone', start: 0, max: 0, value: 1 },
     { name: 'copper', start: 1, max: 24, value: 10 },
@@ -279,13 +278,16 @@ export function createUcSpawner(config = {}) {
             if (newItems.length > 0 && settingsManager.get('spawn_vessels')) {
                 const rubbleLayer = document.querySelector('.rubble-layer');
                 if (rubbleLayer) {
+                    // Use refs or passed metrics if possible, but here we just cache pfRect since refs is passed in.
+                    const pfRect = refs.pf ? refs.pf.getBoundingClientRect() : document.querySelector(playfieldSelector).getBoundingClientRect();
                     const rubbleRect = rubbleLayer.getBoundingClientRect();
-                    const pfW = document.querySelector(playfieldSelector).getBoundingClientRect().width;
+                    const pfW = pfRect.width;
 
                     // Ensure only ONE persistent pickaxe exists at a time
-                    let pickaxe = document.getElementById('uc-pickaxe');
+                    let pickaxe = window._ucPickaxeElement || document.getElementById('uc-pickaxe');
                     if (!pickaxe) {
                         pickaxe = document.createElement('img');
+                        window._ucPickaxeElement = pickaxe;
                         pickaxe.id = 'uc-pickaxe';
                         pickaxe.src = 'img/misc/pickaxe.webp';
                         pickaxe.style.position = 'absolute';
@@ -309,7 +311,7 @@ export function createUcSpawner(config = {}) {
                     const strikeTime = cycleMs * 0.2;
                     
                     // Convert pickY (which is viewport relative) to local playfield coordinates
-                    const pfRect = document.querySelector(playfieldSelector).getBoundingClientRect();
+                    // pfRect already obtained above
 
                     // Y position between 25% and 75% of rubble layer height, relative to viewport
                     const pickY = rubbleRect.top + rubbleRect.height * 0.5 + window.innerHeight * 0.025;
@@ -353,15 +355,29 @@ export function createUcSpawner(config = {}) {
                 }
             } else if (!settingsManager.get('spawn_vessels')) {
                 // If spawn_vessels is OFF, no pickaxe, no sound.
-                const pickaxe = document.getElementById('uc-pickaxe');
+                const pickaxe = window._ucPickaxeElement || document.getElementById('uc-pickaxe');
                 if (pickaxe && pickaxe.parentNode) {
                     pickaxe.parentNode.removeChild(pickaxe);
                 }
+                window._ucPickaxeElement = null;
             }
         },
 
         onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
-            const pickaxe = document.getElementById('uc-pickaxe');
+            // Throttle bounding client rect queries to avoid layout thrashing during idle
+            if (!window._lastUcMetricsTime || now - window._lastUcMetricsTime > 1000) {
+                const playfieldNode = document.querySelector(playfieldSelector);
+                if (playfieldNode) {
+                    window._cachedUcPfRect = playfieldNode.getBoundingClientRect();
+                    const waterNode = document.querySelector('#water-background');
+                    window._cachedUcWRect = waterNode ? waterNode.getBoundingClientRect() : null;
+                    const hud = document.getElementById('hud-bottom-wrapper') || document.getElementById('hud-bottom');
+                    const hudHeight = hud ? hud.getBoundingClientRect().height : 0;
+                    window._cachedUcSafeBottom = window._cachedUcPfRect.height - hudHeight;
+                    window._lastUcMetricsTime = now;
+                }
+            }
+            const pickaxe = window._ucPickaxeElement || document.getElementById('uc-pickaxe');
             if (pickaxe && pickaxe._elapsedTime !== undefined) {
                 const currentCycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
                 if (pickaxe._cycleMs !== currentCycleMs) {
@@ -432,10 +448,10 @@ export function createUcSpawner(config = {}) {
                             }
                         }
 
-                        const pfRect = document.querySelector(playfieldSelector).getBoundingClientRect();
-                        const waterRect = document.querySelector('#water-background');
-                        const wRect = waterRect ? waterRect.getBoundingClientRect() : null;
-                        const safeBottom = pfRect.height - (document.getElementById('hud-bottom-wrapper') || document.getElementById('hud-bottom')).getBoundingClientRect().height;
+                        // Use cached layout values if available (spawnerCore updates M in its loop)
+                        const pfRect = window._cachedUcPfRect || document.querySelector(playfieldSelector).getBoundingClientRect();
+                        const wRect = window._cachedUcWRect !== undefined ? window._cachedUcWRect : null;
+                        const safeBottom = window._cachedUcSafeBottom !== undefined ? window._cachedUcSafeBottom : (pfRect.height - 100);
                         
                         let allocatedIndex = 0;
 
@@ -520,7 +536,10 @@ export function createUcSpawner(config = {}) {
                         }
                         
                         try {
-                            localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
+                            if (!window._lastUcStorageSaveTime || now - window._lastUcStorageSaveTime > 2000) {
+                                localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
+                                window._lastUcStorageSaveTime = now;
+                            }
                         } catch {}
 
                         removeItem(c, i);
@@ -622,7 +641,10 @@ export function createUcSpawner(config = {}) {
                 removeItem(activeItems[i], i);
             }
             const pickaxe = document.getElementById("uc-pickaxe");
-            if (pickaxe && pickaxe.parentNode && resetType !== 'underwater_cavern') pickaxe.parentNode.removeChild(pickaxe);
+            if (pickaxe && pickaxe.parentNode && resetType !== 'underwater_cavern') {
+                pickaxe.parentNode.removeChild(pickaxe);
+                window._ucPickaxeElement = null;
+            }
         }
     });
 
@@ -807,12 +829,9 @@ export function createUcSpawner(config = {}) {
             return results;
         },
 
-
-
         findCoinsInRadius: (x, y, radius) => {
             // Unused normally, only fallback if using visual DOM elements
             return [];
         },
-
     };
 }
