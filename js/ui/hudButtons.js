@@ -113,7 +113,7 @@ export function applyHudLayout() {
     hud.appendChild(frag);
   }
 
-  const all = [...hud.querySelectorAll('.game-btn')];
+  const all = [...hud.querySelectorAll('.game-btn[data-btn]')];
   const visible = all.filter(el => !el.hidden);
 
   // Reset previous hints
@@ -125,6 +125,7 @@ export function applyHudLayout() {
     el.style.order = '';
   });
   hud.style.gridTemplateColumns = '';
+  hud.style.justifyContent = '';
   hud.classList.add(`is-${visible.length}`);
 
   // Desktop centering
