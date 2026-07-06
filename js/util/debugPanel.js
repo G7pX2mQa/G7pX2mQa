@@ -128,6 +128,10 @@ function isOnMenu() {
     return style.display !== 'none' && style.visibility !== 'hidden' && !menuRoot.hidden;
 }
 
+function isLoading() {
+    return document.documentElement.classList.contains('booting') || !!document.getElementById('boot-loader');
+}
+
 function isGameVisible() {
     const gameRoot = document.getElementById('game-root');
     if (!gameRoot) return false;
@@ -566,6 +570,7 @@ function shouldShowDebugPanelToggleButton() {
         && IS_MOBILE
         && getActiveSlot() != null
         && !isOnMenu()
+        && !isLoading()
         && isGameVisible();
 }
 
@@ -5210,7 +5215,7 @@ function buildUnlocksContent(content) {
 }
 
 function buildDebugPanel() {
-    if (!debugPanelAccess || isOnMenu()) return;
+    if (!debugPanelAccess || isOnMenu() || isLoading()) return;
     cleanupDebugPanelResources();
     ensureDebugPanelStyles();
     sectionKeyCounter = 0;
@@ -5395,7 +5400,7 @@ function buildDebugPanel() {
 }
 
 function openDebugPanel() {
-    if (!debugPanelAccess || isOnMenu()) return;
+    if (!debugPanelAccess || isOnMenu() || isLoading()) return;
     if (getActiveSlot() == null) {
         closeDebugPanel();
         return;
@@ -5419,7 +5424,7 @@ export function closeDebugPanel({ preserveExpansionState = false } = {}) {
 }
 
 function toggleDebugPanel() {
-    if (!debugPanelAccess || isOnMenu() || getActiveSlot() == null) {
+    if (!debugPanelAccess || isOnMenu() || isLoading() || getActiveSlot() == null) {
         closeDebugPanel();
         return;
     }
@@ -5477,7 +5482,7 @@ function applyDebugPanelAccess(enabled) {
 }
 
 document.addEventListener('keydown', event => {
-    if (!debugPanelAccess || isOnMenu()) return;
+    if (!debugPanelAccess || isOnMenu() || isLoading()) return;
 
     if (event.key?.toLowerCase() === 'n') {
         nukeNotifications(!event.shiftKey);
