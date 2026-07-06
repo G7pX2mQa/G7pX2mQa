@@ -10,6 +10,7 @@ import { syncCurrencyMultipliersFromUpgrades } from "./upgradeEffects.js";
 import {
   addExternalMutationGainMultiplierProvider,
   getTotalCumulativeMp,
+  getMutationState,
 } from "./mutationSystem.js";
 import {
   getCurrentSurgeLevel,
@@ -31,6 +32,7 @@ import { formatMultForUi } from "../util/numFormat.js";
 import { addExternalFpMultiplierProvider } from "../ui/merchantTabs/flowTab.js";
 import { addExternalPpMultiplierProvider } from "./ppSystem.js";
 import { applyStatMultiplierOverride } from "../util/debugPanel.js";
+import { levelBigNumToNumber } from "./upgrades.js";
 
 const BN = BigNum;
 const MULTIPLIER = 10;
