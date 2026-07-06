@@ -42,6 +42,7 @@ export function createCursorTrail(playfield, options = {}) {
   // --- State ---
   const STRIDE = 5;
   const data = new Float32Array(CAPACITY * STRIDE);
+  const renderOrder = new Int32Array(CAPACITY);
   
   for (let i = 0; i < CAPACITY; i++) {
     data[i * STRIDE + 2] = Infinity;
@@ -417,7 +418,10 @@ export function createCursorTrail(playfield, options = {}) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
     let newMaxIndex = -1;
+    let renderCount = 0;
+    
     if (activeParticles > 0) {
+      // First pass: update ages and collect active indices
       for (let i = 0; i <= maxActiveIndex; i++) {
         const offset = i * STRIDE;
         let age = data[offset + 2];
@@ -433,7 +437,19 @@ export function createCursorTrail(playfield, options = {}) {
         }
 
         newMaxIndex = i;
+        renderOrder[renderCount++] = i;
+      }
+
+      // Sort indices so older particles (higher age) come first, newer (lower age) come last
+      const activeSlice = renderOrder.subarray(0, renderCount);
+      activeSlice.sort((a, b) => data[b * STRIDE + 2] - data[a * STRIDE + 2]);
+
+      // Second pass: render sorted particles
+      for (let i = 0; i < renderCount; i++) {
+        const idx = activeSlice[i];
+        const offset = idx * STRIDE;
         
+        const age = data[offset + 2];
         const maxAge = data[offset + 3];
         const progress = age / maxAge;
         const opacity = 1 - progress;
