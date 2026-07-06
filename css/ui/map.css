@@ -99,7 +99,7 @@
 
 .map-water-body {
     position: absolute;
-    top: 20px;
+    top: 19px; /* Overlap by 1px to prevent seam */
     bottom: 0;
     left: 0;
     right: 0;
