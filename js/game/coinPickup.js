@@ -354,7 +354,7 @@ function calculateCoinValue(spawnLevelStr) {
   }
   
   const mpGain = (typeof isMutationUnlocked === 'function' && isMutationUnlocked())
-    ? cloneBn(mpValueMultiplierBn)
+    ? BigNum.fromInt(1)
     : BigNum.fromInt(0);
 
   return { coinGain: inc, xpGain: xpInc, mpGain };
@@ -686,7 +686,7 @@ export function initCoinPickup({
       const g = coinGroups[key];
       let inc = applyCoinMultiplier(g.base);
       let xpInc = cloneBn(XP_PER_COIN);
-      let mpInc = cloneBn(mpValueMultiplierBn);
+      let mpInc = BigNum.fromInt(1);
 
       if (g.valMult > 1) {
           try { inc = inc.mulDecimalFloor(g.valMult); } catch {}
