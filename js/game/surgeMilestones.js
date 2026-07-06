@@ -1,10 +1,39 @@
-import { formatNumber, formatMultForUi } from '../util/numFormat.js';
-import { BigNum } from '../util/bigNum.js';
-import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getBaseTsunamiExponent, getTsunamiExponent, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getSurge33Multiplier, getSurge33BonusPercentage, getSurge35Multiplier, getSurge35BonusPercentage, getSurge40Multiplier, getSurge50Multiplier, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
-import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
-import { getActiveSlot } from '../util/storage.js';
-import { isPpSystemUnlocked } from './ppSystem.js';
+import { formatNumber, formatMultForUi } from "../util/numFormat.js";
+import { BigNum } from "../util/bigNum.js";
+import { bigNumFromLog10, approxLog10BigNum } from "../util/bigNum.js";
+import {
+  getBaseTsunamiExponent,
+  getTsunamiExponent,
+  getSurge15Multiplier,
+  getSurge15Divisor,
+  getSurge21Multiplier,
+  getSurge21BonusPercentage,
+  getSurge23Multiplier,
+  getSurge23BonusPercentage,
+  getSurge25Multiplier,
+  getSurge25BonusPercentage,
+  getSurge27Multiplier,
+  getSurge27BonusPercentage,
+  getSurge29Multiplier,
+  getSurge29BonusPercentage,
+  getSurge31Multiplier,
+  getSurge31BonusPercentage,
+  getSurge33Multiplier,
+  getSurge33BonusPercentage,
+  getSurge35Multiplier,
+  getSurge35BonusPercentage,
+  getSurge40Multiplier,
+  getSurge50Multiplier,
+  getBookProductionRate,
+  getSurge6WealthMultipliers,
+} from "./surgeEffects.js";
+import { getTsunamiResearchBonus, getResearchNodeLevel } from "./labNodes.js";
+import { getActiveSlot } from "../util/storage.js";
+import { isPpSystemUnlocked } from "./ppSystem.js";
+import { getXpState } from "./xpSystem.js";
+import { getMutationState } from "./mutationSystem.js";
+import { getLabLevel } from "../ui/merchantTabs/labTab.js";
+import { levelBigNumToNumber } from "./upgrades.js";
 
 export const SURGE_MILESTONES = [
   {
@@ -12,9 +41,9 @@ export const SURGE_MILESTONES = [
     surgeLevel: 1,
     affectedByTsunami: true,
     description: [
-      "Multiplies Coin, XP, and MP value by <span style=\"color:#00e5ff\">10x</span>",
-      "Unlocks the Warp tab"
-    ]
+      'Multiplies Coin, XP, and MP value by <span style="color:#00e5ff">10x</span>',
+      "Unlocks the Warp tab",
+    ],
   },
   {
     id: 2,
@@ -22,8 +51,8 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: true,
     description: [
       "Allows some Coins to spawn with a larger size, yielding collection multipliers; the largest Coins won't despawn even when others do",
-      "Improves Effective Auto-Collect by <span style=\"color:#00e5ff\">10x</span>"
-    ]
+      'Improves Effective Auto-Collect by <span style="color:#00e5ff">10x</span>',
+    ],
   },
   {
     id: 3,
@@ -31,23 +60,21 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: true,
     description: [
       "Generates Books based on XP Level instead of earning a flat amount of Books on level up",
-      "Unlocks a new Book upgrade"
-    ]
+      "Unlocks a new Book upgrade",
+    ],
   },
   {
     id: 4,
     surgeLevel: 4,
     affectedByTsunami: true,
     description: [
-      `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(4.444e12))}x</span>`
-    ]
+      `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(4.444e12))}x</span>`,
+    ],
   },
-    {
+  {
     id: 5,
     surgeLevel: 5,
-    description: [
-      "Unlocks a new Gold upgrade"
-    ]
+    description: ["Unlocks a new Gold upgrade"],
   },
   {
     id: 6,
@@ -57,62 +84,56 @@ export const SURGE_MILESTONES = [
       "Unspent Coins boost Coins",
       "Unspent Books boost Coins",
       "Unspent Gold boosts Coins",
-      "Unspent Magic boosts Coins"
-    ]
+      "Unspent Magic boosts Coins",
+    ],
   },
   {
     id: 7,
     surgeLevel: 7,
     description: [
       "Unlocks a new Magic upgrade",
-      "Makes each Workshop Level triple Gear production instead of doubling it"
-    ]
+      "Makes each Workshop Level triple Gear production instead of doubling it",
+    ],
   },
   {
     id: 8,
     surgeLevel: 8,
-    description: [
-      "Invokes the Tsunami"
-    ]
+    description: ["Invokes the Tsunami"],
   },
   {
     id: 9,
     surgeLevel: 9,
     affectedByTsunami: true,
-    description: [
-      "Significantly boosts DNA gained from the Experiment reset"
-    ]
+    description: ["Significantly boosts DNA gained from the Experiment reset"],
   },
   {
     id: 10,
     surgeLevel: 10,
-    description: [
-      "Unlocks new DNA upgrades"
-    ]
+    description: ["Unlocks new DNA upgrades"],
   },
   {
     id: 11,
     surgeLevel: 11,
     description: [
       "Unlocks a new automation upgrade",
-      "Makes each Workshop Level quadruple Gear production instead of tripling it"
-    ]
+      "Makes each Workshop Level quadruple Gear production instead of tripling it",
+    ],
   },
   {
     id: 12,
     surgeLevel: 12,
     affectedByTsunami: true,
     description: [
-      "Adequately boosts the effect Lab Level has on RP multiplier"
-    ]
+      "Adequately boosts the effect Lab Level has on RP multiplier",
+    ],
   },
   {
     id: 13,
     surgeLevel: 13,
     affectedByTsunami: true,
     description: [
-      "Activates generator: Passively generates <span style=\"color:#00e5ff\">0.1%</span> of pending Gold every second"
-    ]
+      'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Gold every second',
+    ],
   },
   {
     id: 14,
@@ -121,24 +142,24 @@ export const SURGE_MILESTONES = [
     description: [
       `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny(14.14e6))}x</span>`,
       "Unlocks Combo: Collecting Coins increases a Combo which alleviates the exponent effect on larger Coins (beware, Combo decays)",
-      "Combo effect is shown in the Coin Bar HUD"
-    ]
+      "Combo effect is shown in the Coin Bar HUD",
+    ],
   },
   {
     id: 15,
     surgeLevel: 15,
     affectedByTsunami: true,
     description: [
-      "Unspent DNA boosts Coins: <span style=\"color:#00e5ff\">1x</span>"
-    ]
+      'Unspent DNA boosts Coins: <span style="color:#00e5ff">1x</span>',
+    ],
   },
   {
     id: 16,
     surgeLevel: 16,
     affectedByTsunami: true,
     description: [
-      "Activates generator: Passively generates <span style=\"color:#00e5ff\">0.1%</span> of pending Magic every second"
-    ]
+      'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Magic every second',
+    ],
   },
   {
     id: 17,
@@ -148,8 +169,8 @@ export const SURGE_MILESTONES = [
       `Multiplies Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e15))}x</span>`,
       `Divides Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
       `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
-      "Halves Wave value (immune to exponent)"
-    ]
+      "Halves Wave value (immune to exponent)",
+    ],
   },
   {
     id: 18,
@@ -159,107 +180,103 @@ export const SURGE_MILESTONES = [
       `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e15))}x</span>`,
       `Divides Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
       `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
-      "Halves Wave value (immune to exponent)"
-    ]
+      "Halves Wave value (immune to exponent)",
+    ],
   },
   {
     id: 19,
     surgeLevel: 19,
     description: [
       "Unlocks a new DNA upgrade",
-      "Doubles XP value (immune to exponent)"
-    ]
+      "Doubles XP value (immune to exponent)",
+    ],
   },
   {
     id: 20,
     surgeLevel: 20,
     description: [
-      "Unlocks the <span style=\"color:#00fffa\">Flow</span> tab",
-	  "Unlocks new Lab nodes",
-	  "Unlocks a new Coin upgrade",
-	  "Unlocks a new Merchant dialogue",
-      "Combo no longer decays"
-    ]
+      'Unlocks the <span style="color:#00fffa">Flow</span> tab',
+      "Unlocks new Lab nodes",
+      "Unlocks a new Coin upgrade",
+      "Unlocks a new Merchant dialogue",
+      "Combo no longer decays",
+    ],
   },
   {
     id: 21,
     surgeLevel: 21,
     affectedByTsunami: true,
     description: [
-      "Increases Coin value by <span style=\"color:#00e5ff\">+100%</span> per Surge after 20"
-    ]
+      'Increases Coin value by <span style="color:#00e5ff">+100%</span> per Surge after 20',
+    ],
   },
   {
     id: 22,
     surgeLevel: 23,
     affectedByTsunami: true,
     description: [
-      "Increases XP value by <span style=\"color:#00e5ff\">+100%</span> per Surge after 22"
-    ]
+      'Increases XP value by <span style="color:#00e5ff">+100%</span> per Surge after 22',
+    ],
   },
   {
     id: 23,
     surgeLevel: 25,
     affectedByTsunami: true,
     description: [
-      "Increases Gold value by <span style=\"color:#00e5ff\">+100%</span> per Surge after 24"
-    ]
+      'Increases Gold value by <span style="color:#00e5ff">+100%</span> per Surge after 24',
+    ],
   },
   {
     id: 24,
     surgeLevel: 27,
     affectedByTsunami: true,
     description: [
-      "Increases Magic value by <span style=\"color:#00e5ff\">+100%</span> per Surge after 26"
-    ]
+      'Increases Magic value by <span style="color:#00e5ff">+100%</span> per Surge after 26',
+    ],
   },
   {
     id: 25,
     surgeLevel: 29,
     affectedByTsunami: true,
     description: [
-      "Increases Wave value by <span style=\"color:#00e5ff\">+100%</span> per Surge after 28"
-    ]
+      'Increases Wave value by <span style="color:#00e5ff">+100%</span> per Surge after 28',
+    ],
   },
   {
     id: 26,
     surgeLevel: 31,
     affectedByTsunami: true,
     description: [
-      "Increases DNA value by <span style=\"color:#00e5ff\">+100%</span> per Surge after 30"
-    ]
+      'Increases DNA value by <span style="color:#00e5ff">+100%</span> per Surge after 30',
+    ],
   },
   {
     id: 27,
     surgeLevel: 33,
     affectedByTsunami: true,
     description: [
-      "Increases FP value by <span style=\"color:#00e5ff\">+100%</span> per Surge after 32"
-    ]
+      'Increases FP value by <span style="color:#00e5ff">+100%</span> per Surge after 32',
+    ],
   },
   {
     id: 28,
     surgeLevel: 35,
     affectedByTsunami: true,
     description: [
-      "Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style=\"color:#00e5ff\">+25%</span> per Surge after 34"
-    ]
+      'Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style="color:#00e5ff">+25%</span> per Surge after 34',
+    ],
   },
   {
     id: 29,
     surgeLevel: 40,
     affectedByTsunami: false,
-    description: [
-      "Doubles Coin value per Surge after 39 (immune to exponent)"
-    ]
+    description: ["Doubles Coin value per Surge after 39 (immune to exponent)"],
   },
   {
     id: 31,
     surgeLevel: 50,
     affectedByTsunami: false,
-    description: [
-      "Doubles XP value per Surge after 49 (immune to exponent)"
-    ]
+    description: ["Doubles XP value per Surge after 49 (immune to exponent)"],
   },
   {
     id: 30,
@@ -267,32 +284,30 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: false,
     description: [
       "Unlocks Evolve: Milestone-type upgrades can be evolved every 1000 levels for a huge stat boost and a higher level cap",
-      "Unlocks a new automation upgrade"
-    ]
+      "Unlocks a new automation upgrade",
+    ],
   },
   {
     id: 32,
     surgeLevel: 80,
     affectedByTsunami: true,
     description: [
-      "Activates generator: Passively generates <span style=\"color:#00e5ff\">0.1%</span> of pending DNA every second"
-    ]
+      'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending DNA every second',
+    ],
   },
   {
     id: 33,
     surgeLevel: 100,
     affectedByTsunami: false,
-    description: [
-      "Experiment no longer resets Lab nodes"
-    ]
+    description: ["Experiment no longer resets Lab nodes"],
   },
   {
     id: 34,
     surgeLevel: 125,
     affectedByTsunami: false,
     description: [
-      "Unlocks new area: <span class=\"cavern-shimmer-wrapper\" data-text=\"Underwater Cavern\"><span class=\"cavern-shimmer-text\">Underwater Cavern</span></span>"
-    ]
+      'Unlocks new area: <span class="cavern-shimmer-wrapper" data-text="Underwater Cavern"><span class="cavern-shimmer-text">Underwater Cavern</span></span>',
+    ],
   },
   {
     id: 35,
@@ -300,30 +315,26 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: false,
     description: [
       "Unlocks four new automation upgrades",
-      "Makes each Workshop Level quintuple Gear production instead of quadrupling it"
-    ]
+      "Makes each Workshop Level quintuple Gear production instead of quadrupling it",
+    ],
   },
   {
     id: 36,
     surgeLevel: 200,
     affectedByTsunami: false,
-    description: [
-      "The key to a lock"
-    ]
+    description: ["The key to a lock"],
   },
   {
     id: 37,
     surgeLevel: 250,
     affectedByTsunami: false,
-    description: [
-      "The key to a lock"
-    ]
-  }
+    description: ["The key to a lock"],
+  },
 ];
 
-export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES
-    .filter(m => m.affectedByTsunami)
-    .map(m => m.id);
+export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES.filter(
+  (m) => m.affectedByTsunami,
+).map((m) => m.id);
 
 const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
 const SURGE_10_STATE_KEY = (slot) => `ccc:surge:milestone10:state:${slot}`;
@@ -333,106 +344,113 @@ const SURGE_15_STATE_KEY = (slot) => `ccc:surge:milestone15:state:${slot}`;
 export const getSurge9Description = (slot) => {
   const state = getSurge9State(slot);
   if (state === 0) return "This milestone is hidden for now";
-  if (state === 1) return "This milestone is hidden until you research Lab Node 4";
+  if (state === 1)
+    return "This milestone is hidden until you research Lab Node 4";
   return "Significantly boosts DNA gained from the Experiment reset";
 };
 
 export const getSurge10Description = (slot) => {
   const state = getSurge10State(slot);
-  if (state === 0) return "This milestone is hidden until you research Lab Node 4";
+  if (state === 0)
+    return "This milestone is hidden until you research Lab Node 4";
   return "Unlocks new DNA upgrades";
 };
 
 function getSurge9State(slot) {
-    if (slot == null) return 0;
-    try {
-        const val = localStorage.getItem(SURGE_9_STATE_KEY(slot));
-        return val ? parseInt(val, 10) : 0;
-    } catch {
-        return 0;
-    }
+  if (slot == null) return 0;
+  try {
+    const val = localStorage.getItem(SURGE_9_STATE_KEY(slot));
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function saveSurge9State(slot, state) {
-    if (slot == null) return;
-    try {
-        localStorage.setItem(SURGE_9_STATE_KEY(slot), state.toString());
-    } catch {}
+  if (slot == null) return;
+  try {
+    localStorage.setItem(SURGE_9_STATE_KEY(slot), state.toString());
+  } catch {}
 }
 
 function getSurge10State(slot) {
-    if (slot == null) return 0;
-    try {
-        const val = localStorage.getItem(SURGE_10_STATE_KEY(slot));
-        return val ? parseInt(val, 10) : 0;
-    } catch {
-        return 0;
-    }
+  if (slot == null) return 0;
+  try {
+    const val = localStorage.getItem(SURGE_10_STATE_KEY(slot));
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function saveSurge10State(slot, state) {
-    if (slot == null) return;
-    try {
-        localStorage.setItem(SURGE_10_STATE_KEY(slot), state.toString());
-    } catch {}
+  if (slot == null) return;
+  try {
+    localStorage.setItem(SURGE_10_STATE_KEY(slot), state.toString());
+  } catch {}
 }
 
 function getSurge14State(slot) {
-    if (slot == null) return 0;
-    try {
-        const val = localStorage.getItem(SURGE_14_STATE_KEY(slot));
-        return val ? parseInt(val, 10) : 0;
-    } catch {
-        return 0;
-    }
+  if (slot == null) return 0;
+  try {
+    const val = localStorage.getItem(SURGE_14_STATE_KEY(slot));
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function saveSurge14State(slot, state) {
-    if (slot == null) return;
-    try {
-        localStorage.setItem(SURGE_14_STATE_KEY(slot), state.toString());
-    } catch {}
+  if (slot == null) return;
+  try {
+    localStorage.setItem(SURGE_14_STATE_KEY(slot), state.toString());
+  } catch {}
 }
 
 function getSurge15State(slot) {
-    if (slot == null) return 0;
-    try {
-        const val = localStorage.getItem(SURGE_15_STATE_KEY(slot));
-        return val ? parseInt(val, 10) : 0;
-    } catch {
-        return 0;
-    }
+  if (slot == null) return 0;
+  try {
+    const val = localStorage.getItem(SURGE_15_STATE_KEY(slot));
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function saveSurge15State(slot, state) {
-    if (slot == null) return;
-    try {
-        localStorage.setItem(SURGE_15_STATE_KEY(slot), state.toString());
-    } catch {}
+  if (slot == null) return;
+  try {
+    localStorage.setItem(SURGE_15_STATE_KEY(slot), state.toString());
+  } catch {}
 }
 
 export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   let currentLevel = 0;
   let isSurge8 = false;
-  
+
   let currentLevelBN = BigNum.fromInt(0);
   if (currentSurgeLevel === Infinity) {
-      currentLevel = Infinity;
-      currentLevelBN = BigNum.fromAny("Infinity");
-      isSurge8 = true;
-  } else if (typeof currentSurgeLevel === 'number') {
+    currentLevel = Infinity;
+    currentLevelBN = BigNum.fromAny("Infinity");
+    isSurge8 = true;
+  } else if (typeof currentSurgeLevel === "number") {
     currentLevel = currentSurgeLevel;
     currentLevelBN = BigNum.fromInt(currentLevel);
     if (currentLevel >= 8) isSurge8 = true;
-  } else if (currentSurgeLevel && typeof currentSurgeLevel.toString === 'function') {
-      try {
-          const val = (currentSurgeLevel.inf ? Infinity : (currentSurgeLevel.sig * Math.pow(10, currentSurgeLevel.e)));
-          currentLevelBN = BigNum.fromAny(currentSurgeLevel.toString());
-          if (!isNaN(val)) currentLevel = val;
-          if (currentSurgeLevel === 'Infinity' || val === Infinity) {
-              isSurge8 = true;
-          }
-      } catch {}
+  } else if (
+    currentSurgeLevel &&
+    typeof currentSurgeLevel.toString === "function"
+  ) {
+    try {
+      const val = currentSurgeLevel.inf
+        ? Infinity
+        : currentSurgeLevel.sig * Math.pow(10, currentSurgeLevel.e);
+      currentLevelBN = BigNum.fromAny(currentSurgeLevel.toString());
+      if (!isNaN(val)) currentLevel = val;
+      if (currentSurgeLevel === "Infinity" || val === Infinity) {
+        isSurge8 = true;
+      }
+    } catch {}
   }
 
   // --- Surge 9 Text Logic ---
@@ -441,17 +459,17 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   let newState = s9State;
 
   if (newState < 1) {
-      if (isSurge8) newState = 1;
+    if (isSurge8) newState = 1;
   }
-  
+
   if (newState < 2) {
-      const lab4Level = getResearchNodeLevel(4);
-      if (lab4Level >= 1) newState = 2;
+    const lab4Level = getResearchNodeLevel(4);
+    if (lab4Level >= 1) newState = 2;
   }
-  
+
   if (newState !== s9State) {
-      s9State = newState;
-      saveSurge9State(slot, s9State);
+    s9State = newState;
+    saveSurge9State(slot, s9State);
   }
   // -------------------------
 
@@ -460,13 +478,13 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   let newS10State = s10State;
 
   if (newS10State < 1) {
-      const lab4Level = getResearchNodeLevel(4);
-      if (lab4Level >= 1) newS10State = 1;
+    const lab4Level = getResearchNodeLevel(4);
+    if (lab4Level >= 1) newS10State = 1;
   }
 
   if (newS10State !== s10State) {
-      s10State = newS10State;
-      saveSurge10State(slot, s10State);
+    s10State = newS10State;
+    saveSurge10State(slot, s10State);
   }
   // -------------------------
 
@@ -475,13 +493,13 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   let newS14State = s14State;
 
   if (newS14State < 1) {
-      const lab4Level = getResearchNodeLevel(4);
-      if (lab4Level >= 1) newS14State = 1;
+    const lab4Level = getResearchNodeLevel(4);
+    if (lab4Level >= 1) newS14State = 1;
   }
 
   if (newS14State !== s14State) {
-      s14State = newS14State;
-      saveSurge14State(slot, s14State);
+    s14State = newS14State;
+    saveSurge14State(slot, s14State);
   }
   // -------------------------
 
@@ -490,168 +508,178 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   let newS15State = s15State;
 
   if (newS15State < 1) {
-      const lab4Level = getResearchNodeLevel(4);
-      if (lab4Level >= 1) newS15State = 1;
+    const lab4Level = getResearchNodeLevel(4);
+    if (lab4Level >= 1) newS15State = 1;
   }
 
   if (newS15State !== s15State) {
-      s15State = newS15State;
-      saveSurge15State(slot, s15State);
+    s15State = newS15State;
+    saveSurge15State(slot, s15State);
   }
   // -------------------------
-  
+
   const reached = [];
   const future = [];
-  
+
   for (const m of SURGE_MILESTONES) {
     let milestone = m;
-    
+
     if (isSurge8) {
       // Clone milestone to avoid mutating the original
       milestone = { ...m, description: [...m.description] };
-      
+
       const baseNerf = getBaseTsunamiExponent();
       const bonus = getTsunamiResearchBonus();
       let nerf = baseNerf + bonus;
       if (nerf > 1) nerf = 1;
-      
+
       if (m.id === 1) {
         const val = Math.pow(10, nerf);
         const valStr = formatMultForUi(val);
-        
+
         milestone.description[0] = milestone.description[0].replace(
-            /<span style="color:#00e5ff">.*?x<\/span>/, 
-            `<span style="color:#00e5ff">${valStr}x</span>`
+          /<span style="color:#00e5ff">.*?x<\/span>/,
+          `<span style="color:#00e5ff">${valStr}x</span>`,
         );
       } else if (m.id === 2) {
         const val = Math.pow(10, nerf);
         const valStr = formatMultForUi(val);
 
         milestone.description[1] = milestone.description[1].replace(
-            /<span style="color:#00e5ff">.*?x<\/span>/, 
-            `<span style="color:#00e5ff">${valStr}x</span>`
+          /<span style="color:#00e5ff">.*?x<\/span>/,
+          `<span style="color:#00e5ff">${valStr}x</span>`,
         );
-
       } else if (m.id === 4) {
         const log10 = Math.log10(4.444e12);
         const newVal = bigNumFromLog10(log10 * nerf);
         const valStr = formatNumber(newVal);
-        
+
         milestone.description[0] = milestone.description[0].replace(
-            /<span style="color:#00e5ff">.*?x<\/span>/, 
-            `<span style="color:#00e5ff">${valStr}x</span>`
+          /<span style="color:#00e5ff">.*?x<\/span>/,
+          `<span style="color:#00e5ff">${valStr}x</span>`,
         );
       } else if (m.id === 14) {
         const log10 = Math.log10(14.14e6);
         const newVal = bigNumFromLog10(log10 * nerf);
         const valStr = formatNumber(newVal);
-        
+
         milestone.description[0] = milestone.description[0].replace(
-            /<span style="color:#00e5ff">.*?x<\/span>/, 
-            `<span style="color:#00e5ff">${valStr}x</span>`
+          /<span style="color:#00e5ff">.*?x<\/span>/,
+          `<span style="color:#00e5ff">${valStr}x</span>`,
         );
       } else if (m.id === 17) {
         const logMult = 15;
         const logDiv = 5;
-        
+
         const newMult = bigNumFromLog10(logMult * nerf);
         const newDiv = bigNumFromLog10(logDiv * nerf);
-        
+
         const multStr = formatNumber(newMult);
         const divStr = formatNumber(newDiv);
-        
+
         milestone.description[0] = milestone.description[0].replace(
-            /<span style="color:#00e5ff">.*?<\/span>/, 
-            `<span style="color:#00e5ff">${multStr}x</span>`
+          /<span style="color:#00e5ff">.*?<\/span>/,
+          `<span style="color:#00e5ff">${multStr}x</span>`,
         );
         milestone.description[1] = milestone.description[1].replace(
-            /<span style="color:#00e5ff">.*?<\/span>/, 
-            `<span style="color:#00e5ff">${divStr}x</span>`
+          /<span style="color:#00e5ff">.*?<\/span>/,
+          `<span style="color:#00e5ff">${divStr}x</span>`,
         );
         milestone.description[2] = milestone.description[2].replace(
-            /<span style="color:#00e5ff">.*?<\/span>/, 
-            `<span style="color:#00e5ff">${divStr}x</span>`
+          /<span style="color:#00e5ff">.*?<\/span>/,
+          `<span style="color:#00e5ff">${divStr}x</span>`,
         );
       } else if (m.id === 18) {
         const logMult = 15;
         const logDiv = 5;
-        
+
         const newMult = bigNumFromLog10(logMult * nerf);
         const newDiv = bigNumFromLog10(logDiv * nerf);
-        
+
         const multStr = formatNumber(newMult);
         const divStr = formatNumber(newDiv);
-        
+
         milestone.description[0] = milestone.description[0].replace(
-            /<span style="color:#00e5ff">.*?<\/span>/, 
-            `<span style="color:#00e5ff">${multStr}x</span>`
+          /<span style="color:#00e5ff">.*?<\/span>/,
+          `<span style="color:#00e5ff">${multStr}x</span>`,
         );
         milestone.description[1] = milestone.description[1].replace(
-            /<span style="color:#00e5ff">.*?<\/span>/, 
-            `<span style="color:#00e5ff">${divStr}x</span>`
+          /<span style="color:#00e5ff">.*?<\/span>/,
+          `<span style="color:#00e5ff">${divStr}x</span>`,
         );
         milestone.description[2] = milestone.description[2].replace(
-            /<span style="color:#00e5ff">.*?<\/span>/, 
-            `<span style="color:#00e5ff">${divStr}x</span>`
+          /<span style="color:#00e5ff">.*?<\/span>/,
+          `<span style="color:#00e5ff">${divStr}x</span>`,
         );
       }
     }
 
     if (m.id === 3 && m.surgeLevel <= currentLevel) {
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        const rate = getBookProductionRate ? getBookProductionRate() : BigNum.fromInt(0);
-        milestone.description.push(`Current Books/sec: ${formatNumber(rate.floorToInteger())}`);
+      if (milestone === m) {
+        milestone = { ...m, description: [...m.description] };
+      }
+      const rate = getBookProductionRate
+        ? getBookProductionRate()
+        : BigNum.fromInt(0);
+      milestone.description.push(
+        `Current Books/sec: ${formatNumber(rate.floorToInteger())}`,
+      );
     }
 
     if (m.id === 6 && m.surgeLevel <= currentLevel) {
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        const mults = getSurge6WealthMultipliers();
-        let totalMult = mults.coins;
-        if (totalMult.mulBigNumInteger) {
-            totalMult = totalMult.mulBigNumInteger(mults.books).mulBigNumInteger(mults.gold).mulBigNumInteger(mults.magic);
-        } else {
-            totalMult = mults.coins * mults.books * mults.gold * mults.magic;
-        }
-        milestone.description = [
-          `Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span>`,
-          `Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span>`,
-          `Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span>`,
-          `Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span>`,
-          `Total boost to Coins: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`
-        ];
+      if (milestone === m) {
+        milestone = { ...m, description: [...m.description] };
+      }
+      const mults = getSurge6WealthMultipliers();
+      let totalMult = mults.coins;
+      if (totalMult.mulBigNumInteger) {
+        totalMult = totalMult
+          .mulBigNumInteger(mults.books)
+          .mulBigNumInteger(mults.gold)
+          .mulBigNumInteger(mults.magic);
+      } else {
+        totalMult = mults.coins * mults.books * mults.gold * mults.magic;
+      }
+      milestone.description = [
+        `Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span>`,
+        `Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span>`,
+        `Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span>`,
+        `Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span>`,
+        `Total boost to Coins: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`,
+      ];
     }
 
     if (m.id === 9) {
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        
-        if (s9State === 0) {
-            milestone.description = ["This milestone is hidden for now"];
-        } else if (s9State === 1) {
-            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        }
+      if (milestone === m) {
+        milestone = { ...m, description: [...m.description] };
+      }
+
+      if (s9State === 0) {
+        milestone.description = ["This milestone is hidden for now"];
+      } else if (s9State === 1) {
+        milestone.description = [
+          "This milestone is hidden until you research Lab Node 4",
+        ];
+      }
     }
 
     if (m.id === 10) {
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        
-        if (s10State === 0) {
-            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        }
+      if (milestone === m) {
+        milestone = { ...m, description: [...m.description] };
+      }
+
+      if (s10State === 0) {
+        milestone.description = [
+          "This milestone is hidden until you research Lab Node 4",
+        ];
+      }
     }
 
     if (m.id === 13) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
-      
+
       const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       const pct = Math.pow(100, mapped);
@@ -659,46 +687,73 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Gold every second`;
       if (m.surgeLevel <= currentLevel && pendingVals.pendingGold) {
-          const log10Rate = 2 * mapped - 2;
-          const rateMultiplier = bigNumFromLog10(log10Rate);
-          const goldPerSec = pendingVals.pendingGold.mulDecimal(rateMultiplier.toScientific());
-          milestone.description.push(`Current Gold/sec: ${formatNumber(goldPerSec.floorToInteger())}`);
+        try {
+          const xpState = getXpState();
+          if (
+            xpState &&
+            xpState.unlocked &&
+            levelBigNumToNumber(xpState.xpLevel) >= 31
+          ) {
+            const log10Rate = 2 * mapped - 2;
+            const rateMultiplier = bigNumFromLog10(log10Rate);
+            const goldPerSec = pendingVals.pendingGold.mulDecimal(
+              rateMultiplier.toScientific(),
+            );
+            milestone.description.push(
+              `Current Gold/sec: ${formatNumber(goldPerSec.floorToInteger())}`,
+            );
+          } else {
+            milestone.description.push(
+              `<span style="color:#00ff00">Can't generate Gold at the moment</span>`,
+            );
+          }
+        } catch (e) {
+          milestone.description.push(
+            `<span style="color:#00ff00">Can't generate Gold at the moment</span>`,
+          );
+        }
       }
     }
 
     if (m.id === 14) {
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        
-        if (s14State === 0) {
-            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        }
-    }
-    
-    if (m.id === 15) {
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        
-        if (s15State === 0) {
-            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        } else {
-            const mult = getSurge15Multiplier(true);
-            const valStr = formatMultForUi(mult);
-            milestone.description[0] = `Unspent DNA boosts Coins: <span style="color:#00e5ff">${valStr}x</span>`;
+      if (milestone === m) {
+        milestone = { ...m, description: [...m.description] };
+      }
 
-            const div = getSurge15Divisor(true);
-            const divStr = formatMultForUi(div);
-            milestone.description.push(`Unspent DNA also divides the value of Coins and the value of Magic by <span style="color:#00e5ff">${divStr}x</span>`);
-        }
+      if (s14State === 0) {
+        milestone.description = [
+          "This milestone is hidden until you research Lab Node 4",
+        ];
+      }
+    }
+
+    if (m.id === 15) {
+      if (milestone === m) {
+        milestone = { ...m, description: [...m.description] };
+      }
+
+      if (s15State === 0) {
+        milestone.description = [
+          "This milestone is hidden until you research Lab Node 4",
+        ];
+      } else {
+        const mult = getSurge15Multiplier(true);
+        const valStr = formatMultForUi(mult);
+        milestone.description[0] = `Unspent DNA boosts Coins: <span style="color:#00e5ff">${valStr}x</span>`;
+
+        const div = getSurge15Divisor(true);
+        const divStr = formatMultForUi(div);
+        milestone.description.push(
+          `Unspent DNA also divides the value of Coins and the value of Magic by <span style="color:#00e5ff">${divStr}x</span>`,
+        );
+      }
     }
 
     if (m.id === 16) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
-      
+
       const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       const pct = Math.pow(100, mapped);
@@ -706,66 +761,89 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Magic every second`;
       if (m.surgeLevel <= currentLevel && pendingVals.pendingMagic) {
-          const log10Rate = 2 * mapped - 2;
-          const rateMultiplier = bigNumFromLog10(log10Rate);
-          const magicPerSec = pendingVals.pendingMagic.mulDecimal(rateMultiplier.toScientific());
-          milestone.description.push(`Current Magic/sec: ${formatNumber(magicPerSec.floorToInteger())}`);
+        try {
+          const mState = getMutationState();
+          if (
+            mState &&
+            mState.unlocked &&
+            levelBigNumToNumber(mState.level) >= 7
+          ) {
+            const log10Rate = 2 * mapped - 2;
+            const rateMultiplier = bigNumFromLog10(log10Rate);
+            const magicPerSec = pendingVals.pendingMagic.mulDecimal(
+              rateMultiplier.toScientific(),
+            );
+            milestone.description.push(
+              `Current Magic/sec: ${formatNumber(magicPerSec.floorToInteger())}`,
+            );
+          } else {
+            milestone.description.push(
+              `<span style="color:#00ff00">Can't generate Magic at the moment</span>`,
+            );
+          }
+        } catch (e) {
+          milestone.description.push(
+            `<span style="color:#00ff00">Can't generate Magic at the moment</span>`,
+          );
+        }
       }
     }
 
-        if (m.id === 36) {
+    if (m.id === 36) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
-      
+
       const ppUnlocked = isPpSystemUnlocked();
       if (ppUnlocked) {
-          const effectiveNerf = getTsunamiExponent();
-          const baseMult = 1 + effectiveNerf;
-          let formattedBaseBonus = baseMult.toFixed(2);
-          if (formattedBaseBonus.endsWith('.00')) {
-             formattedBaseBonus = baseMult.toFixed(0);
-          }
-          if (effectiveNerf === 1) {
-              milestone.description[0] = `Doubles PP value per Surge after 200`;
+        const effectiveNerf = getTsunamiExponent();
+        const baseMult = 1 + effectiveNerf;
+        let formattedBaseBonus = baseMult.toFixed(2);
+        if (formattedBaseBonus.endsWith(".00")) {
+          formattedBaseBonus = baseMult.toFixed(0);
+        }
+        if (effectiveNerf === 1) {
+          milestone.description[0] = `Doubles PP value per Surge after 200`;
+        } else {
+          milestone.description[0] = `Multiplies PP value by <span style="color:#00e5ff">${formattedBaseBonus}x</span> compounding per Surge after 200`;
+        }
+
+        if (currentLevel >= 200) {
+          let multBn = BigNum.fromInt(1);
+          if (currentLevelBN.isInfinite?.()) {
+            multBn = BigNum.fromAny("Infinity");
           } else {
-              milestone.description[0] = `Multiplies PP value by <span style="color:#00e5ff">${formattedBaseBonus}x</span> compounding per Surge after 200`;
+            const diffBN = currentLevelBN.sub(BigNum.fromInt(200));
+            if (diffBN.cmp(0) > 0) {
+              const logBase = Math.log10(baseMult);
+              const exponent = diffBN.inf
+                ? Infinity
+                : diffBN.sig * Math.pow(10, diffBN.e);
+              multBn = bigNumFromLog10(exponent * logBase);
+            }
           }
 
-          if (currentLevel >= 200) {
-            let multBn = BigNum.fromInt(1);
-            if (currentLevelBN.isInfinite?.()) {
-                multBn = BigNum.fromAny('Infinity');
-            } else {
-                const diffBN = currentLevelBN.sub(BigNum.fromInt(200));
-                if (diffBN.cmp(0) > 0) {
-                   const logBase = Math.log10(baseMult);
-                   const exponent = (diffBN.inf ? Infinity : (diffBN.sig * Math.pow(10, diffBN.e)));
-                   multBn = bigNumFromLog10(exponent * logBase);
-                }
-            }
-            
-            let formattedBonus = formatMultForUi(multBn);
-            milestone.description.push(`Current bonus: ${formattedBonus}x`);
-          }
+          let formattedBonus = formatMultForUi(multBn);
+          milestone.description.push(`Current bonus: ${formattedBonus}x`);
+        }
       }
     }
 
     if (m.id === 37) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
       const ppUnlocked = isPpSystemUnlocked();
       if (!ppUnlocked) {
-          milestone.description = ["This milestone is hidden for now"];
+        milestone.description = ["This milestone is hidden for now"];
       }
     }
 
     if (m.id === 32) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
-      
+
       const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       const pct = Math.pow(100, mapped);
@@ -773,23 +851,40 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const tNerf = effectiveNerf;
       if (tNerf === 0) {
-          milestone.description[0] = `Does not generate any DNA with a tsunami exponent of 0.00`;
+        milestone.description[0] = `Does not generate any DNA with a tsunami exponent of 0.00`;
       } else {
-          const newPct = Math.pow(parseFloat(valStr), 1 / tNerf);
-          const newValStr = Number(newPct.toFixed(6));
-          milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${newValStr}%</span> (${valStr}^(1/${tNerf.toFixed(2)})) of pending DNA every second`;
-          if (m.surgeLevel <= currentLevel && pendingVals.pendingDna) {
+        const newPct = Math.pow(parseFloat(valStr), 1 / tNerf);
+        const newValStr = Number(newPct.toFixed(6));
+        milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${newValStr}%</span> (${valStr}^(1/${tNerf.toFixed(2)})) of pending DNA every second`;
+        if (m.surgeLevel <= currentLevel && pendingVals.pendingDna) {
+          try {
+            const labLevel = getLabLevel();
+            if (labLevel && labLevel.cmp(10) >= 0) {
               const log10Rate = Math.log10(newPct / 100);
               const rateMultiplier = bigNumFromLog10(log10Rate);
-              const dnaPerSec = pendingVals.pendingDna.mulDecimal(rateMultiplier.toScientific());
-              milestone.description.push(`Current DNA/sec: ${formatNumber(dnaPerSec.floorToInteger())}`);
+              const dnaPerSec = pendingVals.pendingDna.mulDecimal(
+                rateMultiplier.toScientific(),
+              );
+              milestone.description.push(
+                `Current DNA/sec: ${formatNumber(dnaPerSec.floorToInteger())}`,
+              );
+            } else {
+              milestone.description.push(
+                `<span style="color:#00ff00">Can't generate DNA at the moment</span>`,
+              );
+            }
+          } catch (e) {
+            milestone.description.push(
+              `<span style="color:#00ff00">Can't generate DNA at the moment</span>`,
+            );
           }
+        }
       }
     }
 
     if (m.id === 21) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge21BonusPercentage();
@@ -800,11 +895,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge21Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(20));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(20));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -812,42 +910,45 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
     if (m.id === 29) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       if (currentLevel >= 40) {
         const mult = getSurge40Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            formattedBonus = formatNumber(mult);
+          formattedBonus = formatNumber(mult);
         }
-        milestone.description.push(`Current bonus: <span style="color:#00ff00">${formattedBonus}x</span>`);
+        milestone.description.push(
+          `Current bonus: <span style="color:#00ff00">${formattedBonus}x</span>`,
+        );
       }
     }
 
-
     if (m.id === 31) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       if (currentLevel >= 50) {
         const mult = getSurge50Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            formattedBonus = formatNumber(mult);
+          formattedBonus = formatNumber(mult);
         }
-        milestone.description.push(`Current bonus: <span style="color:#00ff00">${formattedBonus}x</span>`);
+        milestone.description.push(
+          `Current bonus: <span style="color:#00ff00">${formattedBonus}x</span>`,
+        );
       }
     }
 
     if (m.id === 28) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge35BonusPercentage();
@@ -858,11 +959,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge35Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(34));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(34));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -870,7 +974,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
     if (m.id === 27) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge33BonusPercentage();
@@ -881,11 +985,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge33Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(32));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(32));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -893,7 +1000,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
     if (m.id === 24) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge27BonusPercentage();
@@ -904,11 +1011,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge27Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(26));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(26));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -916,7 +1026,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
     if (m.id === 22) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge23BonusPercentage();
@@ -927,11 +1037,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge23Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(22));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(22));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -939,7 +1052,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
     if (m.id === 23) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge25BonusPercentage();
@@ -950,11 +1063,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge25Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(24));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(24));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -962,7 +1078,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
     if (m.id === 25) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge29BonusPercentage();
@@ -973,11 +1089,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge29Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(28));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(28));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -985,7 +1104,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
     if (m.id === 26) {
       if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
+        milestone = { ...m, description: [...m.description] };
       }
 
       const baseBonusPct = getSurge31BonusPercentage();
@@ -996,11 +1115,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const mult = getSurge31Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-            formattedBonus = formatNumber(BigNum.fromAny('Infinity'));
+          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
         } else {
-            const diffBN = currentLevelBN.sub(BigNum.fromInt(30));
-            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
-            formattedBonus = formatNumber(totalBonusPct);
+          const diffBN = currentLevelBN.sub(BigNum.fromInt(30));
+          const totalBonusPct =
+            diffBN.cmp(0) > 0
+              ? diffBN.mulDecimal(baseBonusPct)
+              : BigNum.fromInt(0);
+          formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -1012,6 +1134,6 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       future.push(milestone);
     }
   }
-  
+
   return [...reached, ...future.slice(0, 2)];
 }
