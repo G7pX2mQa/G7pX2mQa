@@ -5532,16 +5532,21 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
   
   // Custom ground overlay for Vault
   ctx.save();
-  ctx.fillStyle = "#1e1e1e";
+  const targetScale = 1.0 + tier * 0.1;
+  const startScale = 1.0 + prevTier * 0.1;
+  const currentScale = startScale + (targetScale - startScale) * animProgress;
+  ctx.scale(1 / currentScale, 1 / currentScale);
   
-  ctx.scale(1 / 0.6, 1 / 0.6);
-  ctx.fillRect(-800, 15, 1600, 500);
+  const floorH = 260;
+  
+  ctx.fillStyle = "rgb(42, 30, 24)";
+  ctx.fillRect(-1600, 0, 3200, floorH);
 
-  ctx.fillStyle = "#252525";
-  ctx.fillRect(-800, 30, 1600, 500);
+  ctx.fillStyle = "rgb(28, 20, 16)";
+  ctx.fillRect(-1600, floorH - floorH * 0.8, 3200, floorH * 0.8);
   
-  ctx.fillStyle = "#2c2c2c";
-  ctx.fillRect(-800, 45, 1600, 500);
+  ctx.fillStyle = "rgb(18, 12, 10)";
+  ctx.fillRect(-1600, floorH - floorH * 0.6, 3200, floorH * 0.6);
   ctx.restore();
 
 }
