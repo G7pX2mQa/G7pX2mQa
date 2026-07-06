@@ -4879,6 +4879,129 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
 
   // Tier 7 (Seismic Lockdown Clamps) back half is no longer needed.
 
+const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    
+    // Smooth 3D Red Holographic Shield Barrier
+    const domeGrad = ctx.createRadialGradient(0, centerY + radiusY*0.3, radiusY*0.1, 0, centerY, radiusX);
+    domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
+    domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
+    domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
+    
+    ctx.fillStyle = domeGrad;
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 3;
+    
+    // Draw the main dome
+    ctx.beginPath();
+    ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
+    ctx.lineTo(radiusX, bottomY);
+    ctx.lineTo(-radiusX, bottomY);
+    ctx.closePath();
+    
+    // Animated flowing 3D Hexagonal pattern
+    ctx.save();
+    
+    // Fill the dome over it
+    ctx.fill();
+    ctx.clip(); // clip hexes to the dome shape
+    
+    // Draw the hex grid using standard pattern logic mapped spherically
+    ctx.strokeStyle = "rgba(255, 100, 100, 0.4)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    
+    const hexSize = 15 * hexScale;
+    const scrollSpeed = 20 * hexScale;
+    const offsetY = (t * scrollSpeed) % (hexSize * Math.sqrt(3));
+    
+    const maxRows = Math.ceil((radiusX + 100) / (hexSize * Math.sqrt(3))) + 4;
+    const minRows = -2;
+    const maxCols = Math.ceil((radiusX + 100) / (hexSize * 1.5)) + 4;
+    
+    // Pole Y is the very top of the dome
+    const poleY = centerY - radiusY;
+    
+    for (let row = minRows; row <= maxRows; row++) {
+      for (let col = -maxCols; col <= maxCols; col++) {
+        let hx = col * hexSize * 1.5;
+        let hy = row * hexSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : hexSize * Math.sqrt(3) / 2) + offsetY;
+        
+        // Skip hexes completely out of bounds (using 2D radial distance)
+        let centerDist = Math.sqrt(hx*hx + hy*hy);
+        if (centerDist > radiusX * 2) continue;
+        
+        for (let i = 0; i < 6; i++) {
+          let a1 = i * Math.PI / 3;
+          let a2 = (i + 1) * Math.PI / 3;
+          
+          let px1 = hx + hexSize * Math.cos(a1);
+          let py1 = hy + hexSize * Math.sin(a1);
+          let px2 = hx + hexSize * Math.cos(a2);
+          let py2 = hy + hexSize * Math.sin(a2);
+          
+          const mapPoint = (px, py) => {
+            let dist = Math.sqrt(px*px + py*py);
+            
+            // Calculate max distance needed to reach the bottom clipping plane along the ellipse surface mapping
+            // my = centerY - radiusY * Math.cos(dist / radiusX)
+            // bottomY = centerY - radiusY * Math.cos(max_dist / radiusX)
+            let max_dist = radiusX * Math.acos((centerY - bottomY) / radiusY);
+            
+            // If the acos is NaN because bottomY is lower than the ellipse can reach, fallback to PI * radiusX
+            if (isNaN(max_dist)) max_dist = Math.PI * radiusX;
+            
+            // Limit wrapping around to the back
+            if (dist > max_dist) return null;
+            
+            let angle = Math.atan2(py, px);
+            
+            // Map the flat radial distance to spherical coordinates matching the ellipse
+            let sR = radiusX * Math.sin(dist / radiusX);
+            let mx = Math.cos(angle) * sR;
+            
+            // True elliptical height mapping
+            let my = centerY - radiusY * Math.cos(dist / radiusX);
+            
+            // Strict ground clipping
+            if (my > bottomY) return null;
+            
+            return {x: mx, y: my};
+          };
+          
+          let p1 = mapPoint(px1, py1);
+          let p2 = mapPoint(px2, py2);
+          
+          // Only draw if both points are valid (prevents connecting front/back and over bounds)
+          if (p1 && p2) {
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+          }
+        }
+      }
+    }
+    
+    ctx.stroke();
+    
+    // Add glow
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    
+    ctx.restore();
+    
+    // Stroke main dome outline on top
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 4;
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.stroke();
+    
+    ctx.restore();
+  };
+
   // --- Tier 0: Classic Safe ---
   const drawT0Vault = (alpha) => {
     if (alpha <= 0) return;
@@ -5398,106 +5521,9 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
 
   // --- Tier 8: Aegis Matrix Shield Upgrade ---
   if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-    
-    // Encompasses every previous tier
-    // A massive version of the Tier 4 shield
-    
-    // T4 had radius roughly 130, height -50.
-    // For T8, we want it to cover everything, including cannons (x=200) and clamps.
-    // So radius around 260. Height offset -100. Base at 15.
-    
-    const bigDomeGrad = ctx.createRadialGradient(0, -50, 50, 0, -100, 260);
-    bigDomeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
-    bigDomeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
-    bigDomeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
-    
-    ctx.fillStyle = bigDomeGrad;
-    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-    ctx.lineWidth = 4;
-    
-    // Draw the massive dome
-    ctx.beginPath();
-    ctx.ellipse(0, -100, 260, 200, 0, Math.PI, 0); 
-    ctx.lineTo(260, 15);
-    ctx.lineTo(-260, 15);
-    ctx.closePath();
-    
-    // Fill first, then clip and draw hexes, THEN stroke outline on top
-    ctx.fill();
-    
-    // Animated flowing 3D Hexagonal pattern (Scaled up for T8)
-    ctx.save();
-    ctx.clip(); // clip to the dome shape
-    
-    ctx.strokeStyle = "rgba(255, 100, 100, 0.5)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    
-    const hexSize = 30; // double size for the large dome
-    const scrollSpeed = 30;
-    const offsetY = (t * scrollSpeed) % (hexSize * Math.sqrt(3));
-    
-    for (let row = -10; row <= 15; row++) {
-      for (let col = -10; col <= 10; col++) {
-        let hx = col * hexSize * 1.5;
-        let hy = row * hexSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : hexSize * Math.sqrt(3) / 2) + offsetY;
-        
-        let dx = hx;
-        let dy = hy + 300; // pole offset mapped up
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        
-        if (dist > 400) continue;
-        
-        let angle = Math.atan2(dy, dx);
-        let sphericalR = 260 * Math.sin(dist / 260);
-        let mappedX = Math.cos(angle) * sphericalR;
-        let mappedY = -100 + (1 - Math.cos(dist / 260)) * 200; 
-        
-        for (let i = 0; i < 6; i++) {
-          let a1 = i * Math.PI / 3;
-          let a2 = (i + 1) * Math.PI / 3;
-          
-          let px1 = hx + hexSize * Math.cos(a1);
-          let py1 = hy + hexSize * Math.sin(a1);
-          let px2 = hx + hexSize * Math.cos(a2);
-          let py2 = hy + hexSize * Math.sin(a2);
-          
-          let dist1 = Math.sqrt(px1*px1 + (py1+300)*(py1+300));
-          let ang1 = Math.atan2(py1+300, px1);
-          let sR1 = 260 * Math.sin(dist1 / 260);
-          let mx1 = Math.cos(ang1) * sR1;
-          let my1 = -100 + (1 - Math.cos(dist1 / 260)) * 200;
-          
-          let dist2 = Math.sqrt(px2*px2 + (py2+300)*(py2+300));
-          let ang2 = Math.atan2(py2+300, px2);
-          let sR2 = 260 * Math.sin(dist2 / 260);
-          let mx2 = Math.cos(ang2) * sR2;
-          let my2 = -100 + (1 - Math.cos(dist2 / 260)) * 200;
-          
-          ctx.moveTo(mx1, my1);
-          ctx.lineTo(mx2, my2);
-        }
-      }
-    }
-    
-    ctx.stroke();
-    
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 15;
-    ctx.stroke();
-    
-    ctx.restore(); // restore clip
-    
-    // Stroke main dome outline on top
-    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-    ctx.lineWidth = 4;
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.stroke();
-    
-    ctx.restore();
+    // RadiusX: 260 covers cannons
+    // RadiusY shrunk to 160. CenterY -50. Base is 15.
+    drawForcefield(260, 160, -50, 15, t8, 2.0);
   }
 }
 
