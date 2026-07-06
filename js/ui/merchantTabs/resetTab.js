@@ -2389,7 +2389,7 @@ function updateSurgeCard() {
             if (d === ' ') {
                 return `<div style="text-align: center;">- -</div>`;
             }
-            if (d.includes('Current bonus:') || d.includes('Current Books/sec:') || d.includes('Current Gold/sec:') || d.includes('Current Magic/sec:') || d.includes('Current DNA/sec:')) {
+            if (d.includes('Can\'t generate') || d.includes('Current bonus:') || d.includes('Current Books/sec:') || d.includes('Current Gold/sec:') || d.includes('Current Magic/sec:') || d.includes('Current DNA/sec:')) {
                 return `<div style="color:#02e815">- ${d.replace(/<span style="color:#02e815">(.*?)<\/span>/g, '$1')}</div>`;
             }
             if (d.includes('Invokes the Tsunami') && !isReached) {
