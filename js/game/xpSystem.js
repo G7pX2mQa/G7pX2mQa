@@ -665,6 +665,8 @@ function normalizeProgress(applyRewards = false) {
   const limit = 10000;
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     if (bigNumIsInfinite(requirementBn) || bigNumIsInfinite(xpState.progress)) break;
+    const levelLocked = slot != null && isKeyLocked(KEY_XP_LEVEL(slot));
+    if (levelLocked) break;
     try { xpState.progress = xpState.progress.sub(requirementBn); }
     catch { xpState.progress = bnZero(); }
 
@@ -1284,6 +1286,7 @@ export function addXp(amount, { silent = false } = {}) {
       
       while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     if (bigNumIsInfinite(requirementBn) || bigNumIsInfinite(xpState.progress)) break;
+    if (levelLocked) break;
         xpState.progress = xpState.progress.sub(requirementBn);
         xpState.xpLevel = xpState.xpLevel.add(bnOne());
         xpLevelsGained = xpLevelsGained.add(bnOne());
