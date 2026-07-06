@@ -268,6 +268,7 @@ export function resetPpProgress({ keepUnlock = true } = {}) {
   updateHud();
   const detail = getPpState();
   try {
+    window.dispatchEvent(new CustomEvent('pp:change', { detail }));
     window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } }));
   } catch {}
   return detail;
