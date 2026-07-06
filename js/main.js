@@ -71,19 +71,83 @@ HTMLCanvasElement.prototype.getContext = function(contextType, contextAttributes
 
 const originalSetItem = localStorage.setItem.bind(localStorage);
 const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+const originalGetItem = localStorage.getItem.bind(localStorage);
+
+export const activeStorageKeys = new Set();
+if (typeof localStorage !== 'undefined') {
+    for (let i = 0; i < localStorage.length; i++) {
+        activeStorageKeys.add(localStorage.key(i));
+    }
+}
+
+const REMOVED_SYMBOL = Symbol('REMOVED');
+const localStorageBuffer = new Map();
+
+export function flushLocalStorageBuffer() {
+    if (localStorageBuffer.size === 0) return;
+    
+    const entries = Array.from(localStorageBuffer.entries());
+    localStorageBuffer.clear();
+    
+    if (!window.__duplicateInstanceDetected && window.currentArea !== 666) {
+        window.__isFlushing = true;
+        entries.forEach(([key, value]) => {
+            if (value === REMOVED_SYMBOL) {
+                originalRemoveItem(key);
+            } else {
+                originalSetItem(key, value);
+            }
+        });
+        window.__isFlushing = false;
+    }
+}
+if (typeof window !== 'undefined') {
+    window.flushLocalStorageBuffer = flushLocalStorageBuffer;
+}
+
+if (typeof window !== 'undefined') {
+    setInterval(flushLocalStorageBuffer, 1000);
+    window.addEventListener('beforeunload', () => {
+        flushLocalStorageBuffer();
+    });
+}
+
+localStorage.getItem = function(key) {
+    if (localStorageBuffer.has(key)) {
+        const val = localStorageBuffer.get(key);
+        return val === REMOVED_SYMBOL ? null : val;
+    }
+    return originalGetItem(key);
+};
 
 localStorage.setItem = function(key, value) {
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
-    return Object.getPrototypeOf(localStorage).setItem.call(localStorage, key, value);
+    const strVal = String(value);
+    localStorageBuffer.set(key, strVal);
+    activeStorageKeys.add(key);
+    
+    // Dispatch trusted storage mutation event synchronously for anti-cheat
+    if (typeof window !== 'undefined' && String(key).startsWith('ccc:') && !String(key).startsWith('ccc:slotSig') && !String(key).startsWith('ccc:slotMod') && !String(key).startsWith('ccc:debug:')) {
+        const slotMatch = String(key).match(/:(\d+)$/);
+        if (slotMatch) {
+            const slot = parseInt(slotMatch[1], 10);
+            if (Number.isFinite(slot) && slot > 0) {
+                try {
+                    window.dispatchEvent(new CustomEvent('saveIntegrity:storageMutation', { detail: { key, slot, trusted: true } }));
+                } catch {}
+            }
+        }
+    }
 };
 
 localStorage.removeItem = function(key) {
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
-    return Object.getPrototypeOf(localStorage).removeItem.call(localStorage, key);
+    localStorageBuffer.set(key, REMOVED_SYMBOL);
+    activeStorageKeys.delete(key);
 };
 
 export const IS_MOBILE = (() => {
