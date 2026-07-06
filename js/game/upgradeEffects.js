@@ -251,8 +251,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
               if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
                   acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, BigNum.fromAny('Infinity'));
               } else {
-                  const ppFactor = bigNumFromLog10(ppLevelNum * Math.log10(2));
-                  acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, ppFactor);
+                  const ppFactor = bigNumFromLog10(ppLevelNum * Math.log10(2), true).floorToInteger();
+                  acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, ppFactor).floorToInteger();
               }
           }
       }
@@ -555,6 +555,10 @@ export function registerXpUpgradeEffects() {
 
     window.addEventListener('lab:node:change', () => {
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+
+    window.addEventListener('pp:change', () => {
+        try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
   }
 }
