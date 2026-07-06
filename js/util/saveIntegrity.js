@@ -3,6 +3,7 @@
 // A one-way flag, `hasModifiedSave`, will become true and turn the shop button's color brown,
 // Which I like to call the poop-shop of shame.
 // Used to detect cheaters.
+import { activeStorageKeys } from '../main.js';
 import {
   
   getActiveSlot,
@@ -76,8 +77,7 @@ function rebuildExpectedStateForSlot(slot) {
     return snapshot;
   }
   try {
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
+    for (const key of activeStorageKeys) {
       if (!key || !key.startsWith('ccc:')) continue;
       if (key.startsWith('ccc:debug:')) continue;
       const keySlot = parseSlotFromKey(key);
@@ -170,8 +170,7 @@ function collectEntriesBySlot() {
   const map = new Map();
   if (!hasLocalStorage()) return map;
   try {
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
+    for (const key of activeStorageKeys) {
       if (!key || !key.startsWith('ccc:')) continue;
       if (key.startsWith('ccc:debug:')) continue;
       const slotMatch = key.match(/:(\d+)$/);
