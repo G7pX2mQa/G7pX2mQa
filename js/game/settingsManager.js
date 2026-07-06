@@ -154,7 +154,7 @@ export const SETTING_DEFINITIONS = {
     type: 'toggle',
     label: 'Lab Node Insta-Toggle',
     hasExtraInfo: true,
-    info: 'Do you hate having to click a lab node overlay, press Toggle, close the overlay, then when it completes, move onto the next, repeating this process forever? Toggle this setting ON to instantly toggle a node just by tapping on the node.',
+    info: 'Do you hate having to click a lab node overlay, press Toggle, close the overlay, then when it completes, move onto the next and do it all over again? Toggle this setting ON to instantly toggle a node just by tapping on the node.',
     default: false,
     unlockCondition: () => {
       try {
@@ -182,6 +182,102 @@ export const SETTING_DEFINITIONS = {
     step: 1,
     default: 100,
     unlockCondition: () => true,
+  },
+  spawn_vessel_volume: {
+    id: 'spawn_vessel_volume',
+    type: 'slider',
+    label: 'Spawn Vessel Volume',
+    hasExtraInfo: true,
+	info: 'This slider represents the volume at which spawn vessels (e.g., the waves that spawn in The Cove) are played at',
+    min: 0,
+    max: 100,
+    step: 1,
+    default: 100,
+    unlockCondition: () => true,
+  },
+  magnet_radius: {
+    id: 'magnet_radius',
+    type: 'slider',
+    label: 'Magnet Radius',
+    hasExtraInfo: true,
+    info: 'This slider represents the radius of your Magnet which you can manually adjust the value of here. Leave this slider at the maximum value for normal gameplay or set this slider to 0 to disable the Magnet completely.',
+    min: 0,
+    max: () => getMagnetLevel(),
+    step: 0.1,
+    default: () => getMagnetLevel(),
+    unlockCondition: () => getMagnetLevel() >= 1,
+  },
+  eac_efficiency: {
+    id: 'eac_efficiency',
+    type: 'slider',
+    label: 'EAC Efficiency',
+    hasExtraInfo: true,
+    info: 'This slider represents the efficiency at which your Effective Auto-Collect will generate things in any given area. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAC run at n% efficiency. Set this slider value to 0 to completely disable EAC earnings.',
+    min: 0,
+    max: 100,
+    step: 1,
+    default: 100,
+    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) >= 1 || getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID) >= 1,
+  },
+  auto_sell_efficiency: {
+    id: 'auto_sell_efficiency',
+    type: 'slider',
+    label: 'EAS Efficiency',
+    hasExtraInfo: true,
+    info: 'This slider represents the efficiency at which your Effective Auto-Sell will generate potential Scrap from selling. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAS run at n% efficiency. Set this slider value to 0 to completely disable EAS earnings.',
+    min: 0,
+    max: 100,
+    step: 1,
+    default: 100,
+    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID) >= 1,
+  },
+  number_notation: {
+    id: 'number_notation',
+    type: 'dropdown',
+    label: 'Number Notation',
+    hasExtraInfo: false,
+    default: 'Standard',
+    options: [
+      { value: 'Standard', label: 'Standard' },
+      { value: 'Scientific (1e6+)', label: 'Scientific (1e6+)' },
+      { value: 'Scientific (1e33+)', label: 'Scientific (1e33+)' },
+      { value: 'Engineering (1e6+)', label: 'Engineering (1e6+)' },
+      { value: 'Engineering (1e33+)', label: 'Engineering (1e33+)' },
+      { value: 'Extended Suffixes', label: 'Extended Suffixes (hell)' }
+    ],
+    unlockCondition: () => true
+  },
+  coin_mutation_visual: {
+    id: 'coin_mutation_visual',
+    type: 'dropdown',
+    label: 'Coin Mutation',
+    overlay: 'visuals',
+    hasExtraInfo: false,
+    default: 'Default',
+    getOptions: () => {
+      let highest = 0;
+      try {
+        const hLevel = getHighestMutationLevel();
+        if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
+          const s = hLevel.inf || hLevel.e >= 15 ? 'Infinity' : hLevel.toPlainIntegerString();
+          if (s !== 'Infinity') {
+            highest = parseInt(s, 10);
+          } else {
+            highest = MAX_MUTATION_VISUAL;
+          }
+        }
+      } catch (e) {}
+      
+      const opts = [];
+      opts.push({ value: 'Default', label: 'Default' });
+      opts.push({ value: 'Random', label: 'Random' });
+      for (let i = 0; i <= Math.min(highest, MAX_MUTATION_VISUAL); i++) {
+        const name = MUTATION_NAMES[i] || `Mutation ${i}`;
+        const iconSrc = i === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${i}.webp`;
+        opts.push({ value: `M${i}`, label: `M${i} (${name})`, icon: iconSrc });
+      }
+      return opts;
+    }
   },
   show_fps: {
     id: 'show_fps',
@@ -244,93 +340,6 @@ export const SETTING_DEFINITIONS = {
     step: 1,
     default: 10,
     unlockCondition: () => true,
-  },
-
-
-  magnet_radius: {
-    id: 'magnet_radius',
-    type: 'slider',
-    label: 'Magnet Radius',
-    hasExtraInfo: true,
-    info: 'This slider represents the radius of your Magnet which you can manually adjust the value of here. Leave this slider at the maximum value for normal gameplay or set this slider to 0 to disable the Magnet completely..',
-    min: 0,
-    max: () => getMagnetLevel(),
-    step: 0.1,
-    default: () => getMagnetLevel(),
-    unlockCondition: () => getMagnetLevel() >= 1,
-  },
-  eac_efficiency: {
-    id: 'eac_efficiency',
-    type: 'slider',
-    label: 'EAC Efficiency',
-    hasExtraInfo: true,
-    info: 'This slider represents the efficiency at which your Effective Auto-Collect will generate things in any given area. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAC run at n% efficiency. Set this slider value to 0 to completely disable EAC earnings.',
-    min: 0,
-    max: 100,
-    step: 1,
-    default: 100,
-    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) >= 1 || getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID) >= 1,
-  },
-  auto_sell_efficiency: {
-    id: 'auto_sell_efficiency',
-    type: 'slider',
-    label: 'EAS Efficiency',
-    hasExtraInfo: true,
-    info: 'This slider represents the efficiency at which your Effective Auto-Sell will generate potential Scrap from selling. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAS run at n% efficiency. Set this slider value to 0 to completely disable EAS earnings.',
-    min: 0,
-    max: 100,
-    step: 1,
-    default: 100,
-    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID) >= 1,
-  },
-  number_notation: {
-    id: 'number_notation',
-    type: 'dropdown',
-    label: 'Number Notation',
-    hasExtraInfo: false,
-    default: 'Standard',
-    options: [
-      { value: 'Standard', label: 'Standard' },
-      { value: 'Scientific (1e6+)', label: 'Scientific (1e6+)' },
-      { value: 'Scientific (1e33+)', label: 'Scientific (1e33+)' },
-      { value: 'Engineering (1e6+)', label: 'Engineering (1e6+)' },
-      { value: 'Engineering (1e33+)', label: 'Engineering (1e33+)' },
-      { value: 'Extended Suffixes', label: 'Extended Suffixes (hell)' }
-    ],
-    unlockCondition: () => true
-  },
-
-  coin_mutation_visual: {
-    id: 'coin_mutation_visual',
-    type: 'dropdown',
-    label: 'Coin Mutation',
-    overlay: 'visuals',
-    hasExtraInfo: false,
-    default: 'Default',
-    getOptions: () => {
-      let highest = 0;
-      try {
-        const hLevel = getHighestMutationLevel();
-        if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-          const s = hLevel.inf || hLevel.e >= 15 ? 'Infinity' : hLevel.toPlainIntegerString();
-          if (s !== 'Infinity') {
-            highest = parseInt(s, 10);
-          } else {
-            highest = MAX_MUTATION_VISUAL;
-          }
-        }
-      } catch (e) {}
-      
-      const opts = [];
-      opts.push({ value: 'Default', label: 'Default' });
-      opts.push({ value: 'Random', label: 'Random' });
-      for (let i = 0; i <= Math.min(highest, MAX_MUTATION_VISUAL); i++) {
-        const name = MUTATION_NAMES[i] || `Mutation ${i}`;
-        const iconSrc = i === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${i}.webp`;
-        opts.push({ value: `M${i}`, label: `M${i} (${name})`, icon: iconSrc });
-      }
-      return opts;
-    }
   },
   forge_confirmation: {
     id: 'forge_confirmation',
