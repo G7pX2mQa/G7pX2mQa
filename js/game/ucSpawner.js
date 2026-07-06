@@ -114,13 +114,24 @@ export function createUcSpawner(config = {}) {
     window.addEventListener('resize', updatePickaxeSize);
     updatePickaxeSize();
 
+    let cachedRate = -1;
+    let cachedVolume = basePickaxeSoundVolume;
+
     function getPickaxeSoundVolume() {
+        if (currentRate === cachedRate) {
+            return cachedVolume;
+        }
+        
+        cachedRate = currentRate;
+
         const fadeProgress = clamp(
             (currentRate - minPickaxeVolumeRate) / (halfPickaxeVolumeRate - minPickaxeVolumeRate),
             0,
             1
         );
-        return basePickaxeSoundVolume * (1 - Math.sqrt(fadeProgress) * 0.75);
+        
+        cachedVolume = basePickaxeSoundVolume * (1 - Math.sqrt(fadeProgress) * 0.75);
+        return cachedVolume;
     }
 	
     function playSpawnSound() {
