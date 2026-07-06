@@ -571,6 +571,7 @@ export function resetDpProgress({ keepUnlock = true } = {}) {
   updateHud();
   const detail = getDpState();
   try {
+    window.dispatchEvent(new CustomEvent('dp:change', { detail }));
     window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } }));
   } catch {}
   return detail;
