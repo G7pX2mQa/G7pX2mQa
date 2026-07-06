@@ -2037,6 +2037,10 @@ function applyPpState({ level, progress }) {
   try {
       const rawLevel = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage(); localStorage.setItem(PP_KEYS.level(slot), rawLevel); primeStorageWatcherSnapshot(PP_KEYS.level(slot), rawLevel);
       const rawProgress = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage(); localStorage.setItem(PP_KEYS.progress(slot), rawProgress); primeStorageWatcherSnapshot(PP_KEYS.progress(slot), rawProgress);
+      if (typeof window !== 'undefined') {
+          const detail = window.ppSystem?.getPpState?.() || { ppLevel: nextLevel, progress: nextProgress };
+          window.dispatchEvent(new CustomEvent('pp:change', { detail }));
+      }
   } catch {}
 
   try {
