@@ -662,7 +662,10 @@ export function bigNumFromLog10(log10Value, noFuzz = false) {
   if (log10Value <= -1e12) return BigNum.fromInt(0);
 
   if (!noFuzz) {
-    log10Value += 1e-14;
+    const rounded = Math.round(log10Value);
+    if (Math.abs(log10Value - rounded) < 1e-12) {
+      log10Value = rounded;
+    }
   }
 
   const p = BigNum.DEFAULT_PRECISION;
@@ -673,7 +676,14 @@ export function bigNumFromLog10(log10Value, noFuzz = false) {
     intPart -= 1;
   }
 
-  const mantissa = Math.pow(10, frac + (p - 1));
+  let baseVal = Math.pow(10, frac);
+  let mantissa;
+  if (!noFuzz) {
+    baseVal = Math.round(baseVal * 1e12) / 1e12;
+    mantissa = Math.round(baseVal * 1e12) * Math.pow(10, p - 1 - 12);
+  } else {
+    mantissa = baseVal * Math.pow(10, p - 1);
+  }
   const sig = Math.max(1, Math.round(mantissa));
   const exp = intPart - (p - 1);
   return new BigNum(sig, exp, p);
