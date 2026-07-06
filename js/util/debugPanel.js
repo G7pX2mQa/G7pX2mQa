@@ -2305,9 +2305,12 @@ function buildAreaStats(container, area) {
 	
 	    if (area.key === AREA_KEYS.STARTER_COVE) {
         const voidLevelRow = createInputRow('Void Level', getVoidLevel(slot), (value, { setValue }) => {
-            let valBn;
-            try {
-                valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+            let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+                let valBn;
+                try {
+                     valBn = valToApply instanceof BigNum ? valToApply : BigNum.fromAny(valToApply);
+                if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
                 if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
             } catch {
                 setValue(getVoidLevel(slot));
@@ -2409,6 +2412,7 @@ function buildAreaStats(container, area) {
         const dpLevelRow = createInputRow('Depth', dpStateVal.dpLevel, (value, { setValue }) => {
             const prev = window.dpSystem.getDpState().dpLevel;
             let valToApply = value;
+            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
             if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
                 valToApply = BigNum.fromAny('Infinity');
             } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
@@ -2466,6 +2470,7 @@ function buildAreaStats(container, area) {
         const ppLevelRow = createInputRow('Pressure', ppStateVal.ppLevel, (value, { setValue }) => {
             const prev = window.ppSystem.getPpState().ppLevel;
             let valToApply = value;
+            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
             if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
                 valToApply = BigNum.fromAny('Infinity');
             } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
@@ -2590,8 +2595,10 @@ function buildAreaStats(container, area) {
     let xpProgressRow;
     const xpLevelKey = XP_KEYS.level(slot);
     const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
         const prev = getXpState().xpLevel;
-        applyXpState({ level: value });
+        applyXpState({ level: valToApply });
         const latest = getXpState();
         setValue(latest.xpLevel);
         if (xpProgressRow) xpProgressRow.setValue(latest.progress);
@@ -2637,8 +2644,10 @@ function buildAreaStats(container, area) {
     let mpProgressRow;
     const mpLevelKey = MUTATION_KEYS.level(slot);
     const mpLevelRow = createInputRow('Mutation', mutation.level, (value, { setValue }) => {
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
         const prev = getMutationState().level;
-        applyMutationState({ level: value });
+        applyMutationState({ level: valToApply });
         const latest = getMutationState();
         setValue(latest.level);
         if (mpProgressRow) mpProgressRow.setValue(latest.progress);
@@ -2702,10 +2711,11 @@ function buildAreaStats(container, area) {
 
     const genLevelRow = createInputRow('Workshop Level', getLevel(), (value, { setValue }) => {
         // Helper to get a finite number from input, which might be BigNum or string/number
-        let valNum = Number(value);
-
-        if (value instanceof BigNum) {
-             if (value.isInfinite()) {
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+        let valNum = Number(valToApply);
+        if (valToApply instanceof BigNum) {
+             if (valToApply.isInfinite()) {
                  valNum = Infinity; 
              } else {
                  try {
@@ -2719,6 +2729,7 @@ function buildAreaStats(container, area) {
         }
 
         if (Number.isNaN(valNum) || valNum < 0) return;
+        valNum = Math.floor(valNum);
         if (valNum >= 4.5e12) valNum = Infinity;
         const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
         
@@ -2777,10 +2788,13 @@ function buildAreaStats(container, area) {
     };
 
     const surgeLevelRow = createInputRow('Surge', getSurgeLevel(), (value, { setValue }) => {
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+
         let valToStore = '0';
         let valForDisplay = 0;
 
-        if (value instanceof BigNum) {
+        if (valToApply instanceof BigNum) {
              if (value.isInfinite()) {
                  valToStore = 'Infinity';
                  valForDisplay = Infinity;
@@ -2788,12 +2802,12 @@ function buildAreaStats(container, area) {
                  valToStore = value.inf || value.e >= 15 ? 'Infinity' : value.toPlainIntegerString();
                  valForDisplay = value;
              }
-        } else if (value === Infinity || (typeof value === 'string' && /infinity/i.test(value))) {
+        } else if (valToApply === Infinity || (typeof valToApply === 'string' && /infinity/i.test(valToApply))) {
              valToStore = 'Infinity';
              valForDisplay = Infinity;
         } else {
-             valToStore = String(value);
-             valForDisplay = value;
+             valToStore = String(valToApply);
+             valForDisplay = valToApply;
         }
 
         if (valForDisplay instanceof BigNum && valForDisplay.cmp(BigNum.fromAny(4.5e12)) >= 0) {
@@ -2896,6 +2910,7 @@ function buildAreaStats(container, area) {
         let valBn;
         try {
              valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+             if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
              if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
         } catch {
              setValue(getLabLevel());
@@ -3072,7 +3087,9 @@ function buildAreaUpgrades(container, area) {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
             const previous = getLevel(area.key, upg.id ?? upg.tie);
-            try { setLevel(area.key, upg.id ?? upg.tie, value, false); } catch {}
+            let valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+            if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
+            try { setLevel(area.key, upg.id ?? upg.tie, valBn, false); } catch {}
             const refreshed = getLevel(area.key, upg.id ?? upg.tie);
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
@@ -4459,6 +4476,7 @@ function buildBuildingsDebug(container) {
         
         const row = createInputRow(title, currentLevel, (value, { setValue }) => {
             let valToApply = value;
+            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
             if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
                 valToApply = BigNum.fromAny('Infinity');
             } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
