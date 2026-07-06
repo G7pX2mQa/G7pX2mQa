@@ -138,7 +138,7 @@ export function createUcSpawner(config = {}) {
         const now = performance.now();
         if (now - soundLastAt < soundMinIntervalMs) return;
         soundLastAt = now;
-        playAudio(soundURL, { volume: getPickaxeSoundVolume(), type: 'sfx' });
+        playAudio(soundURL, { volume: getPickaxeSoundVolume(), type: 'spawn_vessel' });
     }
 
     
