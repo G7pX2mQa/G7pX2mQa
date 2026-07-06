@@ -1,4 +1,5 @@
 // js/util/slotsManager.js
+import { activeStorageKeys } from '../main.js';
 import { KEYS, getActiveSlot } from './storage.js';
 import { refreshSlotsView } from './slots.js';
 
@@ -23,8 +24,7 @@ function setDeleteMode(on) {
 function removeAllKeysForSlot(slot) {
   const re = new RegExp(`^ccc:.*:${slot}$`);
   const toRemove = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
+  for (const k of activeStorageKeys) {
     if (re.test(k)) toRemove.push(k);
   }
   toRemove.forEach((k) => localStorage.removeItem(k));
