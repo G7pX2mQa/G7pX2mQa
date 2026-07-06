@@ -297,6 +297,18 @@ export function addPp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
 
+  if (slot != null && isKeyLocked(KEY_PROGRESS(slot))) {
+    return {
+      unlocked: ppState.unlocked,
+      ppLevelsGained: bnZero(),
+      ppAdded: bnZero(),
+      ppLevel: ppState.ppLevel,
+      progress: ppState.progress,
+      requirement: requirementBn,
+      slot
+    };
+  }
+
   const wasLevelInf = !!(ppState.ppLevel?.isInfinite?.() || (typeof ppState.ppLevel?.isInfinite === 'function' && ppState.ppLevel.isInfinite()));
   const wasProgInf = !!(ppState.progress?.isInfinite?.() || (typeof ppState.progress?.isInfinite === 'function' && ppState.progress.isInfinite()));
 
@@ -468,10 +480,13 @@ export function addPp(amount, { silent = false } = {}) {
       if (estimatedGain > 10) {
         const safeGain = Math.max(0, estimatedGain - 5);
         if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
-          const safeGainBn = BigNum.fromAny(safeGain.toString());
-          ppState.ppLevel = ppState.ppLevel.add(safeGainBn);
-          ppLevelsGained = ppLevelsGained.add(safeGainBn);
-          updatePpRequirement();
+          const levelLocked = slot != null && isKeyLocked(KEY_PP_LEVEL(slot));
+          if (!levelLocked) {
+            const safeGainBn = BigNum.fromAny(safeGain.toString());
+            ppState.ppLevel = ppState.ppLevel.add(safeGainBn);
+            ppLevelsGained = ppLevelsGained.add(safeGainBn);
+            updatePpRequirement();
+          }
         }
       }
     }
@@ -482,6 +497,8 @@ export function addPp(amount, { silent = false } = {}) {
   
   while (ppState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     if (isInfinite(requirementBn) || isInfinite(ppState.progress)) break;
+    const levelLocked = slot != null && isKeyLocked(KEY_PP_LEVEL(slot));
+    if (levelLocked) break;
     ppState.progress = ppState.progress.sub(requirementBn);
     ppState.ppLevel = ppState.ppLevel.add(bnOne());
     ppLevelsGained = ppLevelsGained.add(bnOne());
