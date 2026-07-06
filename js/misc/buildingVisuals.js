@@ -4981,23 +4981,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
           
           // Only draw if both points are valid (prevents connecting front/back and over bounds)
           if (p1 && p2) {
-            const groundY = 15;
-            
-            if (p1.y > groundY && p2.y > groundY) {
-              // Both points are underground, do not draw
-              continue;
-            } else if (p1.y > groundY || p2.y > groundY) {
-              // One point is underground, interpolate to find intersection at groundY
-              let t_intersect = (groundY - p1.y) / (p2.y - p1.y);
-              let ix = p1.x + t_intersect * (p2.x - p1.x);
-              
-              if (p1.y > groundY) {
-                p1 = { x: ix, y: groundY };
-              } else {
-                p2 = { x: ix, y: groundY };
-              }
-            }
-
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
           }
@@ -5540,13 +5523,27 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     
     ctx.restore();
   }
-
   // --- Tier 8: Aegis Matrix Shield Upgrade ---
   if (t8 > 0) {
     // RadiusX: 260 covers cannons
     // RadiusY shrunk to 160. CenterY -50. Base is 15.
     drawForcefield(260, 160, -50, 0, t8, 2.0);
   }
+  
+  // Custom ground overlay for Vault
+  ctx.save();
+  ctx.fillStyle = "#1e1e1e";
+  
+  ctx.scale(1 / 0.6, 1 / 0.6);
+  ctx.fillRect(-800, 15, 1600, 500);
+
+  ctx.fillStyle = "#252525";
+  ctx.fillRect(-800, 30, 1600, 500);
+  
+  ctx.fillStyle = "#2c2c2c";
+  ctx.fillRect(-800, 45, 1600, 500);
+  ctx.restore();
+
 }
 
 function drawOilRig(ctx, t, tier) {
