@@ -4981,6 +4981,23 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
           
           // Only draw if both points are valid (prevents connecting front/back and over bounds)
           if (p1 && p2) {
+            const groundY = 15;
+            
+            if (p1.y > groundY && p2.y > groundY) {
+              // Both points are underground, do not draw
+              continue;
+            } else if (p1.y > groundY || p2.y > groundY) {
+              // One point is underground, interpolate to find intersection at groundY
+              let t_intersect = (groundY - p1.y) / (p2.y - p1.y);
+              let ix = p1.x + t_intersect * (p2.x - p1.x);
+              
+              if (p1.y > groundY) {
+                p1 = { x: ix, y: groundY };
+              } else {
+                p2 = { x: ix, y: groundY };
+              }
+            }
+
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
           }
