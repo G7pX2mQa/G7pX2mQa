@@ -597,7 +597,7 @@ export function getDpMultiplier() {
               if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
                   dpMult = dpMult.mulBigNumInteger(BigNum.fromAny('Infinity'));
               } else {
-                  const powValBn = bigNumFromLog10(ppLevelNum * Math.log10(2));
+                  const powValBn = bigNumFromLog10(ppLevelNum * Math.log10(2), true).floorToInteger();
                   dpMult = dpMult.mulBigNumInteger(powValBn);
               }
           }
@@ -812,19 +812,19 @@ export function addDp(amount, { silent = false } = {}) {
       if (estimatedGain > 10) {
         const safeGain = Math.max(0, estimatedGain - 5);
         if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
-          const safeGainBn = BigNum.fromAny(safeGain.toString());
-          dpState.dpLevel = dpState.dpLevel.add(safeGainBn);
-          dpLevelsGained = dpLevelsGained.add(safeGainBn);
-          updateDpRequirement();
+          if (!levelLocked) {
+            const safeGainBn = BigNum.fromAny(safeGain.toString());
+            dpState.dpLevel = dpState.dpLevel.add(safeGainBn);
+            dpLevelsGained = dpLevelsGained.add(safeGainBn);
+            updateDpRequirement();
+          }
         }
       } else if (!Number.isFinite(estimatedGain)) {
-          dpState.dpLevel = BigNum.fromAny('Infinity');
-          dpLevelsGained = BigNum.fromAny('Infinity');
-          updateDpRequirement();
-      } else if (!Number.isFinite(estimatedGain)) {
-          dpState.dpLevel = BigNum.fromAny('Infinity');
-          dpLevelsGained = BigNum.fromAny('Infinity');
-          updateDpRequirement();
+          if (!levelLocked) {
+              dpState.dpLevel = BigNum.fromAny('Infinity');
+              dpLevelsGained = BigNum.fromAny('Infinity');
+              updateDpRequirement();
+          }
       }
     }
   }
@@ -835,6 +835,7 @@ export function addDp(amount, { silent = false } = {}) {
   while (dpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     if (isInfinite(requirementBn) || isInfinite(dpState.progress)) break;
     if (isInfinite(requirementBn)) break;
+    if (levelLocked) break;
     dpState.progress = dpState.progress.sub(requirementBn);
     dpState.dpLevel = dpState.dpLevel.add(bnOne());
     dpLevelsGained = dpLevelsGained.add(bnOne());
