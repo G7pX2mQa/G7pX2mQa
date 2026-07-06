@@ -120,7 +120,7 @@ export function createUcSpawner(config = {}) {
             0,
             1
         );
-        return basePickaxeSoundVolume * (1 - fadeProgress * 0.5);
+        return basePickaxeSoundVolume * (1 - Math.sqrt(fadeProgress) * 0.75);
     }
 	
     function playSpawnSound() {
