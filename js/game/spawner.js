@@ -121,7 +121,7 @@ export function createSpawner(config = {}) {
       waveLastAt = now;
       
       const vol = IS_MOBILE ? waveSoundMobileVolume : waveSoundDesktopVolume;
-      const audioObj = playAudio(waveURL, { volume: vol, type: "music" });
+      const audioObj = playAudio(waveURL, { volume: vol, type: "spawn_vessel" });
       if (audioObj) {
           activeWaveSounds.push(audioObj);
           if (activeWaveSounds.length > 20) {
