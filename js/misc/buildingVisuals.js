@@ -4917,9 +4917,13 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     const scrollSpeed = 20 * hexScale;
     const offsetY = (t * scrollSpeed) % (hexSize * Math.sqrt(3));
     
-    const maxRows = Math.ceil((radiusX + 100) / (hexSize * Math.sqrt(3))) + 4;
+    // Distance across dome to equator is (PI / 2) * radiusX.
+    // Past that, it travels vertically.
+    const max_hex_dist = (Math.PI / 2) * radiusX + Math.max(0, bottomY - centerY) + 100;
+
+    const maxRows = Math.ceil((max_hex_dist) / (hexSize * Math.sqrt(3))) + 4;
     const minRows = -2;
-    const maxCols = Math.ceil((radiusX + 100) / (hexSize * 1.5)) + 4;
+    const maxCols = Math.ceil((max_hex_dist) / (hexSize * 1.5)) + 4;
     
     // Pole Y is the very top of the dome
     const poleY = centerY - radiusY;
@@ -4931,7 +4935,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
         
         // Skip hexes completely out of bounds (using 2D radial distance)
         let centerDist = Math.sqrt(hx*hx + hy*hy);
-        if (centerDist > radiusX * 2) continue;
+        if (centerDist > max_hex_dist) continue;
         
         for (let i = 0; i < 6; i++) {
           let a1 = i * Math.PI / 3;
@@ -4945,28 +4949,29 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
           const mapPoint = (px, py) => {
             let dist = Math.sqrt(px*px + py*py);
             
-            // Calculate max distance needed to reach the bottom clipping plane along the ellipse surface mapping
-            // my = centerY - radiusY * Math.cos(dist / radiusX)
-            // bottomY = centerY - radiusY * Math.cos(max_dist / radiusX)
-            let max_dist = radiusX * Math.acos((centerY - bottomY) / radiusY);
-            
-            // If the acos is NaN because bottomY is lower than the ellipse can reach, fallback to PI * radiusX
-            if (isNaN(max_dist)) max_dist = Math.PI * radiusX;
-            
-            // Limit wrapping around to the back
-            if (dist > max_dist) return null;
+            // Limit wrapping around to the back or going way too far down
+            if (dist > max_hex_dist) return null;
             
             let angle = Math.atan2(py, px);
             
-            // Map the flat radial distance to spherical coordinates matching the ellipse
-            let sR = radiusX * Math.sin(dist / radiusX);
+            let sR;
+            let my;
+            
+            // If it's above the equator, map to the ellipse
+            if (dist / radiusX <= Math.PI / 2) {
+              sR = radiusX * Math.sin(dist / radiusX);
+              my = centerY - radiusY * Math.cos(dist / radiusX);
+            } else {
+              // Once it passes the equator, it travels straight down like a cylinder
+              sR = radiusX;
+              let pastEquatorDist = dist - (Math.PI / 2) * radiusX;
+              my = centerY + pastEquatorDist;
+            }
+            
             let mx = Math.cos(angle) * sR;
             
-            // True elliptical height mapping
-            let my = centerY - radiusY * Math.cos(dist / radiusX);
-            
-            // Strict ground clipping
-            if (my > bottomY) return null;
+            // Safe buffer instead of strict clipping
+            if (my > bottomY + 100) return null;
             
             return {x: mx, y: my};
           };
@@ -5221,8 +5226,8 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     // Draw the main dome
     ctx.beginPath();
     ctx.ellipse(0, -50, 130, 100, 0, Math.PI, 0); 
-    ctx.lineTo(130, 15);
-    ctx.lineTo(-130, 15);
+    ctx.lineTo(130, 0);
+    ctx.lineTo(-130, 0);
     ctx.closePath();
     
     // Animated flowing 3D Hexagonal pattern
@@ -5523,7 +5528,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
   if (t8 > 0) {
     // RadiusX: 260 covers cannons
     // RadiusY shrunk to 160. CenterY -50. Base is 15.
-    drawForcefield(260, 160, -50, 15, t8, 2.0);
+    drawForcefield(260, 160, -50, 0, t8, 2.0);
   }
 }
 
