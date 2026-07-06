@@ -538,6 +538,8 @@ function normalizeProgress() {
 
   while (mutationState.progress.cmp?.(currentReq) >= 0 && guard < limit) {
     if (currentReq.isInfinite?.() || mutationState.progress.isInfinite?.()) break;
+    const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+    if (levelLocked) break;
     // Spend MP to gain a level
     mutationState.progress = mutationState.progress.sub(currentReq);
     mutationState.level = mutationState.level.add(bnOne());
