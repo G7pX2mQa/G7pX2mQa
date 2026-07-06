@@ -123,10 +123,18 @@ export async function loadAudio(src) {
  * @param {number} [options.detune=0] - Detune in cents.
  * @param {number} [options.playbackRate=1.0] - Playback rate.
  * @param {boolean} [options.loop=false] - Whether to loop.
- * @param {string} [options.type='sfx'] - 'sfx' or 'music'.
+ * @param {string} [options.type='sfx'] - 'sfx', 'music', or 'spawn_vessel'.
  */
 export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0 } = {}) {
   if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
+ 
+  if (type === 'spawn_vessel') {
+      const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
+      if (spawnVesselVolumeSetting === 0) return null;
+      volume = volume * (spawnVesselVolumeSetting / 100);
+      type = 'sfx';
+  }
+
   const ctx = getAudioContext();
   const url = new URL(src, document.baseURI).href;
   
