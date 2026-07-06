@@ -2,6 +2,7 @@
 // Improves local storage tracking by supplying helper functions for saveIntegrity.js,
 // And also supplies frequent IndexedDB snapshots to back up progress if
 // Local storage ever becomes corrupted (safeguard against abrupt page suspensions)
+import { activeStorageKeys } from '../main.js';
 import { beforeSlotWrite, afterSlotWrite } from './saveIntegrity.js';
 
 const DB_NAME = 'ccc:safety';
@@ -99,8 +100,7 @@ function captureSnapshot() {
   const data = {};
   let captured = false;
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (const key of activeStorageKeys) {
       if (!key || !key.startsWith('ccc:')) continue;
       let value = null;
       try {
@@ -251,9 +251,11 @@ if (typeof originalSet === 'function') {
 
     // Before we write, verify nothing in this slot changed behind our back.
     if (isTrackedGameKey) {
-      try {
-        beforeSlotWrite(strKey);
-      } catch {}
+      if (!window.__isFlushing) {
+        try {
+          beforeSlotWrite(strKey);
+        } catch {}
+      }
     }
 
     let result;
@@ -391,8 +393,7 @@ function flushBeforeSuspend(reason) {
 function hasAnyPrefixedKeys() {
   if (!canUseLocalStorage()) return false;
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (const key of activeStorageKeys) {
       if (key && key.startsWith('ccc:')) return true;
     }
   } catch {}
