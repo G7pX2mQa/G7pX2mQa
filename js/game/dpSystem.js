@@ -597,7 +597,7 @@ export function getDpMultiplier() {
               if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
                   dpMult = dpMult.mulBigNumInteger(BigNum.fromAny('Infinity'));
               } else {
-                  const powValBn = bigNumFromLog10(ppLevelNum * Math.log10(2), true).floorToInteger();
+                  const powValBn = bigNumFromLog10(ppLevelNum * Math.log10(2)).floorToInteger();
                   dpMult = dpMult.mulBigNumInteger(powValBn);
               }
           }
