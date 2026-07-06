@@ -5,7 +5,6 @@
 // Used to detect cheaters.
 import { activeStorageKeys } from '../main.js';
 import {
-  
   getActiveSlot,
   getSlotSignature,
   setSlotSignature,
