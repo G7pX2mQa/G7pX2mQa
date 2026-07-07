@@ -395,13 +395,14 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
     "infuse:completed",
     "surge:completed",
     "unlock:change",
-    "lab:node:change"
+    "lab:node:change",
+    "ccc:upgrades:changed"
   ];
 
-  updateEvents.forEach(evt => window.addEventListener(evt, updateUnlockConditions));
+  updateEvents.forEach(evt => { window.addEventListener(evt, updateUnlockConditions); document.addEventListener(evt, updateUnlockConditions); });
 
   unsubscribers.push(() => {
-    updateEvents.forEach(evt => window.removeEventListener(evt, updateUnlockConditions));
+    updateEvents.forEach(evt => { window.removeEventListener(evt, updateUnlockConditions); document.removeEventListener(evt, updateUnlockConditions); });
   });
 
 
