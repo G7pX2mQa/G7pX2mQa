@@ -1083,6 +1083,14 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
     return bn;
 }
 
+export function clearAllDebugOverrides(slot = getActiveSlot()) {
+    if (slot == null) return;
+    // Clear stats only, leave currencies as they act differently
+    STAT_MULTIPLIERS.forEach(({ key }) => {
+        clearStatMultiplierOverride(key, slot);
+    });
+}
+
 export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) {
     if (!statKey || slot == null) return null;
     return getStatOverride(slot, statKey);
