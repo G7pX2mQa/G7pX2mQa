@@ -1085,9 +1085,15 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
 
 export function clearAllDebugOverrides(slot = getActiveSlot()) {
     if (slot == null) return;
-    // Clear stats only, leave currencies as they act differently
+    
     STAT_MULTIPLIERS.forEach(({ key }) => {
+        unlockStorageKey(getStatMultiplierStorageKey(key, slot));
         clearStatMultiplierOverride(key, slot);
+    });
+    
+    Object.values(CURRENCIES).forEach((key) => {
+        unlockStorageKey(getCurrencyMultiplierStorageKey(key, slot));
+        clearCurrencyMultiplierOverride(key, slot);
     });
 }
 
