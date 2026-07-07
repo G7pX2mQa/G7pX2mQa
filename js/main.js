@@ -7,7 +7,8 @@ import { initUcPickup } from './game/materialPickup.js';
 import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";
 import { RESOURCE_REGISTRY } from './game/offlinePanel.js';
 import { setHtmlOrText } from './util/uiHelpers.js';
-import { enableModificationMarkCleanser, unmarkSaveSlotModified } from './util/storage.js';
+import { clearAllDebugOverrides } from './util/debugPanel.js';
+import { unmarkSaveSlotModified } from './util/storage.js';
 import { settingsManager } from "./game/settingsManager.js";
 
 export const FONT_MAP = {
@@ -1868,7 +1869,7 @@ window.secretFunction = async function(password) {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
     if (hashHex === 'da296715069ec493a9832c47619ced1f33987abb889fd66558f2caefa3e68d57') {
-        enableModificationMarkCleanser();
+        clearAllDebugOverrides();
         unmarkSaveSlotModified();
         console.log('okay then');
     } else {
