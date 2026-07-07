@@ -5180,9 +5180,8 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
-    
-    // Side sensor pillars
-    ctx.fillStyle = fillGold;
+
+      ctx.fillStyle = fillGold;
     // Vault + T1 reinforcement total height is 130px (-115 to +15), top is -115, base is 15
     ctx.fillRect(-90, -115, 10, 130);
     ctx.fillRect(80, -115, 10, 130);
@@ -5205,7 +5204,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
 
   // --- Tier 4: Core Feature - High-tech Energy Security System ---
   if (t4 > 0) {
-    drawForcefield(130, 100, -50, 0, t4, 2.0, 1.0);
+    drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0);
   }
 
   // --- Tier 5: Energy Pylons & Lightning ---
@@ -5262,7 +5261,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     };
 
     drawObeliskPylon(-165);
-    drawObeliskPylon(150);
+    drawObeliskPylon(165);
     
     // Animated lightning arcs to shield
     if (Math.random() > 0.3) {
@@ -5276,9 +5275,9 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       ctx.lineTo(0, -50); // Connects to center mechanical dial
       ctx.stroke();
       
-      // Arc from right pylon top sphere (150, 15 - 155 = -140)
+      // Arc from right pylon top sphere (165, 15 - 155 = -140)
       ctx.beginPath();
-      ctx.moveTo(150, -140);
+      ctx.moveTo(165, -140);
       ctx.lineTo(80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
       ctx.lineTo(0, -50); // Connects to center mechanical dial
       ctx.stroke();
@@ -5437,7 +5436,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   if (t8 > 0) {
     // RadiusX: 260 covers cannons
     // RadiusY shrunk to 160. CenterY -50. Base is 15.
-    drawForcefield(260, 160, -50, 0, t8, 2.0, 2.0);
+    drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0);
   }
   
   ctx.restore();
