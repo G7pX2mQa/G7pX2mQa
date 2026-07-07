@@ -135,6 +135,14 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
       type = 'sfx';
   }
 
+  if (type !== 'music') {
+      const sfxVolumeSetting = settingsManager.get('sfx_volume');
+      if (sfxVolumeSetting === 0) return null;
+      if (sfxVolumeSetting !== undefined && sfxVolumeSetting !== null) {
+          volume = volume * (sfxVolumeSetting / 100);
+      }
+  }
+
   const ctx = getAudioContext();
   const url = new URL(src, document.baseURI).href;
   
