@@ -559,7 +559,7 @@ export const DLG_CATALOG = {
   },
   5: {
     title: 'A Powerful Surge',
-    blurb: 'Converse with the Merchant about the Surge reset and how powerful it is',
+    blurb: 'Converse with the Merchant about the Surge reset',
     scriptId: 5,
     reward: { type: 'waves', amount: 5 }, rewardNode: 'm6a',
     once: true,
@@ -587,8 +587,8 @@ export const DLG_CATALOG = {
     },
   },
   6: {
-    title: 'The Empty Lab',
-    blurb: 'Ask about the Lab',
+    title: 'A Terrible Tsunami',
+    blurb: 'Discuss the aftermath of invoking the Tsunami with the Merchant',
     scriptId: 6,
     reward: { type: 'coins', amount: 2 }, rewardNode: 'n0',
     once: true,
