@@ -788,6 +788,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
       if (bId === "crystal") return 180 - bTier * 8;
       if (bId === "copper") return 180 + bTier * 8;
       if (bId === "iron") return 220;
+      if (bId === "pure_gold") return 250 + bTier * 8;
       return 180;
     };
 
