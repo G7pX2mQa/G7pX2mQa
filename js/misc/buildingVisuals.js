@@ -788,7 +788,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
       if (bId === "crystal") return 180 - bTier * 8;
       if (bId === "copper") return 180 + bTier * 8;
       if (bId === "iron") return 220;
-      if (bId === "pure_gold") return 250 + bTier * 8;
+      if (bId === "pure_gold") return 250 + bTier * 8 + (bTier >= 4 ? 25 : 0);
       return 180;
     };
 
@@ -4880,7 +4880,7 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
 
   // Tier 7 (Seismic Lockdown Clamps) back half is no longer needed.
 
-const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => {
+const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0) => {
     if (alpha <= 0) return;
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -4916,7 +4916,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     
     const hexSize = 15 * hexScale;
     const scrollSpeed = 20 * hexScale;
-    const offsetY = (t * scrollSpeed) % (hexSize * Math.sqrt(3));
+    const offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
     
     // Distance across dome to equator is (PI / 2) * radiusX.
     // Past that, it travels vertically.
@@ -5062,7 +5062,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     };
     
     drawRoundRect(31, -62, 8, 24, 4);
-    ctx.fillStyle = fillGold;
+    ctx.fillStyle = "#000000";
     ctx.fill();
     ctx.strokeStyle = darkMetal;
     ctx.lineWidth = 1.5;
@@ -5129,8 +5129,8 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     // Distance horizontally is 135. Let's do 8 intervals (7 intermediate points)
     // Distance vertically is 115. Let's do 7 intervals (6 intermediate points)
     
-    const hIntervals = 8;
-    const vIntervals = 7;
+    const hIntervals = 7;
+    const vIntervals = 6;
     
     // Top and Bottom edges
     for (let i = 1; i < hIntervals; i++) {
@@ -5162,7 +5162,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     const fastBlink = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
     ctx.fillStyle = fastBlink;
     ctx.beginPath();
-    ctx.arc(-35.5, -81, 2, 0, Math.PI * 2);
+    ctx.arc(-35.5, -80.5, 2, 0, Math.PI * 2);
     ctx.fill();
     
     // Keypad grid
@@ -5205,7 +5205,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
 
   // --- Tier 4: Core Feature - High-tech Energy Security System ---
   if (t4 > 0) {
-    drawForcefield(130, 100, -50, 0, t4, 2.0);
+    drawForcefield(130, 100, -50, 0, t4, 2.0, 1.0);
   }
 
   // --- Tier 5: Energy Pylons & Lightning ---
@@ -5213,43 +5213,72 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     ctx.save();
     ctx.globalAlpha = t5;
     
-    // Moving pylons outward horizontally to not intersect with T4 forcefield
-    // And extending them to ground (y=15 is base, height=155 so y=-140)
-    
-    // Ground base height = 15. So y=-140, h=155.
-    
-    // Left pylon (shifted out to -165)
-    ctx.fillStyle = fillGold;
-    ctx.fillRect(-165, -140, 15, 155);
-    // Right pylon (shifted out to 150)
-    ctx.fillRect(150, -140, 15, 155);
-    
-    ctx.strokeStyle = darkMetal;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-165, -140, 15, 155);
-    ctx.strokeRect(150, -140, 15, 155);
-    
-    // Energy cores in pylons
-    const pulse = (Math.sin(t * 5) + 1) / 2;
-    ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`; // Red color
-    ctx.fillRect(-162, -135, 9, 20);
-    ctx.fillRect(153, -135, 9, 20);
+    const drawObeliskPylon = (xPos) => {
+      ctx.save();
+      ctx.translate(xPos, 15); // Anchor to ground
+      
+      // Base pedestal (pure gold texture)
+      ctx.fillStyle = fillGold;
+      ctx.beginPath();
+      ctx.moveTo(-20, 0);
+      ctx.lineTo(20, 0);
+      ctx.lineTo(15, -10);
+      ctx.lineTo(-15, -10);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Main obelisk body (sleek metallic)
+      ctx.fillStyle = fillGold;
+      ctx.beginPath();
+      ctx.moveTo(-15, -10);
+      ctx.lineTo(15, -10);
+      ctx.lineTo(8, -140);
+      ctx.lineTo(0, -155);
+      ctx.lineTo(-8, -140);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Inner glowing core track (exposed center)
+      const pulse = (Math.sin(t * 5) + 1) / 2;
+      ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`;
+      ctx.beginPath();
+      ctx.moveTo(-4, -20);
+      ctx.lineTo(4, -20);
+      ctx.lineTo(2, -130);
+      ctx.lineTo(-2, -130);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Top energy sphere
+      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
+      ctx.beginPath();
+      ctx.arc(0, -155, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      
+      ctx.restore();
+    };
+
+    drawObeliskPylon(-165);
+    drawObeliskPylon(150);
     
     // Animated lightning arcs to shield
     if (Math.random() > 0.3) {
       ctx.strokeStyle = "rgba(255, 50, 50, 0.8)"; // Red color
       ctx.lineWidth = 2;
       
-      // Arc from left pylon
+      // Arc from left pylon top sphere (-165, 15 - 155 = -140)
       ctx.beginPath();
-      ctx.moveTo(-157, -125);
+      ctx.moveTo(-165, -140);
       ctx.lineTo(-80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
       ctx.lineTo(0, -50); // Connects to center mechanical dial
       ctx.stroke();
       
-      // Arc from right pylon
+      // Arc from right pylon top sphere (150, 15 - 155 = -140)
       ctx.beginPath();
-      ctx.moveTo(157, -125);
+      ctx.moveTo(150, -140);
       ctx.lineTo(80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
       ctx.lineTo(0, -50); // Connects to center mechanical dial
       ctx.stroke();
@@ -5258,161 +5287,149 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     ctx.restore();
   }
 
-  // --- Tier 6: Dual Plasma Defense Cannons ---
+  // --- Tier 6: Autonomous Defense Drones ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    // Function to draw a single plasma cannon
-    const drawCannon = (xPos, isLeft) => {
+    const numDrones = 5;
+    for (let i = 0; i < numDrones; i++) {
       ctx.save();
-      ctx.translate(xPos, 15); // Anchor to the ground
+      // Calculate drone position using time and phase
+      const phase = (i / numDrones) * Math.PI * 2;
+      const orbitRadiusX = 220;
+      const orbitRadiusY = 60;
       
-      // Cannon Base
+      // Figure-8 pattern / complex orbit
+      const angle = t * 1.5 + phase;
+      const dx = Math.cos(angle) * orbitRadiusX;
+      // y follows a sine wave to go up and down, plus a bit of tilt based on x
+      const dy = Math.sin(angle * 2) * 30 - 80 + Math.sin(angle) * orbitRadiusY;
+      
+      // Perspective scaling based on y-position in the orbit (closer = bigger)
+      const z = Math.sin(angle); // -1 is back, 1 is front
+      const scale = 0.8 + (z + 1) * 0.4; // 0.8 to 1.6
+      
+      // Render back-half drones behind the shield (t8) and vault, front-half in front. 
+      // Simplified here: we'll just draw them in their 3D paths with a z-index simulated scale.
+      
+      ctx.translate(dx, dy);
+      ctx.scale(scale, scale);
+      
+      // Drone Body (sleek diamond / angular shape)
       ctx.fillStyle = darkMetal;
       ctx.beginPath();
-      ctx.moveTo(-25, 0);
-      ctx.lineTo(25, 0);
-      ctx.lineTo(15, -20);
-      ctx.lineTo(-15, -20);
+      ctx.moveTo(0, -10);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-8, 0);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = fillGold;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
       
-      // Cannon Mount (Swivel joint)
-      ctx.translate(0, -20);
-      ctx.fillStyle = fillGold;
+      // Drone Core (pulsing red eye)
+      const dronePulse = (Math.sin(t * 10 + i) + 1) / 2;
+      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + dronePulse * 0.2})`;
       ctx.beginPath();
-      ctx.arc(0, -10, 15, 0, Math.PI * 2);
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = darkMetal;
-      ctx.stroke();
       
-      // Cannon Barrel (Rotates to scan)
-      ctx.save();
-      ctx.translate(0, -10);
-      // Scanning motion: sweep back and forth based on time, offset by side
-      const scanAngle = isLeft 
-        ? Math.sin(t * 1.5) * 0.4 - Math.PI / 4 // points mostly right/inward
-        : Math.sin(t * 1.5 + Math.PI) * 0.4 + Math.PI / 4; // points mostly left/inward
-      ctx.rotate(scanAngle);
-      
-      // Barrel body
-      ctx.fillStyle = darkMetal;
-      ctx.fillRect(-10, -40, 20, 30);
-      ctx.strokeStyle = fillGold;
-      ctx.strokeRect(-10, -40, 20, 30);
-      
-      // Plasma Emitter Nozzle
-      ctx.fillStyle = "#ff0000";
-      ctx.fillRect(-6, -45, 12, 5);
-      
-      // Plasma Glow & Energy Ring
-      const energyPulse = (Math.sin(t * 8) + 1) / 2;
+      // Drone Thruster Trail / Glow
       ctx.shadowColor = "#ff0000";
-      ctx.shadowBlur = 10 + energyPulse * 10;
-      ctx.strokeStyle = `rgba(255, 50, 50, ${0.5 + energyPulse * 0.5})`;
-      ctx.lineWidth = 3;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = "rgba(255, 50, 50, 0.6)";
       ctx.beginPath();
-      ctx.ellipse(0, -42, 8, 3, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Occasional small plasma discharge
-      if (Math.random() > 0.8) {
-        ctx.beginPath();
-        ctx.moveTo(0, -45);
-        ctx.lineTo((Math.random() - 0.5) * 20, -60 - Math.random() * 20);
-        ctx.strokeStyle = "rgba(255, 100, 100, 0.8)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
+      ctx.arc(0, 10, 4, 0, Math.PI * 2);
+      ctx.fill();
       
       ctx.restore();
-      ctx.restore();
-    };
-    
-    // Draw left and right cannons further out than the pylons
-    drawCannon(-200, true);
-    drawCannon(200, false);
+    }
     
     ctx.restore();
   }
 
-  // --- Tier 7: Massive Seismic Lockdown Clamps ---
+  // --- Tier 7: Holographic Surveillance Eye ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    // Draw two massive clamps coming from the sides to lock the vault down
-    const drawClamp = (isLeft) => {
-      ctx.save();
-      // Reverse T1 translation to place at ground base locally, then offset
-      ctx.translate(isLeft ? -135 : 135, 15);
-      
-      // Heavy mechanical arm base
-      ctx.fillStyle = darkMetal;
-      ctx.beginPath();
-      ctx.moveTo(-20, 0);
-      ctx.lineTo(20, 0);
-      ctx.lineTo(15, -40);
-      ctx.lineTo(-15, -40);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = fillGold;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Articulated joint
-      ctx.translate(0, -40);
-      ctx.fillStyle = fillGold;
-      ctx.beginPath();
-      ctx.arc(0, 0, 12, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = darkMetal;
-      ctx.stroke();
-      
-      // Upper arm reaching over the vault
-      // Dynamic locking animation: Clamps engage when t7 is increasing, or just have a subtle mechanical breathing when active
-      const breath = Math.sin(t * 2) * 0.05;
-      const armAngle = isLeft ? (Math.PI / 4) + breath : -(Math.PI / 4) - breath;
-      ctx.rotate(armAngle);
-      
-      ctx.fillStyle = darkMetal;
-      ctx.fillRect(-10, -60, 20, 60);
-      ctx.strokeStyle = fillGold;
-      ctx.strokeRect(-10, -60, 20, 60);
-      
-      // The claw grasping the vault
-      ctx.translate(0, -60);
-      ctx.fillStyle = fillGold;
-      
-      // Polygon for claw
-      ctx.beginPath();
-      ctx.moveTo(-15, 0);
-      ctx.lineTo(15, 0);
-      ctx.lineTo(20, -30);
-      ctx.lineTo(-20, -30);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = darkMetal;
-      ctx.stroke();
-      
-      // Locking teeth on claw
-      ctx.fillStyle = darkMetal;
-      ctx.fillRect(-15, -35, 8, 15);
-      ctx.fillRect(7, -35, 8, 15);
-      
-      // Hydraulic piston details
-      ctx.fillStyle = "#888";
-      ctx.fillRect(-4, 0, 8, 40);
-      
-      ctx.restore();
-    };
+    // Position floating above the vault
+    ctx.translate(0, -180 + Math.sin(t * 2) * 10);
     
-    drawClamp(true);
-    drawClamp(false);
+    // Scanner Cone (Sweeping beam downwards)
+    const scanSweep = Math.sin(t * 3) * 0.5; // sweep left/right
+    ctx.save();
+    ctx.rotate(scanSweep);
+    
+    // Create conical gradient for scanner beam
+    const beamGrad = ctx.createLinearGradient(0, 0, 0, 180);
+    beamGrad.addColorStop(0, "rgba(255, 0, 0, 0.4)");
+    beamGrad.addColorStop(1, "rgba(255, 0, 0, 0.0)");
+    
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 180);
+    ctx.lineTo(-100, 180);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    
+    // Holographic Eye Structure (Sleek sci-fi construct)
+    ctx.fillStyle = darkMetal;
+    ctx.beginPath();
+    ctx.moveTo(0, -25);
+    ctx.lineTo(30, 0);
+    ctx.lineTo(0, 25);
+    ctx.lineTo(-30, 0);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Inner Rings (Rotating)
+    ctx.save();
+    ctx.rotate(t * 1.5);
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 15, 8, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    
+    ctx.save();
+    ctx.rotate(-t * 2);
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8, 15, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    
+    // Central Red Pupil / Core
+    const eyePulse = (Math.sin(t * 8) + 1) / 2;
+    ctx.fillStyle = `rgba(255, 0, 0, ${0.7 + eyePulse * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    
+    // Top & Bottom communication antennas/spikes
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -25);
+    ctx.lineTo(0, -40);
+    ctx.moveTo(0, 25);
+    ctx.lineTo(0, 40);
+    ctx.stroke();
     
     ctx.restore();
   }
@@ -5420,7 +5437,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
   if (t8 > 0) {
     // RadiusX: 260 covers cannons
     // RadiusY shrunk to 160. CenterY -50. Base is 15.
-    drawForcefield(260, 160, -50, 0, t8, 2.0);
+    drawForcefield(260, 160, -50, 0, t8, 2.0, 2.0);
   }
   
   ctx.restore();
