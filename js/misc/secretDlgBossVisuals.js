@@ -1383,7 +1383,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             
             if (timeSinceDeath >= 3000 && !playingJawsSound) {
                 playingJawsSound = true;
-                jawsAudio = playAudio('sounds/awaiting_the_jaws_of_death.ogg', { volume: 1.0 });
+                jawsAudio = playAudio('sounds/opening.ogg', { volume: 1.0 });
             }
             
             if (timeSinceDeath >= 9000 && !playingDeathSound) {
