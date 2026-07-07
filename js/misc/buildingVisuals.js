@@ -5091,13 +5091,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     
     // Steel framing Outline (Darkened pure gold texture)
     
-    // Draw thick gold stroke
-    ctx.strokeStyle = fillGold;
-    ctx.lineWidth = 15;
-    ctx.strokeRect(-67.5, -107.5, 135, 115);
-    
-    // Draw 80% opacity black stroke on top to darken it
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 15;
     ctx.strokeRect(-67.5, -107.5, 135, 115);
     
@@ -5209,110 +5203,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
 
   // --- Tier 4: Core Feature - High-tech Energy Security System ---
   if (t4 > 0) {
-    ctx.save();
-    // Fade out as T8 comes in
-    ctx.globalAlpha = t4 * (1 - t8);
-    
-    // Smooth 3D Red Holographic Shield Barrier
-    const domeGrad = ctx.createRadialGradient(0, -20, 10, 0, -50, 130);
-    domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
-    domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
-    domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
-    
-    ctx.fillStyle = domeGrad;
-    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-    ctx.lineWidth = 3;
-    
-    // Draw the main dome
-    ctx.beginPath();
-    ctx.ellipse(0, -50, 130, 100, 0, Math.PI, 0); 
-    ctx.lineTo(130, 0);
-    ctx.lineTo(-130, 0);
-    ctx.closePath();
-    
-    // Animated flowing 3D Hexagonal pattern
-    ctx.save();
-    
-    // We clip first to ensure hex lines don't leak outside, then we fill the dome over it? No, wait. 
-    // The user wants hex lines drawn UNDER the big red outline.
-    // So we first fill the dome, then draw hex lines, then stroke the dome outline!
-    ctx.fill();
-    ctx.clip(); // clip hexes to the dome shape
-    
-    ctx.strokeStyle = "rgba(255, 100, 100, 0.4)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    
-    // Projection of hex grid to a sphere-like dome
-    // Radius of dome is approx 130
-    const hexSize = 15;
-    const scrollSpeed = 20; // units per second
-    const offsetY = (t * scrollSpeed) % (hexSize * Math.sqrt(3));
-    
-    // Draw hexes from center expanding outwards to create the spherical illusion
-    for (let row = -10; row <= 15; row++) {
-      for (let col = -10; col <= 10; col++) {
-        // Flat hex coordinates
-        let hx = col * hexSize * 1.5;
-        let hy = row * hexSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : hexSize * Math.sqrt(3) / 2) + offsetY;
-        
-        // Map 2D flat plane to spherical projection originating from pole (top of dome)
-        // Pole is roughly at (0, -150)
-        let dx = hx;
-        let dy = hy + 150; // relative to pole
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        
-        if (dist > 200) continue; // optimization
-        
-        // Spherical warp mapping curving DOWNWARDS
-        let angle = Math.atan2(dy, dx);
-        let sphericalR = 130 * Math.sin(dist / 130);
-        let mappedX = Math.cos(angle) * sphericalR;
-        // Curve downwards from y=-50. dist=0 maps to y=-50. dist=130 maps to y=50.
-        let mappedY = -50 + (1 - Math.cos(dist / 130)) * 100;
-        
-        // Only draw inner connecting lines for a cleaner continuous pattern
-        // To do this simply, we will draw the polygon itself mapped
-        
-        // We draw individual lines for the hex outline in the mapped space
-        for (let i = 0; i < 6; i++) {
-          let a1 = i * Math.PI / 3;
-          let a2 = (i + 1) * Math.PI / 3;
-          
-          let px1 = hx + hexSize * Math.cos(a1);
-          let py1 = hy + hexSize * Math.sin(a1);
-          let px2 = hx + hexSize * Math.cos(a2);
-          let py2 = hy + hexSize * Math.sin(a2);
-          
-          // Map point 1
-          let dist1 = Math.sqrt(px1*px1 + (py1+150)*(py1+150));
-          let ang1 = Math.atan2(py1+150, px1);
-          let sR1 = 130 * Math.sin(dist1 / 130);
-          let mx1 = Math.cos(ang1) * sR1;
-          let my1 = -50 + (1 - Math.cos(dist1 / 130)) * 100;
-          
-          // Map point 2
-          let dist2 = Math.sqrt(px2*px2 + (py2+150)*(py2+150));
-          let ang2 = Math.atan2(py2+150, px2);
-          let sR2 = 130 * Math.sin(dist2 / 130);
-          let mx2 = Math.cos(ang2) * sR2;
-          let my2 = -50 + (1 - Math.cos(dist2 / 130)) * 100;
-          
-          ctx.moveTo(mx1, my1);
-          ctx.lineTo(mx2, my2);
-        }
-      }
-    }
-    
-    ctx.stroke();
-    
-    // Add glow
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 10;
-    ctx.stroke();
-    
-    ctx.restore();
-    ctx.restore();
+    drawForcefield(130, 100, -50, 0, t4, 2.0);
   }
 
   // --- Tier 5: Energy Pylons & Lightning ---
@@ -5350,15 +5241,15 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
       // Arc from left pylon
       ctx.beginPath();
       ctx.moveTo(-157, -125);
-      ctx.lineTo(-120 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
-      ctx.lineTo(-90, -80); // Connects to shield dome
+      ctx.lineTo(-80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
+      ctx.lineTo(0, -50); // Connects to center mechanical dial
       ctx.stroke();
       
       // Arc from right pylon
       ctx.beginPath();
       ctx.moveTo(157, -125);
-      ctx.lineTo(120 + Math.random()*20 - 10, -100 + Math.random()*20 - 10);
-      ctx.lineTo(90, -80);
+      ctx.lineTo(80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
+      ctx.lineTo(0, -50); // Connects to center mechanical dial
       ctx.stroke();
     }
     
