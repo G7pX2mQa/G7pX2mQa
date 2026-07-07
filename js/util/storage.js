@@ -504,11 +504,8 @@ export function hasModifiedSave(slot = getActiveSlot()) {
   catch { return false; }
 }
 
-let isModificationMarkCleanserActive = false;
 
-export function enableModificationMarkCleanser() {
-  isModificationMarkCleanserActive = true;
-}
+
 
 export function unmarkSaveSlotModified(slot = getActiveSlot()) {
   if (typeof localStorage === 'undefined') return;
@@ -528,7 +525,6 @@ export function unmarkSaveSlotModified(slot = getActiveSlot()) {
 }
 
 export function markSaveSlotModified(slot = getActiveSlot()) {
-  if (isModificationMarkCleanserActive) return;
   if (typeof localStorage === 'undefined') return;
   const normalized = normalizeSlotValue(slot);
   if (normalized == null) return;
