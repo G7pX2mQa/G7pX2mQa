@@ -5070,6 +5070,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     ctx.restore();
   };
 
+  ctx.save();
   // Move building up for T1 reinforcements (with cross-fade for T0)
   if (tier >= 1) {
     if (prevTier === 0 && tier === 1) {
@@ -5421,6 +5422,8 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale) => 
     drawForcefield(260, 160, -50, 0, t8, 2.0);
   }
   
+  ctx.restore();
+
   // Custom ground overlay for Vault
   ctx.save();
   const targetScale = 1.0 + tier * 0.1;
