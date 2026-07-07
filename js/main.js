@@ -10,6 +10,7 @@ import { setHtmlOrText } from './util/uiHelpers.js';
 import { clearAllDebugOverrides } from './util/debugPanel.js';
 import { unmarkSaveSlotModified } from './util/storage.js';
 import { settingsManager } from "./game/settingsManager.js";
+import { flushBackupSnapshot as immediateFlushBackupSnapshot } from './util/suspendSafeguard.js';
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -1325,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'sounds/The_Cove.ogg',
 	'sounds/Underwater_Cavern.ogg',
 	'sounds/area_connector.ogg',
-	'sounds/awaiting_the_jaws_of_death.ogg',
+	'sounds/opening.ogg',
     'sounds/bomb_column_construction.ogg',
     'sounds/boss_death.ogg',
 	'sounds/building_tier_up.ogg',
@@ -1871,6 +1872,12 @@ window.secretFunction = async function(password) {
     if (hashHex === 'da296715069ec493a9832c47619ced1f33987abb889fd66558f2caefa3e68d57') {
         clearAllDebugOverrides();
         unmarkSaveSlotModified();
+        
+        // Force an immediate flush so the unmark and cleared overrides persist across reloads
+        flushLocalStorageBuffer();
+        if (typeof immediateFlushBackupSnapshot === 'function') {
+            immediateFlushBackupSnapshot('manual', { immediate: true });
+        }
         console.log('okay then');
     } else {
         console.log('invalid password');
