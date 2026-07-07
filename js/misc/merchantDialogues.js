@@ -535,7 +535,7 @@ export const MERCHANT_DIALOGUES = {
       m4b: { type: 'line', say: "Don't make me explode you.", next: 'c4c' },
       m4c: { type: 'line', say: "Yes. And also, you didn't lose all of your progress. The Workshop wasn't reset at all.", next: 'c4b' },
       m4d: { type: 'line', say: 'It warps you forward in space time, a brilliant thing.', next: 'c4d' },
-      m4e: { type: 'line', say: "Surge Milestones are very powerful things. You'll unlock new mechanics, new Coin abilities, new upgrades within my shop, it's all very glorious.", next: 'c4e' },
+      m4e: { type: 'line', say: "Surge Milestones are very powerful things. You'll unlock new mechanics, new Coin abilities, new upgrades within my Shop, it's all very glorious.", next: 'c4e' },
 
       c4a: { type: 'choice', options: [
         { label: 'Hey.', to: 'm5a' },
