@@ -625,7 +625,7 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Sounds good.', to: 'm6a' },
       ]},
 
-      m7a: { type: 'line', say: 'Boring. Not how we do things here in The Cove.', next: 'c7a' },
+      m7a: { type: 'line', say: 'Boring. Not how we do things here on The Cove.', next: 'c7a' },
 
       c7a: { type: 'choice', options: [
         { label: '...', to: 'm6a' },
