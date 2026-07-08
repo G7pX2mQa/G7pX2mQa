@@ -355,7 +355,7 @@ function levelToNumber(levelBn) {
   if (!levelBn || typeof levelBn !== 'object') return 0;
   if (levelBn.isInfinite?.()) return Number.POSITIVE_INFINITY;
   try {
-    const plain = levelBn.inf || levelBn.e >= 15 ? 'Infinity' : levelBn.toPlainIntegerString?.();
+    const plain = levelBn.inf || levelBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : levelBn.toPlainIntegerString?.();
     if (plain && plain !== 'Infinity' && plain.length <= 15) {
       const num = Number(plain);
       if (Number.isFinite(num)) return num;
