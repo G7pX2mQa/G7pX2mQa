@@ -1,7 +1,7 @@
 // js/util/bigNum.js
 
 export class BigNum {
-  static DEFAULT_PRECISION = 18;
+  static DEFAULT_PRECISION = 15;
   static MAX_E = 1.7976931348623157e+308; // Number.MAX_VALUE
   static MAX_PLAIN_DIGITS = 1000;    // safety cap for plain integer strings
   static MAX_UI_DIGITS = 100;
@@ -42,7 +42,7 @@ export class BigNum {
     const absE = Math.abs(effectiveE);
     if (!inf && absE >= 10) {
       const eMag = Math.floor(Math.log10(absE));
-      targetP = Math.max(0, 18 - eMag);
+      targetP = Math.max(0, BigNum.DEFAULT_PRECISION - eMag);
     }
     this.p = Math.min(p | 0, targetP);
 
@@ -452,7 +452,7 @@ export class BigNum {
     if (/e/i.test(s)) {
       const n = Number(s);
       if (!Number.isFinite(n) || n < 0) throw new TypeError('Invalid multiplier: ' + s);
-      const digits = Math.min(maxScale, 18);
+      const digits = Math.min(maxScale, BigNum.DEFAULT_PRECISION);
       s = n.toFixed(digits).replace(/\.?0+$/, ''); // strip trailing zeros
     }
 
@@ -639,14 +639,14 @@ export function approxLog10BigNum(value) {
   if (digits === '0') return Number.NEGATIVE_INFINITY;
 
   let sigLog;
-  if (digits.length <= 15) {
+  if (digits.length <= BigNum.DEFAULT_PRECISION) {
     const sigNum = Number(digits);
     if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
     sigLog = Math.log10(sigNum);
   } else {
-    const head = Number(digits.slice(0, 15));
+    const head = Number(digits.slice(0, BigNum.DEFAULT_PRECISION));
     if (!Number.isFinite(head) || head <= 0) return Number.NEGATIVE_INFINITY;
-    sigLog = Math.log10(head) + (digits.length - 15);
+    sigLog = Math.log10(head) + (digits.length - BigNum.DEFAULT_PRECISION);
   }
 
   const expSum = (Number.isFinite(baseExp) ? baseExp : 0) + (Number.isFinite(offset) ? offset : 0);
