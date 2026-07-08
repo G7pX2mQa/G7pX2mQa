@@ -4880,7 +4880,7 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
 
   // Tier 7 (Seismic Lockdown Clamps) back half is no longer needed.
 
-const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0, isBack = false) => {
+const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0) => {
     if (alpha <= 0) return;
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -4891,9 +4891,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
     domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
     
-    // For back side, only draw the hexagon pattern, not the solid dome base to avoid making it opaque
-    // Wait, the user asked for back side to be the exact same style. Let's see what happens if we draw it identically, but just layered correctly.
-    if (!isBack) {
       ctx.fillStyle = domeGrad;
       ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
       ctx.lineWidth = 3;
@@ -4906,15 +4903,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       ctx.closePath();
       
       ctx.fill();
-    } else {
-      ctx.fillStyle = domeGrad;
-      ctx.beginPath();
-      ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
-      ctx.lineTo(radiusX, bottomY);
-      ctx.lineTo(-radiusX, bottomY);
-      ctx.closePath();
-      ctx.fill();
-    }
     
     // Animated flowing 3D Hexagonal pattern
     ctx.save();
@@ -4931,9 +4919,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     const hexSize = 15 * hexScale;
     const scrollSpeed = 20 * hexScale;
     let offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
-    if (isBack) {
-      offsetY = -(t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
-    }
     
     // Distance across dome to equator is (PI / 2) * radiusX.
     // Past that, it travels vertically.
@@ -5025,7 +5010,12 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.lineWidth = 4;
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
-    // We stroke the main dome outline for both front and back
+    // Fix static arc: Re-create the dome path to stroke it
+    ctx.beginPath();
+    ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
+    ctx.lineTo(radiusX, bottomY);
+    ctx.lineTo(-radiusX, bottomY);
+    ctx.closePath();
     ctx.stroke();
     
     ctx.restore();
@@ -5094,13 +5084,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.restore();
   };
 
-  // --- Tier 4 & 8: Backside Forcefield ---
-  if (t8 > 0) {
-    drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
-  }
-  if (t4 > 0) {
-    drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
-  }
 
   ctx.save();
   // Move building up for T1 reinforcements (with cross-fade for T0)
