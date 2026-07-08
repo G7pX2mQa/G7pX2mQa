@@ -632,7 +632,7 @@ registerPassiveSystem({
             if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
                 const owned = bank[matKey].value;
                 const materialValue = BigNum.fromAny(matData.value || 0);
-                const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
+                const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
                 const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
                 
                 if (eff === 1.0) {
@@ -674,7 +674,7 @@ registerPassiveSystem({
             if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
                 const owned = bank[matKey].value;
                 const materialValue = BigNum.fromAny(matData.value || 0);
-                const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
+                const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
                 const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
                 
                 if (eff === 1.0) {
