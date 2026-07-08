@@ -366,7 +366,7 @@ export function getPotentialScrap() {
        
        if (owned.cmp(0) > 0) {
            const materialValue = BigNum.fromAny(t.value || 0);
-           const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
+           const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
            const totalMatVal = val.mulBigNumInteger(owned);
            totalVal = totalVal.add(totalMatVal);
        }
