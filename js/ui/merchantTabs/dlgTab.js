@@ -876,6 +876,51 @@ const engine = new DialogueEngine({
 
   const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
 
+  if (meta.scriptId === 1) {
+    let initialChoice = 3;
+    try {
+      const stored = localStorage.getItem(`ccc:merchant:initialChoice:${getActiveSlot()}`);
+      if (stored) {
+        initialChoice = parseInt(stored, 10);
+      } else {
+        localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot()}`, '3');
+      }
+    } catch {}
+
+    if (initialChoice === 1) {
+      if (script.nodes.c0 && script.nodes.c0.options[1]) {
+        script.nodes.c0.options[1].label = 'You didn\'t answer my <i>"Who are you?"</i> question like I\'d hoped.';
+      }
+      if (script.nodes.c1b && script.nodes.c1b.options[0]) {
+        script.nodes.c1b.options[0].label = 'You didn\'t answer my <i>"Who are you?"</i> question like I\'d hoped.';
+      }
+      if (script.nodes.m1a) {
+        script.nodes.m1a.say = 'Yes I did.';
+        script.nodes.m1a.next = 'c1a';
+      }
+    } else if (initialChoice === 2) {
+      if (script.nodes.c0 && script.nodes.c0.options[1]) {
+        script.nodes.c0.options[1].label = 'You didn\'t answer my <i>"Where am I?"</i> question like I\'d hoped.';
+      }
+      if (script.nodes.c1b && script.nodes.c1b.options[0]) {
+        script.nodes.c1b.options[0].label = 'You didn\'t answer my <i>"Where am I?"</i> question like I\'d hoped.';
+      }
+      if (script.nodes.m1a) {
+        script.nodes.m1a.say = 'Yes I did.';
+        script.nodes.m1a.next = 'c1a';
+      }
+    } else if (initialChoice === 3) {
+      if (script.nodes.c0 && script.nodes.c0.options[1]) {
+        script.nodes.c0.options[1].label = 'Saying <i>"Okay"</i> to my confusion doesn\'t help.';
+        script.nodes.c0.options[1].to = 'm1c';
+      }
+      if (script.nodes.c1b && script.nodes.c1b.options[0]) {
+        script.nodes.c1b.options[0].label = 'Saying <i>"Okay"</i> to my confusion doesn\'t help.';
+        script.nodes.c1b.options[0].to = 'm1c';
+      }
+    }
+  }
+
   if (meta.scriptId === 6 && script?.nodes?.m3a && getLifetimeBossBeaten()) {
       script.nodes.m3a.say = 'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battl<span style="overflow-wrap: anywhere; word-break: break-all;">ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓≽ணၷᘑർ࿷᭭⋚ᬭᠴ</span>';
   }
@@ -1651,6 +1696,16 @@ function runFirstMeet() {
       textEl,
       choicesEl,
       skipTargets: [textEl, rowEl, cardEl],
+      onChoice: (nodeId, opt) => {
+        if (nodeId === 'c1') {
+          let choice = 3;
+          if (opt.to === 'r_who') choice = 1;
+          else if (opt.to === 'r_where') choice = 2;
+          try {
+            localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot()}`, choice.toString());
+          } catch {}
+        }
+      },
       onEnd: () => {
       try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
