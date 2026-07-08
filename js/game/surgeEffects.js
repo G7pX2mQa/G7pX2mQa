@@ -779,7 +779,7 @@ export function getBookProductionRate() {
     if (xpLevelBn.cmp(1e16) > 0) {
       // Exponent E = floor(xpLevel * 0.086858...)
       // We can calculate this using BigNum math.
-      const logValBn = xpLevelBn.mulDecimal(String(LOG10_EXP_0_2), 18);
+      const logValBn = xpLevelBn.mulDecimal(String(LOG10_EXP_0_2), BigNum.DEFAULT_PRECISION);
 
       // Extract E from logValBn
       // logValBn is roughly the exponent of 10.
@@ -842,7 +842,7 @@ function onTick(dt) {
     if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
       // Direct add per tick for large numbers, using dt
       // dt corresponds to FIXED_STEP (usually 0.05s)
-      const perTick = baseRate.mulDecimal(String(dt), 18);
+      const perTick = baseRate.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
       if (bank.books) bank.books.add(perTick);
     } else {
       // Use accumulator for small numbers to handle fractional accumulation
@@ -916,7 +916,7 @@ function onTick(dt) {
 
       // Multiply by rate and dt
       const perSec = pending.mulDecimal(rateMultiplier.toScientific());
-      const amountToAdd = perSec.mulDecimal(String(dt), 18);
+      const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
 
       if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
         if (bank.gold) bank.gold.add(amountToAdd);
@@ -968,7 +968,7 @@ function onTick(dt) {
 
       // Multiply by rate and dt
       const perSec = pending.mulDecimal(rateMultiplier.toScientific());
-      const amountToAdd = perSec.mulDecimal(String(dt), 18);
+      const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
 
       if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
         if (bank.magic) bank.magic.add(amountToAdd);
@@ -1007,7 +1007,7 @@ function onTick(dt) {
 
         // Multiply by rate and dt
         const perSec = pending.mulDecimal(rateMultiplier.toScientific());
-        const amountToAddDna = perSec.mulDecimal(String(dt), 18);
+        const amountToAddDna = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
 
         if (amountToAddDna.cmp(1e9) > 0 || amountToAddDna.isInfinite?.()) {
           if (bank.dna) bank.dna.add(amountToAddDna);
