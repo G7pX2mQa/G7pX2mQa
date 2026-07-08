@@ -36,12 +36,12 @@ export const MERCHANT_DIALOGUES = {
       n0: { type: 'line', say: 'Hello again.', next: 'c0' },
 
       c0: { type: 'choice', options: [
-        { label: 'You never answered my questions.', to: 'm1a' },
         { label: 'Hello.', to: 'm1b' },
-        { label: 'I am still very confused.', to: 'm1c' },
+        { label: 'placeholder text', to: 'm1a' },
+        { label: 'I\'m still very confused.', to: 'm1c' },
       ]},
 
-      m1a: { type: 'line', say: 'Yes I did.', next: 'c1a' },
+      m1a: { type: 'line', say: 'placeholder text', next: 'c1a' },
       m1b: { type: 'line', say: 'Hello.',    next: 'c1b' },
       m1c: { type: 'line', say: 'Okay.',       next: 'c1e' },
 	  m1d: { type: 'line', say: 'Fine.',       next: 'c1d' },
@@ -53,7 +53,7 @@ export const MERCHANT_DIALOGUES = {
       ]},
 
       c1b: { type: 'choice', options: [
-        { label: 'You never answered my questions.', to: 'm1a' },
+        { label: 'placeholder text', to: 'm1a' },
         { label: 'How are you?',              to: 'm1d' },
         { label: 'Okay.',                              to: 'm2b' },
       ]},
