@@ -41,7 +41,7 @@ export const MERCHANT_DIALOGUES = {
         { label: 'I\'m still very confused.', to: 'm1c' },
       ]},
 
-      m1a: { type: 'line', say: 'placeholder text', next: 'c1a' },
+      m1a: { type: 'line', say: 'placeholder text', next: 'indeterminate' },
       m1b: { type: 'line', say: 'Hello.',    next: 'c1b' },
       m1c: { type: 'line', say: 'Okay.',       next: 'c1e' },
 	  m1d: { type: 'line', say: 'Fine.',       next: 'c1d' },
