@@ -72,7 +72,7 @@ export function onUpgradesChanged(cb) {
 export function bookValueMultiplierBn(level) {
   const L = ensureLevelBigNum(level);
   try {
-    const plain = L?.inf || L?.e >= 15 ? 'Infinity' : L?.toPlainIntegerString?.();
+    const plain = L?.inf || L?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : L?.toPlainIntegerString?.();
     if (plain && plain !== 'Infinity' && plain.length <= 15) {
       const lvl = Math.max(0, Number(plain));
       return bigNumFromLog10(lvl * Math.log10(2)).floorToInteger();
