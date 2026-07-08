@@ -1253,8 +1253,8 @@ function hmMilestoneMultiplier(multiplier, hits) {
 
   const multiply = (a, b) => {
     try { return a.mulBigNumInteger(b); } catch {}
-    try { return a.mulDecimal(b.toScientific?.(12) ?? String(multiplier ?? '1'), 18); } catch {}
-    try { return b.mulDecimal(a.toScientific?.(12) ?? String(multiplier ?? '1'), 18); } catch {}
+    try { return a.mulDecimal(b.toScientific?.(12) ?? String(multiplier ?? '1'), BigNum.DEFAULT_PRECISION); } catch {}
+    try { return b.mulDecimal(a.toScientific?.(12) ?? String(multiplier ?? '1'), BigNum.DEFAULT_PRECISION); } catch {}
     return BigNum.fromAny('Infinity');
   };
 
@@ -1306,7 +1306,7 @@ export function safeMultiplyBigNum(base, factor) {
   }
   try { return out.mulBigNumInteger(f); }
   catch {}
-  try { return out.mulDecimal(f.toScientific?.(12) ?? String(factor ?? '1'), 18); }
+  try { return out.mulDecimal(f.toScientific?.(12) ?? String(factor ?? '1'), BigNum.DEFAULT_PRECISION); }
   catch {}
   return out;
 }
