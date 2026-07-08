@@ -157,7 +157,7 @@ function bigNumPowerOf10(logBn) {
 
   const sig = Number(Math.round(mantissa * Number(scaleFactor)));
 
-  const integerPartString = integerPart.inf || integerPart.e >= 15 ? 'Infinity' : integerPart.toPlainIntegerString();
+  const integerPartString = integerPart.inf || integerPart.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : integerPart.toPlainIntegerString();
   if (integerPartString === 'Infinity') {
       return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
@@ -585,7 +585,7 @@ function xpRequirementForXpLevel(xpLevelInput) {
 
   let levelPlain = '0';
   try {
-    levelPlain = xpLvlBn.inf || xpLvlBn.e >= 15 ? 'Infinity' : (xpLvlBn.toPlainIntegerString?.() ?? xpLvlBn.toString?.() ?? '0');
+    levelPlain = xpLvlBn.inf || xpLvlBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : (xpLvlBn.toPlainIntegerString?.() ?? xpLvlBn.toString?.() ?? '0');
   } catch {
     levelPlain = '0';
   }
@@ -697,7 +697,7 @@ function xpLevelNumInfo(xpLevelValue) {
   }
   let plain = '0';
   try {
-    plain = xpLevelValue.inf || xpLevelValue.e >= 15 ? 'Infinity' : (xpLevelValue.toPlainIntegerString?.() ?? xpLevelValue.toString?.() ?? '0');
+    plain = xpLevelValue.inf || xpLevelValue.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : (xpLevelValue.toPlainIntegerString?.() ?? xpLevelValue.toString?.() ?? '0');
   } catch {
     plain = '0';
   }
