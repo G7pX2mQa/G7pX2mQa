@@ -318,7 +318,7 @@ function dpRequirementForDpLevel(dpLevelInput) {
   // DPLevel starts at 0, so DPLevel 0 -> req 10.
   let levelPlain = '0';
   try {
-    levelPlain = dpLvlBn.inf || dpLvlBn.e >= 15 ? 'Infinity' : (dpLvlBn.toPlainIntegerString?.() ?? dpLvlBn.toString?.() ?? '0');
+    levelPlain = dpLvlBn.inf || dpLvlBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : (dpLvlBn.toPlainIntegerString?.() ?? dpLvlBn.toString?.() ?? '0');
   } catch {
     levelPlain = '0';
   }
