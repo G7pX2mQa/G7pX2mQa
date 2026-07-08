@@ -103,13 +103,13 @@ function cloneBigNum(value) {
 function quantizeRequirement(value) {
   if (!value || typeof value !== 'object') return bnZero();
   if (value.isInfinite?.()) return value.clone?.() ?? value;
-  const sci = typeof value.toScientific === 'function' ? value.toScientific(18) : '';
+  const sci = typeof value.toScientific === 'function' ? value.toScientific(BigNum.DEFAULT_PRECISION) : '';
   if (!sci || sci === 'Infinity') return value.clone?.() ?? value;
   const match = sci.match(/^(\d+(?:\.\d+)?)e([+-]?\d+)$/i);
   if (!match) return value.clone?.() ?? value;
   const exp = parseInt(match[2], 10);
   const digits = exp + 1;
-  if (digits <= 18) {
+  if (digits <= BigNum.DEFAULT_PRECISION) {
     const floored = value.floorToInteger?.() ?? value.clone?.() ?? value;
     const plain = floored.toPlainIntegerString?.();
     if (!plain || plain === 'Infinity') return floored;
