@@ -676,7 +676,7 @@ function bigNumEquals(a, b) {
 
 function bigNumToFiniteNumber(value) {
     try {
-        const fromScientific = value?.toScientific?.(18);
+        const fromScientific = value?.toScientific?.(BigNum.DEFAULT_PRECISION);
         const num = Number.parseFloat(fromScientific ?? value);
         return Number.isFinite(num) ? num : Number.NaN;
     } catch {
@@ -996,7 +996,7 @@ function ensureCurrencyOverrideListener() {
                             }
 
                             if (shouldScale) {
-                                const scaledOverride = override.mulDecimal(ratio.toScientific(18), 18);
+                                const scaledOverride = override.mulDecimal(ratio.toScientific(BigNum.DEFAULT_PRECISION), BigNum.DEFAULT_PRECISION);
                                 currencyOverrides.set(cacheKey, scaledOverride);
                                 storeCurrencyMultiplierOverride(key, targetSlot, scaledOverride);
                             }
