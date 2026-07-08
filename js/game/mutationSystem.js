@@ -963,7 +963,7 @@ export function getRandomMutationCoinId() {
     let highest = 0;
     try {
       if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-        const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= 15 || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
+        const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= BigNum.DEFAULT_PRECISION || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
         if (s !== 'Infinity') {
           highest = parseInt(s, 10);
         } else {
