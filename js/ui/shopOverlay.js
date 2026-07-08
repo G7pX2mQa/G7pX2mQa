@@ -586,8 +586,8 @@ function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
   
   if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
   try {
-    const capPlain = capBn.inf || capBn.e >= 15 ? 'Infinity' : capBn.toPlainIntegerString?.();
-    const lvlPlain = lvlBn.inf || lvlBn.e >= 15 ? 'Infinity' : lvlBn.toPlainIntegerString?.();
+    const capPlain = capBn.inf || capBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : capBn.toPlainIntegerString?.();
+    const lvlPlain = lvlBn.inf || lvlBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : lvlBn.toPlainIntegerString?.();
     if (capPlain === 'Infinity') return BigNum.fromAny('Infinity');
     if (capPlain && lvlPlain && capPlain !== 'Infinity' && lvlPlain !== 'Infinity') {
       const delta = Number(capPlain) - Number(lvlPlain);
@@ -831,7 +831,7 @@ class ShopInstance {
                                         if (target && model.lvlBn && target.cmp(model.lvlBn) > 0) {
                                             let deltaNum = 0;
                                             try {
-                                                const diffBn = target.sub(model.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= 15 ? 'Infinity' : diffBn.toPlainIntegerString?.();
+                                                const diffBn = target.sub(model.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.();
                                                 deltaNum = Math.max(0, Math.floor(Number((diffPlain && diffPlain !== 'Infinity') ? diffPlain : target.sub(model.lvlBn).toString())));
                                             } catch {}
 
@@ -841,7 +841,7 @@ class ShopInstance {
                                             const count = evalResult.count;
 
                                             let reachable = false;
-                                            try { const plain = count?.inf || count?.e >= 15 ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain && plain !== 'Infinity') ? Number(plain) >= deltaNum : Number(count ?? 0) >= deltaNum; } catch {}
+                                            try { const plain = count?.inf || count?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain && plain !== 'Infinity') ? Number(plain) >= deltaNum : Number(count ?? 0) >= deltaNum; } catch {}
 
                                             if (reachable) {
                                                 const purchase = this.adapter.buyNext(id, deltaNum);
@@ -1804,7 +1804,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                         const targetLevelBn = model.hmNextMilestone.sub(BigNum.fromInt(1));
                         let targetLevelNum = 0;
                         try {
-                            const s = targetLevelBn.inf || targetLevelBn.e >= 15 ? 'Infinity' : targetLevelBn.toPlainIntegerString?.();
+                            const s = targetLevelBn.inf || targetLevelBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : targetLevelBn.toPlainIntegerString?.();
                             if (s && s !== 'Infinity') targetLevelNum = Number(s);
                             else targetLevelNum = (targetLevelBn.inf ? Infinity : (targetLevelBn.sig * Math.pow(10, targetLevelBn.e)));
                         } catch { targetLevelNum = 0; }
@@ -2024,13 +2024,13 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                       playPurchaseSfx(); updateShopOverlay(); rerender(); return;
                   }
                   let deltaNum = 0;
-                  try { const diffBn = target.sub(fresh.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= 15 ? 'Infinity' : diffBn.toPlainIntegerString?.(); deltaNum = Math.max(0, Math.floor(Number((diffPlain&&diffPlain!=='Infinity')?diffPlain:target.sub(fresh.lvlBn).toString()))); } catch {}
+                  try { const diffBn = target.sub(fresh.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.(); deltaNum = Math.max(0, Math.floor(Number((diffPlain&&diffPlain!=='Infinity')?diffPlain:target.sub(fresh.lvlBn).toString()))); } catch {}
                   const walletRaw = bank[fresh.upg.costType]?.value;
                   const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw??0);
                   const evalResult = evaluateBulkPurchase(fresh.upg, fresh.lvlBn, walletBn, deltaNum);
                   const count = evalResult.count;
                   let reachable = false;
-                  try { const plain = count?.inf || count?.e >= 15 ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain&&plain!=='Infinity') ? Number(plain)>=deltaNum : Number(count??0)>=deltaNum; } catch {}
+                  try { const plain = count?.inf || count?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain&&plain!=='Infinity') ? Number(plain)>=deltaNum : Number(count??0)>=deltaNum; } catch {}
                   const purchase = reachable ? adapter.buyNext(upgDef.id, deltaNum) : adapter.buyMax(upgDef.id);
                   const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought??0);
                   if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
