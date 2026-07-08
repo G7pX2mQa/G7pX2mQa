@@ -703,7 +703,7 @@ export function getSurge6WealthMultipliers() {
     } else if (log10Bn < 15 && residue > 0) {
       try {
         const val =
-          amount.inf || amount.e >= 15
+          amount.inf || amount.e >= BigNum.DEFAULT_PRECISION
             ? Infinity
             : Number(amount.toPlainIntegerString());
         if (Number.isFinite(val)) {
@@ -800,7 +800,7 @@ export function getBookProductionRate() {
       }
     } else {
       const lvlNum =
-        xpLevelBn.inf || xpLevelBn.e >= 15
+        xpLevelBn.inf || xpLevelBn.e >= BigNum.DEFAULT_PRECISION
           ? Infinity
           : Number(xpLevelBn.toPlainIntegerString());
       const logVal = lvlNum * LOG10_EXP_0_2;
