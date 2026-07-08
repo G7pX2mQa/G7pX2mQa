@@ -490,7 +490,7 @@ export function updateSellTab() {
        
        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
        const materialValue = BigNum.fromAny(t.value || 0);
-       const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
+       const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
        
        const localAmountStr = rowCache.localSellAmount || '1';
        const theoreticalAmt = calculateTheoreticalSellAmount(owned, localAmountStr);
@@ -611,7 +611,7 @@ function createSellRow(matKey, index) {
            parsedNum = 5;
        } else {
            try {
-               parsedNum = amt.inf || amt.e >= 15 ? Infinity : Number(amt.toPlainIntegerString());
+               parsedNum = amt.inf || amt.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(amt.toPlainIntegerString());
            } catch (e) {
                parsedNum = 5;
            }
