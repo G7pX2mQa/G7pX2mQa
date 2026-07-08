@@ -4880,47 +4880,43 @@ function drawVault(ctx, t, tier, prevTier, animProgress) {
 
   // Tier 7 (Seismic Lockdown Clamps) back half is no longer needed.
 
-const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0, isBack = false) => {
+const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0) => {
     if (alpha <= 0) return;
     ctx.save();
     ctx.globalAlpha = alpha;
     
-    // Draw the main dome shape path
+    // Smooth 3D Red Holographic Shield Barrier
+    const domeGrad = ctx.createRadialGradient(0, centerY + radiusY*0.3, radiusY*0.1, 0, centerY, radiusX);
+    domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
+    domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
+    domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
+    
+    ctx.fillStyle = domeGrad;
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 3;
+    
+    // Draw the main dome
     ctx.beginPath();
     ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
     ctx.lineTo(radiusX, bottomY);
     ctx.lineTo(-radiusX, bottomY);
     ctx.closePath();
     
-    if (!isBack) {
-      // Smooth 3D Red Holographic Shield Barrier
-      const domeGrad = ctx.createRadialGradient(0, centerY + radiusY*0.3, radiusY*0.1, 0, centerY, radiusX);
-      domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
-      domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
-      domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
-      
-      ctx.fillStyle = domeGrad;
-      ctx.fill();
-    }
-    
     // Animated flowing 3D Hexagonal pattern
     ctx.save();
     
+    // Fill the dome over it
+    ctx.fill();
     ctx.clip(); // clip hexes to the dome shape
     
     // Draw the hex grid using standard pattern logic mapped spherically
-    ctx.strokeStyle = isBack ? "rgba(255, 100, 100, 0.15)" : "rgba(255, 100, 100, 0.4)";
+    ctx.strokeStyle = "rgba(255, 100, 100, 0.4)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     
     const hexSize = 15 * hexScale;
     const scrollSpeed = 20 * hexScale;
-    let offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
-    if (isBack) {
-        offsetY = (-t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
-        if (offsetY < 0) offsetY += hexSize * Math.sqrt(3);
-    }
-
+    const offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
     
     // Distance across dome to equator is (PI / 2) * radiusX.
     // Past that, it travels vertically.
@@ -5002,26 +4998,15 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     
     ctx.restore();
     
-    if (!isBack) {
-      // Stroke main dome outline on top
-      ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-      ctx.lineWidth = 4;
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-      ctx.stroke();
-    }
+    // Stroke main dome outline on top
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 4;
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.stroke();
     
     ctx.restore();
   };
-
-
-  // --- Back Forcefields (T4 & T8) ---
-  if (t8 > 0) {
-    drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
-  }
-  if (t4 > 0) {
-    drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
-  }
 
   // --- Tier 0: Classic Safe ---
   const drawT0Vault = (alpha) => {
@@ -5244,8 +5229,8 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       // Main obelisk body (sleek metallic)
       ctx.fillStyle = fillGold;
       ctx.beginPath();
-      ctx.moveTo(-15, -9);
-      ctx.lineTo(15, -9);
+      ctx.moveTo(-15, -10);
+      ctx.lineTo(15, -10);
       ctx.lineTo(8, -140);
       ctx.lineTo(0, -155);
       ctx.lineTo(-8, -140);
@@ -5301,150 +5286,149 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.restore();
   }
 
-  // --- Tier 6: Mechanized Energy Moat / Ring ---
+  // --- Tier 6: Autonomous Defense Drones ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    // Position on the ground around the base
-    ctx.translate(0, 15);
-    
-    // Base metallic trench ring
-    ctx.strokeStyle = darkMetal;
-    ctx.lineWidth = 20;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 200, 70, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Inner glowing energy ring
-    const ringPulse = (Math.sin(t * 4) + 1) / 2;
-    ctx.strokeStyle = `rgba(255, 50, 50, ${0.6 + ringPulse * 0.4})`;
-    ctx.lineWidth = 8;
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 15;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 200, 70, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Rotating mechanical nodes on the ring
-    const numNodes = 8;
-    for (let i = 0; i < numNodes; i++) {
-        const angle = t * 2 + (i / numNodes) * Math.PI * 2;
-        const nx = Math.cos(angle) * 200;
-        const ny = Math.sin(angle) * 70;
-        
-        ctx.save();
-        ctx.translate(nx, ny);
-        
-        // Node base
-        ctx.fillStyle = fillGold;
-        ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = darkMetal;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        // Node energy core
-        ctx.fillStyle = "#ff0000";
-        ctx.beginPath();
-        ctx.arc(0, 0, 4, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Upward emission glow
-        const glowGrad = ctx.createLinearGradient(0, 0, 0, -40);
-        glowGrad.addColorStop(0, "rgba(255, 50, 50, 0.8)");
-        glowGrad.addColorStop(1, "rgba(255, 50, 50, 0)");
-        
-        ctx.fillStyle = glowGrad;
-        ctx.beginPath();
-        ctx.moveTo(-4, 0);
-        ctx.lineTo(4, 0);
-        ctx.lineTo(10, -40);
-        ctx.lineTo(-10, -40);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.restore();
+    const numDrones = 5;
+    for (let i = 0; i < numDrones; i++) {
+      ctx.save();
+      // Calculate drone position using time and phase
+      const phase = (i / numDrones) * Math.PI * 2;
+      const orbitRadiusX = 220;
+      const orbitRadiusY = 60;
+      
+      // Figure-8 pattern / complex orbit
+      const angle = t * 1.5 + phase;
+      const dx = Math.cos(angle) * orbitRadiusX;
+      // y follows a sine wave to go up and down, plus a bit of tilt based on x
+      const dy = Math.sin(angle * 2) * 30 - 80 + Math.sin(angle) * orbitRadiusY;
+      
+      // Perspective scaling based on y-position in the orbit (closer = bigger)
+      const z = Math.sin(angle); // -1 is back, 1 is front
+      const scale = 0.8 + (z + 1) * 0.4; // 0.8 to 1.6
+      
+      // Render back-half drones behind the shield (t8) and vault, front-half in front. 
+      // Simplified here: we'll just draw them in their 3D paths with a z-index simulated scale.
+      
+      ctx.translate(dx, dy);
+      ctx.scale(scale, scale);
+      
+      // Drone Body (sleek diamond / angular shape)
+      ctx.fillStyle = darkMetal;
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-8, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = fillGold;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      // Drone Core (pulsing red eye)
+      const dronePulse = (Math.sin(t * 10 + i) + 1) / 2;
+      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + dronePulse * 0.2})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Drone Thruster Trail / Glow
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = "rgba(255, 50, 50, 0.6)";
+      ctx.beginPath();
+      ctx.arc(0, 10, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
     }
     
     ctx.restore();
   }
 
-  // --- Tier 7: Massive Blast Shutters ---
+  // --- Tier 7: Holographic Surveillance Eye ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    // Animate closing/breathing slightly
-    const shutterBreath = Math.sin(t * 1.5) * 2;
+    // Position floating above the vault
+    ctx.translate(0, -180 + Math.sin(t * 2) * 10);
     
-    // Top Shutter Cap (heavy angled metal)
-    ctx.fillStyle = darkMetal;
+    // Scanner Cone (Sweeping beam downwards)
+    const scanSweep = Math.sin(t * 3) * 0.5; // sweep left/right
+    ctx.save();
+    ctx.rotate(scanSweep);
+    
+    // Create conical gradient for scanner beam
+    const beamGrad = ctx.createLinearGradient(0, 0, 0, 180);
+    beamGrad.addColorStop(0, "rgba(255, 0, 0, 0.4)");
+    beamGrad.addColorStop(1, "rgba(255, 0, 0, 0.0)");
+    
+    ctx.fillStyle = beamGrad;
     ctx.beginPath();
-    ctx.moveTo(-75, -115 - shutterBreath);
-    ctx.lineTo(75, -115 - shutterBreath);
-    ctx.lineTo(60, -135 - shutterBreath);
-    ctx.lineTo(-60, -135 - shutterBreath);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 180);
+    ctx.lineTo(-100, 180);
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
+    
+    // Holographic Eye Structure (Sleek sci-fi construct)
+    ctx.fillStyle = darkMetal;
+    ctx.beginPath();
+    ctx.moveTo(0, -25);
+    ctx.lineTo(30, 0);
+    ctx.lineTo(0, 25);
+    ctx.lineTo(-30, 0);
+    ctx.closePath();
+    ctx.fill();
+    
     ctx.strokeStyle = fillGold;
     ctx.lineWidth = 2;
     ctx.stroke();
     
-    // Danger stripes on top shutter
+    // Inner Rings (Rotating)
     ctx.save();
+    ctx.rotate(t * 1.5);
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-75, -115 - shutterBreath);
-    ctx.lineTo(75, -115 - shutterBreath);
-    ctx.lineTo(60, -135 - shutterBreath);
-    ctx.lineTo(-60, -135 - shutterBreath);
-    ctx.closePath();
-    ctx.clip();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "#ffaa00";
-    for(let sx = -80; sx <= 80; sx += 15) {
-        ctx.beginPath();
-        ctx.moveTo(sx, -115 - shutterBreath);
-        ctx.lineTo(sx + 20, -135 - shutterBreath);
-        ctx.stroke();
-    }
+    ctx.ellipse(0, 0, 15, 8, 0, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
     
-    // Side Shutters (Armor plating hugging the sides)
-    const drawSideShutter = (xDir) => {
-        ctx.save();
-        ctx.translate(xDir * (70 + shutterBreath * 0.5), -50);
-        
-        ctx.fillStyle = darkMetal;
-        ctx.beginPath();
-        // Inner edge
-        ctx.moveTo(xDir * -5, -60);
-        ctx.lineTo(xDir * -5, 60);
-        // Outer edge angled
-        ctx.lineTo(xDir * 15, 50);
-        ctx.lineTo(xDir * 15, -50);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.strokeStyle = fillGold;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        // Massive locking bolts
-        ctx.fillStyle = "#888";
-        for (let by = -40; by <= 40; by += 20) {
-            ctx.beginPath();
-            ctx.arc(xDir * 5, by, 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-        }
-        
-        ctx.restore();
-    };
+    ctx.save();
+    ctx.rotate(-t * 2);
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8, 15, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
     
-    drawSideShutter(-1); // Left
-    drawSideShutter(1);  // Right
+    // Central Red Pupil / Core
+    const eyePulse = (Math.sin(t * 8) + 1) / 2;
+    ctx.fillStyle = `rgba(255, 0, 0, ${0.7 + eyePulse * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    
+    // Top & Bottom communication antennas/spikes
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -25);
+    ctx.lineTo(0, -40);
+    ctx.moveTo(0, 25);
+    ctx.lineTo(0, 40);
+    ctx.stroke();
     
     ctx.restore();
   }
