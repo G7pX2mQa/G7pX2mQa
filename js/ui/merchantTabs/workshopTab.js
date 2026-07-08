@@ -574,7 +574,7 @@ export function updateWorkshopTab() {
   
   let currentIntStr = '';
   if (currentGenerationLevel.isInfinite()) currentIntStr = 'Infinity';
-  else currentIntStr = currentGenerationLevel.floorToInteger().toStorage(); // BN:18:sig:exp
+  else currentIntStr = currentGenerationLevel.floorToInteger().toStorage(); // BN:15:sig:exp
 
   if (currentIntStr !== lastSyncedLevel) {
     lastSyncedLevel = currentIntStr;
