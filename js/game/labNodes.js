@@ -610,7 +610,7 @@ export function tickResearch(dt) {
 
     // RP per second = 1 * Multiplier
     const rpPerSec = mult; 
-    const rpPerTick = rpPerSec.mulDecimal(dt.toString(), 18);
+    const rpPerTick = rpPerSec.mulDecimal(dt.toString(), BigNum.DEFAULT_PRECISION);
     
     const currentRp = getResearchNodeRp(node.id);
     
