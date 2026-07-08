@@ -495,12 +495,12 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
         }
     }
 
-    const logBaseStr = logBaseVal.toFixed(18);
+    const logBaseStr = logBaseVal.toFixed(BigNum.DEFAULT_PRECISION);
 
     try {
-        const labFactor = labLevelBn.mulDecimal(logBaseStr, 18);
+        const labFactor = labLevelBn.mulDecimal(logBaseStr, BigNum.DEFAULT_PRECISION);
         const xpTerm = xpLevelBn.div(BigNum.fromInt(20));
-        const xpFactor = xpTerm.mulDecimal(logBaseStr, 18);
+        const xpFactor = xpTerm.mulDecimal(logBaseStr, BigNum.DEFAULT_PRECISION);
         
         let totalLog10 = labFactor.add(xpFactor);
 
@@ -1034,15 +1034,15 @@ function recomputePendingDna() {
         }
     }
 
-    const logBaseStr = logBaseVal.toFixed(18);
+    const logBaseStr = logBaseVal.toFixed(BigNum.DEFAULT_PRECISION);
 
     // Formula: Multiplier * Base^labLevel * Base^(xpLevel/20)
     const labLevel = getLabLevel ? getLabLevel() : bnZero();
     const xpLevel = getXpLevelBn();
     try {
-        const labFactor = labLevel.mulDecimal(logBaseStr, 18);
+        const labFactor = labLevel.mulDecimal(logBaseStr, BigNum.DEFAULT_PRECISION);
         const xpTerm = xpLevel.div(BigNum.fromInt(20));
-        const xpFactor = xpTerm.mulDecimal(logBaseStr, 18);
+        const xpFactor = xpTerm.mulDecimal(logBaseStr, BigNum.DEFAULT_PRECISION);
         
         let totalLog10 = labFactor.add(xpFactor);
 
