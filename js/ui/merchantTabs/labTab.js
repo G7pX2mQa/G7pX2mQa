@@ -134,7 +134,7 @@ export function getLabCost(level) {
     
     try {
         if (lvl.cmp(1e15) < 0) {
-             const lvlNum = lvl.inf || lvl.e >= 15 ? Infinity : Number(lvl.toPlainIntegerString());
+             const lvlNum = lvl.inf || lvl.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(lvl.toPlainIntegerString());
              const exponent = 20 + lvlNum;
              return new BigNum(1, exponent);
         }
@@ -143,7 +143,7 @@ export function getLabCost(level) {
              return BigNum.fromAny('Infinity');
         }
         
-        const lvlStr = lvl.inf || lvl.e >= 15 ? 'Infinity' : lvl.toPlainIntegerString();
+        const lvlStr = lvl.inf || lvl.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : lvl.toPlainIntegerString();
         if (lvlStr === 'Infinity') return BigNum.fromAny('Infinity');
         
         const lvlNum = Number(lvlStr);
@@ -258,7 +258,7 @@ function bigNumPowerOf10(logBn) {
 
   const sig = Number(Math.round(mantissa * Number(scaleFactor)));
 
-  const integerPartString = integerPart.inf || integerPart.e >= 15 ? 'Infinity' : integerPart.toPlainIntegerString();
+  const integerPartString = integerPart.inf || integerPart.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : integerPart.toPlainIntegerString();
   if (integerPartString === 'Infinity') {
       return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
