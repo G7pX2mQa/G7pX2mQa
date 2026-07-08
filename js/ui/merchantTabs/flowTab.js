@@ -245,7 +245,7 @@ function syncWaterwheelDecorations(container) {
         if (lvl.cmp(0) > 0) {
             let numLvl = 0;
             if (lvl.cmp(BigNum.fromAny('1e30')) > 0) numLvl = 1e30; 
-            else numLvl = lvl.inf || lvl.e >= 15 ? Infinity : Number(lvl.toPlainIntegerString());
+            else numLvl = lvl.inf || lvl.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(lvl.toPlainIntegerString());
             
             // Formula: Log10(Level * 10), max 30 per type
             const logVal = Math.floor(Math.log10(numLvl * 10));
