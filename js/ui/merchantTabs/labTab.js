@@ -214,7 +214,7 @@ function bigNumIsInfinite(bn) {
 function bigNumToFiniteNumber(bn) {
   if (!bn || typeof bn !== 'object') return 0;
   if (bigNumIsInfinite(bn)) return Number.POSITIVE_INFINITY;
-  const sci = typeof bn.toScientific === 'function' ? bn.toScientific(18) : String(bn);
+  const sci = typeof bn.toScientific === 'function' ? bn.toScientific(BigNum.DEFAULT_PRECISION) : String(bn);
   if (!sci || sci === 'Infinity') return Number.POSITIVE_INFINITY;
   const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
   if (match) {
@@ -245,9 +245,9 @@ function bigNumPowerOf10(logBn) {
   }
 
   let mantissa = Math.pow(10, fractionalNumber);
-  mantissa = Number(mantissa.toPrecision(15));
+  mantissa = Number(mantissa.toPrecision(BigNum.DEFAULT_PRECISION));
 
-  const precision = 18;
+  const precision = BigNum.DEFAULT_PRECISION;
   const scaleFactor = 10 ** Number(precision);
 
   let exponentAdjustment = 0;
@@ -283,9 +283,9 @@ export function getRpMultBase() {
         
         // Base: (2 + nerf/2)^level -> Log10 contribution: level * log10(2 + nerf/2)
         const base = 2 + (effectiveNerf / 2);
-        const log10Base = Math.log10(base).toFixed(18);
+        const log10Base = Math.log10(base).toFixed(BigNum.DEFAULT_PRECISION);
         
-        const exponentFromBase = level.mulDecimal(log10Base, 18);
+        const exponentFromBase = level.mulDecimal(log10Base, BigNum.DEFAULT_PRECISION);
         const exponent = exponentFromBase.add(BigNum.fromAny(String(multLog10)));
         
         return bigNumPowerOf10(exponent);
@@ -294,7 +294,7 @@ export function getRpMultBase() {
     // 2^level = 10^(level * log10(2))
     const log10Of2 = "0.3010299956639812"; 
     
-    const exponent = level.mulDecimal(log10Of2, 18);
+    const exponent = level.mulDecimal(log10Of2, BigNum.DEFAULT_PRECISION);
     
     return bigNumPowerOf10(exponent);
 }
@@ -887,7 +887,7 @@ class LabSystem {
                                     progress = 1;
                                 } else {
                                     const ratio = rp.div(req);
-                                    const ratioSci = ratio.toScientific(15);
+                                    const ratioSci = ratio.toScientific(BigNum.DEFAULT_PRECISION);
                                     progress = Number(ratioSci);
                                 }
                              } catch (e) {
