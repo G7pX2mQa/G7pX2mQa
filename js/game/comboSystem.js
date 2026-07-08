@@ -37,7 +37,7 @@ function saveComboState() {
     if (!isComboPreservedFn()) return;
     
     try {
-        localStorage.setItem(COMBO_STORAGE_KEY(slot), activeComboValue.toFixed(6));
+        localStorage.setItem(COMBO_STORAGE_KEY(slot), activeComboValue.toFixed(3));
     } catch {}
 }
 
