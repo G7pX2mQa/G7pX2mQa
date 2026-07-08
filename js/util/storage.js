@@ -2,7 +2,7 @@
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 
-const MULT_SCALE = 18;
+const MULT_SCALE = BigNum.DEFAULT_PRECISION;
 const MULT_SCALE_TAG = 'XM:';
 
 const STORAGE_WATCH_INTERVAL_MS = 140;
