@@ -877,6 +877,10 @@ const engine = new DialogueEngine({
   const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
 
   if (meta.scriptId === 1) {
+    if (script.nodes.c1b && script.nodes.c1b.options[0] && script.nodes.c0 && script.nodes.c0.options[2]) {
+      script.nodes.c1b.options[0] = { ...script.nodes.c0.options[2] };
+    }
+
     let initialChoice = 3;
     try {
       const stored = localStorage.getItem(`ccc:merchant:initialChoice:${getActiveSlot()}`);
@@ -891,9 +895,6 @@ const engine = new DialogueEngine({
       if (script.nodes.c0 && script.nodes.c0.options[1]) {
         script.nodes.c0.options[1].label = 'You didn\'t answer my <i>"Who are you?"</i> question like I\'d hoped.';
       }
-      if (script.nodes.c1b && script.nodes.c1b.options[0]) {
-        script.nodes.c1b.options[0].label = 'You didn\'t answer my <i>"Who are you?"</i> question like I\'d hoped.';
-      }
       if (script.nodes.m1a) {
         script.nodes.m1a.say = 'Yes I did.';
         script.nodes.m1a.next = 'c1a';
@@ -901,9 +902,6 @@ const engine = new DialogueEngine({
     } else if (initialChoice === 2) {
       if (script.nodes.c0 && script.nodes.c0.options[1]) {
         script.nodes.c0.options[1].label = 'You didn\'t answer my <i>"Where am I?"</i> question like I\'d hoped.';
-      }
-      if (script.nodes.c1b && script.nodes.c1b.options[0]) {
-        script.nodes.c1b.options[0].label = 'You didn\'t answer my <i>"Where am I?"</i> question like I\'d hoped.';
       }
       if (script.nodes.m1a) {
         script.nodes.m1a.say = 'Yes I did.';
@@ -913,10 +911,6 @@ const engine = new DialogueEngine({
       if (script.nodes.c0 && script.nodes.c0.options[1]) {
         script.nodes.c0.options[1].label = 'Saying <i>"Okay"</i> to my confusion doesn\'t help.';
         script.nodes.c0.options[1].to = 'm1c';
-      }
-      if (script.nodes.c1b && script.nodes.c1b.options[0]) {
-        script.nodes.c1b.options[0].label = 'Saying <i>"Okay"</i> to my confusion doesn\'t help.';
-        script.nodes.c1b.options[0].to = 'm1c';
       }
     }
   }
