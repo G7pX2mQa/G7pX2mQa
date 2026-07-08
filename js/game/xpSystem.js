@@ -71,7 +71,7 @@ function bigNumIsZero(bn) {
 function bigNumToFiniteNumber(bn) {
   if (!bn || typeof bn !== 'object') return 0;
   if (bigNumIsInfinite(bn)) return Number.POSITIVE_INFINITY;
-  const sci = typeof bn.toScientific === 'function' ? bn.toScientific(18) : String(bn);
+  const sci = typeof bn.toScientific === 'function' ? bn.toScientific(BigNum.DEFAULT_PRECISION) : String(bn);
   if (!sci || sci === 'Infinity') return Number.POSITIVE_INFINITY;
   const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
   if (match) {
@@ -109,13 +109,13 @@ function computeBonusCountBn(levelBn) {
 
 function computeLevelLogTerm(levelBn) {
   if (!levelBn || typeof levelBn !== 'object') return BigNum.fromInt(0);
-  return levelBn.mulDecimal(LOG_STEP_DECIMAL, 18);
+  return levelBn.mulDecimal(LOG_STEP_DECIMAL, BigNum.DEFAULT_PRECISION);
 }
 
 function computeBonusLogTerm(levelBn) {
   const bonusCount = computeBonusCountBn(levelBn);
   if (bigNumIsZero(bonusCount)) return null;
-  return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
+  return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, BigNum.DEFAULT_PRECISION);
 }
 
 function bigNumPowerOf10(logBn) {
@@ -146,7 +146,7 @@ function bigNumPowerOf10(logBn) {
 
   let mantissa = Math.pow(10, fractionalNumber);
 
-  const precision = 18;
+  const precision = BigNum.DEFAULT_PRECISION;
   const scaleFactor = 10 ** Number(precision);
 
   let exponentAdjustment = 0;
@@ -479,14 +479,14 @@ function approximateRequirementFromLevel(levelBn) {
 
   const deltaLevel = levelBn.sub?.(baseLevelBn) ?? BigNum.fromInt(0);
   if (!bigNumIsZero(deltaLevel)) {
-    totalLog = totalLog.add?.(deltaLevel.mulDecimal(LOG_STEP_DECIMAL, 18)) ?? totalLog;
+    totalLog = totalLog.add?.(deltaLevel.mulDecimal(LOG_STEP_DECIMAL, BigNum.DEFAULT_PRECISION)) ?? totalLog;
   }
 
   const targetBonus = computeBonusCountBn(levelBn);
   const baseBonus = computeBonusCountBn(baseLevelBn);
   const deltaBonus = targetBonus.sub?.(baseBonus) ?? BigNum.fromInt(0);
   if (!bigNumIsZero(deltaBonus)) {
-    totalLog = totalLog.add?.(deltaBonus.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18)) ?? totalLog;
+    totalLog = totalLog.add?.(deltaBonus.mulDecimal(LOG_DECADE_BONUS_DECIMAL, BigNum.DEFAULT_PRECISION)) ?? totalLog;
   }
 
   const softcapStartBn = BigNum.fromAny("1000000000000"); // 1 Trillion
@@ -740,7 +740,7 @@ export function syncCoinMultiplierWithXpLevel(force = false) {
     let working = BigNum.fromInt(1);
     const iterations = Number(levelNum);
     for (let i = 0; i < iterations; i += 1) {
-      working = working.mulDecimal('1.1', 18);
+      working = working.mulDecimal('1.1', BigNum.DEFAULT_PRECISION);
     }
     let levelAdd;
     try { levelAdd = BigNum.fromAny(levelNum.toString()); }
@@ -1416,7 +1416,7 @@ export function computeCoinMultiplierForXpLevel(levelValue) {
     let working = BigNum.fromInt(1);
     const iterations = Number(levelNum);
     for (let i = 0; i < iterations; i += 1) {
-      working = working.mulDecimal('1.1', 18);
+      working = working.mulDecimal('1.1', BigNum.DEFAULT_PRECISION);
     }
     let levelAdd;
     try { levelAdd = BigNum.fromAny(levelNum.toString()); }
