@@ -5109,27 +5109,44 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     
     ctx.restore();
   };
-
-  // --- Tier 4 & 8: Backside Forcefield ---
-  if (t8 > 0) {
-    drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
-  }
-  if (t4 > 0) {
-    drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
-  }
-
   ctx.save();
   // Move building up for T1 reinforcements (with cross-fade for T0)
   if (tier >= 1) {
     if (prevTier === 0 && tier === 1) {
       drawT0Vault(1 - t1);
       ctx.translate(0, -15);
+      
+      // --- Tier 4 & 8: Backside Forcefield ---
+      if (t8 > 0) {
+        drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
+      }
+      if (t4 > 0) {
+        drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
+      }
+      
       drawT0Vault(t1);
     } else {
       ctx.translate(0, -15);
+      
+      // --- Tier 4 & 8: Backside Forcefield ---
+      if (t8 > 0) {
+        drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
+      }
+      if (t4 > 0) {
+        drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
+      }
+      
       drawT0Vault(1);
     }
   } else {
+    // --- Tier 4 & 8: Backside Forcefield ---
+    if (t8 > 0) {
+      drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
+    }
+    if (t4 > 0) {
+      drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
+    }
+    
     drawT0Vault(t0);
   }
 
