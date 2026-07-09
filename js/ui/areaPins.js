@@ -102,7 +102,10 @@ function renderPinnedAreas() {
                 }
                 
                 if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
-                    if (!window.confirm("Are you sure you want to leave The Cove right now? There is a large coin (size 4+) currently on the screen that will disappear when you switch areas.")) {
+                    const message = (typeof window.spawner.getBigCoinWarningMessage === 'function') 
+                        ? window.spawner.getBigCoinWarningMessage() 
+                        : "Are you sure you want to leave The Cove right now? There is a large coin (size 4+) currently on the screen that will disappear when you switch areas.";
+                    if (message && !window.confirm(message)) {
                         return;
                     }
                 }
