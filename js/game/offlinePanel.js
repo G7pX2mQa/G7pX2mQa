@@ -1092,7 +1092,7 @@ export function calculateOfflineRewards(seconds) {
     const mapped = effectiveNerf * 1.5 - 0.5;
     const log10Rate = 2 * mapped - 2;
     const rateMultiplier = bigNumFromLog10(log10Rate);
-    const totalMultiplier = rateMultiplier.mulDecimal(String(seconds));
+    const totalMultiplier = rateMultiplier.mulBigNumInteger(secondsBn);
 
     if (isSurgeActive(13)) {
       const xpState = getXpState();
@@ -1107,7 +1107,7 @@ export function calculateOfflineRewards(seconds) {
         const labMult = getLabGoldMultiplier();
         pending = pending.mulDecimal(labMult.toScientific());
 
-        const goldEarned = pending.mulDecimal(totalMultiplier.toScientific());
+        const goldEarned = pending.mulBigNumInteger(totalMultiplier);
         if (goldEarned.cmp(0) > 0 && !isCurrencyLocked("gold", slot)) {
           rewards.gold = goldEarned;
         }
@@ -1121,7 +1121,7 @@ export function calculateOfflineRewards(seconds) {
         const cumulativeMp = getTotalCumulativeMp();
         const pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
 
-        const magicEarned = pending.mulDecimal(totalMultiplier.toScientific());
+        const magicEarned = pending.mulBigNumInteger(totalMultiplier);
         if (magicEarned.cmp(0) > 0 && !isCurrencyLocked("magic", slot)) {
           rewards.magic = magicEarned;
         }
@@ -1137,18 +1137,14 @@ export function calculateOfflineRewards(seconds) {
           const newPct = Math.pow(parseFloat(formatMultForUi(pct)), 1 / tNerf);
           const log10RateDna = Math.log10(newPct / 100);
           const rateMultiplierDna = bigNumFromLog10(log10RateDna);
-          const totalMultiplierDna = rateMultiplierDna.mulDecimal(
-            String(seconds),
-          );
+          const totalMultiplierDna = rateMultiplierDna.mulBigNumInteger(secondsBn);
 
           const xpState = getXpState();
           const labLevel = getLabLevel();
           let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
           pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
 
-          const dnaEarned = pending.mulDecimal(
-            totalMultiplierDna.toScientific(),
-          );
+          const dnaEarned = pending.mulBigNumInteger(totalMultiplierDna);
           if (dnaEarned.cmp(0) > 0 && !isCurrencyLocked("dna", slot)) {
             rewards.dna = dnaEarned;
           }
