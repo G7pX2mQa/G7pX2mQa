@@ -2,6 +2,7 @@
 
 export class BigNum {
   static DEFAULT_PRECISION = 15;
+  static MINIMUM_PRECISION = 3;
   static MAX_E = 1.7976931348623157e+308; // Number.MAX_VALUE
   static MAX_PLAIN_DIGITS = 1000;    // safety cap for plain integer strings
   static MAX_UI_DIGITS = 100;
@@ -42,7 +43,7 @@ export class BigNum {
     const absE = Math.abs(effectiveE);
     if (!inf && absE >= 10) {
       const eMag = Math.floor(Math.log10(absE));
-      targetP = Math.max(0, BigNum.DEFAULT_PRECISION - eMag);
+      targetP = Math.max(BigNum.MINIMUM_PRECISION, BigNum.DEFAULT_PRECISION - eMag);
     }
     this.p = Math.min(p | 0, targetP);
 
