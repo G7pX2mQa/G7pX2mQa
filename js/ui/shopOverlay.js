@@ -832,7 +832,7 @@ class ShopInstance {
                                             let deltaNum = 0;
                                             try {
                                                 const diffBn = target.sub(model.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.();
-                                                deltaNum = Math.max(0, Math.floor(Number((diffPlain && diffPlain !== 'Infinity') ? diffPlain : target.sub(model.lvlBn).toString())));
+                                                deltaNum = Math.max(0, Math.floor((diffPlain && diffPlain !== 'Infinity') ? Number(diffPlain) : (diffBn.inf ? Infinity : (diffBn.sig * Math.pow(10, diffBn.e)))));
                                             } catch {}
 
                                             const walletRaw = bank[model.upg.costType]?.value;
@@ -2024,7 +2024,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                       playPurchaseSfx(); updateShopOverlay(); rerender(); return;
                   }
                   let deltaNum = 0;
-                  try { const diffBn = target.sub(fresh.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.(); deltaNum = Math.max(0, Math.floor(Number((diffPlain&&diffPlain!=='Infinity')?diffPlain:target.sub(fresh.lvlBn).toString()))); } catch {}
+                  try { const diffBn = target.sub(fresh.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.(); deltaNum = Math.max(0, Math.floor((diffPlain&&diffPlain!=='Infinity')?Number(diffPlain):(diffBn.inf ? Infinity : (diffBn.sig * Math.pow(10, diffBn.e))))); } catch {}
                   const walletRaw = bank[fresh.upg.costType]?.value;
                   const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw??0);
                   const evalResult = evaluateBulkPurchase(fresh.upg, fresh.lvlBn, walletBn, deltaNum);
