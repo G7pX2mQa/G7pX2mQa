@@ -797,6 +797,9 @@ export function addMutationPower(amount) {
       inc = bnZero();
     }
     
+    inc = applyMutationMultipliers(inc);
+    inc = applyStatMultiplierOverride('mutation', inc);
+
     if (!inc.isZero?.()) {
       try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'mp', delta: inc, progress: mutationState.progress } })); } catch {}
     }
