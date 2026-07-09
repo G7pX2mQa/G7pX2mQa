@@ -4907,13 +4907,13 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       
       ctx.fill();
     } else {
-      ctx.fillStyle = domeGrad;
+      
       ctx.beginPath();
       ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
       ctx.lineTo(radiusX, bottomY);
       ctx.lineTo(-radiusX, bottomY);
       ctx.closePath();
-      ctx.fill();
+      
     }
     
     // Animated flowing 3D Hexagonal pattern
@@ -5017,16 +5017,32 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.shadowColor = "#ff0000";
     ctx.shadowBlur = 10;
     ctx.stroke();
-    
-    ctx.restore();
-    
-    // Stroke main dome outline on top
+
+    // Stroke the hexagon path to give it thickness while still clipped
+    // Doing this for both front and back maintains the thick hexagon lines,
+    // and doing it before ctx.restore() prevents the points at the edges from 
+    // bleeding out into a static arc.
     ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
     ctx.lineWidth = 4;
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
-    // We stroke the main dome outline for both front and back
     ctx.stroke();
+    
+    ctx.restore();
+
+    // For the main dome outline static arc
+    if (!isBack) {
+      ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+      ctx.lineWidth = 4;
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
+      ctx.lineTo(radiusX, bottomY);
+      ctx.lineTo(-radiusX, bottomY);
+      ctx.closePath();
+      ctx.stroke();
+    }
     
     ctx.restore();
   };
