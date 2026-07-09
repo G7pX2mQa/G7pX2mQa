@@ -452,6 +452,9 @@ export class BigNum {
     if (/e/i.test(s)) {
       const n = Number(s);
       if (!Number.isFinite(n) || n < 0) throw new TypeError('Invalid multiplier: ' + s);
+      if (n >= 1e21 || n <= 1e-7) {
+          return { _isBigNum: true, bn: BigNum.fromAny(n) };
+      }
       const digits = Math.min(maxScale, BigNum.DEFAULT_PRECISION);
       s = n.toFixed(digits).replace(/\.?0+$/, ''); // strip trailing zeros
     }
@@ -469,7 +472,12 @@ export class BigNum {
   mulDecimal(mult, maxScale = BigNum.DEFAULT_PRECISION) {
     if (this._isNaN || Number.isNaN(mult)) return new BigNum(NaN, 0, this.p);
     if (this.inf || this.isZero()) return this.clone();
-    const { numer, scale } = BigNum._parseDecimalMultiplier(mult, maxScale);
+    const result = BigNum._parseDecimalMultiplier(mult, maxScale);
+    if (result._isBigNum) {
+        const b = result.bn;
+        return new BigNum(this.sig * b.sig, { base: this.e + b.e }, this.p);
+    }
+    const { numer, scale } = result;
     if (numer === 0) return BigNum.zero(this.p);
     return this.mulScaledInt(numer, scale);
   }
