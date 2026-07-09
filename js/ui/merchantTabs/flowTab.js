@@ -734,7 +734,7 @@ export function calculateWaterwheelOffline(seconds) {
     const fpMult = getFpMultiplier();
     const result = {};
     // Base rate 1 FP/sec
-    let totalGainBn = BigNum.fromInt(1).mulDecimal(String(seconds));
+    let totalGainBn = BigNum.fromAny(seconds);
     totalGainBn = totalGainBn.mulBigNumInteger(fpMult);
     totalGainBn = applyStatMultiplierOverride('fp', totalGainBn);
 
@@ -916,7 +916,7 @@ function onTick(dt) {
         }
 
         // Base rate 1 FP/sec
-        let gainBn = BigNum.fromInt(1).mulDecimal(String(dt));
+        let gainBn = BigNum.fromAny(dt);
         
         // Apply FP Multiplier
         gainBn = gainBn.mulBigNumInteger(fpMult);
