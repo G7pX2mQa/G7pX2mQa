@@ -1107,6 +1107,42 @@ export function createSpawner(config = {}) {
         playEntranceWave,
         setDependencies,
         hasBigCoins: () => isSurgeActive(2) && base.getActiveItems().some(c => c && c.sizeIndex >= 4),
+        getBigCoinWarningMessage: () => {
+            if (!isSurgeActive(2)) return null;
+            const items = base.getActiveItems().filter(c => c && c.sizeIndex >= 4);
+            if (items.length === 0) return null;
+            
+            const counts = {};
+            for (const item of items) {
+                counts[item.sizeIndex] = (counts[item.sizeIndex] || 0) + 1;
+            }
+            
+            const sizes = Object.keys(counts).map(Number).sort((a, b) => a - b);
+            
+            if (items.length === 1) {
+                return `Are you sure you want to leave The Cove right now? There is a size ${sizes[0]} Coin that will disappear when you switch areas.`;
+            }
+            
+            const parts = sizes.map(size => {
+                const count = counts[size];
+                return `${count} size ${size} Coin${count === 1 ? '' : 's'}`;
+            });
+            
+            let partsStr = '';
+            if (parts.length === 1) {
+                partsStr = parts[0];
+            } else if (parts.length === 2) {
+                partsStr = `${parts[0]} and ${parts[1]}`;
+            } else {
+                const last = parts.pop();
+                partsStr = `${parts.join(', ')}, and ${last}`;
+            }
+            
+            const firstCount = counts[sizes[0]];
+            const verb = firstCount === 1 ? 'is' : 'are';
+            
+            return `Are you sure you want to leave The Cove right now? There ${verb} ${partsStr} that will disappear when you switch areas.`;
+        },
         getActiveCoins: base.getActiveItems,
     };
 }
