@@ -356,7 +356,8 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge 
 
 export function getPotentialScrap() {
    let totalVal = BigNum.fromInt(0);
-   const dpLevelNum = isDpSystemUnlocked() ? Number(getDpState().dpLevel.toString()) : 0;
+   const _dpLevel = isDpSystemUnlocked() ? getDpState().dpLevel : null;
+   const dpLevelNum = _dpLevel ? (_dpLevel.inf ? Infinity : (_dpLevel.sig * Math.pow(10, _dpLevel.e))) : 0;
    const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
 
    for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
