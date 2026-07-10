@@ -224,11 +224,7 @@ function processResourceRow(config, grid, initialized) {
         const newText = `${rowData.plural}: ${formatMultForUi(multiplier)}x`;
         if (rowData.lastText !== newText) {
           rowData.lastText = newText;
-          if (newText.includes('<span')) {
-            rowData.amountDiv.innerHTML = newText;
-          } else {
-            rowData.amountDiv.textContent = newText;
-          }
+          setHtmlOrText(rowData.amountDiv, newText);
         }
       } else {
         rowData.row.style.display = 'none';
