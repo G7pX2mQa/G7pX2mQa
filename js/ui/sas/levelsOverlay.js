@@ -137,7 +137,7 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
       if (levelConfig.barText) {
           // Keep the original template formatting, but inject our own span data attributes.
           // Since some barText's have their own classes (like xp-level-value), we just make sure we add our data-level-val.
-          levelDiv.innerHTML = levelConfig.barText.replace('{val}', formatNumber(0)).replace('<span ', '<span data-level-val ');
+          setHtmlOrText(levelDiv, levelConfig.barText.replace('{val}', formatNumber(0)).replace('<span ', '<span data-level-val '));
           if (levelConfig.noTextGap) {
              levelDiv.style.gap = '0px';
              levelDiv.style.whiteSpace = 'pre';
