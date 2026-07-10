@@ -21,6 +21,31 @@ const KEY_PREFIX = 'ccc:flow';
 const KEY_WATERWHEEL = (id, slot) => `${KEY_PREFIX}:${id}:${slot}`;
 
 const EFFECT_PERCENTAGE = 100;
+
+const FLOW_EXPLAINER_TEXT_DEFAULT = `
+        <!--
+		Commenting out this old poem that used to be here
+		-----------------------------------------------------------------------------
+        Direct your Flow to make the Great Waterwheels turn,<br>
+        Within the Forgotten Channels these hidden relics yearn,<br>
+        To split the surging waters is a wish the depths denied,<br>
+        So choose with careful strategy where power shall reside,<br>
+        While each wheel works hard to increase your every gain,<br>
+        As milestones unlock more links within the ancient chain,<br>
+        Command the rushing waters, push the limits of the machine,<br>
+        To wake the strongest multipliers that The Cove has ever seen.
+		-----------------------------------------------------------------------------
+        -->
+        Toggle the Flow States of Waterwheels to gain multipliers.<br>
+        Only one Waterwheel can actively level up at a given time.<br>
+        Choose with careful strategy which Waterwheel will flow.<br>
+        Each Waterwheel level grants a +100% boost to its focus.<br>
+        The flowing Waterwheel will passively gain FP constantly.<br>
+        The FP requirement to level up any Waterwheel is constant.<br>
+        The FP value is incredibly important for these Waterwheels.<br>
+        Unlock new Waterwheels by progressing further in the game.
+    `;
+
 const bnZero = () => BigNum.fromInt(0);
 
 const WATERWHEELS = {
@@ -1193,29 +1218,7 @@ function buildUI(panel) {
     
     const text = document.createElement('div');
     text.className = 'flow-explainer-text';
-    text.innerHTML = `
-        <!--
-		Commenting out this old poem that used to be here
-		-----------------------------------------------------------------------------
-        Direct your Flow to make the Great Waterwheels turn,<br>
-        Within the Forgotten Channels these hidden relics yearn,<br>
-        To split the surging waters is a wish the depths denied,<br>
-        So choose with careful strategy where power shall reside,<br>
-        While each wheel works hard to increase your every gain,<br>
-        As milestones unlock more links within the ancient chain,<br>
-        Command the rushing waters, push the limits of the machine,<br>
-        To wake the strongest multipliers that The Cove has ever seen.
-		-----------------------------------------------------------------------------
-        -->
-        Toggle the Flow States of Waterwheels to gain multipliers.<br>
-        Only one Waterwheel can actively level up at a given time.<br>
-        Choose with careful strategy which Waterwheel will flow.<br>
-        Each Waterwheel level grants a +100% boost to its focus.<br>
-        The flowing Waterwheel will passively gain FP constantly.<br>
-        The FP requirement to level up any Waterwheel is constant.<br>
-        The FP value is incredibly important for these Waterwheels.<br>
-        Unlock new Waterwheels by progressing further in the game.
-    `;
+    text.innerHTML = FLOW_EXPLAINER_TEXT_DEFAULT;
 
     const minisRight = document.createElement('div');
     minisRight.className = 'flow-minis-col';
@@ -1378,29 +1381,7 @@ export function updateFlowTab() {
         if (hwMode) {
             explainerTextEl.innerHTML = `<strong><span style="color: #00fffa;">Waterwheel Hotkey mode is active</span></strong>`;
         } else {
-            explainerTextEl.innerHTML = `
-        <!--
-		Commenting out this old poem that used to be here
-		-----------------------------------------------------------------------------
-        Direct your Flow to make the Great Waterwheels turn,<br>
-        Within the Forgotten Channels these hidden relics yearn,<br>
-        To split the surging waters is a wish the depths denied,<br>
-        So choose with careful strategy where power shall reside,<br>
-        While each wheel works hard to increase your every gain,<br>
-        As milestones unlock more links within the ancient chain,<br>
-        Command the rushing waters, push the limits of the machine,<br>
-        To wake the strongest multipliers that The Cove has ever seen.
-		-----------------------------------------------------------------------------
-        -->
-        Toggle the Flow States of Waterwheels to gain multipliers.<br>
-        Only one Waterwheel can actively level up at a given time.<br>
-        Choose with careful strategy which Waterwheel will flow.<br>
-        Each Waterwheel level grants a +100% boost to its focus.<br>
-        The flowing Waterwheel will passively gain FP constantly.<br>
-        The FP requirement to level up any Waterwheel is constant.<br>
-        The FP value is incredibly important for these Waterwheels.<br>
-        Unlock new Waterwheels by progressing further in the game.
-    `;
+            explainerTextEl.innerHTML = FLOW_EXPLAINER_TEXT_DEFAULT;
         }
     }
 updateFlowVisuals();
