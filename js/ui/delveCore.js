@@ -3,6 +3,7 @@ import { playAudio, setAudioUnderwater } from '../util/audioManager.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../util/ghostTapGuard.js';
 import { blockInteraction } from './shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
+import { isFlowUnlocked } from './merchantTabs/flowTab.js';
 
 
 export let merchantOverlayEl = null;
@@ -851,27 +852,57 @@ export function bindDelveTabHotkey(sheetEl) {
     
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
+    if (e.key === 'f' || e.key === 'F') {
+        if (typeof isFlowUnlocked === 'function' && isFlowUnlocked()) {
+            import('../util/storage.js').then(({ getActiveSlot }) => {
+                const slot = getActiveSlot();
+                let hwMode = false;
+                try { hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${slot}`) === 'true'; } catch(e) {}
+                hwMode = !hwMode;
+                try { localStorage.setItem(`ccc:waterwheelHotkeyMode:${slot}`, String(hwMode)); } catch(e) {}
+                window.dispatchEvent(new CustomEvent('flow:hotkeyModeToggled'));
+            });
+        }
+        return;
+    }
+
     if (/^[0-9]$/.test(e.key)) {
       const num = parseInt(e.key, 10);
-      const requestedIndex = (num === 0 ? 9 : num - 1);
 
-      // Gather tabs currently available and visible inside the sheet
-      const tabs = Array.from(sheetEl.querySelectorAll('.merchant-tabs > .merchant-tab'));
-      if (tabs.length === 0) return;
+      import('../util/storage.js').then(({ getActiveSlot }) => {
+          const slot = getActiveSlot();
+          // Check if we are in Flow tab and hotkey mode is active
+          let hwMode = false;
+          try { hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${slot}`) === 'true'; } catch(e) {}
+          
+          const flowTab = sheetEl.querySelector('.merchant-tab[data-tab="flow"]');
+          const isFlowTabActive = flowTab && flowTab.classList.contains('is-active');
 
-      // Filter tabs that are not disabled and not locked
-      const unlockedTabs = tabs.filter(t => !t.disabled && !t.classList.contains('is-locked') && t.style.display !== 'none');
+          if (isFlowTabActive && hwMode) {
+              e.preventDefault();
+              window.dispatchEvent(new CustomEvent('flow:triggerHotkey', { detail: { num } }));
+              return;
+          }
 
-      let targetIndex = requestedIndex;
-      if (targetIndex >= unlockedTabs.length) {
-        targetIndex = unlockedTabs.length - 1;
-      }
-      
-      if (targetIndex >= 0 && targetIndex < unlockedTabs.length) {
-        e.preventDefault();
-        // Trigger click on the target tab
-        unlockedTabs[targetIndex].click();
-      }
+          // Gather tabs currently available and visible inside the sheet
+          const tabs = Array.from(sheetEl.querySelectorAll('.merchant-tabs > .merchant-tab'));
+          if (tabs.length === 0) return;
+
+          // Filter tabs that are not disabled and not locked
+          const unlockedTabs = tabs.filter(t => !t.disabled && !t.classList.contains('is-locked') && t.style.display !== 'none');
+
+          let targetIndex = (num === 9) ? unlockedTabs.length - 1 : num;
+          if (targetIndex >= unlockedTabs.length) {
+            targetIndex = unlockedTabs.length - 1;
+          }
+          
+          if (targetIndex >= 0 && targetIndex < unlockedTabs.length) {
+            e.preventDefault();
+            // Trigger click on the target tab
+            unlockedTabs[targetIndex].click();
+          }
+      });
+      return; // Handled asynchronously
     }
   });
 }
