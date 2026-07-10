@@ -1085,16 +1085,54 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
 
 export function clearAllDebugOverrides(slot = getActiveSlot()) {
     if (slot == null) return;
-    
-    STAT_MULTIPLIERS.forEach(({ key }) => {
-        unlockStorageKey(getStatMultiplierStorageKey(key, slot));
-        clearStatMultiplierOverride(key, slot);
-    });
+
+    if (typeof window !== 'undefined' && window.__activeStorageKeys) {
+        const keysToRemove = [];
+        for (const key of window.__activeStorageKeys) {
+            if (key && key.startsWith('ccc:debug:') && key.endsWith(`:${slot}`)) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => {
+            unlockStorageKey(key);
+            try { localStorage.removeItem(key); } catch {}
+        });
+    }
+
+    const clearMapEntriesForSlot = (map) => {
+        for (const [key] of map.entries()) {
+            if (key.startsWith(`${slot}::`)) {
+                map.delete(key);
+            }
+        }
+    };
+
+    clearMapEntriesForSlot(statOverrides);
+    clearMapEntriesForSlot(statOverrideBaselines);
+    clearMapEntriesForSlot(currencyOverrides);
+    clearMapEntriesForSlot(currencyOverrideBaselines);
     
     Object.values(CURRENCIES).forEach((key) => {
         unlockStorageKey(getCurrencyMultiplierStorageKey(key, slot));
-        clearCurrencyMultiplierOverride(key, slot);
+        const storageKey = getCurrencyMultiplierStorageKey(key, slot);
+        if (storageKey) {
+            try { localStorage.removeItem(storageKey); } catch {}
+        }
     });
+    
+    try { refreshLiveBindings((binding) => binding.slot === slot || binding.slot == null); } catch {}
+    
+    if (typeof window.refreshCoinMultiplierCache === 'function') {
+        try { window.refreshCoinMultiplierCache(); } catch {}
+    }
+    if (typeof window.refreshMpValueMultiplierCache === 'function') {
+        try { window.refreshMpValueMultiplierCache(); } catch {}
+    }
+    if (typeof window.refreshSurgeMultiplierCache === 'function') {
+        try { window.refreshSurgeMultiplierCache(); } catch {}
+    }
+    
+    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); } catch {}
 }
 
 export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) {
