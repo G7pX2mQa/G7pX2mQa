@@ -5352,148 +5352,189 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.restore();
   }
 
-    // --- Tier 6: High-Tech Ground Spikes / Barricades ---
+  // --- Tier 6: Hovering Security Drones ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    const numSpikes = 8;
-    const spikeRadiusX = 140;
-    const spikeRadiusY = 40;
+    const numDrones = 2;
+    const droneOrbitRadiusX = 180;
+    const droneOrbitRadiusY = 60;
+    const droneHeight = -90; // Height they fly at
     
-    // Draw spikes around the base
-    for (let i = 0; i < numSpikes; i++) {
+    for (let i = 0; i < numDrones; i++) {
       ctx.save();
       
-      const phase = (i / numSpikes) * Math.PI * 2;
-      const angle = phase + (t * 0.2); // Slow rotation around base
+      // Orbiting calculation (drones on opposite sides)
+      const phase = (i / numDrones) * Math.PI * 2;
+      const speedMultiplier = 1.2;
       
-      const dx = Math.cos(angle) * spikeRadiusX;
-      const dy = Math.sin(angle) * spikeRadiusY + 15; // Ground level is around 15
+      // Figure-8 pattern combining two sine waves
+      const angle = phase + (t * 0.8 * speedMultiplier); 
       
-      // Perspective scaling based on y-position in the orbit (closer = bigger)
-      const z = Math.sin(angle); // -1 is back, 1 is front
-      const scale = 0.8 + (z + 1) * 0.3; 
+      const dx = Math.cos(angle) * droneOrbitRadiusX;
+      // Bobbing up and down slightly
+      const dy = Math.sin(angle * 2) * 20 + droneHeight;
+      // Z-depth for scaling
+      const z = Math.sin(angle);
       
-      // We want to render back-half spikes behind the vault, but it's okay to just render them here 
-      // if we assume they are always visible or clip correctly. 
-      // Actually since they are drawn AFTER the vault, front and back will both draw over the vault.
-      // To fix this easily, we can just only draw the front half, or accept it's a minor visual glitch.
-      // Better yet, we can draw them based on z so that the ones in the back are drawn earlier... wait, the vault is already drawn.
-      // For spikes, if z < 0, maybe don't draw them to simulate them being behind the vault? 
-      // The vault is quite large, it will occlude them.
+      // Only draw drones in front for simplicity, or scale them to give depth
+      const scale = 0.7 + (z + 1) * 0.3; // Scale between 0.7 and 1.3
       
-      if (z > -0.2) { // Only draw if roughly in front of or to the side of the vault
-        ctx.translate(dx, dy);
-        ctx.scale(scale, scale);
-        
-        // Spike Base (Metal)
-        ctx.fillStyle = darkMetal;
-        ctx.beginPath();
-        ctx.moveTo(-15, 0);
-        ctx.lineTo(15, 0);
-        ctx.lineTo(10, -10);
-        ctx.lineTo(-10, -10);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Spike Blade (Glowing Energy)
-        const pulse = (Math.sin(t * 5 + i) + 1) / 2;
-        ctx.fillStyle = `rgba(255, 50, 50, ${0.7 + pulse * 0.3})`;
-        ctx.beginPath();
-        ctx.moveTo(-10, -10);
-        ctx.lineTo(10, -10);
-        ctx.lineTo(0, -60);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.shadowColor = "#ff0000";
-        ctx.shadowBlur = 15;
-        ctx.fill();
-        
-        // Spike Core line
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, -10);
-        ctx.lineTo(0, -55);
-        ctx.stroke();
-      }
+      // Depth sorting (sort of) - only draw if roughly in front, or just draw all with scale
+      // To simulate depth properly relative to the vault, we should maybe only draw front ones,
+      // but since they orbit wide, let's just draw them. The scale gives enough depth cue.
       
-      ctx.restore();
+      ctx.translate(dx, dy);
+      ctx.scale(scale, scale);
+      
+      // Drone Body (Sleek black & gold)
+      ctx.fillStyle = darkMetal;
+      ctx.beginPath();
+      ctx.moveTo(-15, 0);
+      ctx.lineTo(0, -10);
+      ctx.lineTo(15, 0);
+      ctx.lineTo(0, 10);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.strokeStyle = fillGold;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Drone Core (Glowing Red Eye)
+      const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
+      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0; // Reset shadow
+      
+      // Scanning Laser Cone (Pointing Down)
+      // The laser sweeps back and forth slightly
+      const sweepAngle = Math.sin(t * 3 + i * Math.PI) * 0.5; // -0.5 to 0.5 rad
+      
+      ctx.save();
+      ctx.rotate(sweepAngle);
+      
+      // Create a gradient for the laser cone to fade out
+      const laserGrad = ctx.createLinearGradient(0, 0, 0, 150);
+      laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
+      laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
+      
+      ctx.fillStyle = laserGrad;
+      ctx.beginPath();
+      ctx.moveTo(0, 5); // Start just below drone
+      ctx.lineTo(-40, 150); // Left edge of cone
+      ctx.lineTo(40, 150);  // Right edge of cone
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.restore(); // Restore laser rotation
+      
+      ctx.restore(); // Restore drone position/scale
     }
     
     ctx.restore();
   }
 
-    // --- Tier 7: Heavy Roof Turret ---
+  // --- Tier 7: Orbital Strike Designator ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    // Position on top of the vault (Vault top is around -115)
-    ctx.translate(0, -115);
-    
-    // Turret Base
-    ctx.fillStyle = darkMetal;
-    ctx.beginPath();
-    ctx.moveTo(-30, 0);
-    ctx.lineTo(30, 0);
-    ctx.lineTo(20, -15);
-    ctx.lineTo(-20, -15);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.strokeStyle = fillGold;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Turret Rotation
+    // 1. Massive Holographic Targeting Reticle on Ground
     ctx.save();
-    // Tracking back and forth slowly
-    const turretAngle = Math.sin(t * 1.5) * (Math.PI / 4); // 45 degrees left/right
-    ctx.translate(0, -15);
-    ctx.rotate(turretAngle);
+    // Position on the ground plane
+    ctx.translate(0, 15);
     
-    // Turret Body / Housing
-    ctx.fillStyle = darkMetal;
+    // Scale y to flatten into an ellipse for isometric perspective
+    ctx.scale(1, 0.4);
+    
+    // Slowly rotating reticle
+    ctx.rotate(t * 0.3);
+    
+    const reticleRadius = 220;
+    
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.6)"; // Thematic red
+    
+    // Outer dashed ring
+    ctx.setLineDash([15, 10]);
     ctx.beginPath();
-    ctx.arc(0, -10, 15, Math.PI, 0); // half circle dome
-    ctx.lineTo(15, 0);
-    ctx.lineTo(-15, 0);
-    ctx.closePath();
-    ctx.fill();
+    ctx.arc(0, 0, reticleRadius, 0, Math.PI * 2);
     ctx.stroke();
     
-    // Heavy Railgun Barrels (Double barrel)
-    ctx.fillStyle = "#333";
-    
-    // Left barrel
-    ctx.fillRect(-8, -35, 6, 25);
-    // Right barrel
-    ctx.fillRect(2, -35, 6, 25);
-    
-    // Barrel glow / charging effect
-    const charge = (Math.sin(t * 10) + 1) / 2;
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = `rgba(255, 50, 50, ${0.5 + charge * 0.5})`;
-    
-    // Left barrel core
-    ctx.fillRect(-6, -33, 2, 20);
-    // Right barrel core
-    ctx.fillRect(4, -33, 2, 20);
-    
-    ctx.shadowBlur = 0;
-    
-    // Turret Eye / Sensor
-    ctx.fillStyle = "#ff0000";
+    // Inner solid ring
+    ctx.setLineDash([]);
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(0, -10, 4, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(0, 0, reticleRadius - 20, 0, Math.PI * 2);
+    ctx.stroke();
     
-    ctx.restore(); // Restore turret rotation
-    ctx.restore(); // Restore global turret position
+    // Crosshairs
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    // Vertical line
+    ctx.moveTo(0, -reticleRadius);
+    ctx.lineTo(0, reticleRadius);
+    // Horizontal line
+    ctx.moveTo(-reticleRadius, 0);
+    ctx.lineTo(reticleRadius, 0);
+    ctx.stroke();
+    
+    // 4 Corner Targeting brackets
+    ctx.lineWidth = 4;
+    const bracketSize = 30;
+    const offset = reticleRadius - 10;
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.rotate((Math.PI / 2) * i);
+      ctx.beginPath();
+      // Draw L-bracket at top right
+      ctx.moveTo(offset, offset - bracketSize);
+      ctx.lineTo(offset, offset);
+      ctx.lineTo(offset - bracketSize, offset);
+      ctx.stroke();
+      ctx.restore();
+    }
+    
+    ctx.restore(); // Restore from ground projection
+    
+    // 2. Vertical Pulsing Communication/Laser Beam
+    // The beam originates from the top of the vault (around -115) and shoots upwards
+    ctx.save();
+    
+    const beamPulse = (Math.sin(t * 10) + 1) / 2;
+    
+    // Outer glow
+    const beamGrad = ctx.createLinearGradient(0, -115, 0, -500);
+    beamGrad.addColorStop(0, `rgba(255, 50, 50, ${0.4 + beamPulse * 0.3})`);
+    beamGrad.addColorStop(1, `rgba(255, 50, 50, 0.0)`);
+    
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(-20, -500, 40, 385); // 385 is height from -115 to -500
+    
+    // Inner bright core
+    ctx.fillStyle = `rgba(255, 200, 200, ${0.7 + beamPulse * 0.3})`;
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 15;
+    ctx.fillRect(-6, -500, 12, 385);
+    
+    // Ground emitter ring on top of vault
+    ctx.translate(0, -115);
+    ctx.scale(1, 0.4);
+    ctx.strokeStyle = fillGold;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 25, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.restore(); // Restore beam transform
+    
+    ctx.restore(); // Restore T7 alpha/save
   }
   // --- Tier 8: Aegis Matrix Shield Upgrade ---
   if (t8 > 0) {
