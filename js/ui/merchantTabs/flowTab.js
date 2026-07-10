@@ -650,7 +650,9 @@ export function getFlowUnlockState() {
     const slot = getSlot();
     if (slot != null) {
         try {
-            if (localStorage.getItem(`ccc:unlock:flow:${slot}`) === '1') return true;
+            const val = localStorage.getItem(`ccc:unlock:flow:${slot}`);
+            if (val === '1') return true;
+            if (val === '0') return false;
         } catch {}
     }
 
