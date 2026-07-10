@@ -103,6 +103,7 @@
   flex: 1;
   text-align: center;
   min-width: 0; /* Allow text to wrap/shrink properly in flex */
+  line-height: 1.43;
 }
 
 .flow-minis-col {
