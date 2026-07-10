@@ -702,13 +702,15 @@ function drawCavern(ctx, w, h, t) {
     }
   }
 
-  for (const gem of window.currentCavernLayout.gems) {
-    let cx = gem.xFrac * w;
-    let cy = h - floorH * 0.7 + floorH * 0.6 * gem.yFrac;
+  if (currentBuildingId !== "pure_gold") {
+    for (const gem of window.currentCavernLayout.gems) {
+      let cx = gem.xFrac * w;
+      let cy = h - floorH * 0.7 + floorH * 0.6 * gem.yFrac;
 
-    const cachedImage = window.cachedGemstones[gem.gemType];
-    if (cachedImage) {
-      ctx.drawImage(cachedImage, cx - 20, cy - 20);
+      const cachedImage = window.cachedGemstones[gem.gemType];
+      if (cachedImage) {
+        ctx.drawImage(cachedImage, cx - 20, cy - 20);
+      }
     }
   }
 }
@@ -770,7 +772,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   else if (id === "stone") drawFoundry(ctx, t, tier, prevTier, animProgress);
   else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
   else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
-  else if (id === "pure_gold") drawVault(ctx, t, tier, prevTier, animProgress);
+  else if (id === "pure_gold") drawVault(ctx, w, h, t, tier, prevTier, animProgress);
   else if (id === "diamond") drawOilRig(ctx, t, tier);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier);
   else if (id === "ruby") drawRadiator(ctx, t, tier);
@@ -4823,7 +4825,7 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 
 }
 
-function drawVault(ctx, t, tier, prevTier, animProgress) {
+function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
   if (!pureGoldPattern && activeCtx) {
     initPureGoldPattern(activeCtx);
   } else if (!pureGoldPattern) {
@@ -5519,6 +5521,19 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   
   ctx.fillStyle = "rgb(18, 12, 10)";
   ctx.fillRect(-1600, floorH - floorH * 0.6, 3200, floorH * 0.6);
+
+  if (window.currentCavernLayout && window.cachedGemstones) {
+    for (const gem of window.currentCavernLayout.gems) {
+      let gemX = gem.xFrac * w - w / 2;
+      let gemY = floorH * 0.3 + floorH * 0.6 * gem.yFrac;
+
+      const cachedImage = window.cachedGemstones[gem.gemType];
+      if (cachedImage) {
+        ctx.drawImage(cachedImage, gemX - 20, gemY - 20);
+      }
+    }
+  }
+
   ctx.restore();
 
 }
