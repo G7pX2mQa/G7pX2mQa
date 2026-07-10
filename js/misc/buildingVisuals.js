@@ -5111,12 +5111,101 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     
     ctx.restore();
   };
+
+  const drawT6Drones = (isBack) => {
+    if (t6 <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = t6;
+    
+    const numDrones = 2;
+    const droneOrbitRadiusX = 220;
+    const droneOrbitRadiusY = 30;
+    const droneHeight = -90; // Height they fly at
+    
+    for (let i = 0; i < numDrones; i++) {
+      const phase = (i / numDrones) * Math.PI * 2;
+      const speedMultiplier = 1.2;
+      
+      const angle = phase + (t * 0.8 * speedMultiplier); 
+      
+      const z = Math.sin(angle);
+      
+      // Filter out based on depth
+      if (isBack && z >= 0) continue;
+      if (!isBack && z < 0) continue;
+      
+      ctx.save();
+      
+      const dx = Math.cos(angle) * droneOrbitRadiusX;
+      // Add isometric depth and small bob
+      const dy = z * droneOrbitRadiusY + Math.sin(angle * 2) * 5 + droneHeight;
+      
+      const scale = 0.7 + (z + 1) * 0.3; // Scale between 0.7 and 1.3
+      
+      ctx.translate(dx, dy);
+      ctx.scale(scale, scale);
+      
+      // Drone Body (Sleek black & gold)
+      ctx.fillStyle = darkMetal;
+      ctx.beginPath();
+      ctx.moveTo(-15, 0);
+      ctx.lineTo(0, -10);
+      ctx.lineTo(15, 0);
+      ctx.lineTo(0, 10);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.strokeStyle = fillGold;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Drone Core (Glowing Red Eye)
+      const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
+      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Scanning Laser Cone (Pointing Down)
+      const sweepAngle = Math.sin(t * 3 + i * Math.PI) * 0.5;
+      
+      ctx.save();
+      ctx.rotate(sweepAngle);
+      
+      const laserGrad = ctx.createLinearGradient(0, 0, 0, 150);
+      laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
+      laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
+      
+      ctx.fillStyle = laserGrad;
+      ctx.beginPath();
+      ctx.moveTo(0, 5);
+      ctx.lineTo(-40, 150);
+      ctx.lineTo(40, 150);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.restore();
+      
+      ctx.restore();
+    }
+    
+    ctx.restore();
+  };
+
   ctx.save();
   // Move building up for T1 reinforcements (with cross-fade for T0)
   if (tier >= 1) {
     if (prevTier === 0 && tier === 1) {
       drawT0Vault(1 - t1);
       ctx.translate(0, -15);
+      
+      // --- Tier 6: Hovering Security Drones (Backside) ---
+      if (t6 > 0) {
+        drawT6Drones(true);
+      }
       
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
@@ -5130,6 +5219,11 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     } else {
       ctx.translate(0, -15);
       
+      // --- Tier 6: Hovering Security Drones (Backside) ---
+      if (t6 > 0) {
+        drawT6Drones(true);
+      }
+      
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
         drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
@@ -5141,6 +5235,11 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       drawT0Vault(1);
     }
   } else {
+    // --- Tier 6: Hovering Security Drones (Backside) ---
+    if (t6 > 0) {
+      drawT6Drones(true);
+    }
+
     // --- Tier 4 & 8: Backside Forcefield ---
     if (t8 > 0) {
       drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
@@ -5354,90 +5453,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
 
   // --- Tier 6: Hovering Security Drones ---
   if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-    
-    const numDrones = 2;
-    const droneOrbitRadiusX = 180;
-    const droneOrbitRadiusY = 60;
-    const droneHeight = -90; // Height they fly at
-    
-    for (let i = 0; i < numDrones; i++) {
-      ctx.save();
-      
-      // Orbiting calculation (drones on opposite sides)
-      const phase = (i / numDrones) * Math.PI * 2;
-      const speedMultiplier = 1.2;
-      
-      // Figure-8 pattern combining two sine waves
-      const angle = phase + (t * 0.8 * speedMultiplier); 
-      
-      const dx = Math.cos(angle) * droneOrbitRadiusX;
-      // Bobbing up and down slightly
-      const dy = Math.sin(angle * 2) * 20 + droneHeight;
-      // Z-depth for scaling
-      const z = Math.sin(angle);
-      
-      // Only draw drones in front for simplicity, or scale them to give depth
-      const scale = 0.7 + (z + 1) * 0.3; // Scale between 0.7 and 1.3
-      
-      // Depth sorting (sort of) - only draw if roughly in front, or just draw all with scale
-      // To simulate depth properly relative to the vault, we should maybe only draw front ones,
-      // but since they orbit wide, let's just draw them. The scale gives enough depth cue.
-      
-      ctx.translate(dx, dy);
-      ctx.scale(scale, scale);
-      
-      // Drone Body (Sleek black & gold)
-      ctx.fillStyle = darkMetal;
-      ctx.beginPath();
-      ctx.moveTo(-15, 0);
-      ctx.lineTo(0, -10);
-      ctx.lineTo(15, 0);
-      ctx.lineTo(0, 10);
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.strokeStyle = fillGold;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Drone Core (Glowing Red Eye)
-      const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
-      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
-      ctx.shadowColor = "#ff0000";
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0; // Reset shadow
-      
-      // Scanning Laser Cone (Pointing Down)
-      // The laser sweeps back and forth slightly
-      const sweepAngle = Math.sin(t * 3 + i * Math.PI) * 0.5; // -0.5 to 0.5 rad
-      
-      ctx.save();
-      ctx.rotate(sweepAngle);
-      
-      // Create a gradient for the laser cone to fade out
-      const laserGrad = ctx.createLinearGradient(0, 0, 0, 150);
-      laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
-      laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
-      
-      ctx.fillStyle = laserGrad;
-      ctx.beginPath();
-      ctx.moveTo(0, 5); // Start just below drone
-      ctx.lineTo(-40, 150); // Left edge of cone
-      ctx.lineTo(40, 150);  // Right edge of cone
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.restore(); // Restore laser rotation
-      
-      ctx.restore(); // Restore drone position/scale
-    }
-    
-    ctx.restore();
+    drawT6Drones(false);
   }
 
   // --- Tier 7: Orbital Strike Designator ---
