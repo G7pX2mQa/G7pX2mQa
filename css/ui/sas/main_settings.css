@@ -495,9 +495,12 @@
 }
 
 .setting-row.setting-row-dropdown {
-  margin-top: 16px;
-  margin-bottom: 16px;
   z-index: 1000;
+}
+
+#setting_row_number_notation {
+  margin-top: 0px;
+  margin-bottom: 0px;
 }
 
 .setting-row.setting-row-dropdown:hover {
