@@ -51,6 +51,22 @@ export const SETTING_DEFINITIONS = {
     default: 0,
     unlockCondition: () => true,
   },
+  number_notation: {
+    id: 'number_notation',
+    type: 'dropdown',
+    label: 'Number Notation',
+    hasExtraInfo: false,
+    default: 'Standard',
+    options: [
+      { value: 'Standard', label: 'Standard' },
+      { value: 'Scientific (1e6+)', label: 'Scientific (1e6+)' },
+      { value: 'Scientific (1e33+)', label: 'Scientific (1e33+)' },
+      { value: 'Engineering (1e6+)', label: 'Engineering (1e6+)' },
+      { value: 'Engineering (1e33+)', label: 'Engineering (1e33+)' },
+      { value: 'Extended Suffixes', label: 'Extended Suffixes (hell)' }
+    ],
+    unlockCondition: () => true
+  },
   hide_maxed_upgrades: {
     id: 'hide_maxed_upgrades',
     type: 'toggle',
@@ -241,22 +257,6 @@ export const SETTING_DEFINITIONS = {
     step: 1,
     default: 100,
     unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID) >= 1,
-  },
-  number_notation: {
-    id: 'number_notation',
-    type: 'dropdown',
-    label: 'Number Notation',
-    hasExtraInfo: false,
-    default: 'Standard',
-    options: [
-      { value: 'Standard', label: 'Standard' },
-      { value: 'Scientific (1e6+)', label: 'Scientific (1e6+)' },
-      { value: 'Scientific (1e33+)', label: 'Scientific (1e33+)' },
-      { value: 'Engineering (1e6+)', label: 'Engineering (1e6+)' },
-      { value: 'Engineering (1e33+)', label: 'Engineering (1e33+)' },
-      { value: 'Extended Suffixes', label: 'Extended Suffixes (hell)' }
-    ],
-    unlockCondition: () => true
   },
   coin_mutation_visual: {
     id: 'coin_mutation_visual',
