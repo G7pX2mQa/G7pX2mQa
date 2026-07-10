@@ -28,6 +28,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
 
     const row = document.createElement("div");
     row.className = "setting-row";
+    row.id = `setting_row_${key}`;
 
     if (def.unlockCondition) {
       if (!def.unlockCondition()) {
