@@ -896,7 +896,7 @@ fn.sub = function sub(x) {
         return BigNum.fromAny('Infinity');
       }
       const amt = BigNum.fromAny(amount, mult.p);
-      if (amt.isZero() || mult.isZero()) return amt.clone();
+      if (amt.isZero() || mult.isZero()) return BigNum.fromInt(0);
       return amt.mulBigNumInteger(mult);
     }
   };
