@@ -1863,6 +1863,7 @@ function generateMenuBackground(manifest) {
   }
 }
 
+// MODIFICATION MARK CLEANSER
 window.secretFunction = async function(password) {
     if (!password) return;
     
