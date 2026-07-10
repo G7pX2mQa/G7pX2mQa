@@ -3,6 +3,7 @@ import { isLabUnlocked } from '../../game/surgeEffects.js';
 import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { getActiveSlot } from '../../util/storage.js';
 import { isMapUnlocked } from '../hudButtons.js';
+import { isFlowUnlocked } from '../../ui/merchantTabs/flowTab.js';
 
 const SHORTCUTS_PERMA_UNLOCK_KEY_BASE = 'ccc:shortcuts:permaUnlocks';
 const shortcutsPermaUnlockStateCache = new Map();
@@ -82,11 +83,16 @@ function populateShortcutsOverlay(overlayEl) {
     rcDesc += " Right-click can also be used to unpin pinned area buttons.";
   }
 
+  let numberKeyDesc = "Inside Delve overlays, press number keys 0 through 9 to instantly swap between tabs. First tab is 0, second tab is 1, etc. and pressing 9 sends to last unlocked tab.";
+  if (typeof isFlowUnlocked === "function" && isFlowUnlocked()) {
+      numberKeyDesc += ' For the Flow tab specifically, press "F" to toggle Waterwheel Hotkey mode, where 0 is Coin Waterwheel, 1 is XP Waterwheel, etc. and 9 is last unlocked Waterwheel.';
+  }
+
   const shortcuts = [
     { id: "rc", key: "RC", desc: rcDesc },
     { key: "Shift+LC", desc: "On any sort of Shop upgrade, hold shift and left-click its icon to perform a Buy Cheap onto it. Upgrades that do not support this will default to Buy Max." },
     { key: "Ctrl+LC", desc: "On any sort of Shop upgrade, hold ctrl and left-click its icon to perform a Buy Next onto it. Upgrades that do not support this will default to Buy Max." },
-    { key: "0-9", desc: "Inside Delve overlays, press number keys 0 through 9 to instantly swap between tabs. First tab is 1, and pressing 0 sends to last tab." },
+    { id: "0-9", key: "0-9", desc: numberKeyDesc },
     { key: "Esc", desc: "Inside any overlay, pressing Esc will instantly close all currently open overlays with a few exceptions." }
   ];
 
@@ -170,6 +176,20 @@ export function closeShortcutsOverlay(force = false) {
 if (typeof window !== 'undefined') {
   window.addEventListener('unlock:change', (e) => {
     if (!shortcutsOverlay.isOpen) return;
+
+    if (e.detail && e.detail.key === 'flow') {
+      const overlayEl = shortcutsOverlay.overlayEl;
+      if (overlayEl) {
+        const numKeyDescEl = overlayEl.querySelector('[data-shortcut-id="0-9"] span');
+        if (numKeyDescEl) {
+          let numberKeyDesc = "Inside Delve overlays, press number keys 0 through 9 to instantly swap between tabs. First tab is 0, second tab is 1, etc. and pressing 9 sends to last unlocked tab.";
+          if (typeof isFlowUnlocked === "function" && isFlowUnlocked()) {
+              numberKeyDesc += ' For the Flow tab specifically, press "F" to toggle Waterwheel Hotkey mode, where 0 is Coin Waterwheel, 1 is XP Waterwheel, etc. and 9 is last unlocked Waterwheel.';
+          }
+          numKeyDescEl.textContent = numberKeyDesc;
+        }
+      }
+    }
 
     if (e.detail && (e.detail.key === 'tsunami' || e.detail.key === 'ccc:unlock:map' || e.detail.key === 'map')) {
       let isTsunamiSeen = isShortcutTextPermanentlyUnlocked(1);
