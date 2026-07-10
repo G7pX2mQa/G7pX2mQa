@@ -1608,39 +1608,38 @@ export function costAtLevelUsingScaling(upg, level) {
 }
 
 
-function logExpMinus1(x) {
+function log10ExpMinus1(x) {
   if (!Number.isFinite(x)) return x;
   if (x < 1e-6) {
-    return Math.log(Math.expm1(x));
+    return Math.log10(Math.expm1(x));
   }
   if (x < 50) {
-    return Math.log(Math.expm1(x));
+    return Math.log10(Math.expm1(x));
   }
   const negExp = Math.exp(-x);
-  return x + Math.log1p(-negExp);
+  return (x + Math.log1p(-negExp)) / LN10;
 }
 
-function logSeriesTotal(upg, startLevel, count) {
+function logSeriesTotal(scaling, startLevel, count) {
   if (!(count > 0)) return Number.NEGATIVE_INFINITY;
-  const scaling = ensureUpgradeScaling(upg);
   if (!scaling) return Number.NEGATIVE_INFINITY;
-  if (!Number.isFinite(scaling.ratioLn)) {
+  if (!Number.isFinite(scaling.ratioLog10)) {
     if (count > 1) return Number.POSITIVE_INFINITY;
-    // For count=1, it is just startLn
-    const startLn = (scaling.baseLog10 * LN10) + (startLevel * scaling.ratioLn);
-    return startLn / LN10;
+    // For count=1, it is just startLog10
+    const startLog10 = scaling.baseLog10 + (startLevel * scaling.ratioLog10);
+    return startLog10;
   }
   if (!(scaling.ratioMinus1 > 0)) {
     return Number.POSITIVE_INFINITY;
   }
 
-  const startLn = (scaling.baseLog10 * LN10) + (startLevel * scaling.ratioLn);
+  const startLog10 = scaling.baseLog10 + (startLevel * scaling.ratioLog10);
   const growth = scaling.ratioLn * count;
-  const numerLn = logExpMinus1(growth);
-  if (!Number.isFinite(numerLn)) return Number.POSITIVE_INFINITY;
-  const denomLn = Math.log(scaling.ratioMinus1);
-  const totalLn = startLn + numerLn - denomLn;
-  return totalLn / LN10;
+  const numerLog10 = log10ExpMinus1(growth);
+  if (!Number.isFinite(numerLog10)) return Number.POSITIVE_INFINITY;
+  const denomLog10 = Math.log10(scaling.ratioMinus1);
+  const totalLog10 = startLog10 + numerLog10 - denomLog10;
+  return totalLog10;
 }
 
 function totalCostBigNum(upg, startLevel, count) {
@@ -1664,7 +1663,7 @@ function totalCostBigNum(upg, startLevel, count) {
     const headCount = count - tailCount;
     let total = BigNum.fromInt(0);
     if (headCount > 0) {
-      const headLog = logSeriesTotal(upg, startLevel, headCount);
+      const headLog = logSeriesTotal(scaling, startLevel, headCount);
       total = total.add(bigNumFromLog10(headLog));
     }
     if (tailCount > 0) {
@@ -1920,7 +1919,7 @@ if (needBnSearch) {
   let hi = 1;
 
 while (hi < hardLimit) {
-  const spentLog = logSeriesTotal(upg, startLevelNum, hi);
+  const spentLog = logSeriesTotal(scaling, startLevelNum, hi);
   const spentBn  = bigNumFromLog10(spentLog);
   if (spentBn.cmp(walletBn) <= 0) {
     const doubled = hi * 2;
@@ -1935,7 +1934,7 @@ while (hi < hardLimit) {
   let steps = 0;
   while (lo < hi && steps < 256) {
     const mid = Math.max(lo + 1, Math.floor((lo + hi + 1) / 2));
-    const spentLog = logSeriesTotal(upg, startLevelNum, mid);
+    const spentLog = logSeriesTotal(scaling, startLevelNum, mid);
     const spentBn  = bigNumFromLog10(spentLog);
     if (spentBn.cmp(walletBn) <= 0) {
       lo = mid;
