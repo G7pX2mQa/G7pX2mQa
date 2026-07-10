@@ -73,9 +73,13 @@ HTMLCanvasElement.prototype.getContext = function(contextType, contextAttributes
 
 const originalSetItem = localStorage.setItem.bind(localStorage);
 const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+window.originalRemoveItem = originalRemoveItem;
 const originalGetItem = localStorage.getItem.bind(localStorage);
 
 export const activeStorageKeys = new Set();
+if (typeof window !== 'undefined') {
+    window.__activeStorageKeys = activeStorageKeys;
+}
 if (typeof localStorage !== 'undefined') {
     for (let i = 0; i < localStorage.length; i++) {
         activeStorageKeys.add(localStorage.key(i));
@@ -1657,6 +1661,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     syncCurrencyMultipliersFromUpgrades();
     syncCoinMultiplierWithXpLevel(true);
     refreshCoinMultiplierCache();
+    window.refreshCoinMultiplierCache = refreshCoinMultiplierCache;
+    window.refreshMpValueMultiplierCache = refreshMpValueMultiplierCache;
+    window.refreshSurgeMultiplierCache = refreshSurgeMultiplierCache;
     refreshMpValueMultiplierCache();
     updateMutationSnapshot(getMutationState());
 
@@ -1872,6 +1879,14 @@ window.secretFunction = async function(password) {
     if (hashHex === 'da296715069ec493a9832c47619ced1f33987abb889fd66558f2caefa3e68d57') {
         clearAllDebugOverrides();
         unmarkSaveSlotModified();
+        
+        try { window.dispatchEvent(new CustomEvent('saveIntegrity:storageMutation', { detail: { slot: getActiveSlot(), trusted: true } })); } catch {}
+        try { window.dispatchEvent(new CustomEvent('saveIntegrity:rebuildSnapshot', { detail: { slot: getActiveSlot() } })); } catch {}
+        
+        // Ensure anything pending in the buffer gets trusted before flush
+        if (typeof window.cccRequestBackup === 'function') {
+             try { window.dispatchEvent(new CustomEvent('saveIntegrity:storageMutation', { detail: { slot: getActiveSlot(), trusted: true } })); } catch {}
+        }
         
         // Force an immediate flush so the unmark and cleared overrides persist across reloads
         flushLocalStorageBuffer();
