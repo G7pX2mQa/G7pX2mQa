@@ -270,7 +270,7 @@ export class BigNum {
     if (shift > 0) {
       const base = this.#pow10(shift);
       let q = Math.floor(s / base);
-      const r = s % base;
+      const r = s - q * base;
       if (r * 2 >= base) q += 1;
       s = q;
       this.#adjustExponent(shift);
@@ -303,7 +303,7 @@ export class BigNum {
     const diffNum = Number(absDiff);
     const base = this.#pow10(diffNum);
     let q = Math.floor(other.sig / base);
-    const r = other.sig % base;
+    const r = other.sig - q * base;
     if (r * 2 >= base) q += 1;
     return q;
   }
@@ -389,7 +389,7 @@ export class BigNum {
     const targetPrecision = Math.max(this.p, b.p);
     const scale = this.#pow10(targetPrecision);
     const floatQuotient = this.sig / b.sig;
-    const sigQuotient = Math.floor(floatQuotient * scale);
+    const sigQuotient = Math.round(floatQuotient * scale);
     
     // Exponent calculation:
     // We used 'this.e' and 'b.e' for base exponents.
@@ -688,8 +688,8 @@ export function bigNumFromLog10(log10Value, noFuzz = false) {
   let baseVal = Math.pow(10, frac);
   let mantissa;
   if (!noFuzz) {
-    baseVal = Math.round(baseVal * 1e12) / 1e12;
-    mantissa = Math.round(baseVal * 1e12) * Math.pow(10, p - 1 - 12);
+    baseVal = Math.round(baseVal * 1e14) / 1e14;
+    mantissa = Math.round(baseVal * 1e14) * Math.pow(10, p - 1 - 14);
   } else {
     mantissa = baseVal * Math.pow(10, p - 1);
   }
