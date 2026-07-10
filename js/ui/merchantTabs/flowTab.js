@@ -179,7 +179,7 @@ for (const key in WATERWHEEL_DEFS) {
     waterwheelImages[key].src = WATERWHEEL_DEFS[key].image;
 }
 
-const WATERWHEEL_ORDER = [WATERWHEELS.COIN, WATERWHEELS.XP, WATERWHEELS.GOLD, WATERWHEELS.MAGIC, WATERWHEELS.SCRAP];
+export const WATERWHEEL_ORDER = [WATERWHEELS.COIN, WATERWHEELS.XP, WATERWHEELS.GOLD, WATERWHEELS.MAGIC, WATERWHEELS.SCRAP];
 
 function syncWaterwheelDecorations(container) {
     if (!container) return;
@@ -1369,7 +1369,41 @@ export function updateFlowTab() {
 
 
 
-    updateFlowVisuals();
+    
+    const explainerTextEl = flowPanel.querySelector('.flow-explainer-text');
+    if (explainerTextEl) {
+        let hwMode = false;
+        try { hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${getActiveSlot()}`) === 'true'; } catch(e) {}
+        
+        if (hwMode) {
+            explainerTextEl.innerHTML = `<strong><span style="color: #00fffa;">Waterwheel Hotkey mode is active</span></strong>`;
+        } else {
+            explainerTextEl.innerHTML = `
+        <!--
+		Commenting out this old poem that used to be here
+		-----------------------------------------------------------------------------
+        Direct your Flow to make the Great Waterwheels turn,<br>
+        Within the Forgotten Channels these hidden relics yearn,<br>
+        To split the surging waters is a wish the depths denied,<br>
+        So choose with careful strategy where power shall reside,<br>
+        While each wheel works hard to increase your every gain,<br>
+        As milestones unlock more links within the ancient chain,<br>
+        Command the rushing waters, push the limits of the machine,<br>
+        To wake the strongest multipliers that The Cove has ever seen.
+		-----------------------------------------------------------------------------
+        -->
+        Toggle the Flow States of Waterwheels to gain multipliers.<br>
+        Only one Waterwheel can actively level up at a given time.<br>
+        Choose with careful strategy which Waterwheel will flow.<br>
+        Each Waterwheel level grants a +100% boost to its focus.<br>
+        The flowing Waterwheel will passively gain FP constantly.<br>
+        The FP requirement to level up any Waterwheel is constant.<br>
+        The FP value is incredibly important for these Waterwheels.<br>
+        Unlock new Waterwheels by progressing further in the game.
+    `;
+        }
+    }
+updateFlowVisuals();
     syncFlowLayout();
 
     // Update Buttons
@@ -1675,6 +1709,41 @@ function updateFlowVisuals() {
 export function initFlowSystem() {
     if (flowSystemInitialized) return;
     flowSystemInitialized = true;
+    if (typeof window !== 'undefined') {
+        window.addEventListener('flow:hotkeyModeToggled', () => {
+            if (flowTabInitialized && flowPanel) updateFlowTab();
+        });
+        
+        window.addEventListener('flow:triggerHotkey', (e) => {
+            const num = e.detail?.num;
+            if (num === undefined) return;
+            
+            let lastUnlockedId = null;
+            let unlockedCount = 0;
+            for (const key of WATERWHEEL_ORDER) {
+                if (state.waterwheels[key] && state.waterwheels[key].unlocked) {
+                    lastUnlockedId = key;
+                    unlockedCount++;
+                }
+            }
+
+            if (unlockedCount === 0) return;
+
+            if (num === 9 || num >= unlockedCount) {
+                if (lastUnlockedId) {
+                    toggleWaterwheel(lastUnlockedId);
+                }
+            } else {
+                if (num >= 0 && num < WATERWHEEL_ORDER.length) {
+                    const targetId = WATERWHEEL_ORDER[num];
+                    if (state.waterwheels[targetId] && state.waterwheels[targetId].unlocked) {
+                        toggleWaterwheel(targetId);
+                    }
+                }
+            }
+        });
+    }
+
 
     if (typeof window !== 'undefined') {
         window.addEventListener('saveSlot:change', () => {
