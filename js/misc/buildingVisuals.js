@@ -571,7 +571,7 @@ function drawCavern(ctx, w, h, t) {
   grad.addColorStop(1, "#1a0d05");
 
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(-50, -50, w + 100, h + 100);
 
   // Draw cracky crumbly background details
   ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
@@ -620,13 +620,13 @@ function drawCavern(ctx, w, h, t) {
 
   // Draw flat floor layers
   ctx.fillStyle = "rgb(42, 30, 24)";
-  ctx.fillRect(0, h - floorH, w, floorH);
+  ctx.fillRect(-50, h - floorH, w + 100, floorH + 50);
 
   ctx.fillStyle = "rgb(28, 20, 16)";
-  ctx.fillRect(0, h - floorH * 0.8, w, floorH * 0.8);
+  ctx.fillRect(-50, h - floorH * 0.8, w + 100, floorH * 0.8 + 50);
 
   ctx.fillStyle = "rgb(18, 12, 10)";
-  ctx.fillRect(0, h - floorH * 0.6, w, floorH * 0.6);
+  ctx.fillRect(-50, h - floorH * 0.6, w + 100, floorH * 0.6 + 50);
 
   // generate and draw clusters identically to sellTab.js
   const colors = [
@@ -5514,13 +5514,13 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   const floorH = 260;
   
   ctx.fillStyle = "rgb(42, 30, 24)";
-  ctx.fillRect(-1600, 0, 3200, floorH);
+  ctx.fillRect(-1600, 0, 3200, floorH + 50);
 
   ctx.fillStyle = "rgb(28, 20, 16)";
-  ctx.fillRect(-1600, floorH - floorH * 0.8, 3200, floorH * 0.8);
+  ctx.fillRect(-1600, floorH - floorH * 0.8, 3200, floorH * 0.8 + 50);
   
   ctx.fillStyle = "rgb(18, 12, 10)";
-  ctx.fillRect(-1600, floorH - floorH * 0.6, 3200, floorH * 0.6);
+  ctx.fillRect(-1600, floorH - floorH * 0.6, 3200, floorH * 0.6 + 50);
 
   if (window.currentCavernLayout && window.cachedGemstones) {
     for (const gem of window.currentCavernLayout.gems) {
