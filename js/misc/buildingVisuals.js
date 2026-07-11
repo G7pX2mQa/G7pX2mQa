@@ -5399,6 +5399,11 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
         ctx.fill();
         
         ctx.restore();
+        
+        // Restore inverted clip state if this was a backside drone
+        if (isBack) {
+          ctx.restore();
+        }
       }
       
       ctx.restore();
