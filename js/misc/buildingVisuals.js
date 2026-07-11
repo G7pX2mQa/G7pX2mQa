@@ -5123,14 +5123,14 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     let leftAnchorX, leftAnchorY, rightAnchorX, rightAnchorY;
     
     if (isBack) {
-      leftAnchorX = -245;
+      leftAnchorX = -240;
       leftAnchorY = 15; // ground
-      rightAnchorX = 245;
+      rightAnchorX = 240;
       rightAnchorY = 15; // ground
     } else {
-      leftAnchorX = -225;
+      leftAnchorX = -230;
       leftAnchorY = 15; // ground
-      rightAnchorX = 225;
+      rightAnchorX = 230;
       rightAnchorY = 15; // ground
     }
     
@@ -5262,13 +5262,13 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     if (isBack) {
       // Offset back chains so they don't hide behind front ones
       // We also need to triple them like the front chains.
-      const offsets = [-15, 0, 15];
+      const offsets = [-20, 0, 20];
       offsets.forEach(off => {
         drawChain(leftAnchorX, leftAnchorY, -1, off, 0);
         drawChain(rightAnchorX, rightAnchorY, 1, off, 0);
       });
     } else {
-      const offsets = [-15, 0, 15];
+      const offsets = [-20, 0, 20];
       offsets.forEach(off => {
         drawChain(leftAnchorX, leftAnchorY, -1, off, 0);
         drawChain(rightAnchorX, rightAnchorY, 1, off, 0);
