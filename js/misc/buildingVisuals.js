@@ -5345,15 +5345,23 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
           ctx.rect(-2000, -2000, 4000, 4000); // Massive background rect
           
           // Vault bounding box
-          // T1 frame bounds roughly -75 to 75, height -115 to 15. The dome is taller.
-          // The safe is from -60 to 60. Safe dial goes to 0. Let's block out -85 to 85.
-          ctx.rect(-85, -120, 170, 135);
+          // T1 frame bounds roughly -75 to 75, height -115 to 15. 
+          ctx.rect(-75, -115, 150, 130);
           
-          // Pylon bounding boxes (x: -165 and 165)
-          // Width is roughly 30px (-15 to 15 from center)
-          // Height is roughly 155px (-155 to 0 from base 15 => -140 to +15)
-          ctx.rect(-185, -145, 40, 160);
-          ctx.rect(145, -145, 40, 160);
+          // Pylon bounding polygons (x: -165 and 165, anchored at y=15)
+          const pylonPoints = [
+            {x: -20, y: 0}, {x: 20, y: 0}, {x: 15, y: -10}, 
+            {x: 15, y: -9}, {x: 8, y: -140}, {x: 0, y: -155}, {x: -8, y: -140}, {x: -15, y: -9},
+            {x: -15, y: -10}
+          ];
+          
+          [-165, 165].forEach(xPos => {
+            ctx.moveTo(xPos + pylonPoints[0].x, 15 + pylonPoints[0].y);
+            for(let j=1; j<pylonPoints.length; j++) {
+              ctx.lineTo(xPos + pylonPoints[j].x, 15 + pylonPoints[j].y);
+            }
+            ctx.closePath();
+          });
           
           ctx.clip("evenodd");
           
@@ -5414,11 +5422,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       if (t7 > 0) {
         drawT7Chains(true, "outer");
       }
-
-      // --- Tier 6: Hovering Security Drones (Backside Lights) ---
-      if (t6 > 0) {
-        drawT6Drones(true, "lights");
-      }
       
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
@@ -5441,11 +5444,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       if (t7 > 0) {
         drawT7Chains(true, "outer");
       }
-
-      // --- Tier 6: Hovering Security Drones (Backside Lights) ---
-      if (t6 > 0) {
-        drawT6Drones(true, "lights");
-      }
       
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
@@ -5467,11 +5465,6 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       if (t7 > 0) {
         drawT7Chains(true, "outer");
       }
-
-    // --- Tier 6: Hovering Security Drones (Backside Lights) ---
-    if (t6 > 0) {
-      drawT6Drones(true, "lights");
-    }
       
       // --- Tier 4 & 8: Backside Forcefield ---
     if (t8 > 0) {
@@ -5694,6 +5687,12 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   if (t7 > 0) {
     drawT7Chains(false, "outer");
   }
+  // --- Tier 6: Hovering Security Drones (Backside Lights) ---
+  if (t6 > 0) {
+    drawT6Drones(true, "lights");
+  }
+
+
   
   // --- Tier 6: Hovering Security Drones ---
   if (t6 > 0) {
