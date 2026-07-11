@@ -5136,7 +5136,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     
     const drawChain = (startX, startY, sign, groundOffset = 0, vaultOffset = 0) => {
       // End point on the vault
-      const vaultX = sign * 70 + vaultOffset;
+      const vaultX = sign * 67.5 + vaultOffset;
       startX = startX + groundOffset;
       const vaultY = endY;
       
@@ -5163,8 +5163,9 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
         const x = invP * invP * startX + 2 * invP * p * midX + p * p * vaultX;
         const base_y = invP * invP * startY + 2 * invP * p * midY + p * p * vaultY;
         
-        const env = Math.sin(p * Math.PI);
-        const dEnv_dp = Math.PI * Math.cos(p * Math.PI);
+        // Envelope makes it rigid at ends
+        const env = Math.pow(Math.sin(p * Math.PI), 2);
+        const dEnv_dp = Math.PI * Math.sin(2 * p * Math.PI);
         
         const waveVal = Math.sin(p * waveFreq - t * waveSpeed + phase);
         const dWave_dp = waveFreq * Math.cos(p * waveFreq - t * waveSpeed + phase);
@@ -5263,14 +5264,14 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       // We also need to triple them like the front chains.
       const offsets = [-15, 0, 15];
       offsets.forEach(off => {
-        drawChain(leftAnchorX, leftAnchorY, -1, off, off);
-        drawChain(rightAnchorX, rightAnchorY, 1, off, off);
+        drawChain(leftAnchorX, leftAnchorY, -1, off, 0);
+        drawChain(rightAnchorX, rightAnchorY, 1, off, 0);
       });
     } else {
       const offsets = [-15, 0, 15];
       offsets.forEach(off => {
-        drawChain(leftAnchorX, leftAnchorY, -1, off, off);
-        drawChain(rightAnchorX, rightAnchorY, 1, off, off);
+        drawChain(leftAnchorX, leftAnchorY, -1, off, 0);
+        drawChain(rightAnchorX, rightAnchorY, 1, off, 0);
       });
     }
     
@@ -5329,6 +5330,38 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       }
       
       if (renderPass === "both" || renderPass === "lights") {
+        // If it's a back drone's light, clip it so it doesn't draw over the central vault and pylons
+        if (isBack) {
+          ctx.save();
+          // We define a clip region that excludes the center area containing the vault and pylons.
+          // The laser only shines downwards from droneHeight (-90), so we mainly need to avoid
+          // drawing it in the center. We can achieve an inverted clip using `clip("evenodd")`
+          // Note we are inside a context translated to (dx, dy) and scaled.
+          // Instead of popping the transform (which messes up the stack), we temporarily invert it.
+          ctx.scale(1/scale, 1/scale);
+          ctx.translate(-dx, -dy);
+          
+          ctx.beginPath();
+          ctx.rect(-2000, -2000, 4000, 4000); // Massive background rect
+          
+          // Vault bounding box
+          // T1 frame bounds roughly -75 to 75, height -115 to 15. The dome is taller.
+          // The safe is from -60 to 60. Safe dial goes to 0. Let's block out -85 to 85.
+          ctx.rect(-85, -120, 170, 135);
+          
+          // Pylon bounding boxes (x: -165 and 165)
+          // Width is roughly 30px (-15 to 15 from center)
+          // Height is roughly 155px (-155 to 0 from base 15 => -140 to +15)
+          ctx.rect(-185, -145, 40, 160);
+          ctx.rect(145, -145, 40, 160);
+          
+          ctx.clip("evenodd");
+          
+          // Re-apply drone transform inside this save state
+          ctx.translate(dx, dy);
+          ctx.scale(scale, scale);
+        }
+
         // Drone Core (Glowing Red Eye)
         const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
         ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
