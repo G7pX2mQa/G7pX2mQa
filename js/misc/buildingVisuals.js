@@ -5112,6 +5112,172 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.restore();
   };
 
+  
+  const drawT7Chains = (isBack, part = "all") => {
+    if (t7 <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = t7;
+
+    const endY = -50;
+    
+    let leftAnchorX, leftAnchorY, rightAnchorX, rightAnchorY;
+    
+    if (isBack) {
+      leftAnchorX = -245;
+      leftAnchorY = 15; // ground
+      rightAnchorX = 245;
+      rightAnchorY = 15; // ground
+    } else {
+      leftAnchorX = -225;
+      leftAnchorY = 15; // ground
+      rightAnchorX = 225;
+      rightAnchorY = 15; // ground
+    }
+    
+    const drawChain = (startX, startY, sign, offsetX = 0) => {
+      // End point on the vault
+      const vaultX = sign * 70 + offsetX;
+      startX = startX + offsetX;
+      const vaultY = endY;
+      
+      // Control point for a drooping curve
+      const midX = (startX + vaultX) / 2;
+      
+      // Modest upright concavity
+      const midY = Math.min(startY, vaultY) - 20; 
+      
+      // Calculate length to determine number of links
+      const waveAmp = 8;
+      const waveFreq = Math.PI * 2.5; // 1.25 waves
+      const waveSpeed = 4;
+      const phase = isBack ? 0 : Math.PI;
+      
+      const approxLen = Math.sqrt(Math.pow(vaultX - startX, 2) + Math.pow(vaultY - startY, 2)) * 1.2;
+      const numLinks = Math.floor(approxLen / 8); // distance per link
+      
+      for (let i = 0; i <= numLinks; i++) {
+        const p = i / numLinks;
+        
+        // Quadratic bezier
+        const invP = 1 - p;
+        const x = invP * invP * startX + 2 * invP * p * midX + p * p * vaultX;
+        const base_y = invP * invP * startY + 2 * invP * p * midY + p * p * vaultY;
+        
+        const env = Math.sin(p * Math.PI);
+        const dEnv_dp = Math.PI * Math.cos(p * Math.PI);
+        
+        const waveVal = Math.sin(p * waveFreq - t * waveSpeed + phase);
+        const dWave_dp = waveFreq * Math.cos(p * waveFreq - t * waveSpeed + phase);
+        
+        const waveOffset = env * waveAmp * waveVal;
+        const dWaveOffset_dp = dEnv_dp * waveAmp * waveVal + env * waveAmp * dWave_dp;
+        
+        const y = base_y + waveOffset;
+        
+        // Derivative for rotation
+        const dx = 2 * invP * (midX - startX) + 2 * p * (vaultX - midX);
+        const base_dy = 2 * invP * (midY - startY) + 2 * p * (vaultY - midY);
+        const dy = base_dy + dWaveOffset_dp;
+        const angle = Math.atan2(dy, dx);
+        
+        // Filter parts for front chains entering the tier 4 forcefield (rx = 130)
+        if (part !== "all") {
+            const isInner = Math.abs(x) < 130;
+            if (part === "inner" && !isInner) continue;
+            if (part === "outer" && isInner) continue;
+        }
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        
+        // Draw individual link
+        if (i % 2 === 0) {
+            // "Face on" link
+            ctx.beginPath();
+            ctx.strokeStyle = fillGold;
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            let hw = 6, hh = 3.5, r = 3;
+            ctx.moveTo(-hw + r, -hh);
+            ctx.lineTo(hw - r, -hh);
+            ctx.quadraticCurveTo(hw, -hh, hw, -hh + r);
+            ctx.lineTo(hw, hh - r);
+            ctx.quadraticCurveTo(hw, hh, hw - r, hh);
+            ctx.lineTo(-hw + r, hh);
+            ctx.quadraticCurveTo(-hw, hh, -hw, hh - r);
+            ctx.lineTo(-hw, -hh + r);
+            ctx.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+            ctx.stroke();
+
+            // Inner shadow / highlight for depth
+            ctx.beginPath();
+            ctx.strokeStyle = "#B39700"; // darker gold
+            ctx.lineWidth = 0.5;
+            r = 1.5; hw = 4.5; hh = 2;
+            ctx.moveTo(-hw + r, -hh);
+            ctx.lineTo(hw - r, -hh);
+            ctx.quadraticCurveTo(hw, -hh, hw, -hh + r);
+            ctx.lineTo(hw, hh - r);
+            ctx.quadraticCurveTo(hw, hh, hw - r, hh);
+            ctx.lineTo(-hw + r, hh);
+            ctx.quadraticCurveTo(-hw, hh, -hw, hh - r);
+            ctx.lineTo(-hw, -hh + r);
+            ctx.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+            ctx.stroke();
+        } else {
+            // "Side on" link
+            ctx.beginPath();
+            ctx.strokeStyle = fillGold;
+            ctx.lineWidth = 3.5; 
+            ctx.lineCap = 'round'; 
+            
+            ctx.moveTo(-5.5, 0);
+            ctx.lineTo(5.5, 0);
+            ctx.stroke();
+            
+            // Shading
+            ctx.beginPath();
+            ctx.strokeStyle = "#B39700"; // shadow
+            ctx.lineWidth = 1;
+            ctx.moveTo(-4.5, 1);
+            ctx.lineTo(4.5, 1);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.strokeStyle = "#FFE866"; // highlight
+            ctx.lineWidth = 1;
+            ctx.moveTo(-4.5, -1);
+            ctx.lineTo(4.5, -1);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+      }
+    };
+    
+    if (isBack) {
+      // Offset back chains so they don't hide behind front ones
+      // We also need to triple them like the front chains.
+      const offsets = [-15, 0, 15];
+      offsets.forEach(off => {
+        drawChain(leftAnchorX, leftAnchorY, -1, 30 + off);
+        drawChain(rightAnchorX, rightAnchorY, 1, -30 + off);
+      });
+    } else {
+      const offsets = [-15, 0, 15];
+      offsets.forEach(off => {
+        drawChain(leftAnchorX, leftAnchorY, -1, off);
+        drawChain(rightAnchorX, rightAnchorY, 1, off);
+      });
+    }
+    
+    ctx.restore();
+  };
+
+
   const drawT6Drones = (isBack) => {
     if (t6 <= 0) return;
     ctx.save();
@@ -5207,6 +5373,11 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
         drawT6Drones(true);
       }
       
+      // --- Tier 7: Back Chains ---
+      if (t7 > 0) {
+        drawT7Chains(true, "outer");
+      }
+      
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
         drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
@@ -5222,6 +5393,11 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       // --- Tier 6: Hovering Security Drones (Backside) ---
       if (t6 > 0) {
         drawT6Drones(true);
+      }
+      
+      // --- Tier 7: Back Chains ---
+      if (t7 > 0) {
+        drawT7Chains(true, "outer");
       }
       
       // --- Tier 4 & 8: Backside Forcefield ---
@@ -5240,7 +5416,12 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       drawT6Drones(true);
     }
 
-    // --- Tier 4 & 8: Backside Forcefield ---
+    // --- Tier 7: Back Chains ---
+      if (t7 > 0) {
+        drawT7Chains(true, "outer");
+      }
+      
+      // --- Tier 4 & 8: Backside Forcefield ---
     if (t8 > 0) {
       drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
     }
@@ -5367,6 +5548,12 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.restore();
   }
 
+  // --- Tier 7: Chains (Inner) ---
+  if (t7 > 0) {
+    drawT7Chains(true, "inner");
+    drawT7Chains(false, "inner");
+  }
+
   // --- Tier 4: Core Feature - High-tech Energy Security System ---
   if (t4 > 0) {
     drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0);
@@ -5451,107 +5638,16 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.restore();
   }
 
+  // --- Tier 7: Front Chains (Outer) ---
+  if (t7 > 0) {
+    drawT7Chains(false, "outer");
+  }
+  
   // --- Tier 6: Hovering Security Drones ---
   if (t6 > 0) {
     drawT6Drones(false);
   }
 
-  // --- Tier 7: Orbital Strike Designator ---
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-    
-    // 1. Massive Holographic Targeting Reticle on Ground
-    ctx.save();
-    // Position on the ground plane
-    ctx.translate(0, 15);
-    
-    // Scale y to flatten into an ellipse for isometric perspective
-    ctx.scale(1, 0.4);
-    
-    // Slowly rotating reticle
-    ctx.rotate(t * 0.3);
-    
-    const reticleRadius = 220;
-    
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255, 50, 50, 0.6)"; // Thematic red
-    
-    // Outer dashed ring
-    ctx.setLineDash([15, 10]);
-    ctx.beginPath();
-    ctx.arc(0, 0, reticleRadius, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Inner solid ring
-    ctx.setLineDash([]);
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(0, 0, reticleRadius - 20, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Crosshairs
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    // Vertical line
-    ctx.moveTo(0, -reticleRadius);
-    ctx.lineTo(0, reticleRadius);
-    // Horizontal line
-    ctx.moveTo(-reticleRadius, 0);
-    ctx.lineTo(reticleRadius, 0);
-    ctx.stroke();
-    
-    // 4 Corner Targeting brackets
-    ctx.lineWidth = 4;
-    const bracketSize = 30;
-    const offset = reticleRadius - 10;
-    for (let i = 0; i < 4; i++) {
-      ctx.save();
-      ctx.rotate((Math.PI / 2) * i);
-      ctx.beginPath();
-      // Draw L-bracket at top right
-      ctx.moveTo(offset, offset - bracketSize);
-      ctx.lineTo(offset, offset);
-      ctx.lineTo(offset - bracketSize, offset);
-      ctx.stroke();
-      ctx.restore();
-    }
-    
-    ctx.restore(); // Restore from ground projection
-    
-    // 2. Vertical Pulsing Communication/Laser Beam
-    // The beam originates from the top of the vault (around -115) and shoots upwards
-    ctx.save();
-    
-    const beamPulse = (Math.sin(t * 10) + 1) / 2;
-    
-    // Outer glow
-    const beamGrad = ctx.createLinearGradient(0, -115, 0, -500);
-    beamGrad.addColorStop(0, `rgba(255, 50, 50, ${0.4 + beamPulse * 0.3})`);
-    beamGrad.addColorStop(1, `rgba(255, 50, 50, 0.0)`);
-    
-    ctx.fillStyle = beamGrad;
-    ctx.fillRect(-20, -500, 40, 385); // 385 is height from -115 to -500
-    
-    // Inner bright core
-    ctx.fillStyle = `rgba(255, 200, 200, ${0.7 + beamPulse * 0.3})`;
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 15;
-    ctx.fillRect(-6, -500, 12, 385);
-    
-    // Ground emitter ring on top of vault
-    ctx.translate(0, -115);
-    ctx.scale(1, 0.4);
-    ctx.strokeStyle = fillGold;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(0, 0, 25, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.restore(); // Restore beam transform
-    
-    ctx.restore(); // Restore T7 alpha/save
-  }
   // --- Tier 8: Aegis Matrix Shield Upgrade ---
   if (t8 > 0) {
     // RadiusX: 260 covers cannons
