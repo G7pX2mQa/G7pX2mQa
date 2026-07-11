@@ -4930,79 +4930,84 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.lineWidth = 1;
     ctx.beginPath();
     
-    const hexSize = 15 * hexScale;
+    const hexSize = 30 * hexScale;
     const scrollSpeed = 20 * hexScale;
-    let offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
+    const sqrt3 = Math.sqrt(3);
+    let offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * sqrt3);
     if (isBack) {
-      offsetY = -(t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
+      offsetY = -(t * timeMultiplier * scrollSpeed) % (hexSize * sqrt3);
     }
     
     // Distance across dome to equator is (PI / 2) * radiusX.
     // Past that, it travels vertically.
     const max_hex_dist = (Math.PI / 2) * radiusX + Math.max(0, bottomY - centerY) + 100;
 
-    const maxRows = Math.ceil((max_hex_dist) / (hexSize * Math.sqrt(3))) + 4;
+    const maxRows = Math.ceil((max_hex_dist) / (hexSize * sqrt3)) + 4;
     const minRows = -2;
     const maxCols = Math.ceil((max_hex_dist) / (hexSize * 1.5)) + 4;
     
     // Pole Y is the very top of the dome
     const poleY = centerY - radiusY;
+
+    // Precompute hex vertex offsets
+    const hexOffsets = [];
+    for (let i = 0; i < 6; i++) {
+      let a = i * Math.PI / 3;
+      hexOffsets.push({
+        dx: hexSize * Math.cos(a),
+        dy: hexSize * Math.sin(a)
+      });
+    }
+
+    const mapPoint = (px, py) => {
+      let dist = Math.sqrt(px*px + py*py);
+      
+      // Limit wrapping around to the back or going way too far down
+      if (dist > max_hex_dist) return null;
+      
+      let sR;
+      let my;
+      
+      // If it's above the equator, map to the ellipse
+      if (dist / radiusX <= Math.PI / 2) {
+        sR = radiusX * Math.sin(dist / radiusX);
+        my = centerY - radiusY * Math.cos(dist / radiusX);
+      } else {
+        // Once it passes the equator, it travels straight down like a cylinder
+        sR = radiusX;
+        let pastEquatorDist = dist - (Math.PI / 2) * radiusX;
+        my = centerY + pastEquatorDist;
+      }
+      
+      // Calculate horizontal position algebraically
+      // Check for zero division (at the very pole)
+      let mx = dist === 0 ? 0 : (px / dist) * sR;
+      
+      // Safe buffer instead of strict clipping
+      if (my > bottomY + 100) return null;
+      
+      return {x: mx, y: my};
+    };
     
     for (let row = minRows; row <= maxRows; row++) {
       for (let col = -maxCols; col <= maxCols; col++) {
         let hx = col * hexSize * 1.5;
-        let hy = row * hexSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : hexSize * Math.sqrt(3) / 2) + offsetY;
+        let hy = row * hexSize * sqrt3 + (col % 2 === 0 ? 0 : hexSize * sqrt3 / 2) + offsetY;
         
         // Skip hexes completely out of bounds (using 2D radial distance)
         let centerDist = Math.sqrt(hx*hx + hy*hy);
         if (centerDist > max_hex_dist) continue;
         
+        // Map the 6 vertices once per hexagon
+        let mappedPoints = [];
         for (let i = 0; i < 6; i++) {
-          let a1 = i * Math.PI / 3;
-          let a2 = (i + 1) * Math.PI / 3;
-          
-          let px1 = hx + hexSize * Math.cos(a1);
-          let py1 = hy + hexSize * Math.sin(a1);
-          let px2 = hx + hexSize * Math.cos(a2);
-          let py2 = hy + hexSize * Math.sin(a2);
-          
-          const mapPoint = (px, py) => {
-            let dist = Math.sqrt(px*px + py*py);
-            
-            // Limit wrapping around to the back or going way too far down
-            if (dist > max_hex_dist) return null;
-            
-            let angle = Math.atan2(py, px);
-            
-            let sR;
-            let my;
-            
-            // If it's above the equator, map to the ellipse
-            if (dist / radiusX <= Math.PI / 2) {
-              sR = radiusX * Math.sin(dist / radiusX);
-              my = centerY - radiusY * Math.cos(dist / radiusX);
-            } else {
-              // Once it passes the equator, it travels straight down like a cylinder
-              sR = radiusX;
-              let pastEquatorDist = dist - (Math.PI / 2) * radiusX;
-              my = centerY + pastEquatorDist;
-            }
-            
-            let mx = Math.cos(angle) * sR;
-            
-            // Safe buffer instead of strict clipping
-            if (my > bottomY + 100) return null;
-            
-            // If it's the back, we want to negate the x coordinate, wait, drawing on the back?
-            // Actually, mapping to back vs front.
-            // Spherically, if it's the back, the coordinates are identical but we are looking through the front?
-            // "mirrored version of the front". So the geometry of the dome is symmetric. We can just draw the same geometry, but we want the scrolling to go in opposite direction (which we did by changing offsetY).
-            // Do we need to negate x? Not really, x is symmetric.
-            return {x: mx, y: my};
-          };
-          
-          let p1 = mapPoint(px1, py1);
-          let p2 = mapPoint(px2, py2);
+          mappedPoints.push(mapPoint(hx + hexOffsets[i].dx, hy + hexOffsets[i].dy));
+        }
+        
+        // Draw the 6 lines
+        for (let i = 0; i < 6; i++) {
+          let p1 = mappedPoints[i];
+          let p2 = mappedPoints[(i + 1) % 6];
           
           // Only draw if both points are valid (prevents connecting front/back and over bounds)
           if (p1 && p2) {
@@ -5015,10 +5020,10 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     
     ctx.stroke();
     
-    // Add glow
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 10;
-    ctx.stroke();
+    // Add glow (Disabled to fix huge FPS drop caused by thousands of blurred hex lines)
+    // ctx.shadowColor = "#ff0000";
+    // ctx.shadowBlur = 10;
+    // ctx.stroke();
 
     // Stroke the hexagon path to give it thickness while still clipped
     // Doing this for both front and back maintains the thick hexagon lines,
