@@ -5134,10 +5134,10 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       rightAnchorY = 15; // ground
     }
     
-    const drawChain = (startX, startY, sign, offsetX = 0) => {
+    const drawChain = (startX, startY, sign, groundOffset = 0, vaultOffset = 0) => {
       // End point on the vault
-      const vaultX = sign * 70 + offsetX;
-      startX = startX + offsetX;
+      const vaultX = sign * 70 + vaultOffset;
+      startX = startX + groundOffset;
       const vaultY = endY;
       
       // Control point for a drooping curve
@@ -5150,7 +5150,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       const waveAmp = 8;
       const waveFreq = Math.PI * 2.5; // 1.25 waves
       const waveSpeed = 4;
-      const phase = isBack ? 0 : Math.PI;
+      const phase = Math.PI;
       
       const approxLen = Math.sqrt(Math.pow(vaultX - startX, 2) + Math.pow(vaultY - startY, 2)) * 1.2;
       const numLinks = Math.floor(approxLen / 8); // distance per link
@@ -5263,14 +5263,14 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       // We also need to triple them like the front chains.
       const offsets = [-15, 0, 15];
       offsets.forEach(off => {
-        drawChain(leftAnchorX, leftAnchorY, -1, 30 + off);
-        drawChain(rightAnchorX, rightAnchorY, 1, -30 + off);
+        drawChain(leftAnchorX, leftAnchorY, -1, off, off);
+        drawChain(rightAnchorX, rightAnchorY, 1, off, off);
       });
     } else {
       const offsets = [-15, 0, 15];
       offsets.forEach(off => {
-        drawChain(leftAnchorX, leftAnchorY, -1, off);
-        drawChain(rightAnchorX, rightAnchorY, 1, off);
+        drawChain(leftAnchorX, leftAnchorY, -1, off, off);
+        drawChain(rightAnchorX, rightAnchorY, 1, off, off);
       });
     }
     
@@ -5278,7 +5278,8 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   };
 
 
-  const drawT6Drones = (isBack) => {
+
+  const drawT6Drones = (isBack, renderPass = "both") => {
     if (t6 <= 0) return;
     ctx.save();
     ctx.globalAlpha = t6;
@@ -5311,56 +5312,59 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       ctx.translate(dx, dy);
       ctx.scale(scale, scale);
       
-      // Drone Body (Sleek black & gold)
-      ctx.fillStyle = darkMetal;
-      ctx.beginPath();
-      ctx.moveTo(-15, 0);
-      ctx.lineTo(0, -10);
-      ctx.lineTo(15, 0);
-      ctx.lineTo(0, 10);
-      ctx.closePath();
-      ctx.fill();
+      if (renderPass === "both" || renderPass === "body") {
+        // Drone Body (Sleek black & gold)
+        ctx.fillStyle = darkMetal;
+        ctx.beginPath();
+        ctx.moveTo(-15, 0);
+        ctx.lineTo(0, -10);
+        ctx.lineTo(15, 0);
+        ctx.lineTo(0, 10);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.strokeStyle = fillGold;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
       
-      ctx.strokeStyle = fillGold;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Drone Core (Glowing Red Eye)
-      const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
-      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
-      ctx.shadowColor = "#ff0000";
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      
-      // Scanning Laser Cone (Pointing Down)
-      const sweepAngle = Math.sin(t * 3 + i * Math.PI) * 0.5;
-      
-      ctx.save();
-      ctx.rotate(sweepAngle);
-      
-      const laserGrad = ctx.createLinearGradient(0, 0, 0, 150);
-      laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
-      laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
-      
-      ctx.fillStyle = laserGrad;
-      ctx.beginPath();
-      ctx.moveTo(0, 5);
-      ctx.lineTo(-40, 150);
-      ctx.lineTo(40, 150);
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.restore();
+      if (renderPass === "both" || renderPass === "lights") {
+        // Drone Core (Glowing Red Eye)
+        const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
+        ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
+        ctx.shadowColor = "#ff0000";
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // Scanning Laser Cone (Pointing Down)
+        const sweepAngle = Math.sin(t * 3 + i * Math.PI) * 0.5;
+        
+        ctx.save();
+        ctx.rotate(sweepAngle);
+        
+        const laserGrad = ctx.createLinearGradient(0, 0, 0, 150);
+        laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
+        laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
+        
+        ctx.fillStyle = laserGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, 5);
+        ctx.lineTo(-40, 150);
+        ctx.lineTo(40, 150);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+      }
       
       ctx.restore();
     }
     
     ctx.restore();
   };
-
   ctx.save();
   // Move building up for T1 reinforcements (with cross-fade for T0)
   if (tier >= 1) {
@@ -5370,17 +5374,22 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       
       // --- Tier 6: Hovering Security Drones (Backside) ---
       if (t6 > 0) {
-        drawT6Drones(true);
+        drawT6Drones(true, "body");
       }
       
       // --- Tier 7: Back Chains ---
       if (t7 > 0) {
         drawT7Chains(true, "outer");
       }
+
+      // --- Tier 6: Hovering Security Drones (Backside Lights) ---
+      if (t6 > 0) {
+        drawT6Drones(true, "lights");
+      }
       
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
-        drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
+        drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0, true);
       }
       if (t4 > 0) {
         drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
@@ -5392,17 +5401,22 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       
       // --- Tier 6: Hovering Security Drones (Backside) ---
       if (t6 > 0) {
-        drawT6Drones(true);
+        drawT6Drones(true, "body");
       }
       
       // --- Tier 7: Back Chains ---
       if (t7 > 0) {
         drawT7Chains(true, "outer");
       }
+
+      // --- Tier 6: Hovering Security Drones (Backside Lights) ---
+      if (t6 > 0) {
+        drawT6Drones(true, "lights");
+      }
       
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
-        drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
+        drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0, true);
       }
       if (t4 > 0) {
         drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
@@ -5413,17 +5427,22 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   } else {
     // --- Tier 6: Hovering Security Drones (Backside) ---
     if (t6 > 0) {
-      drawT6Drones(true);
+      drawT6Drones(true, "body");
     }
 
     // --- Tier 7: Back Chains ---
       if (t7 > 0) {
         drawT7Chains(true, "outer");
       }
+
+    // --- Tier 6: Hovering Security Drones (Backside Lights) ---
+    if (t6 > 0) {
+      drawT6Drones(true, "lights");
+    }
       
       // --- Tier 4 & 8: Backside Forcefield ---
     if (t8 > 0) {
-      drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0, true);
+      drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0, true);
     }
     if (t4 > 0) {
       drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
@@ -5652,7 +5671,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   if (t8 > 0) {
     // RadiusX: 260 covers cannons
     // RadiusY shrunk to 160. CenterY -50. Base is 15.
-    drawForcefield(260, 160, -50, 15, t8, 2.0, 2.0);
+    drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0);
   }
   
   ctx.restore();
