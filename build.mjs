@@ -698,6 +698,7 @@ async function copyStaticAssets() {
   const tasks = [
     fs.cp("img", resolveDist("img"), { recursive: true, force: true }),
     fs.cp("sounds", resolveDist("sounds"), { recursive: true, force: true }),
+	fs.cp("CNAME", resolveDist("CNAME"), { recursive: true, force: true }),
   ];
 
   await Promise.all(tasks);
