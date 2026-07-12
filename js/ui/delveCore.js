@@ -813,10 +813,7 @@ export function openDelveOverlay(overlayEl, sheetEl) {
                     });
                     
                     if (targetTab && targetPanel && !targetTab.disabled && !targetTab.classList.contains('is-locked')) {
-                        allTabs.forEach(t => t.classList.remove('is-active'));
-                        allPanels.forEach(p => p.classList.remove('is-active'));
-                        targetTab.classList.add('is-active');
-                        targetPanel.classList.add('is-active');
+                        targetTab.click();
                     }
                 }
             }
