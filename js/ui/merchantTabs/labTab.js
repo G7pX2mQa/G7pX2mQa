@@ -29,12 +29,12 @@ const CAM_MAX_COORD = 1e308;
 const CAM_MAX_ZOOM = 1e300;
 const CAM_MIN_ZOOM = 1e-300;
 
-const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
+const LAB_INTRO_SEEN_KEY = (slot) => `ccc:lab:introSeen:${slot}`;
 const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
 
 // --- Caching ---
 let _cachedLabLevel = null;
-let _cachedLabVisited = null;
+let _cachedLabIntroSeen = null;
 let _cachedSlot = null;
 
 function reloadLabCache() {
@@ -43,7 +43,7 @@ function reloadLabCache() {
     
     if (slot == null) {
         _cachedLabLevel = BigNum.fromInt(0);
-        _cachedLabVisited = false;
+        _cachedLabIntroSeen = false;
         return;
     }
 
@@ -58,33 +58,33 @@ function reloadLabCache() {
 
     // Load Visited
     try {
-        _cachedLabVisited = localStorage.getItem(LAB_VISITED_KEY(slot)) === '1';
+        _cachedLabIntroSeen = localStorage.getItem(LAB_INTRO_SEEN_KEY(slot)) === '1';
     } catch {
-        _cachedLabVisited = false;
+        _cachedLabIntroSeen = false;
     }
 }
 
 // --- Exported Getters/Setters ---
 
-export function hasVisitedLab() {
+export function hasSeenLabIntro() {
   const slot = getActiveSlot();
   if (slot == null) return false;
-  if (_cachedSlot !== slot || _cachedLabVisited === null) {
+  if (_cachedSlot !== slot || _cachedLabIntroSeen === null) {
       reloadLabCache();
   }
-  return _cachedLabVisited;
+  return _cachedLabIntroSeen;
 }
 
-export function setLabVisited(value) {
+export function setLabIntroSeen(value) {
   const slot = getActiveSlot();
   if (slot == null) return;
   const normalized = !!value;
   
-  if (_cachedLabVisited === normalized && _cachedSlot === slot) return;
-  _cachedLabVisited = normalized;
+  if (_cachedLabIntroSeen === normalized && _cachedSlot === slot) return;
+  _cachedLabIntroSeen = normalized;
 
   try {
-    localStorage.setItem(LAB_VISITED_KEY(slot), normalized ? '1' : '0');
+    localStorage.setItem(LAB_INTRO_SEEN_KEY(slot), normalized ? '1' : '0');
   } catch {}
 }
 
@@ -340,7 +340,6 @@ export function initLabTab(panel) {
 }
 
 export function updateLabTab() {
-  setLabVisited(true);
   if (labSystem) {
       labSystem.resize();
       labSystem.start();
