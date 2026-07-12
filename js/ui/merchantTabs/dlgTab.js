@@ -13,9 +13,9 @@ import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
 import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset, isSurgeUnlocked, getCurrentSurgeLevel } from './resetTab.js';
 import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { initWarpTab, updateWarpTab } from './warpTab.js';
-import { initLabTab, updateLabTab, hasVisitedLab } from './labTab.js';
+import { initLabTab, updateLabTab, hasSeenLabIntro, setLabIntroSeen } from './labTab.js';
 import { initFlowTab, updateFlowTab, getFlowUnlockState, setFlowUnlockChecker } from './flowTab.js';
-import { isLabUnlocked } from '../../game/surgeEffects.js';
+import { isLabUnlocked, getTsunamiSequencePlayed } from '../../game/surgeEffects.js';
 import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
 import {
   shouldSkipGhostTap,
@@ -760,7 +760,7 @@ function openDialogueModal(id, meta) {
   if (meta.scriptId === 6) {
       _isLabDialogueOpen = true;
   }
-  if (isLabUnlockedLocal() && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
+  if (isLabUnlockedLocal() && typeof hasSeenLabIntro === 'function' && !hasSeenLabIntro() && getTsunamiSequencePlayed()) {
       scriptId = 1000;
   }
 
@@ -1760,6 +1760,7 @@ export function openMerchant() {
       if (localStorage.getItem(pendingKey) === '1') {
           try { localStorage.removeItem(pendingKey); } catch {}
           try { localStorage.setItem(LAB_UNLOCK_KEY(slot), '1'); } catch {}
+          setLabIntroSeen(false);
           syncLabTabUnlockState();
           try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'lab', slot } })); } catch {}
           forcedDialogueTab = true;
@@ -1959,7 +1960,8 @@ function selectMerchantTab(key) {
   }
   if (key === 'lab') {
     try { initLabTab(merchantTabs.panels['lab']); } catch {}
-    if (typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
+    if (typeof hasSeenLabIntro === 'function' && !hasSeenLabIntro() && getTsunamiSequencePlayed()) {
+        setLabIntroSeen(true);
         runLabIntroDialogue();
     }
     try { updateLabTab(); } catch {}
