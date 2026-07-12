@@ -186,7 +186,6 @@ export function updateLabLevel() {
     }
 
     const coins = bank.coins.value;
-
     
     if (coins.isInfinite()) {
         if (!currentLevel.isInfinite()) {
