@@ -2,7 +2,7 @@ import { getActiveSlot, bank } from '../../util/storage.js';
 import { IS_MOBILE } from '../../main.js';
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
-import { getBaseTsunamiExponent, isSurgeActive, getTsunamiExponent } from '../../game/surgeEffects.js';
+import { getBaseTsunamiExponent, isSurgeActive, getTsunamiExponent, isLabUnlocked } from '../../game/surgeEffects.js';
 import { registerTick } from '../../game/gameLoop.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { 
@@ -176,8 +176,17 @@ export function updateLabLevel() {
         return;
     }
 
-    const coins = bank.coins.value;
     const currentLevel = getLabLevel();
+    
+    if (typeof isLabUnlocked === 'function' && !isLabUnlocked()) {
+        if (!currentLevel.isZero()) {
+            setLabLevel(BigNum.fromInt(0));
+        }
+        return;
+    }
+
+    const coins = bank.coins.value;
+
     
     if (coins.isInfinite()) {
         if (!currentLevel.isInfinite()) {
