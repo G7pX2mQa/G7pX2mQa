@@ -13,7 +13,7 @@ import {
   hasModifiedSave,
 } from './storage.js';
 
-const SIGNATURE_POLL_INTERVAL_MS = 10000;
+const SIGNATURE_POLL_INTERVAL_MS = 1000;
 const TRUSTED_MUTATION_GRACE_MS = 750;
 const TRUSTED_SWEEP_DELAY_MS = 50;
 let watcherId = null;
