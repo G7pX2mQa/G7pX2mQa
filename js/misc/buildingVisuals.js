@@ -4930,7 +4930,7 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     ctx.lineWidth = 1;
     ctx.beginPath();
     
-    const hexSize = 30 * hexScale;
+    const hexSize = 15 * hexScale;
     const scrollSpeed = 20 * hexScale;
     let offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
     if (isBack) {
