@@ -1785,6 +1785,7 @@ export function openMerchant() {
 
   if (forcedDialogueTab) {
     last = 'dialogue';
+    try { localStorage.setItem(`ccc:delveTab:${merchantOverlayEl.id}:${slot}`, 'dialogue'); } catch {}
   }
 
   selectMerchantTab(last);
