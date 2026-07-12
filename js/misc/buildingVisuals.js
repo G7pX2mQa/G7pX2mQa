@@ -4939,72 +4939,70 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
     
     // Distance across dome to equator is (PI / 2) * radiusX.
     // Past that, it travels vertically.
-    const max_hex_dist = (Math.PI / 2) * radiusX + Math.max(0, bottomY - centerY) + 100;
+    const halfPi = Math.PI / 2;
+    const equatorDist = halfPi * radiusX;
+    const max_hex_dist = equatorDist + Math.max(0, bottomY - centerY) + 100;
 
-    const maxRows = Math.ceil((max_hex_dist) / (hexSize * Math.sqrt(3))) + 4;
+    const sqrt3 = Math.sqrt(3);
+    const maxRows = Math.ceil((max_hex_dist) / (hexSize * sqrt3)) + 4;
     const minRows = -2;
     const maxCols = Math.ceil((max_hex_dist) / (hexSize * 1.5)) + 4;
     
     // Pole Y is the very top of the dome
     const poleY = centerY - radiusY;
     
+    // Precompute cos/sin for the 4 angles we actually need (since we only do i=0..2)
+    // Angles are 0, PI/3, 2PI/3, 3PI/3 (PI)
+    const anglesCos = [
+      Math.cos(0), Math.cos(Math.PI / 3), Math.cos(2 * Math.PI / 3), Math.cos(Math.PI)
+    ];
+    const anglesSin = [
+      Math.sin(0), Math.sin(Math.PI / 3), Math.sin(2 * Math.PI / 3), Math.sin(Math.PI)
+    ];
+    
+    const mapPoint = (px, py) => {
+        let dist = Math.sqrt(px*px + py*py);
+        
+        if (dist > max_hex_dist) return null;
+        
+        let sR;
+        let my;
+        
+        if (dist / radiusX <= halfPi) {
+            sR = radiusX * Math.sin(dist / radiusX);
+            my = centerY - radiusY * Math.cos(dist / radiusX);
+        } else {
+            sR = radiusX;
+            let pastEquatorDist = dist - equatorDist;
+            my = centerY + pastEquatorDist;
+        }
+        
+        // Optimization: avoiding atan2 and cos
+        // Math.cos(Math.atan2(y, x)) is exactly x / dist
+        let mx = dist === 0 ? 0 : (px / dist) * sR;
+        
+        if (my > bottomY + 100) return null;
+        return {x: mx, y: my};
+    };
+    
     for (let row = minRows; row <= maxRows; row++) {
       for (let col = -maxCols; col <= maxCols; col++) {
         let hx = col * hexSize * 1.5;
-        let hy = row * hexSize * Math.sqrt(3) + (col % 2 === 0 ? 0 : hexSize * Math.sqrt(3) / 2) + offsetY;
+        let hy = row * hexSize * sqrt3 + (col % 2 === 0 ? 0 : hexSize * sqrt3 / 2) + offsetY;
         
-        // Skip hexes completely out of bounds (using 2D radial distance)
         let centerDist = Math.sqrt(hx*hx + hy*hy);
         if (centerDist > max_hex_dist) continue;
         
-        for (let i = 0; i < 6; i++) {
-          let a1 = i * Math.PI / 3;
-          let a2 = (i + 1) * Math.PI / 3;
-          
-          let px1 = hx + hexSize * Math.cos(a1);
-          let py1 = hy + hexSize * Math.sin(a1);
-          let px2 = hx + hexSize * Math.cos(a2);
-          let py2 = hy + hexSize * Math.sin(a2);
-          
-          const mapPoint = (px, py) => {
-            let dist = Math.sqrt(px*px + py*py);
-            
-            // Limit wrapping around to the back or going way too far down
-            if (dist > max_hex_dist) return null;
-            
-            let angle = Math.atan2(py, px);
-            
-            let sR;
-            let my;
-            
-            // If it's above the equator, map to the ellipse
-            if (dist / radiusX <= Math.PI / 2) {
-              sR = radiusX * Math.sin(dist / radiusX);
-              my = centerY - radiusY * Math.cos(dist / radiusX);
-            } else {
-              // Once it passes the equator, it travels straight down like a cylinder
-              sR = radiusX;
-              let pastEquatorDist = dist - (Math.PI / 2) * radiusX;
-              my = centerY + pastEquatorDist;
-            }
-            
-            let mx = Math.cos(angle) * sR;
-            
-            // Safe buffer instead of strict clipping
-            if (my > bottomY + 100) return null;
-            
-            // If it's the back, we want to negate the x coordinate, wait, drawing on the back?
-            // Actually, mapping to back vs front.
-            // Spherically, if it's the back, the coordinates are identical but we are looking through the front?
-            // "mirrored version of the front". So the geometry of the dome is symmetric. We can just draw the same geometry, but we want the scrolling to go in opposite direction (which we did by changing offsetY).
-            // Do we need to negate x? Not really, x is symmetric.
-            return {x: mx, y: my};
-          };
+        // Draw only 3 out of 6 edges. Since hexes tile perfectly, this draws the entire grid with no overlaps.
+        for (let i = 0; i < 3; i++) {
+          let px1 = hx + hexSize * anglesCos[i];
+          let py1 = hy + hexSize * anglesSin[i];
+          let px2 = hx + hexSize * anglesCos[i+1];
+          let py2 = hy + hexSize * anglesSin[i+1];
           
           let p1 = mapPoint(px1, py1);
           let p2 = mapPoint(px2, py2);
           
-          // Only draw if both points are valid (prevents connecting front/back and over bounds)
           if (p1 && p2) {
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
@@ -5013,21 +5011,9 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
       }
     }
     
-    ctx.stroke();
-    
-    // Add glow
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 10;
-    ctx.stroke();
-
-    // Stroke the hexagon path to give it thickness while still clipped
-    // Doing this for both front and back maintains the thick hexagon lines,
-    // and doing it before ctx.restore() prevents the points at the edges from 
-    // bleeding out into a static arc.
-    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-    ctx.lineWidth = 4;
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(255, 70, 70, 0.6)"; // Slightly transparent thick line to look like glow
+    ctx.lineWidth = 2.5;
+    ctx.shadowBlur = 0; // Ensure shadow blur is off
     ctx.stroke();
     
     ctx.restore();
@@ -5113,6 +5099,53 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   };
 
   
+
+
+let faceOnLinkPath = null;
+let faceOnLinkShadowPath = null;
+let sideOnLinkPath = null;
+let sideOnLinkShadowPath = null;
+let sideOnLinkHighlightPath = null;
+
+function initChainPaths() {
+    if (faceOnLinkPath) return;
+    
+    faceOnLinkPath = new Path2D();
+    let hw = 6, hh = 3.5, r = 3;
+    faceOnLinkPath.moveTo(-hw + r, -hh);
+    faceOnLinkPath.lineTo(hw - r, -hh);
+    faceOnLinkPath.quadraticCurveTo(hw, -hh, hw, -hh + r);
+    faceOnLinkPath.lineTo(hw, hh - r);
+    faceOnLinkPath.quadraticCurveTo(hw, hh, hw - r, hh);
+    faceOnLinkPath.lineTo(-hw + r, hh);
+    faceOnLinkPath.quadraticCurveTo(-hw, hh, -hw, hh - r);
+    faceOnLinkPath.lineTo(-hw, -hh + r);
+    faceOnLinkPath.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+
+    faceOnLinkShadowPath = new Path2D();
+    r = 1.5; hw = 4.5; hh = 2;
+    faceOnLinkShadowPath.moveTo(-hw + r, -hh);
+    faceOnLinkShadowPath.lineTo(hw - r, -hh);
+    faceOnLinkShadowPath.quadraticCurveTo(hw, -hh, hw, -hh + r);
+    faceOnLinkShadowPath.lineTo(hw, hh - r);
+    faceOnLinkShadowPath.quadraticCurveTo(hw, hh, hw - r, hh);
+    faceOnLinkShadowPath.lineTo(-hw + r, hh);
+    faceOnLinkShadowPath.quadraticCurveTo(-hw, hh, -hw, hh - r);
+    faceOnLinkShadowPath.lineTo(-hw, -hh + r);
+    faceOnLinkShadowPath.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+
+    sideOnLinkPath = new Path2D();
+    sideOnLinkPath.moveTo(-5.5, 0);
+    sideOnLinkPath.lineTo(5.5, 0);
+
+    sideOnLinkShadowPath = new Path2D();
+    sideOnLinkShadowPath.moveTo(-4.5, 1);
+    sideOnLinkShadowPath.lineTo(4.5, 1);
+
+    sideOnLinkHighlightPath = new Path2D();
+    sideOnLinkHighlightPath.moveTo(-4.5, -1);
+    sideOnLinkHighlightPath.lineTo(4.5, -1);
+}
   const drawT7Chains = (isBack, part = "all") => {
     if (t7 <= 0) return;
     ctx.save();
@@ -5193,66 +5226,34 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
         ctx.rotate(angle);
         
         // Draw individual link
+        initChainPaths();
         if (i % 2 === 0) {
             // "Face on" link
-            ctx.beginPath();
             ctx.strokeStyle = fillGold;
             ctx.lineWidth = 2.5;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            
-            let hw = 6, hh = 3.5, r = 3;
-            ctx.moveTo(-hw + r, -hh);
-            ctx.lineTo(hw - r, -hh);
-            ctx.quadraticCurveTo(hw, -hh, hw, -hh + r);
-            ctx.lineTo(hw, hh - r);
-            ctx.quadraticCurveTo(hw, hh, hw - r, hh);
-            ctx.lineTo(-hw + r, hh);
-            ctx.quadraticCurveTo(-hw, hh, -hw, hh - r);
-            ctx.lineTo(-hw, -hh + r);
-            ctx.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
-            ctx.stroke();
+            ctx.stroke(faceOnLinkPath);
 
             // Inner shadow / highlight for depth
-            ctx.beginPath();
             ctx.strokeStyle = "#B39700"; // darker gold
             ctx.lineWidth = 0.5;
-            r = 1.5; hw = 4.5; hh = 2;
-            ctx.moveTo(-hw + r, -hh);
-            ctx.lineTo(hw - r, -hh);
-            ctx.quadraticCurveTo(hw, -hh, hw, -hh + r);
-            ctx.lineTo(hw, hh - r);
-            ctx.quadraticCurveTo(hw, hh, hw - r, hh);
-            ctx.lineTo(-hw + r, hh);
-            ctx.quadraticCurveTo(-hw, hh, -hw, hh - r);
-            ctx.lineTo(-hw, -hh + r);
-            ctx.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
-            ctx.stroke();
+            ctx.stroke(faceOnLinkShadowPath);
         } else {
             // "Side on" link
-            ctx.beginPath();
             ctx.strokeStyle = fillGold;
             ctx.lineWidth = 3.5; 
             ctx.lineCap = 'round'; 
-            
-            ctx.moveTo(-5.5, 0);
-            ctx.lineTo(5.5, 0);
-            ctx.stroke();
+            ctx.stroke(sideOnLinkPath);
             
             // Shading
-            ctx.beginPath();
             ctx.strokeStyle = "#B39700"; // shadow
             ctx.lineWidth = 1;
-            ctx.moveTo(-4.5, 1);
-            ctx.lineTo(4.5, 1);
-            ctx.stroke();
+            ctx.stroke(sideOnLinkShadowPath);
             
-            ctx.beginPath();
             ctx.strokeStyle = "#FFE866"; // highlight
             ctx.lineWidth = 1;
-            ctx.moveTo(-4.5, -1);
-            ctx.lineTo(4.5, -1);
-            ctx.stroke();
+            ctx.stroke(sideOnLinkHighlightPath);
         }
         
         ctx.restore();
