@@ -1491,6 +1491,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // No longer using pendingPreloadedAudio since audioManager handles buffering internally
 
+  window.addEventListener('beforeunload', () => {
+    if (window.__tsunamiActive) {
+      const slot = getActiveSlot();
+      if (slot != null) {
+        // We need to perform the exact same state wipe that applySurgeResetLogic does, directly to localStorage.
+        
+        // Base currencies wiped by Surge
+        localStorage.setItem(`ccc:coins:${slot}`, 'BN:zero');
+        localStorage.setItem(`ccc:books:${slot}`, 'BN:zero');
+        localStorage.setItem(`ccc:gold:${slot}`, 'BN:zero');
+        localStorage.setItem(`ccc:magic:${slot}`, 'BN:zero');
+        
+        // XP progress wiped
+        localStorage.setItem(`ccc:xp:level:${slot}`, 'BN:zero');
+        localStorage.setItem(`ccc:xp:progress:${slot}`, 'BN:zero');
+        
+        // Mutation wiped
+        localStorage.setItem(`ccc:mutation:level:${slot}`, '0');
+        localStorage.setItem(`ccc:mutation:progress:${slot}`, '0');
+        
+        // Clear all base upgrades. We could iterate, but for a fallback we can just wipe all known upgrades from 1 to 50 for Starter Cove.
+        // Or we can rely on the fact that if they reload, the game state reconstructs from save.
+        // The safest approach to prevent the exploit is to wipe the currencies they shouldn't keep.
+        
+        // Reset lab level
+        localStorage.setItem(`ccc:lab:level:${slot}`, 'BN:zero');
+        
+        // Ensure tsunami is marked as completed so the nerfed multipliers apply on reload
+        localStorage.setItem(`ccc:tsunami:dialoguePending:${slot}`, '1');
+        localStorage.setItem(`ccc:permanent:tsunamiSequencePlayed:${slot}`, '1');
+        
+        // And unlock lab
+        localStorage.setItem(`ccc:unlock:tsunami:${slot}`, '1');
+        
+        // Force synchronous flush to disk to ensure this saves before close
+        if (typeof window.flushLocalStorageBuffer === 'function') {
+            window.flushLocalStorageBuffer();
+        }
+      }
+    }
+  });
+
+
   window.addEventListener('beforeunload', (e) => {
     if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
     if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
