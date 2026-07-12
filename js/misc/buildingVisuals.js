@@ -4825,6 +4825,10 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 
 }
 
+let cachedFaceOnLink = null;
+let cachedSideOnLink = null;
+const cachedForcefields = {};
+
 function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
   if (!pureGoldPattern && activeCtx) {
     initPureGoldPattern(activeCtx);
@@ -4882,155 +4886,200 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
 
   // Tier 7 (Seismic Lockdown Clamps) back half is no longer needed.
 
-const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0, isBack = false) => {
-    if (alpha <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = alpha;
+
+  // Caching arrays for the forcefield frames to avoid computing/rendering hexagon paths every single frame
+  const getCachedForcefield = (radiusX, radiusY, centerY, bottomY, hexScale, isBack) => {
+    // A unique key for this configuration
+    const key = `${radiusX}_${radiusY}_${centerY}_${bottomY}_${hexScale}_${isBack}`;
     
-    // Smooth 3D Red Holographic Shield Barrier
-    const domeGrad = ctx.createRadialGradient(0, centerY + radiusY*0.3, radiusY*0.1, 0, centerY, radiusX);
-    domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
-    domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
-    domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
-    
-    // For back side, only draw the hexagon pattern, not the solid dome base to avoid making it opaque
-    // Wait, the user asked for back side to be the exact same style. Let's see what happens if we draw it identically, but just layered correctly.
-    if (!isBack) {
-      ctx.fillStyle = domeGrad;
-      ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-      ctx.lineWidth = 3;
-      
-      // Draw the main dome
-      ctx.beginPath();
-      ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
-      ctx.lineTo(radiusX, bottomY);
-      ctx.lineTo(-radiusX, bottomY);
-      ctx.closePath();
-      
-      ctx.fill();
-    } else {
-      
-      ctx.beginPath();
-      ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
-      ctx.lineTo(radiusX, bottomY);
-      ctx.lineTo(-radiusX, bottomY);
-      ctx.closePath();
-      
+    if (cachedForcefields[key]) {
+      return cachedForcefields[key];
     }
     
-    // Animated flowing 3D Hexagonal pattern
-    ctx.save();
-    
-    // Fill the dome over it
-    // ctx.fill(); is already done if needed
-    ctx.clip(); // clip hexes to the dome shape
-    
-    // Draw the hex grid using standard pattern logic mapped spherically
-    ctx.strokeStyle = "rgba(255, 100, 100, 0.4)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
+    const frames = 30; // 30 frames for a smooth looping animation
+    const cachedFrames = [];
     
     const hexSize = 15 * hexScale;
-    const scrollSpeed = 20 * hexScale;
-    let offsetY = (t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
-    if (isBack) {
-      offsetY = -(t * timeMultiplier * scrollSpeed) % (hexSize * Math.sqrt(3));
-    }
-    
-    // Distance across dome to equator is (PI / 2) * radiusX.
-    // Past that, it travels vertically.
-    const halfPi = Math.PI / 2;
-    const equatorDist = halfPi * radiusX;
-    const max_hex_dist = equatorDist + Math.max(0, bottomY - centerY) + 100;
-
     const sqrt3 = Math.sqrt(3);
-    const maxRows = Math.ceil((max_hex_dist) / (hexSize * sqrt3)) + 4;
-    const minRows = -2;
-    const maxCols = Math.ceil((max_hex_dist) / (hexSize * 1.5)) + 4;
+    const loopDistance = hexSize * sqrt3;
     
-    // Pole Y is the very top of the dome
-    const poleY = centerY - radiusY;
+    // We need the canvas to cover the whole dome
+    // Width is 2 * radiusX
+    // Height is from (centerY - radiusY) to bottomY
+    const width = radiusX * 2 + 10; // plus some margin for stroke width
+    const height = (bottomY - (centerY - radiusY)) + 10;
     
-    // Precompute cos/sin for the 4 angles we actually need (since we only do i=0..2)
-    // Angles are 0, PI/3, 2PI/3, 3PI/3 (PI)
-    const anglesCos = [
-      Math.cos(0), Math.cos(Math.PI / 3), Math.cos(2 * Math.PI / 3), Math.cos(Math.PI)
-    ];
-    const anglesSin = [
-      Math.sin(0), Math.sin(Math.PI / 3), Math.sin(2 * Math.PI / 3), Math.sin(Math.PI)
-    ];
+    const offsetX = width / 2;
+    const offsetY_canvas = (centerY - radiusY) - 5;
     
-    const mapPoint = (px, py) => {
-        let dist = Math.sqrt(px*px + py*py);
+    for (let f = 0; f < frames; f++) {
+      let offCanvas;
+      if (typeof OffscreenCanvas !== "undefined") {
+        offCanvas = new OffscreenCanvas(width, height);
+      } else {
+        offCanvas = document.createElement("canvas");
+        offCanvas.width = width;
+        offCanvas.height = height;
+      }
+      
+      const octx = offCanvas.getContext("2d");
+      octx.translate(offsetX, -offsetY_canvas);
+      
+      // Render frame
+      // Smooth 3D Red Holographic Shield Barrier
+      if (!isBack) {
+        const domeGrad = octx.createRadialGradient(0, centerY + radiusY*0.3, radiusY*0.1, 0, centerY, radiusX);
+        domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
+        domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
+        domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
         
-        if (dist > max_hex_dist) return null;
+        octx.fillStyle = domeGrad;
+        octx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+        octx.lineWidth = 3;
         
-        let sR;
-        let my;
-        
-        if (dist / radiusX <= halfPi) {
-            sR = radiusX * Math.sin(dist / radiusX);
-            my = centerY - radiusY * Math.cos(dist / radiusX);
-        } else {
-            sR = radiusX;
-            let pastEquatorDist = dist - equatorDist;
-            my = centerY + pastEquatorDist;
-        }
-        
-        // Optimization: avoiding atan2 and cos
-        // Math.cos(Math.atan2(y, x)) is exactly x / dist
-        let mx = dist === 0 ? 0 : (px / dist) * sR;
-        
-        if (my > bottomY + 100) return null;
-        return {x: mx, y: my};
-    };
-    
-    for (let row = minRows; row <= maxRows; row++) {
-      for (let col = -maxCols; col <= maxCols; col++) {
-        let hx = col * hexSize * 1.5;
-        let hy = row * hexSize * sqrt3 + (col % 2 === 0 ? 0 : hexSize * sqrt3 / 2) + offsetY;
-        
-        let centerDist = Math.sqrt(hx*hx + hy*hy);
-        if (centerDist > max_hex_dist) continue;
-        
-        // Draw only 3 out of 6 edges. Since hexes tile perfectly, this draws the entire grid with no overlaps.
-        for (let i = 0; i < 3; i++) {
-          let px1 = hx + hexSize * anglesCos[i];
-          let py1 = hy + hexSize * anglesSin[i];
-          let px2 = hx + hexSize * anglesCos[i+1];
-          let py2 = hy + hexSize * anglesSin[i+1];
+        octx.beginPath();
+        octx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
+        octx.lineTo(radiusX, bottomY);
+        octx.lineTo(-radiusX, bottomY);
+        octx.closePath();
+        octx.fill();
+      } else {
+        octx.beginPath();
+        octx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
+        octx.lineTo(radiusX, bottomY);
+        octx.lineTo(-radiusX, bottomY);
+        octx.closePath();
+      }
+      
+      octx.save();
+      octx.clip();
+      
+      octx.strokeStyle = "rgba(255, 100, 100, 0.4)";
+      octx.lineWidth = 1;
+      octx.beginPath();
+      
+      // Calculate offsetY for this frame specifically
+      let offsetY = (f / frames) * loopDistance;
+      if (isBack) {
+          offsetY = -offsetY;
+      }
+      
+      const halfPi = Math.PI / 2;
+      const equatorDist = halfPi * radiusX;
+      const max_hex_dist = equatorDist + Math.max(0, bottomY - centerY) + 100;
+
+      const maxRows = Math.ceil((max_hex_dist) / (hexSize * sqrt3)) + 4;
+      const minRows = -2;
+      const maxCols = Math.ceil((max_hex_dist) / (hexSize * 1.5)) + 4;
+      
+      const anglesCos = [
+        Math.cos(0), Math.cos(Math.PI / 3), Math.cos(2 * Math.PI / 3), Math.cos(Math.PI)
+      ];
+      const anglesSin = [
+        Math.sin(0), Math.sin(Math.PI / 3), Math.sin(2 * Math.PI / 3), Math.sin(Math.PI)
+      ];
+      
+      const mapPoint = (px, py) => {
+          let dist = Math.sqrt(px*px + py*py);
+          if (dist > max_hex_dist) return null;
+          let sR, my;
+          if (dist / radiusX <= halfPi) {
+              sR = radiusX * Math.sin(dist / radiusX);
+              my = centerY - radiusY * Math.cos(dist / radiusX);
+          } else {
+              sR = radiusX;
+              let pastEquatorDist = dist - equatorDist;
+              my = centerY + pastEquatorDist;
+          }
+          let mx = dist === 0 ? 0 : (px / dist) * sR;
+          if (my > bottomY + 100) return null;
+          return {x: mx, y: my};
+      };
+      
+      for (let row = minRows; row <= maxRows; row++) {
+        for (let col = -maxCols; col <= maxCols; col++) {
+          let hx = col * hexSize * 1.5;
+          let hy = row * hexSize * sqrt3 + (col % 2 === 0 ? 0 : hexSize * sqrt3 / 2) + offsetY;
           
-          let p1 = mapPoint(px1, py1);
-          let p2 = mapPoint(px2, py2);
+          let centerDist = Math.sqrt(hx*hx + hy*hy);
+          if (centerDist > max_hex_dist) continue;
           
-          if (p1 && p2) {
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
+          for (let i = 0; i < 3; i++) {
+            let px1 = hx + hexSize * anglesCos[i];
+            let py1 = hy + hexSize * anglesSin[i];
+            let px2 = hx + hexSize * anglesCos[i+1];
+            let py2 = hy + hexSize * anglesSin[i+1];
+            
+            let p1 = mapPoint(px1, py1);
+            let p2 = mapPoint(px2, py2);
+            
+            if (p1 && p2) {
+              octx.moveTo(p1.x, p1.y);
+              octx.lineTo(p2.x, p2.y);
+            }
           }
         }
       }
-    }
-    
-    ctx.strokeStyle = "rgba(255, 70, 70, 0.6)"; // Slightly transparent thick line to look like glow
-    ctx.lineWidth = 2.5;
-    ctx.shadowBlur = 0; // Ensure shadow blur is off
-    ctx.stroke();
-    
-    ctx.restore();
+      
+      octx.strokeStyle = "rgba(255, 70, 70, 0.6)";
+      octx.lineWidth = 2.5;
+      octx.shadowBlur = 0;
+      octx.stroke();
+      
+      octx.restore();
 
-    // For the main dome outline static arc
-    if (!isBack) {
-      ctx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-      ctx.lineWidth = 4;
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      ctx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
-      ctx.lineTo(radiusX, bottomY);
-      ctx.lineTo(-radiusX, bottomY);
-      ctx.closePath();
-      ctx.stroke();
+      if (!isBack) {
+        octx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+        octx.lineWidth = 4;
+        octx.beginPath();
+        octx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
+        octx.lineTo(radiusX, bottomY);
+        octx.lineTo(-radiusX, bottomY);
+        octx.closePath();
+        octx.stroke();
+      }
+      
+      cachedFrames.push(offCanvas);
     }
+    
+    cachedForcefields[key] = {
+      frames: cachedFrames,
+      offsetX: offsetX,
+      offsetY: offsetY_canvas,
+      loopDistance: loopDistance
+    };
+    
+    return cachedForcefields[key];
+  };
+
+  const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0, isBack = false) => {
+    if (alpha <= 0) return;
+    
+    // Get or generate the cached frames for this configuration
+    const cachedData = getCachedForcefield(radiusX, radiusY, centerY, bottomY, hexScale, isBack);
+    
+    const hexSize = 15 * hexScale;
+    const scrollSpeed = 20 * hexScale;
+    
+    // Calculate the continuous un-moduloed distance it should have traveled
+    let rawDist = t * timeMultiplier * scrollSpeed;
+    
+    // Find the fractional progress through a single loop cycle (0.0 to 0.999...)
+    // Handling negative safely using modulo
+    let cycleProgress = (rawDist % cachedData.loopDistance) / cachedData.loopDistance;
+    if (cycleProgress < 0) cycleProgress += 1; // fix for negative t
+    
+    // Find nearest frame index
+    let frameIndex = Math.floor(cycleProgress * cachedData.frames.length);
+    if (frameIndex >= cachedData.frames.length) frameIndex = cachedData.frames.length - 1;
+    
+    const img = cachedData.frames[frameIndex];
+    
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    
+    // Draw the image at the correct offset
+    ctx.drawImage(img, -cachedData.offsetX, cachedData.offsetY);
     
     ctx.restore();
   };
@@ -5101,17 +5150,11 @@ const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, tim
   
 
 
-let faceOnLinkPath = null;
-let faceOnLinkShadowPath = null;
-let sideOnLinkPath = null;
-let sideOnLinkShadowPath = null;
-let sideOnLinkHighlightPath = null;
-
-function initChainPaths() {
-    if (faceOnLinkPath) return;
+  function initChainPaths(fillGold) {
+    if (cachedFaceOnLink) return;
     
-    faceOnLinkPath = new Path2D();
     let hw = 6, hh = 3.5, r = 3;
+    const faceOnLinkPath = new Path2D();
     faceOnLinkPath.moveTo(-hw + r, -hh);
     faceOnLinkPath.lineTo(hw - r, -hh);
     faceOnLinkPath.quadraticCurveTo(hw, -hh, hw, -hh + r);
@@ -5122,7 +5165,7 @@ function initChainPaths() {
     faceOnLinkPath.lineTo(-hw, -hh + r);
     faceOnLinkPath.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
 
-    faceOnLinkShadowPath = new Path2D();
+    const faceOnLinkShadowPath = new Path2D();
     r = 1.5; hw = 4.5; hh = 2;
     faceOnLinkShadowPath.moveTo(-hw + r, -hh);
     faceOnLinkShadowPath.lineTo(hw - r, -hh);
@@ -5134,17 +5177,53 @@ function initChainPaths() {
     faceOnLinkShadowPath.lineTo(-hw, -hh + r);
     faceOnLinkShadowPath.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
 
-    sideOnLinkPath = new Path2D();
+    const sideOnLinkPath = new Path2D();
     sideOnLinkPath.moveTo(-5.5, 0);
     sideOnLinkPath.lineTo(5.5, 0);
 
-    sideOnLinkShadowPath = new Path2D();
+    const sideOnLinkShadowPath = new Path2D();
     sideOnLinkShadowPath.moveTo(-4.5, 1);
     sideOnLinkShadowPath.lineTo(4.5, 1);
 
-    sideOnLinkHighlightPath = new Path2D();
+    const sideOnLinkHighlightPath = new Path2D();
     sideOnLinkHighlightPath.moveTo(-4.5, -1);
     sideOnLinkHighlightPath.lineTo(4.5, -1);
+
+    if (typeof OffscreenCanvas !== "undefined") {
+        cachedFaceOnLink = new OffscreenCanvas(20, 20);
+        cachedSideOnLink = new OffscreenCanvas(20, 20);
+    } else {
+        cachedFaceOnLink = document.createElement("canvas");
+        cachedFaceOnLink.width = 20;
+        cachedFaceOnLink.height = 20;
+        cachedSideOnLink = document.createElement("canvas");
+        cachedSideOnLink.width = 20;
+        cachedSideOnLink.height = 20;
+    }
+
+    const faceCtx = cachedFaceOnLink.getContext("2d");
+    faceCtx.translate(10, 10);
+    faceCtx.strokeStyle = fillGold;
+    faceCtx.lineWidth = 2.5;
+    faceCtx.lineCap = "round";
+    faceCtx.lineJoin = "round";
+    faceCtx.stroke(faceOnLinkPath);
+    faceCtx.strokeStyle = "#B39700";
+    faceCtx.lineWidth = 0.5;
+    faceCtx.stroke(faceOnLinkShadowPath);
+
+    const sideCtx = cachedSideOnLink.getContext("2d");
+    sideCtx.translate(10, 10);
+    sideCtx.strokeStyle = fillGold;
+    sideCtx.lineWidth = 3.5; 
+    sideCtx.lineCap = "round"; 
+    sideCtx.stroke(sideOnLinkPath);
+    sideCtx.strokeStyle = "#B39700";
+    sideCtx.lineWidth = 1;
+    sideCtx.stroke(sideOnLinkShadowPath);
+    sideCtx.strokeStyle = "#FFE866";
+    sideCtx.lineWidth = 1;
+    sideCtx.stroke(sideOnLinkHighlightPath);
 }
   const drawT7Chains = (isBack, part = "all") => {
     if (t7 <= 0) return;
@@ -5226,34 +5305,13 @@ function initChainPaths() {
         ctx.rotate(angle);
         
         // Draw individual link
-        initChainPaths();
+        initChainPaths(fillGold);
         if (i % 2 === 0) {
             // "Face on" link
-            ctx.strokeStyle = fillGold;
-            ctx.lineWidth = 2.5;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.stroke(faceOnLinkPath);
-
-            // Inner shadow / highlight for depth
-            ctx.strokeStyle = "#B39700"; // darker gold
-            ctx.lineWidth = 0.5;
-            ctx.stroke(faceOnLinkShadowPath);
+            ctx.drawImage(cachedFaceOnLink, -10, -10);
         } else {
             // "Side on" link
-            ctx.strokeStyle = fillGold;
-            ctx.lineWidth = 3.5; 
-            ctx.lineCap = 'round'; 
-            ctx.stroke(sideOnLinkPath);
-            
-            // Shading
-            ctx.strokeStyle = "#B39700"; // shadow
-            ctx.lineWidth = 1;
-            ctx.stroke(sideOnLinkShadowPath);
-            
-            ctx.strokeStyle = "#FFE866"; // highlight
-            ctx.lineWidth = 1;
-            ctx.stroke(sideOnLinkHighlightPath);
+            ctx.drawImage(cachedSideOnLink, -10, -10);
         }
         
         ctx.restore();
