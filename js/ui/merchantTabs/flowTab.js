@@ -550,6 +550,11 @@ function loadState() {
                     }
                     state.waterwheels[id].active = !!parsed.active;
                     state.waterwheels[id].unlocked = parsed.unlocked !== undefined ? !!parsed.unlocked : (WATERWHEEL_DEFS[id]?.unlocked || false);
+                } else {
+                    state.waterwheels[id].level = BigNum.fromInt(0);
+                    state.waterwheels[id].fp = 0;
+                    state.waterwheels[id].active = false;
+                    state.waterwheels[id].unlocked = WATERWHEEL_DEFS[id]?.unlocked || false;
                 }
             }
         }
