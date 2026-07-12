@@ -5489,7 +5489,7 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
       
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
-        drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0, true);
+        drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0, true);
       }
       if (t4 > 0) {
         drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
@@ -5511,7 +5511,7 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
       
       // --- Tier 4 & 8: Backside Forcefield ---
       if (t8 > 0) {
-        drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0, true);
+        drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0, true);
       }
       if (t4 > 0) {
         drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
@@ -5532,7 +5532,7 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
       
       // --- Tier 4 & 8: Backside Forcefield ---
     if (t8 > 0) {
-      drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0, true);
+      drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0, true);
     }
     if (t4 > 0) {
       drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
@@ -5767,7 +5767,7 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
   if (t8 > 0) {
     // RadiusX: 260 covers cannons
     // RadiusY shrunk to 160. CenterY -50. Base is 15.
-    drawForcefield(280, 160, -50, 15, t8, 2.0, 2.0);
+    drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0);
   }
   
   ctx.restore();
