@@ -734,7 +734,7 @@ function getMultiplierScaled(key) {
 function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   const k = keyFor(KEYS.MULTIPLIER[key], slot);
   if (!k) return;
-  if (isCurrencyLocked(key, slot)) return; // Respect debug-panel storage locks
+  if (isDebugLocked(k)) return; // Respect debug-panel storage locks
   let prev = scaledFromIntBN(BigNum.fromInt(1));
   const existingRaw = localStorage.getItem(k);
   if (existingRaw?.startsWith?.(MULT_SCALE_TAG)) {
