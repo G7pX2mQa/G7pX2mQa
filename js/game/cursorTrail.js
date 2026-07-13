@@ -213,8 +213,10 @@ export function createCursorTrail(playfield, options = {}) {
     rect = { left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0 };
   };
 
-  const resize = () => {
+  let resizeTimeout = null;
+  const _resize = () => {
     if (destroyed) return;
+    resizeTimeout = null;
     updateBounds();
     const quality = settingsManager.get('graphics_quality') ?? 10;
     const qualityScale = 0.5 + (quality / 10) * 1.5;
@@ -228,6 +230,12 @@ export function createCursorTrail(playfield, options = {}) {
     
     ctx.scale(dpr, dpr);
     lastClearRect = null; 
+  };
+
+  const resize = () => {
+    if (destroyed) return;
+    if (resizeTimeout) clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(_resize, 150);
   };
 
   let resizeObserver = null;
@@ -542,7 +550,7 @@ export function createCursorTrail(playfield, options = {}) {
 
   applyCursorSetting(settingsManager.get('show_cursor'));
 
-  resize();
+  _resize();
   rafId = requestAnimationFrame(loop);
 
   // Periodically update bounds to sync with any layout shifts
