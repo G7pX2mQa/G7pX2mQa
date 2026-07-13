@@ -778,7 +778,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   else if (id === "ruby") drawRadiator(ctx, t, tier);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
   else if (id === "unobtainium") drawBeacon(ctx, t, tier);
-  else if (id === "prismatium") drawSingularity(ctx, t, tier);
+  else if (id === "prismatium") drawTesseract(ctx, t, tier);
 
   ctx.restore();
 
@@ -5900,7 +5900,7 @@ function drawBeacon(ctx, t, tier) {
   ctx.restore();
 }
 
-function drawSingularity(ctx, t, tier) {
+function drawTesseract(ctx, t, tier) {
   const fly = Math.sin(t) * 20;
   ctx.save();
   ctx.translate(0, -100 + fly);
