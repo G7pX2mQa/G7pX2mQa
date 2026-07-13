@@ -1,631 +1,5580 @@
-import { isMerchantOpen } from '../../ui/merchantTabs/dlgTab.js';
-import { settingsManager } from '../settingsManager.js';
+// js/util/debugPanel.js
+// Using a debug panel is much faster and more convenient than
+// Editing local storage every time I want to change something.
+
+import { settingsManager } from '../game/settingsManager.js';
+import { BigNum, bigNumFromLog10 } from './bigNum.js';
+import { formatNumber, formatMultForUi } from './numFormat.js';
 import {
-    VERTEX_SHADER,
-    BACKGROUND_FRAGMENT_SHADER,
-    FRAGMENT_SHADER,
-    WAVE_VERTEX_SHADER,
-    WAVE_BRUSH_FRAGMENT_SHADER,
-    SIMULATION_FRAGMENT_SHADER
-} from './waterShaders.js';
+    bank,
+    CURRENCIES,
+    CURRENCY_AREAS,
+    KEYS,
+    getActiveSlot,
+    markSaveSlotModified,
+    peekCurrency,
+    primeStorageWatcherSnapshot,
+    setCurrency,
+    setCurrencyMultiplierBN,
+    UC_MATERIALS
+} from './storage.js';
+import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
+import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
+import { isNodeLocked, setNodeLocked, refreshNodesState } from '../ui/mapOverlay.js';
+import { IS_MOBILE } from '../main.js';
+import {
+    getUpgradeStorageKey,
+    AREA_KEYS,
+    computeDefaultUpgradeCost,
+    computeUpgradeEffects,
+    getLevel,
+    getMpValueMultiplierBn,
+    getUpgradesForArea,
+    markUpgradePermanentlyUnlocked,
+    clearPermanentUpgradeUnlock,
+    setLevel,
+    getUpgradeLockState,
+    batchUpgradeOperations,
+} from '../game/upgrades.js';
+import { isMapUnlocked, isShopUnlocked, isShopUcUnlocked, lockMap, lockShop, lockShopUc, unlockMap, unlockShop, unlockShopUc } from '../ui/hudButtons.js';
+import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
+import { getVoidLevel, setVoidLevel } from '../ui/sas/achievementExtras/voidGemAltarTab.js';
+import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
+import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
+import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiExponent, getTsunamiSequencePlayed, setTsunamiSequencePlayed } from '../game/surgeEffects.js';
+import { setAutobuyerToggle } from '../game/automationEffects.js';
+import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
+import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
+import { isCombineUnlocked, setCombineUnlocked } from '../ui/minerTabs/resetTab.js';
+import { isBuildingsUnlocked, setBuildingsUnlocked, getBuildingLevel, setBuildingLevel, BUILDING_NAMES, BUILDING_IDS, isBuildingUnlocked, setBuildingUnlocked as setBuildingUnlockedById } from '../ui/minerTabs/buildingsTab.js';
+import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
+import { getLabLevel, setLabLevel, getLabLevelKey, getRpMult } from '../ui/merchantTabs/labTab.js';
+import { 
+    getFlowUnlockState, 
+    WATERWHEEL_DEFS, 
+    getWaterwheelLevel, 
+    setWaterwheelLevel, 
+    getWaterwheelFp, 
+    setWaterwheelFp, 
+    getFpMultiplier 
+} from '../ui/merchantTabs/flowTab.js';
+import { 
+    RESEARCH_NODES,
+    getResearchNodeLevel,
+    setResearchNodeLevel,
+    getResearchNodeRp,
+    setResearchNodeRp,
+    isResearchNodeActive,
+    setResearchNodeActive,
+    getTsunamiResearchBonus,
+    NODE_LEVEL_KEY,
+    NODE_RP_KEY
+} from '../game/labNodes.js';
+import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
+import { nukeNotifications } from '../ui/notifications.js';
+import { unlockDpSystem, resetDpProgress, isDpSystemUnlocked, getDpMultiplier } from '../game/dpSystem.js';
+import { 
+    getActiveCombo, 
+    setActiveCombo, 
+    getMaxCombo, 
+    setComboLocked, 
+    addComboChangeListener, 
+    removeComboChangeListener 
+} from '../game/comboSystem.js';
+import { setHtmlOrText } from './uiHelpers.js';
 
-// --- Colors Extracted from Legacy 2D System ---
-const COLOR_DEEP = [0.2, 0.5, 0.9];          // Deep Royal Blue
-const COLOR_SHALLOW = [0.2, 0.9, 1.0];       // Bright Turquoise
-// Updated to Vivid Oceanic Blue Gradient
-const COLOR_WAVE = [1.0, 1.0, 1.0];          // White Foam (Highlights)
-const COLOR_WAVE_DEEP = [0.45, 0.8, 1.0];    // Brighter Blue (Lighter for visibility)
+const debugPanelStatSetters = [];
+let isBuildingStats = false;
 
-function createShader(gl, type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        const log = gl.getShaderInfoLog(shader);
-        console.error('Shader compile error:', log);
-        console.error('Source start:', source.substring(0, 100));
-        gl.deleteShader(shader);
-        throw new Error('Shader compile error: ' + log);
-    }
-    return shader;
+const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
+const DEBUG_PANEL_ID = 'debug-panel';
+const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
+const DEFAULT_MISC_RESET_SELECTION = `currency:${CURRENCIES.COINS}`;
+let debugPanelOpen = false;
+let debugPanelAccess = false;
+let debugPanelCleanups = [];
+let debugPanelExpansionState = createEmptyExpansionState();
+let debugPanelScrollTop = 0;
+let debugPanelMiscResetSelection = DEFAULT_MISC_RESET_SELECTION;
+let sectionKeyCounter = 0;
+let subsectionKeyCounter = 0;
+const liveBindings = [];
+let actionLogContainer = null;
+
+const currencyOverrides = new Map();
+const currencyOverrideBaselines = new Map();
+const currencyOverrideApplications = new Set();
+const statOverrides = new Map();
+const statOverrideBaselines = new Map();
+const lockedStorageKeys = new Set();
+if (typeof window !== 'undefined') {
+    window.__cccLockedStorageKeys = lockedStorageKeys;
+}
+let storageLockPatched = false;
+let originalSetItem = null;
+let originalRemoveItem = null;
+
+const MAX_ACTION_LOG_ENTRIES = 100;
+const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
+const MAX_WARPS = 24;
+
+function isOnMenu() {
+    const menuRoot = document.querySelector('.menu-root');
+    if (!menuRoot) return false;
+
+    const style = window.getComputedStyle?.(menuRoot);
+    if (!style) return menuRoot.style.display !== 'none';
+
+    return style.display !== 'none' && style.visibility !== 'hidden' && !menuRoot.hidden;
 }
 
-function createProgram(gl, vsSource, fsSource) {
-    const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
-    const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
-    if (!vs || !fs) return null;
-
-    const program = gl.createProgram();
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        const log = gl.getProgramInfoLog(program);
-        console.error('Program link error:', log);
-        throw new Error('Program link error: ' + log);
-    }
-    return program;
+function isLoading() {
+    return document.documentElement.classList.contains('booting') || !!document.getElementById('boot-loader');
 }
 
-export class WaterSystem {
-    constructor() {
-        this.bgCanvas = null;
-        this.glBg = null;
+function isGameVisible() {
+    const gameRoot = document.getElementById('game-root');
+    if (!gameRoot) return false;
 
-        this.fgCanvas = null;
-        this.glFg = null;
+    const style = window.getComputedStyle?.(gameRoot);
+    if (!style) {
+        return gameRoot.style.display !== 'none'
+            && gameRoot.style.visibility !== 'hidden'
+            && !gameRoot.hidden;
+    }
 
-        // Array to hold multiple foreground layers (now just FBOs in single context)
-        this.fgLayers = []; 
-        /* Each layer object: {
-             readFBO: WebGLFramebuffer,
-             writeFBO: WebGLFramebuffer,
-             readTexture: WebGLTexture,
-             writeTexture: WebGLTexture
-           }
-        */
+    return style.display !== 'none' && style.visibility !== 'hidden' && !gameRoot.hidden;
+}
 
-        // Background Context Programs
-        this.bgProgram = null;
-        this.bgSimProgram = null;
-        this.bgBrushProgram = null;
+function addDebugPanelCleanup(fn) {
+    if (typeof fn === 'function') {
+        debugPanelCleanups.push(fn);
+    }
+}
 
-        // Foreground Context Programs
-        this.fgProgram = null;
-        this.fgSimProgram = null;
-        this.fgBrushProgram = null;
+function createEmptyExpansionState() {
+    return { sections: new Set(), subsections: new Set() };
+}
 
-        this.width = 0;
-        this.height = 0;
+function captureDebugPanelExpansionState() {
+    const panel = document.getElementById(DEBUG_PANEL_ID);
+    if (!panel) return createEmptyExpansionState();
+
+    const sections = new Set();
+    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+        const key = toggle.dataset.sectionKey ?? toggle.textContent;
+        if (toggle.classList.contains('expanded')) {
+            sections.add(key);
+        }
+    });
+
+    const subsections = new Set();
+    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+        const key = toggle.dataset.subsectionKey ?? toggle.textContent;
+        if (toggle.classList.contains('expanded')) {
+            subsections.add(key);
+        }
+    });
+
+    return { sections, subsections };
+}
+
+function applyDebugPanelExpansionState(panel) {
+    const { sections, subsections } = debugPanelExpansionState ?? createEmptyExpansionState();
+
+    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+        const key = toggle.dataset.sectionKey ?? toggle.textContent;
+        if (!sections.has(key)) return;
+        const content = toggle.nextElementSibling;
+        toggle.classList.add('expanded');
+        if (content) content.classList.add('active');
+    });
+
+    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+        const key = toggle.dataset.subsectionKey ?? toggle.textContent;
+        if (!subsections.has(key)) return;
+        const content = toggle.nextElementSibling;
+        toggle.classList.add('expanded');
+        if (content) content.classList.add('active');
+    });
+}
+
+let pendingBindings = new Set();
+let refreshRafId = null;
+
+function cleanupDebugPanelResources() {
+    debugPanelCleanups.forEach((fn) => {
+        try { fn?.(); } catch {}
+    });
+    debugPanelCleanups = [];
+    liveBindings.length = 0;
+    pendingBindings.clear();
+    if (typeof window !== 'undefined' && refreshRafId !== null) {
+        window.cancelAnimationFrame(refreshRafId);
+        refreshRafId = null;
+    }
+}
+
+function registerLiveBinding(binding) {
+    if (!binding || typeof binding.refresh !== 'function') return;
+    liveBindings.push(binding);
+}
+
+function refreshLiveBindings(predicate) {
+    liveBindings.forEach((binding) => {
+        if (typeof predicate === 'function' && !predicate(binding)) return;
+        pendingBindings.add(binding);
+    });
+
+    if (refreshRafId === null && typeof window !== 'undefined') {
+        refreshRafId = window.requestAnimationFrame(() => {
+            refreshRafId = null;
+            const toProcess = pendingBindings;
+            pendingBindings = new Set();
+            toProcess.forEach(binding => {
+                try { binding.refresh(); } catch {}
+            });
+        });
+    } else if (typeof window === 'undefined') {
+        const toProcess = pendingBindings;
+        pendingBindings = new Set();
+        toProcess.forEach(binding => {
+            try { binding.refresh(); } catch {}
+        });
+    }
+}
+
+function setupLiveBindingListeners() {
+    if (typeof window === 'undefined') return;
+
+    const currencyHandler = (event) => {
+        const { key, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'currency'
+            && binding.key === key
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('currency:change', currencyHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('currency:change', currencyHandler));
+
+    const currencyMultiplierHandler = (event) => {
+        const { key, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'currency-mult'
+            && binding.key === key
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('currency:multiplier', currencyMultiplierHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('currency:multiplier', currencyMultiplierHandler));
+
+    const xpHandler = (event) => {
+        const { slot, changeType, unlocked } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'xp'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'xp'
+            && binding.slot === targetSlot);
+        if (changeType === 'unlock' || typeof unlocked === 'boolean') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
+    };
+    window.addEventListener('xp:change', xpHandler, { passive: true });
+    window.addEventListener('xp:unlock', xpHandler, { passive: true });
+    addDebugPanelCleanup(() => {
+        window.removeEventListener('xp:change', xpHandler);
+        window.removeEventListener('xp:unlock', xpHandler);
+    });
+
+    const mutationHandler = (event) => {
+        const { changeType, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'mutation'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'mutation'
+            && binding.slot === targetSlot);
+        if (changeType === 'unlock') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
+    };
+    window.addEventListener('mutation:change', mutationHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('mutation:change', mutationHandler));
+
+    const dpHandler = (event) => {
+        const { changeType, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'dp'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'dp'
+            && binding.slot === targetSlot);
+        if (changeType === 'unlock') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
+    };
+    window.addEventListener('dp:change', dpHandler, { passive: true });
+    const ppHandler = (event) => {
+        const { changeType, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'pp'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'pp'
+            && binding.slot === targetSlot);
+        if (changeType === 'unlock') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
+    };
+    window.addEventListener('pp:change', ppHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('pp:change', ppHandler));
+    addDebugPanelCleanup(() => window.removeEventListener('dp:change', dpHandler));
+
+    const upgradeHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'upgrade'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'currency-mult'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.slot === targetSlot);
+    };
+    document.addEventListener('ccc:upgrades:changed', upgradeHandler, { passive: true });
+    addDebugPanelCleanup(() => document.removeEventListener('ccc:upgrades:changed', upgradeHandler));
+
+    const slotHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.slot === targetSlot);
+    };
+    window.addEventListener('saveSlot:change', slotHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('saveSlot:change', slotHandler));
+
+    const unlockHandler = (event) => {
+        const { slot, key } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'unlock'
+            && (binding.slot == null || binding.slot === targetSlot)
+            && (binding.key == null || binding.key === key));
+    };
+    window.addEventListener('unlock:change', unlockHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('unlock:change', unlockHandler));
+
+    const workshopHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'workshop-level'
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('workshop:change', workshopHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('workshop:change', workshopHandler));
+
+    const surgeHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'surge-level'
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('surge:level:change', surgeHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('surge:level:change', surgeHandler));
+
+    const tsunamiHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
+            && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === 'currency-mult'
+            && (binding.slot == null || binding.slot === targetSlot));
+    };
+    window.addEventListener('surge:nerf:change', tsunamiHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('surge:nerf:change', tsunamiHandler));
+
+    const labHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'lab-level'
+            && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'rp'
+            && (binding.slot == null || binding.slot === targetSlot));
+    };
+    window.addEventListener('lab:level:change', labHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('lab:level:change', labHandler));
+
+    const labNodeHandler = (event) => {
+        const { id, level } = event?.detail ?? {};
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'lab-node-level'
+            && binding.slot === targetSlot
+            && binding.id === id);
         
-        // Simulation State
-        this.simRes = 512;
-        
-        // BG Sim
-        this.bgReadFBO = null;
-        this.bgWriteFBO = null;
-        this.bgReadTexture = null;
-        this.bgWriteTexture = null;
-
-        // Buffers
-        this.quadBufferBg = null;
-        this.bgBrushBuffer = null;
-        this.quadBufferFg = null;
-        this.fgBrushBuffer = null;
-
-        this._boundResize = null;
-        this._qualityUnsub = null;
-        this._baseNumLayers = 1;
-        
-        // Delve overlay optimization
-        this.merchantOpenTimer = 0;
-    }
-
-    _applyQualitySettings() {
-        if (!this.glFg || !this.glBg) return;
-
-        const quality = settingsManager.get('graphics_quality');
-        let numLayers = this._baseNumLayers;
-        let newSimRes = 512;
-
-        if (quality !== undefined) {
-            // Force 1 layer to avoid overlapping z-index bugs
-            numLayers = 1;
-
-            // Determine simulation resolution based on quality
-            if (quality <= 2) newSimRes = 128;
-            else if (quality <= 5) newSimRes = 256;
-            else newSimRes = 512;
+        if (id === 1) {
+            refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
+                && (binding.slot == null || binding.slot === targetSlot));
         }
-
-        const simResChanged = this.simRes !== newSimRes;
-        const numLayersChanged = this.fgLayers.length !== numLayers;
-
-        if (simResChanged || numLayersChanged) {
-            this.simRes = newSimRes;
-            
-            this.initBgSimulation(); // Recreate background FBOs
-
-            // Clear out old fg layers textures/framebuffers
-            for (const layer of this.fgLayers) {
-                if (layer.readTexture) this.glFg.deleteTexture(layer.readTexture);
-                if (layer.writeTexture) this.glFg.deleteTexture(layer.writeTexture);
-                if (layer.readFBO) this.glFg.deleteFramebuffer(layer.readFBO);
-                if (layer.writeFBO) this.glFg.deleteFramebuffer(layer.writeFBO);
-            }
-            
-            this.fgLayers = [];
-            // Recreate Foreground Layers
-            for (let i = 0; i < numLayers; i++) {
-                const simResRsrc = this.createSimResources(this.glFg);
-                this.fgLayers.push({
-                    readFBO: simResRsrc.readFBO,
-                    writeFBO: simResRsrc.writeFBO,
-                    readTexture: simResRsrc.readTex,
-                    writeTexture: simResRsrc.writeTex
-                });
-            }
+        if (id === 4) {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
         }
-    }
+    };
+    window.addEventListener('lab:node:change', labNodeHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('lab:node:change', labNodeHandler));
 
-    init(backCanvasId, frontCanvasId, numLayers = 5) {
-        this._baseNumLayers = numLayers;
-        this.fgLayers = [];
-        this.bgCanvas = document.getElementById(backCanvasId);
-        this.fgCanvas = document.getElementById(frontCanvasId);
-        this._resizeTimeout = null;
-        
-        if (!this.bgCanvas || !this.fgCanvas) return;
+    const labNodeRpHandler = (event) => {
+        const { id, rp } = event?.detail ?? {};
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'lab-node-rp'
+            && binding.slot === targetSlot
+            && binding.id === id);
+    };
+    window.addEventListener('lab:node:rp', labNodeRpHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('lab:node:rp', labNodeRpHandler));
 
-        // Initialize Background Context
-        this.glBg = this.bgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
-                    this.bgCanvas.getContext('experimental-webgl');
+    const comboHandler = (val) => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'combo' && binding.slot === targetSlot);
+    };
+    addComboChangeListener(comboHandler);
+    addDebugPanelCleanup(() => removeComboChangeListener(comboHandler));
 
-        if (!this.glBg) {
-            if (!settingsManager.get("disable_webgl")) { console.error('WaterSystem: WebGL not supported for BG'); }
-            return;
-        }
+    const flowHandler = (event) => {
+        const { id } = event?.detail ?? {};
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => 
+            (binding.type === 'flow-level' || binding.type === 'flow-fp')
+            && binding.slot === targetSlot
+            && (id == null || binding.id == null || binding.id === id)
+        );
+    };
+    window.addEventListener('flow:change', flowHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('flow:change', flowHandler));
+}
 
-        // Initialize Foreground Context
-        this.fgCanvas.style.display = 'block';
-        this.glFg = this.fgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
-                    this.fgCanvas.getContext('experimental-webgl');
-        
-        if (!this.glFg) {
-            if (!settingsManager.get("disable_webgl")) { console.error('WaterSystem: WebGL not supported for FG'); }
-            return;
-        }
+const XP_KEYS = {
+    unlock: (slot) => `ccc:xp:unlocked:${slot}`,
+    level:  (slot) => `ccc:xp:level:${slot}`,
+    progress: (slot) => `ccc:xp:progress:${slot}`,
+};
 
-        this.initBgShaders();
-        this.initBgBuffers();
-        this.initBgSimulation();
+const MUTATION_KEYS = {
+    unlock: (slot) => `ccc:mutation:unlocked:${slot}`,
+    level:  (slot) => `ccc:mutation:level:${slot}`,
+    progress: (slot) => `ccc:mutation:progress:${slot}`,
+};
 
-        // Initialize Foreground Shaders and Buffers
-        this.fgProgram = createProgram(this.glFg, VERTEX_SHADER, FRAGMENT_SHADER);
-        this.fgSimProgram = createProgram(this.glFg, VERTEX_SHADER, SIMULATION_FRAGMENT_SHADER);
-        this.fgBrushProgram = createProgram(this.glFg, WAVE_VERTEX_SHADER, WAVE_BRUSH_FRAGMENT_SHADER);
+const DP_KEYS = {
+    unlock: (slot) => `ccc:dp:unlocked:${slot}`,
+    level:  (slot) => `ccc:dp:level:${slot}`,
+    progress: (slot) => `ccc:dp:progress:${slot}`,
+};
 
-        const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
-        this.quadBufferFg = this.glFg.createBuffer();
-        this.glFg.bindBuffer(this.glFg.ARRAY_BUFFER, this.quadBufferFg);
-        this.glFg.bufferData(this.glFg.ARRAY_BUFFER, vertices, this.glFg.STATIC_DRAW);
-        this.fgBrushBuffer = this.glFg.createBuffer();
+const PP_KEYS = {
+    level:  (slot) => `ccc:ppLevel:${slot}`,
+    progress: (slot) => `ccc:ppProgress:${slot}`,
+};
 
-        this._applyQualitySettings(); // Initialize fgLayers and bgSimulation dynamically
+const STAT_MULTIPLIERS = [
+    { key: 'spawnRate', label: 'Spawn Rate' },
+    { key: 'xp', label: 'XP' },
+    { key: 'mutation', label: 'MP' },
+    { key: 'allMaterials', label: 'All Materials' },
+    { key: 'dp', label: 'DP' },
+    { key: 'pp', label: 'PP' },
+    { key: 'rp', label: 'RP' },
+    { key: 'fp', label: 'FP' },
+];
 
-        this._doResize();
-        
-        if (!this._boundResize) {
-            this._boundResize = () => this.resize();
-            window.addEventListener('resize', this._boundResize);
-        }
+function getAreas() {
+    const coveCurrencies = [];
+    const cavernCurrencies = [];
 
-        if (!this._qualityUnsub) {
-            this._qualityUnsub = settingsManager.subscribe('graphics_quality', () => this._applyQualitySettings());
-        }
-    }
-
-    initBgShaders() {
-        this.bgProgram = createProgram(this.glBg, VERTEX_SHADER, BACKGROUND_FRAGMENT_SHADER);
-        this.bgSimProgram = createProgram(this.glBg, VERTEX_SHADER, SIMULATION_FRAGMENT_SHADER);
-        this.bgBrushProgram = createProgram(this.glBg, WAVE_VERTEX_SHADER, WAVE_BRUSH_FRAGMENT_SHADER);
-    }
-
-    initBgBuffers() {
-        const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
-        const glBg = this.glBg;
-        this.quadBufferBg = glBg.createBuffer();
-        glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
-        glBg.bufferData(glBg.ARRAY_BUFFER, vertices, glBg.STATIC_DRAW);
-        this.bgBrushBuffer = glBg.createBuffer();
-    }
-
-    clearSimulations() {
-        // Clear Background FBOs
-        if (this.glBg) {
-            this.glBg.clearColor(0, 0, 0, 0);
-            if (this.bgReadFBO) {
-                this.glBg.bindFramebuffer(this.glBg.FRAMEBUFFER, this.bgReadFBO);
-                this.glBg.clear(this.glBg.COLOR_BUFFER_BIT);
-            }
-            if (this.bgWriteFBO) {
-                this.glBg.bindFramebuffer(this.glBg.FRAMEBUFFER, this.bgWriteFBO);
-                this.glBg.clear(this.glBg.COLOR_BUFFER_BIT);
-            }
-            // Clear default backbuffer to ensure no flash of old waves
-            this.glBg.bindFramebuffer(this.glBg.FRAMEBUFFER, null);
-            this.glBg.clear(this.glBg.COLOR_BUFFER_BIT);
-        }
-
-        // Clear Foreground Layer FBOs
-        if (this.glFg) {
-            this.glFg.clearColor(0, 0, 0, 0);
-            for (const layer of this.fgLayers) {
-                if (layer.readFBO) {
-                    this.glFg.bindFramebuffer(this.glFg.FRAMEBUFFER, layer.readFBO);
-                    this.glFg.clear(this.glFg.COLOR_BUFFER_BIT);
-                }
-                if (layer.writeFBO) {
-                    this.glFg.bindFramebuffer(this.glFg.FRAMEBUFFER, layer.writeFBO);
-                    this.glFg.clear(this.glFg.COLOR_BUFFER_BIT);
-                }
-            }
-            // Clear default backbuffer to ensure no flash of old waves
-            this.glFg.bindFramebuffer(this.glFg.FRAMEBUFFER, null);
-            this.glFg.clear(this.glFg.COLOR_BUFFER_BIT);
-        }
-    }
-
-    initBgSimulation() {
-        if (this.bgReadTexture) this.glBg.deleteTexture(this.bgReadTexture);
-        if (this.bgWriteTexture) this.glBg.deleteTexture(this.bgWriteTexture);
-        if (this.bgReadFBO) this.glBg.deleteFramebuffer(this.bgReadFBO);
-        if (this.bgWriteFBO) this.glBg.deleteFramebuffer(this.bgWriteFBO);
-
-        const bgRes = this.createSimResources(this.glBg);
-        this.bgReadFBO = bgRes.readFBO;
-        this.bgWriteFBO = bgRes.writeFBO;
-        this.bgReadTexture = bgRes.readTex;
-        this.bgWriteTexture = bgRes.writeTex;
-    }
-
-    createSimResources(gl) {
-        const w = this.simRes;
-        const h = this.simRes;
-
-        gl.getExtension('OES_texture_float');
-        gl.getExtension('OES_texture_float_linear');
-
-        const createTex = () => {
-            const tex = gl.createTexture();
-            gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, null);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            return tex;
-        };
-
-        const readTex = createTex();
-        const writeTex = createTex();
-
-        const readFBO = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, readFBO);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, readTex, 0);
-
-        const writeFBO = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, writeTex, 0);
-        
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        
-        return { readFBO, writeFBO, readTex, writeTex };
-    }
-
-    _doResize() {
-        if (this._resizeTimeout) {
-            clearTimeout(this._resizeTimeout);
-            this._resizeTimeout = null;
-        }
-
-        const dpr = Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1); // Cap DPR to 1.5 to save massive amounts of GPU memory
-
-        if (this.bgCanvas && this.glBg) {
-            const rect = this.bgCanvas.getBoundingClientRect();
-            this.bgCanvas.width = rect.width * dpr;
-            this.bgCanvas.height = rect.height * dpr;
-            this.glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
-        }
-
-        if (this.fgCanvas && this.glFg) {
-            const rect = this.fgCanvas.getBoundingClientRect();
-            this.width = rect.width;
-            this.height = rect.height;
-            
-            this.fgCanvas.width = rect.width * dpr;
-            this.fgCanvas.height = rect.height * dpr;
-            this.glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
-        }
-    }
-
-    resize() {
-        if (this._resizeTimeout) clearTimeout(this._resizeTimeout);
-        this._resizeTimeout = setTimeout(() => this._doResize(), 150);
-    }
-
-    applyBrush(gl, program, buffer, fbo, x, y, width, height) {
-        gl.useProgram(program);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-        gl.viewport(0, 0, this.simRes, this.simRes);
-
-        gl.enable(gl.BLEND);
-        // Use MAX blending so newer waves cleanly overwrite older ones without additive merging.
-        const ext = gl.getExtension('EXT_blend_minmax');
-        if (ext) {
-            gl.blendEquation(ext.MAX_EXT);
+    Object.keys(CURRENCIES).forEach(key => {
+        const currencyKey = CURRENCIES[key];
+        let label = '';
+        if (key === 'DNA') {
+            label = 'DNA';
         } else {
-            gl.blendEquation(gl.MAX);
+            label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
         }
-        gl.blendFunc(gl.ONE, gl.ONE);
 
-        // Map pixels to WebGL Clip Space
-        const ndcX = (x / this.width) * 2 - 1;
-        const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
+        const area = CURRENCY_AREAS[currencyKey] || AREA_KEYS.STARTER_COVE;
+        // Handle logic directly matching the UNDERWATER_CAVERN string mapping or the AREA_KEYS
+        if (area === 'underwater_cavern') {
+            cavernCurrencies.push({ key: currencyKey, label });
+        } else {
+            coveCurrencies.push({ key: currencyKey, label });
+        }
+    });
 
-        const wX = (width / this.width);
-        const wY = (height / this.height);
-        
-        // Quad vertices: x, y, u, v, alpha
-        const data = new Float32Array([
-            ndcX - wX, ndcY - wY, 0, 0, 1,
-            ndcX + wX, ndcY - wY, 1, 0, 1,
-            ndcX - wX, ndcY + wY, 0, 1, 1,
-            ndcX + wX, ndcY + wY, 1, 1, 1
-        ]);
+    return [
+        {
+            key: AREA_KEYS.STARTER_COVE,
+            title: 'The Cove',
+            currencies: coveCurrencies,
+            stats: [
+                { key: 'voidLevel', label: 'Void Level' },
+                { key: 'spawnRate', label: 'Spawn Rate' },
+                { key: 'xp', label: 'XP' },
+                { key: 'mutation', label: 'MP' },
+            ],
+        },
+        {
+            key: 'underwater_cavern', // use literal since AREA_KEYS is imported but might not be correctly exposed
+            title: 'Underwater Cavern',
+            currencies: cavernCurrencies,
+            stats: [
+                { key: 'dp', label: 'DP' },
+                { key: 'pp', label: 'PP' }
+            ],
+        },
+    ];
+}
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+function ensureDebugPanelStyles() {
+    if (document.getElementById(DEBUG_PANEL_STYLE_ID)) return;
 
-        const aPos = gl.getAttribLocation(program, 'aPosition');
-        const aUv = gl.getAttribLocation(program, 'aUv');
-        const aAlpha = gl.getAttribLocation(program, 'aAlpha');
-
-        // Stride = 5 floats * 4 bytes = 20
-        gl.enableVertexAttribArray(aPos);
-        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 20, 0);
-
-        gl.enableVertexAttribArray(aUv);
-        gl.vertexAttribPointer(aUv, 2, gl.FLOAT, false, 20, 8);
-
-        gl.enableVertexAttribArray(aAlpha);
-        gl.vertexAttribPointer(aAlpha, 1, gl.FLOAT, false, 20, 16);
-
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-        // Reset blend equation back to default ADD
-        gl.blendEquation(gl.FUNC_ADD);
-        gl.disable(gl.BLEND);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    const existingLink = document.querySelector(`link[href$="css/misc/debug.css"]`);
+    if (existingLink) {
+        existingLink.id = DEBUG_PANEL_STYLE_ID;
+        return;
     }
 
-    addWave(x, y, width, height, forceTopLayer = false) {
-        if (!this.glBg || !this.glFg || this.fgLayers.length === 0) return;
+    const bundledStylesheet = document.querySelector('link[href$="styles.css"]');
+    if (bundledStylesheet) {
+        const marker = document.createElement('meta');
+        marker.id = DEBUG_PANEL_STYLE_ID;
+        marker.setAttribute('data-debug-panel-styles', 'bundled');
+        document.head.appendChild(marker);
+        return;
+    }
 
-        // Optimization: Skip adding waves when Delve is open
-        if (typeof isMerchantOpen === 'function' && isMerchantOpen() && this.merchantOpenTimer > 0.15) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'css/misc/debug.css';
+    link.id = DEBUG_PANEL_STYLE_ID;
+    document.head.appendChild(link);
+}
+
+function removeDebugPanelToggleButton() {
+    const existingButton = document.getElementById(DEBUG_PANEL_TOGGLE_ID);
+    if (existingButton) existingButton.remove();
+}
+
+function shouldShowDebugPanelToggleButton() {
+    return debugPanelAccess
+        && IS_MOBILE
+        && getActiveSlot() != null
+        && !isOnMenu()
+        && !isLoading()
+        && isGameVisible();
+}
+
+function onMenuVisibilityChange(event) {
+    if (event?.detail?.visible) {
+        // closeDebugPanel(); // Removed to prevent debug panel closing on area change
+    }
+    createDebugPanelToggleButton();
+}
+
+function createSection(title, contentId, contentBuilder) {
+    const section = document.createElement('div');
+    section.className = 'debug-panel-section';
+
+    const toggle = document.createElement('button');
+    toggle.className = 'debug-panel-section-toggle';
+    toggle.type = 'button';
+    toggle.textContent = title;
+    const stateKey = contentId || `${title}-${sectionKeyCounter++}`;
+    toggle.dataset.sectionKey = stateKey;
+    section.appendChild(toggle);
+
+    const content = document.createElement('div');
+    content.className = 'debug-panel-section-content';
+    content.id = contentId;
+    content.dataset.sectionKey = stateKey;
+    contentBuilder(content);
+    section.appendChild(content);
+
+    let lastPointerType = null;
+
+    const handleToggle = (event) => {
+        const expanded = toggle.classList.toggle('expanded');
+        content.classList.toggle('active', expanded);
+    };
+
+    toggle.addEventListener('click', (event) => {
+        if (lastPointerType && lastPointerType !== 'mouse') {
+            lastPointerType = null;
             return;
         }
+        lastPointerType = null;
+        handleToggle(event);
+    });
 
-        // 1. Apply to BG Sim (Always, for water distortion)
-        this.applyBrush(
-            this.glBg, 
-            this.bgBrushProgram, 
-            this.bgBrushBuffer, 
-            this.bgReadFBO, 
-            x, y, width, height
-        );
+    return section;
+}
 
-        // 2. Apply to ONE FG Layer
-        const layer = this.fgLayers[0];
-        
-        this.applyBrush(
-            this.glFg, 
-            this.fgBrushProgram, 
-            this.fgBrushBuffer, 
-            layer.readFBO, 
-            x, y, width, height
-        );
+function createSubsection(title, contentBuilder, { defaultExpanded = false } = {}) {
+    const container = document.createElement('div');
+    container.className = 'debug-panel-subsection';
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'debug-panel-subsection-toggle';
+    toggle.textContent = title;
+    const stateKey = `${title}-${subsectionKeyCounter++}`;
+    toggle.dataset.subsectionKey = stateKey;
+    container.appendChild(toggle);
+
+    const content = document.createElement('div');
+    content.className = 'debug-panel-subsection-content';
+    content.dataset.subsectionKey = stateKey;
+    contentBuilder(content);
+    container.appendChild(content);
+
+    let lastPointerType = null;
+
+    const handleToggle = (event) => {
+        const expanded = toggle.classList.toggle('expanded');
+        content.classList.toggle('active', expanded);
+    };
+
+    toggle.addEventListener('click', (event) => {
+        if (lastPointerType && lastPointerType !== 'mouse') {
+            lastPointerType = null;
+            return;
+        }
+        lastPointerType = null;
+        handleToggle(event);
+    });
+
+    if (defaultExpanded) {
+        toggle.classList.add('expanded');
+        content.classList.add('active');
     }
 
-    runSimStep(gl, program, quadBuffer, readFBO, writeFBO, readTex, writeTex, dt, skipSetup = false) {
-        if (!skipSetup) {
-            gl.useProgram(program);
-            gl.viewport(0, 0, this.simRes, this.simRes);
-            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-            const aPos = gl.getAttribLocation(program, "position");
-            gl.enableVertexAttribArray(aPos);
-            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-            gl.uniform1i(gl.getUniformLocation(program, "uLastFrame"), 0);
-            gl.uniform2f(gl.getUniformLocation(program, "uResolution"), this.simRes, this.simRes);
+    return container;
+}
+
+function bigNumEquals(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return a == null && b == null;
+    if (typeof a?.cmp === 'function') {
+        try { return a.cmp(b) === 0; } catch {}
+    }
+    if (typeof b?.cmp === 'function') {
+        try { return b.cmp(a) === 0; } catch {}
+    }
+    try { return Object.is(String(a), String(b)); }
+    catch { return false; }
+}
+
+function bigNumToFiniteNumber(value) {
+    try {
+        const fromScientific = value?.toScientific?.(BigNum.DEFAULT_PRECISION);
+        const num = Number.parseFloat(fromScientific ?? value);
+        return Number.isFinite(num) ? num : Number.NaN;
+    } catch {
+        return Number.NaN;
+    }
+}
+
+function getCurrencyStorageKey(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return null;
+    return `${KEYS.CURRENCY[currencyKey]}:${resolvedSlot}`;
+}
+
+function getCurrencyValueForSlot(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return BigNum.fromInt(0);
+
+    const handle = bank?.[currencyKey];
+    if (handle) {
+        try { return handle.value ?? BigNum.fromInt(0); }
+        catch {}
+    }
+
+    try { return peekCurrency(resolvedSlot, currencyKey); }
+    catch { return BigNum.fromInt(0); }
+}
+
+function applyCurrencyState(currencyKey, value, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    const previous = getCurrencyValueForSlot(currencyKey, resolvedSlot);
+    if (resolvedSlot == null || resolvedSlot !== getActiveSlot()) {
+        return { previous, next: previous };
+    }
+
+    const storageKey = getCurrencyStorageKey(currencyKey, resolvedSlot);
+    const wasLocked = storageKey && isStorageKeyLocked(storageKey);
+
+    if (wasLocked) unlockStorageKey(storageKey);
+
+    let next = previous;
+    try {
+        markSaveSlotModified(resolvedSlot);
+        const effective = setCurrency(currencyKey, value, { previous });
+        next = effective ?? previous;
+        if (storageKey) primeStorageWatcherSnapshot(storageKey);
+        
+        // Update the last known amount so the event listener in popups.js
+        // calculates a delta of zero, preventing the duplicate standard popup.
+        if (typeof window !== 'undefined' && window.lastKnownAmounts) {
+             window.lastKnownAmounts.set(currencyKey, effective.clone?.() ?? effective);
         }
         
-        // Write to WriteFBO
-        gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
-        
-        // Read from ReadTexture
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, readTex);
-        gl.uniform1f(gl.getUniformLocation(program, 'uDt'), dt); // Variable timestep
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup(currencyKey, effective, { overrideAmount: true });
+        }
+    } catch {}
+    finally {
+        if (wasLocked) lockStorageKey(storageKey);
+    }
 
-        // Draw Full Screen Quad
-        
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        
-        // Return swapped state
-        return {
-            readFBO: writeFBO,
-            writeFBO: readFBO,
-            readTex: writeTex,
-            writeTex: readTex
+    refreshLiveBindings((binding) => binding.type === 'currency'
+        && binding.key === currencyKey
+        && binding.slot === resolvedSlot);
+
+    return { previous, next };
+}
+
+function buildOverrideKey(slot, key) {
+    return `${slot ?? 'null'}::${key}`;
+}
+
+function loadCurrencyMultiplierOverrideFromStorage(currencyKey, slot = getActiveSlot()) {
+    const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    try { return BigNum.fromAny(raw); }
+    catch { return null; }
+}
+
+function storeCurrencyMultiplierOverride(currencyKey, slot, value) {
+    const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    try {
+        const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
+        localStorage.setItem(storageKey, bn.toStorage?.() ?? String(bn));
+    } catch {}
+}
+
+function getCurrencyOverride(slot, key) {
+    const cacheKey = buildOverrideKey(slot, key);
+    let cached = currencyOverrides.get(cacheKey);
+    if (cached) return cached;
+    
+    const fromStorage = loadCurrencyMultiplierOverrideFromStorage(key, slot);
+    if (fromStorage) {
+        currencyOverrides.set(cacheKey, fromStorage);
+        return fromStorage;
+    }
+    
+    return null;
+}
+
+function getCurrencyMultiplierOverrideStorageKey(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (!currencyKey || resolvedSlot == null) return null;
+    return `ccc:debug:currencyMult:${currencyKey}:${resolvedSlot}`;
+}
+
+function getCurrencyMultiplierStorageKey(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (!currencyKey || resolvedSlot == null) return null;
+    return `${KEYS.MULTIPLIER[currencyKey]}:${resolvedSlot}`;
+}
+
+function isCurrencyMultiplierLocked(currencyKey, slot = getActiveSlot()) {
+    return isStorageKeyLocked(getCurrencyMultiplierStorageKey(currencyKey, slot));
+}
+
+export function clearCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
+    const cacheKey = buildOverrideKey(slot, currencyKey);
+    currencyOverrides.delete(cacheKey);
+    currencyOverrideBaselines.delete(cacheKey);
+    const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
+    if (storageKey && typeof localStorage !== 'undefined') {
+        try { localStorage.removeItem(storageKey); } catch {}
+    }
+    refreshLiveBindings((binding) => binding.type === 'currency-mult'
+        && binding.key === currencyKey
+        && binding.slot === slot);
+}
+
+function getStatOverride(slot, key) {
+    const lockAwareRefresh = !isStatMultiplierLocked(key, slot);
+    const cacheKey = buildOverrideKey(slot, key);
+    const cached = statOverrides.get(cacheKey);
+    if (!lockAwareRefresh && cached) return cached;
+
+    const fromStorage = loadStatMultiplierOverrideFromStorage(key, slot);
+    if (!fromStorage) {
+        if (lockAwareRefresh) statOverrides.delete(cacheKey);
+        return null;
+    }
+
+    statOverrides.set(cacheKey, fromStorage);
+    return fromStorage;
+}
+
+function notifyStatMultiplierChange(statKey, slot) {
+    refreshLiveBindings((binding) => binding.type === 'stat-mult'
+        && binding.key === statKey
+        && binding.slot === slot);
+}
+
+function clearStatMultiplierOverride(statKey, slot = getActiveSlot()) {
+    const storageKey = getStatMultiplierStorageKey(statKey, slot);
+    statOverrides.delete(buildOverrideKey(slot, statKey));
+    statOverrideBaselines.delete(buildOverrideKey(slot, statKey));
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    if (isStorageKeyLocked(storageKey)) return;
+    try { localStorage.removeItem(storageKey); } catch {}
+    notifyStatMultiplierChange(statKey, slot);
+}
+
+function isStatMultiplierLocked(statKey, slot = getActiveSlot()) {
+    return isStorageKeyLocked(getStatMultiplierStorageKey(statKey, slot));
+}
+
+function getLockedStatOverride(slot, statKey) {
+    if (!isStatMultiplierLocked(statKey, slot)) return null;
+    return getStatOverride(slot, statKey);
+}
+
+function getStatMultiplierDisplayValue(statKey, slot = getActiveSlot()) {
+    const gameValue = getGameStatMultiplier(statKey);
+    const effectiveOverride = getEffectiveStatMultiplierOverride(statKey, slot, gameValue);
+    return effectiveOverride ?? gameValue;
+}
+
+function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
+    if (!statKey) return null;
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return null;
+    return `ccc:debug:stat-mult:${statKey}:${resolvedSlot}`;
+}
+
+function getGameStatMultiplier(statKey) {
+    try {
+        if (statKey === 'xp') {
+            const mult = getXpGainMultiplier();
+            if (mult) return mult;
+        } else if (statKey === 'mutation') {
+            const valueMult = getMutationGainMultiplier?.();
+            if (valueMult) return valueMult;
+
+            const mult = getMutationMultiplier();
+            if (mult) return mult;
+        } else if (statKey === 'scrap') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.scrapValueMultiplier) {
+                return BigNum.fromAny(eff.scrapValueMultiplier);
+            }
+        } else if (statKey === 'allMaterials') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.allMaterialsValueMultiplier) {
+                return BigNum.fromAny(eff.allMaterialsValueMultiplier);
+            }
+        } else if (statKey === 'allMaterials') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.allMaterialsValueMultiplier) {
+                return BigNum.fromAny(eff.allMaterialsValueMultiplier);
+            }
+        } else if (statKey === 'spawnRate') {
+            const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
+            if (eff?.coinsPerSecondMult) {
+                return BigNum.fromAny(eff.coinsPerSecondMult);
+            }
+        } else if (statKey === 'materialSpawnRate') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.materialSpawnRateMult) {
+                return BigNum.fromAny(0.2 * eff.materialSpawnRateMult);
+            }
+            return BigNum.fromAny(0.2);
+        } else if (statKey === 'rp') {
+            return getRpMult();
+        } else if (statKey === 'fp') {
+            return getFpMultiplier();
+        } else if (statKey === 'dp') {
+            return getDpMultiplier();
+        } else if (statKey === 'pp') {
+            return window.ppSystem?.getPpMultiplier?.() ?? BigNum.fromInt(1);
+        } else if (statKey === 'books') {
+            return window.bank?.books?.mult?.get?.() ?? BigNum.fromInt(1);
+        }
+    } catch {}
+
+    return BigNum.fromInt(1);
+}
+
+function loadStatMultiplierOverrideFromStorage(statKey, slot = getActiveSlot()) {
+    const storageKey = getStatMultiplierStorageKey(statKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    try { return BigNum.fromAny(raw); }
+    catch { return null; }
+}
+
+function storeStatMultiplierOverride(statKey, slot, value) {
+    const storageKey = getStatMultiplierStorageKey(statKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    try {
+        const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
+        const locked = isStorageKeyLocked(storageKey);
+        const setter = locked && originalSetItem ? originalSetItem : localStorage.setItem.bind(localStorage);
+        if (locked && !originalSetItem) unlockStorageKey(storageKey);
+        setter(storageKey, bn.toStorage?.() ?? String(bn));
+        if (locked && !originalSetItem) lockStorageKey(storageKey);
+    } catch {}
+}
+
+function applyCurrencyOverrideForSlot(currencyKey, slot = getActiveSlot()) {
+    if (slot == null) return;
+    const override = getCurrencyOverride(slot, currencyKey);
+    if (!override) return;
+    if (slot !== getActiveSlot()) return;
+
+    const cacheKey = buildOverrideKey(slot, currencyKey);
+    if (currencyOverrideApplications.has(cacheKey)) return;
+
+    currencyOverrideApplications.add(cacheKey);
+    try {
+        // Force the underlying game multiplier to update to the override value,
+        // even if get() returns the override (because it intercepts it).
+        // This ensures currency:multiplier is fired and the UI/game correctly synchronizes.
+        bank?.[currencyKey]?.mult?.set?.(override);
+    } catch {} finally {
+        currencyOverrideApplications.delete(cacheKey);
+    }
+}
+
+let currencyListenerAttached = false;
+function ensureCurrencyOverrideListener() {
+    if (currencyListenerAttached || typeof window === 'undefined') return;
+    currencyListenerAttached = true;
+    try {
+        window.addEventListener('currency:multiplier', (event) => {
+            const { key, slot, mult } = event?.detail ?? {};
+            const targetSlot = slot ?? getActiveSlot();
+            const cacheKey = buildOverrideKey(targetSlot, key);
+            if (!targetSlot || !currencyOverrides.has(cacheKey)) return;
+            if (currencyOverrideApplications.has(cacheKey)) return;
+
+            const baseline = currencyOverrideBaselines.get(cacheKey);
+            const override = getCurrencyOverride(targetSlot, key);
+
+            if (baseline && override && mult) {
+                let shouldScale = true;
+                const baselineBn = BigNum.fromAny(baseline);
+                const nextBn = BigNum.fromAny(mult);
+
+                if (!baselineBn.isZero()) {
+                    try {
+                        // Sometimes the event fires with the exact same multiplier. We should ignore exact matches.
+                        if (!bigNumEquals(baselineBn, nextBn)) {
+                            const ratio = nextBn.div(baselineBn);
+                            const locked = isCurrencyMultiplierLocked(key, targetSlot);
+                            
+                            // If it's an unlocked currency and its baseline ACTUALLY changed, wipe its override.
+                            if (!locked) {
+                                clearCurrencyMultiplierOverride(key, targetSlot);
+                                shouldScale = false;
+                            }
+
+                            if (shouldScale) {
+                                const scaledOverride = override.mulDecimal(ratio.toScientific(BigNum.DEFAULT_PRECISION), BigNum.DEFAULT_PRECISION);
+                                currencyOverrides.set(cacheKey, scaledOverride);
+                                storeCurrencyMultiplierOverride(key, targetSlot, scaledOverride);
+                            }
+                        }
+                    } catch (e) {
+                    }
+                }
+                currencyOverrideBaselines.set(cacheKey, mult);
+            } else if (mult) {
+                currencyOverrideBaselines.set(cacheKey, mult);
+            }
+
+            if (currencyOverrides.has(cacheKey)) {
+                applyCurrencyOverrideForSlot(key, targetSlot);
+            }
+        }, { passive: true });
+        window.addEventListener('saveSlot:change', () => {
+            applyAllCurrencyOverridesForActiveSlot();
+        }, { passive: true });
+    } catch {}
+}
+
+export function applyAllCurrencyOverridesForActiveSlot() {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    Object.values(CURRENCIES).forEach((key) => {
+        applyCurrencyOverrideForSlot(key, slot);
+    });
+}
+
+export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = getActiveSlot()) {
+    if (!currencyKey || slot == null) return null;
+    ensureCurrencyOverrideListener();
+    let bn;
+    try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
+    catch { bn = BigNum.fromInt(1); }
+    const cacheKey = buildOverrideKey(slot, currencyKey);
+
+    // Fix: Only set the baseline if it's not already set.
+    // If we overwrite the baseline with the current bank value (which might be the OLD override),
+    // we create a feedback loop that crushes the value when the game ticks.
+    // CRITICAL: We MUST read the baseline BEFORE setting currencyOverrides, otherwise
+    // bank.mult.get() will just return the newly set override!
+    if (!currencyOverrideBaselines.has(cacheKey)) {
+        const gameValue = bank?.[currencyKey]?.mult?.get?.();
+        currencyOverrideBaselines.set(cacheKey, gameValue);
+    }
+
+    currencyOverrides.set(cacheKey, bn);
+    storeCurrencyMultiplierOverride(currencyKey, slot, bn);
+    
+    applyCurrencyOverrideForSlot(currencyKey, slot);
+    return bn;
+}
+
+if (typeof window !== 'undefined') window.getDebugCurrencyMultiplierOverride = getDebugCurrencyMultiplierOverride;
+export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
+    if (!currencyKey || slot == null) return null;
+    return getCurrencyOverride(slot, currencyKey);
+}
+
+export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveSlot()) {
+    if (!statKey || slot == null) return null;
+    let bn;
+    try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
+    catch { bn = BigNum.fromInt(1); }
+    statOverrides.set(buildOverrideKey(slot, statKey), bn);
+    statOverrideBaselines.set(buildOverrideKey(slot, statKey), getGameStatMultiplier(statKey));
+    storeStatMultiplierOverride(statKey, slot, bn);
+    notifyStatMultiplierChange(statKey, slot);
+
+    if (statKey === 'allMaterials') {
+        for (const mat of UC_MATERIALS) {
+            if (!isCurrencyMultiplierLocked(mat, slot)) {
+                clearCurrencyMultiplierOverride(mat, slot);
+                const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
+                if (storageKey) {
+                    localStorage.removeItem(storageKey);
+                }
+            }
+        }
+    }
+
+    return bn;
+}
+
+export function clearAllDebugOverrides(slot = getActiveSlot()) {
+    if (slot == null) return;
+
+    if (typeof window !== 'undefined' && window.__activeStorageKeys) {
+        const keysToRemove = [];
+        for (const key of window.__activeStorageKeys) {
+            if (key && key.startsWith('ccc:debug:') && key.endsWith(`:${slot}`)) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => {
+            unlockStorageKey(key);
+            try { localStorage.removeItem(key); } catch {}
+        });
+    }
+
+    const clearMapEntriesForSlot = (map) => {
+        for (const [key] of map.entries()) {
+            if (key.startsWith(`${slot}::`)) {
+                map.delete(key);
+            }
+        }
+    };
+
+    clearMapEntriesForSlot(statOverrides);
+    clearMapEntriesForSlot(statOverrideBaselines);
+    clearMapEntriesForSlot(currencyOverrides);
+    clearMapEntriesForSlot(currencyOverrideBaselines);
+    
+    Object.values(CURRENCIES).forEach((key) => {
+        unlockStorageKey(getCurrencyMultiplierStorageKey(key, slot));
+        const storageKey = getCurrencyMultiplierStorageKey(key, slot);
+        if (storageKey) {
+            try { localStorage.removeItem(storageKey); } catch {}
+        }
+    });
+    
+    try { refreshLiveBindings((binding) => binding.slot === slot || binding.slot == null); } catch {}
+    
+    if (typeof window.refreshCoinMultiplierCache === 'function') {
+        try { window.refreshCoinMultiplierCache(); } catch {}
+    }
+    if (typeof window.refreshMpValueMultiplierCache === 'function') {
+        try { window.refreshMpValueMultiplierCache(); } catch {}
+    }
+    if (typeof window.refreshSurgeMultiplierCache === 'function') {
+        try { window.refreshSurgeMultiplierCache(); } catch {}
+    }
+    
+    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); } catch {}
+}
+
+export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) {
+    if (!statKey || slot == null) return null;
+    return getStatOverride(slot, statKey);
+}
+
+export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
+    const gameValue = getGameStatMultiplier(statKey);
+    const override = getEffectiveStatMultiplierOverride(statKey, slot, gameValue);
+    if (!override) return amount;
+
+    let base;
+    try {
+        base = amount instanceof BigNum ? amount.clone?.() ?? amount : BigNum.fromAny(amount ?? 0);
+    } catch {
+        return amount;
+    }
+
+    // If the caller is passing the raw in-game multiplier itself (e.g. XP Value,
+    // MP Value, etc.), avoid ratio math and just return the override directly.
+    try {
+        if (bigNumEquals(base, gameValue)) {
+            return override;
+        }
+    } catch {
+        // fall through and apply ratio logic below
+    }
+
+    try {
+        if (base.isZero?.()) return base;
+    } catch {
+        return base;
+    }
+
+    const cacheKey = buildOverrideKey(slot, statKey);
+    const baseline = statOverrideBaselines.get(cacheKey);
+    const multiplierForRatio = gameValue;
+
+    // Fix: Use BigNum div instead of converting to finite numbers
+    let ratio = null;
+    try {
+         const numBn = BigNum.fromAny(override);
+         const denomBn = BigNum.fromAny(multiplierForRatio);
+         if (!denomBn.isZero()) {
+             ratio = numBn.div(denomBn);
+         }
+    } catch (e) {
+        ratio = null;
+    }
+
+    if (ratio) {
+        try { 
+            // mulBigNumInteger supports generic BigNum multiplication
+            return base.mulBigNumInteger(ratio); 
+        }
+        catch {}
+    }
+
+    return base;
+}
+
+function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
+    const override = getStatOverride(slot, statKey);
+    const cacheKey = buildOverrideKey(slot, statKey);
+    if (!override) {
+        statOverrideBaselines.delete(cacheKey);
+        return null;
+    }
+
+    const baseline = statOverrideBaselines.get(cacheKey);
+    const locked = isStatMultiplierLocked(statKey, slot);
+
+    if (!baseline) {
+        statOverrideBaselines.set(cacheKey, gameValue);
+    } else if (!bigNumEquals(baseline, gameValue)) {
+        if (locked) {
+            statOverrideBaselines.set(cacheKey, gameValue);
+            return override;
+        }
+        clearStatMultiplierOverride(statKey, slot);
+        if (statKey === 'allMaterials') {
+            for (const mat of UC_MATERIALS) {
+                if (!isCurrencyMultiplierLocked(mat, slot)) {
+                    clearCurrencyMultiplierOverride(mat, slot);
+                    const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
+                    if (storageKey) {
+                        localStorage.removeItem(storageKey);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    return override;
+}
+
+function ensureStorageLockPatch() {
+    if (storageLockPatched || typeof localStorage === 'undefined') return;
+    storageLockPatched = true;
+    try {
+        originalSetItem = localStorage.setItem.bind(localStorage);
+        originalRemoveItem = localStorage.removeItem.bind(localStorage);
+        localStorage.setItem = (key, value) => {
+            if (lockedStorageKeys.has(key)) return;
+            return originalSetItem(key, value);
         };
-    }
+        localStorage.removeItem = (key) => {
+            if (lockedStorageKeys.has(key)) return;
+            return originalRemoveItem(key);
+        };
+    } catch {}
+}
 
-    update(dt) {
-        // "Natural Swell" Auto Spawning Logic - DISABLED
-    }
+function isStorageKeyLocked(key) {
+    return key != null && lockedStorageKeys.has(key);
+}
 
-    spawnRandomWave() {
-        if (!this.width) return;
-        
-        // Random X Position (0 to Width)
-        const x = Math.random() * this.width;
-        
-        // Spawn at the top
-        const y = 0; 
-        
-        const sizePct = 0.3 + Math.random() * 0.2;
-        const width = this.width * sizePct;
-        const height = width * 0.5; // Aspect ratio approx
-        
-        this.addWave(x, y, width, height);
-    }
+function lockStorageKey(key) {
+    if (!key) return;
+    ensureStorageLockPatch();
+    lockedStorageKeys.add(key);
+    flagDebugUsage();
+}
 
-    render(totalTime, dt) {
-        if (settingsManager.get("disable_webgl")) {
-            this.clearSimulations();
-            return;
+function unlockStorageKey(key) {
+    if (!key) return;
+    lockedStorageKeys.delete(key);
+}
+
+function toggleStorageLock(key) {
+    if (!key) return false;
+    if (isStorageKeyLocked(key)) {
+        unlockStorageKey(key);
+        return false;
+    }
+    lockStorageKey(key);
+    return true;
+}
+
+function createLockToggle(storageKey, { onToggle } = {}) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'debug-lock-button';
+
+    const refresh = () => {
+        const locked = isStorageKeyLocked(storageKey);
+        button.textContent = locked ? 'L' : 'UL';
+        button.classList.toggle('locked', locked);
+    };
+
+    button.addEventListener('click', () => {
+        toggleStorageLock(storageKey);
+        if (typeof onToggle === 'function') {
+            try { onToggle(isStorageKeyLocked(storageKey)); }
+            catch {}
         }
-        if (!this.glBg && this.bgCanvas && this.fgCanvas) {
-            this.init(this.bgCanvas.id, this.fgCanvas.id, this._baseNumLayers);
-            if (this.glBg) this._doResize();
-        }
-        if (!this.glBg) return;
-        
-        // Optimization: Skip rendering entirely when Delve is open
-        // Delay pausing by 150ms to allow the overlay opening transition to start
-        if (typeof isMerchantOpen === 'function') {
-            if (isMerchantOpen()) {
-                this.merchantOpenTimer += dt;
-                if (this.merchantOpenTimer > 0.15) return;
+        refresh();
+    });
+
+    document.addEventListener('debugStorageLocksChanged', refresh);
+
+    refresh();
+    return { button, refresh };
+}
+
+function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'debug-lock-button';
+
+    const getKeys = () =>
+        Array.from(new Set((resolveKeys?.() ?? []).filter(Boolean)));
+
+    const isLocked = () => {
+        const keys = getKeys();
+        return keys.length > 0 && keys.every((key) => isStorageKeyLocked(key));
+    };
+
+    const hasAnyLocked = () => {
+        const keys = getKeys();
+        return keys.length > 0 && keys.some((key) => isStorageKeyLocked(key));
+    };
+
+    const refresh = () => {
+        const keys = getKeys();
+        const anyLocked = hasAnyLocked();
+        button.textContent = anyLocked ? 'L' : 'UL';
+        button.classList.toggle('locked', anyLocked);
+        button.disabled = keys.length === 0;
+    };
+
+    button.addEventListener('click', () => {
+        const keys = getKeys();
+        if (keys.length === 0) return;
+
+        const locked = isLocked();
+        keys.forEach((key) => {
+            if (locked) {
+                unlockStorageKey(key);
             } else {
-                this.merchantOpenTimer = 0;
+                lockStorageKey(key);
             }
-        }
-        
-        // totalTime is in seconds. 
-        const simTime = totalTime * 2; 
-
-        // --- Hybrid Sub-stepping Logic ---
-        // 1. Clamp dt to prevent spiral of death on massive lag (max 0.1s = 10fps)
-        const safeDt = Math.min(dt, 0.1);
-        
-        // 2. Define High-FPS threshold (approx 25fps = 0.04s)
-        // If frame time is fast (High FPS), run 1 step with actual dt to preserve smoothness.
-        // If frame time is slow (Low FPS/Lag), sub-step with 60hz chunks to preserve stability.
-        const FPS_THRESHOLD = 0.04; 
-        const SUB_STEP = 0.016; // ~60hz
-        
-        let steps = [];
-        
-        if (safeDt < FPS_THRESHOLD) {
-             steps.push(safeDt);
-        } else {
-             let remaining = safeDt;
-             while (remaining > 0) {
-                 let step = Math.min(remaining, SUB_STEP);
-                 steps.push(step);
-                 remaining -= step;
-             }
-        }
-        
-        // --- 1. Simulation Step (BG) ---
-        // Run gathered steps
-        steps.forEach(stepDt => {
-            const bgState = this.runSimStep(
-                this.glBg, this.bgSimProgram, this.quadBufferBg,
-                this.bgReadFBO, this.bgWriteFBO, this.bgReadTexture, this.bgWriteTexture,
-                stepDt
-            );
-            this.bgReadFBO = bgState.readFBO;
-            this.bgWriteFBO = bgState.writeFBO;
-            this.bgReadTexture = bgState.readTex;
-            this.bgWriteTexture = bgState.writeTex;
         });
 
-        // --- 2. Simulation Step (FG Layers) ---
-        if (steps.length > 0 && this.fgLayers.length > 0) {
-            const glFg = this.glFg;
-            glFg.useProgram(this.fgSimProgram);
-            glFg.viewport(0, 0, this.simRes, this.simRes);
-            glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
-            const aPos = glFg.getAttribLocation(this.fgSimProgram, "position");
-            glFg.enableVertexAttribArray(aPos);
-            glFg.vertexAttribPointer(aPos, 2, glFg.FLOAT, false, 0, 0);
-            glFg.uniform1i(glFg.getUniformLocation(this.fgSimProgram, "uLastFrame"), 0);
-            glFg.uniform2f(glFg.getUniformLocation(this.fgSimProgram, "uResolution"), this.simRes, this.simRes);
-            
-            steps.forEach(stepDt => {
-                this.fgLayers.forEach(layer => {
-                    const fgState = this.runSimStep(
-                        glFg, this.fgSimProgram, this.quadBufferFg,
-                        layer.readFBO, layer.writeFBO, layer.readTexture, layer.writeTexture,
-                        stepDt, true
-                    );
-                    layer.readFBO = fgState.readFBO;
-                    layer.writeFBO = fgState.writeFBO;
-                    layer.readTexture = fgState.readTex;
-                    layer.writeTexture = fgState.writeTex;
-                });
-            });
+        if (typeof onToggle === 'function') {
+            try { onToggle(isLocked()); }
+            catch {}
         }
 
-        // --- 3. Render Background (Water Body) ---
-        const glBg = this.glBg;
-        glBg.bindFramebuffer(glBg.FRAMEBUFFER, null);
-        glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
-        glBg.useProgram(this.bgProgram);
-        
-        const quality = settingsManager.get('graphics_quality');
+        refresh();
+    });
 
-        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorDeep'), COLOR_DEEP);
-        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorShallow'), COLOR_SHALLOW);
-        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uTime'), simTime);
-        glBg.uniform2f(glBg.getUniformLocation(this.bgProgram, 'uResolution'), this.bgCanvas.width, this.bgCanvas.height);
-        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uQuality'), quality);
+    refresh();
+    return { button, refresh, isLocked };
+}
 
-        // Bind BG Sim Texture for distortion
-        glBg.activeTexture(glBg.TEXTURE0);
-        glBg.bindTexture(glBg.TEXTURE_2D, this.bgReadTexture);
-        glBg.uniform1i(glBg.getUniformLocation(this.bgProgram, 'uWaveMap'), 0);
+applyAllCurrencyOverridesForActiveSlot();
+ensureCurrencyOverrideListener();
 
-        glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
-        const aPosBg = glBg.getAttribLocation(this.bgProgram, 'position');
-        glBg.enableVertexAttribArray(aPosBg);
-        glBg.vertexAttribPointer(aPosBg, 2, glBg.FLOAT, false, 0, 0);
-        
-        glBg.drawArrays(glBg.TRIANGLE_STRIP, 0, 4);
+if (typeof window !== 'undefined') {
+    window.addEventListener('surge:level:change', () => {
+        refreshLiveBindings((binding) => binding.type === 'stat-mult');
+    });
+    window.addEventListener('lab:node:change', () => {
+        refreshLiveBindings((binding) => binding.type === 'stat-mult');
+    });
+}
 
-        // --- 4. Render Foreground Layers (Waves/Foam) ---
-        if (this.glFg && this.fgCanvas) {
-            const glFg = this.glFg;
-            glFg.bindFramebuffer(glFg.FRAMEBUFFER, null); 
-            glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
-            
-            // Clear the single foreground canvas once
-            glFg.clearColor(0, 0, 0, 0);
-            glFg.clear(glFg.COLOR_BUFFER_BIT);
+function collapseAllDebugCategories() {
+    const panel = document.getElementById(DEBUG_PANEL_ID);
+    if (!panel) return;
 
-            // Enable blending for compositing multiple layers
-            glFg.enable(glFg.BLEND);
-            glFg.blendFunc(glFg.ONE, glFg.ONE_MINUS_SRC_ALPHA);
+    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+        toggle.classList.remove('expanded');
+        const content = toggle.nextElementSibling;
+        if (content) content.classList.remove('active');
+    });
 
-            glFg.useProgram(this.fgProgram);
+    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+        toggle.classList.remove('expanded');
+        const content = toggle.nextElementSibling;
+        if (content) content.classList.remove('active');
+    });
+}
 
-            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorShallow'), COLOR_SHALLOW);
-            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWave'), COLOR_WAVE); 
-            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWaveDeep'), COLOR_WAVE_DEEP);
-            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
-            glFg.uniform2f(glFg.getUniformLocation(this.fgProgram, 'uResolution'), this.fgCanvas.width, this.fgCanvas.height);
-            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uQuality'), quality);
+function withTemporaryUnlock(keys, fn) {
+    const uniqueKeys = Array.from(new Set((keys ?? []).filter(Boolean)));
+    const relock = [];
 
-            glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
-            const aPosFg = glFg.getAttribLocation(this.fgProgram, 'position');
-            glFg.enableVertexAttribArray(aPosFg);
-            glFg.vertexAttribPointer(aPosFg, 2, glFg.FLOAT, false, 0, 0);
-
-            // Draw each layer back-to-front
-            this.fgLayers.forEach(layer => {
-                glFg.activeTexture(glFg.TEXTURE0);
-                glFg.bindTexture(glFg.TEXTURE_2D, layer.readTexture); // Use FG sim result
-                glFg.uniform1i(glFg.getUniformLocation(this.fgProgram, 'uWaveMap'), 0);
-
-                glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
-            });
-
-            glFg.disable(glFg.BLEND);
+    uniqueKeys.forEach((key) => {
+        if (isStorageKeyLocked(key)) {
+            relock.push(key);
+            unlockStorageKey(key);
         }
+    });
+
+    try {
+        return fn?.();
+    } finally {
+        relock.forEach((key) => lockStorageKey(key));
     }
 }
 
-export const waterSystem = new WaterSystem();
+function formatBigNumForInput(value) {
+    try {
+        const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
+        if (bn.isNaN?.()) return 'BN:NaN';
+        if (bn.isInfinite?.()) {
+            return 'BN:infinite';
+        }
+        if (bn.isZero?.()) {
+            return 'BN:zero';
+        }
+        const storage = bn.toStorage?.();
+        const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '', expPart = '0'] = (storage || '').split(':');
+        let precision = Number.parseInt(pStr, 10);
+        if (Number.isNaN(precision)) precision = BigNum.DEFAULT_PRECISION;
+        if (precision === 0) {
+            return `BN:0::${expPart}`;
+        }
+        const paddedSig = sigPart ? sigPart.padStart(precision, '0') : '0'.repeat(precision);
+        return `BN:${precision}:${paddedSig}:${expPart}`;
+    } catch {
+        return String(value ?? '');
+    }
+}
+
+function parseBigNumInput(raw) {
+    let trimmed = String(raw ?? '').trim();
+    if (!trimmed) return BigNum.fromInt(0);
+
+    if (trimmed.startsWith('.')) {
+        trimmed = '0' + trimmed;
+    } else if (trimmed.startsWith('-.')) {
+        trimmed = '-0' + trimmed.substring(1);
+    }
+
+    try {
+        if (/^nan$/i.test(trimmed)) return new BigNum(NaN, 0);
+        if (/^inf(?:inity)?$/i.test(trimmed)) {
+            return BigNum.fromAny('Infinity');
+        }
+        if (trimmed.startsWith('BN:')) {
+            const parts = trimmed.split(':');
+            if (parts.length >= 4 && parts[1] !== 'infinite' && parts[1] !== 'NaN') {
+                const sigPart = parts[2] || '';
+                let expPart = parts.slice(3).join(':');
+                if (!expPart) expPart = '0';
+
+                const eIndex = expPart.toLowerCase().indexOf('e');
+                if (eIndex !== -1) {
+                    const dotAfterE = expPart.indexOf('.', eIndex);
+                    if (dotAfterE !== -1) {
+                        expPart = expPart.substring(0, dotAfterE);
+                    }
+                } else {
+                    const dotIndex = expPart.indexOf('.');
+                    if (dotIndex !== -1) {
+                        expPart = expPart.substring(0, dotIndex);
+                    }
+                }
+
+                if (/[^0-9eE+\-\.]/.test(expPart)) {
+                    return null;
+                }
+
+                trimmed = `BN:${parts[1]}:${sigPart}:${expPart}`;
+
+                const isZeroSig = /^0*$/.test(sigPart);
+                if (isZeroSig && expPart !== '0' && expPart !== '') {
+                    let p = parseInt(parts[1], 10);
+                    if (Number.isNaN(p)) p = BigNum.DEFAULT_PRECISION;
+                    const parsed2 = BigNum.fromStorage(`BN:${p}:1:${expPart}`);
+                    if (parsed2 && parsed2.isNegative()) return null;
+                    return parsed2;
+                }
+            }
+        }
+        const parsed = BigNum.fromAny(trimmed);
+        if (parsed && parsed.isNegative()) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function setInputValidity(input, valid) {
+    input.classList.toggle('debug-invalid', !valid);
+}
+
+function flagDebugUsage() {
+    const slot = getActiveSlot();
+    try { markSaveSlotModified(slot); }
+    catch {}
+    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); }
+    catch {}
+}
+
+function getActionLogKey(slot = getActiveSlot()) {
+    if (slot == null) return null;
+    return `ccc:actionLog:${slot}`;
+}
+
+function getCurrentActionLog(slot = getActiveSlot()) {
+    const key = getActionLogKey(slot);
+    if (!key) return [];
+
+    let raw = null;
+    try { raw = localStorage.getItem(key); }
+    catch {}
+    if (!raw) return [];
+
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function persistActionLog(entries, slot = getActiveSlot()) {
+    const key = getActionLogKey(slot);
+    if (!key || typeof localStorage === 'undefined') return;
+
+    const trimmed = (Array.isArray(entries) ? entries : []).slice(0, MAX_ACTION_LOG_ENTRIES);
+    try { localStorage.setItem(key, JSON.stringify(trimmed)); }
+    catch {}
+}
+
+function appendActionLogEntry(entry, slot = getActiveSlot()) {
+    const log = getCurrentActionLog(slot);
+    log.unshift(entry);
+    if (log.length > MAX_ACTION_LOG_ENTRIES) {
+        log.length = MAX_ACTION_LOG_ENTRIES;
+    }
+    persistActionLog(log, slot);
+    return log;
+}
+
+function logAction(message) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+
+    const now = new Date();
+    const entry = {
+        time: now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
+        message,
+        timestamp: now.getTime(),
+    };
+    appendActionLogEntry(entry, slot);
+    updateActionLogDisplay();
+}
+
+function updateActionLogDisplay() {
+    if (!actionLogContainer) return;
+
+    const actionLog = getCurrentActionLog();
+    if (actionLog.length === 0) {
+        actionLogContainer.innerHTML = '';
+        const msg = document.createElement('div');
+        msg.className = 'action-log-empty';
+        msg.textContent = window.currentArea === 666 ? 'You are in Jail' : 'Actions you perform in the Debug Panel will be logged permanently in this action log.';
+        actionLogContainer.appendChild(msg);
+        return;
+    }
+
+    actionLogContainer.innerHTML = actionLog.map((entry) => {
+        let formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
+        let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
+        formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
+        formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
+        formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g, '<span class="action-log-number">inf</span>');
+        formattedMessage = formattedMessage.replace(/\u221E/g, '<span class="action-log-number">inf</span>');
+
+        if (window.currentArea === 666) {
+            formattedTime = 'You are in Jail:';
+            formattedMessage = 'You are in Jail';
+        }
+
+        return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}${window.currentArea === 666 ? ': ' : ':'}</span><span class="action-log-message">${formattedMessage}</span></div>`;
+    }).join('');
+}
+
+function dialogueStateStorageKey(slot = getActiveSlot()) {
+    if (slot == null) return null;
+    return `${MERCHANT_DLG_STATE_KEY_BASE}:${slot}`;
+}
+
+function persistDialogueState(state, slot = getActiveSlot()) {
+    const key = dialogueStateStorageKey(slot);
+    if (!key) return;
+    try {
+        const payload = JSON.stringify(state || {});
+        localStorage.setItem(key, payload);
+    } catch {}
+}
+
+function loadDialogueState(slot = getActiveSlot()) {
+    const key = dialogueStateStorageKey(slot);
+    if (!key) return {};
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
+}
+
+function grantDialogueReward(reward) {
+    if (!reward) return;
+
+    if (Object.values(CURRENCIES).includes(reward.type)) {
+        try {
+            if (reward.type === CURRENCIES.BOOKS) {
+                bank.books.addWithMultiplier?.(reward.amount) ?? bank.books.add(reward.amount);
+            } else {
+                bank[reward.type].add(reward.amount);
+            }
+        } catch (e) {
+            console.warn(`Failed to grant ${reward.type} reward:`, reward, e);
+        }
+        return;
+    }
+
+    try { window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward })); }
+    catch {}
+}
+
+function completeAllDialoguesForDebug() {
+    const slot = getActiveSlot();
+    if (slot == null) return { completed: 0 };
+
+    const state = loadDialogueState(slot);
+    let completed = 0;
+
+    Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
+        const key = String(id);
+        const prev = state[key] || {};
+        const alreadyClaimed = !!prev.claimed;
+        const next = Object.assign({}, prev, { status: 'unlocked', claimed: true });
+        state[key] = next;
+        if (!alreadyClaimed) {
+            completed += 1;
+            grantDialogueReward(meta.reward);
+        }
+    });
+
+    persistDialogueState(state, slot);
+    return { completed };
+}
+
+function restoreAllDialoguesForDebug() {
+    const slot = getActiveSlot();
+    if (slot == null) return { restored: 0 };
+
+    const state = loadDialogueState(slot);
+    let restored = 0;
+
+    Object.entries(DLG_CATALOG).forEach(([id]) => {
+        const key = String(id);
+        const prev = state[key] || {};
+        if (prev.claimed) restored += 1;
+        state[key] = Object.assign({}, prev, { claimed: false });
+    });
+
+    persistDialogueState(state, slot);
+    return { restored };
+}
+
+function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey, onLockChange, format } = {}) {
+    const row = document.createElement('div');
+    row.className = 'debug-panel-row';
+
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    if (idLabel != null) {
+        label.append(' ');
+        const idSpan = document.createElement('span');
+        idSpan.className = 'debug-panel-id';
+        idSpan.textContent = `(ID: ${idLabel})`;
+        label.appendChild(idSpan);
+    }
+    row.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'debug-panel-input';
+    let editing = false;
+    let pendingValue = null;
+    let skipBlurCommit = false;
+    const lockToggle = storageKey ? createLockToggle(storageKey, { onToggle: onLockChange }) : null;
+
+    const setValue = (value) => {
+        if (window.currentArea === 666) {
+            input.value = 'You are in Jail';
+            return;
+        }
+
+        if (editing) {
+            pendingValue = value;
+            return;
+        }
+        pendingValue = null;
+        input.value = typeof format === 'function'
+            ? format(value)
+            : formatBigNumForInput(value);
+    };
+
+    row.appendChild(input);
+    if (lockToggle) {
+        row.appendChild(lockToggle.button);
+    }
+
+    const commitValue = () => {
+        const parsed = parseBigNumInput(input.value);
+        if (!parsed) {
+            setInputValidity(input, false);
+            return;
+        }
+        setInputValidity(input, true);
+
+        const wasLocked = storageKey && isStorageKeyLocked(storageKey);
+        if (wasLocked) unlockStorageKey(storageKey);
+        try {
+            onCommit(parsed, { input, setValue });
+        } finally {
+            if (wasLocked) lockStorageKey(storageKey);
+            if (lockToggle) lockToggle.refresh();
+        }
+    };
+
+    input.addEventListener('focus', () => { editing = true; });
+    input.addEventListener('change', commitValue);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            skipBlurCommit = true;
+            commitValue();
+            input.blur();
+        }
+    });
+    input.addEventListener('blur', () => {
+        editing = false;
+        if (!skipBlurCommit) {
+            commitValue();
+        }
+        skipBlurCommit = false;
+        if (pendingValue != null) {
+            const next = pendingValue;
+            pendingValue = null;
+            setValue(next);
+        }
+    });
+
+    setValue(initialValue);
+    if (lockToggle) lockToggle.refresh();
+
+    const commitValueWithArg = (val) => { input.value = val; commitValue(); };
+    if (isBuildingStats) { debugPanelStatSetters.push(commitValueWithArg); }
+
+    return { row, input, setValue, isEditing: () => editing, commitValueWithArg };
+}
+
+function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable, slot }) {
+    const row = document.createElement('div');
+    row.className = 'debug-panel-row debug-unlock-row';
+
+    const toggle = document.createElement('label');
+    toggle.className = 'flag-toggle';
+    toggle.setAttribute('aria-label', labelText);
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+
+    const slider = document.createElement('span');
+    slider.className = 'flag-slider';
+
+    toggle.appendChild(input);
+    toggle.appendChild(slider);
+
+    const textContainer = document.createElement('div');
+    textContainer.className = 'debug-unlock-text';
+
+    const title = document.createElement('span');
+    title.className = 'debug-unlock-title';
+    title.textContent = labelText;
+    textContainer.appendChild(title);
+
+    if (description) {
+        const desc = document.createElement('span');
+        desc.className = 'debug-unlock-desc';
+        desc.textContent = `- ${description}`;
+        textContainer.appendChild(desc);
+    }
+
+    row.appendChild(toggle);
+    row.appendChild(textContainer);
+
+    const toggleRow = () => {
+        input.checked = !input.checked;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    row.addEventListener('click', (event) => {
+        if (window.currentArea === 666) return;
+        if (toggle.contains(event.target)) return;
+        toggleRow();
+    });
+
+    let lastKnown = false;
+
+    const refresh = () => {
+        let unlocked = false;
+        try { unlocked = typeof isUnlocked === 'function' ? !!isUnlocked() : false; }
+        catch {}
+        input.checked = unlocked;
+        lastKnown = unlocked;
+        return unlocked;
+    };
+
+    input.addEventListener('change', (event) => {
+        if (window.currentArea === 666) {
+            // Restore previous state if in jail and prevent processing
+            input.checked = lastKnown;
+            return;
+        }
+
+        const previous = lastKnown;
+        const unlocked = input.checked;
+        try {
+            if (unlocked) {
+                onEnable?.();
+            } else {
+                onDisable?.();
+            }
+        } catch {}
+        flagDebugUsage();
+        const refreshed = refresh();
+        if (previous !== refreshed) {
+            logAction(`Toggled ${labelText} [GOLD]${previous ? 'True' : 'False'}[/GOLD] → [GOLD]${refreshed ? 'True' : 'False'}[/GOLD]`);
+        }
+    });
+
+    refresh();
+    registerLiveBinding({ type: 'unlock', slot, refresh });
+    return row;
+}
+
+function formatCalculatorResult(value) {
+    try {
+        if (value instanceof BigNum || typeof value?.toScientific === 'function') {
+            return formatNumber(value);
+        }
+        const num = Number(value);
+        if (Number.isFinite(num)) {
+            return formatNumber(num);
+        }
+        return String(value ?? '—');
+    } catch {
+        return '—';
+    }
+}
+
+function createCalculatorRow({ labelText, inputs = [], compute }) {
+    const row = document.createElement('div');
+    row.className = 'debug-panel-row debug-calculator-row';
+
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    row.appendChild(label);
+
+    const controls = document.createElement('div');
+    controls.className = 'debug-calculator-inputs';
+    row.appendChild(controls);
+
+    const output = document.createElement('div');
+    output.className = 'debug-calculator-output';
+    output.textContent = '—';
+    row.appendChild(output);
+
+    const fieldEls = [];
+
+    const recompute = () => {
+        const values = {};
+        let hasError = false;
+
+        fieldEls.forEach(({ config, el }) => {
+            if (config.type === 'select') {
+                values[config.key] = el.value;
+                return;
+            }
+
+            const parsed = parseBigNumInput(el.value);
+            const valid = parsed instanceof BigNum;
+            setInputValidity(el, valid);
+            if (!valid) {
+                hasError = true;
+                return;
+            }
+            values[config.key] = parsed;
+        });
+
+        if (hasError || typeof compute !== 'function') {
+            output.textContent = '—';
+            return;
+        }
+
+        try {
+            const result = compute(values);
+            setHtmlOrText(output, formatCalculatorResult(result));
+        } catch {
+            output.textContent = '—';
+        }
+    };
+
+    inputs.forEach((inputConfig) => {
+        const config = Object.assign({ type: 'text', defaultValue: '' }, inputConfig);
+        if (!config.key) return;
+
+        if (config.type === 'select') {
+            const select = document.createElement('select');
+            select.className = 'debug-panel-input';
+            (config.options || []).forEach(({ value, label: optLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optLabel ?? value;
+                if (config.defaultValue != null && config.defaultValue === value) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            select.addEventListener('change', recompute);
+            controls.appendChild(select);
+            fieldEls.push({ config, el: select });
+        } else {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'debug-panel-input';
+            input.placeholder = config.label || '';
+            input.value = config.defaultValue ?? '';
+            input.addEventListener('input', recompute);
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    recompute();
+                }
+            });
+            controls.appendChild(input);
+            fieldEls.push({ config, el: input });
+        }
+    });
+
+    recompute();
+
+    return row;
+}
+
+function applyXpState({ level, progress }) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return getXpState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.xpLevel ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+
+  // If either field is being changed back to a finite value, but its partner
+  // was still stuck at Infinity, zero it out so the XP system can resume
+  // normal accumulation.
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      if (level != null) {
+        nextProgress = zero.clone?.() ?? zero;
+      }
+    } else if (progressIsFinite && !levelIsFinite) {
+      if (progress != null) {
+        nextLevel = zero.clone?.() ?? zero;
+      }
+    }
+  }
+
+    // If we're manually editing XP stats from the debug panel, the XP system
+    // should be treated as unlocked.
+    try { unlockXpSystem(); } catch {}
+
+    const unlockKey = XP_KEYS.unlock(slot);
+    try { localStorage.setItem(unlockKey, '1'); } catch {}
+    primeStorageWatcherSnapshot(unlockKey, '1');
+
+  if (nextLevel != null) {
+    try {
+      const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+      const key = XP_KEYS.level(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
+
+  if (nextProgress != null) {
+    try {
+      const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+      const key = XP_KEYS.progress(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
+
+    try {
+        initXpSystem({ forceReload: true });
+    } catch {}
+
+    // Let any XP listeners know we've made a manual change so dependent UI (like
+    // the Forge reset panel) can refresh immediately without waiting for normal
+    // gameplay hooks to fire.
+    try {
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup('xp', nextProgress, { overrideAmount: true });
+        }
+        broadcastXpChange({ changeType: 'debug-panel', slot, xpAdded: 0 });
+    } catch {}
+
+    // Also keep ALL debug live bindings in sync (including the Unlocks tab
+    // "Unlock XP" flag, which reads getXpState().unlocked).
+    try {
+        refreshLiveBindings();
+    } catch {}
+}
+
+function applyPpState({ level, progress }) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return window.ppSystem.getPpState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    if (value instanceof BigNum) return value;
+    try { return BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.ppLevel ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  if (nextLevel == null && nextProgress == null) return;
+
+  if (nextLevel == null) nextLevel = zero;
+  if (nextProgress == null) nextProgress = zero;
+
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      if (level != null) {
+        nextProgress = zero.clone?.() ?? zero;
+      }
+    } else if (progressIsFinite && !levelIsFinite) {
+      if (progress != null) {
+        nextLevel = zero.clone?.() ?? zero;
+      }
+    }
+  }
+
+  try {
+      const rawLevel = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage(); localStorage.setItem(PP_KEYS.level(slot), rawLevel); primeStorageWatcherSnapshot(PP_KEYS.level(slot), rawLevel);
+      const rawProgress = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage(); localStorage.setItem(PP_KEYS.progress(slot), rawProgress); primeStorageWatcherSnapshot(PP_KEYS.progress(slot), rawProgress);
+      if (typeof window !== 'undefined') {
+          const detail = window.ppSystem?.getPpState?.() || { ppLevel: nextLevel, progress: nextProgress };
+          window.dispatchEvent(new CustomEvent('pp:change', { detail }));
+      }
+  } catch {}
+
+  try {
+      window.ppSystem.initPpSystem({ forceReload: true });
+  } catch {}
+
+  try {
+      if (typeof window !== 'undefined' && window.showPopup) {
+          window.showPopup('pp', nextProgress, { overrideAmount: true });
+      }
+      window.dispatchEvent(new CustomEvent('pp:change', { detail: { changeType: 'debug-panel', slot, ppAdded: 0 } }));
+  } catch {}
+
+  try {
+      refreshLiveBindings();
+  } catch {}
+}
+
+function applyDpState({ level, progress }) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return window.dpSystem.getDpState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.dpLevel ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      if (level != null) {
+        nextProgress = zero.clone?.() ?? zero;
+      }
+    } else if (progressIsFinite && !levelIsFinite) {
+      if (progress != null) {
+        nextLevel = zero.clone?.() ?? zero;
+      }
+    }
+  }
+
+    const unlockKey = DP_KEYS.unlock(slot);
+    try { localStorage.setItem(unlockKey, '1'); } catch {}
+    primeStorageWatcherSnapshot(unlockKey, '1');
+
+  if (nextLevel != null) {
+    try {
+      const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+      const key = DP_KEYS.level(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
+
+
+  if (nextProgress != null) {
+    try {
+      const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+      const key = DP_KEYS.progress(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
+
+    try {
+        window.dpSystem.initDpSystem({ forceReload: true });
+    } catch {}
+
+    try {
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup('dp', nextProgress, { overrideAmount: true });
+        }
+        window.dispatchEvent(new CustomEvent('dp:change', { detail: { changeType: 'debug-panel', slot, dpAdded: 0 } }));
+    } catch {}
+
+    try {
+        refreshLiveBindings();
+    } catch {}
+}
+
+function applyMutationState({ level, progress }) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return getMutationState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.level ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      nextProgress = zero.clone?.() ?? zero;
+    } else if (progressIsFinite && !levelIsFinite) {
+      nextLevel = zero.clone?.() ?? zero;
+    }
+  }
+
+    // If the MP system isn't unlocked yet, setting its level/progress should
+    // auto-enable the relevant unlock flags so the UI and systems stay in
+    // sync.
+    try {
+        const forgeUnlocked = typeof window.resetSystem?.isForgeUnlocked === 'function' ? window.resetSystem.isForgeUnlocked() : false;
+        const forgeOverride = typeof window.resetSystem?.getForgeDebugOverrideState === 'function'
+            ? window.resetSystem.getForgeDebugOverrideState()
+            : null;
+        if (!forgeUnlocked && forgeOverride !== true) {
+            window.resetSystem?.setForgeDebugOverride?.(true);
+        }
+    } catch {}
+
+    try {
+        if (typeof window.resetSystem?.hasDoneForgeReset === 'function' && !window.resetSystem.hasDoneForgeReset()) {
+            window.resetSystem?.setForgeResetCompleted?.(true);
+        }
+    } catch {}
+
+    try { setMutationUnlockedForDebug(true); } catch {}
+
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
+
+    // Make sure the mutation / MP system is treated as unlocked if we're
+    // manually editing its stats from the debug panel.
+    try { initMutationSystem(); } catch {}
+    try { unlockMutationSystem(); } catch {}
+
+    const unlockKey = MUTATION_KEYS.unlock(slot);
+    try { localStorage.setItem(unlockKey, '1'); } catch {}
+    primeStorageWatcherSnapshot(unlockKey, '1');
+
+    if (nextLevel != null) {
+        try {
+            const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+            const key = MUTATION_KEYS.level(slot);
+            localStorage.setItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
+
+    if (nextProgress != null) {
+        try {
+            const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+            const key = MUTATION_KEYS.progress(slot);
+            localStorage.setItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
+
+    try {
+        initMutationSystem({ forceReload: true });
+    } catch {}
+
+    try {
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup('mp', nextProgress, { overrideAmount: true });
+        }
+        broadcastMutationChange({ changeType: 'debug-panel', slot, delta: 0 });
+    } catch {}
+
+    try { window.resetSystem?.recomputePendingMagic?.(); } catch {}
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
+
+    // Keep all debug rows that depend on mutation / MP state in sync.
+    try {
+        refreshLiveBindings();
+    } catch {}
+}
+
+function buildAreaCurrencies(container, area) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit currency values.';
+        container.appendChild(msg);
+        return;
+    }
+
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
+    area.currencies.forEach((currency) => {
+        const storageKey = getCurrencyStorageKey(currency.key, slot);
+        const current = getCurrencyValueForSlot(currency.key, slot);
+        const currencyRow = createInputRow(currency.label, current, (value, { setValue }) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            const previous = getCurrencyValueForSlot(currency.key, latestSlot);
+            const { next } = applyCurrencyState(currency.key, value, latestSlot);
+            setValue(next);
+            if (!bigNumEquals(previous, next)) {
+                flagDebugUsage();
+                logAction(`Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(next)}`);
+            }
+        }, {
+            storageKey,
+            onLockChange: () => currencyRow.setValue(getCurrencyValueForSlot(currency.key, getActiveSlot())),
+        });
+        registerLiveBinding({
+            type: 'currency',
+            key: currency.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getCurrencyValueForSlot(currency.key, slot);
+                currencyRow.setValue(latest);
+            },
+        });
+        container.appendChild(currencyRow.row);
+    });
+}
+
+function buildAreaStats(container, area) {
+    isBuildingStats = true;
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit stats.';
+        container.appendChild(msg);
+        return;
+
+    }
+	
+	    if (area.key === AREA_KEYS.STARTER_COVE) {
+        const voidLevelRow = createInputRow('Void Level', getVoidLevel(slot), (value, { setValue }) => {
+            let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+                let valBn;
+                try {
+                     valBn = valToApply instanceof BigNum ? valToApply : BigNum.fromAny(valToApply);
+                if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
+                if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+            } catch {
+                setValue(getVoidLevel(slot));
+                return;
+            }
+
+            const prev = getVoidLevel(slot);
+            setVoidLevel(valBn, slot);
+            
+            flagDebugUsage();
+            if (!bigNumEquals(prev, valBn)) {
+                logAction(`Modified Void Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
+            }
+            setValue(valBn);
+        }, {
+            storageKey: `ccc:voidLevel:${slot}`,
+        });
+
+        registerLiveBinding({
+            type: 'void-level',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                voidLevelRow.setValue(getVoidLevel(slot));
+            }
+        });
+
+        container.appendChild(voidLevelRow.row);
+    }
+
+    if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+        const materialSpawnRateKey = 'materialSpawnRate';
+        const materialSpawnRateStorageKey = getStatMultiplierStorageKey(materialSpawnRateKey, slot);
+        const materialSpawnRateRow = createInputRow('Material Spawn Rate', getStatMultiplierDisplayValue(materialSpawnRateKey, slot), (value, { setValue }) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            const previous = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
+            try { setDebugStatMultiplierOverride(materialSpawnRateKey, value, latestSlot); } catch {}
+            const refreshed = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+                logAction(`Modified Material Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
+            }
+        }, {
+            storageKey: materialSpawnRateStorageKey,
+            onLockChange: (locked) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                if (locked) {
+                    const existingOverride = getLockedStatOverride(latestSlot, materialSpawnRateKey);
+                    if (existingOverride) return;
+                    try {
+                        setDebugStatMultiplierOverride(
+                            materialSpawnRateKey,
+                            getGameStatMultiplier(materialSpawnRateKey),
+                            latestSlot
+                        );
+                    } catch {}
+                } else {
+                    getEffectiveStatMultiplierOverride(
+                        materialSpawnRateKey,
+                        latestSlot,
+                        getGameStatMultiplier(materialSpawnRateKey)
+                    );
+                }
+                materialSpawnRateRow.setValue(getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot));
+            },
+        });
+
+        registerLiveBinding({
+            type: 'stat-mult',
+            key: materialSpawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(materialSpawnRateKey, slot);
+                materialSpawnRateRow.setValue(latest);
+            },
+        });
+
+        registerLiveBinding({
+            type: 'upgrade',
+            key: materialSpawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(materialSpawnRateKey, slot);
+                materialSpawnRateRow.setValue(latest);
+            },
+        });
+
+        container.appendChild(materialSpawnRateRow.row);
+
+        const dpStateVal = window.dpSystem ? window.dpSystem.getDpState() : { dpLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
+
+        let dpProgressRow;
+        const dpLevelKey = DP_KEYS.level(slot);
+        const dpLevelRow = createInputRow('Depth', dpStateVal.dpLevel, (value, { setValue }) => {
+            const prev = window.dpSystem.getDpState().dpLevel;
+            let valToApply = value;
+            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            }
+            applyDpState({ level: valToApply });
+            const latest = window.dpSystem.getDpState();
+            setValue(latest.dpLevel);
+            if (dpProgressRow) dpProgressRow.setValue(latest.progress);
+            if (!bigNumEquals(prev, latest.dpLevel)) {
+                flagDebugUsage();
+                logAction(`Modified DP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.dpLevel)}`);
+            }
+        }, { storageKey: dpLevelKey });
+        registerLiveBinding({
+            type: 'dp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.dpSystem) dpLevelRow.setValue(window.dpSystem.getDpState().dpLevel);
+            },
+        });
+        container.appendChild(dpLevelRow.row);
+
+        const dpProgressKey = DP_KEYS.progress(slot);
+        dpProgressRow = createInputRow('DP', dpStateVal.progress, (value, { setValue }) => {
+            const prev = window.dpSystem.getDpState();
+            const prevLevel = prev?.dpLevel?.clone?.() ?? prev?.dpLevel;
+            const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+            applyDpState({ progress: value });
+            const latest = window.dpSystem.getDpState();
+            setValue(latest.progress);
+            dpLevelRow.setValue(latest.dpLevel);
+            if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.dpLevel)) {
+                flagDebugUsage();
+                logAction(`Modified DP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
+            }
+        }, { storageKey: dpProgressKey });
+        registerLiveBinding({
+            type: 'dp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.dpSystem) dpProgressRow.setValue(window.dpSystem.getDpState().progress);
+            },
+        });
+        container.appendChild(dpProgressRow.row);
+
+        const ppStateVal = window.ppSystem ? window.ppSystem.getPpState() : { ppLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
+
+        let ppProgressRow; // forward declaration
+        const ppLevelKey = PP_KEYS.level(slot);
+        const ppLevelRow = createInputRow('Pressure', ppStateVal.ppLevel, (value, { setValue }) => {
+            const prev = window.ppSystem.getPpState().ppLevel;
+            let valToApply = value;
+            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            }
+            applyPpState({ level: valToApply });
+            const latest = window.ppSystem.getPpState();
+            setValue(latest.ppLevel);
+            if (ppProgressRow) ppProgressRow.setValue(latest.progress);
+            if (!bigNumEquals(prev, latest.ppLevel)) {
+                flagDebugUsage();
+                logAction(`Modified PP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.ppLevel)}`);
+            }
+        }, { storageKey: ppLevelKey });
+        registerLiveBinding({
+            type: 'pp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.ppSystem) ppLevelRow.setValue(window.ppSystem.getPpState().ppLevel);
+            },
+        });
+        container.appendChild(ppLevelRow.row);
+
+        const ppProgressKey = PP_KEYS.progress(slot);
+        ppProgressRow = createInputRow('PP', ppStateVal.progress, (value, { setValue }) => {
+            const prev = window.ppSystem.getPpState();
+            const prevLevel = prev?.ppLevel?.clone?.() ?? prev?.ppLevel;
+            const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+            applyPpState({ progress: value });
+            const latest = window.ppSystem.getPpState();
+            setValue(latest.progress);
+            ppLevelRow.setValue(latest.ppLevel);
+            if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.ppLevel)) {
+                flagDebugUsage();
+                logAction(`Modified PP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
+            }
+        }, { storageKey: ppProgressKey });
+        registerLiveBinding({
+            type: 'pp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.ppSystem) ppProgressRow.setValue(window.ppSystem.getPpState().progress);
+            },
+        });
+        container.appendChild(ppProgressRow.row);
+    }
+
+    if (area.key === AREA_KEYS.STARTER_COVE) {
+    const spawnRateKey = 'spawnRate';
+    const spawnRateStorageKey = getStatMultiplierStorageKey(spawnRateKey, slot);
+    const spawnRateRow = createInputRow('Coin Spawn Rate', getStatMultiplierDisplayValue(spawnRateKey, slot), (value, { setValue }) => {
+        const latestSlot = getActiveSlot();
+        if (latestSlot == null) return;
+        const previous = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
+        try { setDebugStatMultiplierOverride(spawnRateKey, value, latestSlot); } catch {}
+        const refreshed = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
+        setValue(refreshed);
+        if (!bigNumEquals(previous, refreshed)) {
+            flagDebugUsage();
+            logAction(`Modified Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
+        }
+    }, {
+        storageKey: spawnRateStorageKey,
+        onLockChange: (locked) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            if (locked) {
+                const existingOverride = getLockedStatOverride(latestSlot, spawnRateKey);
+                if (existingOverride) return;
+                try {
+                    setDebugStatMultiplierOverride(
+                        spawnRateKey,
+                        getGameStatMultiplier(spawnRateKey),
+                        latestSlot
+                    );
+                } catch {}
+            } else {
+                getEffectiveStatMultiplierOverride(
+                    spawnRateKey,
+                    latestSlot,
+                    getGameStatMultiplier(spawnRateKey)
+                );
+            }
+            spawnRateRow.setValue(getStatMultiplierDisplayValue(spawnRateKey, latestSlot));
+        },
+    });
+
+    registerLiveBinding({
+        type: 'stat-mult',
+        key: spawnRateKey,
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
+            spawnRateRow.setValue(latest);
+        },
+    });
+
+    registerLiveBinding({
+        type: 'upgrade',
+        key: spawnRateKey,
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
+            spawnRateRow.setValue(latest);
+        },
+    });
+
+    container.appendChild(spawnRateRow.row);
+    }
+
+    const xp = getXpState();
+    const mutation = getMutationState();
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
+    if (area.key === AREA_KEYS.STARTER_COVE) {
+    let xpProgressRow;
+    const xpLevelKey = XP_KEYS.level(slot);
+    const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+        const prev = getXpState().xpLevel;
+        applyXpState({ level: valToApply });
+        const latest = getXpState();
+        setValue(latest.xpLevel);
+        if (xpProgressRow) xpProgressRow.setValue(latest.progress);
+        if (!bigNumEquals(prev, latest.xpLevel)) {
+            flagDebugUsage();
+            logAction(`Modified XP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.xpLevel)}`);
+        }
+    }, { storageKey: xpLevelKey });
+    registerLiveBinding({
+        type: 'xp',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            xpLevelRow.setValue(getXpState().xpLevel);
+        },
+    });
+    container.appendChild(xpLevelRow.row);
+
+    const xpProgressKey = XP_KEYS.progress(slot);
+    xpProgressRow = createInputRow('XP', xp.progress, (value, { setValue }) => {
+        const prev = getXpState();
+        const prevLevel = prev?.xpLevel?.clone?.() ?? prev?.xpLevel;
+        const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+        applyXpState({ progress: value });
+        const latest = getXpState();
+        setValue(latest.progress);
+        xpLevelRow.setValue(latest.xpLevel);
+        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.xpLevel)) {
+            flagDebugUsage();
+            logAction(`Modified XP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
+        }
+    }, { storageKey: xpProgressKey });
+    registerLiveBinding({
+        type: 'xp',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            xpProgressRow.setValue(getXpState().progress);
+        },
+    });
+    container.appendChild(xpProgressRow.row);
+
+    let mpProgressRow;
+    const mpLevelKey = MUTATION_KEYS.level(slot);
+    const mpLevelRow = createInputRow('Mutation', mutation.level, (value, { setValue }) => {
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+        const prev = getMutationState().level;
+        applyMutationState({ level: valToApply });
+        const latest = getMutationState();
+        setValue(latest.level);
+        if (mpProgressRow) mpProgressRow.setValue(latest.progress);
+        if (!bigNumEquals(prev, latest.level)) {
+            flagDebugUsage();
+            logAction(`Modified MP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.level)}`);
+        }
+    }, { storageKey: mpLevelKey });
+    registerLiveBinding({
+        type: 'mutation',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            mpLevelRow.setValue(getMutationState().level);
+        },
+    });
+    container.appendChild(mpLevelRow.row);
+
+    const mpProgressKey = MUTATION_KEYS.progress(slot);
+    mpProgressRow = createInputRow('MP', mutation.progress, (value, { setValue }) => {
+        const prev = getMutationState();
+        const prevLevel = prev?.level?.clone?.() ?? prev?.level;
+        const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+        applyMutationState({ progress: value });
+        const latest = getMutationState();
+        setValue(latest.progress);
+        mpLevelRow.setValue(latest.level);
+        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {
+            flagDebugUsage();
+            logAction(`Modified MP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
+        }
+    }, { storageKey: mpProgressKey });
+    registerLiveBinding({
+        type: 'mutation',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            mpProgressRow.setValue(getMutationState().progress);
+        },
+    });
+    container.appendChild(mpProgressRow.row);
+	
+	    if (area.key === AREA_KEYS.STARTER_COVE) {
+    // Workshop Level
+    const genLevelKey = getGenerationLevelKey(slot);
+    if (genLevelKey) {
+        const getLevel = () => {
+        try {
+            const raw = localStorage.getItem(genLevelKey);
+            const bn = BigNum.fromAny(raw || '0');
+            if (bn.isInfinite()) return Infinity;
+            try {
+                return Number(bn.toScientific(20));
+            } catch {
+                return 0;
+            }
+        } catch {
+            return 0;
+        }
+    };
+
+    const genLevelRow = createInputRow('Workshop Level', getLevel(), (value, { setValue }) => {
+        // Helper to get a finite number from input, which might be BigNum or string/number
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+        let valNum = Number(valToApply);
+        if (valToApply instanceof BigNum) {
+             if (valToApply.isInfinite()) {
+                 valNum = Infinity; 
+             } else {
+                 try {
+                    // Use a large enough precision for toScientific to preserve the exponent
+                    // toScientific(20) returns e.g. "1.000...e21"
+                    valNum = Number(value.toScientific(20));
+                 } catch {
+                    valNum = NaN;
+                 }
+             }
+        }
+
+        if (Number.isNaN(valNum) || valNum < 0) return;
+        valNum = Math.floor(valNum);
+        if (valNum >= 4.5e12) valNum = Infinity;
+        const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
+        
+        try {
+            const currentGenLevel = getLevel();
+            localStorage.setItem(genLevelKey, cleanVal);
+            flagDebugUsage();
+            if (currentGenLevel !== valNum) {
+                logAction(`Modified Workshop Level (The Cove) ${formatNumber(currentGenLevel)} → ${cleanVal}`);
+            }
+        } catch {}
+        
+        setValue(valNum);
+    }, {
+            storageKey: genLevelKey,
+            onLockChange: () => {
+                let newVal = 0;
+                try {
+                    const r = localStorage.getItem(genLevelKey);
+                    const bn = BigNum.fromAny(r || '0');
+                    if (bn.isInfinite()) newVal = Infinity;
+                    else newVal = Number(bn.toScientific(20));
+                } catch {}
+                genLevelRow.setValue(newVal);
+            }
+        });
+        
+        container.appendChild(genLevelRow.row);
+
+        registerLiveBinding({
+            type: 'workshop-level',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                let newVal = 0;
+                try {
+                    const r = localStorage.getItem(genLevelKey);
+                    const bn = BigNum.fromAny(r || '0');
+                    if (bn.isInfinite()) newVal = Infinity;
+                    else newVal = Number(bn.toScientific(20));
+                } catch {}
+                genLevelRow.setValue(newVal);
+            }
+        });
+    }
+
+    // Surge Level
+    const surgeLevelKey = getSurgeBarLevelKey(slot);
+    if (surgeLevelKey) {
+        const getSurgeLevel = () => {
+        try {
+            const raw = localStorage.getItem(surgeLevelKey);
+            if (raw === 'Infinity') return Infinity;
+            return BigNum.fromAny(raw || '0');
+        } catch { return BigNum.fromInt(0); }
+    };
+
+    const surgeLevelRow = createInputRow('Surge', getSurgeLevel(), (value, { setValue }) => {
+        let valToApply = value;
+        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+
+        let valToStore = '0';
+        let valForDisplay = 0;
+
+        if (valToApply instanceof BigNum) {
+             if (value.isInfinite()) {
+                 valToStore = 'Infinity';
+                 valForDisplay = Infinity;
+             } else {
+                 valToStore = value.inf || value.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : value.toPlainIntegerString();
+                 valForDisplay = value;
+             }
+        } else if (valToApply === Infinity || (typeof valToApply === 'string' && /infinity/i.test(valToApply))) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        } else {
+             valToStore = String(valToApply);
+             valForDisplay = valToApply;
+        }
+
+        if (valForDisplay instanceof BigNum && valForDisplay.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        } else if (typeof valForDisplay === 'number' && valForDisplay >= 4.5e12) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        } else if (typeof valForDisplay === 'string' && Number(valForDisplay) >= 4.5e12) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        }
+
+        try {
+            const currentSurgeLevel = getSurgeLevel();
+            localStorage.setItem(surgeLevelKey, valToStore);
+            flagDebugUsage();
+            
+            const displayStr = valForDisplay === Infinity ? 'Infinity' : formatNumber(valForDisplay);
+            const prevStr = (currentSurgeLevel === Infinity || (currentSurgeLevel instanceof BigNum && currentSurgeLevel.isInfinite())) 
+                            ? 'Infinity' 
+                            : formatNumber(currentSurgeLevel);
+            
+            if (prevStr !== displayStr) {
+                logAction(`Modified Surge Level (The Cove) ${prevStr} → ${displayStr}`);
+            }
+            
+            let isSurge8 = false;
+            let currentLevelToCheck = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
+            if (currentLevelToCheck === Infinity) {
+                isSurge8 = true;
+            } else if (currentLevelToCheck instanceof BigNum) {
+                if (typeof currentLevelToCheck.cmp === 'function' && currentLevelToCheck.cmp(8) >= 0) {
+                    isSurge8 = true;
+                }
+            } else if (typeof currentLevelToCheck === 'number') {
+                if (currentLevelToCheck >= 8) isSurge8 = true;
+            }
+
+            if (isSurge8) {
+                setTsunamiNerf(0.00);
+                if (!isLabUnlocked()) {
+                    setLabUnlocked(true);
+                    try { setTsunamiSequencePlayed(true); } catch {}
+                }
+            }
+        } catch {}
+        
+        setValue(valForDisplay);
+        try { window.resetSystem?.updateResetPanel?.(); } catch {}
+        try {
+            let eventLevel = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
+            if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
+                try { eventLevel = eventLevel.inf || eventLevel.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(eventLevel.toPlainIntegerString()); } catch {}
+            }
+            window.dispatchEvent(new CustomEvent('surge:level:change', {
+                detail: { slot, level: eventLevel }
+            }));
+        } catch {}
+    }, {
+            storageKey: surgeLevelKey,
+            onLockChange: (locked) => {
+                 let newVal = BigNum.fromInt(0);
+                 try {
+                    const r = localStorage.getItem(surgeLevelKey);
+                     if (r === 'Infinity') {
+                         newVal = Infinity;
+                     } else {
+                         newVal = BigNum.fromAny(r || '0');
+                     }
+                 } catch {}
+                 surgeLevelRow.setValue(newVal);
+            }
+        });
+        
+        registerLiveBinding({
+            type: 'surge-level', 
+            slot,
+            refresh: () => {
+                 if (slot !== getActiveSlot()) return;
+                 let newVal = BigNum.fromInt(0);
+                 try {
+                    const r = localStorage.getItem(surgeLevelKey);
+                     if (r === 'Infinity') {
+                         newVal = Infinity;
+                     } else {
+                         newVal = BigNum.fromAny(r || '0');
+                     }
+                 } catch {}
+                 surgeLevelRow.setValue(newVal);
+            }
+        });
+        
+        container.appendChild(surgeLevelRow.row);
+    }
+
+    // Lab Level
+    const labLevel = getLabLevel();
+    const labLevelRow = createInputRow('Lab Level', labLevel, (value, { setValue }) => {
+        let valBn;
+        try {
+             valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+             if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
+             if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+        } catch {
+             setValue(getLabLevel());
+             return;
+        }
+
+        const prev = getLabLevel();
+        setLabLevel(valBn);
+        
+        flagDebugUsage();
+        if (!bigNumEquals(prev, valBn)) {
+            logAction(`Modified Lab Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
+        }
+        setValue(valBn);
+    }, {
+        storageKey: getLabLevelKey(slot)
+    });
+    
+    registerLiveBinding({
+        type: 'lab-level',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            labLevelRow.setValue(getLabLevel());
+        }
+    });
+    
+    container.appendChild(labLevelRow.row);
+
+    // Tsunami Exponent
+    // This value is 0.00 when the tsunami is fully active (nerfing everything),
+    // and goes up to 1.00 (restored) as you gain Surge Levels.
+    // We display it as a decimal (0.00 - 1.00).
+    // The displayed value includes the Research Lab bonus.
+    const getTsunamiExponent = () => {
+        const base = getBaseTsunamiExponent();
+        const bonus = getTsunamiResearchBonus();
+        let val = base + bonus;
+        if (val > 1) val = 1;
+        return val;
+    };
+
+    const tsunamiRow = createInputRow('Tsunami Exponent', getTsunamiExponent().toFixed(2), (value, { setValue }) => {
+        let valNum = Number(value);
+        
+        // Handle BigNum inputs or "inf"
+        if (value instanceof BigNum) {
+             if (value.isInfinite()) valNum = Infinity;
+             else valNum = Number(value.toScientific(10));
+        } else if (typeof value === 'string' && /infinity/i.test(value)) {
+             valNum = Infinity;
+        }
+
+        if (Number.isNaN(valNum)) {
+             setValue(getTsunamiExponent().toFixed(2));
+             return;
+        }
+        
+        // The user is inputting the *effective* value they want.
+        // We need to calculate what base value produces that effective value.
+        // Effective = Base + Bonus
+        // Base = Effective - Bonus
+        
+        const bonus = getTsunamiResearchBonus();
+        let targetBase = valNum - bonus;
+        
+        // Clamp base to [0, 1] (logic from before, though strictly it should be 0 to 1)
+        if (targetBase > 1) targetBase = 1;
+        // It's possible for targetBase to be < 0 if they input something smaller than the bonus.
+        // In that case, we set base to 0.
+        if (targetBase < 0) targetBase = 0;
+        
+        // Round base to 2 decimal places to keep it clean
+        targetBase = Math.round(targetBase * 100) / 100;
+
+        const prevBase = getBaseTsunamiExponent();
+        setTsunamiNerf(targetBase);
+        
+        flagDebugUsage();
+        if (Math.abs(prevBase - targetBase) > 0.0001) {
+            logAction(`Modified Tsunami Exponent (The Cove) Base:${prevBase.toFixed(2)} → ${targetBase.toFixed(2)} (Effective: ${valNum.toFixed(2)})`);
+        }
+        setValue(getTsunamiExponent().toFixed(2));
+    }, {
+        storageKey: getTsunamiNerfKey(slot),
+        format: (val) => {
+            // Ensure we format nicely as a number with 2 decimals if possible
+            const n = Number(val);
+            return Number.isFinite(n) ? n.toFixed(2) : String(val);
+        }
+    });
+    
+    registerLiveBinding({
+        type: 'tsunami-nerf',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            const val = getTsunamiExponent();
+            tsunamiRow.setValue(val.toFixed(2));
+        }
+    });
+    container.appendChild(tsunamiRow.row);
+    if (area.key === AREA_KEYS.STARTER_COVE) {
+        const comboLockKey = `ccc:debug:comboLock:${slot}`;
+        const comboRow = createInputRow('Combo', getActiveCombo(), (value, { setValue }) => {
+            let nextVal = 0;
+            if (value === Infinity || (value instanceof BigNum && value.isInfinite())) {
+                nextVal = getMaxCombo();
+            } else {
+                try {
+                    nextVal = value instanceof BigNum ? Number(value.toScientific(10)) : Number(value);
+                } catch {
+                    nextVal = Number(value);
+                }
+                if (Number.isNaN(nextVal)) nextVal = 0;
+            }
+            setActiveCombo(nextVal);
+            setValue(getActiveCombo());
+            flagDebugUsage();
+        }, {
+            storageKey: comboLockKey,
+            onLockChange: (locked) => setComboLocked(locked),
+            format: (val) => {
+                const n = Number(val);
+                return (Number.isFinite(n) && Math.abs(n) < 1e9) ? n.toFixed(3) : formatNumber(val);
+            },
+        });
+        
+        // Initialize lock state from storage
+        setComboLocked(isStorageKeyLocked(comboLockKey));
+
+        registerLiveBinding({
+            type: 'combo',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                comboRow.setValue(getActiveCombo());
+            },
+        });
+        container.appendChild(comboRow.row);
+    }
+    }
+    }
+    isBuildingStats = false;
+}
+
+function buildAreaUpgrades(container, area) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit upgrades.';
+        container.appendChild(msg);
+        return;
+    }
+
+    const upgrades = getUpgradesForArea(area.key);
+    if (!upgrades || upgrades.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'No upgrades found for this area yet.';
+        container.appendChild(msg);
+        return;
+    }
+
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
+    upgrades.forEach((upg) => {
+        const idLabel = upg.id ?? upg.tie ?? upg.tieKey;
+        const title = upg.title || `Upgrade ${idLabel ?? ''}`.trim();
+        const current = getLevel(area.key, upg.id ?? upg.tie);
+        const storageKey = getUpgradeStorageKey(area.key, upg.id ?? upg.tie, slot);
+        const upgradeRow = createInputRow(title, current, (value, { setValue }) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            const previous = getLevel(area.key, upg.id ?? upg.tie);
+            let valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+            if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
+            try { setLevel(area.key, upg.id ?? upg.tie, valBn, false); } catch {}
+            const refreshed = getLevel(area.key, upg.id ?? upg.tie);
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+                logAction(`Modified ${title} (${areaLabel} - ID: ${idLabel ?? 'Unknown'}) Lv${formatNumber(previous)} → Lv${formatNumber(refreshed)}`);
+            }
+        }, { idLabel, storageKey });
+        registerLiveBinding({
+            type: 'upgrade',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const refreshed = getLevel(area.key, upg.id ?? upg.tie);
+                upgradeRow.setValue(refreshed);
+            },
+        });
+        container.appendChild(upgradeRow.row);
+    });
+}
+
+function buildAreaCurrencyMultipliers(container, area) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit currency multipliers.';
+        container.appendChild(msg);
+        return;
+    }
+
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
+    area.currencies.forEach((currency) => {
+        const handle = bank?.[currency.key]?.mult;
+        const currentOverride = getDebugCurrencyMultiplierOverride(currency.key, slot);
+        const current = currentOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
+        const storageKey = getCurrencyMultiplierStorageKey(currency.key, slot);
+        const row = createInputRow(`${currency.label} Multiplier`, current, (value, { setValue }) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            const previous = getDebugCurrencyMultiplierOverride(currency.key, latestSlot)
+                ?? handle?.get?.()
+                ?? BigNum.fromInt(1);
+            try { setDebugCurrencyMultiplierOverride(currency.key, value, latestSlot); } catch {}
+            applyAllCurrencyOverridesForActiveSlot();
+            const refreshedOverride = getDebugCurrencyMultiplierOverride(currency.key, latestSlot);
+            const refreshed = refreshedOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+                logAction(`Modified ${currency.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
+            }
+        }, { storageKey });
+        registerLiveBinding({
+            type: 'currency-mult',
+            key: currency.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latestOverride = getDebugCurrencyMultiplierOverride(currency.key, slot);
+                const latest = latestOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
+                row.setValue(latest);
+            },
+        });
+        container.appendChild(row.row);
+    });
+}
+
+function setAllCurrenciesToInfinity() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    const inf = BigNum.fromAny('Infinity');
+    let updated = 0;
+
+    Object.values(CURRENCIES).forEach((key) => {
+        const handle = bank?.[key];
+        if (!handle) return;
+        try {
+            const current = handle.value ?? handle.get?.();
+            const isAlreadyInf =
+                current?.isInfinite?.() ||
+                bigNumEquals(current, inf);
+
+            if (isAlreadyInf) return;
+
+            handle.set(inf);
+            updated += 1;
+        } catch {}
+    });
+
+    return updated;
+}
+
+function setAllCurrenciesToZero() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    const zero = BigNum.fromInt(0);
+    let updated = 0;
+
+    Object.values(CURRENCIES).forEach((key) => {
+        const handle = bank?.[key];
+        if (!handle) return;
+        try {
+            handle.set?.(zero);
+            updated += 1;
+        } catch {}
+    });
+
+    return updated;
+}
+
+function setAllStatsToInfinity() {
+    for (const setter of debugPanelStatSetters) {
+        setter('Infinity');
+    }
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
+    try { refreshLiveBindings(); } catch {}
+    return debugPanelStatSetters.length;
+}
+
+function setAllStatsToZero() {
+    for (const setter of debugPanelStatSetters) {
+        setter('0');
+    }
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
+    try { refreshLiveBindings(); } catch {}
+    return debugPanelStatSetters.length;
+}
+
+function getUnlockRowDefinitions(slot) {
+    return [
+        {
+            labelText: 'Unlock Underwater Cavern',
+            description: 'If true, unlocks Underwater Cavern',
+            isUnlocked: () => {
+                try { return !isNodeLocked('cavern', true); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try {
+                    setNodeLocked('cavern', false);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event('pinnedAreas:changed'));
+                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:cavern', slot } }));
+                } catch {}
+            },
+            onDisable: () => {
+                try { setNodeLocked('cavern', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Coral Reef',
+            description: 'If true, unlocks Coral Reef',
+            isUnlocked: () => {
+                try { return !isNodeLocked('coral', true); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try {
+                    setNodeLocked('coral', false);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event('pinnedAreas:changed'));
+                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:coral', slot } }));
+                } catch {}
+            },
+            onDisable: () => {
+                try { setNodeLocked('coral', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Deep Depths',
+            description: 'If true, unlocks Deep Depths',
+            isUnlocked: () => {
+                try { return !isNodeLocked('depths', true); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try {
+                    setNodeLocked('depths', false);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event('pinnedAreas:changed'));
+                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:depths', slot } }));
+                } catch {}
+            },
+            onDisable: () => {
+                try { setNodeLocked('depths', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Combine',
+            description: 'If true, unlocks the Combine reset and Reset tab',
+            isUnlocked: () => {
+                try { return isCombineUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setCombineUnlocked(true); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setCombineUnlocked(false); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Compress',
+            description: 'If true, unlocks the Compress reset',
+            isUnlocked: () => {
+                try { return window.resetSystem?.isCompressUnlocked?.(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setCompressUnlocked?.(true); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setCompressUnlocked?.(false); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Buildings',
+            description: 'If true, unlocks the Buildings tab',
+            isUnlocked: () => {
+                try { return isBuildingsUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setCombineResetCompleted?.(true); }
+                catch {}
+                try { setBuildingsUnlocked(true); }
+                catch {}
+                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
+                catch {}
+                try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
+                catch {}
+                try { window.resetSystem?.updateCombineCard?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setCombineResetCompleted?.(false); }
+                catch {}
+                try { setBuildingsUnlocked(false); }
+                catch {}
+                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
+                catch {}
+                try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
+                catch {}
+                try { window.resetSystem?.updateCombineCard?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Pressure',
+            description: 'If true, unlocks the Pressure system',
+            isUnlocked: () => {
+                try { return window.resetSystem?.hasDoneCompressReset?.() ?? false; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setCompressResetCompleted?.(true); }
+                catch {}
+                try { window.resetSystem?.updateCompressCard?.(); }
+                catch {}
+                try { window.ppSystem?.unlockPpSystem?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setCompressResetCompleted?.(false); }
+                catch {}
+                try { window.resetSystem?.updateCompressCard?.(); }
+                catch {}
+                try { window.ppSystem?.resetPpProgress?.({ keepUnlock: false }); }
+                catch {}
+            },
+            slot,
+        },
+                {
+            labelText: 'Unlock Sell',
+            description: 'If true, unlocks the Sell tab in the Miner delve',
+            isUnlocked: () => {
+                try { return isSellUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setSellUnlocked(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setSellUnlocked(false); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Depth',
+            description: 'If true, unlocks the Depth system',
+            isUnlocked: () => {
+                try { return isDpSystemUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockDpSystem(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { resetDpProgress({ keepUnlock: false }); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock XP',
+            description: 'If true, unlocks the XP system',
+            isUnlocked: () => {
+                try { return !!getXpState()?.unlocked; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockXpSystem(); }
+                catch {}
+                try { initXpSystem({ forceReload: true }); }
+                catch {}
+            },
+            onDisable: () => {
+                try { resetXpProgress({ keepUnlock: false }); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Flow',
+            description: 'If true, unlocks the Flow tab',
+            isUnlocked: () => {
+                try { return !!getFlowUnlockState(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                const slot = getActiveSlot();
+                if (slot == null) return;
+                try { localStorage.setItem(`ccc:unlock:flow:${slot}`, '1'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'flow', slot } })); } catch {}
+            },
+            onDisable: () => {
+                const slot = getActiveSlot();
+                if (slot == null) return;
+                try { localStorage.setItem(`ccc:unlock:flow:${slot}`, '0'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'flow', slot } })); } catch {}
+            },
+            slot,
+        },
+		{
+            labelText: 'Unlock Warp',
+            description: 'If true, unlocks the Warp tab',
+            isUnlocked: () => {
+                try { return window.resetSystem?.hasDoneSurgeReset?.() ?? false; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setSurgeResetCompleted?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setSurgeResetCompleted?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Workshop',
+            description: 'If true, unlocks the Workshop tab',
+            isUnlocked: () => {
+                try { return window.resetSystem?.hasDoneInfuseReset?.() ?? false; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setInfuseResetCompleted?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setInfuseResetCompleted?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+		{
+            labelText: 'Unlock Mutations',
+            description: 'If true, unlocks the Mutation system',
+            isUnlocked: () => {
+                try { return window.resetSystem?.hasDoneForgeReset?.() ?? false; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setForgeResetCompleted?.(true); }
+                catch {}
+                try { setMutationUnlockedForDebug(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setForgeResetCompleted?.(false); }
+                catch {}
+                try { setMutationUnlockedForDebug(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Forge',
+            description: 'If true, unlocks the Forge reset and Reset tab',
+            isUnlocked: () => {
+                try {
+                    const override = window.resetSystem?.getForgeDebugOverrideState?.();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!window.resetSystem?.isForgeUnlocked?.(); }
+                catch { return false; }
+                return false;
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setForgeDebugOverride?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setForgeDebugOverride?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+        },
+        {
+            labelText: 'Unlock Infuse',
+            description: 'If true, unlocks the Infuse reset',
+            isUnlocked: () => {
+                try {
+                    const override = window.resetSystem?.getInfuseDebugOverrideState?.();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!window.resetSystem?.isInfuseUnlocked?.(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setInfuseUnlockedForDebug?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setInfuseUnlockedForDebug?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+		{
+            labelText: 'Unlock Surge',
+            description: 'If true, unlocks the Surge reset',
+            isUnlocked: () => {
+                try {
+                    const override = window.resetSystem?.getSurgeDebugOverrideState?.();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!window.resetSystem?.isSurgeUnlocked?.(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setSurgeUnlockedForDebug?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setSurgeUnlockedForDebug?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Shop',
+            description: 'If true, makes the Shop button visible',
+            isUnlocked: () => {
+                try { return isShopUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockShop(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockShop(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Shop UC',
+            description: 'If true, makes the UC Shop button visible',
+            isUnlocked: () => {
+                try { return isShopUcUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockShopUc(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockShopUc(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Map',
+            description: 'If true, makes the Map button visible',
+            isUnlocked: () => {
+                try { return isMapUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockMap(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockMap(); }
+                catch {}
+            },
+            slot,
+        },
+
+        {
+            labelText: 'Unlock Jeff',
+            description: 'If true, changes the Merchant\'s name to Jeff',
+            isUnlocked: () => {
+                try { return isJeffUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setJeffUnlocked(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setJeffUnlocked(false); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Tsunami',
+            description: 'If true, the Tsunami Sequence has been seen',
+            isUnlocked: () => {
+                try { return !!getTsunamiSequencePlayed(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setTsunamiSequencePlayed(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setTsunamiSequencePlayed(false); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Lab',
+            description: 'If true, unlocks the Lab tab',
+            isUnlocked: () => {
+                try { return !!isLabUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setLabUnlocked(true); }
+                catch {}
+                try { setTsunamiSequencePlayed(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setLabUnlocked(false); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Experiment',
+            description: 'If true, Lab node 4 is maxed',
+            isUnlocked: () => {
+                try { return getResearchNodeLevel(4) >= 1; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setResearchNodeLevel(4, 1); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+                try { window.helpSystem?.updateHelpOverlay?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setResearchNodeLevel(4, 0); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+                try { window.helpSystem?.updateHelpOverlay?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Past N4',
+            description: 'If true, unlocks Lab nodes past node 4',
+            isUnlocked: () => {
+                try { return !!window.resetSystem?.hasDoneExperimentReset?.(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setExperimentResetCompleted?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setExperimentResetCompleted?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+    ];
+}
+
+function setAllUnlockToggles(targetState) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    let toggled = 0;
+    getUnlockRowDefinitions(slot).forEach((rowDef) => {
+        let unlocked = false;
+        try { unlocked = typeof rowDef.isUnlocked === 'function' ? !!rowDef.isUnlocked() : false; }
+        catch {}
+
+        if (unlocked === targetState) return;
+
+        try {
+            if (targetState) {
+                rowDef.onEnable?.();
+            } else {
+                rowDef.onDisable?.();
+            }
+            toggled += 1;
+        } catch {}
+    });
+
+    try { refreshLiveBindings(); } catch {}
+
+    return toggled;
+}
+
+function unlockAllUnlocks() {
+    const slot = getActiveSlot();
+    if (slot == null) return { unlocks: 0, toggles: 0 };
+    let unlocked = 0;
+    getAreas().forEach((area) => {
+        getUpgradesForArea(area.key).forEach((upg) => {
+            if (!upg?.unlockUpgrade) return;
+            try { markUpgradePermanentlyUnlocked(area.key, upg, slot); unlocked += 1; }
+            catch {}
+        });
+    });
+    try { unlockShop(); } catch {}
+    try { unlockShopUc(); } catch {}
+    try { unlockMap(); } catch {}
+    const toggled = setAllUnlockToggles(true);
+    return { unlocks: unlocked, toggles: toggled };
+}
+
+function lockAllUnlockUpgrades() {
+    const slot = getActiveSlot();
+    if (slot == null) return { locks: 0, toggles: 0 };
+    let locked = 0;
+    getAreas().forEach((area) => {
+        getUpgradesForArea(area.key).forEach((upg) => {
+            if (!upg?.unlockUpgrade) return;
+            try { clearPermanentUpgradeUnlock(area.key, upg, slot); locked += 1; }
+            catch {}
+        });
+    });
+    try { lockShop(); } catch {}
+    try { lockShopUc(); } catch {}
+    try { lockMap(); } catch {}
+    const toggled = setAllUnlockToggles(false);
+    return { locks: locked, toggles: toggled };
+}
+
+function getResetTargetLockKeys(target, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return [];
+
+    const keys = new Set();
+    const add = (key) => { if (key) keys.add(key); };
+
+    const addCurrencyKeys = (currencyKey) => {
+        add(getCurrencyStorageKey(currencyKey, resolvedSlot));
+        add(getCurrencyMultiplierStorageKey(currencyKey, resolvedSlot));
+    };
+
+    const addStatMultiplier = (statKey) => add(getStatMultiplierStorageKey(statKey, resolvedSlot));
+
+    const addStatKeys = (statKey) => {
+        addStatMultiplier(statKey);
+        if (statKey === 'xp' || statKey === 'xpLevel' || statKey === 'xpProgress') {
+            add(XP_KEYS.level(resolvedSlot));
+            add(XP_KEYS.progress(resolvedSlot));
+        }
+        if (statKey === 'mutation' || statKey === 'mp' || statKey === 'mpLevel' || statKey === 'mpProgress') {
+            add(MUTATION_KEYS.level(resolvedSlot));
+            add(MUTATION_KEYS.progress(resolvedSlot));
+        }
+        if (statKey === 'dp' || statKey === 'dpLevel' || statKey === 'dpProgress') {
+            add(DP_KEYS.level(resolvedSlot));
+            add(DP_KEYS.progress(resolvedSlot));
+        }
+        if (statKey === 'pp' || statKey === 'ppLevel' || statKey === 'ppProgress') {
+            add(PP_KEYS.level(resolvedSlot));
+            add(PP_KEYS.progress(resolvedSlot));
+        }
+    };
+
+    if (target === 'all') {
+        Object.values(CURRENCIES).forEach(addCurrencyKeys);
+        getAreas().forEach((area) => {
+            area.stats.forEach((stat) => addStatKeys(stat.key));
+        });
+        STAT_MULTIPLIERS.forEach(({ key }) => addStatMultiplier(key));
+        return Array.from(keys);
+    }
+
+    if (target === 'allCurrencies') {
+        Object.values(CURRENCIES).forEach(addCurrencyKeys);
+        return Array.from(keys);
+    }
+
+    if (target === 'allUnlockedStats') {
+        if (getXpState()?.unlocked) addStatKeys('xp');
+        if (getMutationState()?.unlocked) addStatKeys('mutation');
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
+        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) addStatKeys('pp');
+        return Array.from(keys);
+    }
+
+    if (target === 'allUnlocked') {
+        Object.values(CURRENCIES).forEach(addCurrencyKeys);
+        if (getXpState()?.unlocked) addStatKeys('xp');
+        if (getMutationState()?.unlocked) addStatKeys('mutation');
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
+        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) addStatKeys('pp');
+        return Array.from(keys);
+    }
+
+    if (target.startsWith('currency:')) {
+        addCurrencyKeys(target.slice('currency:'.length));
+        return Array.from(keys);
+    }
+
+    if (target.startsWith('statmult:')) {
+        addStatMultiplier(target.slice('statmult:'.length));
+        return Array.from(keys);
+    }
+
+    if (target.startsWith('stat:')) {
+        addStatKeys(target.slice('stat:'.length));
+        return Array.from(keys);
+    }
+
+    return Array.from(keys);
+}
+
+function resetCurrencyAndMultiplier(currencyKey) {
+    try {
+        // Reset the banked amount
+        bank?.[currencyKey]?.set?.(BigNum.fromInt(0));
+    } catch {}
+
+    try {
+        // Clear any debug override for this currency
+        clearCurrencyMultiplierOverride(currencyKey);
+    } catch {}
+
+    try {
+        // Put the actual in-game multiplier back to 1x
+        setCurrencyMultiplierBN(currencyKey, BigNum.fromInt(1));
+    } catch {}
+}
+
+function resetStatsAndMultipliers(target) {
+    if (target === 'all') {
+        // All currencies + multipliers: clear overrides and put real multipliers back to 1x
+        Object.values(CURRENCIES).forEach((key) => resetCurrencyAndMultiplier(key));
+
+        const zero = BigNum.fromInt(0);
+
+        // Reset all states
+        applyXpState({ level: zero, progress: zero });
+        applyMutationState({ level: zero, progress: zero });
+        if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+        if (window.ppSystem && typeof window.ppSystem.getPpState === 'function') applyPpState({ level: zero, progress: zero });
+
+        let statCount = 0;
+        getAreas().forEach((area) => {
+            area.stats.forEach((stat) => {
+                statCount++;
+                try { setDebugStatMultiplierOverride(stat.key, BigNum.fromInt(1)); } catch {}
+            });
+        });
+        
+        STAT_MULTIPLIERS.forEach(({ key }) => {
+            statCount++;
+            try { setDebugStatMultiplierOverride(key, BigNum.fromInt(1)); } catch {}
+        });
+
+        // Waterwheels -> 0
+        try {
+            if (WATERWHEEL_DEFS) {
+                Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                    setWaterwheelLevel(def.id, zero);
+                    setWaterwheelFp(def.id, zero);
+                });
+            }
+        } catch {}
+
+        const totalCount = Object.values(CURRENCIES).length + statCount;
+        return { label: '[GOLD]all[/GOLD] currency/stats', count: totalCount };
+    }
+
+    if (target === 'allCurrencies') {
+        let currencyCount = 0;
+        Object.values(CURRENCIES).forEach((key) => {
+            resetCurrencyAndMultiplier(key);
+            currencyCount += 1;
+        });
+
+        const label = currencyCount === 1 ? '1 currency' : `${currencyCount} currencies`;
+        return { label, count: currencyCount };
+    }
+
+    if (target === 'allUnlockedStats') {
+        const zero = BigNum.fromInt(0);
+        let resetCount = 0;
+
+        try {
+            if (getXpState()?.unlocked) {
+                applyXpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (getMutationState()?.unlocked) {
+                applyMutationState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
+                if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) {
+                applyPpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (WATERWHEEL_DEFS) {
+                Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                    setWaterwheelLevel(def.id, zero);
+                    setWaterwheelFp(def.id, zero);
+                });
+                resetCount += 1;
+            }
+        } catch {}
+
+        const label = resetCount === 1 ? '1 unlocked stat' : `${resetCount} unlocked stats`;
+        return { label, count: resetCount };
+    }
+
+    if (target === 'allUnlocked') {
+        let currencyCount = 0;
+        Object.values(CURRENCIES).forEach((key) => {
+            resetCurrencyAndMultiplier(key);
+            currencyCount += 1;
+        });
+
+        const zero = BigNum.fromInt(0);
+        let resetCount = 0;
+
+        try {
+            if (getXpState()?.unlocked) {
+                applyXpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (getMutationState()?.unlocked) {
+                applyMutationState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
+                if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) {
+                applyPpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (WATERWHEEL_DEFS) {
+                Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                    setWaterwheelLevel(def.id, zero);
+                    setWaterwheelFp(def.id, zero);
+                });
+                resetCount += 1;
+            }
+        } catch {}
+
+        const parts = [];
+
+        if (resetCount === 1) parts.push('1 unlocked stat');
+        else parts.push(`${resetCount} unlocked stats`);
+
+        parts.push(currencyCount === 1 ? '1 currency' : `${currencyCount} currencies`);
+
+        return { label: parts.join(' and '), count: resetCount + currencyCount };
+    }
+
+    if (target.startsWith('currency:')) {
+        const currencyKey = target.slice('currency:'.length);
+        resetCurrencyAndMultiplier(currencyKey);
+        return { label: `${currencyKey}`, count: 1 };
+    }
+
+    if (target.startsWith('statmult:')) {
+        const statKey = target.slice('statmult:'.length);
+        // "Reset this stat multiplier" = remove any debug override,
+        // let the game recalculate the multiplier normally.
+        try { clearStatMultiplierOverride(statKey); } catch {}
+        return { label: `${statKey} multiplier`, count: 1 };
+    }
+
+    if (!target.startsWith('stat:')) {
+        return { label: `unknown target ${target}`, count: 0 };
+    }
+
+    const statKey = target.slice('stat:'.length);
+    const zero = BigNum.fromInt(0);
+
+    // Treat any XP-related key as "XP": level + progress + multiplier.
+    if (statKey === 'xp' || statKey === 'xpLevel' || statKey === 'xpProgress') {
+        applyXpState({ level: zero, progress: zero });
+        // Temporarily force XP multiplier to 1x (override cleared on next real update)
+        try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
+        return { label: 'XP', count: 1 };
+    }
+
+    // Treat any MP / mutation key as "MP": level + progress + multiplier.
+    if (
+        statKey === 'mutation' ||
+        statKey === 'mp' ||
+        statKey === 'mpLevel' ||
+        statKey === 'mpProgress'
+    ) {
+        applyMutationState({ level: zero, progress: zero });
+        // Temporarily force MP multiplier to 1x, same semantics as XP
+        try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+        return 'MP';
+    }
+
+    if (
+        statKey === 'dp' ||
+        statKey === 'dpLevel' ||
+        statKey === 'dpProgress'
+    ) {
+        if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+        try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+        return 'DP';
+    }
+
+    if (
+        statKey === 'pp' ||
+        statKey === 'ppLevel' ||
+        statKey === 'ppProgress'
+    ) {
+        applyPpState({ level: zero, progress: zero });
+        try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
+        return 'PP';
+    }
+
+    // Fallback: generic stat multiplier reset -> same semantics as the debug stat input
+    try { setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1)); } catch {}
+    return `stat ${statKey}`;
+}
+
+function buildAreaStatMultipliers(container, area) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit stat multipliers.';
+        container.appendChild(msg);
+        return;
+    }
+
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
+    STAT_MULTIPLIERS.forEach((stat) => {
+        if (stat.key === 'spawnRate') return;
+        if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp' && stat.key !== 'pp' && stat.key !== 'allMaterials') return;
+        if (area.key === AREA_KEYS.STARTER_COVE && (stat.key === 'dp' || stat.key === 'pp' || stat.key === 'allMaterials')) return;
+        const storageKey = getStatMultiplierStorageKey(stat.key, slot);
+        const row = createInputRow(
+            `${stat.label} Multiplier`,
+            getStatMultiplierDisplayValue(stat.key, slot),
+            (value, { setValue }) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                const previous = getStatMultiplierDisplayValue(stat.key, latestSlot);
+                try { setDebugStatMultiplierOverride(stat.key, value, latestSlot); } catch {}
+                const refreshed = getStatMultiplierDisplayValue(stat.key, latestSlot);
+                setValue(refreshed);
+                if (!bigNumEquals(previous, refreshed)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified ${stat.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`
+                    );
+                }
+            },
+            {
+                storageKey,
+                onLockChange: (locked) => {
+                    const latestSlot = getActiveSlot();
+                    if (latestSlot == null) return;
+                    if (locked) {
+                        const existingOverride = getLockedStatOverride(latestSlot, stat.key);
+                        if (existingOverride) return;
+                        try {
+                            setDebugStatMultiplierOverride(
+                                stat.key,
+                                getGameStatMultiplier(stat.key),
+                                latestSlot
+                            );
+                        } catch {}
+                    } else {
+                        getEffectiveStatMultiplierOverride(
+                            stat.key,
+                            latestSlot,
+                            getGameStatMultiplier(stat.key)
+                        );
+                    }
+                    row.setValue(getStatMultiplierDisplayValue(stat.key, latestSlot));
+                },
+            }
+        );
+
+        registerLiveBinding({
+            type: 'stat-mult',
+            key: stat.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                row.setValue(latest);
+            },
+        });
+
+        registerLiveBinding({
+            type: 'upgrade',
+            key: stat.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                row.setValue(latest);
+            },
+        });
+
+        if (stat.key === 'mutation') {
+            registerLiveBinding({
+                type: 'mutation',
+                key: stat.key,
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                    row.setValue(latest);
+                },
+            });
+        }
+
+        if (stat.key === 'dp') {
+            registerLiveBinding({
+                type: 'dp',
+                key: stat.key,
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                    row.setValue(latest);
+                },
+            });
+        }
+
+        if (stat.key === 'pp') {
+            registerLiveBinding({
+                type: 'pp',
+                key: stat.key,
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                    row.setValue(latest);
+                },
+            });
+        }
+
+        container.appendChild(row.row);
+    });
+}
+
+function buildLabNodesDebug(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit lab nodes.';
+        container.appendChild(msg);
+        return;
+    }
+
+    if (!RESEARCH_NODES || RESEARCH_NODES.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'No lab nodes found.';
+        container.appendChild(msg);
+        return;
+    }
+
+    RESEARCH_NODES.forEach((node) => {
+        const nodeContainer = createSubsection(`${node.title || `Node ${node.id}`} (ID: ${node.id})`, (sub) => {
+            // Level
+            const levelKey = NODE_LEVEL_KEY(slot, node.id);
+            const levelRow = createInputRow('Level', getResearchNodeLevel(node.id), (value, { setValue }) => {
+                let valNum = Number(value);
+                if (value instanceof BigNum) {
+                     valNum = value.isInfinite() ? Infinity : Number(value.toScientific(10));
+                }
+                if (Number.isNaN(valNum) || valNum < 0) return;
+                
+                // Allow up to maxLevel
+                if (valNum > node.maxLevel) valNum = node.maxLevel;
+                valNum = Math.floor(valNum);
+
+                const prev = getResearchNodeLevel(node.id);
+                setResearchNodeLevel(node.id, valNum);
+                flagDebugUsage();
+                
+                if (prev !== valNum) {
+                    logAction(`Modified Node ${node.id} Level (The Cove) ${prev} → ${valNum}`);
+                }
+                setValue(valNum);
+            }, {
+                storageKey: levelKey,
+                format: (val) => {
+                    const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
+                    return bn.toStorage?.() ?? formatBigNumForInput(val);
+                }
+            });
+            registerLiveBinding({
+                type: 'lab-node-level',
+                slot,
+                id: node.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    levelRow.setValue(getResearchNodeLevel(node.id));
+                }
+            });
+            sub.appendChild(levelRow.row);
+
+            // RP
+            const rpKey = NODE_RP_KEY(slot, node.id);
+            const rpRow = createInputRow('Current RP', getResearchNodeRp(node.id), (value, { setValue }) => {
+                let bn;
+                try {
+                     bn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                     if (bn.isNegative && bn.isNegative()) bn = BigNum.fromInt(0);
+                } catch {
+                     setValue(getResearchNodeRp(node.id));
+                     return;
+                }
+
+                const prev = getResearchNodeRp(node.id);
+                setResearchNodeRp(node.id, bn);
+                flagDebugUsage();
+                
+                if (!bigNumEquals(prev, bn)) {
+                    logAction(`Modified Node ${node.id} RP (The Cove) ${formatNumber(prev)} → ${formatNumber(bn)}`);
+                }
+                setValue(bn);
+            }, {
+                storageKey: rpKey,
+                format: (val) => {
+                    const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
+                    return bn.toStorage?.() ?? formatBigNumForInput(val);
+                }
+            });
+            registerLiveBinding({
+                type: 'lab-node-rp',
+                slot,
+                id: node.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    rpRow.setValue(getResearchNodeRp(node.id));
+                }
+            });
+            sub.appendChild(rpRow.row);
+        });
+        container.appendChild(nodeContainer);
+    });
+}
+
+function buildFlowDebug(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit flow.';
+        container.appendChild(msg);
+        return;
+    }
+
+    if (!WATERWHEEL_DEFS) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'No waterwheels found.';
+        container.appendChild(msg);
+        return;
+    }
+
+    Object.values(WATERWHEEL_DEFS).forEach((def) => {
+        const nodeContainer = createSubsection(`${def.name || def.id} Waterwheel`, (sub) => {
+            // Level
+            const levelKey = `ccc:flow:level:${def.id}:${slot}`;
+            const levelRow = createInputRow('Level', getWaterwheelLevel(def.id), (value, { setValue }) => {
+                let valBn;
+                try {
+                     valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                     if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                } catch {
+                     setValue(getWaterwheelLevel(def.id));
+                     return;
+                }
+
+                const prev = getWaterwheelLevel(def.id);
+                setWaterwheelLevel(def.id, valBn);
+                flagDebugUsage();
+                
+                if (!bigNumEquals(prev, valBn)) {
+                    logAction(`Modified Waterwheel ${def.name} Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
+                }
+                setValue(valBn);
+            }, {
+                storageKey: levelKey,
+            });
+            registerLiveBinding({
+                type: 'flow-level',
+                slot,
+                id: def.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    levelRow.setValue(getWaterwheelLevel(def.id));
+                }
+            });
+            sub.appendChild(levelRow.row);
+
+            // FP
+            const fpKey = `ccc:flow:fp:${def.id}:${slot}`;
+            const fpRow = createInputRow('Current FP', getWaterwheelFp(def.id), (value, { setValue }) => {
+                let valBn;
+                try {
+                     valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                     if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                } catch {
+                     setValue(getWaterwheelFp(def.id));
+                     return;
+                }
+                
+                setWaterwheelFp(def.id, valBn);
+                flagDebugUsage();
+                
+                setValue(valBn);
+            }, {
+                storageKey: fpKey,
+            });
+            registerLiveBinding({
+                type: 'flow-fp',
+                slot,
+                id: def.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    fpRow.setValue(getWaterwheelFp(def.id));
+                }
+            });
+            sub.appendChild(fpRow.row);
+        });
+        container.appendChild(nodeContainer);
+    });
+}
+
+function buildBuildingsDebug(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit buildings.';
+        container.appendChild(msg);
+        return;
+    }
+
+    BUILDING_IDS.forEach((id) => {
+        const title = BUILDING_NAMES[id] || id;
+        const levelKey = `ccc:buildingLevel:${id}:${slot}`;
+        
+        let currentLevel = getBuildingLevel(id);
+        
+        const row = createInputRow(title, currentLevel, (value, { setValue }) => {
+            let valToApply = value;
+            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (valToApply instanceof BigNum) {
+                valToApply = valToApply;
+            } else {
+                valToApply = BigNum.fromAny(valToApply);
+            }
+            
+            const prev = getBuildingLevel(id);
+            setBuildingLevel(id, valToApply);
+            
+            // Unlock if building's level is higher than 0
+            if (valToApply.cmp && valToApply.cmp(BigNum.fromInt(0)) > 0 && !isBuildingUnlocked(id)) {
+                setBuildingUnlockedById(id, true);
+            } else if (typeof valToApply === 'number' && valToApply > 0 && !isBuildingUnlocked(id)) {
+                setBuildingUnlockedById(id, true);
+            }
+            
+            // Check tier regress
+            import('../misc/buildingVisuals.js').then(module => {
+                module.checkTierUp(id, prev, valToApply);
+            });
+            
+            document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
+            
+            const latest = getBuildingLevel(id);
+            setValue(latest);
+            
+            if (!bigNumEquals(prev, latest)) {
+                flagDebugUsage();
+                logAction(`Modified Building ${title} Level (Underwater Cavern) ${formatNumber(prev)} → ${formatNumber(latest)}`);
+            }
+        }, {
+            storageKey: levelKey
+        });
+        
+        registerLiveBinding({
+            type: 'building-level',
+            slot,
+            id: id,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                row.setValue(getBuildingLevel(id));
+            }
+        });
+        
+        container.appendChild(row.row);
+    });
+}
+
+function buildAreasContent(content) {
+    content.innerHTML = '';
+    debugPanelStatSetters.length = 0;
+
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'debug-panel-empty';
+        placeholder.textContent = 'Areas are available once a save slot is selected.';
+        content.appendChild(placeholder);
+        return;
+    }
+
+    applyAllCurrencyOverridesForActiveSlot();
+
+    const areas = getAreas();
+
+    areas.forEach((area) => {
+        const areaContainer = createSubsection(area.title, (areaContent) => {
+            const currencies = createSubsection('Currencies', (sub) => {
+                buildAreaCurrencies(sub, area);
+            });
+            
+            let stats = null;
+            let multipliers = null;
+            let upgrades = null;
+            let automationUpgrades = null;
+            let dnaUpgrades = null;
+            let labNodesSection = null;
+            let waterwheelsSection = null;
+            let calculators = null;
+
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+                stats = createSubsection('Stats', (sub) => {
+                    buildAreaStats(sub, area);
+                });
+            }
+
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+                multipliers = createSubsection('Multipliers', (sub) => {
+                    const currencyMultipliers = createSubsection('Currencies', (subsection) => {
+                        buildAreaCurrencyMultipliers(subsection, area);
+                    });
+                    sub.appendChild(currencyMultipliers);
+
+                    if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+                        const statMultipliers = createSubsection('Stats', (subsection) => {
+                            buildAreaStatMultipliers(subsection, area);
+                        });
+                        sub.appendChild(statMultipliers);
+                    }
+                });
+            }
+
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+                upgrades = createSubsection('Upgrades', (sub) => {
+                    buildAreaUpgrades(sub, area);
+                });
+            }
+
+            if (area.key === AREA_KEYS.STARTER_COVE) {
+                automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
+                    buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
+                });
+                dnaUpgrades = createSubsection('DNA Upgrades', (sub) => {
+                    buildAreaUpgrades(sub, { key: AREA_KEYS.DNA, title: 'DNA' });
+                });
+                labNodesSection = createSubsection('Lab Nodes', (sub) => {
+                    buildLabNodesDebug(sub);
+                });
+                waterwheelsSection = createSubsection('Waterwheels', (sub) => {
+                    buildFlowDebug(sub);
+                });
+            }
+			
+            areaContent.appendChild(currencies);
+            if (stats) areaContent.appendChild(stats);
+            if (multipliers) areaContent.appendChild(multipliers);
+            if (upgrades) areaContent.appendChild(upgrades);
+            if (automationUpgrades) {
+                areaContent.appendChild(automationUpgrades);
+            }
+            if (dnaUpgrades) {
+                areaContent.appendChild(dnaUpgrades);
+            }
+            if (labNodesSection) {
+                areaContent.appendChild(labNodesSection);
+            }
+            if (waterwheelsSection) {
+                areaContent.appendChild(waterwheelsSection);
+            }
+            
+            let buildingsSection = null;
+            if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+                buildingsSection = createSubsection('Buildings', (sub) => {
+                    buildBuildingsDebug(sub);
+                });
+            }
+            if (buildingsSection) {
+                areaContent.appendChild(buildingsSection);
+            }
+        });
+        areaContainer.classList.add('debug-panel-area');
+
+        content.appendChild(areaContainer);
+    });
+}
+
+function setAllUpgradesMaxed(onlyUnlocked = false) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    let count = 0;
+    const areas = Object.values(AREA_KEYS);
+    const targets = [];
+
+    areas.forEach(areaKey => {
+        const upgrades = getUpgradesForArea(areaKey);
+        upgrades.forEach(upg => {
+            if (onlyUnlocked) {
+                const lockState = getUpgradeLockState(areaKey, upg.id);
+                if (lockState.locked) return;
+            }
+            targets.push({ areaKey, upg });
+        });
+    });
+
+    batchUpgradeOperations(() => {
+        targets.forEach(({ areaKey, upg }) => {
+            try {
+                const targetLevel = upg.lvlCap;
+                setLevel(areaKey, upg.id, targetLevel);
+                count++;
+            } catch (e) {
+                console.warn('Failed to max upgrade', upg, e);
+            }
+        });
+    });
+    return count;
+}
+
+function setAllUpgradesZero(onlyUnlocked = false) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    let count = 0;
+    const areas = Object.values(AREA_KEYS);
+    const targets = [];
+
+    areas.forEach(areaKey => {
+        const upgrades = getUpgradesForArea(areaKey);
+        upgrades.forEach(upg => {
+            if (onlyUnlocked) {
+                const lockState = getUpgradeLockState(areaKey, upg.id);
+                if (lockState.locked) return;
+            }
+            targets.push({ areaKey, upg });
+        });
+    });
+
+    const resetAction = () => {
+        batchUpgradeOperations(() => {
+            targets.forEach(({ areaKey, upg }) => {
+                try {
+                    setAutobuyerToggle(areaKey, upg.id, '0');
+                    setLevel(areaKey, upg.id, 0);
+                } catch (e) {
+                    console.warn('Failed to zero upgrade', upg, e);
+                }
+            });
+        });
+    };
+
+    resetAction();
+    setTimeout(resetAction, 500);
+
+    return targets.length;
+}
+
+function setAllAutomationToggles(targetState) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    const val = targetState ? '1' : '0';
+    let count = 0;
+	
+	// 1. Max (or Zero) Automation Upgrades
+    const automationUpgrades = getUpgradesForArea(AUTOMATION_AREA_KEY);
+    batchUpgradeOperations(() => {
+        automationUpgrades.forEach(upg => {
+            try {
+                // If targetState is true, set to max level (lvlCap).
+                // If false, set to 0.
+                const lvl = targetState ? upg.lvlCap : 0;
+                setLevel(AUTOMATION_AREA_KEY, upg.id, lvl);
+                count++;
+            } catch (e) {
+                console.warn('Failed to set automation level', upg, e);
+            }
+        });
+    });
+
+    // 2. Set Master Switches (UI state)
+    // Keys: ccc:autobuy:master:{type}:{slot}
+    const masterTypes = Object.values(MASTER_AUTOBUY_IDS);
+    const automatedCostTypes = new Set(masterTypes);
+    
+    masterTypes.forEach(type => {
+         settingsManager.set(`currency_${type}_automated`, val === '1');
+    });
+
+    // 3. Set Individual Toggles (Logic state)
+    // Iterate over ALL areas to support future upgrades
+    Object.values(AREA_KEYS).forEach(areaKey => {
+        if (areaKey === AUTOMATION_AREA_KEY) return; // Handled separately below (or via specific logic)
+        
+        const upgrades = getUpgradesForArea(areaKey);
+        upgrades.forEach((upg) => {
+            if (automatedCostTypes.has(upg.costType)) {
+                setAutobuyerToggle(areaKey, upg.id, val);
+                count++;
+            }
+        });
+    });
+
+    // 4. Workshop Special Case
+    setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, val);
+    count++;
+
+    // Force UI refresh if shop is open
+    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); } catch {}
+
+    return count;
+}
+
+function buildMiscContent(content) {
+    content.innerHTML = '';
+
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'debug-panel-empty';
+        placeholder.textContent = 'Miscellaneous tools are available once a save slot is selected.';
+        content.appendChild(placeholder);
+        return;
+    }
+
+    const buttons = [
+        {
+            label: 'Complete Dialogues',
+            onClick: () => {
+                const { completed } = completeAllDialoguesForDebug();
+                flagDebugUsage();
+                logAction(`Completed all dialogues (${completed} newly claimed).`);
+            },
+        },
+        {
+            label: 'Restore Dialogues',
+            onClick: () => {
+                const { restored } = restoreAllDialoguesForDebug();
+                flagDebugUsage();
+                const entryLabel = restored === 1 ? 'entry' : 'entries';
+                logAction(`Restored dialogues to unclaimed state (${restored} ${entryLabel} reset).`);
+            },
+        },
+        {
+            label: 'All Currencies Inf',
+            onClick: () => {
+                const touched = setAllCurrenciesToInfinity();
+                flagDebugUsage();
+                logAction(`Set all currencies to Infinity (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
+            },
+        },
+        {
+            label: 'All Stats Inf',
+            onClick: () => {
+                                const touched = setAllStatsToInfinity();
+                flagDebugUsage();
+                logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
+            },
+        },
+		{
+            label: 'All Currencies 0',
+            onClick: () => {
+                const touched = setAllCurrenciesToZero();
+                flagDebugUsage();
+                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
+            },
+        },
+        {
+            label: 'All Stats 0',
+            onClick: () => {
+                const touched = setAllStatsToZero();
+                flagDebugUsage();
+                logAction(`Set all unlocked stats to 0 (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
+            },
+        },
+        {
+            label: 'Max All Upgs',
+            onClick: () => {
+                const count = setAllUpgradesMaxed(false);
+                flagDebugUsage();
+                logAction(`Maxed all ${count} upgrades.`);
+            },
+        },
+        {
+            label: 'All Upgs 0',
+            onClick: () => {
+                const count = setAllUpgradesZero(false);
+                flagDebugUsage();
+                logAction(`Reset all ${count} upgrades to 0.`);
+            },
+        },
+        {
+            label: 'Enable All Auto',
+            onClick: () => {
+                const count = setAllAutomationToggles(true);
+                flagDebugUsage();
+                logAction(`Enabled automation for ${count} upgrades.`);
+            },
+        },
+        {
+            label: 'Disable All Auto',
+            onClick: () => {
+                const count = setAllAutomationToggles(false);
+                flagDebugUsage();
+                logAction(`Disabled automation for ${count} upgrades.`);
+            },
+        },
+        {
+            label: 'Unlock All Unlocks',
+            onClick: () => {
+                const { unlocks, toggles } = unlockAllUnlocks();
+                flagDebugUsage();
+                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled).`);
+            },
+        },
+        {
+            label: 'Lock All Unlocks',
+            onClick: () => {
+                const { locks, toggles } = lockAllUnlockUpgrades();
+                flagDebugUsage();
+                logAction(`Locked all unlock-type upgrades (${locks} entries) and unlock flags (${toggles} toggled).`);
+            },
+        },
+        {
+            label: 'Max All Lab Nodes',
+            onClick: () => {
+                let count = 0;
+                RESEARCH_NODES.forEach((node) => {
+                   if (Number.isFinite(node.maxLevel)) {
+                       setResearchNodeLevel(node.id, node.maxLevel, true);
+                       count++;
+                   }
+                });
+                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
+                flagDebugUsage();
+                logAction(`Maxed ${count} Lab Nodes.`);
+            },
+        },
+        {
+            label: 'All Lab Nodes 0',
+            onClick: () => {
+                let count = 0;
+                RESEARCH_NODES.forEach((node) => {
+                    setResearchNodeLevel(node.id, 0, true);
+                    setResearchNodeRp(node.id, 0, true);
+                    if (isResearchNodeActive(node.id)) {
+                        setResearchNodeActive(node.id, false, true);
+                    }
+                    count++;
+                });
+                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { suppressNotify: false } }));
+                flagDebugUsage();
+                logAction(`Reset ${count} Lab Nodes to 0 (Level & RP).`);
+            },
+        },
+        {
+            label: 'Max Nodes Until X',
+            onClick: () => {
+                const raw = window.prompt("Input the Lab node number you want to max until (inclusive)");
+                if (raw == null) return;
+                const limit = parseInt(raw, 10);
+                if (isNaN(limit) || limit <= 0) return;
+
+                let count = 0;
+                RESEARCH_NODES.forEach((node) => {
+                    if (node.id <= limit) {
+                        const currentLevel = getResearchNodeLevel(node.id);
+                        if (currentLevel < node.maxLevel) {
+                            setResearchNodeLevel(node.id, node.maxLevel, true);
+                            count++;
+                        }
+                    }
+                });
+                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
+                flagDebugUsage();
+                logAction(`Maxed ${count} Lab Nodes up to node ${limit}.`);
+            },
+        },
+        {
+            label: 'Wipe Action Log',
+            onClick: () => {
+                persistActionLog([], slot);
+                updateActionLogDisplay();
+                logAction('Action log wiped.');
+            },
+        },
+        {
+            label: 'Restock Warps',
+            onClick: () => {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    try {
+                        localStorage.setItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
+                        updateWarpTab(true);
+                        flagDebugUsage();
+                        logAction('Restocked Warps to full.');
+                    } catch {}
+                }
+            },
+        },
+        {
+            label: 'OP Time Warp',
+            onClick: () => {
+                const raw = window.prompt("Enter amount of seconds to warp:");
+                if (raw == null) return;
+                const seconds = parseBigNumInput(raw);
+                if (!seconds || (typeof seconds.isZero === 'function' && seconds.isZero()) || (typeof seconds.isNegative === 'function' && seconds.isNegative())) return;
+
+                let rewards;
+                let isPreAutomation = false;
+
+                if (!hasDoneInfuseReset()) {
+                    rewards = calculatePreAutomationRewards(seconds);
+                    isPreAutomation = true;
+                } else {
+                    rewards = calculateOfflineRewards(seconds);
+                }
+
+                grantOfflineRewards(rewards);
+                const ms = seconds.mulSmall ? seconds.mulSmall(1000) : seconds.mulBigNumInteger(BigNum.fromInt(1000));
+                showOfflinePanel(rewards, ms, isPreAutomation);
+
+                flagDebugUsage();
+                logAction(`Performed OP Time Warp for ${formatNumber(seconds)} seconds.`);
+            }
+        },
+        {
+            label: 'Toggle Hitboxes',
+            onClick: () => {
+                window.__showHitboxes = !window.__showHitboxes;
+                logAction(`Toggled hitboxes ${window.__showHitboxes ? 'on' : 'off'}.`);
+            }
+        },
+    ];
+
+    const buttonGrid = document.createElement('div');
+    buttonGrid.className = 'debug-misc-button-list';
+    buttons.forEach((cfg) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'debug-panel-toggle debug-misc-button';
+        btn.textContent = cfg.label;
+        btn.addEventListener('click', cfg.onClick);
+        buttonGrid.appendChild(btn);
+    });
+    content.appendChild(buttonGrid);
+
+    const resetRow = document.createElement('div');
+    resetRow.className = 'debug-panel-row';
+    const resetLabel = document.createElement('label');
+    resetLabel.textContent = 'Reset Values & Multis For:';
+    resetRow.appendChild(resetLabel);
+
+    const resetSelect = document.createElement('select');
+    resetSelect.className = 'debug-panel-input debug-reset-values-select';
+
+    getAreas().forEach((area) => {
+        const group = document.createElement('optgroup');
+        group.label = area.title || area.key;
+        area.currencies.forEach((currency) => {
+            const opt = document.createElement('option');
+            opt.value = `currency:${currency.key}`;
+            opt.textContent = `${area.title || area.key} → ${currency.label}`;
+            group.appendChild(opt);
+        });
+        area.stats.forEach((stat) => {
+            const opt = document.createElement('option');
+            opt.value = `stat:${stat.key}`;
+            opt.textContent = `${area.title || area.key} → ${stat.label}`;
+            group.appendChild(opt);
+        });
+        resetSelect.appendChild(group);
+    });
+
+    const allCurrenciesOption = document.createElement('option');
+    allCurrenciesOption.value = 'allCurrencies';
+    allCurrenciesOption.textContent = 'All Currencies';
+    resetSelect.appendChild(allCurrenciesOption);
+
+    const allUnlockedStatsOption = document.createElement('option');
+    allUnlockedStatsOption.value = 'allUnlockedStats';
+    allUnlockedStatsOption.textContent = 'All Unlocked Stats';
+    resetSelect.appendChild(allUnlockedStatsOption);
+	
+	const allUnlockedOption = document.createElement('option');
+    allUnlockedOption.value = 'allUnlocked';
+    allUnlockedOption.textContent = 'All Unlocked Stats & Currencies';
+    resetSelect.appendChild(allUnlockedOption);
+
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = 'All';
+    resetSelect.appendChild(allOption);
+
+    if (!resetSelect.querySelector(`option[value="${debugPanelMiscResetSelection}"]`)) {
+        debugPanelMiscResetSelection = DEFAULT_MISC_RESET_SELECTION;
+    }
+    resetSelect.value = debugPanelMiscResetSelection;
+
+    const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || DEFAULT_MISC_RESET_SELECTION, getActiveSlot());
+
+    // We create a standalone toggle button that doesn't actually lock/unlock anything on click
+    const resetLockToggle = {
+        button: document.createElement('button'),
+        isLocked: false,
+        refresh: function() {
+            this.button.textContent = this.isLocked ? 'L' : 'UL';
+            this.button.classList.toggle('locked', this.isLocked);
+        }
+    };
+    resetLockToggle.button.type = 'button';
+    resetLockToggle.button.className = 'debug-lock-button';
+    resetLockToggle.button.addEventListener('click', () => {
+        resetLockToggle.isLocked = !resetLockToggle.isLocked;
+        resetLockToggle.refresh();
+    });
+    resetLockToggle.refresh();
+    
+    resetSelect.addEventListener('change', () => {
+        debugPanelMiscResetSelection = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
+    });
+
+    resetRow.appendChild(resetSelect);
+    resetRow.appendChild(resetLockToggle.button);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'debug-panel-toggle reset-check';
+    resetBtn.textContent = '✅';
+    resetBtn.addEventListener('click', () => {
+        const target = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
+        const lockKeys = resolveResetLockKeys();
+
+        const performReset = (logEntry = true) => {
+            const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target))
+                ?? { label: target, count: 0 };
+
+            // Apply the UI toggle state directly to the affected items
+            const updatedLockKeys = resolveResetLockKeys();
+            if (resetLockToggle.isLocked) {
+                updatedLockKeys.forEach((key) => lockStorageKey(key));
+            } else {
+                updatedLockKeys.forEach((key) => unlockStorageKey(key));
+            }
+
+            // Dispatch a custom event to notify all individual lock toggles to refresh their UI state
+            document.dispatchEvent(new CustomEvent('debugStorageLocksChanged'));
+
+            flagDebugUsage();
+
+            if (logEntry) {
+                const { label, count } = result;
+                const nounPhrase = count === 1 ? 'value and multiplier' : 'values and multipliers';
+                logAction(`Reset ${nounPhrase} for ${label} to defaults.`);
+            }
+        };
+
+        performReset(true);
+        setTimeout(() => performReset(false), 100);
+    });
+    resetRow.appendChild(resetBtn);
+    content.appendChild(resetRow);
+
+    const actionLogRow = document.createElement('div');
+    actionLogRow.className = 'debug-panel-row';
+
+const wipeSlotBtn = document.createElement('button');
+wipeSlotBtn.type = 'button';
+wipeSlotBtn.className = 'debug-panel-toggle debug-danger-button';
+wipeSlotBtn.textContent = 'Wipe Slot & Refresh';
+wipeSlotBtn.addEventListener('click', () => {
+    const confirmWipe = window.confirm?.(
+        'Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.'
+    );
+    if (!confirmWipe) return;
+
+    try {
+        localStorage.setItem('ccc:pendingSlotWipe', String(slot));
+    } catch {}
+
+    try {
+        localStorage.removeItem('ccc:saveSlot');
+    } catch {}
+
+    try {
+        const menuRoot = document.querySelector('.menu-root');
+        const gameRoot = document.getElementById('game-root');
+        if (menuRoot) {
+            menuRoot.hidden = false;
+            menuRoot.style.display = '';
+            menuRoot.style.visibility = '';
+        }
+        if (gameRoot) {
+            gameRoot.hidden = true;
+            gameRoot.style.display = 'none';
+        }
+    } catch {}
+
+    try {
+        setTimeout(() => {
+            try { window.location.reload(); } catch {}
+        }, 16);
+    } catch {
+        try { window.location.reload(); } catch {}
+    }
+});
+actionLogRow.appendChild(wipeSlotBtn);
+
+    content.appendChild(actionLogRow);
+
+    if (window.currentArea !== 666) {
+        const jailRow = document.createElement('div');
+        jailRow.className = 'debug-panel-row';
+        const jailBtn = document.createElement('button');
+        jailBtn.type = 'button';
+        jailBtn.className = 'debug-panel-toggle debug-danger-button';
+        jailBtn.textContent = 'Go to Jail';
+        jailBtn.addEventListener('click', () => {
+            window.enterArea(666);
+            closeDebugPanel();
+        });
+        jailRow.appendChild(jailBtn);
+        content.appendChild(jailRow);
+    }
+}
+
+function buildUnlocksContent(content) {
+    content.innerHTML = '';
+
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'debug-panel-empty';
+        placeholder.textContent = 'Unlocks are available once a save slot is selected.';
+        content.appendChild(placeholder);
+        return;
+    }
+
+    try { initXpSystem(); }
+    catch {}
+
+    const rows = getUnlockRowDefinitions(slot);
+
+    rows.sort((a, b) => {
+        const textA = a.labelText ?? '';
+        const textB = b.labelText ?? '';
+        return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
+    });
+
+    rows.forEach((rowDef) => {
+        content.appendChild(createUnlockToggleRow(rowDef));
+    });
+}
+
+function buildDebugPanel() {
+    if (!debugPanelAccess || isOnMenu() || isLoading()) return;
+    cleanupDebugPanelResources();
+    ensureDebugPanelStyles();
+    sectionKeyCounter = 0;
+    subsectionKeyCounter = 0;
+
+    const existingPanel = document.getElementById(DEBUG_PANEL_ID);
+    if (existingPanel) existingPanel.remove();
+
+    const panel = document.createElement('div');
+    panel.id = DEBUG_PANEL_ID;
+    panel.className = 'debug-panel';
+
+    const header = document.createElement('div');
+    header.className = 'debug-panel-header';
+
+    const titleContainer = document.createElement('div');
+
+    const title = document.createElement('div');
+    title.className = 'debug-panel-title';
+    title.textContent = 'Debug Panel';
+
+    const closeButtonContainer = document.createElement('div');
+    closeButtonContainer.className = 'debug-panel-close-buttons';
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'debug-panel-close';
+    closeButton.type = 'button';
+    closeButton.setAttribute('aria-label', 'Close Debug Panel');
+    closeButton.textContent = 'Close';
+    closeButton.addEventListener('click', () => closeDebugPanel({ preserveExpansionState: true }));
+
+    const collapseCloseButton = document.createElement('button');
+    collapseCloseButton.className = 'debug-panel-close debug-panel-close-collapse';
+    collapseCloseButton.type = 'button';
+    collapseCloseButton.setAttribute('aria-label', 'Close Debug Panel and Collapse Sections');
+    collapseCloseButton.textContent = 'Close & Collapse';
+    collapseCloseButton.addEventListener('click', () => closeDebugPanel());
+
+    closeButtonContainer.appendChild(closeButton);
+    closeButtonContainer.appendChild(collapseCloseButton);
+
+    titleContainer.appendChild(title);
+    const info = document.createElement('div');
+    info.className = 'debug-panel-info';
+
+    const infoLines = [
+        { text: 'C: Close and preserve panels', hideOnMobile: true },
+        { text: 'Shift+C: Close and collapse panels', hideOnMobile: true },
+        { text: 'Input fields can take a normal, scientific, or BN number as input' },
+        { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
+        { text: 'Toggle UL/L (Unlocked/Locked) on a value to freeze it from accruing normally' },
+        { text: 'Press N to nuke all notifications, press Shift+N to nuke only the current notification' },
+    ];
+
+    infoLines.forEach(({ text, hideOnMobile }) => {
+        const infoLine = document.createElement('div');
+        infoLine.className = 'debug-panel-info-line';
+        if (hideOnMobile) infoLine.classList.add('debug-panel-info-mobile-hidden');
+        infoLine.textContent = text;
+        info.appendChild(infoLine);
+    });
+
+    titleContainer.appendChild(info);
+
+    header.appendChild(titleContainer);
+    header.appendChild(closeButtonContainer);
+    panel.appendChild(header);
+
+    panel.appendChild(createSection('Areas: main currency/stat/upgrade management for each area', 'debug-areas', content => {
+        buildAreasContent(content);
+    }));
+
+    panel.appendChild(createSection('Unlocks: modify specific unlock flags', 'debug-unlocks', content => {
+        buildUnlocksContent(content);
+    }));
+
+    panel.appendChild(createSection('Action Log: keep track of everything you do', 'debug-action-log', content => {
+        const container = document.createElement('div');
+        container.id = 'action-log-entries';
+        container.className = 'debug-panel-action-log';
+        container.style.maxHeight = '240px';
+        container.style.overflowY = 'auto';
+        content.appendChild(container);
+        actionLogContainer = container;
+        updateActionLogDisplay();
+        addDebugPanelCleanup(() => { actionLogContainer = null; });
+    }));
+	
+    panel.appendChild(createSection('Miscellaneous: helpful miscellaneous functions', 'debug-misc', content => {
+        buildMiscContent(content);
+    }));
+
+    applyDebugPanelExpansionState(panel);
+
+    document.body.appendChild(panel);
+    
+    if (window.currentArea === 666) {
+        panel.classList.add('is-jailed');
+        // Update panel title
+        const panelTitle = panel.querySelector(".debug-panel-title");
+        if (panelTitle) {
+            panelTitle.textContent = "Jail Panel";
+        }
+        // Update toggle button
+        const toggleBtn = document.getElementById(DEBUG_PANEL_TOGGLE_ID);
+        if (toggleBtn) {
+            toggleBtn.textContent = "Jail Panel";
+        }
+
+        
+        // Update info lines
+        const infoLinesElements = panel.querySelectorAll('.debug-panel-info-line');
+        infoLinesElements.forEach((line, index) => {
+			line.textContent = 'You are in Jail';
+        });
+        
+        // Update section titles
+        const sectionToggles = panel.querySelectorAll('.debug-panel-section-toggle');
+        sectionToggles.forEach(toggle => {
+            toggle.textContent = 'Jail: You are in Jail';
+        });
+        
+        // Update all text nodes and inputs
+        const walker = document.createTreeWalker(
+            panel,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        const nodesToUpdate = [];
+        while ((node = walker.nextNode())) {
+            // Check if parent is one of the headers/info we already changed, or action log title
+            if (node.parentElement && 
+               !node.parentElement.classList.contains('debug-panel-info-line') &&
+               !node.parentElement.classList.contains('debug-panel-section-toggle') &&
+               !node.parentElement.classList.contains('debug-panel-close') &&
+               !node.parentElement.classList.contains('debug-panel-title')) {
+                if (node.nodeValue.trim().length > 0) {
+                    nodesToUpdate.push(node);
+                }
+            }
+        }
+        
+        nodesToUpdate.forEach(n => {
+            if (n.parentElement && n.parentElement.classList.contains('action-log-time')) {
+                n.nodeValue = 'You are in Jail: ';
+            } else {
+                n.nodeValue = 'You are in Jail';
+            }
+        });
+        
+        // Update inputs
+        const inputs = panel.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.disabled = true;
+            if (input.tagName === 'INPUT' && input.type !== 'checkbox' && input.type !== 'radio') {
+                input.value = 'You are in Jail';
+            }
+        });
+        
+        // Update buttons
+        const buttons = panel.querySelectorAll('button');
+        buttons.forEach(button => {
+            if (!button.classList.contains('debug-panel-close') && 
+                !button.classList.contains('debug-panel-section-toggle') &&
+                !button.classList.contains('debug-panel-subsection-toggle')) {
+                button.disabled = true;
+                // Don't replace close buttons texts
+                button.textContent = 'You are in Jail';
+            }
+        });
+    }
+
+    if (debugPanelScrollTop > 0) {
+        try { panel.scrollTop = debugPanelScrollTop; }
+        catch {}
+    }
+    setupLiveBindingListeners();
+    debugPanelOpen = true;
+}
+
+function openDebugPanel() {
+    if (!debugPanelAccess || isOnMenu() || isLoading()) return;
+    if (getActiveSlot() == null) {
+        closeDebugPanel();
+        return;
+    }
+    if (debugPanelOpen) return;
+    buildDebugPanel();
+}
+
+export function closeDebugPanel({ preserveExpansionState = false } = {}) {
+    debugPanelExpansionState = preserveExpansionState
+        ? captureDebugPanelExpansionState()
+        : createEmptyExpansionState();
+    const panel = document.getElementById(DEBUG_PANEL_ID);
+    if (panel) {
+        try { debugPanelScrollTop = panel.scrollTop ?? 0; }
+        catch { debugPanelScrollTop = 0; }
+        panel.remove();
+    }
+    cleanupDebugPanelResources();
+    debugPanelOpen = false;
+}
+
+function toggleDebugPanel() {
+    if (!debugPanelAccess || isOnMenu() || isLoading() || getActiveSlot() == null) {
+        closeDebugPanel();
+        return;
+    }
+    if (debugPanelOpen) {
+        closeDebugPanel({ preserveExpansionState: true });
+    } else {
+        openDebugPanel();
+    }
+}
+
+function teardownDebugPanel() {
+    closeDebugPanel();
+    removeDebugPanelToggleButton();
+}
+
+function createDebugPanelToggleButton() {
+    if (!shouldShowDebugPanelToggleButton()) {
+        removeDebugPanelToggleButton();
+        return;
+    }
+    ensureDebugPanelStyles();
+
+    removeDebugPanelToggleButton();
+
+    const button = document.createElement('button');
+    button.id = DEBUG_PANEL_TOGGLE_ID;
+    button.className = 'debug-panel-toggle-button';
+    button.type = 'button';
+    button.textContent = 'Debug Panel';
+    let lastPointerType = null;
+
+    const handleToggle = (event) => {
+        toggleDebugPanel();
+    };
+
+    button.addEventListener('click', (event) => {
+        if (lastPointerType && lastPointerType !== 'mouse') {
+            lastPointerType = null;
+            return;
+        }
+        lastPointerType = null;
+        handleToggle(event);
+    });
+
+    document.body.appendChild(button);
+}
+
+function applyDebugPanelAccess(enabled) {
+    debugPanelAccess = !!enabled;
+    if (!debugPanelAccess) {
+        teardownDebugPanel();
+        return;
+    }
+    createDebugPanelToggleButton();
+}
+
+document.addEventListener('keydown', event => {
+    if (!debugPanelAccess || isOnMenu() || isLoading()) return;
+
+    if (event.key?.toLowerCase() === 'n') {
+        nukeNotifications(!event.shiftKey);
+        return;
+    }
+
+    if (event.key?.toLowerCase() !== 'c') return;
+    if (event.ctrlKey) return;
+
+    if (getActiveSlot() == null) return;
+
+    if (event.shiftKey) {
+        if (debugPanelOpen) {
+            collapseAllDebugCategories();
+            closeDebugPanel();
+        } else {
+            openDebugPanel();
+        }
+        event.preventDefault();
+        return;
+    }
+
+    if (!debugPanelOpen) {
+        openDebugPanel();
+    } else {
+        closeDebugPanel({ preserveExpansionState: true });
+    }
+	
+    event.preventDefault();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    createDebugPanelToggleButton();
+});
+
+window.addEventListener('menu:visibilitychange', onMenuVisibilityChange);
+
+window.addEventListener('saveSlot:change', () => {
+    createDebugPanelToggleButton();
+    if (debugPanelOpen) {
+        buildDebugPanel();
+    }
+});
+
+export function setDebugPanelAccess(enabled) {
+    applyDebugPanelAccess(enabled);
+}
