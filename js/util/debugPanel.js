@@ -749,7 +749,7 @@ function buildOverrideKey(slot, key) {
 }
 
 function loadCurrencyMultiplierOverrideFromStorage(currencyKey, slot = getActiveSlot()) {
-    const storageKey = getCurrencyMultiplierStorageKey(currencyKey, slot);
+    const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
     if (!storageKey || typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
@@ -758,15 +758,11 @@ function loadCurrencyMultiplierOverrideFromStorage(currencyKey, slot = getActive
 }
 
 function storeCurrencyMultiplierOverride(currencyKey, slot, value) {
-    const storageKey = getCurrencyMultiplierStorageKey(currencyKey, slot);
+    const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
     if (!storageKey || typeof localStorage === 'undefined') return;
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
-        const locked = isStorageKeyLocked(storageKey);
-        const setter = locked && originalSetItem ? originalSetItem : localStorage.setItem.bind(localStorage);
-        if (locked && !originalSetItem) unlockStorageKey(storageKey);
-        setter(storageKey, bn.toStorage?.() ?? String(bn));
-        if (locked && !originalSetItem) lockStorageKey(storageKey);
+        localStorage.setItem(storageKey, bn.toStorage?.() ?? String(bn));
     } catch {}
 }
 
@@ -784,6 +780,12 @@ function getCurrencyOverride(slot, key) {
     return null;
 }
 
+function getCurrencyMultiplierOverrideStorageKey(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (!currencyKey || resolvedSlot == null) return null;
+    return `ccc:debug:currencyMult:${currencyKey}:${resolvedSlot}`;
+}
+
 function getCurrencyMultiplierStorageKey(currencyKey, slot = getActiveSlot()) {
     const resolvedSlot = slot ?? getActiveSlot();
     if (!currencyKey || resolvedSlot == null) return null;
@@ -798,11 +800,9 @@ export function clearCurrencyMultiplierOverride(currencyKey, slot = getActiveSlo
     const cacheKey = buildOverrideKey(slot, currencyKey);
     currencyOverrides.delete(cacheKey);
     currencyOverrideBaselines.delete(cacheKey);
-    const storageKey = getCurrencyMultiplierStorageKey(currencyKey, slot);
+    const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
     if (storageKey && typeof localStorage !== 'undefined') {
-        if (!isStorageKeyLocked(storageKey)) {
-            try { localStorage.removeItem(storageKey); } catch {}
-        }
+        try { localStorage.removeItem(storageKey); } catch {}
     }
     refreshLiveBindings((binding) => binding.type === 'currency-mult'
         && binding.key === currencyKey
@@ -988,10 +988,6 @@ function ensureCurrencyOverrideListener() {
                             // If it's an unlocked currency and its baseline ACTUALLY changed, wipe its override.
                             if (!locked) {
                                 clearCurrencyMultiplierOverride(key, targetSlot);
-                                const storageKey = getCurrencyMultiplierStorageKey(key, targetSlot);
-                                if (storageKey) {
-                                    try { localStorage.removeItem(storageKey); } catch {}
-                                }
                                 shouldScale = false;
                             }
 
@@ -3183,7 +3179,7 @@ function buildAreaCurrencyMultipliers(container, area) {
         const handle = bank?.[currency.key]?.mult;
         const currentOverride = getDebugCurrencyMultiplierOverride(currency.key, slot);
         const current = currentOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
-        const storageKey = `${KEYS.MULTIPLIER[currency.key]}:${slot}`;
+        const storageKey = getCurrencyMultiplierStorageKey(currency.key, slot);
         const row = createInputRow(`${currency.label} Multiplier`, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
