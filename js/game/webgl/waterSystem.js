@@ -153,6 +153,7 @@ export class WaterSystem {
         this.fgLayers = [];
         this.bgCanvas = document.getElementById(backCanvasId);
         this.fgCanvas = document.getElementById(frontCanvasId);
+        this._resizeTimeout = null;
         
         if (!this.bgCanvas || !this.fgCanvas) return;
 
@@ -192,7 +193,7 @@ export class WaterSystem {
 
         this._applyQualitySettings(); // Initialize fgLayers and bgSimulation dynamically
 
-        this.resize();
+        this._doResize();
         
         if (!this._boundResize) {
             this._boundResize = () => this.resize();
@@ -302,7 +303,12 @@ export class WaterSystem {
         return { readFBO, writeFBO, readTex, writeTex };
     }
 
-    resize() {
+    _doResize() {
+        if (this._resizeTimeout) {
+            clearTimeout(this._resizeTimeout);
+            this._resizeTimeout = null;
+        }
+
         const dpr = Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1); // Cap DPR to 1.5 to save massive amounts of GPU memory
 
         if (this.bgCanvas && this.glBg) {
@@ -321,6 +327,11 @@ export class WaterSystem {
             this.fgCanvas.height = rect.height * dpr;
             this.glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
         }
+    }
+
+    resize() {
+        if (this._resizeTimeout) clearTimeout(this._resizeTimeout);
+        this._resizeTimeout = setTimeout(() => this._doResize(), 150);
     }
 
     applyBrush(gl, program, buffer, fbo, x, y, width, height) {
@@ -467,7 +478,7 @@ export class WaterSystem {
         }
         if (!this.glBg && this.bgCanvas && this.fgCanvas) {
             this.init(this.bgCanvas.id, this.fgCanvas.id, this._baseNumLayers);
-            if (this.glBg) this.resize();
+            if (this.glBg) this._doResize();
         }
         if (!this.glBg) return;
         
