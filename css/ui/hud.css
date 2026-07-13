@@ -427,6 +427,7 @@ pointer-events:none;
 position: relative;
 z-index: 1;
 font-weight: 900;
+white-space: nowrap;
 font-size: clamp(18px, 3.6vw, 32px);
 color: #fff;
 letter-spacing: .5px;
