@@ -651,21 +651,33 @@ export function toggleWaterwheel(waterwheelId) {
     updateFlowTab();
 }
 
+let cachedFlowUnlockState = null;
+
 export function getFlowUnlockState() {
+    if (cachedFlowUnlockState !== null) return cachedFlowUnlockState;
+
     const slot = getSlot();
+    let result = false;
     if (slot != null) {
         try {
             const val = localStorage.getItem(`ccc:unlock:flow:${slot}`);
-            if (val === '1') return true;
-            if (val === '0') return false;
+            if (val === '1') {
+                cachedFlowUnlockState = true;
+                return true;
+            }
+            if (val === '0') {
+                cachedFlowUnlockState = false;
+                return false;
+            }
         } catch {}
     }
 
     if (_unlockChecker) {
-        return _unlockChecker(20);
+        result = _unlockChecker(20);
     }
     
-    return false;
+    cachedFlowUnlockState = result;
+    return result;
 }
 
 export function isFlowUnlocked() {
@@ -675,6 +687,14 @@ export function isFlowUnlocked() {
 let _unlockChecker = null;
 export function setFlowUnlockChecker(fn) {
     _unlockChecker = fn;
+    cachedFlowUnlockState = null;
+}
+
+if (typeof window !== 'undefined') {
+    const invalidateFlowCache = () => { cachedFlowUnlockState = null; };
+    window.addEventListener('saveSlot:change', invalidateFlowCache);
+    window.addEventListener('unlock:change', invalidateFlowCache);
+    window.addEventListener('surge:level:change', invalidateFlowCache);
 }
 
 
