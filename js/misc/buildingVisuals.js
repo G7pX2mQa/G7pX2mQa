@@ -1,6 +1,7 @@
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
+import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoinCollected, checkSecretAchievements } from "../game/secretAchievements.js";
 
 let activeCanvas = null;
 let activeCtx = null;
@@ -18,6 +19,17 @@ let globalPrismAngle = 0; // Integrated angle for smooth prism rotation
 let globalRefineryAnimTime = 0; // Integrated time for smooth refinery animations
 let globalRefineryPipeTime = 0;
 let globalRefineryTankTime = 0;
+
+let keypadZoomedIn = false;
+let isVaultOpening = false;
+let vaultOpeningTime = 0;
+let isVaultOpen = false;
+let canvasClickListener = null;
+let canvasPointerMoveListener = null;
+let canvasMouseX = 0;
+let canvasMouseY = 0;
+const coinImg = new Image();
+coinImg.src = 'img/currencies/coin/coin.webp';
 
 
 
@@ -275,6 +287,24 @@ export function startCanvasLoop(id, canvasEl) {
       currentLevelNum = 1;
     });
 
+  if (currentBuildingId === 'pure_gold') {
+    canvasEl.style.pointerEvents = 'auto';
+    keypadZoomedIn = false;
+    isVaultOpening = false;
+    vaultOpeningTime = 0;
+    isVaultOpen = false;
+
+    canvasClickListener = (e) => {
+      handleVaultCanvasClick(e);
+    };
+    canvasPointerMoveListener = (e) => {
+      handleVaultCanvasPointerMove(e);
+    };
+
+    canvasEl.addEventListener('click', canvasClickListener);
+    canvasEl.addEventListener('pointermove', canvasPointerMoveListener);
+  }
+
   if (document.hidden || !isCanvasIntersecting) {
     if (activeCanvas && document.hidden) {
       activeCanvas.style.display = 'none';
@@ -289,6 +319,17 @@ export function startCanvasLoop(id, canvasEl) {
 }
 
 export function stopCanvasLoop() {
+  if (activeCanvas) {
+    if (canvasClickListener) {
+      activeCanvas.removeEventListener('click', canvasClickListener);
+      canvasClickListener = null;
+    }
+    if (canvasPointerMoveListener) {
+      activeCanvas.removeEventListener('pointermove', canvasPointerMoveListener);
+      canvasPointerMoveListener = null;
+    }
+  }
+
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
@@ -306,6 +347,10 @@ export function stopCanvasLoop() {
   activeCtx = null;
   currentBuildingId = null;
   tierUpAnimTime = 0;
+  keypadZoomedIn = false;
+  isVaultOpening = false;
+  vaultOpeningTime = 0;
+  isVaultOpen = false;
 }
 
 export function triggerLevelUpAnimation(id) {
@@ -412,6 +457,74 @@ function loop(currentTime) {
   globalRefineryPipeTime += dt * refineryPipeSpeedMult;
   globalRefineryTankTime += dt * refineryTankSpeedMult;
 
+
+  if (isVaultOpening) {
+    vaultOpeningTime -= dt;
+    if (vaultOpeningTime <= 0) {
+      isVaultOpening = false;
+      isVaultOpen = true;
+    }
+  }
+
+  if (activeCanvas && currentBuildingId === 'pure_gold') {
+    let cursor = 'default';
+    if (isVaultOpen && !getVaultCoinCollected()) {
+      const scale = 1.0 + getTier() * 0.1;
+      const coin_cx = activeCanvas.width / 2;
+      const floorY = activeCanvas.height - 260;
+      const coin_cy = floorY - 50 * scale;
+      const dist = Math.sqrt((canvasMouseX - coin_cx)**2 + (canvasMouseY - coin_cy)**2);
+      if (dist <= 15 * scale) {
+        cursor = 'pointer';
+        setVaultCoinCollected(true);
+        playAudio("sounds/coin_pickup_size5.ogg");
+        checkSecretAchievements();
+        
+        // Restore Close and Buy Buttons
+        const closeBtn = document.querySelector('.shop-close');
+        if (closeBtn) closeBtn.style.display = '';
+        document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
+        
+        window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+      }
+    } else if (isVaultOpening) {
+      cursor = 'default';
+    } else if (keypadZoomedIn) {
+      const w = activeCanvas.width;
+      const h = activeCanvas.height;
+      const kx = (canvasMouseX - w / 2) / 8;
+      const ky = (canvasMouseY - h / 2) / 8;
+      if (kx >= -12.5 && kx <= 12.5 && ky >= -18 && ky <= 18) {
+        let onBtn = false;
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const bx = -9.5 + c * 7;
+            const by = -3 + r * 7;
+            if (kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5) {
+              onBtn = true;
+            }
+          }
+        }
+        cursor = onBtn ? 'pointer' : 'default';
+      } else {
+        cursor = 'pointer';
+      }
+    } else {
+      const scale = 1.0 + getTier() * 0.1;
+      const floorY = activeCanvas.height - 260;
+      const centerX = activeCanvas.width / 2;
+      const left = centerX - 48 * scale;
+      const right = centerX - 23 * scale;
+      const top = floorY - 88 * scale;
+      const bottom = floorY - 52 * scale;
+      if (canvasMouseX >= left && canvasMouseX <= right && canvasMouseY >= top && canvasMouseY <= bottom && getTier() >= 2) {
+        cursor = 'pointer';
+      }
+    }
+    if (activeCanvas.style.cursor !== cursor) {
+      activeCanvas.style.cursor = cursor;
+    }
+  }
 
   if (activeCanvas && activeCtx) {
     draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
@@ -4842,15 +4955,26 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
   // Progress helpers for smooth fading
   const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
 
-  const t0 = getProg(0);
-  const t1 = getProg(1);
-  const t2 = getProg(2);
-  const t3 = getProg(3);
-  const t4 = getProg(4);
-  const t5 = getProg(5);
-  const t6 = getProg(6);
-  const t7 = getProg(7);
-  const t8 = getProg(8);
+  let t0 = getProg(0);
+  let t1 = getProg(1);
+  let t2 = getProg(2);
+  let t3 = getProg(3);
+  let t4 = getProg(4);
+  let t5 = getProg(5);
+  let t6 = getProg(6);
+  let t7 = getProg(7);
+  let t8 = getProg(8);
+
+  if (isVaultOpening || isVaultOpen) {
+    t1 = 0;
+    t2 = 0;
+    t3 = 0;
+    t4 = 0;
+    t5 = 0;
+    t6 = 0;
+    t7 = 0;
+    t8 = 0;
+  }
 
   // --- Utility Functions for this building ---
   const drawCyberLine = (x1, y1, x2, y2, color, width, alpha) => {
@@ -5094,6 +5218,34 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
     drawPolygon([
       {x: -60, y: 0}, {x: -60, y: -100}, {x: 60, y: -100}, {x: 60, y: 0}
     ], fillGold, darkMetal, 4, alpha);
+
+    // If opening or open, draw dark interior and spinning coin
+    if (isVaultOpening || isVaultOpen) {
+      ctx.fillStyle = "#111111";
+      ctx.fillRect(-50, -90, 100, 80);
+      ctx.strokeStyle = darkMetal;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-50, -90, 100, 80);
+      
+      // Draw spinning coin
+      if (isVaultOpen && !getVaultCoinCollected()) {
+        ctx.save();
+        ctx.translate(0, -50);
+        ctx.scale(Math.sin(time * 5), 1);
+        ctx.drawImage(coinImg, -15, -15, 30, 30);
+        ctx.restore();
+      }
+    }
+    
+    // Now draw the door (which swings open)
+    ctx.save();
+    if (isVaultOpening || isVaultOpen) {
+      const prog = isVaultOpen ? 1.0 : (5.0 - vaultOpeningTime) / 5.0;
+      const doorScaleX = 1.0 - prog * 1.5;
+      ctx.translate(-50, 0);
+      ctx.scale(doorScaleX, 1);
+      ctx.translate(50, 0);
+    }
     
     // Vault door outline
     ctx.strokeStyle = darkMetal;
@@ -5144,7 +5296,9 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
     ctx.lineWidth = 1.5;
     ctx.stroke();
     
-    ctx.restore();
+    ctx.restore(); // restore door swing
+    
+    ctx.restore(); // restore global alpha
   };
 
   
@@ -5614,8 +5768,27 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
     ctx.fillRect(-48, -88, 25, 36);
     
     // Blinking status lights
-    const fastBlink = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
-    ctx.fillStyle = fastBlink;
+    // If vault is open / perfectly matched: solid green
+    // If we have entered some numbers but not matched yet: let's determine if we have a valid prefix prefix sequence
+    const seq = getVaultSequence();
+    const target = "7887773346665553";
+    let lightColor = "#ff0000"; // Solid red by default/idle (not touched)
+    
+    if (isVaultOpen || seq === target) {
+      lightColor = "#00ff00"; // Solid green
+    } else if (seq.length > 0) {
+      // If sequence has matching characters consecutively, blink green. Otherwise blink red or stay solid red.
+      const matchLen = getMatchLength(seq, target);
+      if (matchLen > 0) {
+        // Blinking green/red
+        lightColor = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
+      } else {
+        // Incorrect / broke sequence or idle
+        lightColor = "#ff0000";
+      }
+    }
+
+    ctx.fillStyle = lightColor;
     ctx.beginPath();
     ctx.arc(-35.5, -80.5, 2, 0, Math.PI * 2);
     ctx.fill();
@@ -5804,6 +5977,83 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
 
   ctx.restore();
 
+  if (keypadZoomedIn) {
+    ctx.save();
+    ctx.resetTransform();
+
+    // Dark background overlay
+    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillRect(0, 0, w, h);
+
+    // Translate to center
+    ctx.translate(w / 2, h / 2);
+    const zoomFactor = 8;
+    ctx.scale(zoomFactor, zoomFactor);
+
+    // Keypad body
+    ctx.fillStyle = "#111111";
+    ctx.fillRect(-12.5, -18, 25, 36);
+    ctx.strokeStyle = "#444444";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-12.5, -18, 25, 36);
+
+    // Status light on zoomed keypad
+    const zoomSeq = getVaultSequence();
+    const zoomTarget = "7887773346665553";
+    let zoomLightColor = "#ff0000"; // Solid red by default/idle
+    
+    if (isVaultOpen || zoomSeq === zoomTarget) {
+      zoomLightColor = "#00ff00"; // Solid green
+    } else if (zoomSeq.length > 0) {
+      const matchLen = getMatchLength(zoomSeq, zoomTarget);
+      if (matchLen > 0) {
+        // Blinking green/red
+        zoomLightColor = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
+      } else {
+        zoomLightColor = "#ff0000";
+      }
+    }
+    
+    ctx.fillStyle = zoomLightColor;
+    ctx.beginPath();
+    ctx.arc(0, -10.5, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Small highlight
+    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.beginPath();
+    ctx.arc(-0.6, -11.1, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3x3 Button grid
+    const kx = (canvasMouseX - w / 2) / zoomFactor;
+    const ky = (canvasMouseY - h / 2) / zoomFactor;
+
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const bx = -9.5 + c * 7;
+        const by = -3 + r * 7;
+        const btnNum = r * 3 + c + 1;
+
+        const isHovered = kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5;
+        ctx.fillStyle = isHovered ? "#555555" : "#222222";
+        ctx.fillRect(bx, by, 5, 5);
+
+        ctx.strokeStyle = isHovered ? "#00ffff" : "#444444";
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(bx, by, 5, 5);
+
+        // Draw numbers
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 3px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(btnNum), bx + 2.5, by + 2.5);
+      }
+    }
+
+    ctx.restore();
+  }
 }
 
 function drawOilRig(ctx, t, tier) {
@@ -5939,4 +6189,109 @@ function drawTesseract(ctx, t, tier) {
 
   ctx.fillStyle = "#222";
   ctx.fillRect(-50, -20, 100, 20);
+}
+
+
+function getMatchLength(str, target) {
+  for (let len = str.length; len > 0; len--) {
+    let suffix = str.slice(-len);
+    if (target.startsWith(suffix)) {
+      return len;
+    }
+  }
+  return 0;
+}
+
+function handleVaultCanvasPointerMove(e) {
+  if (!activeCanvas) return;
+  const rect = activeCanvas.getBoundingClientRect();
+  const clientX = e.clientX - rect.left;
+  const clientY = e.clientY - rect.top;
+  const scaleX = activeCanvas.width / rect.width;
+  const scaleY = activeCanvas.height / rect.height;
+  canvasMouseX = clientX * scaleX;
+  canvasMouseY = clientY * scaleY;
+}
+
+function handleVaultCanvasClick(e) {
+  if (!activeCanvas) return;
+  const rect = activeCanvas.getBoundingClientRect();
+  const clientX = e.clientX - rect.left;
+  const clientY = e.clientY - rect.top;
+  const scaleX = activeCanvas.width / rect.width;
+  const scaleY = activeCanvas.height / rect.height;
+  const cx = clientX * scaleX;
+  const cy = clientY * scaleY;
+
+  const w = activeCanvas.width;
+  const h = activeCanvas.height;
+  const floorY = h - 260;
+  const centerX = w / 2;
+
+  if (isVaultOpen) return;
+  if (isVaultOpening) return;
+
+  if (keypadZoomedIn) {
+    const zoomFactor = 8;
+    const kx = (cx - w / 2) / zoomFactor;
+    const ky = (cy - h / 2) / zoomFactor;
+
+    if (kx < -12.5 || kx > 12.5 || ky < -18 || ky > 18) {
+      keypadZoomedIn = false;
+      activeCanvas.style.cursor = 'default';
+      return;
+    }
+
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const bx = -9.5 + c * 7;
+        const by = -3 + r * 7;
+        if (kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5) {
+          const btnNum = r * 3 + c + 1;
+          const seq = getVaultSequence();
+          const newSeq = (seq + btnNum).slice(-16);
+          const target = "7887773346665553";
+          const oldLen = getMatchLength(seq, target);
+          const newLen = getMatchLength(newSeq, target);
+
+          setVaultSequence(newSeq);
+
+          if (newSeq === target) {
+            playAudio("sounds/correct.ogg");
+            isVaultOpening = true;
+            vaultOpeningTime = 5.0;
+            keypadZoomedIn = false;
+            playAudio("sounds/opening.ogg");
+            window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+            
+            const closeBtn = document.querySelector('.shop-close');
+            if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
+            const btnBuy = document.getElementById('building-btn-buy');
+            if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
+            const btnBuyMax = document.getElementById('building-btn-buy-max');
+            if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
+            const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
+            if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
+          } else if (newLen === oldLen + 1) {
+            playAudio("sounds/correct.ogg");
+          } else {
+            playAudio("sounds/incorrect.ogg");
+          }
+          return;
+        }
+      }
+    }
+  } else {
+    const scale = 1.0 + getTier() * 0.1;
+    const left = centerX - 48 * scale;
+    const right = centerX - 23 * scale;
+    const top = floorY - 88 * scale;
+    const bottom = floorY - 52 * scale;
+
+    if (cx >= left && cx <= right && cy >= top && cy <= bottom) {
+      if (getTier() >= 2) {
+        keypadZoomedIn = true;
+      }
+    }
+  }
 }
