@@ -1131,9 +1131,20 @@ export function initBuildingOverlay() {
     canvas.style.height = '100%';
     canvas.style.display = 'block';
     canvasContainer.appendChild(canvas);
+	
+    const keypadCanvas = document.createElement('canvas');
+    keypadCanvas.id = 'building-keypad-canvas';
+    keypadCanvas.style.position = 'absolute';
+    keypadCanvas.style.top = '0';
+    keypadCanvas.style.left = '0';
+    keypadCanvas.style.width = '100%';
+    keypadCanvas.style.height = '100%';
+    keypadCanvas.style.display = 'block';
+    keypadCanvas.style.pointerEvents = 'none';
+    keypadCanvas.style.zIndex = '999999';
+    canvasContainer.appendChild(keypadCanvas);
     
     sheet.appendChild(canvasContainer);
-
     
     const onlyBuildingBtn = document.createElement('button');
     onlyBuildingBtn.className = 'only-building-btn';
@@ -1141,7 +1152,7 @@ export function initBuildingOverlay() {
     onlyBuildingBtn.style.position = 'absolute';
     onlyBuildingBtn.style.top = '8px';
     onlyBuildingBtn.style.right = '8px';
-    onlyBuildingBtn.style.zIndex = '99999';
+    onlyBuildingBtn.style.zIndex = '9999';
     onlyBuildingBtn.style.backgroundColor = '#808080';
     onlyBuildingBtn.style.color = '#fff';
     onlyBuildingBtn.style.border = '2px solid black';
