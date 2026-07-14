@@ -160,3 +160,10 @@
 .buildings-tab .shop-tile img.icon {
   clip-path: circle(50% at 50% 50%);
 }
+
+/* Gaussian blur on background elements during zoomed-in keypad */
+.upg-sheet.keypad-zoomed-blur #building-detail-canvas,
+.upg-sheet.keypad-zoomed-blur .only-building-btn {
+  filter: blur(8px);
+  transition: filter 0.2s ease-out;
+}
