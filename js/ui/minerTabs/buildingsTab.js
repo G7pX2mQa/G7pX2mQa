@@ -1098,7 +1098,7 @@ export function initBuildingOverlay() {
     canvasContainer.style.width = '100%';
     canvasContainer.style.height = '100%';
     canvasContainer.style.zIndex = '0';
-    canvasContainer.style.pointerEvents = 'none';
+    canvasContainer.style.pointerEvents = 'auto';
     
     const canvas = document.createElement('canvas');
     canvas.id = 'building-detail-canvas';
@@ -1148,6 +1148,7 @@ export function initBuildingOverlay() {
     content.style.justifyContent = 'flex-end';
     content.style.zIndex = '1';
     content.style.position = 'relative';
+    content.style.pointerEvents = 'none';
     
     const levelTextContainer = document.createElement("div");
     levelTextContainer.style.textAlign = "center";
@@ -1200,6 +1201,7 @@ export function initBuildingOverlay() {
     textContainer.style.gap = "0px";
     textContainer.style.justifyContent = "center";
     textContainer.style.marginBottom = "-11px";
+    textContainer.style.pointerEvents = "auto";
     
     
     textContainer.appendChild(bonusRow);
@@ -1524,3 +1526,4 @@ window.getAffordableBuildingLevels = getAffordableBuildingLevels;
 window.setBuildingUnlocked = setBuildingUnlocked;
 window.setBuildingUnlockedById = setBuildingUnlocked;
 window.createBuildingCard = createBuildingCard;
+window.openBuildingDetailOverlay = openBuildingDetailOverlay;
