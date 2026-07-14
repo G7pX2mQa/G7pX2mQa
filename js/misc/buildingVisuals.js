@@ -386,6 +386,11 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
 
 function loop(currentTime) {
   if (!activeCanvas) return;
+
+  if (activeCanvas.parentElement) {
+    activeCanvas.parentElement.style.zIndex = keypadZoomedIn ? '10' : '0';
+  }
+
   const dt = (currentTime - lastTime) / 1000;
   lastTime = currentTime;
   time += dt;
@@ -513,10 +518,11 @@ function loop(currentTime) {
       const scale = 1.0 + getTier() * 0.1;
       const floorY = activeCanvas.height - 260;
       const centerX = activeCanvas.width / 2;
+      const dy = 15;
       const left = centerX - 48 * scale;
       const right = centerX - 23 * scale;
-      const top = floorY - 88 * scale;
-      const bottom = floorY - 52 * scale;
+      const top = floorY - (88 + dy) * scale;
+      const bottom = floorY - (52 + dy) * scale;
       if (canvasMouseX >= left && canvasMouseX <= right && canvasMouseY >= top && canvasMouseY <= bottom && getTier() >= 2) {
         cursor = 'pointer';
       }
@@ -5777,14 +5783,11 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
     if (isVaultOpen || seq === target) {
       lightColor = "#00ff00"; // Solid green
     } else if (seq.length > 0) {
-      // If sequence has matching characters consecutively, blink green. Otherwise blink red or stay solid red.
       const matchLen = getMatchLength(seq, target);
       if (matchLen > 0) {
-        // Blinking green/red
-        lightColor = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
+        lightColor = "#00ff00"; // Solid green on correct prefix match
       } else {
-        // Incorrect / broke sequence or idle
-        lightColor = "#ff0000";
+        lightColor = "#ff0000"; // Solid red on incorrect prefix
       }
     }
 
@@ -5993,9 +5996,6 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
     // Keypad body
     ctx.fillStyle = "#111111";
     ctx.fillRect(-12.5, -18, 25, 36);
-    ctx.strokeStyle = "#444444";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-12.5, -18, 25, 36);
 
     // Status light on zoomed keypad
     const zoomSeq = getVaultSequence();
@@ -6007,22 +6007,15 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
     } else if (zoomSeq.length > 0) {
       const matchLen = getMatchLength(zoomSeq, zoomTarget);
       if (matchLen > 0) {
-        // Blinking green/red
-        zoomLightColor = (Math.sin(t * 15) > 0) ? "#00ff00" : "#ff0000";
+        zoomLightColor = "#00ff00"; // Solid green on correct prefix match
       } else {
-        zoomLightColor = "#ff0000";
+        zoomLightColor = "#ff0000"; // Solid red on incorrect prefix
       }
     }
     
     ctx.fillStyle = zoomLightColor;
     ctx.beginPath();
     ctx.arc(0, -10.5, 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Small highlight
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.beginPath();
-    ctx.arc(-0.6, -11.1, 0.6, 0, Math.PI * 2);
     ctx.fill();
 
     // 3x3 Button grid
@@ -6036,19 +6029,21 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
         const btnNum = r * 3 + c + 1;
 
         const isHovered = kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5;
-        ctx.fillStyle = isHovered ? "#555555" : "#222222";
+        ctx.fillStyle = isHovered ? "#656565" : "#434343";
         ctx.fillRect(bx, by, 5, 5);
 
-        ctx.strokeStyle = isHovered ? "#00ffff" : "#444444";
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(bx, by, 5, 5);
+        if (isHovered) {
+          ctx.strokeStyle = "#00ffff";
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(bx, by, 5, 5);
+        }
 
         // Draw numbers
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 3px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(String(btnNum), bx + 2.5, by + 2.5);
+        ctx.fillText(String(btnNum), bx + 2.5, by + 3.0);
       }
     }
 
@@ -6283,10 +6278,11 @@ function handleVaultCanvasClick(e) {
     }
   } else {
     const scale = 1.0 + getTier() * 0.1;
+    const dy = 15;
     const left = centerX - 48 * scale;
     const right = centerX - 23 * scale;
-    const top = floorY - 88 * scale;
-    const bottom = floorY - 52 * scale;
+    const top = floorY - (88 + dy) * scale;
+    const bottom = floorY - (52 + dy) * scale;
 
     if (cx >= left && cx <= right && cy >= top && cy <= bottom) {
       if (getTier() >= 2) {
