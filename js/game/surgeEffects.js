@@ -87,14 +87,24 @@ export function setTsunamiSequencePlayed(value) {
   } catch {}
 }
 
+let cachedLabUnlocked = null;
+
 export function isLabUnlocked() {
+  if (cachedLabUnlocked !== null) return cachedLabUnlocked;
   const slot = getActiveSlot();
   if (slot == null) return false;
   try {
-    return localStorage.getItem(TSUNAMI_UNLOCKED_KEY(slot)) === "1";
+    const result = localStorage.getItem(TSUNAMI_UNLOCKED_KEY(slot)) === "1";
+    cachedLabUnlocked = result;
+    return result;
   } catch {
     return false;
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => { cachedLabUnlocked = null; });
+  window.addEventListener('unlock:change', () => { cachedLabUnlocked = null; });
 }
 
 export function setLabUnlocked(value) {
@@ -103,6 +113,7 @@ export function setLabUnlocked(value) {
   const normalized = !!value;
   try {
     localStorage.setItem(TSUNAMI_UNLOCKED_KEY(slot), normalized ? "1" : "0");
+    cachedLabUnlocked = normalized;
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("unlock:change", { detail: { key: "tsunami", slot } }),
