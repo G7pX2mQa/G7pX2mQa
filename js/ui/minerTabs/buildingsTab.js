@@ -129,7 +129,11 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
             } else if (typeof plusLevel === 'number') {
                 over999 = plusLevel > 999;
             }
-            needsTwoLines = over999;
+            let currentOver999 = false;
+            if (levelBn && typeof levelBn.cmp === 'function') {
+                currentOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
+            }
+            needsTwoLines = over999 || currentOver999;
         }
         
         if (isInfiniteLevel) {
@@ -429,7 +433,11 @@ function updateBuildingGridBadges(gridEl) {
             } else if (typeof plusLevelBn === 'number') {
                 over999 = plusLevelBn > 999;
             }
-            needsTwoLines = over999;
+            let currentOver999 = false;
+            if (levelBn && typeof levelBn.cmp === 'function') {
+                currentOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
+            }
+            needsTwoLines = over999 || currentOver999;
         }
 
 
