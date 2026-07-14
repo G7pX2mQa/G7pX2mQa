@@ -507,6 +507,12 @@
   z-index: 2000;
 }
 
+/* Fix overlapping dropdowns in settings */
+.setting-row:has(.setting-dropdown-menu.is-open) {
+  z-index: 2500;
+  position: relative;
+}
+
 .setting-dropdown-wrapper {
   position: relative;
   display: flex;
