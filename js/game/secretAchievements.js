@@ -92,6 +92,36 @@ export function getBinaryFlowSequence(slot = getActiveSlot()) {
     return "";
 }
 
+export function getVaultSequence(slot = getActiveSlot()) {
+    if (slot == null) return "";
+    try {
+        return localStorage.getItem(`ccc:secretAchievements:vaultSequence:${slot}`) || "";
+    } catch {}
+    return "";
+}
+
+export function setVaultSequence(seq, slot = getActiveSlot()) {
+    if (slot == null) return;
+    try {
+        localStorage.setItem(`ccc:secretAchievements:vaultSequence:${slot}`, seq);
+    } catch {}
+}
+
+export function getVaultCoinCollected(slot = getActiveSlot()) {
+    if (slot == null) return false;
+    try {
+        return localStorage.getItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`) === 'true';
+    } catch {}
+    return false;
+}
+
+export function setVaultCoinCollected(val, slot = getActiveSlot()) {
+    if (slot == null) return;
+    try {
+        localStorage.setItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`, String(val));
+    } catch {}
+}
+
 const _rawSecretAchievements = [
     {
         id: 1,
@@ -196,6 +226,14 @@ const _rawSecretAchievements = [
             ]);
             return validSequences.has(seq);
         }
+    },
+    {
+        id: 9,
+        title: "The Vault's Secret",
+        get desc() { return "In the Vault building’s interactable keypad, enter the numbers '7887773346665553' consecutively to open the Vault. Once the Vault is open, collect the treasure inside."; },
+        icon: 'img/misc/mysterious_plus_base.webp',
+        extraHint: 'Need help? Dial 1-800-PUREGOLD today!',
+        checkCondition: (slot) => getVaultCoinCollected(slot)
     }
 ];
 
