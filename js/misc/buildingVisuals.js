@@ -26,6 +26,8 @@ let vaultOpeningTime = 0;
 let isVaultOpen = false;
 let canvasClickListener = null;
 let canvasPointerMoveListener = null;
+let canvasKeyDownListener = null;
+let lastHotkeyNum = null;
 let canvasMouseX = 0;
 let canvasMouseY = 0;
 const coinImg = new Image();
@@ -238,6 +240,11 @@ export function startCanvasLoop(id, canvasEl) {
     const rect = activeCanvas.parentElement.getBoundingClientRect();
     activeCanvas.width = rect.width;
     activeCanvas.height = rect.height;
+    const keypadCanvas = document.getElementById('building-keypad-canvas');
+    if (keypadCanvas) {
+      keypadCanvas.width = rect.width;
+      keypadCanvas.height = rect.height;
+    }
   });
   canvasResizeObserver.observe(activeCanvas.parentElement);
 
@@ -270,6 +277,11 @@ export function startCanvasLoop(id, canvasEl) {
   const rect = activeCanvas.parentElement.getBoundingClientRect();
   activeCanvas.width = rect.width;
   activeCanvas.height = rect.height;
+  const keypadCanvas = document.getElementById('building-keypad-canvas');
+  if (keypadCanvas) {
+    keypadCanvas.width = rect.width;
+    keypadCanvas.height = rect.height;
+  }
 
   // Using import for ES modules instead of require for local scope
   import("../ui/minerTabs/buildingsTab.js")
@@ -300,9 +312,13 @@ export function startCanvasLoop(id, canvasEl) {
     canvasPointerMoveListener = (e) => {
       handleVaultCanvasPointerMove(e);
     };
+    canvasKeyDownListener = (e) => {
+      handleVaultCanvasKeyDown(e);
+    };
 
     canvasEl.addEventListener('click', canvasClickListener);
     canvasEl.addEventListener('pointermove', canvasPointerMoveListener);
+    window.addEventListener('keydown', canvasKeyDownListener);
   }
 
   if (document.hidden || !isCanvasIntersecting) {
@@ -319,6 +335,8 @@ export function startCanvasLoop(id, canvasEl) {
 }
 
 export function stopCanvasLoop() {
+  const wasOpeningOrOpen = isVaultOpening || isVaultOpen;
+
   if (activeCanvas) {
     if (canvasClickListener) {
       activeCanvas.removeEventListener('click', canvasClickListener);
@@ -329,6 +347,11 @@ export function stopCanvasLoop() {
       canvasPointerMoveListener = null;
     }
   }
+  if (canvasKeyDownListener) {
+    window.removeEventListener('keydown', canvasKeyDownListener);
+    canvasKeyDownListener = null;
+  }
+  lastHotkeyNum = null;
 
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
@@ -351,6 +374,19 @@ export function stopCanvasLoop() {
   isVaultOpening = false;
   vaultOpeningTime = 0;
   isVaultOpen = false;
+
+  if (wasOpeningOrOpen) {
+    const closeBtn = document.querySelector('.shop-close');
+    if (closeBtn) closeBtn.style.removeProperty('display');
+    const btnBuy = document.getElementById('building-btn-buy');
+    if (btnBuy) btnBuy.style.removeProperty('display');
+    const btnBuyMax = document.getElementById('building-btn-buy-max');
+    if (btnBuyMax) btnBuyMax.style.removeProperty('display');
+    const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
+    if (btnBuyCheap) btnBuyCheap.style.removeProperty('display');
+
+    window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+  }
 }
 
 export function triggerLevelUpAnimation(id) {
@@ -388,7 +424,15 @@ function loop(currentTime) {
   if (!activeCanvas) return;
 
   if (activeCanvas.parentElement) {
-    activeCanvas.parentElement.style.zIndex = keypadZoomedIn ? '10' : '0';
+    activeCanvas.parentElement.style.zIndex = keypadZoomedIn ? '999999' : '0';
+    const upgSheet = activeCanvas.closest('.upg-sheet');
+    if (upgSheet) {
+      if (keypadZoomedIn) {
+        upgSheet.classList.add('keypad-zoomed-blur');
+      } else {
+        upgSheet.classList.remove('keypad-zoomed-blur');
+      }
+    }
   }
 
   const dt = (currentTime - lastTime) / 1000;
@@ -533,7 +577,12 @@ function loop(currentTime) {
   }
 
   if (activeCanvas && activeCtx) {
-    draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
+    const keypadCanvas = document.getElementById('building-keypad-canvas');
+    let keypadCtx = null;
+    if (keypadCanvas) {
+      keypadCtx = keypadCanvas.getContext('2d');
+    }
+    draw(activeCtx, keypadCtx, activeCanvas.width, activeCanvas.height, time);
   }
 
   animationFrameId = requestAnimationFrame(loop);
@@ -547,8 +596,11 @@ function getTier() {
   return t; // 0 to 8
 }
 
-function draw(ctx, width, height, t) {
+function draw(ctx, keypadCtx, width, height, t) {
   ctx.clearRect(0, 0, width, height);
+  if (keypadCtx) {
+    keypadCtx.clearRect(0, 0, width, height);
+  }
 
   ctx.save();
   let shakeAlpha = 0;
@@ -576,6 +628,7 @@ function draw(ctx, width, height, t) {
     }
     drawBuilding(
       ctx,
+      keypadCtx,
       width,
       height,
       t,
@@ -821,20 +874,10 @@ function drawCavern(ctx, w, h, t) {
     }
   }
 
-  if (currentBuildingId !== "pure_gold") {
-    for (const gem of window.currentCavernLayout.gems) {
-      let cx = gem.xFrac * w;
-      let cy = h - floorH * 0.7 + floorH * 0.6 * gem.yFrac;
-
-      const cachedImage = window.cachedGemstones[gem.gemType];
-      if (cachedImage) {
-        ctx.drawImage(cachedImage, cx - 20, cy - 20);
-      }
-    }
-  }
+  // Gemstones completely removed from standard ground visuals
 }
 
-function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
+function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress) {
   const floorY = h - 260; // Match new floor height
   const cx = w / 2;
 
@@ -891,7 +934,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   else if (id === "stone") drawFoundry(ctx, t, tier, prevTier, animProgress);
   else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
   else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
-  else if (id === "pure_gold") drawVault(ctx, w, h, t, tier, prevTier, animProgress);
+  else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
   else if (id === "diamond") drawOilRig(ctx, t, tier);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier);
   else if (id === "ruby") drawRadiator(ctx, t, tier);
@@ -4948,7 +4991,7 @@ let cachedFaceOnLink = null;
 let cachedSideOnLink = null;
 const cachedForcefields = {};
 
-function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
+function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   if (!pureGoldPattern && activeCtx) {
     initPureGoldPattern(activeCtx);
   } else if (!pureGoldPattern) {
@@ -5966,36 +6009,26 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
   ctx.fillStyle = "rgb(18, 12, 10)";
   ctx.fillRect(-1600, floorH - floorH * 0.6, 3200, floorH * 0.6 + 50);
 
-  if (window.currentCavernLayout && window.cachedGemstones) {
-    for (const gem of window.currentCavernLayout.gems) {
-      let gemX = gem.xFrac * w - w / 2;
-      let gemY = floorH * 0.3 + floorH * 0.6 * gem.yFrac;
-
-      const cachedImage = window.cachedGemstones[gem.gemType];
-      if (cachedImage) {
-        ctx.drawImage(cachedImage, gemX - 20, gemY - 20);
-      }
-    }
-  }
+  // Gemstones completely removed from fake ground for Vault building
 
   ctx.restore();
 
-  if (keypadZoomedIn) {
-    ctx.save();
-    ctx.resetTransform();
+  if (keypadZoomedIn && keypadCtx) {
+    keypadCtx.save();
+    keypadCtx.resetTransform();
 
-    // Dark background overlay
-    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-    ctx.fillRect(0, 0, w, h);
+    // Dark background overlay on the keypad canvas
+    keypadCtx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    keypadCtx.fillRect(0, 0, w, h);
 
     // Translate to center
-    ctx.translate(w / 2, h / 2);
+    keypadCtx.translate(w / 2, h / 2);
     const zoomFactor = 8;
-    ctx.scale(zoomFactor, zoomFactor);
+    keypadCtx.scale(zoomFactor, zoomFactor);
 
     // Keypad body
-    ctx.fillStyle = "#111111";
-    ctx.fillRect(-12.5, -18, 25, 36);
+    keypadCtx.fillStyle = "#111111";
+    keypadCtx.fillRect(-12.5, -18, 25, 36);
 
     // Status light on zoomed keypad
     const zoomSeq = getVaultSequence();
@@ -6013,10 +6046,10 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
       }
     }
     
-    ctx.fillStyle = zoomLightColor;
-    ctx.beginPath();
-    ctx.arc(0, -10.5, 2, 0, Math.PI * 2);
-    ctx.fill();
+    keypadCtx.fillStyle = zoomLightColor;
+    keypadCtx.beginPath();
+    keypadCtx.arc(0, -10.5, 2, 0, Math.PI * 2);
+    keypadCtx.fill();
 
     // 3x3 Button grid
     const kx = (canvasMouseX - w / 2) / zoomFactor;
@@ -6029,25 +6062,29 @@ function drawVault(ctx, w, h, t, tier, prevTier, animProgress) {
         const btnNum = r * 3 + c + 1;
 
         const isHovered = kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5;
-        ctx.fillStyle = isHovered ? "#656565" : "#434343";
-        ctx.fillRect(bx, by, 5, 5);
+        if (isHovered && lastHotkeyNum !== null) {
+          lastHotkeyNum = null;
+        }
+        const isHighlighted = isHovered || (lastHotkeyNum === btnNum);
+        keypadCtx.fillStyle = isHighlighted ? "#656565" : "#434343";
+        keypadCtx.fillRect(bx, by, 5, 5);
 
-        if (isHovered) {
-          ctx.strokeStyle = "#00ffff";
-          ctx.lineWidth = 0.5;
-          ctx.strokeRect(bx, by, 5, 5);
+        if (isHighlighted) {
+          keypadCtx.strokeStyle = "#00ffff";
+          keypadCtx.lineWidth = 0.5;
+          keypadCtx.strokeRect(bx, by, 5, 5);
         }
 
         // Draw numbers
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 3px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(btnNum), bx + 2.5, by + 3.0);
+        keypadCtx.fillStyle = "#ffffff";
+        keypadCtx.font = "bold 3px sans-serif";
+        keypadCtx.textAlign = "center";
+        keypadCtx.textBaseline = "middle";
+        keypadCtx.fillText(String(btnNum), bx + 2.5, by + 3.0);
       }
     }
 
-    ctx.restore();
+    keypadCtx.restore();
   }
 }
 
@@ -6208,6 +6245,53 @@ function handleVaultCanvasPointerMove(e) {
   canvasMouseY = clientY * scaleY;
 }
 
+if (typeof window !== 'undefined') {
+  window.isVaultMuted = () => {
+    return isVaultOpening || isVaultOpen;
+  };
+}
+
+function handleVaultCanvasKeyDown(e) {
+  if (!keypadZoomedIn || isVaultOpening || isVaultOpen) return;
+  const key = e.key;
+  if (key >= '1' && key <= '9') {
+    const btnNum = parseInt(key, 10);
+    lastHotkeyNum = btnNum;
+    
+    // Simulate button click/press
+    const seq = getVaultSequence();
+    const newSeq = (seq + btnNum).slice(-16);
+    const target = "7887773346665553";
+    const oldLen = getMatchLength(seq, target);
+    const newLen = getMatchLength(newSeq, target);
+
+    setVaultSequence(newSeq);
+
+    if (newSeq === target) {
+      playAudio("sounds/correct.ogg");
+      isVaultOpening = true;
+      vaultOpeningTime = 5.0;
+      keypadZoomedIn = false;
+      playAudio("sounds/opening.ogg");
+      window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+      
+      const closeBtn = document.querySelector('.shop-close');
+      if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
+      const btnBuy = document.getElementById('building-btn-buy');
+      if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
+      const btnBuyMax = document.getElementById('building-btn-buy-max');
+      if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
+      const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
+      if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
+    } else if (newLen === oldLen + 1) {
+      playAudio("sounds/correct.ogg");
+    } else {
+      playAudio("sounds/incorrect.ogg");
+      setVaultSequence("0000000000000000");
+    }
+  }
+}
+
 function handleVaultCanvasClick(e) {
   if (!activeCanvas) return;
   const rect = activeCanvas.getBoundingClientRect();
@@ -6271,6 +6355,7 @@ function handleVaultCanvasClick(e) {
             playAudio("sounds/correct.ogg");
           } else {
             playAudio("sounds/incorrect.ogg");
+            setVaultSequence("0000000000000000");
           }
           return;
         }
