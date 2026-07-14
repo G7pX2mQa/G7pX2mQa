@@ -38,11 +38,16 @@ export function setBuildingUnlocked(id, value, slot = getActiveSlot()) {
   }
 }
 
+let cachedBuildingsUnlocked = null;
+
 export function isBuildingsUnlocked() {
+  if (cachedBuildingsUnlocked !== null) return cachedBuildingsUnlocked;
   const slotKey = String(getActiveSlot() ?? 'default');
   if (typeof localStorage === 'undefined') return false;
   try {
-    return localStorage.getItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
+    const result = localStorage.getItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
+    cachedBuildingsUnlocked = result;
+    return result;
   } catch {
     return false;
   }
@@ -50,6 +55,7 @@ export function isBuildingsUnlocked() {
 
 export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
+  cachedBuildingsUnlocked = !!value;
   if (typeof localStorage !== 'undefined') {
     try {
       if (value) {
@@ -59,6 +65,12 @@ export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
       }
     } catch {}
   }
+}
+
+if (typeof window !== 'undefined') {
+  const invalidateBuildingsCache = () => { cachedBuildingsUnlocked = null; };
+  window.addEventListener('saveSlot:change', invalidateBuildingsCache);
+  window.addEventListener('unlock:change', invalidateBuildingsCache);
 }
 
 function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText, level, plusLevel) {
@@ -129,11 +141,7 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
             } else if (typeof plusLevel === 'number') {
                 over999 = plusLevel > 999;
             }
-            let currentOver999 = false;
-            if (levelBn && typeof levelBn.cmp === 'function') {
-                currentOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
-            }
-            needsTwoLines = over999 || currentOver999;
+            needsTwoLines = over999;
         }
         
         if (isInfiniteLevel) {
@@ -433,11 +441,7 @@ function updateBuildingGridBadges(gridEl) {
             } else if (typeof plusLevelBn === 'number') {
                 over999 = plusLevelBn > 999;
             }
-            let currentOver999 = false;
-            if (levelBn && typeof levelBn.cmp === 'function') {
-                currentOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
-            }
-            needsTwoLines = over999 || currentOver999;
+            needsTwoLines = over999;
         }
 
 
@@ -468,25 +472,38 @@ function updateBuildingGridBadges(gridEl) {
 }
 
 export function updateBuildingsPanelVisibility(minerSheetEl) {
+  if (!minerSheetEl) {
+    minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
+  }
+  if (!minerSheetEl) return;
+
   const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
   if (!tabsEl) return;
   const tabBtn = tabsEl.querySelector('[data-tab="buildings"]');
   if (!tabBtn) return;
   
-  if (isBuildingsUnlocked()) {
-    tabBtn.textContent = 'Buildings';
-    tabBtn.title = 'Buildings';
-    tabBtn.classList.remove('is-locked');
-    tabBtn.disabled = false;
-  } else {
-    tabBtn.textContent = '???';
-    tabBtn.title = '???';
-    tabBtn.classList.add('is-locked');
-    tabBtn.disabled = true;
-    if (tabBtn.classList.contains('is-active')) {
-      const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
-      if (dlgTab) dlgTab.click();
-    }
+  const unlocked = isBuildingsUnlocked();
+  const targetText = unlocked ? 'Buildings' : '???';
+  const targetTitle = unlocked ? 'Buildings' : '???';
+  const targetDisabled = !unlocked;
+
+  if (tabBtn.textContent !== targetText) {
+    tabBtn.textContent = targetText;
+  }
+  if (tabBtn.title !== targetTitle) {
+    tabBtn.title = targetTitle;
+  }
+  if (tabBtn.disabled !== targetDisabled) {
+    tabBtn.disabled = targetDisabled;
+  }
+  const hasLocked = tabBtn.classList.contains('is-locked');
+  if (hasLocked !== targetDisabled) {
+    tabBtn.classList.toggle('is-locked', targetDisabled);
+  }
+
+  if (!unlocked && tabBtn.classList.contains('is-active')) {
+    const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
+    if (dlgTab) dlgTab.click();
   }
 }
 
