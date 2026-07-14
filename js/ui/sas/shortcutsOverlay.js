@@ -83,7 +83,7 @@ function populateShortcutsOverlay(overlayEl) {
     rcDesc += " Right-click can also be used to unpin pinned area buttons.";
   }
 
-  let numberKeyDesc = "Inside Delve overlays, press number keys 0 through 9 to instantly swap between tabs. First tab is 0, second tab is 1, etc. and pressing 9 sends to last unlocked tab.";
+  let numberKeyDesc = "Inside Delve overlays, press number keys 0 through 9 to instantly swap between tabs. First tab is 0, second tab is 1, etc. and 9 is last unlocked tab.";
   if (typeof isFlowUnlocked === "function" && isFlowUnlocked()) {
       numberKeyDesc += ' For the Flow tab specifically, press "F" to toggle Waterwheel Hotkey mode, where 0 is Coin Waterwheel, 1 is XP Waterwheel, etc. and 9 is last unlocked Waterwheel.';
   }
