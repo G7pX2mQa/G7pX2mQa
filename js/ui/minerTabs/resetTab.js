@@ -872,48 +872,77 @@ export function recomputePendingCoresAndCrystals() {
 }
 
 export function updateCombinePanelVisibility(minerSheetEl) {
+  if (!minerSheetEl) {
+    minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
+  }
+  if (!minerSheetEl) return;
+
   const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
   if (!tabsEl) return;
   const tabBtn = tabsEl.querySelector('[data-tab="reset"]');
   if (!tabBtn) return;
   
-  if (isCombineUnlocked()) {
-    tabBtn.textContent = 'Reset';
-    tabBtn.title = 'Reset';
-    tabBtn.classList.remove('is-locked');
-    tabBtn.disabled = false;
-  } else {
-    tabBtn.textContent = '???';
-    tabBtn.title = '???';
-    tabBtn.classList.add('is-locked');
-    tabBtn.disabled = true;
-    if (tabBtn.classList.contains('is-active')) {
-      const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
-      if (dlgTab) dlgTab.click();
-    }
+  const unlocked = isCombineUnlocked();
+  const targetText = unlocked ? 'Reset' : '???';
+  const targetTitle = unlocked ? 'Reset' : '???';
+  const targetDisabled = !unlocked;
+
+  if (tabBtn.textContent !== targetText) {
+    tabBtn.textContent = targetText;
+  }
+  if (tabBtn.title !== targetTitle) {
+    tabBtn.title = targetTitle;
+  }
+  if (tabBtn.disabled !== targetDisabled) {
+    tabBtn.disabled = targetDisabled;
+  }
+  const hasLocked = tabBtn.classList.contains('is-locked');
+  if (hasLocked !== targetDisabled) {
+    tabBtn.classList.toggle('is-locked', targetDisabled);
+  }
+
+  if (!unlocked && tabBtn.classList.contains('is-active')) {
+    const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
+    if (dlgTab) dlgTab.click();
   }
 }
 
 
 
 function updateCompressPanelVisibility(minerSheetEl) {
+  if (!minerSheetEl) {
+    minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
+  }
+  if (!minerSheetEl) return;
+
   const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
   if (!tabsEl) return;
   const tabBtn = tabsEl.querySelector('[data-tab="reset"]');
   if (!tabBtn) return;
   
   if (isCompressUnlocked() || isCombineUnlocked()) {
-    tabBtn.textContent = 'Reset';
-    tabBtn.title = 'Reset';
-    tabBtn.classList.remove('is-locked');
-    tabBtn.disabled = false;
+    if (tabBtn.textContent !== 'Reset') {
+      tabBtn.textContent = 'Reset';
+    }
+    if (tabBtn.title !== 'Reset') {
+      tabBtn.title = 'Reset';
+    }
+    if (tabBtn.classList.contains('is-locked')) {
+      tabBtn.classList.remove('is-locked');
+    }
+    if (tabBtn.disabled !== false) {
+      tabBtn.disabled = false;
+    }
   }
   
   const panel = resetState.panel || document.getElementById('miner-panel-reset');
   if (panel) {
       const compressLayerBtn = panel.querySelector('[data-reset-layer="compress"]');
       if (compressLayerBtn) {
-          compressLayerBtn.style.display = isCompressUnlocked() ? 'flex' : 'none';
+          const targetDisplay = isCompressUnlocked() ? 'flex' : 'none';
+          if (compressLayerBtn.style.display !== targetDisplay) {
+              compressLayerBtn.style.display = targetDisplay;
+          }
       }
   }
 }
