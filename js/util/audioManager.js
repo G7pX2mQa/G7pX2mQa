@@ -127,14 +127,6 @@ export async function loadAudio(src) {
  */
 export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0 } = {}) {
   if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
-
-  if (typeof window !== 'undefined' && typeof window.isVaultMuted === 'function' && window.isVaultMuted()) {
-      const isOpeningSfx = src.includes('opening.ogg');
-      const isCoinSfx = src.includes('coin_pickup_size5.ogg');
-      if (!isOpeningSfx && !isCoinSfx) {
-          return null;
-      }
-  }
  
   if (type === 'spawn_vessel') {
       const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
