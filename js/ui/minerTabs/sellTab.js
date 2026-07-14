@@ -39,11 +39,16 @@ export function setSellTabViewed(value, slot = getActiveSlot()) {
 }
 
 
+let cachedSellUnlocked = null;
+
 export function isSellUnlocked() {
+  if (cachedSellUnlocked !== null) return cachedSellUnlocked;
   const slotKey = String(getActiveSlot() ?? 'default');
   if (typeof localStorage === 'undefined') return false;
   try {
-    return localStorage.getItem(`${SELL_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
+    const result = localStorage.getItem(`${SELL_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
+    cachedSellUnlocked = result;
+    return result;
   } catch {
     return false;
   }
@@ -51,6 +56,7 @@ export function isSellUnlocked() {
 
 export function setSellUnlocked(value, slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
+  cachedSellUnlocked = !!value;
   if (typeof localStorage !== 'undefined') {
     try {
       if (value) {
@@ -60,6 +66,12 @@ export function setSellUnlocked(value, slot = getActiveSlot()) {
       }
     } catch {}
   }
+}
+
+if (typeof window !== 'undefined') {
+  const invalidateSellCache = () => { cachedSellUnlocked = null; };
+  window.addEventListener('saveSlot:change', invalidateSellCache);
+  window.addEventListener('unlock:change', invalidateSellCache);
 }
 
 const BASE_VALUES = {
@@ -656,26 +668,38 @@ let lastInfoBoxDpLevel = null;
 let lastInfoBoxHighestMatIdx = null;
 
 export function updateSellPanelVisibility(minerSheetEl) {
+  if (!minerSheetEl) {
+    minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
+  }
+  if (!minerSheetEl) return;
 
   const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
   if (!tabsEl) return;
   const tabBtn = tabsEl.querySelector('[data-tab="sell"]');
   if (!tabBtn) return;
   
-  if (isSellUnlocked()) {
-    tabBtn.textContent = 'Sell';
-    tabBtn.title = 'Sell';
-    tabBtn.classList.remove('is-locked');
-    tabBtn.disabled = false;
-  } else {
-    tabBtn.textContent = '???';
-    tabBtn.title = '???';
-    tabBtn.classList.add('is-locked');
-    tabBtn.disabled = true;
-    if (tabBtn.classList.contains('is-active')) {
-      const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
-      if (dlgTab) dlgTab.click();
-    }
+  const unlocked = isSellUnlocked();
+  const targetText = unlocked ? 'Sell' : '???';
+  const targetTitle = unlocked ? 'Sell' : '???';
+  const targetDisabled = !unlocked;
+
+  if (tabBtn.textContent !== targetText) {
+    tabBtn.textContent = targetText;
+  }
+  if (tabBtn.title !== targetTitle) {
+    tabBtn.title = targetTitle;
+  }
+  if (tabBtn.disabled !== targetDisabled) {
+    tabBtn.disabled = targetDisabled;
+  }
+  const hasLocked = tabBtn.classList.contains('is-locked');
+  if (hasLocked !== targetDisabled) {
+    tabBtn.classList.toggle('is-locked', targetDisabled);
+  }
+
+  if (!unlocked && tabBtn.classList.contains('is-active')) {
+    const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
+    if (dlgTab) dlgTab.click();
   }
 }
 
