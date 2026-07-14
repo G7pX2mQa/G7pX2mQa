@@ -181,10 +181,22 @@ function setMerchantTabUnlocked(key, unlocked) {
 
   const btn = merchantTabs.buttons[key];
   if (btn) {
-    btn.disabled = !normalized;
-    btn.classList.toggle('is-locked', !normalized);
-    btn.textContent = normalized ? def.label : lockedLabel;
-    btn.title = normalized ? (def.label || 'Tab') : '???';
+    const nextDisabled = !normalized;
+    if (btn.disabled !== nextDisabled) {
+      btn.disabled = nextDisabled;
+    }
+    const nextText = normalized ? def.label : lockedLabel;
+    if (btn.textContent !== nextText) {
+      btn.textContent = nextText;
+    }
+    const nextTitle = normalized ? (def.label || 'Tab') : '???';
+    if (btn.title !== nextTitle) {
+      btn.title = nextTitle;
+    }
+    const hasLockedClass = btn.classList.contains('is-locked');
+    if (hasLockedClass !== nextDisabled) {
+      btn.classList.toggle('is-locked', nextDisabled);
+    }
   }
 
   if (!normalized && merchantTabs.buttons[key]?.classList.contains('is-active')) {
@@ -218,15 +230,28 @@ function syncWarpTabUnlockState() {
 
 const LAB_UNLOCK_KEY = (slot) => `ccc:unlock:lab:${slot}`;
 
+let cachedLabUnlockedLocal = null;
+
 export function isLabUnlockedLocal() {
+  if (cachedLabUnlockedLocal !== null) return cachedLabUnlockedLocal;
   const slot = getActiveSlot();
   if (slot == null) return false;
   try {
-    if (typeof isLabUnlocked === 'function' && isLabUnlocked()) return true;
-    return localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1';
+    if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
+      cachedLabUnlockedLocal = true;
+      return true;
+    }
+    const result = localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1';
+    cachedLabUnlockedLocal = result;
+    return result;
   } catch {
     return false;
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => { cachedLabUnlockedLocal = null; });
+  window.addEventListener('unlock:change', () => { cachedLabUnlockedLocal = null; });
 }
 
 function syncLabTabUnlockState() {
