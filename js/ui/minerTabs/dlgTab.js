@@ -148,7 +148,6 @@ function ensureMinerOverlay() {
         };
         window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
         window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
-        window.addEventListener('currency:change', handleUnlockChange, { passive: true });
         window.addEventListener('debug:change', handleUnlockChange, { passive: true });
         minerUnlockListenerBound = true;
     }
