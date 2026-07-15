@@ -1,5 +1,5 @@
 import { getActiveSlot, bank } from '../../../util/storage.js';
-import { IS_MOBILE } from '../../../main.js';
+import { IS_MOBILE } from '../../../util/platformChecker.js';
 
 import { BigNum } from '../../../util/bigNum.js';
 import { formatNumber } from '../../../util/numFormat.js';
