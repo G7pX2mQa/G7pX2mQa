@@ -146,11 +146,13 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
         infoTooltip.style.display = "block";
         infoTooltip.style.opacity = "";
         infoTooltip.classList.add("is-visible");
+        row.classList.add("has-visible-tooltip");
       });
 
       infoIcon.addEventListener("mouseleave", () => {
         infoTooltip.style.display = "";
         infoTooltip.classList.remove("is-visible");
+        row.classList.remove("has-visible-tooltip");
       });
 
       infoIcon.appendChild(infoTooltip);
