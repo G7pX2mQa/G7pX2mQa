@@ -12,7 +12,7 @@ import { openShortcutsOverlay } from './shortcutsOverlay.js';
 import { hasDoneForgeReset, isForgeUnlocked } from '../merchantTabs/resetTab.js';
 import { hasMetMerchant, MERCHANT_MET_EVENT } from '../merchantTabs/dlgTab.js';
 import { getXpState } from '../../game/xpSystem.js';
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
 import { clearActiveSlot } from '../../util/storage.js';
 import { enterArea, AREAS } from '../../main.js';
