@@ -7,7 +7,7 @@ import { AREA_KEYS } from './upgrades.js';
 import { MAP_NODES } from './mapNodesData.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { getMagnetLevel, getLevelNumber } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID, UNDERWATER_CAVERN_EAC_ID, EFFECTIVE_AUTO_SELL_ID } from './automationUpgrades.js';
 import {
@@ -176,13 +176,13 @@ export const SETTING_DEFINITIONS = {
       try {
         const slot = getActiveSlot();
         if (slot == null) return false;
-        let isLabUnlocked = false;
+        let labUnlocked = false;
         if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
-            isLabUnlocked = true;
+            labUnlocked = true;
         } else {
-            isLabUnlocked = localStorage.getItem(`ccc:unlock:lab:${slot}`) === '1';
+            labUnlocked = localStorage.getItem(`ccc:unlock:lab:${slot}`) === '1';
         }
-        return isLabUnlocked && IS_MOBILE;
+        return labUnlocked && IS_MOBILE;
       } catch {
         return false;
       }
