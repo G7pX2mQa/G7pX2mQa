@@ -6,7 +6,8 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
-import { IS_MOBILE, coinsCollected, globalCoinsCollected, currentArea, AREAS } from '../main.js';
+import { coinsCollected, globalCoinsCollected, currentArea, AREAS } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import {
   addMutationPower,
   isMutationUnlocked,
