@@ -1,6 +1,6 @@
 // js/ui/sas/currenciesOverlay.js
 
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { CURRENCIES, UC_MATERIALS, isCurrencyUnlocked } from '../../util/storage.js';
 import { bank } from '../../util/storage.js';
