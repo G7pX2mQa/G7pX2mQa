@@ -21,7 +21,7 @@ import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../../util/ghostTapGuard.js';
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { playAudio, setAudioUnderwater } from '../../util/audioManager.js';
 import { playSecretDlgBossFightSequence } from '../../misc/secretDlgBossVisuals.js';
 import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
