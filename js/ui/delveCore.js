@@ -2,7 +2,7 @@
 import { playAudio, setAudioUnderwater } from '../util/audioManager.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../util/ghostTapGuard.js';
 import { blockInteraction } from './shopOverlay.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { isFlowUnlocked } from './merchantTabs/flowTab.js';
 
 
