@@ -1,5 +1,5 @@
 // js/game/spawnerCore.js
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { settingsManager } from './settingsManager.js';
 
 export const MAX_ACTIVE_ITEMS_MOBILE = 2500;
