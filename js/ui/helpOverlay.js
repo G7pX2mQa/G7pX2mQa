@@ -1,4 +1,4 @@
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './shopOverlay.js';
 import { suppressNextGhostTap, shouldSkipGhostTap } from '../util/ghostTapGuard.js';
 import { getResearchNodeLevel } from '../game/labNodes.js';
