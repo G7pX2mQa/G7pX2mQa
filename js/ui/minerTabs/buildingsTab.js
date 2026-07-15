@@ -8,7 +8,7 @@ import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
 import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { settingsManager } from '../../game/settingsManager.js';
 
 
