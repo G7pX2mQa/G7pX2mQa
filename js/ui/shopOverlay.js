@@ -618,9 +618,11 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
   if (walletBn.isZero?.()) return BigNum.fromInt(0);
 
   const cacheKey = upg.id;
-  const lvlStr = lvlBn.toString();
-  const walletStr = walletBn.toString();
-  const capStr = upg.lvlCap?.toString() ?? 'Infinity';
+  const lvlStr = typeof lvlBn.toStorage === 'function' ? lvlBn.toStorage() : lvlBn.toString();
+  const walletStr = typeof walletBn.toStorage === 'function' ? walletBn.toStorage() : walletBn.toString();
+  const capStr = upg.lvlCap instanceof BigNum 
+    ? (typeof upg.lvlCap.toStorage === 'function' ? upg.lvlCap.toStorage() : upg.lvlCap.toString()) 
+    : (upg.lvlCap?.toString() ?? 'Infinity');
 
   if (cacheKey !== undefined) {
     const cached = affordableCache.get(cacheKey);
