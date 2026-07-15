@@ -1,5 +1,5 @@
 import { playAudio } from '../util/audioManager.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { getActiveSlot } from '../util/storage.js';
 import { createCursorTrail } from '../game/cursorTrail.js';
 import { settingsManager } from '../game/settingsManager.js';
