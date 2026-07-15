@@ -1,6 +1,6 @@
 import { renderSettingsMenu } from './settingsRenderer.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { settingsManager } from '../../game/settingsManager.js';
 
 let uiHiddenPopupEl = null;
