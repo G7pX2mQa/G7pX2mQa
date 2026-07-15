@@ -21,7 +21,7 @@ import {
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import { isNodeLocked, setNodeLocked, refreshNodesState } from '../ui/mapOverlay.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from './platformChecker.js';
 import {
     getUpgradeStorageKey,
     AREA_KEYS,
