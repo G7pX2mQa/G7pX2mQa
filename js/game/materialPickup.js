@@ -3,7 +3,8 @@
 import { bank, UC_MATERIALS, getActiveSlot } from '../util/storage.js';
 import { unlockShopUc } from '../ui/hudButtons.js';
 import { BigNum } from '../util/bigNum.js';
-import { IS_MOBILE, currentArea, AREAS } from '../main.js';
+import { currentArea, AREAS } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { playAudio } from '../util/audioManager.js';
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from './collectionCore.js';
 import { settingsManager } from './settingsManager.js';
