@@ -531,6 +531,7 @@ function finishAndHideLoader(loaderEl, onFadeStart, finishedText, dwellMs = 500)
     const onEnd = () => {
       loaderEl.remove();
       document.documentElement.classList.remove('booting');
+      try { window.dispatchEvent(new CustomEvent('boot:complete')); } catch {}
     };
     loaderEl.addEventListener('transitionend', onEnd, { once: true });
     setTimeout(onEnd, 450);
