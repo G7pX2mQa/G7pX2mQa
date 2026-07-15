@@ -2029,11 +2029,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
 
             let projType = "bomb";
-            if (bossHp <= 500 && !rubyCoinSpawned && (Math.random() < 0.01 * (effectiveSpawnInterval / 16.666) || window.forceRubyCoinTest)) {
+            if (bossHp <= 500 && !rubyCoinSpawned && (Math.random() < 0.01 * (effectiveSpawnInterval / (1000 / 60)) || window.forceRubyCoinTest)) {
                 projType = "rubyCoin";
                 rubyCoinSpawned = true;
                 window.forceRubyCoinTest = false;
-            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.0005 * (effectiveSpawnInterval / 16.666)) {
+            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.0005 * (effectiveSpawnInterval / (1000/60))) {
                 projType = "life";
             } else if (Math.random() >= bombChance) {
                 projType = "coin";
