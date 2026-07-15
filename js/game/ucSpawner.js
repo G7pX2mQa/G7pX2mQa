@@ -1,5 +1,5 @@
 import { createBaseSpawner, CUBIC_BEZIER, getImage, getPreRenderedCoin, getPreRenderedCoinUrl, clearPreRenderedCoins } from './spawnerCore.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
