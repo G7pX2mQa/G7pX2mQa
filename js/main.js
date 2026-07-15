@@ -11,6 +11,7 @@ import { clearAllDebugOverrides } from './util/debugPanel.js';
 import { unmarkSaveSlotModified } from './util/storage.js';
 import { settingsManager } from "./game/settingsManager.js";
 import { flushBackupSnapshot as immediateFlushBackupSnapshot } from './util/suspendSafeguard.js';
+import { IS_MOBILE } from './util/platformChecker.js';
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -156,22 +157,13 @@ localStorage.removeItem = function(key) {
     activeStorageKeys.delete(key);
 };
 
-export const IS_MOBILE = (() => {
-  if (typeof window === 'undefined') return false;
-
-  if (typeof window.IS_MOBILE !== 'undefined') {
-    return !!window.IS_MOBILE;
-  }
-
-  const detected = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
-    || ('ontouchstart' in window)
-    || (window.navigator && window.navigator.maxTouchPoints > 0);
-  window.IS_MOBILE = detected;
-  return detected;
-})();
-
 if (IS_MOBILE) {
   document.documentElement.classList.add('is-mobile');
+}
+
+const supportsCanvasFilters = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype;
+if (!supportsCanvasFilters) {
+  document.documentElement.classList.add('no-canvas-filters');
 }
 
 let initSlots;
