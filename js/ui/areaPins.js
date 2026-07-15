@@ -2,7 +2,7 @@ import { getMapNodes, isNodeLocked } from './mapOverlay.js';
 import { settingsManager } from '../game/settingsManager.js';
 import { currentArea, enterArea, AREAS } from '../main.js';
 import { blockInteraction } from './shopOverlay.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 
 export function initPinnedAreas() {
     let container = document.getElementById('pinned-areas-container');
