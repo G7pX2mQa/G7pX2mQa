@@ -324,6 +324,23 @@
   overflow: visible;
 }
 
+.sell-dropdown-wrapper .setting-dropdown-menu {
+  display: grid !important;
+  grid-template-columns: 1fr minmax(max-content, auto) 1fr;
+}
+
+.sell-dropdown-wrapper .setting-dropdown-option {
+  display: grid !important;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  padding: 10px 0;
+}
+
+.sell-dropdown-wrapper .setting-dropdown-option span {
+  grid-column: 2;
+  justify-self: start;
+}
+
 .sell-side-col {
   position: fixed;
   top: 145px;
