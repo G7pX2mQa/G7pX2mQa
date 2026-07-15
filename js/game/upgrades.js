@@ -1677,7 +1677,7 @@ function totalCostBigNum(upg, startLevel, count) {
     return total;
   }
 
-  const totalLog = logSeriesTotal(upg, startLevel, count);
+  const totalLog = logSeriesTotal(scaling, startLevel, count);
   return bigNumFromLog10(totalLog);
 }
 
@@ -2053,7 +2053,7 @@ if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
   if (count <= 0) count = 1;
 
   const EPS = 1e-7;
-  let spentLog = logSeriesTotal(upg, startLevelNum, count);
+  let spentLog = logSeriesTotal(scaling, startLevelNum, count);
   let tuneSteps = 0;
   const MAX_TUNE_STEPS = 2048;
 
@@ -2069,7 +2069,7 @@ if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
       if (!(next < count)) break;
       count = next;
     }
-    spentLog = count > 0 ? logSeriesTotal(upg, startLevelNum, count) : Number.NEGATIVE_INFINITY;
+    spentLog = count > 0 ? logSeriesTotal(scaling, startLevelNum, count) : Number.NEGATIVE_INFINITY;
     tuneSteps += 1;
   }
 
@@ -2090,18 +2090,18 @@ if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
 
   let lo = count;
   let hi = Math.min(limit, Math.max(count + 1, safeTimes2(count)));
-  let hiLog = logSeriesTotal(upg, startLevelNum, hi);
+  let hiLog = logSeriesTotal(scaling, startLevelNum, hi);
 
   while (lo < hi && Number.isFinite(hiLog) && hiLog <= walletLog + EPS && hi < limit) {
     lo = hi;
     hi = Math.min(limit, safeTimes2(hi));
-    hiLog = logSeriesTotal(upg, startLevelNum, hi);
+    hiLog = logSeriesTotal(scaling, startLevelNum, hi);
   }
 
   let left = lo, right = hi;
   for (let i = 0; i < 256 && left < right; i += 1) {
     const mid = Math.floor((left + right + 1) / 2);
-    const midLog = logSeriesTotal(upg, startLevelNum, mid);
+    const midLog = logSeriesTotal(scaling, startLevelNum, mid);
     if (Number.isFinite(midLog) && midLog <= walletLog + EPS) {
       left = mid;
       spentLog = midLog;
