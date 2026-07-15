@@ -9,6 +9,7 @@ let animationFrameId = null;
 let currentBuildingId = null;
 let lastTime = 0;
 let time = 0;
+let lastDrawTime = 0;
 
 let currentLevelNum = 0;
 let levelUpAnimTimes = {};
@@ -58,6 +59,7 @@ document.addEventListener('visibilitychange', () => {
     }
     if (wasRunningBeforeHide && activeCanvas && activeCtx && isCanvasIntersecting) {
       lastTime = performance.now();
+      lastDrawTime = 0;
       loop(performance.now());
       wasRunningBeforeHide = false;
     }
@@ -226,6 +228,7 @@ export function startCanvasLoop(id, canvasEl) {
   activeCtx = canvasEl.getContext("2d");
   currentBuildingId = id;
   lastTime = performance.now();
+  lastDrawTime = 0;
 
   initStonePattern(activeCtx);
   if (!pureGoldPattern) {
@@ -422,6 +425,17 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
 
 function loop(currentTime) {
   if (!activeCanvas) return;
+
+  const fpsInterval = 1000 / 60;
+  const elapsedSinceLastDraw = currentTime - lastDrawTime;
+
+  if (elapsedSinceLastDraw < fpsInterval) {
+    animationFrameId = requestAnimationFrame(loop);
+    return;
+  }
+
+  // Adjust lastDrawTime using the accumulator approach
+  lastDrawTime = currentTime - (elapsedSinceLastDraw % fpsInterval);
 
   if (activeCanvas.parentElement) {
     activeCanvas.parentElement.style.zIndex = keypadZoomedIn ? '999999' : '0';
