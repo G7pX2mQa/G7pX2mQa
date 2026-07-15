@@ -6,7 +6,7 @@ import { registerTick, TICK_RATE, FIXED_STEP } from '../../game/gameLoop.js';
 import { openShop, playPurchaseSfx, isAnyMenuScrolling } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/upgrades.js';
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
 import { isSurgeActive } from "../../game/surgeEffects.js";
 import { setHtmlOrText } from '../../util/uiHelpers.js';
