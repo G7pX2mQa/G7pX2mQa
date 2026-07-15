@@ -1215,7 +1215,7 @@ export function initBuildingOverlay() {
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
     costRow.style.margin = "0";
-    costRow.style.marginTop = "6px";
+    costRow.style.marginTop = "5px";
     costRow.style.padding = "0";
     costRow.className = "upg-line";
     costRow.style.lineHeight = "0.9";
