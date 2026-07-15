@@ -1,6 +1,6 @@
 // js/ui/sas/levelsOverlay.js
 
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
