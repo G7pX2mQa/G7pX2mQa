@@ -20,6 +20,10 @@
   animation: coinDrift var(--coin-pattern-speed) linear infinite;
 }
 
+.no-canvas-filters .menu-bg::before {
+  filter: grayscale(100%) brightness(12.5%) opacity(var(--coin-pattern-opacity));
+}
+
 @keyframes coinDrift {
   0% { background-position: 0 0; }
   100% { background-position: 200% 200%; }
