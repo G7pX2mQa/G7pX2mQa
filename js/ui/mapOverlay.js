@@ -3,7 +3,8 @@ import { getActiveSlot } from '../util/storage.js';
 import { setupDragToClose, blockInteraction } from './shopOverlay.js';
 import { checkAchievements, showDelayedAchievementNotifications } from '../game/achievements.js';
 import { showDelayedGoalNotifications } from './gameProgressBar.js';
-import { IS_MOBILE, currentArea, AREAS, enterArea } from '../main.js';
+import { currentArea, AREAS, enterArea } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { getCurrentSurgeLevel } from './merchantTabs/resetTab.js';
 import { MAP_NODES } from '../game/mapNodesData.js';
 
