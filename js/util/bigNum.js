@@ -42,8 +42,12 @@ export class BigNum {
     let targetP = p | 0;
     const absE = Math.abs(effectiveE);
     if (!inf && absE >= 10) {
-      const eMag = Math.floor(Math.log10(absE));
-      targetP = Math.max(BigNum.MINIMUM_PRECISION, BigNum.DEFAULT_PRECISION - eMag);
+      if (absE >= 1e21) {
+        targetP = 0;
+      } else {
+        const eMag = Math.floor(Math.log10(absE));
+        targetP = Math.max(BigNum.MINIMUM_PRECISION, BigNum.DEFAULT_PRECISION - eMag);
+      }
     }
     this.p = Math.min(p | 0, targetP);
 
