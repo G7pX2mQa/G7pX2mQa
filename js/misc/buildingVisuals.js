@@ -5944,24 +5944,22 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     drawObeliskPylon(165);
     
     // Animated lightning arcs to shield
-    if (Math.random() > 0.3) {
-      ctx.strokeStyle = "rgba(255, 50, 50, 0.8)"; // Red color
-      ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)"; // Red color
+    ctx.lineWidth = 2;
       
-      // Arc from left pylon top sphere (-165, 15 - 155 = -140)
-      ctx.beginPath();
-      ctx.moveTo(-165, -140);
-      ctx.lineTo(-80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
-      ctx.lineTo(0, -50); // Connects to center mechanical dial
-      ctx.stroke();
+    // Arc from left pylon top sphere (-165, 15 - 155 = -140)
+    ctx.beginPath();
+    ctx.moveTo(-165, -140);
+    ctx.lineTo(-80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
+    ctx.lineTo(0, -49); // Connects to center mechanical dial
+    ctx.stroke();
       
-      // Arc from right pylon top sphere (165, 15 - 155 = -140)
-      ctx.beginPath();
-      ctx.moveTo(165, -140);
-      ctx.lineTo(80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
-      ctx.lineTo(0, -50); // Connects to center mechanical dial
-      ctx.stroke();
-    }
+    // Arc from right pylon top sphere (165, 15 - 155 = -140)
+    ctx.beginPath();
+    ctx.moveTo(165, -140);
+    ctx.lineTo(80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
+    ctx.lineTo(0, -49); // Connects to center mechanical dial
+    ctx.stroke();
     
     ctx.restore();
   }
