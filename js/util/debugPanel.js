@@ -5575,6 +5575,10 @@ window.addEventListener('saveSlot:change', () => {
     }
 });
 
+window.addEventListener('boot:complete', () => {
+    createDebugPanelToggleButton();
+});
+
 export function setDebugPanelAccess(enabled) {
     applyDebugPanelAccess(enabled);
 }
