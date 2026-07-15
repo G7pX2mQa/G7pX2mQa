@@ -680,8 +680,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                  shakeMag += 50; 
             }
             
-            shakeX = (Math.random() - 0.5) * shakeMag;
-            shakeY = (Math.random() - 0.5) * shakeMag;
+            shakeX = (Math.sin(now * 0.05) * 0.5 + Math.cos(now * 0.038) * 0.5) * shakeMag;
+            shakeY = (Math.sin(now * 0.04) * 0.5 + Math.cos(now * 0.046) * 0.5) * shakeMag;
         }
 
         // Clear FG
@@ -884,7 +884,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                     let y = layerY + 
                           Math.sin(x * waveFreq + timeOffset) * waveAmp + 
                           Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
-                    if (Math.random() > 0.5) y -= 5; // Spray
+                    if ((Math.abs(Math.sin(x * 12.345 + Math.floor(timeOffset * 60))) * 1000) % 1 > 0.5) y -= 5; // Spray
                     if(x===-50) fgCtx.moveTo(x,y); else fgCtx.lineTo(x, y);
                 }
                 fgCtx.lineTo(width + 50, height + 100);
