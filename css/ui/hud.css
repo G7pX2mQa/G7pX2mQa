@@ -1130,3 +1130,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 [class$="-level-value"] .infinity-symbol {
   top: 1px;
 }
+.is-mobile .goal-progress-bar {
+  transform: translateY(1px);
+}
