@@ -13,7 +13,7 @@ import { BigNum } from "../util/bigNum.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
 import { formatNumber, formatMultForUi } from "../util/numFormat.js";
 import { ensureCustomScrollbar } from "../ui/shopOverlay.js";
-import { IS_MOBILE } from "../main.js";
+import { IS_MOBILE } from '../util/platformChecker.js';
 import {
   getLevelNumber,
   computeUpgradeEffects,
