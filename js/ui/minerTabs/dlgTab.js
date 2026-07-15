@@ -3,7 +3,7 @@ import { getActiveSlot } from '../../util/storage.js';
 import { MINER_DIALOGUES } from '../../misc/minerDialogues.js';
 import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays, setupDragToClose } from '../shopOverlay.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../../util/ghostTapGuard.js';
-import { IS_MOBILE } from '../../main.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
 import { setAudioUnderwater } from '../../util/audioManager.js';
 import { setTypingActive, MYSTERIOUS_ICON_SRC, HIDDEN_DIALOGUE_TITLE, LOCKED_DIALOGUE_TITLE, DEFAULT_MYSTERIOUS_BLURB, DEFAULT_LOCKED_BLURB, DEFAULT_LOCK_MESSAGE, DIALOGUE_STATUS_ORDER, HAS_POINTER_EVENTS, HAS_TOUCH_EVENTS, bindRapidActivation, primeTypingSfx, startTypingSfx, stopTypingSfx, typeText, DialogueEngine, openDialogueLockInfo, injectScrollTimelineStyles, ensureMerchantScrollbar, setDelveElements, openDelveOverlay } from '../delveCore.js';
 import { initSellPanel, updateSellPanelVisibility, isSellUnlocked, setSellUnlocked } from './sellTab.js';
