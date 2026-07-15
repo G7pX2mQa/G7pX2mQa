@@ -22,6 +22,11 @@
   position: relative;
 }
 
+.setting-row.has-visible-tooltip {
+  z-index: 4000 !important;
+  position: relative;
+}
+
 .setting-row.setting-row-slider {
   margin-top: 17px;
 }
