@@ -1,5 +1,5 @@
 import { getMutationState } from './mutationSystem.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 import { levelBigNumToNumber } from './upgrades.js';
 
 export const RAINBOW_GEM_AREA_KEY = 'rainbow_gem_shop';
