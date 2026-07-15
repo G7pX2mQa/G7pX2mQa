@@ -1916,7 +1916,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         let y = layerY + 
                               Math.sin(x * waveFreq + timeOffset) * waveAmp + 
                               Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
-                        if (Math.random() > 0.5) y -= 5;
+                        if ((Math.abs(Math.sin(x * 12.345 + Math.floor(timeOffset * 60))) * 1000) % 1 > 0.5) y -= 5;
                         if(x === -50) ctx.moveTo(x,y); else ctx.lineTo(x, y);
                     }
                     ctx.lineTo(width + 50, height + 100);
@@ -2029,11 +2029,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
 
             let projType = "bomb";
-            if (bossHp <= 500 && !rubyCoinSpawned && (Math.random() < 0.01 || window.forceRubyCoinTest)) {
+            if (bossHp <= 500 && !rubyCoinSpawned && (Math.random() < 0.01 * (effectiveSpawnInterval / 16.666) || window.forceRubyCoinTest)) {
                 projType = "rubyCoin";
                 rubyCoinSpawned = true;
                 window.forceRubyCoinTest = false;
-            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.0005) {
+            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.0005 * (effectiveSpawnInterval / 16.666)) {
                 projType = "life";
             } else if (Math.random() >= bombChance) {
                 projType = "coin";
