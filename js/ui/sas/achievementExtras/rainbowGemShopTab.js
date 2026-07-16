@@ -471,11 +471,6 @@ export function updateRainbowGemShopTab() {
                     return;
                 }
                 
-                if (IS_MOBILE && settingsManager.get('upgrade_insta_max')) {
-                    attemptBuyMax();
-                    return;
-                }
-                
                 openUpgradeOverlay(upg, 'rainbow_gem_shop');
             });
 
