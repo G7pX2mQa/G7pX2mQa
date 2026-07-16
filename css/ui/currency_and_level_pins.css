@@ -111,7 +111,7 @@
   position: absolute;
   top: 30vh;
   left: 192px;
-  z-index: 100;
+  z-index: 101;
   pointer-events: none;
 }
 .pinned-level-wrapper {
