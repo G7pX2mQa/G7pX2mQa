@@ -6,8 +6,12 @@ import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from '../../game/ucSpawne
 import { getDpState, isDpSystemUnlocked } from '../../game/dpSystem.js';
 import { createDropdown } from '../sas/dropdownUtils.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
-import { registerTick, registerFrame } from '../../game/gameLoop.js';
+import { registerTick, registerFrame, TICK_RATE } from '../../game/gameLoop.js';
 import { BigNum } from '../../util/bigNum.js';
+import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID } from '../../game/automationUpgrades.js';
+import { getLevelNumber } from '../../game/upgrades.js';
+import { settingsManager } from '../../game/settingsManager.js';
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 
 const SELL_UNLOCKED_KEY_BASE = 'ccc:sellUnlocked';
 const SELL_VIEWED_KEY_BASE = 'ccc:sellViewed';
@@ -440,22 +444,48 @@ export function updateSellTab() {
 
 
    const isDpUnlocked = isDpSystemUnlocked();
-   if (lastInfoBoxDpLevel !== dpLevelNum || lastInfoBoxHighestMatIdx !== highestMatIdx) {
-       if (isDpUnlocked) {
-           sellPanelDomCache.infoBox.innerHTML = `
-              <b>Sell materials for Scrap, use Scrap to buy upgrades</b><br>
-              Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>
-              ${alwaysSpawnsStr}<br>
-              ${nextUnlockStr}
-           `;
-       } else {
-           sellPanelDomCache.infoBox.innerHTML = `
-              <b>Sell materials for Scrap, use Scrap to buy upgrades</b>
-           `;
-       }
-       lastInfoBoxDpLevel = dpLevelNum;
-       lastInfoBoxHighestMatIdx = highestMatIdx;
+   let baseHTML = `<b>Sell materials for Scrap, use Scrap to buy upgrades</b>`;
+   if (isDpUnlocked) {
+       baseHTML += `<br>Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>${alwaysSpawnsStr}<br>${nextUnlockStr}`;
    }
+
+   const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
+   const autoSellSetting = settingsManager.get("auto_sell_efficiency");
+   const autoSellMult = autoSellSetting !== undefined ? (autoSellSetting / 100) : 1;
+
+   if (autoSellLevel >= 1 && autoSellMult > 0) {
+       let eff = 0;
+       if (autoSellLevel === 1) eff = 0.000001; // 0.0001%
+       else if (autoSellLevel === 2) eff = 0.0001; // 0.01%
+       else if (autoSellLevel === 3) eff = 0.01; // 1%
+       else if (autoSellLevel >= 4) eff = 1.0;
+
+       const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
+       let totalScrapGain = BigNum.fromInt(0);
+
+       for (let j = 0; j < UC_MATERIALS.length; j++) {
+           const matKey = UC_MATERIALS[j];
+           const matData = UC_MATERIAL_DATA[j];
+           if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
+               const owned = bank[matKey].value;
+               const materialValue = BigNum.fromAny(matData.value || 0);
+               const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
+               const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
+               
+               if (eff === 1.0) {
+                   totalScrapGain = totalScrapGain.add(potentialScrap);
+               } else {
+                   totalScrapGain = totalScrapGain.add(potentialScrap.mulDecimal(eff));
+               }
+           }
+       }
+
+       const scrapPerSec = totalScrapGain.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE));
+       const formattedScrapPerSec = formatNumber(scrapPerSec);
+       baseHTML += `<br><span style="color:#02e815"><b>Current Scrap/sec: ${formattedScrapPerSec}</b></span>`;
+   }
+
+   setHtmlOrText(sellPanelDomCache.infoBox, baseHTML);
 
    const accumulators = getUcMaterialAccumulators();
 
