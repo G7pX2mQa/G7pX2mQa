@@ -1,4 +1,4 @@
-import { createBaseSpawner, CUBIC_BEZIER, getImage, getPreRenderedCoin, getPreRenderedCoinUrl, clearPreRenderedCoins } from './spawnerCore.js';
+import { createBaseSpawner, CUBIC_BEZIER, getImage, getPreRenderedItem, getPreRenderedItemUrl, clearPreRenderedItems } from './spawnerCore.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
 import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
@@ -144,13 +144,13 @@ export function createUcSpawner(config = {}) {
     
 
     settingsManager.subscribe('graphics_quality', () => {
-        clearPreRenderedCoins();
+        clearPreRenderedItems();
         const activeCoins = base.getActiveItems();
         for (let i = 0; i < activeCoins.length; i++) {
             const c = activeCoins[i];
             if (c && c.el && !c.settled && !c.isRemoved) {
                 if (c.el.firstChild) {
-                    c.el.firstChild.src = getPreRenderedCoinUrl(c.src, c.size || config.coinSize || 40);
+                    c.el.firstChild.src = getPreRenderedItemUrl(c.src, c.size || config.coinSize || 40);
                 }
             }
         }
@@ -623,7 +623,7 @@ export function createUcSpawner(config = {}) {
         onDrawSingleSettledItem: (ctx, c) => {
             const size = c.size || baseSize;
             if (c.src) {
-                const renderable = getPreRenderedCoin(c.src, size);
+                const renderable = getPreRenderedItem(c.src, size);
                 if (renderable) {
                     if (c.rot || c.scale !== 1) {
                         ctx.save();
@@ -657,7 +657,7 @@ export function createUcSpawner(config = {}) {
             el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
             
             if (el.firstChild) {
-                el.firstChild.src = getPreRenderedCoinUrl(c.src, size);
+                el.firstChild.src = getPreRenderedItemUrl(c.src, size);
             }
             
             el.style.opacity = '1';
