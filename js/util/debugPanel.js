@@ -1565,7 +1565,7 @@ function updateActionLogDisplay() {
         let formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
         let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
         formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
-        formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
+        formattedMessage = formattedMessage.replace(/(?:\b[eE]\d|\d)[a-zA-Z\d.,+-]*/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
         formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g, '<span class="action-log-number">inf</span>');
         formattedMessage = formattedMessage.replace(/\u221E/g, '<span class="action-log-number">inf</span>');
 
