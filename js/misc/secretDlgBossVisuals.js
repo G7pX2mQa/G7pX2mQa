@@ -470,7 +470,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const createMobileBtn = (src, side) => {
             const btn = document.createElement('div');
             btn.style.position = 'absolute';
-            btn.style.top = '50%';
+            btn.style.top = '75%';
             btn.style.transform = 'translateY(-50%)';
             btn.style[side] = '20px';
             btn.style.width = '80px';
