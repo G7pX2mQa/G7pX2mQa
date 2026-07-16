@@ -170,85 +170,128 @@ export function refreshPinnedCurrencies() {
   layoutPinnedCurrencies();
 }
 
-export function layoutPinnedCurrencies() {
-  if (!pinnedContainer) return;
+export function layoutPinnedAll() {
+  const currencyChildren = pinnedContainer ? Array.from(pinnedContainer.querySelectorAll('.pinned-currency-wrapper')) : [];
+  const levelChildren = pinnedLevelsContainer ? Array.from(pinnedLevelsContainer.querySelectorAll('.pinned-level-wrapper')) : [];
 
-  const children = Array.from(pinnedContainer.querySelectorAll('.pinned-currency-wrapper'));
-  if (children.length === 0) return;
+  if (currencyChildren.length === 0 && levelChildren.length === 0) return;
 
   const hudBottom = document.querySelector('.hud-bottom');
-  if (!hudBottom) {
-    // If hud-bottom doesn't exist, just stack them vertically
-    children.forEach((el, index) => {
-      el.style.left = '0px';
-      el.style.top = `${index * (28 + 8)}px`; // 28px height + 8px gap
-    });
-    return;
-  }
-
-  const pinnedRect = pinnedContainer.getBoundingClientRect();
-  const hudRect = hudBottom.getBoundingClientRect();
 
   const ITEM_HEIGHT = 28;
   const GAP_Y = 8;
   const GAP_X = 8;
   const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
-  
-  const totalNaturalHeight = children.length * TOTAL_ITEM_H;
-  const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
 
-  if (!overflowsScreen) {
-    children.forEach((el, index) => {
-      el.style.left = '0px';
-      el.style.top = `${index * TOTAL_ITEM_H}px`;
-    });
-    return;
-  }
-
-  // Available vertical space from top of pinned container to top of hud-bottom
-  const availableHeight = hudRect.top - pinnedRect.top;
-
-  // We need the horizontal width for snaking
-  // .pinned-currency is 150px wide + 14px left margin
   const ITEM_WIDTH = 150 + 14; 
   const TOTAL_ITEM_W = ITEM_WIDTH + GAP_X;
 
-  // Find how many items fit entirely before the HUD
-  let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
-  if (itemsAboveHud < 0) itemsAboveHud = 0; // Edge case if pinned container is below HUD
-  
-  // Calculate the vertical offset to start overlapping items so they fall entirely inside the HUD.
-  // We align the first overlapping item either at its natural spacing if it already falls
-  // exactly on the HUD line, or we push it down exactly to the HUD's top offset.
-  const hudTopOffset = availableHeight;
-  const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
+  // 1. Calculate shift for Currencies
+  let currencyShift = 0;
+  if (hudBottom && currencyChildren.length > 0 && pinnedContainer) {
+    const pinnedRect = pinnedContainer.getBoundingClientRect();
+    const hudRect = hudBottom.getBoundingClientRect();
+    const totalNaturalHeight = currencyChildren.length * TOTAL_ITEM_H;
+    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
 
-  // Determine how many items comfortably fit vertically within the HUD's height
-  let itemsInsideHud = Math.floor((hudRect.height + GAP_Y) / TOTAL_ITEM_H);
-  if (itemsInsideHud < 1) itemsInsideHud = 1; // Fallback to at least 1 item to prevent divide-by-zero or empty columns
-
-  const firstColCapacity = itemsAboveHud + itemsInsideHud;
-
-  children.forEach((el, index) => {
-    if (index < itemsAboveHud) {
-      // First column, above the HUD
-      el.style.left = '0px';
-      el.style.top = `${index * TOTAL_ITEM_H}px`;
-    } else if (index < firstColCapacity) {
-      // First column, overlapping the HUD
-      const rowInHud = index - itemsAboveHud;
-      el.style.left = '0px';
-      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
-    } else {
-      // Snaking horizontally inside the HUD bounds
-      const snakedIndex = index - firstColCapacity;
-      const col = Math.floor(snakedIndex / itemsInsideHud) + 1;
-      const rowInHud = snakedIndex % itemsInsideHud;
-
-      el.style.left = `${col * TOTAL_ITEM_W}px`;
-      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
+    if (overflowsScreen) {
+      const availableHeight = hudRect.top - pinnedRect.top;
+      let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
+      if (itemsAboveHud < 0) itemsAboveHud = 0;
+      const hudTopOffset = availableHeight;
+      const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
+      currencyShift = firstOverlappingTopPx - (itemsAboveHud * TOTAL_ITEM_H);
     }
-  });
+  }
+
+  // 2. Calculate shift for Levels
+  let levelShift = 0;
+  if (hudBottom && levelChildren.length > 0 && pinnedLevelsContainer) {
+    const pinnedRect = pinnedLevelsContainer.getBoundingClientRect();
+    const hudRect = hudBottom.getBoundingClientRect();
+    const totalNaturalHeight = levelChildren.length * TOTAL_ITEM_H;
+    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
+
+    if (overflowsScreen) {
+      const availableHeight = hudRect.top - pinnedRect.top;
+      let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
+      if (itemsAboveHud < 0) itemsAboveHud = 0;
+      const hudTopOffset = availableHeight;
+      const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
+      levelShift = firstOverlappingTopPx - (itemsAboveHud * TOTAL_ITEM_H);
+    }
+  }
+
+  // Mutual shift is the maximum of both
+  const maxShift = Math.max(currencyShift, levelShift);
+  window.pinnedMaxShift = maxShift;
+
+  // Apply shift to Popups container
+  const popupContainer = document.querySelector('.currency-popups');
+  if (popupContainer) {
+    popupContainer.style.transform = `translateY(${maxShift}px)`;
+  }
+
+  const layoutColumn = (children, pinnedContainerEl) => {
+    if (!pinnedContainerEl || children.length === 0) return;
+
+    const pinnedRect = pinnedContainerEl.getBoundingClientRect();
+
+    if (!hudBottom) {
+      children.forEach((el, index) => {
+        el.style.left = '0px';
+        el.style.top = `${index * TOTAL_ITEM_H}px`;
+      });
+      return;
+    }
+
+    const hudRect = hudBottom.getBoundingClientRect();
+    const availableHeight = hudRect.top - pinnedRect.top;
+    let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
+    if (itemsAboveHud < 0) itemsAboveHud = 0;
+
+    let itemsInsideHud = Math.floor((hudRect.height + GAP_Y) / TOTAL_ITEM_H);
+    if (itemsInsideHud < 1) itemsInsideHud = 1;
+
+    const firstColCapacity = itemsAboveHud + itemsInsideHud;
+    const totalNaturalHeight = children.length * TOTAL_ITEM_H;
+    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
+
+    if (!overflowsScreen) {
+      children.forEach((el, index) => {
+        el.style.left = '0px';
+        el.style.top = `${index * TOTAL_ITEM_H + maxShift}px`;
+      });
+      return;
+    }
+
+    const firstOverlappingTopPx = itemsAboveHud * TOTAL_ITEM_H + maxShift;
+
+    children.forEach((el, index) => {
+      if (index < itemsAboveHud) {
+        el.style.left = '0px';
+        el.style.top = `${index * TOTAL_ITEM_H + maxShift}px`;
+      } else if (index < firstColCapacity) {
+        const rowInHud = index - itemsAboveHud;
+        el.style.left = '0px';
+        el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
+      } else {
+        const snakedIndex = index - firstColCapacity;
+        const col = Math.floor(snakedIndex / itemsInsideHud) + 1;
+        const rowInHud = snakedIndex % itemsInsideHud;
+
+        el.style.left = `${col * TOTAL_ITEM_W}px`;
+        el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
+      }
+    });
+  };
+
+  layoutColumn(currencyChildren, pinnedContainer);
+  layoutColumn(levelChildren, pinnedLevelsContainer);
+}
+
+export function layoutPinnedCurrencies() {
+  layoutPinnedAll();
 }
 
 // Ensure values are updated if there's no event dispatching by polling
@@ -473,56 +516,7 @@ export function refreshPinnedLevels() {
 }
 
 export function layoutPinnedLevels() {
-  if (!pinnedLevelsContainer) return;
-
-  const children = Array.from(pinnedLevelsContainer.querySelectorAll('.pinned-level-wrapper'));
-  if (children.length === 0) return;
-
-  const hudBottom = document.querySelector('.hud-bottom');
-  if (!hudBottom) {
-    children.forEach((el, index) => {
-      el.style.left = '0px';
-      el.style.top = `${index * (28 + 8)}px`; 
-    });
-    return;
-  }
-
-  const pinnedRect = pinnedLevelsContainer.getBoundingClientRect();
-  const hudRect = hudBottom.getBoundingClientRect();
-
-  const ITEM_HEIGHT = 28;
-  const GAP_Y = 8;
-  const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
-
-  const totalNaturalHeight = children.length * TOTAL_ITEM_H;
-  const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
-
-  if (!overflowsScreen) {
-    children.forEach((el, index) => {
-      el.style.left = '0px';
-      el.style.top = `${index * TOTAL_ITEM_H}px`;
-    });
-    return;
-  }
-
-  const availableHeight = hudRect.top - pinnedRect.top;
-  
-  let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
-  if (itemsAboveHud < 0) itemsAboveHud = 0; 
-  
-  const hudTopOffset = availableHeight;
-  const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
-
-  children.forEach((el, index) => {
-    if (index < itemsAboveHud) {
-      el.style.left = '0px';
-      el.style.top = `${index * TOTAL_ITEM_H}px`;
-    } else {
-      const rowInHud = index - itemsAboveHud;
-      el.style.left = '0px';
-      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
-    }
-  });
+  layoutPinnedAll();
 }
 
 setInterval(() => {
