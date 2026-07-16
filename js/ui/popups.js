@@ -31,6 +31,9 @@ function ensureContainer() {
   container.setAttribute('aria-live', 'polite');
   container.setAttribute('aria-atomic', 'false');
   if (!settingsManager.get('user_interface')) container.classList.add('hide-ui');
+  if (typeof window !== 'undefined' && window.pinnedMaxShift != null) {
+    container.style.transform = `translateY(${window.pinnedMaxShift}px)`;
+  }
   document.body.appendChild(container);
   return container;
 }
