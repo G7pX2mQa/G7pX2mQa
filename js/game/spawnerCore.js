@@ -34,16 +34,16 @@ export function getImage(src) {
 }
 
 
-// Pre-rendered offscreen canvases for coins/items
-const preRenderedCoins = new Map();
-const preRenderedUrls = new Map();
+// Pre-rendered offscreen canvases for items
+const preRenderedItems = new Map();
+const preRenderedItemUrls = new Map();
 
 
-export function clearPreRenderedCoins() {
-    preRenderedCoins.clear();
-    preRenderedUrls.clear();
+export function clearPreRenderedItems() {
+    preRenderedItems.clear();
+    preRenderedItemUrls.clear();
 }
-export function getPreRenderedCoinUrl(src, size) {
+export function getPreRenderedItemUrl(src, size) {
     if (!src || typeof document === 'undefined') return src;
     
     let resolutionScale = 1;
@@ -54,15 +54,15 @@ export function getPreRenderedCoinUrl(src, size) {
     }
     if (resolutionScale === 1) return src;
     
-    let sizeMap = preRenderedUrls.get(src);
+    let sizeMap = preRenderedItemUrls.get(src);
     if (!sizeMap) {
         sizeMap = new Map();
-        preRenderedUrls.set(src, sizeMap);
+        preRenderedItemUrls.set(src, sizeMap);
     }
     
     let url = sizeMap.get(size);
     if (!url) {
-        const canvas = getPreRenderedCoin(src, size);
+        const canvas = getPreRenderedItem(src, size);
         if (canvas && canvas instanceof HTMLCanvasElement) {
             url = canvas.toDataURL('image/webp');
             sizeMap.set(size, url);
@@ -74,13 +74,13 @@ export function getPreRenderedCoinUrl(src, size) {
     return url;
 }
 
-export function getPreRenderedCoin(src, size) {
+export function getPreRenderedItem(src, size) {
     if (!src || typeof document === 'undefined') return null;
     
-    let sizeMap = preRenderedCoins.get(src);
+    let sizeMap = preRenderedItems.get(src);
     if (!sizeMap) {
         sizeMap = new Map();
-        preRenderedCoins.set(src, sizeMap);
+        preRenderedItems.set(src, sizeMap);
     }
     
     let canvas = sizeMap.get(size);
@@ -88,7 +88,7 @@ export function getPreRenderedCoin(src, size) {
         const img = getImage(src);
         if (!img || !img.complete || img.naturalWidth === 0) {
             if (img && !img.complete) {
-                img.addEventListener('load', () => getPreRenderedCoin(src, size), { once: true });
+                img.addEventListener('load', () => getPreRenderedItem(src, size), { once: true });
             }
             return img; 
         }
@@ -327,7 +327,7 @@ export function createBaseSpawner(config = {}) {
     
     function makeItem() {
         const el = document.createElement('div');
-        el.className = 'coin'; // Maintain generic class, can be overridden by consumer
+        el.className = 'spawner-item'; // Maintain generic class, can be overridden by consumer
         el.style.position = 'absolute';
         el.style.pointerEvents = 'auto';
         el.style.borderRadius = '50%';
@@ -353,8 +353,10 @@ export function createBaseSpawner(config = {}) {
        el.style.transform = '';
        el.style.opacity = '1';
        
-       el.classList.remove('coin--collected');
-       for (let i = 0; i <= 6; i++) el.classList.remove(`coin--size-${i}`);
+       el.classList.remove('item--collected');
+       for (let i = 0; i <= 6; i++) {
+           el.classList.remove(`coin--size-${i}`);
+       }
        el.style.removeProperty('--ccc-start');
 
        delete el.dataset.dieAt;
@@ -393,7 +395,7 @@ export function createBaseSpawner(config = {}) {
     }
     
     function detachItem(itemElOrObj) {
-        const itemObj = itemElOrObj._coinObj || itemElOrObj;
+        const itemObj = itemElOrObj._itemObj || itemElOrObj;
         if (itemObj) {
             let idx = -1;
             if (itemObj.index !== undefined && activeItems[itemObj.index] === itemObj) {
@@ -407,7 +409,7 @@ export function createBaseSpawner(config = {}) {
                 garbageCount++;
                 staticCanvasDirty = true;
             }
-            if (itemElOrObj._coinObj) itemElOrObj._coinObj = null;
+            if (itemElOrObj._itemObj) itemElOrObj._itemObj = null;
         }
     }
 
@@ -715,7 +717,7 @@ export function createBaseSpawner(config = {}) {
     }
 
     function getItemTransform(elOrObj) {
-        const c = elOrObj._coinObj || elOrObj;
+        const c = elOrObj._itemObj || elOrObj;
         if (!c) return (elOrObj.style && elOrObj.style.transform) || 'translate3d(0,0,0)';
         const { x, y, rot, scale } = getItemState(c, performance.now());
         return `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg) scale(${scale})`;
@@ -728,7 +730,7 @@ export function createBaseSpawner(config = {}) {
         const el = getItem();
         onEnsureItemVisual(el, c);
         
-        el._coinObj = c;
+        el._itemObj = c;
         c.el = el;
         refs.c.appendChild(el);
         
