@@ -497,7 +497,7 @@
     position: fixed;
     top: 10px;
     left: 10px;
-    z-index: 2147483647;
+    z-index: 2147483646;
     background: rgba(0, 0, 0, 0.85);
     color: #fff;
     border: 1px solid #666;
