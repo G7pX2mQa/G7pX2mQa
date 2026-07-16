@@ -553,7 +553,7 @@ function loop(currentTime) {
         overlayEl.style.cursor = 'none';
         if (isVaultOpen) {
           if (!vaultCursorTrail) {
-            vaultCursorTrail = createCursorTrail(overlayEl, { isBossFight: true });
+            vaultCursorTrail = createCursorTrail(overlayEl);
           }
         }
       } else {
