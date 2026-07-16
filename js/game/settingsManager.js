@@ -165,12 +165,21 @@ export const SETTING_DEFINITIONS = {
       }
     },
   },
+  upgrade_insta_max: {
+    id: 'upgrade_insta_max',
+    type: 'toggle',
+    label: 'Upgrade Insta-Max',
+    hasExtraInfo: true,
+    info: 'Do you hate having to open a Shop upgrade overlay, press Buy Max, close the overlay, then do it again later? Toggle this setting ON to instantly perform a Buy Max onto a Shop upgrade just by tapping on it.',
+    default: false,
+    unlockCondition: () => IS_MOBILE,
+  },
   lab_node_insta_toggle: {
     id: 'lab_node_insta_toggle',
     type: 'toggle',
     label: 'Lab Node Insta-Toggle',
     hasExtraInfo: true,
-    info: 'Do you hate having to open a lab node overlay, press Toggle, close the overlay, then when it completes, move onto the next and do it all over again? Toggle this setting ON to instantly toggle a node just by tapping on the node.',
+    info: 'Do you hate having to open a lab node overlay, press Toggle, close the overlay, then when it completes, move onto the next and do it all over again? Toggle this setting ON to instantly toggle a node just by tapping on it.',
     default: false,
     unlockCondition: () => {
       try {
