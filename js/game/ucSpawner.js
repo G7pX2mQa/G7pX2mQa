@@ -99,8 +99,8 @@ export function createUcSpawner(config = {}) {
     let soundLastAt = 0;
     const soundURL = new URL('sounds/got_our_pickaxe_swinging_from_side_to_side.ogg', document.baseURI).href;
 	const basePickaxeSoundVolume = 0.3;
-    const minPickaxeVolumeRate = 0.2;
-    const halfPickaxeVolumeRate = 2;
+    const spawnRateAtWhichTheVolumeIsNormal = 0.2;
+    const spawnRateAtWhichTheVolumeIsOneFourthOfNormal = 2;
 
     let pickaxeSize = 64;
     function updatePickaxeSize() {
@@ -124,11 +124,7 @@ export function createUcSpawner(config = {}) {
         
         cachedRate = currentRate;
 
-        const fadeProgress = clamp(
-            (currentRate - minPickaxeVolumeRate) / (halfPickaxeVolumeRate - minPickaxeVolumeRate),
-            0,
-            1
-        );
+        const fadeProgress = clamp((currentRate - spawnRateAtWhichTheVolumeIsNormal) / (spawnRateAtWhichTheVolumeIsOneFourthOfNormal - spawnRateAtWhichTheVolumeIsNormal), 0, 1);
         
         cachedVolume = basePickaxeSoundVolume * (1 - Math.sqrt(fadeProgress) * 0.75);
         return cachedVolume;
