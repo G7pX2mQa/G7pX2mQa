@@ -873,6 +873,24 @@ class ShopInstance {
                         }
                     }
 
+                    if (IS_MOBILE && settingsManager.get('upgrade_insta_max')) {
+                        if (el.upgMeta) {
+                            const model = this.adapter.getUiModel(el.upgMeta.id);
+                            if (!model?.hmReadyToEvolve) {
+                                const { bought } = this.adapter.buyMax(el.upgMeta.id);
+                                const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                                if (!boughtBn.isZero?.()) {
+                                    playPurchaseSfx();
+                                    if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                                        try { unlockMerchantTabs(['reset']); } catch {}
+                                    }
+                                    this.update();
+                                }
+                                return;
+                            }
+                        }
+                    }
+
                     if (el.upgMeta) openUpgradeOverlay(el.upgMeta, this.mode);
                 });
                 
