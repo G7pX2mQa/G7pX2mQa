@@ -9,7 +9,7 @@ import { waterSystem } from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../util/bigCoinManager.js';
 import { settingsManager } from './settingsManager.js';
 import { AREAS, currentArea } from '../main.js';
-import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic, getPreRenderedCoin, getPreRenderedCoinUrl, clearPreRenderedCoins } from './spawnerCore.js';
+import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic, getPreRenderedItem, getPreRenderedItemUrl, clearPreRenderedItems } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0;
@@ -94,14 +94,14 @@ export function createSpawner(config = {}) {
     let deps = { collectBatch: null, getMagnetUnit: null };
 
     settingsManager.subscribe('graphics_quality', () => {
-        clearPreRenderedCoins();
+        clearPreRenderedItems();
 
         const activeCoins = base.getActiveItems();
         for (let i = 0; i < activeCoins.length; i++) {
             const c = activeCoins[i];
             if (c && c.el && !c.settled && !c.isRemoved) {
                 if (c.el.firstChild) {
-                    c.el.firstChild.src = getPreRenderedCoinUrl(c.src, c.size || baseCoinSize);
+                    c.el.firstChild.src = getPreRenderedItemUrl(c.src, c.size || baseCoinSize);
                 }
             }
         }
@@ -471,9 +471,9 @@ export function createSpawner(config = {}) {
                     el = getItem();
                     el.style.width = `${size}px`;
                     el.style.height = `${size}px`;
-                    el.className = `coin coin--size-${sizeIndex}`;
+                    el.className = `spawner-item coin--size-${sizeIndex}`;
                     if (el.firstChild) {
-                         el.firstChild.src = getPreRenderedCoinUrl(assignedSrc, size);
+                         el.firstChild.src = getPreRenderedItemUrl(assignedSrc, size);
                     }
                     
                     el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
@@ -517,7 +517,7 @@ export function createSpawner(config = {}) {
                 };
                 
                 if (el) {
-                    el._coinObj = coinObj;
+                    el._itemObj = coinObj;
                     coinsFrag.appendChild(el);
                 }
                 coinObj.index = activeItems.length;
@@ -671,7 +671,7 @@ export function createSpawner(config = {}) {
 
         onDrawSingleSettledItem: (ctx, c) => {
             const size = c.size || baseCoinSize;
-            const renderable = getPreRenderedCoin(c.src, size);
+            const renderable = getPreRenderedItem(c.src, size);
             if (renderable) {
                 const draw = (img) => {
                     if (c.rot || c.scale !== 1) {
@@ -800,13 +800,13 @@ export function createSpawner(config = {}) {
             const size = c.size || baseCoinSize;
             el.style.width = `${size}px`;
             el.style.height = `${size}px`;
-            el.className = `coin coin--size-${c.sizeIndex || 0}`;
+            el.className = `spawner-item coin--size-${c.sizeIndex || 0}`;
             
             el.style.transition = '';
             el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
             
             if (el.firstChild) {
-                el.firstChild.src = getPreRenderedCoinUrl(c.src, size);
+                el.firstChild.src = getPreRenderedItemUrl(c.src, size);
             }
             
             el.style.opacity = '1';
