@@ -84,8 +84,6 @@ export function createSpawner(config = {}) {
         initialBurst = 1,
         coinTtlMs = 1e99,
         waveSoundSrc = 'sounds/wave_spawn.ogg',
-        waveSoundDesktopVolume = 0.45,
-        waveSoundMobileVolume  = 0.2,
         waveSoundMinIntervalMs = 160,
         shouldAutoResume = () => true,
     } = config;
@@ -110,6 +108,27 @@ export function createSpawner(config = {}) {
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+    let currentRate = coinsPerSecond;
+    const spawnRateAtWhichTheVolumeIsNormal = 1;
+    const spawnRateAtWhichTheVolumeIsOneThirdOfNormal = 20;
+
+    let cachedRate = -1;
+    let cachedVolume = 1.0;
+
+    function getWaveSoundVolume() {
+        const baseVol = 1.0;
+        if (currentRate === cachedRate) {
+            return cachedVolume;
+        }
+
+        cachedRate = currentRate;
+
+        const fadeProgress = clamp((currentRate - spawnRateAtWhichTheVolumeIsNormal) / (spawnRateAtWhichTheVolumeIsOneThirdOfNormal - spawnRateAtWhichTheVolumeIsNormal), 0, 1);
+
+        cachedVolume = baseVol * (1 - Math.sqrt(fadeProgress) * (2 / 3));
+        return cachedVolume;
+    }
+
     const waveURL = new URL(waveSoundSrc, document.baseURI).href;
     let waveLastAt = 0;
     let activeWaveSounds = [];
@@ -120,8 +139,7 @@ export function createSpawner(config = {}) {
       if (now - waveLastAt < waveSoundMinIntervalMs) return;
       waveLastAt = now;
       
-      const vol = IS_MOBILE ? waveSoundMobileVolume : waveSoundDesktopVolume;
-      const audioObj = playAudio(waveURL, { volume: vol, type: "spawn_vessel" });
+      const audioObj = playAudio(waveURL, { volume: getWaveSoundVolume(), type: "spawn_vessel" });
       if (audioObj) {
           activeWaveSounds.push(audioObj);
           if (activeWaveSounds.length > 20) {
@@ -1090,7 +1108,10 @@ export function createSpawner(config = {}) {
     return {
         start: base.start,
         stop: base.stop,
-        setRate: base.setRate,
+        setRate: (n) => {
+            currentRate = Math.max(0, Number(n) || 0);
+            base.setRate(currentRate);
+        },
         clearBacklog: base.clearBacklog,
         clearPlayfield: base.clearPlayfield,
         setCoinSprite,
