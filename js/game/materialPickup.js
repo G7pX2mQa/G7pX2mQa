@@ -130,7 +130,7 @@ export function initUcPickup({
 
   function isMaterial(el) {
       if (!(el instanceof HTMLElement)) return false;
-      if (el._coinObj) return !el._coinObj.isRemoved && el.dataset.collected !== '1';
+      if (el._itemObj) return !el._itemObj.isRemoved && el.dataset.collected !== '1';
       return el.dataset.collected !== '1' && el.matches(materialSelector);
   }
 
@@ -138,7 +138,7 @@ export function initUcPickup({
   ml.querySelectorAll(materialSelector).forEach(ensureInteractive);
 
   function animateAndRemove(el, opts = {}){
-    const coinObj = el && el._coinObj;
+    const coinObj = el && el._itemObj;
     if (spawner && typeof spawner.detachItem === 'function') {
         spawner.detachItem(opts.coin || coinObj || el);
     }
@@ -165,7 +165,7 @@ export function initUcPickup({
     }
 
     el.style.setProperty('--ccc-start', start);
-    el.classList.add('coin--collected'); // Re-use the animation CSS class
+    el.classList.add('item--collected'); // Re-use the animation CSS class
     
     let complete = false;
     const done = () => { 
@@ -192,7 +192,7 @@ export function initUcPickup({
       let el = item.el;
       let cObj = item.coin;
       
-      if (!cObj && el && el._coinObj) cObj = el._coinObj;
+      if (!cObj && el && el._itemObj) cObj = el._itemObj;
       if (el && !isMaterial(el)) continue;
       if (cObj && cObj.isRemoved) continue;
 
