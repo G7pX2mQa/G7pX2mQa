@@ -165,5 +165,4 @@
 .upg-sheet.keypad-zoomed-blur #building-detail-canvas,
 .upg-sheet.keypad-zoomed-blur .only-building-btn {
   filter: blur(8px);
-  transition: filter 0.2s ease-out;
 }
