@@ -1,13 +1,13 @@
-/* css/game/coin.css */
-@keyframes cccCoinCollect {
+/* css/game/items_and_magnets.css */
+@keyframes cccItemCollect {
   0%   { transform: var(--ccc-start, translate3d(0,0,0)) scale(1);   opacity: 1;    filter: brightness(1); }
   70%  { transform: var(--ccc-start, translate3d(0,0,0)) scale(1.35) translateY(-12px); opacity: .35; }
   100% { transform: var(--ccc-start, translate3d(0,0,0)) scale(1.5)  translateY(-14px); opacity: 0; }
 }
 
-.coin--collected {
+.item--collected {
   pointer-events: none !important;
-  animation: cccCoinCollect 220ms cubic-bezier(.2,.9,.35,1) forwards !important;
+  animation: cccItemCollect 220ms cubic-bezier(.2,.9,.35,1) forwards !important;
   will-change: transform, opacity;
 }
 
