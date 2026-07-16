@@ -410,7 +410,7 @@ export function initCoinPickup({
   playfieldSelector   = '.playfield',
   coinsLayerSelector  = '.coins-layer',
   hudAmountSelector   = '.hud-top .coin-amount',
-  coinSelector        = '.coin, [data-coin], .coin-sprite',
+  coinSelector        = '.spawner-item, [data-coin], .coin-sprite',
   soundSrc            = 'sounds/pickup.ogg',
   storageKey          = 'ccc:coins',
   disableAnimation    = false, // Force false to re-enable on mobile
@@ -512,7 +512,7 @@ export function initCoinPickup({
   const isCoin = (el) => {
       if (!(el instanceof HTMLElement)) return false;
       // Fast path: Check for attached object
-      if (el._coinObj) return !el._coinObj.isRemoved && el.dataset.collected !== '1';
+      if (el._itemObj) return !el._itemObj.isRemoved && el.dataset.collected !== '1';
       return el.dataset.collected !== '1' && el.matches(coinSelector);
   };
 
@@ -539,7 +539,7 @@ export function initCoinPickup({
   }
 
   function animateAndRemove(el, opts = {}){
-    const coinObj = el && el._coinObj;
+    const coinObj = el && el._itemObj;
     // Notify spawner that this coin is "taken" so physics stops
     if (spawner && typeof spawner.detachCoin === 'function') {
         spawner.detachCoin(opts.coin || coinObj || el);
@@ -568,7 +568,7 @@ export function initCoinPickup({
     }
 
     el.style.setProperty('--ccc-start', start);
-    el.classList.add('coin--collected');
+    el.classList.add('item--collected');
     
     let complete = false;
     const done = () => { 
@@ -593,7 +593,7 @@ export function initCoinPickup({
     let foundSound = false;
 
     for (const item of items) {
-        const coinObj = item.coin || (item.el && item.el._coinObj);
+        const coinObj = item.coin || (item.el && item.el._itemObj);
         if (coinObj) {
             if (coinObj.sizeIndex !== undefined) {
                 if (coinObj.sizeIndex > maxSizeIndex) {
@@ -631,7 +631,7 @@ export function initCoinPickup({
       let el = item.el;
       let coinObj = item.coin;
       
-      if (!coinObj && el && el._coinObj) coinObj = el._coinObj;
+      if (!coinObj && el && el._itemObj) coinObj = el._itemObj;
       if (el && !isCoin(el)) continue;
       if (coinObj && coinObj.isRemoved) continue;
 
