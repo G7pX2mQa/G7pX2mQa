@@ -2,6 +2,8 @@ import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
 import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoinCollected, checkSecretAchievements } from "../game/secretAchievements.js";
+import { createCursorTrail } from "../game/cursorTrail.js";
+import { getPreRenderedItem } from "../game/spawnerCore.js";
 
 let activeCanvas = null;
 let activeCtx = null;
@@ -33,6 +35,9 @@ let canvasMouseX = 0;
 let canvasMouseY = 0;
 const coinImg = new Image();
 coinImg.src = 'img/currencies/coin/coin.webp';
+
+let vaultCursorTrail = null;
+let vaultCoinCollectedLocal = false;
 
 
 
@@ -308,6 +313,7 @@ export function startCanvasLoop(id, canvasEl) {
     isVaultOpening = false;
     vaultOpeningTime = 0;
     isVaultOpen = false;
+    vaultCoinCollectedLocal = getVaultCoinCollected();
 
     canvasClickListener = (e) => {
       handleVaultCanvasClick(e);
@@ -377,6 +383,15 @@ export function stopCanvasLoop() {
   isVaultOpening = false;
   vaultOpeningTime = 0;
   isVaultOpen = false;
+  vaultCoinCollectedLocal = false;
+  if (vaultCursorTrail) {
+    vaultCursorTrail.destroy();
+    vaultCursorTrail = null;
+  }
+  const overlayEl = document.getElementById('building-detail-overlay');
+  if (overlayEl) {
+    overlayEl.style.cursor = '';
+  }
 
   if (wasOpeningOrOpen) {
     const closeBtn = document.querySelector('.shop-close');
@@ -530,8 +545,29 @@ function loop(currentTime) {
   }
 
   if (activeCanvas && currentBuildingId === 'pure_gold') {
+    const overlayEl = document.getElementById('building-detail-overlay');
+    
+    // Handle cursor trail and entire overlay's cursor hiding
+    if (overlayEl) {
+      if ((isVaultOpening || isVaultOpen) && !vaultCoinCollectedLocal) {
+        overlayEl.style.cursor = 'none';
+        if (isVaultOpen) {
+          if (!vaultCursorTrail) {
+            vaultCursorTrail = createCursorTrail(overlayEl, { isBossFight: true });
+          }
+        }
+      } else {
+        overlayEl.style.cursor = '';
+        if (vaultCursorTrail) {
+          vaultCursorTrail.destroy();
+          vaultCursorTrail = null;
+        }
+      }
+    }
+
     let cursor = 'default';
-    if (isVaultOpen && !getVaultCoinCollected()) {
+    if (isVaultOpen && !vaultCoinCollectedLocal) {
+      cursor = 'none';
       const scale = 1.0 + getTier() * 0.1;
       const coin_cx = activeCanvas.width / 2;
       const floorY = activeCanvas.height - 260;
@@ -539,19 +575,23 @@ function loop(currentTime) {
       const dist = Math.sqrt((canvasMouseX - coin_cx)**2 + (canvasMouseY - coin_cy)**2);
       if (dist <= 15 * scale) {
         cursor = 'pointer';
+        vaultCoinCollectedLocal = true;
         setVaultCoinCollected(true);
         playAudio("sounds/coin_pickup_size5.ogg");
         checkSecretAchievements();
         
-        // Restore Close and Buy Buttons
+        // Restore ONLY Close Button
         const closeBtn = document.querySelector('.shop-close');
-        if (closeBtn) closeBtn.style.display = '';
+        if (closeBtn) {
+          closeBtn.style.display = '';
+        }
+        
         document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
         
         window.dispatchEvent(new CustomEvent('audio:restartMusic'));
       }
     } else if (isVaultOpening) {
-      cursor = 'default';
+      cursor = 'none';
     } else if (keypadZoomedIn) {
       const w = activeCanvas.width;
       const h = activeCanvas.height;
@@ -5291,11 +5331,16 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.strokeRect(-50, -90, 100, 80);
       
       // Draw spinning coin
-      if (isVaultOpen && !getVaultCoinCollected()) {
+      if (isVaultOpen && !vaultCoinCollectedLocal) {
         ctx.save();
         ctx.translate(0, -50);
         ctx.scale(Math.sin(time * 5), 1);
-        ctx.drawImage(coinImg, -15, -15, 30, 30);
+        const prCoin = getPreRenderedCoin('img/currencies/coin/coin.webp', 40);
+        if (prCoin) {
+          ctx.drawImage(prCoin, -20, -20, 40, 40);
+        } else {
+          ctx.drawImage(coinImg, -15, -15, 30, 30);
+        }
         ctx.restore();
       }
     }
@@ -5304,7 +5349,8 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.save();
     if (isVaultOpening || isVaultOpen) {
       const prog = isVaultOpen ? 1.0 : (5.0 - vaultOpeningTime) / 5.0;
-      const doorScaleX = 1.0 - prog * 1.5;
+      const maxAngle = Math.acos(-0.5); // 120 degrees
+      const doorScaleX = Math.cos(prog * maxAngle);
       ctx.translate(-50, 0);
       ctx.scale(doorScaleX, 1);
       ctx.translate(50, 0);
@@ -5690,7 +5736,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   ctx.save();
   // Move building up for T1 reinforcements (with cross-fade for T0)
   if (tier >= 1) {
-    if (prevTier === 0 && tier === 1) {
+    if (prevTier === 0 && tier === 1 && !isVaultOpening && !isVaultOpen) {
       drawT0Vault(1 - t1);
       ctx.translate(0, -15);
       
@@ -5837,9 +5883,9 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     const target = "7887773346665553";
     let lightColor = "#ff0000"; // Solid red by default/idle (not touched)
     
-    if (isVaultOpen || seq === target) {
+    if (seq === target) {
       lightColor = "#00ff00"; // Solid green
-    } else if (seq.length > 0) {
+    } else if (seq && seq !== "0000000000000000" && seq.length > 0) {
       const matchLen = getMatchLength(seq, target);
       if (matchLen > 0) {
         lightColor = "#00ff00"; // Solid green on correct prefix match
@@ -6047,9 +6093,9 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     const zoomTarget = "7887773346665553";
     let zoomLightColor = "#ff0000"; // Solid red by default/idle
     
-    if (isVaultOpen || zoomSeq === zoomTarget) {
+    if (zoomSeq === zoomTarget) {
       zoomLightColor = "#00ff00"; // Solid green
-    } else if (zoomSeq.length > 0) {
+    } else if (zoomSeq && zoomSeq !== "0000000000000000" && zoomSeq.length > 0) {
       const matchLen = getMatchLength(zoomSeq, zoomTarget);
       if (matchLen > 0) {
         zoomLightColor = "#00ff00"; // Solid green on correct prefix match
@@ -6261,6 +6307,9 @@ if (typeof window !== 'undefined') {
   window.isMutedByVault = () => {
     return isVaultOpening || isVaultOpen;
   };
+  window.isVaultCoinCollected = () => {
+    return vaultCoinCollectedLocal;
+  };
 }
 
 function handleVaultCanvasKeyDown(e) {
@@ -6287,6 +6336,8 @@ function handleVaultCanvasKeyDown(e) {
       playAudio("sounds/opening.ogg");
       window.dispatchEvent(new CustomEvent('audio:stopMusic'));
       
+      setVaultSequence("0000000000000000");
+
       const closeBtn = document.querySelector('.shop-close');
       if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
       const btnBuy = document.getElementById('building-btn-buy');
@@ -6355,6 +6406,8 @@ function handleVaultCanvasClick(e) {
             playAudio("sounds/opening.ogg");
             window.dispatchEvent(new CustomEvent('audio:stopMusic'));
             
+            setVaultSequence("0000000000000000");
+
             const closeBtn = document.querySelector('.shop-close');
             if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
             const btnBuy = document.getElementById('building-btn-buy');
