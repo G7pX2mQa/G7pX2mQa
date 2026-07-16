@@ -1411,6 +1411,62 @@ export function updateOverlayUi() {
         btnBuyMax.disabled = walletBn.cmp(costBn) < 0;
         btnBuyCheap.disabled = walletBn.cmp(costBn) < 0;
     }
+
+    const isVaultMuted = typeof window !== 'undefined' && window.isMutedByVault && window.isMutedByVault();
+    const isCollected = typeof window !== 'undefined' && window.isVaultCoinCollected && window.isVaultCoinCollected();
+
+    const levelText = document.getElementById('building-detail-level-text');
+    const costsText = document.querySelector('.upg-costs');
+    const bonusRow = document.getElementById('building-detail-bonus-row');
+    const costRow = document.getElementById('building-detail-cost-row');
+    const walletRow = document.getElementById('building-detail-wallet-row');
+
+    if (id === 'pure_gold' && isVaultMuted) {
+        // Hide texts
+        if (levelText) levelText.style.display = 'none';
+        if (costsText) costsText.style.display = 'none';
+        if (bonusRow) bonusRow.style.display = 'none';
+        if (costRow) costRow.style.display = 'none';
+        if (walletRow) walletRow.style.display = 'none';
+
+        // Hide Buy buttons
+        if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
+        if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
+        if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
+
+        // Show/Hide Close button based on collection status
+        const closeBtn = document.querySelector('.shop-close');
+        if (closeBtn) {
+            if (isCollected) {
+                closeBtn.style.removeProperty('display');
+            } else {
+                closeBtn.style.setProperty('display', 'none', 'important');
+            }
+        }
+    } else {
+        // Restore/Reinstate everything when not in the opening/open Vault sequence
+        if (levelText) levelText.style.display = '';
+        if (costsText) costsText.style.display = '';
+        if (bonusRow) bonusRow.style.display = '';
+        if (costRow) costRow.style.display = '';
+        if (walletRow) walletRow.style.display = '';
+
+        // Restore Buy buttons based on standard rules (only if not infinite)
+        if (levelBn.isInfinite && levelBn.isInfinite()) {
+            if (btnBuy) btnBuy.style.display = 'none';
+            if (btnBuyMax) btnBuyMax.style.display = 'none';
+            if (btnBuyCheap) btnBuyCheap.style.display = 'none';
+        } else {
+            if (btnBuy) btnBuy.style.display = '';
+            if (btnBuyMax) btnBuyMax.style.display = '';
+            if (btnBuyCheap) btnBuyCheap.style.display = '';
+        }
+
+        const closeBtn = document.querySelector('.shop-close');
+        if (closeBtn) {
+            closeBtn.style.removeProperty('display');
+        }
+    }
 }
 
 export function handlePurchaseOuter(id, type) {
