@@ -1771,7 +1771,6 @@ If you ever believe your save slot has been unjustly marked as modified, you may
   }
 });
 
-
 function validateMultiplierMethods() {
   RESOURCE_REGISTRY.forEach(config => {
     if (config.key === 'voidGems' || config.type === 'currency') return;
@@ -1795,6 +1794,7 @@ function validateMultiplierMethods() {
     }
   });
 }
+
 function generateMenuBackground(manifest) {
   const images = manifest.images.filter(src => src.startsWith('img/currencies/') && !src.endsWith('_base.webp') && !src.endsWith('_plus_base.webp'));
   if (!images || images.length === 0) return;
