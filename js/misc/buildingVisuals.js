@@ -6258,7 +6258,7 @@ function handleVaultCanvasPointerMove(e) {
 }
 
 if (typeof window !== 'undefined') {
-  window.isVaultMuted = () => {
+  window.isMutedByVault = () => {
     return isVaultOpening || isVaultOpen;
   };
 }
