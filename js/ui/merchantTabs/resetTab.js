@@ -2418,11 +2418,12 @@ function updateSurgeCard() {
             itemEl = document.createElement('div');
             itemEl.className = `surge-milestone-item ${reachedClass}${nerfedClass}`;
             itemEl.dataset.isReached = String(isReached);
+            const formattedSurgeLevel = formatNumber(BigNum.fromAny(m.surgeLevel));
             itemEl.innerHTML = `
                 <div class="surge-milestone-nerf-arrow" style="display:none"></div>
-                <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
+                <div class="surge-milestone-title">Surge ${formattedSurgeLevel}</div>
                 <div class="surge-milestone-desc"></div>
-                <div class="surge-milestone-title" style="visibility:hidden">Surge ${m.surgeLevel}</div>
+                <div class="surge-milestone-title" style="visibility:hidden">Surge ${formattedSurgeLevel}</div>
             `;
             el.milestones.appendChild(itemEl);
         } else {
