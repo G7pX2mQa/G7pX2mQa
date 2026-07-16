@@ -129,7 +129,11 @@ function isOnMenu() {
 }
 
 function isLoading() {
-    return document.documentElement.classList.contains('booting') || !!document.getElementById('boot-loader');
+    const loader = document.getElementById('boot-loader');
+    if (loader && loader.classList.contains('fading')) {
+        return false;
+    }
+    return document.documentElement.classList.contains('booting') || !!loader;
 }
 
 function isGameVisible() {
