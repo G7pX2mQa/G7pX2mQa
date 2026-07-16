@@ -523,6 +523,7 @@ function finishAndHideLoader(loaderEl, onFadeStart, finishedText, dwellMs = 500)
   loaderEl.offsetHeight;
 
   setTimeout(async () => {
+    loaderEl.classList.add('fading');
     if (typeof onFadeStart === 'function') {
       try { onFadeStart(); } catch (e) { console.error(e); }
     }
