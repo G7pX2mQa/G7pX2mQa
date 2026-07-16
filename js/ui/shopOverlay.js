@@ -876,7 +876,8 @@ class ShopInstance {
                     if (IS_MOBILE && settingsManager.get('upgrade_insta_max')) {
                         if (el.upgMeta) {
                             const model = this.adapter.getUiModel(el.upgMeta.id);
-                            if (!model?.hmReadyToEvolve) {
+                            const capReached = model?.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model?.upg?.lvlCap) ? model?.lvl >= model?.upg?.lvlCap : false);
+                            if (!model?.hmReadyToEvolve && !capReached) {
                                 const { bought } = this.adapter.buyMax(el.upgMeta.id);
                                 const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
                                 if (!boughtBn.isZero?.()) {
