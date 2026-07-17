@@ -501,7 +501,7 @@ function updateHud() {
     if (dpLevelValue) dpLevelValue.textContent = '0';
     if (progress) {
       const reqHtml = formatNumber(requirementBn);
-      progress.innerHTML = `<span class="dp-progress-current">0</span><span class="dp-progress-separator">/</span><span class="dp-progress-required">${reqHtml}</span><span class="dp-progress-suffix">DP</span>`;
+      setHtmlOrText(progress, `<span class="dp-progress-current">0</span><span class="dp-progress-separator">/</span><span class="dp-progress-required">${reqHtml}</span><span class="dp-progress-suffix">DP</span>`);
     }
     if (bar) {
       bar.setAttribute('aria-valuenow', '0');
@@ -526,7 +526,7 @@ function updateHud() {
   if (progress) {
     const currentHtml = formatNumber(dpState.progress);
     const reqHtml = formatNumber(requirement);
-    progress.innerHTML = `<span class="dp-progress-current">${currentHtml}</span><span class="dp-progress-separator">/</span><span class="dp-progress-required">${reqHtml}</span><span class="dp-progress-suffix">DP</span>`;
+    setHtmlOrText(progress, `<span class="dp-progress-current">${currentHtml}</span><span class="dp-progress-separator">/</span><span class="dp-progress-required">${reqHtml}</span><span class="dp-progress-suffix">DP</span>`);
   }
   if (bar) {
     bar.setAttribute('aria-valuenow', (ratio * 100).toFixed(2));
