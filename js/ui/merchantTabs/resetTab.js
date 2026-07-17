@@ -2193,7 +2193,7 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge 
       // Update amount only
       const amountEl = btn.querySelector('.merchant-reset__action-amount');
       if (amountEl && amountEl.innerHTML !== amountStr) {
-          amountEl.innerHTML = amountStr;
+          setHtmlOrText(amountEl, amountStr);
       }
       // Ensure icon (in case it was somehow lost or incorrect, though unlikely here)
       const iconImg = btn.querySelector('.merchant-reset__action-icon img');
@@ -2375,7 +2375,7 @@ function updateSurgeCard() {
   } else if (el.headerVal) {
     const isInf = barLevel === Infinity || (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) || String(barLevel) === 'Infinity';
     const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
-    if (el.headerVal.innerHTML !== sLevel) el.headerVal.innerHTML = sLevel;
+    if (el.headerVal.innerHTML !== sLevel) setHtmlOrText(el.headerVal, sLevel);
   }
   if (el.barText) setHtmlOrText(el.barText, `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves, true)} / <img src="${WAVES_ICON_SRC}">${formatBn(req, true)}</span>`);
 
