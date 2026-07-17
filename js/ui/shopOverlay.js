@@ -50,6 +50,7 @@ import {
 } from '../game/automationUpgrades.js';
 import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
 import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
 // --- Shared State ---
 const scrollingElements = new Set();
@@ -1065,7 +1066,7 @@ class ShopInstance {
                 if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
                 if (capReached) badge.classList.add('is-maxed');
                 if (badgeHtml === badgePlain) { if (badge.textContent !== badgeHtml) badge.textContent = badgeHtml; }
-                else { if (badge.innerHTML !== badgeHtml) badge.innerHTML = badgeHtml; }
+                else { if (badge.innerHTML !== badgeHtml) setHtmlOrText(badge, badgeHtml); }
             } else if (badge) badge.remove();
             
             if (settingsManager.get('hide_maxed_upgrades') && capReached && !showEvolveReady) {
@@ -1545,7 +1546,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           levelHtml = capReached ? 'Owned' : 'Not Owned';
       }
       const levelPlain = stripTags(levelHtml);
-      if (level.innerHTML !== levelHtml) level.innerHTML = levelHtml;
+      if (level.innerHTML !== levelHtml) setHtmlOrText(level, levelHtml);
       if (level.getAttribute('aria-label') !== levelPlain) level.setAttribute('aria-label', levelPlain);
       level.hidden = isHiddenUpgrade;
       if (!isHiddenUpgrade) level.removeAttribute('aria-hidden');
@@ -1786,7 +1787,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           }
           const line = wrap.querySelector('.upg-line');
           const html = `<span class="bonus-line">${model.effect}</span>`;
-          if (line.innerHTML !== html) line.innerHTML = html;
+          if (line.innerHTML !== html) setHtmlOrText(line, html);
           placeAfterCursor(wrap);
       } else {
           const wrap = info.querySelector('.effect-wrapper');
@@ -1810,7 +1811,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           
           const lineCost = ensureChild(costs, 'cost-line', 'div');
           if (!lineCost.className.includes('upg-line')) lineCost.className = 'upg-line cost-line';
-          if (lineCost.innerHTML !== costHtml) lineCost.innerHTML = costHtml;
+          if (lineCost.innerHTML !== costHtml) setHtmlOrText(lineCost, costHtml);
           
           if (isHM) {
              const lineMilestone = ensureChild(costs, 'milestone-line', 'div');
@@ -1847,7 +1848,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              } catch {}
              const prefix = isAutomated ? 'Cost at next milestone:' : 'Cost to next milestone:';
              const milestoneHtml = `${prefix} ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
-             if (lineMilestone.innerHTML !== milestoneHtml) lineMilestone.innerHTML = milestoneHtml;
+             if (lineMilestone.innerHTML !== milestoneHtml) setHtmlOrText(lineMilestone, milestoneHtml);
           } else {
              const lineMilestone = costs.querySelector('.milestone-line');
              if (lineMilestone) lineMilestone.remove();
@@ -1858,7 +1859,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           
           const lineHave = ensureChild(costs, 'have-line', 'div');
           if (!lineHave.className.includes('upg-line')) lineHave.className = 'upg-line have-line';
-          if (lineHave.innerHTML !== haveHtml) lineHave.innerHTML = haveHtml;
+          if (lineHave.innerHTML !== haveHtml) setHtmlOrText(lineHave, haveHtml);
       } else {
           const costs = info.querySelector('.upg-costs');
           if (costs) costs.remove();
