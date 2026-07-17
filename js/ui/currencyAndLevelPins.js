@@ -518,7 +518,6 @@ export function refreshPinnedLevels() {
     if (progConfig) {
       if (progConfig.pinBgGradient) bar.style.setProperty('--pinned-bg', progConfig.pinBgGradient);
       if (progConfig.borderColor) bar.style.setProperty('--pinned-border-color', progConfig.borderColor);
-      if (progConfig.barOutline) bar.style.setProperty('--pinned-border-w', progConfig.barOutline);
       if (progConfig.barBoxShadow) bar.style.setProperty('--pinned-box-shadow', progConfig.barBoxShadow);
       
       if (progConfig.fillGradient) fill.style.setProperty('--pinned-fill', progConfig.fillGradient);
