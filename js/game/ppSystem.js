@@ -207,10 +207,10 @@ function updateHud() {
       fill.style.setProperty('--pp-fill', '0%');
       fill.style.width = '0%';
     }
-    if (ppLevelValue) ppLevelValue.innerHTML = '0';
+    if (ppLevelValue) setHtmlOrText(ppLevelValue, '0');
     if (progress) {
       const reqHtml = formatNumber(requirementBn);
-      progress.innerHTML = `<span class="pp-progress-current">0</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`;
+      setHtmlOrText(progress, `<span class="pp-progress-current">0</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`);
     }
     if (bar) {
       bar.setAttribute('aria-valuenow', '0');
@@ -234,7 +234,7 @@ function updateHud() {
   if (progress) {
     const currentHtml = formatNumber(ppState.progress);
     const reqHtml = formatNumber(requirementBn);
-    progress.innerHTML = `<span class="pp-progress-current">${currentHtml}</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`;
+    setHtmlOrText(progress, `<span class="pp-progress-current">${currentHtml}</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`);
   }
   if (bar) {
     bar.setAttribute('aria-valuenow', pct.toString());
