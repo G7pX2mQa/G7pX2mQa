@@ -79,7 +79,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   amountTextDiv.className = 'currency-amount-text';
   // Use inline-block or inline-flex so that trailing text stays on the same line if needed
   amountTextDiv.style.display = 'inline-block';
-  amountTextDiv.innerHTML = amountText;
+  setHtmlOrText(amountTextDiv, amountText);
   amountDiv.appendChild(amountTextDiv);
 
   // Add text for scrap dropdown
