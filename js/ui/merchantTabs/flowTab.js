@@ -1,3 +1,4 @@
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
@@ -1613,13 +1614,13 @@ function updateFlowVisuals() {
             if (elLvl) {
                  if (elLvl.style.display === 'none') elLvl.style.display = '';
                  const newText = formatNumber(ch.level);
-                 if (elLvl.innerHTML !== newText) elLvl.innerHTML = newText;
+                 if (elLvl.innerHTML !== newText) setHtmlOrText(elLvl, newText);
             }
             if (elEffect) {
                 if (elEffect.style.display === 'none') elEffect.style.display = '';
                 const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
                 const newText = `+${formatNumber(effectVal)}%`;
-                if (elEffect.innerHTML !== newText) elEffect.innerHTML = newText;
+                if (elEffect.innerHTML !== newText) setHtmlOrText(elEffect, newText);
             }
             if (elControls) {
                 if (elControls.style.display === 'none') elControls.style.display = '';
