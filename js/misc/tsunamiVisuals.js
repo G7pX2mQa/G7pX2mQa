@@ -672,7 +672,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         // Screen Shake
         let shakeX = 0;
         let shakeY = 0;
-        if (stormFactor > 0.5 || finalExplosionTriggered) {
+        if (!beaconsActive && (stormFactor > 0.5 || finalExplosionTriggered)) {
             let shakeMag = (stormFactor - 0.5) * 2 * 5 + (impactFactor * 25);
             
             // Extra chaos during explosion
@@ -689,9 +689,6 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
 
         bgCtx.save();
         bgCtx.translate(shakeX, shakeY);
-        
-        fgCtx.save();
-        fgCtx.translate(shakeX, shakeY);
 
         // 1. Draw Sky (BG)
         const grad = bgCtx.createLinearGradient(0, 0, 0, height);
@@ -760,6 +757,9 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         // 5. Draw Cliffs - REMOVED
 
         // 6. Lightning Logic (FG) - REMOVED
+
+        fgCtx.save();
+        fgCtx.translate(shakeX, shakeY);
 
         // 6.5. Rain (FG) - Moved here to be behind water
         if (stormFactor > 0.3) {
@@ -894,6 +894,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             }
         });
 
+        fgCtx.restore(); // Restore fgCtx to normal untranslated state (un-shaken)
+
         // 10. Intro Fade In (FG)
         if (elapsed < FADE_IN_END) {
             let opacity = 1;
@@ -901,18 +903,21 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                 opacity = 1 - ((elapsed - 1000) / (FADE_IN_END - 1000));
             }
             fgCtx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
-            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+            fgCtx.fillRect(0, 0, width, height);
         }
 
         // 11. Initial Storm Fade Out (FG) - Time Based
         if (elapsed > FADE_OUT_START) {
             const fade = Math.min(1, (elapsed - FADE_OUT_START) / FADE_OUT_DURATION);
             fgCtx.fillStyle = `rgba(0, 0, 0, ${fade})`;
-            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+            fgCtx.fillRect(0, 0, width, height);
         }
 
         // 12. Solar Beacons (Crazy Stuff) - Triggered Manually, On Top of Black
         if (beaconsActive) {
+            fgCtx.save();
+            fgCtx.translate(shakeX, shakeY);
+
             const beaconElapsed = now - beaconStartTime;
             
             // 15 seconds total duration.
@@ -952,6 +957,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             }
             
             drawBeacons(fgCtx, width, height, intensity, allowSpawn, dt);
+
+            fgCtx.restore();
         }
 
         // 13. Final Blackout Fade Out (FG) - Manual Trigger
@@ -959,7 +966,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             const fadeElapsed = now - finalFadeStart;
             const fade = Math.min(1, fadeElapsed / finalFadeDuration);
             fgCtx.fillStyle = `rgba(0, 0, 0, ${fade})`;
-            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+            fgCtx.fillRect(0, 0, width, height);
         }
 
         // 14. Flash White (Boom)
@@ -970,12 +977,11 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             const alpha = t * t; 
             
             fgCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+            fgCtx.fillRect(0, 0, width, height);
             flashWhiteTime = Math.max(0, flashWhiteTime - dt);
         }
 
         bgCtx.restore();
-        fgCtx.restore();
 
         animationFrameId = requestAnimationFrame(loop);
     }
