@@ -27,6 +27,18 @@ export function initPinnedCurrencies(parentEl) {
   settingsManager.subscribe('user_interface', updateVisibility);
   updateVisibility(settingsManager.get('user_interface'));
 
+  settingsManager.subscribe('game_progress_bar', () => {
+    requestAnimationFrame(() => {
+      layoutPinnedAll();
+    });
+  });
+
+  window.addEventListener('goalBar:visibilityChange', () => {
+    requestAnimationFrame(() => {
+      layoutPinnedAll();
+    });
+  });
+
   // Initial render
   refreshPinnedCurrencies();
 
@@ -186,13 +198,22 @@ export function layoutPinnedAll() {
   const ITEM_WIDTH = 150 + 14; 
   const TOTAL_ITEM_W = ITEM_WIDTH + GAP_X;
 
+  // Calculate dynamic bottom limit based on the goal progress bar presence/visibility
+  let bottomLimit = window.innerHeight;
+  const progressBar = document.getElementById('goal-progress-bar');
+  const hudWrapper = document.getElementById('hud-bottom-wrapper');
+  const isProgressBarVisible = progressBar && hudWrapper && hudWrapper.classList.contains('has-goal-bar') && progressBar.offsetHeight > 0;
+  if (isProgressBarVisible) {
+    bottomLimit = progressBar.getBoundingClientRect().top;
+  }
+
   // 1. Calculate shift for Currencies
   let currencyShift = 0;
   if (hudBottom && currencyChildren.length > 0 && pinnedContainer) {
     const pinnedRect = pinnedContainer.getBoundingClientRect();
     const hudRect = hudBottom.getBoundingClientRect();
     const totalNaturalHeight = currencyChildren.length * TOTAL_ITEM_H;
-    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
+    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > bottomLimit;
 
     if (overflowsScreen) {
       const availableHeight = hudRect.top - pinnedRect.top;
@@ -210,7 +231,7 @@ export function layoutPinnedAll() {
     const pinnedRect = pinnedLevelsContainer.getBoundingClientRect();
     const hudRect = hudBottom.getBoundingClientRect();
     const totalNaturalHeight = levelChildren.length * TOTAL_ITEM_H;
-    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
+    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > bottomLimit;
 
     if (overflowsScreen) {
       const availableHeight = hudRect.top - pinnedRect.top;
@@ -250,12 +271,13 @@ export function layoutPinnedAll() {
     let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
     if (itemsAboveHud < 0) itemsAboveHud = 0;
 
-    let itemsInsideHud = Math.floor((hudRect.height + GAP_Y) / TOTAL_ITEM_H);
+    const availableInsideHudHeight = bottomLimit - hudRect.top;
+    let itemsInsideHud = Math.floor((availableInsideHudHeight + GAP_Y) / TOTAL_ITEM_H);
     if (itemsInsideHud < 1) itemsInsideHud = 1;
 
     const firstColCapacity = itemsAboveHud + itemsInsideHud;
     const totalNaturalHeight = children.length * TOTAL_ITEM_H;
-    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
+    const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > bottomLimit;
 
     if (!overflowsScreen) {
       children.forEach((el, index) => {
@@ -391,6 +413,18 @@ export function initPinnedLevels(parentEl) {
 
   settingsManager.subscribe('user_interface', updateLevelsVisibility);
   updateLevelsVisibility(settingsManager.get('user_interface'));
+
+  settingsManager.subscribe('game_progress_bar', () => {
+    requestAnimationFrame(() => {
+      layoutPinnedAll();
+    });
+  });
+
+  window.addEventListener('goalBar:visibilityChange', () => {
+    requestAnimationFrame(() => {
+      layoutPinnedAll();
+    });
+  });
 
   refreshPinnedLevels();
 
