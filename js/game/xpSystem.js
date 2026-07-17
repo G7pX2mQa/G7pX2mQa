@@ -936,7 +936,7 @@ function updateHud() {
     if (xpLevelValue) xpLevelValue.textContent = '0';
     if (progress) {
       const reqHtml = formatNumber(requirementBn);
-      progress.innerHTML = `<span class="xp-progress-current">0</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`;
+      setHtmlOrText(progress, `<span class="xp-progress-current">0</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`);
     }
     if (bar) {
       bar.setAttribute('aria-valuenow', '0');
@@ -961,7 +961,7 @@ function updateHud() {
   if (progress) {
     const currentHtml = formatNumber(xpState.progress);
     const reqHtml = formatNumber(requirement);
-    progress.innerHTML = `<span class="xp-progress-current">${currentHtml}</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`;
+    setHtmlOrText(progress, `<span class="xp-progress-current">${currentHtml}</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`);
   }
   if (bar) {
     bar.setAttribute('aria-valuenow', (ratio * 100).toFixed(2));
