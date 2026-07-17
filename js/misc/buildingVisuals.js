@@ -541,6 +541,7 @@ function loop(currentTime) {
     if (vaultOpeningTime <= 0) {
       isVaultOpening = false;
       isVaultOpen = true;
+      document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
     }
   }
 
@@ -549,12 +550,10 @@ function loop(currentTime) {
     
     // Handle cursor trail and entire overlay's cursor hiding
     if (overlayEl) {
-      if ((isVaultOpening || isVaultOpen) && !vaultCoinCollectedLocal) {
+      if (isVaultOpen && !vaultCoinCollectedLocal) {
         overlayEl.style.cursor = 'none';
-        if (isVaultOpen) {
-          if (!vaultCursorTrail) {
-            vaultCursorTrail = createCursorTrail(overlayEl);
-          }
+        if (!vaultCursorTrail) {
+          vaultCursorTrail = createCursorTrail(overlayEl, { initInCenter: true, zIndex: '999999' });
         }
       } else {
         overlayEl.style.cursor = '';
@@ -5320,7 +5319,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     // Main solid golden cube
     drawPolygon([
       {x: -60, y: 0}, {x: -60, y: -100}, {x: 60, y: -100}, {x: 60, y: 0}
-    ], fillGold, darkMetal, 4, alpha);
+    ], fillGold, fillGold, 4, alpha);
 
     // If opening or open, draw dark interior and spinning coin
     if (isVaultOpening || isVaultOpen) {
@@ -5335,7 +5334,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         ctx.save();
         ctx.translate(0, -50);
         ctx.scale(Math.sin(time * 5), 1);
-        const prCoin = getPreRenderedCoin('img/currencies/coin/coin.webp', 40);
+        const prCoin = getPreRenderedItem('img/currencies/coin/coin.webp', 40);
         if (prCoin) {
           ctx.drawImage(prCoin, -20, -20, 40, 40);
         } else {
@@ -6333,6 +6332,8 @@ function handleVaultCanvasKeyDown(e) {
       isVaultOpening = true;
       vaultOpeningTime = 5.0;
       keypadZoomedIn = false;
+      vaultCoinCollectedLocal = false;
+      setVaultCoinCollected(false);
       playAudio("sounds/opening.ogg");
       window.dispatchEvent(new CustomEvent('audio:stopMusic'));
       
@@ -6403,6 +6404,8 @@ function handleVaultCanvasClick(e) {
             isVaultOpening = true;
             vaultOpeningTime = 5.0;
             keypadZoomedIn = false;
+            vaultCoinCollectedLocal = false;
+            setVaultCoinCollected(false);
             playAudio("sounds/opening.ogg");
             window.dispatchEvent(new CustomEvent('audio:stopMusic'));
             
