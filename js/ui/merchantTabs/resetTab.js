@@ -478,10 +478,12 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
 
     if (useSurge9) {
         const effectiveNerf = getTsunamiExponent();
-        // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
-        logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
-        // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
-        logMultiplier = 30 * effectiveNerf;
+        if (effectiveNerf > 0) {
+            // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
+            logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
+            // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
+            logMultiplier = 30 * effectiveNerf;
+        }
     }
 
     if (isSurgeActive(14)) {
@@ -1017,10 +1019,12 @@ function recomputePendingDna() {
 
     if (isSurgeActive(9)) {
         const effectiveNerf = getTsunamiExponent();
-        // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
-        logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
-        // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
-        logMultiplier = 30 * effectiveNerf;
+        if (effectiveNerf > 0) {
+            // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
+            logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
+            // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
+            logMultiplier = 30 * effectiveNerf;
+        }
     }
 
     if (isSurgeActive(14)) {
@@ -2115,6 +2119,7 @@ function buildPanel(panelEl) {
               if (dnaBtn.style.maxWidth !== "none") dnaBtn.style.maxWidth = "none";
           }
       };
+      resetState.syncDnaLayout = syncLayout;
 
       if (typeof IntersectionObserver !== 'undefined') {
           const observer = new IntersectionObserver((entries) => {
@@ -2537,12 +2542,43 @@ function updateExperimentCard() {
     return;
   }
 
-  if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
+  let displayChanged = false;
+  if (el.card.style.display !== 'flex') {
+      el.card.style.display = 'flex';
+      displayChanged = true;
+  }
   if (resetState.layerButtons.experiment && resetState.layerButtons.experiment.style.display !== 'flex') {
       resetState.layerButtons.experiment.style.display = 'flex';
+      displayChanged = true;
+  }
+
+  if (displayChanged && typeof resetState.syncDnaLayout === 'function') {
+      resetState.syncDnaLayout();
+      requestAnimationFrame(() => {
+          if (typeof resetState.syncDnaLayout === 'function') {
+              resetState.syncDnaLayout();
+          }
+      });
   }
   
   ensurePersistentFlagsPrimed();
+
+  // Dynamic description update for Surge 100
+  const descEl = el.card.querySelector('[data-reset-desc="experiment"]');
+  if (descEl) {
+      const isSurge100 = isSurgeActive(100);
+      const labText = isSurge100 
+          ? '<span style="text-decoration: line-through;">the entire Lab</span> Lab Level'
+          : 'the entire Lab';
+      const expectedDesc = `
+        Resets everything Surge does as well as ${labText} for DNA<br>
+        Increase pending DNA amount by increasing Lab Level and XP Level<br>
+        ${IS_MOBILE ? 'Tap' : 'Click'} the button below to access DNA upgrades
+      `.trim();
+      if (descEl.innerHTML !== expectedDesc) {
+          descEl.innerHTML = expectedDesc;
+      }
+  }
   
   el.card.classList.toggle('is-complete', !!resetState.hasDoneExperimentReset);
 
