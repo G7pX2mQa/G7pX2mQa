@@ -592,7 +592,6 @@ function getXpLevelNumber() {
 }
 
 function ensureResetSlot() {
-  if (resetState.slot != null) return resetState.slot;
   const slot = getActiveSlot();
   resetState.slot = slot;
   return slot;
