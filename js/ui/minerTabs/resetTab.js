@@ -1,3 +1,4 @@
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { getActiveSlot, bank, CURRENCIES, UC_MATERIALS, getCurrencyMultiplierScaledBN } from '../../util/storage.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { formatNumber } from '../../util/numFormat.js';
@@ -349,7 +350,7 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge 
   } else {
       const amtEl = btn.querySelector('.merchant-reset__action-amount');
       if (amtEl && amtEl.innerHTML !== amountStr) {
-          amtEl.innerHTML = amountStr;
+          setHtmlOrText(amtEl, amountStr);
       }
   }
 }
