@@ -247,6 +247,7 @@ export function updateGameProgressBar() {
 
   if (!wrapper || !bar || !fill || !textEl) return;
 
+  const wasHasGoalBar = wrapper.classList.contains('has-goal-bar');
 
   let activeGoal = null;
   let allComplete = true;
@@ -310,6 +311,9 @@ export function updateGameProgressBar() {
     }
     fill.style.width = '100%';
     textEl.textContent = 'You are winner!!!';
+    if (wasHasGoalBar !== wrapper.classList.contains('has-goal-bar')) {
+      window.dispatchEvent(new CustomEvent('goalBar:visibilityChange'));
+    }
     return;
   }
 
@@ -359,5 +363,9 @@ export function updateGameProgressBar() {
     fill.style.width = `${percentage}%`;
   } else {
     wrapper.classList.remove('has-goal-bar');
+  }
+
+  if (wasHasGoalBar !== wrapper.classList.contains('has-goal-bar')) {
+    window.dispatchEvent(new CustomEvent('goalBar:visibilityChange'));
   }
 }
