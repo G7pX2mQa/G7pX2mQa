@@ -181,7 +181,7 @@ const HELP_ENTRIES = [
     tldr: "Combine all four currently unlocked resets to progress further; Keep unlocking more Surge Milestones",
     progressionGoal: "Reach Surge Milestone 20",
     text: "The Experiment reset resets everything Surge does as well as Lab Nodes and Lab Level but gives DNA in return. In order to keep progressing further, you'll need to combine Forge resets with Infuse resets with Surge resets with Experiment resets (buying powerful DNA upgrades) with researching Lab Nodes and collecting Coins and all of this stuff. Keep unlocking more Surge milestones.",
-    nerdModeText: `<div style="margin-bottom:12px;"><strong>Base DNA Gain</strong><br><code>Gain = fFoor(2 ^ (LabLevel + XPLevel / 20))</code><br>But when Surge 9 is active: <code>Gain = Floor(10^(30 * TsunamiExponent) * (2 + TsunamiExponent / 2) ^ (LabLevel + XPLevel / 20))</code></div>`,
+    nerdModeText: `<div style="margin-bottom:12px;"><strong>Base DNA Gain</strong><br><code>Gain = Floor(2 ^ (LabLevel + XPLevel / 20))</code><br>But when Surge 9 is active: <code>Gain = Floor(10^(30 * TsunamiExponent) * (2 + TsunamiExponent / 2) ^ (LabLevel + XPLevel / 20))</code></div>`,
     themeClass: "is-experiment",
     isVisible: () => {
         if (isHelpEntryPermanentlyUnlocked(6)) return true;
