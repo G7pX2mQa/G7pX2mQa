@@ -444,7 +444,7 @@ export function updateSellTab() {
 
 
    const isDpUnlocked = isDpSystemUnlocked();
-   let baseHTML = `<b>Sell materials for Scrap, use Scrap to buy upgrades</b>`;
+   let baseHTML = `<span><b>Sell materials for Scrap, use Scrap to buy upgrades</b></span>`;
    if (isDpUnlocked) {
        baseHTML += `<br>Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>${alwaysSpawnsStr}<br>${nextUnlockStr}`;
    }
@@ -528,7 +528,7 @@ export function updateSellTab() {
 
        const owned = bank[matKey]?.value || BigNum.fromInt(0);
        const ownedStr = formatNumber(owned);
-       if (rowCache.ownedEl.innerHTML !== ownedStr) rowCache.ownedEl.innerHTML = ownedStr;
+       setHtmlOrText(rowCache.ownedEl, ownedStr);
        
        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
        const materialValue = BigNum.fromAny(t.value || 0);
@@ -539,7 +539,7 @@ export function updateSellTab() {
        const displayVal = theoreticalAmt.mulBigNumInteger(val);
 
        const valStr = formatNumber(displayVal);
-       if (rowCache.valEl.innerHTML !== valStr) rowCache.valEl.innerHTML = valStr;
+       setHtmlOrText(rowCache.valEl, valStr);
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
