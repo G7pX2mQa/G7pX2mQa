@@ -796,6 +796,15 @@ export function openDelveOverlay(overlayEl, sheetEl) {
                             if (targetTab && !tab.disabled && !tab.classList.contains('is-locked')) {
                                 try { localStorage.setItem(tabKey, targetTab); } catch {}
                             }
+                            // Automatically update the main custom scrollbar on tab switch
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    const scroller = overlayEl?.querySelector(".merchant-content");
+                                    if (scroller && scroller.__customScroll && typeof scroller.__customScroll.updateAll === "function") {
+                                        scroller.__customScroll.updateAll();
+                                    }
+                                });
+                            });
                         });
                     });
                 }
