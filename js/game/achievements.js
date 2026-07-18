@@ -172,6 +172,7 @@ export function setAchievementState(id, newState, slot = getActiveSlot()) {
 }
 
 export function checkAchievements(slot = getActiveSlot()) {
+    if (slot == null) return false;
     let changed = false;
     for (const achievement of ACHIEVEMENTS) {
         const currentState = getAchievementState(achievement.id, slot);
