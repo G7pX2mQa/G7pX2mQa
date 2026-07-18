@@ -1437,6 +1437,7 @@ export function updateOverlayUi() {
     const costRow = document.getElementById('building-detail-cost-row');
     const walletRow = document.getElementById('building-detail-wallet-row');
     const grabHandle = document.querySelector('#building-detail-overlay .grab-handle');
+    const upgGrabber = document.querySelector('#building-detail-overlay .upg-grabber');
 
     if (id === 'pure_gold' && isVaultMuted) {
         // Hide texts
@@ -1465,6 +1466,15 @@ export function updateOverlayUi() {
             } else {
                 grabHandle.style.setProperty('display', 'none', 'important');
                 grabHandle.style.setProperty('opacity', '0', 'important');
+            }
+        }
+
+        // Hide cursor over grabber container
+        if (upgGrabber) {
+            if (isCollected) {
+                upgGrabber.style.removeProperty('cursor');
+            } else {
+                upgGrabber.style.setProperty('cursor', 'none', 'important');
             }
         }
 
@@ -1501,6 +1511,15 @@ export function updateOverlayUi() {
             } else {
                 grabHandle.style.removeProperty('display');
                 grabHandle.style.removeProperty('opacity');
+            }
+        }
+
+        // Restore/hide cursor over grabber container based on "Only show Building" mode
+        if (upgGrabber) {
+            if (isOnlyBuilding) {
+                upgGrabber.style.setProperty('cursor', 'none', 'important');
+            } else {
+                upgGrabber.style.removeProperty('cursor');
             }
         }
 
