@@ -652,32 +652,33 @@ export function toggleWaterwheel(waterwheelId) {
     updateFlowTab();
 }
 
-let cachedFlowUnlockState = null;
+let cachedFlowUnlockStates = {};
 
 export function getFlowUnlockState() {
-    if (cachedFlowUnlockState !== null) return cachedFlowUnlockState;
-
     const slot = getSlot();
-    let result = false;
-    if (slot != null) {
-        try {
-            const val = localStorage.getItem(`ccc:unlock:flow:${slot}`);
-            if (val === '1') {
-                cachedFlowUnlockState = true;
-                return true;
-            }
-            if (val === '0') {
-                cachedFlowUnlockState = false;
-                return false;
-            }
-        } catch {}
+    if (slot == null) return false;
+    if (cachedFlowUnlockStates[slot] !== undefined && cachedFlowUnlockStates[slot] !== null) {
+        return cachedFlowUnlockStates[slot];
     }
+
+    let result = false;
+    try {
+        const val = localStorage.getItem(`ccc:unlock:flow:${slot}`);
+        if (val === '1') {
+            cachedFlowUnlockStates[slot] = true;
+            return true;
+        }
+        if (val === '0') {
+            cachedFlowUnlockStates[slot] = false;
+            return false;
+        }
+    } catch {}
 
     if (_unlockChecker) {
         result = _unlockChecker(20);
     }
     
-    cachedFlowUnlockState = result;
+    cachedFlowUnlockStates[slot] = result;
     return result;
 }
 
@@ -688,11 +689,11 @@ export function isFlowUnlocked() {
 let _unlockChecker = null;
 export function setFlowUnlockChecker(fn) {
     _unlockChecker = fn;
-    cachedFlowUnlockState = null;
+    cachedFlowUnlockStates = {};
 }
 
 if (typeof window !== 'undefined') {
-    const invalidateFlowCache = () => { cachedFlowUnlockState = null; };
+    const invalidateFlowCache = () => { cachedFlowUnlockStates = {}; };
     window.addEventListener('saveSlot:change', invalidateFlowCache);
     window.addEventListener('unlock:change', invalidateFlowCache);
     window.addEventListener('surge:level:change', invalidateFlowCache);
