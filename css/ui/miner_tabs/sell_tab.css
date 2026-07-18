@@ -5,7 +5,7 @@
     align-items: stretch;
     position: relative;
     flex: 1;
-    height: 100%;
+    height: auto;
     width: 100%;
     box-sizing: border-box;
     text-align: center;
@@ -27,10 +27,11 @@
     max-width: 1000px;
     padding: 16px 20px;
     box-sizing: border-box;
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    flex: 0 0 auto;
+    z-index: 1;
+    margin: 0 auto;
+    overflow-y: visible;
+    height: auto;
 }
 .sell-center-col::-webkit-scrollbar {
     display: none;
@@ -291,10 +292,7 @@
   padding: 0;
 }
 
-/* Sell custom scrollbar integration */
-.merchant-sheet:not(.is-sell-active) .sell-scrollbar {
-  display: none !important;
-}
+
 
 /* Thinner dropdowns */
 .sell-dropdown-wrapper {
