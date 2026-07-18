@@ -446,7 +446,7 @@ export function updateSellTab() {
 
 
    const isDpUnlocked = isDpSystemUnlocked();
-   let baseHTML = `<span><b>Sell materials for Scrap, use Scrap to buy upgrades</b></span>`;
+   let baseHTML = `<b>Sell materials for Scrap, use Scrap to buy upgrades</b>`;
    if (isDpUnlocked) {
        baseHTML += `<br>Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>${alwaysSpawnsStr}<br>${nextUnlockStr}`;
    }
