@@ -230,19 +230,19 @@ function syncWarpTabUnlockState() {
 
 const LAB_UNLOCK_KEY = (slot) => `ccc:unlock:lab:${slot}`;
 
-let cachedLabUnlockedLocal = null;
+let cachedLabUnlockedLocalStates = {};
 
 export function isLabUnlockedLocal() {
-  if (cachedLabUnlockedLocal !== null) return cachedLabUnlockedLocal;
   const slot = getActiveSlot();
   if (slot == null) return false;
+  if (cachedLabUnlockedLocalStates[slot] !== undefined && cachedLabUnlockedLocalStates[slot] !== null) return cachedLabUnlockedLocalStates[slot];
   try {
     if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
-      cachedLabUnlockedLocal = true;
+      cachedLabUnlockedLocalStates[slot] = true;
       return true;
     }
     const result = localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1';
-    cachedLabUnlockedLocal = result;
+    cachedLabUnlockedLocalStates[slot] = result;
     return result;
   } catch {
     return false;
@@ -250,8 +250,8 @@ export function isLabUnlockedLocal() {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('saveSlot:change', () => { cachedLabUnlockedLocal = null; });
-  window.addEventListener('unlock:change', () => { cachedLabUnlockedLocal = null; });
+  window.addEventListener('saveSlot:change', () => { cachedLabUnlockedLocalStates = {}; });
+  window.addEventListener('unlock:change', () => { cachedLabUnlockedLocalStates = {}; });
 }
 
 function syncLabTabUnlockState() {
