@@ -1,6 +1,6 @@
 export function setHtmlOrText(el, val) {
     const htmlVal = String(val);
-    if (htmlVal.includes('<span')) {
+    if (htmlVal.includes('<')) {
         el.innerHTML = htmlVal;
     } else {
         el.textContent = htmlVal;
