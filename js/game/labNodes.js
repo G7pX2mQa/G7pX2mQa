@@ -23,7 +23,7 @@ const EXPERIMENT_COMPLETED_KEY = (slot) => `ccc:reset:experiment:completed:${slo
 export const RESEARCH_NODES = [
     {
         id: 1,
-        title: "Node 1: Tsunami Exponent Buff",
+        title: "Node 1: Tsunami Exponent",
         desc: "Increases the Tsunami Exponent by +0.01 per level",
         baseRpReq: 10,
         scale: 2.0,
@@ -140,7 +140,7 @@ export const RESEARCH_NODES = [
     },
     {
         id: 10,
-        title: "Node 10: Tsunami Exponent Buff II",
+        title: "Node 10: Tsunami Exponent II",
         desc: "Increases the Tsunami Exponent by +0.01 per level\nThis node scales <strong>10x</strong> RP per level",
         baseRpReq: 1e13,
         scale: 10.0,
@@ -257,7 +257,7 @@ export const RESEARCH_NODES = [
     },
     {
         id: 19,
-        title: "Node 19: Tsunami Exponent Buff III",
+        title: "Node 19: Tsunami Exponent III",
         desc: `Increases the Tsunami Exponent by +0.01 per level\nThis node scales <strong>${formatNumber(BigNum.fromAny("1e1000"))}x</strong> RP per level`,
         baseRpReq: "1e1000",
         scale: "1e1000",
