@@ -576,9 +576,9 @@ function loop(currentTime) {
       const dx = canvasMouseX - coin_cx;
       const dy = canvasMouseY - coin_cy;
       const rx = Math.max(2, 15 * scale * Math.abs(Math.sin(time * 5)));
-      const ry = 15 * scale;
+      const ry = 30 * scale;
       
-      // Use the ellipse equation (dx/rx)^2 + (dy/ry)^2 <= 1 for the hit test
+      // Use the standard ellipse equation (dx/rx)^2 + (dy/ry)^2 <= 1 (exact border-radius 50% equivalent) for perfectly accurate diagonal and corner hit test
       if ((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1) {
         cursor = 'pointer';
         vaultCoinCollectedLocal = true;
