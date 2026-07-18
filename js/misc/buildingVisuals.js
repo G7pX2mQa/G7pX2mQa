@@ -394,7 +394,7 @@ export function stopCanvasLoop() {
   }
 
   if (wasOpeningOrOpen) {
-    const closeBtn = document.querySelector('.shop-close');
+    const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
     if (closeBtn) closeBtn.style.removeProperty('display');
     const btnBuy = document.getElementById('building-btn-buy');
     if (btnBuy) btnBuy.style.removeProperty('display');
@@ -571,8 +571,15 @@ function loop(currentTime) {
       const coin_cx = activeCanvas.width / 2;
       const floorY = activeCanvas.height - 260;
       const coin_cy = floorY - 50 * scale;
-      const dist = Math.sqrt((canvasMouseX - coin_cx)**2 + (canvasMouseY - coin_cy)**2);
-      if (dist <= 15 * scale) {
+      
+      // Hitbox is a circle with a constantly fluctuating width (oscillating due to sin(time * 5))
+      const dx = canvasMouseX - coin_cx;
+      const dy = canvasMouseY - coin_cy;
+      const rx = Math.max(2, 15 * scale * Math.abs(Math.sin(time * 5)));
+      const ry = 15 * scale;
+      
+      // Use the ellipse equation (dx/rx)^2 + (dy/ry)^2 <= 1 for the hit test
+      if ((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1) {
         cursor = 'pointer';
         vaultCoinCollectedLocal = true;
         setVaultCoinCollected(true);
@@ -580,7 +587,7 @@ function loop(currentTime) {
         checkSecretAchievements();
         
         // Restore ONLY Close Button
-        const closeBtn = document.querySelector('.shop-close');
+        const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
         if (closeBtn) {
           closeBtn.style.display = '';
         }
@@ -5330,7 +5337,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.strokeRect(-50, -90, 100, 80);
       
       // Draw spinning coin
-      if (isVaultOpen && !vaultCoinCollectedLocal) {
+      if ((isVaultOpening || isVaultOpen) && !vaultCoinCollectedLocal) {
         ctx.save();
         ctx.translate(0, -50);
         ctx.scale(Math.sin(time * 5), 1);
@@ -5354,6 +5361,10 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.scale(doorScaleX, 1);
       ctx.translate(50, 0);
     }
+    
+    // Vault door fill (using pure gold texture)
+    ctx.fillStyle = fillGold;
+    ctx.fillRect(-50, -90, 100, 80);
     
     // Vault door outline
     ctx.strokeStyle = darkMetal;
@@ -6339,7 +6350,7 @@ function handleVaultCanvasKeyDown(e) {
       
       setVaultSequence("0000000000000000");
 
-      const closeBtn = document.querySelector('.shop-close');
+      const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
       if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
       const btnBuy = document.getElementById('building-btn-buy');
       if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
@@ -6411,7 +6422,7 @@ function handleVaultCanvasClick(e) {
             
             setVaultSequence("0000000000000000");
 
-            const closeBtn = document.querySelector('.shop-close');
+            const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
             if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
             const btnBuy = document.getElementById('building-btn-buy');
             if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
