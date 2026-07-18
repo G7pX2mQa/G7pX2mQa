@@ -1742,12 +1742,14 @@ To open the debug panel, simply press C on your keyboard.
 This will allow you to view and modify game values for testing.
 
 ⚠️ Note:
-ANY modification of stats, currencies, upgrade levels, or other save data through the debug panel will permanently mark the save slot as modified. If the slot is marked as modified, its shop button will permanently turn from a fresh green to a poopy brown color, which I like to call the poop-shop of shame.
+ANY modification of stats, currencies, upgrade levels, or other save data through the debug panel will permanently mark the save slot as modified. If the save slot is marked as modified, its shop button will permanently turn from a fresh green to a poopy brown color, which I like to call the poop-shop of shame.
 
 Normal gameplay is unaffected unless you choose to modify values.
 
 ⚒️ Additional Note:
-If you ever believe your save slot has been unjustly marked as modified, you may ping the owner of the game in the community Discord server to request it to be investigated. Export your save data and send it to the owner of the game. If worthy, the owner of the game can work some magic to unmark the save slot.`);
+If you ever believe your save slot has been unjustly marked as modified, you may ping the owner of the game in the community Discord server to request it to be investigated. Export your save data and send it to the owner of the game. If worthy, the owner of the game can work some magic to unmark the save slot.
+
+There are many ways to mark a save slot other than just using the debug panel.`);
         window.debugPanelLogShown = true;
     }
 
