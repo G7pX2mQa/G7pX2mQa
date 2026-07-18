@@ -1,4 +1,3 @@
-import { ensureMerchantScrollbar } from '../delveCore.js';
 import { CURRENCIES, getActiveSlot, UC_MATERIALS, bank, getCurrencyMultiplierScaledBN } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
@@ -363,7 +362,6 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
 
   tabsEl.appendChild(tabBtn);
   panelsWrapEl.appendChild(panel);
-  ensureMerchantScrollbar(minerOverlayEl, minerSheetEl, '.sell-center-col', 'sell-scrollbar');
 
   syncSellLayout();
   if (typeof window !== 'undefined') window.addEventListener('resize', syncSellLayout);
