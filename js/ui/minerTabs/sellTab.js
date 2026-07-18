@@ -42,15 +42,17 @@ export function setSellTabViewed(value, slot = getActiveSlot()) {
 }
 
 
-let cachedSellUnlocked = null;
+let cachedSellUnlockedStates = {};
 
 export function isSellUnlocked() {
-  if (cachedSellUnlocked !== null) return cachedSellUnlocked;
-  const slotKey = String(getActiveSlot() ?? 'default');
+  const slot = getActiveSlot();
+  if (slot == null) return false;
+  if (cachedSellUnlockedStates[slot] !== undefined && cachedSellUnlockedStates[slot] !== null) return cachedSellUnlockedStates[slot];
+  const slotKey = String(slot);
   if (typeof localStorage === 'undefined') return false;
   try {
     const result = localStorage.getItem(`${SELL_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
-    cachedSellUnlocked = result;
+    cachedSellUnlockedStates[slot] = result;
     return result;
   } catch {
     return false;
@@ -59,7 +61,9 @@ export function isSellUnlocked() {
 
 export function setSellUnlocked(value, slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
-  cachedSellUnlocked = !!value;
+  if (slot != null) {
+    cachedSellUnlockedStates[slot] = !!value;
+  }
   if (typeof localStorage !== 'undefined') {
     try {
       if (value) {
@@ -72,7 +76,7 @@ export function setSellUnlocked(value, slot = getActiveSlot()) {
 }
 
 if (typeof window !== 'undefined') {
-  const invalidateSellCache = () => { cachedSellUnlocked = null; };
+  const invalidateSellCache = () => { cachedSellUnlockedStates = {}; };
   window.addEventListener('saveSlot:change', invalidateSellCache);
   window.addEventListener('unlock:change', invalidateSellCache);
 }
