@@ -1997,16 +1997,6 @@ function selectMerchantTab(key) {
   }
 
   try { localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key); } catch {}
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const scroller = merchantOverlayEl?.querySelector(".merchant-content");
-      if (scroller && scroller.__customScroll && typeof scroller.__customScroll.updateAll === "function") {
-        scroller.__customScroll.updateAll();
-      } else {
-      }
-    });
-  });
 }
 
 export function isMerchantOpen() {
