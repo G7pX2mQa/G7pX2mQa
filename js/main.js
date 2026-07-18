@@ -10,7 +10,7 @@ import { setHtmlOrText } from './util/uiHelpers.js';
 import { clearAllDebugOverrides } from './util/debugPanel.js';
 import { unmarkSaveSlotModified } from './util/storage.js';
 import { settingsManager } from "./game/settingsManager.js";
-import { flushBackupSnapshot as immediateFlushBackupSnapshot } from './util/suspendSafeguard.js';
+import { flushBackupSnapshot as immediateFlushBackupSnapshot } from './util/suspensionSafeguard.js';
 import { IS_MOBILE } from './util/platformChecker.js';
 
 export const FONT_MAP = {
@@ -202,7 +202,7 @@ let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
 let registerPreloadedAudio;
 let initPopups;
-let installSuspendSafeguards;
+let installsuspensionSafeguards;
 let restoreSuspendBackup;
 let markProgressDirty;
 let flushBackupSnapshot;
@@ -1139,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/merchantTabs/resetTab.js'),
     import('./game/mutationSystem.js'),
     import('./ui/popups.js'),
-    import('./util/suspendSafeguard.js'),
+    import('./util/suspensionSafeguard.js'),
     import('./util/ghostTapGuard.js'),
     import('./util/globalOverlayEsc.js'),
     import('./util/debugPanel.js'),
@@ -1441,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ initResetSystem: initResetSystemGame } = resetModule);
   ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame, getMutationState } = mutationModule);
   ({ initPopups } = popupModule);
-  ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
+  ({ installsuspensionSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
   ({ initGlobalOverlayEsc } = escModule);
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
@@ -1573,7 +1573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   installGhostTapGuard?.();
   initGlobalGhostTap?.();
   initGlobalOverlayEsc?.();
-  installSuspendSafeguards?.();
+  installsuspensionSafeguards?.();
   if (typeof setDebugPanelAccess === 'function') {
     setDebugPanelAccess(DEBUG_PANEL_ACCESS);
     window.setDebugPanelAccess = setDebugPanelAccess;
