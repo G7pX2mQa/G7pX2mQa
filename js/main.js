@@ -186,6 +186,7 @@ let ensureMultiplierDefaults;
 let getActiveSlot;
 let setSavedArea;
 let getSavedArea;
+let clearActiveSlot;
 let initGameProgressBar;
 let initSurgeEffects;
 let refreshSurgeMultiplierCache;
@@ -1428,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ createUcSpawner } = ucSpawnerModule);
   ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
   ({ initHudButtons, refreshButtonVisibility } = hudButtonsModule);
-  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot, setSavedArea, getSavedArea } = storageModule);
+  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot, setSavedArea, getSavedArea, clearActiveSlot } = storageModule);
   initScrapHudCounter();
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged, AREA_KEYS } = upgradesModule);
@@ -1622,6 +1623,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (titleEl) titleEl.style.opacity = '0';
   } else {
     if (titleEl) titleEl.style.opacity = '1';
+  }
+
+  try {
+    if (typeof clearActiveSlot === 'function') {
+      clearActiveSlot();
+    }
+  } catch (e) {
+    console.error("Failed to clear active slot on startup", e);
   }
 
   initSlots(async () => {
