@@ -4,6 +4,7 @@ import { playAudio } from "../util/audioManager.js";
 import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoinCollected, checkSecretAchievements } from "../game/secretAchievements.js";
 import { createCursorTrail } from "../game/cursorTrail.js";
 import { getPreRenderedItem } from "../game/spawnerCore.js";
+import { settingsManager } from "../game/settingsManager.js";
 
 let activeCanvas = null;
 let activeCtx = null;
@@ -547,13 +548,21 @@ function loop(currentTime) {
 
   if (activeCanvas && currentBuildingId === 'pure_gold') {
     const overlayEl = document.getElementById('building-detail-overlay');
+    const isOnlyBuilding = settingsManager.get('only_show_building');
     
     // Handle cursor trail and entire overlay's cursor hiding
     if (overlayEl) {
-      if (isVaultOpen && !vaultCoinCollectedLocal) {
+      if (isOnlyBuilding || (isVaultOpen && !vaultCoinCollectedLocal)) {
         overlayEl.style.cursor = 'none';
-        if (!vaultCursorTrail) {
-          vaultCursorTrail = createCursorTrail(overlayEl, { initInCenter: true, zIndex: '999999' });
+        if (isVaultOpen && !vaultCoinCollectedLocal) {
+          if (!vaultCursorTrail) {
+            vaultCursorTrail = createCursorTrail(overlayEl, { initInCenter: true, zIndex: '999999' });
+          }
+        } else {
+          if (vaultCursorTrail) {
+            vaultCursorTrail.destroy();
+            vaultCursorTrail = null;
+          }
         }
       } else {
         overlayEl.style.cursor = '';
@@ -565,7 +574,9 @@ function loop(currentTime) {
     }
 
     let cursor = 'default';
-    if (isVaultOpen && !vaultCoinCollectedLocal) {
+    if (isOnlyBuilding) {
+      cursor = 'none';
+    } else if (isVaultOpen && !vaultCoinCollectedLocal) {
       cursor = 'none';
       const scale = 1.0 + getTier() * 0.1;
       const coin_cx = activeCanvas.width / 2;
@@ -6303,6 +6314,7 @@ function getMatchLength(str, target) {
 
 function handleVaultCanvasPointerMove(e) {
   if (!activeCanvas) return;
+  if (settingsManager.get('only_show_building')) return;
   const rect = activeCanvas.getBoundingClientRect();
   const clientX = e.clientX - rect.left;
   const clientY = e.clientY - rect.top;
@@ -6322,6 +6334,7 @@ if (typeof window !== 'undefined') {
 }
 
 function handleVaultCanvasKeyDown(e) {
+  if (settingsManager.get('only_show_building')) return;
   if (!keypadZoomedIn || isVaultOpening || isVaultOpen) return;
   const key = e.key;
   if (key >= '1' && key <= '9') {
@@ -6348,6 +6361,9 @@ function handleVaultCanvasKeyDown(e) {
       window.dispatchEvent(new CustomEvent('audio:stopMusic'));
       
       setVaultSequence("0000000000000000");
+      if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
+        window.resetSystem.updateBuildingsOverlayUi();
+      }
 
       const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
       if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
@@ -6368,6 +6384,7 @@ function handleVaultCanvasKeyDown(e) {
 
 function handleVaultCanvasClick(e) {
   if (!activeCanvas) return;
+  if (settingsManager.get('only_show_building')) return;
   const rect = activeCanvas.getBoundingClientRect();
   const clientX = e.clientX - rect.left;
   const clientY = e.clientY - rect.top;
@@ -6420,6 +6437,9 @@ function handleVaultCanvasClick(e) {
             window.dispatchEvent(new CustomEvent('audio:stopMusic'));
             
             setVaultSequence("0000000000000000");
+            if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
+              window.resetSystem.updateBuildingsOverlayUi();
+            }
 
             const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
             if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
