@@ -430,6 +430,15 @@ export function setActiveSlot(n) {
 }
 
 export function clearActiveSlot() {
+  const currentSlot = getActiveSlot();
+  if (currentSlot != null) {
+    try {
+      localStorage.setItem(getLastSaveTimeKey(currentSlot), String(Date.now()));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  hasEnteredGameSession = false;
   _activeSlotCache = null;
   localStorage.removeItem(KEYS.SAVE_SLOT);
   try {
