@@ -570,16 +570,15 @@ function loop(currentTime) {
       const scale = 1.0 + getTier() * 0.1;
       const coin_cx = activeCanvas.width / 2;
       const floorY = activeCanvas.height - 260;
-      const coin_cy = floorY - 50 * scale;
+      const coin_cy = floorY - (getTier() >= 1 ? 65 : 50) * scale;
       
-      // Hitbox is a circle with a constantly fluctuating width (oscillating due to sin(time * 5))
+      // Hitbox is a circular radius of 20 * scale representing the coin's physical boundaries.
+      // This ensures collecting the coin is perfectly accurate and works responsive from any direction.
       const dx = canvasMouseX - coin_cx;
       const dy = canvasMouseY - coin_cy;
-      const rx = Math.max(2, 15 * scale * Math.abs(Math.sin(time * 5)));
-      const ry = 30 * scale;
+      const radius = 20 * scale;
       
-      // Use the standard ellipse equation (dx/rx)^2 + (dy/ry)^2 <= 1 (exact border-radius 50% equivalent) for perfectly accurate diagonal and corner hit test
-      if ((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1) {
+      if (dx * dx + dy * dy <= radius * radius) {
         cursor = 'pointer';
         vaultCoinCollectedLocal = true;
         setVaultCoinCollected(true);
