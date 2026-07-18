@@ -1290,7 +1290,16 @@ export function initBuildingOverlay() {
     });
     
     setupDragToClose(grabber, sheet, 
-        () => overlayEl.classList.contains('is-open'), 
+        () => {
+            if (currentBuildingId === 'pure_gold') {
+                const isVaultMuted = typeof window !== 'undefined' && window.isMutedByVault && window.isMutedByVault();
+                const isCollected = typeof window !== 'undefined' && window.isVaultCoinCollected && window.isVaultCoinCollected();
+                if (isVaultMuted && !isCollected) {
+                    return false;
+                }
+            }
+            return overlayEl.classList.contains('is-open');
+        }, 
         closeBuildingDetailOverlay
     );
     
@@ -1328,6 +1337,13 @@ export function openBuildingDetailOverlay(id) {
 
 function closeBuildingDetailOverlay() {
     if (!overlayEl) return;
+    if (currentBuildingId === 'pure_gold') {
+        const isVaultMuted = typeof window !== 'undefined' && window.isMutedByVault && window.isMutedByVault();
+        const isCollected = typeof window !== 'undefined' && window.isVaultCoinCollected && window.isVaultCoinCollected();
+        if (isVaultMuted && !isCollected) {
+            return;
+        }
+    }
     if (overlayEl.style.pointerEvents === 'none') return;
     overlayEl.style.pointerEvents = 'none';
     const sheet = overlayEl.querySelector('.upg-sheet');
@@ -1435,7 +1451,7 @@ export function updateOverlayUi() {
         if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
 
         // Show/Hide Close button based on collection status
-        const closeBtn = document.querySelector('.shop-close');
+        const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
         if (closeBtn) {
             if (isCollected) {
                 closeBtn.style.removeProperty('display');
@@ -1462,7 +1478,7 @@ export function updateOverlayUi() {
             if (btnBuyCheap) btnBuyCheap.style.display = '';
         }
 
-        const closeBtn = document.querySelector('.shop-close');
+        const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
         if (closeBtn) {
             closeBtn.style.removeProperty('display');
         }
