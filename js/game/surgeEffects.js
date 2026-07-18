@@ -87,15 +87,15 @@ export function setTsunamiSequencePlayed(value) {
   } catch {}
 }
 
-let cachedLabUnlocked = null;
+let cachedLabUnlockedStates = {};
 
 export function isLabUnlocked() {
-  if (cachedLabUnlocked !== null) return cachedLabUnlocked;
   const slot = getActiveSlot();
   if (slot == null) return false;
+  if (cachedLabUnlockedStates[slot] !== undefined && cachedLabUnlockedStates[slot] !== null) return cachedLabUnlockedStates[slot];
   try {
     const result = localStorage.getItem(TSUNAMI_UNLOCKED_KEY(slot)) === "1";
-    cachedLabUnlocked = result;
+    cachedLabUnlockedStates[slot] = result;
     return result;
   } catch {
     return false;
@@ -103,8 +103,8 @@ export function isLabUnlocked() {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('saveSlot:change', () => { cachedLabUnlocked = null; });
-  window.addEventListener('unlock:change', () => { cachedLabUnlocked = null; });
+  window.addEventListener('saveSlot:change', () => { cachedLabUnlockedStates = {}; });
+  window.addEventListener('unlock:change', () => { cachedLabUnlockedStates = {}; });
 }
 
 export function setLabUnlocked(value) {
@@ -113,7 +113,7 @@ export function setLabUnlocked(value) {
   const normalized = !!value;
   try {
     localStorage.setItem(TSUNAMI_UNLOCKED_KEY(slot), normalized ? "1" : "0");
-    cachedLabUnlocked = normalized;
+    cachedLabUnlockedStates[slot] = normalized;
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("unlock:change", { detail: { key: "tsunami", slot } }),
