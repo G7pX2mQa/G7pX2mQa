@@ -38,15 +38,17 @@ export function setBuildingUnlocked(id, value, slot = getActiveSlot()) {
   }
 }
 
-let cachedBuildingsUnlocked = null;
+let cachedBuildingsUnlockedStates = {};
 
 export function isBuildingsUnlocked() {
-  if (cachedBuildingsUnlocked !== null) return cachedBuildingsUnlocked;
-  const slotKey = String(getActiveSlot() ?? 'default');
+ const slot = getActiveSlot();
+  if (slot == null) return false;
+  if (cachedBuildingsUnlockedStates[slot] !== undefined && cachedBuildingsUnlockedStates[slot] !== null) return cachedBuildingsUnlockedStates[slot];
+  const slotKey = String(slot);
   if (typeof localStorage === 'undefined') return false;
   try {
     const result = localStorage.getItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
-    cachedBuildingsUnlocked = result;
+   cachedBuildingsUnlockedStates[slot] = result;
     return result;
   } catch {
     return false;
@@ -55,7 +57,9 @@ export function isBuildingsUnlocked() {
 
 export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
-  cachedBuildingsUnlocked = !!value;
+  if (slot != null) {
+    cachedBuildingsUnlockedStates[slot] = !!value;
+  }
   if (typeof localStorage !== 'undefined') {
     try {
       if (value) {
@@ -68,7 +72,7 @@ export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
 }
 
 if (typeof window !== 'undefined') {
-  const invalidateBuildingsCache = () => { cachedBuildingsUnlocked = null; };
+  const invalidateBuildingsCache = () => { cachedBuildingsUnlockedStates = {}; };
   window.addEventListener('saveSlot:change', invalidateBuildingsCache);
   window.addEventListener('unlock:change', invalidateBuildingsCache);
 }
@@ -135,13 +139,21 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
         let needsTwoLines = false;
         if (hasPlus) {
             badge.classList.add('can-buy');
-            let over999 = false;
+            let plusOver999 = false;
             if (plusLevel && typeof plusLevel.cmp === 'function') {
-                over999 = plusLevel.cmp(BigNum.fromInt(999)) > 0;
+                plusOver999 = plusLevel.cmp(BigNum.fromInt(999)) > 0;
             } else if (typeof plusLevel === 'number') {
-                over999 = plusLevel > 999;
+                plusOver999 = plusLevel > 999;
             }
-            needsTwoLines = over999;
+            
+            let levelOver999 = false;
+            if (levelBn && typeof levelBn.cmp === 'function') {
+                levelOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
+            } else if (typeof levelBn === 'number') {
+                levelOver999 = levelBn > 999;
+            }
+            
+            needsTwoLines = plusOver999 || levelOver999;
         }
         
         if (isInfiniteLevel) {
@@ -435,13 +447,21 @@ function updateBuildingGridBadges(gridEl) {
 
         let needsTwoLines = false;
         if (hasPlus) {
-            let over999 = false;
+            let plusOver999 = false;
             if (plusLevelBn && typeof plusLevelBn.cmp === 'function') {
-                over999 = plusLevelBn.cmp(BigNum.fromInt(999)) > 0;
+                plusOver999 = plusLevelBn.cmp(BigNum.fromInt(999)) > 0;
             } else if (typeof plusLevelBn === 'number') {
-                over999 = plusLevelBn > 999;
+                plusOver999 = plusLevelBn > 999;
             }
-            needsTwoLines = over999;
+            
+            let levelOver999 = false;
+            if (levelBn && typeof levelBn.cmp === 'function') {
+                levelOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
+            } else if (typeof levelBn === 'number') {
+                levelOver999 = levelBn > 999;
+            }
+            
+            needsTwoLines = plusOver999 || levelOver999;
         }
 
 
