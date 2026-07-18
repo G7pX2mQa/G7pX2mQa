@@ -1445,6 +1445,12 @@ export function updateOverlayUi() {
         if (costRow) costRow.style.display = 'none';
         if (walletRow) walletRow.style.display = 'none';
 
+        // Hide title (header) and "Only show Building" button
+        const upgHeader = document.querySelector('#building-detail-overlay .upg-header');
+        if (upgHeader) upgHeader.style.display = 'none';
+        const onlyBuildingBtn = document.querySelector('#building-detail-overlay .only-building-btn');
+        if (onlyBuildingBtn) onlyBuildingBtn.style.display = 'none';
+
         // Hide Buy buttons
         if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
         if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
@@ -1460,12 +1466,20 @@ export function updateOverlayUi() {
             }
         }
     } else {
-        // Restore/Reinstate everything when not in the opening/open Vault sequence
-        if (levelText) levelText.style.display = '';
-        if (costsText) costsText.style.display = '';
-        if (bonusRow) bonusRow.style.display = '';
-        if (costRow) costRow.style.display = '';
-        if (walletRow) walletRow.style.display = '';
+        const isOnlyBuilding = settingsManager.get('only_show_building');
+
+        // Restore/Reinstate everything when not in the opening/open Vault sequence,
+        // EXCEPT if "Only show Building" mode is currently active.
+        if (levelText) levelText.style.display = isOnlyBuilding ? 'none' : '';
+        if (costsText) costsText.style.display = isOnlyBuilding ? 'none' : '';
+        if (bonusRow) bonusRow.style.display = isOnlyBuilding ? 'none' : '';
+        if (costRow) costRow.style.display = isOnlyBuilding ? 'none' : '';
+        if (walletRow) walletRow.style.display = isOnlyBuilding ? 'none' : '';
+
+        const upgHeader = document.querySelector('#building-detail-overlay .upg-header');
+        if (upgHeader) upgHeader.style.display = isOnlyBuilding ? 'none' : '';
+        const onlyBuildingBtn = document.querySelector('#building-detail-overlay .only-building-btn');
+        if (onlyBuildingBtn) onlyBuildingBtn.style.display = isOnlyBuilding ? 'none' : '';
 
         // Restore Buy buttons based on standard rules (only if not infinite)
         if (levelBn.isInfinite && levelBn.isInfinite()) {
@@ -1473,9 +1487,9 @@ export function updateOverlayUi() {
             if (btnBuyMax) btnBuyMax.style.display = 'none';
             if (btnBuyCheap) btnBuyCheap.style.display = 'none';
         } else {
-            if (btnBuy) btnBuy.style.display = '';
-            if (btnBuyMax) btnBuyMax.style.display = '';
-            if (btnBuyCheap) btnBuyCheap.style.display = '';
+            if (btnBuy) btnBuy.style.display = isOnlyBuilding ? 'none' : '';
+            if (btnBuyMax) btnBuyMax.style.display = isOnlyBuilding ? 'none' : '';
+            if (btnBuyCheap) btnBuyCheap.style.display = isOnlyBuilding ? 'none' : '';
         }
 
         const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
