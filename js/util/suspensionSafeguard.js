@@ -1,4 +1,4 @@
-// js/util/suspendSafeguard.js
+// js/util/suspensionSafeguard.js
 // Improves local storage tracking by supplying helper functions for saveIntegrity.js,
 // And also supplies frequent IndexedDB snapshots to back up progress if
 // Local storage ever becomes corrupted (safeguard against abrupt page suspensions)
@@ -447,7 +447,7 @@ export async function restoreFromBackupIfNeeded() {
   return restored;
 }
 
-export function installSuspendSafeguards() {
+export function installsuspensionSafeguards() {
   if (installAttempted) return;
   installAttempted = true;
   if (typeof window === 'undefined') return;
