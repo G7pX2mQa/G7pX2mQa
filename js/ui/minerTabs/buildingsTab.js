@@ -1436,6 +1436,7 @@ export function updateOverlayUi() {
     const bonusRow = document.getElementById('building-detail-bonus-row');
     const costRow = document.getElementById('building-detail-cost-row');
     const walletRow = document.getElementById('building-detail-wallet-row');
+    const grabHandle = document.querySelector('#building-detail-overlay .grab-handle');
 
     if (id === 'pure_gold' && isVaultMuted) {
         // Hide texts
@@ -1455,6 +1456,17 @@ export function updateOverlayUi() {
         if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
         if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
         if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
+
+        // Hide grab handle
+        if (grabHandle) {
+            if (isCollected) {
+                grabHandle.style.removeProperty('display');
+                grabHandle.style.removeProperty('opacity');
+            } else {
+                grabHandle.style.setProperty('display', 'none', 'important');
+                grabHandle.style.setProperty('opacity', '0', 'important');
+            }
+        }
 
         // Show/Hide Close button based on collection status
         const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
@@ -1480,6 +1492,17 @@ export function updateOverlayUi() {
         if (upgHeader) upgHeader.style.display = isOnlyBuilding ? 'none' : '';
         const onlyBuildingBtn = document.querySelector('#building-detail-overlay .only-building-btn');
         if (onlyBuildingBtn) onlyBuildingBtn.style.display = isOnlyBuilding ? 'none' : '';
+
+        // Restore/hide grab handle based on "Only show Building" mode
+        if (grabHandle) {
+            if (isOnlyBuilding) {
+                grabHandle.style.setProperty('display', 'none', 'important');
+                grabHandle.style.setProperty('opacity', '0', 'important');
+            } else {
+                grabHandle.style.removeProperty('display');
+                grabHandle.style.removeProperty('opacity');
+            }
+        }
 
         // Restore Buy buttons based on standard rules (only if not infinite)
         if (levelBn.isInfinite && levelBn.isInfinite()) {
