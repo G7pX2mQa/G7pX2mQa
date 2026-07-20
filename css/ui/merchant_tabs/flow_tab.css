@@ -28,7 +28,7 @@
   gap: 16px;
   width: 100%;
   max-width: 1000px;
-  padding: 16px;
+  padding: 16px 16px 0 16px;
   box-sizing: border-box;
   flex: 0 0 auto;
   z-index: 1;
