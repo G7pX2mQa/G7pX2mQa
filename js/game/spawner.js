@@ -12,7 +12,7 @@ import { AREAS, currentArea } from '../main.js';
 import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic, getPreRenderedItem, getPreRenderedItemUrl, clearPreRenderedItems } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
-let mutationLevelSnapshot = 0;
+let mutationLevelSnapshot = 10;
 
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
