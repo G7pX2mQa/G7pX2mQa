@@ -25,7 +25,7 @@
     gap: 16px;
     width: 100%;
     max-width: 1000px;
-    padding: 16px 20px;
+    padding: 16px 20px 0 20px;
     box-sizing: border-box;
     flex: 0 0 auto;
     z-index: 1;
@@ -322,7 +322,7 @@
   overflow: visible;
 }
 
-.sell-dropdown-wrapper .setting-dropdown-menu {
+.sell-dropdown-wrapper .setting-dropdown-menu.is-open {
   display: grid !important;
   grid-template-columns: 1fr minmax(max-content, auto) 1fr;
 }
