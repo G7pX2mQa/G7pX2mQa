@@ -30,14 +30,14 @@
 
 /* Default fallback */
 .buildings-tab .shop-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(128px, 1fr));
+  grid-template-rows: repeat(4, minmax(128px, 1fr));
 }
 .buildings-tab .shop-upgrade {
   align-self: stretch;
   justify-self: stretch;
-  min-width: 0;
-  min-height: 0;
+  min-width: 128px;
+  min-height: 128px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -78,32 +78,54 @@
 /* Extremely tall screens: 2x6 grid */
 @media (max-aspect-ratio: 1/2) {
   .buildings-tab .shop-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(128px, 1fr));
+    grid-template-rows: repeat(6, minmax(128px, 1fr));
   }
 }
 
 /* Tall screens: 3x4 grid */
 @media (min-aspect-ratio: 1/2) and (max-aspect-ratio: 1/1) {
   .buildings-tab .shop-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(128px, 1fr));
+    grid-template-rows: repeat(4, minmax(128px, 1fr));
   }
 }
 
 /* Wide screens: 4x3 grid */
 @media (min-aspect-ratio: 1/1) and (max-aspect-ratio: 2/1) {
   .buildings-tab .shop-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(128px, 1fr));
+    grid-template-rows: repeat(3, minmax(128px, 1fr));
   }
 }
 
 /* Extremely wide screens: 6x2 grid */
 @media (min-aspect-ratio: 2/1) {
   .buildings-tab .shop-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(128px, 1fr));
+    grid-template-rows: repeat(2, minmax(128px, 1fr));
+  }
+}
+
+/* Width-based fallbacks to prevent clipping when icons hit 128px minimum size */
+@media (max-width: 880px) {
+  .buildings-tab .shop-grid {
+    grid-template-columns: repeat(4, minmax(128px, 1fr)) !important;
+    grid-template-rows: repeat(3, minmax(128px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .buildings-tab .shop-grid {
+    grid-template-columns: repeat(3, minmax(128px, 1fr)) !important;
+    grid-template-rows: repeat(4, minmax(128px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 450px) {
+  .buildings-tab .shop-grid {
+    grid-template-columns: repeat(2, minmax(128px, 1fr)) !important;
+    grid-template-rows: repeat(6, minmax(128px, 1fr)) !important;
   }
 }
 
