@@ -40,6 +40,12 @@ coinImg.src = 'img/currencies/coin/coin.webp';
 let vaultCursorTrail = null;
 let vaultCoinCollectedLocal = false;
 
+// Physics state for Oil Rig
+let oilPhysicsNodes = [];
+let oilPhysicsParticles = [];
+let oilPhysicsLastUpdate = 0;
+let oilPhysicsLastWidth = 0;
+
 
 
 let canvasResizeObserver = null;
@@ -6293,116 +6299,194 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   let laserStrength = (t4 * 1.0) + (t6 * 1.0) + (t8 * 2.0); // 0 to 4 max
   let baseLiquidLevel = cy - 10; // Resting level of oil in the cavern
   
-  // Draw fluid waves
-  const drawWave = (yOffset, amplitude, frequency, speed, r, g, b, alpha) => {
+  // --- PHYSICS UPDATE ---
+  let now = performance.now();
+  if (oilPhysicsLastUpdate === 0) oilPhysicsLastUpdate = now;
+  // Maximum dt to prevent explosion on lag
+  let dt = Math.min((now - oilPhysicsLastUpdate) / 1000, 0.05);
+  oilPhysicsLastUpdate = now;
+  
+  let impactY = baseLiquidLevel; // Center of the fluid pool
+
+  // Initialize or resize physics nodes
+  let numNodes = Math.ceil((cavernRadiusX * 2) / 10) + 1;
+  if (oilPhysicsNodes.length !== numNodes || oilPhysicsLastWidth !== cavernRadiusX) {
+      oilPhysicsNodes = [];
+      for (let i = 0; i < numNodes; i++) {
+          oilPhysicsNodes.push({
+              y: baseLiquidLevel,
+              vy: 0,
+              baseY: baseLiquidLevel
+          });
+      }
+      oilPhysicsParticles = [];
+      oilPhysicsLastWidth = cavernRadiusX;
+  }
+
+  // Physics params
+  const k = 0.05; // Spring constant
+  const d = 0.03; // Damping
+  const spread = 0.06; // Propagation speed
+  
+  // 1. Update spring node velocities and positions
+  for (let i = 0; i < numNodes; i++) {
+      let node = oilPhysicsNodes[i];
+      let px = -cavernRadiusX + i * 10;
+      let ambientWave = Math.sin(px * 0.015 + t * 1.5) * 4 + Math.sin(px * 0.025 - t * 2.1) * 2;
+      node.baseY = baseLiquidLevel + ambientWave;
+      
+      let x = node.y - node.baseY;
+      node.vy -= k * x;
+      node.vy *= (1 - d);
+      node.y += node.vy;
+  }
+
+  // 2. Propagate waves to neighbors
+  let lDeltas = new Array(numNodes).fill(0);
+  let rDeltas = new Array(numNodes).fill(0);
+  for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < numNodes; i++) {
+          if (i > 0) {
+              lDeltas[i] = spread * (oilPhysicsNodes[i].y - oilPhysicsNodes[i - 1].y);
+              oilPhysicsNodes[i - 1].vy += lDeltas[i];
+          }
+          if (i < numNodes - 1) {
+              rDeltas[i] = spread * (oilPhysicsNodes[i].y - oilPhysicsNodes[i + 1].y);
+              oilPhysicsNodes[i + 1].vy += rDeltas[i];
+          }
+      }
+      for (let i = 0; i < numNodes; i++) {
+          if (i > 0) oilPhysicsNodes[i - 1].y += lDeltas[i];
+          if (i < numNodes - 1) oilPhysicsNodes[i + 1].y += rDeltas[i];
+      }
+  }
+
+  // 3. Laser interaction (Crater & Boiling)
+  if (laserStrength > 0) {
+      let blastRadius = 60 + laserStrength * 15;
+      for (let i = 0; i < numNodes; i++) {
+          let px = -cavernRadiusX + i * 10;
+          let distFromCenter = Math.abs(px);
+          if (distFromCenter < blastRadius) {
+              let forceFactor = 1 - (distFromCenter / blastRadius);
+              // Push downwards to create a crater
+              oilPhysicsNodes[i].vy += forceFactor * 2.5 * laserStrength;
+              
+              // Boiling chaos - smooth sine waves instead of jagged random noise
+              let boilPhase = Math.sin(t * 20 + i * 1.5) * Math.sin(t * 13 - i * 0.8);
+              oilPhysicsNodes[i].vy += boilPhase * 6 * laserStrength * forceFactor;
+          }
+      }
+      
+      // Spawn particles continuously from the blast zone
+      let numToSpawn = Math.floor(laserStrength * 8 * (Math.random() + 0.5)); // Increased particle count
+      for (let j = 0; j < numToSpawn; j++) {
+          let spawnPx = (Math.random() - 0.5) * blastRadius * 1.5;
+          let nodeIdx = Math.floor((spawnPx + cavernRadiusX) / 10);
+          if (nodeIdx >= 0 && nodeIdx < numNodes - 1) {
+              let tFrac = (spawnPx + cavernRadiusX) / 10 - nodeIdx;
+              let surfaceY = oilPhysicsNodes[nodeIdx].y * (1 - tFrac) + oilPhysicsNodes[nodeIdx+1].y * tFrac;
+              
+              let isHot = laserStrength > 0 && Math.random() < 0.6; // 60% of particles glow hot when blasted
+              
+              oilPhysicsParticles.push({
+                  x: spawnPx,
+                  y: surfaceY,
+                  vx: (Math.random() - 0.5) * 15 * laserStrength,
+                  vy: -Math.random() * 30 * laserStrength - 5, // Shoot up even higher
+                  mass: Math.random() * 3 + 1, // Larger droplets
+                  life: 1.0,
+                  isHot: isHot
+              });
+          }
+      }
+  }
+
+  // Ambient bubbling - smoothed across multiple nodes to prevent sharp spikes
+  if (Math.random() < 0.15 + tier * 0.05) {
+      let bubNode = Math.floor(Math.random() * numNodes);
+      let force = 12 + Math.random() * 6 * tier;
+      
+      // Spread the bubble force to avoid a jagged spike
+      if (bubNode > 0) oilPhysicsNodes[bubNode - 1].vy -= force * 0.25;
+      oilPhysicsNodes[bubNode].vy -= force * 0.5;
+      if (bubNode < numNodes - 1) oilPhysicsNodes[bubNode + 1].vy -= force * 0.25;
+      
+      let px = -cavernRadiusX + bubNode * 10;
+      oilPhysicsParticles.push({
+          x: px,
+          y: oilPhysicsNodes[bubNode].y,
+          vx: (Math.random() - 0.5) * 5,
+          vy: -Math.random() * 12 - 5,
+          mass: Math.random() * 1.5 + 0.5,
+          life: 1.0,
+          isHot: false
+      });
+  }
+
+  // 4. Update Particles
+  for (let i = oilPhysicsParticles.length - 1; i >= 0; i--) {
+      let p = oilPhysicsParticles[i];
+      p.vy += 0.9; // Gravity
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.01;
+      
+      if (p.x < -cavernRadiusX) { p.x = -cavernRadiusX; p.vx *= -0.5; }
+      if (p.x > cavernRadiusX) { p.x = cavernRadiusX; p.vx *= -0.5; }
+      
+      let nodeIdx = Math.floor((p.x + cavernRadiusX) / 10);
+      let hit = false;
+      if (nodeIdx >= 0 && nodeIdx < numNodes - 1) {
+          let tFrac = (p.x + cavernRadiusX) / 10 - nodeIdx;
+          let surfaceY = oilPhysicsNodes[nodeIdx].y * (1 - tFrac) + oilPhysicsNodes[nodeIdx+1].y * tFrac;
+          if (p.y > surfaceY && p.vy > 0) {
+              hit = true;
+              let force = p.vy * p.mass * 0.15;
+              // Smooth the droplet impact across 4 nodes to prevent sharp spikes
+              if (nodeIdx > 0) oilPhysicsNodes[nodeIdx - 1].vy += force * 0.15;
+              oilPhysicsNodes[nodeIdx].vy += force * 0.35;
+              oilPhysicsNodes[nodeIdx+1].vy += force * 0.35;
+              if (nodeIdx < numNodes - 2) oilPhysicsNodes[nodeIdx + 2].vy += force * 0.15;
+          }
+      }
+      
+      if (hit || p.life <= 0 || p.y > cy + 110) {
+          oilPhysicsParticles.splice(i, 1);
+      }
+  }
+
+  // --- RENDERING ---
+  const drawPhysicsWave = (layerIdx, r, g, b, alpha, yOffset) => {
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
       ctx.beginPath();
-      ctx.moveTo(-cavernRadiusX, cy + 110); // Start at bottom left of cavern
+      ctx.moveTo(-cavernRadiusX, cy + 110);
       
-      let prevX = -cavernRadiusX;
-      let prevY = 0;
-      let isFirst = true;
+      let xShift = (layerIdx - 1) * 5;
       
-      for(let px = -cavernRadiusX; px <= cavernRadiusX + 20; px += 20) {
-          let realPx = Math.min(px, cavernRadiusX);
-          let distFromCenter = Math.abs(realPx);
-          // Smooth ease for center factor
-          let factor = Math.max(0, 1 - (distFromCenter / (cavernRadiusX * 0.8))); 
-          factor = factor * factor * (3 - 2 * factor);
+      for (let i = 0; i < numNodes; i++) {
+          let px = -cavernRadiusX + i * 10 + xShift;
+          if (px > cavernRadiusX) px = cavernRadiusX;
+          if (px < -cavernRadiusX) px = -cavernRadiusX;
           
-          let tierCraziness = 0.5 + tier * 0.4;
-          let localCraziness = (0.2 + factor * 1.5) * tierCraziness;
-
-          // Organic base wave (viscous fluid)
-          let wave1 = Math.sin(realPx * frequency + t * speed) * amplitude;
-          let wave2 = Math.sin(realPx * frequency * 1.7 - t * speed * 1.3 + 1.0) * amplitude * 0.6;
-          let wave3 = Math.sin(realPx * frequency * 0.8 + t * speed * 0.7 + 2.0) * amplitude * 0.4;
-          let baseWave = wave1 + wave2 + wave3;
+          let py = oilPhysicsNodes[i].y + yOffset;
+          let layerNoise = Math.sin(i * 0.5 + layerIdx * 10 + t * 2) * 2;
           
-          // Chaotic high frequency waves based on local craziness
-          let chaoticAmp = amplitude * localCraziness;
-          let chaoticWave = Math.sin(realPx * frequency * 3.1 - t * speed * 2.3) * chaoticAmp
-                          + Math.sin(realPx * frequency * 4.7 + t * speed * 3.1) * chaoticAmp * 0.5;
-          
-          // Crater effect from laser pushing down the oil (Vortex)
-          let craterRadius = 60 + laserStrength * 15;
-          let craterDepth = 0;
-          if (laserStrength > 0 && distFromCenter < craterRadius) {
-             let craterFactor = 1 - (distFromCenter / craterRadius); // 1 at center, 0 at edge
-             craterDepth = (craterFactor * craterFactor) * 35 * laserStrength; 
-          }
-          
-          // Splashing spikes at the edge of the crater
-          let splash = 0;
-          if (laserStrength > 0 && distFromCenter > craterRadius * 0.4 && distFromCenter < craterRadius * 1.3) {
-              splash = Math.sin(realPx * frequency * 8 + t * speed * 6) * (15 * laserStrength);
-          }
-          
-          let py = baseLiquidLevel + yOffset + baseWave + chaoticWave + craterDepth - splash;
-          
-          if (isFirst) {
-              ctx.lineTo(realPx, py);
-              isFirst = false;
-          } else {
-              // Smooth interpolation
-              let midX = (prevX + realPx) / 2;
-              let midY = (prevY + py) / 2;
-              ctx.quadraticCurveTo(prevX, prevY, midX, midY);
-          }
-          prevX = realPx;
-          prevY = py;
-          
-          if (realPx === cavernRadiusX) break;
+          ctx.lineTo(px, py + layerNoise);
       }
-      ctx.lineTo(cavernRadiusX, prevY);
       ctx.lineTo(cavernRadiusX, cy + 110);
       ctx.closePath();
       ctx.fill();
-  }
+  };
 
   // Draw layers of fluid
-  // Very dark, oily colors
-  drawWave(15, 6, 0.015, 1.5, 10, 10, 12, 1.0);
-  drawWave(5,  8, 0.02, 2.0, 15, 15, 18, 1.0);
-  drawWave(-5, 10, 0.025, 2.5, 22, 22, 25, 1.0);
+  drawPhysicsWave(2, 10, 10, 12, 1.0, 15);
+  drawPhysicsWave(1, 15, 15, 18, 1.0, 5);
+  drawPhysicsWave(0, 22, 22, 25, 1.0, -5);
 
-  // Particle System (Splashes)
-  let baseSplashCount = 10 + Math.floor(tier * 5);
-  let particleCount = baseSplashCount + Math.floor(laserStrength * 30);
-  for(let i=0; i<particleCount; i++) {
-      let pSpeed = 1 + (i % 3) + tier * 0.2 + laserStrength;
-      
-      // Bias particle spawning towards the center
-      let spread = 440;
-      if (laserStrength > 0) spread = 150 + ((i*17) % 290);
-      else spread = 200 + ((i*17) % 240);
-      let bx = -spread/2 + ((i * 73) % spread);
-      
-      // Calculate Y position - wraps around
-      let travelDist = 40 + tier * 10 + laserStrength * 40; 
-      let by = (cy + 110) - ((t * pSpeed * 15 + i * 41) % travelDist); 
-      
-      let pSize = 2 + (i % 4) + (tier > 4 ? (i%3)*1.5 : 0);
-      
-      let alpha = 1;
-      let surfacePy = baseLiquidLevel; // Approximate surface
-      if (by < surfacePy) {
-          alpha = Math.max(0, 1 - (surfacePy - by) / (15 + tier * 5 + laserStrength*15));
-      }
-      
-      if (alpha > 0) {
-          // Oil droplets
-          ctx.fillStyle = `rgba(10, 10, 15, ${alpha})`; 
-          ctx.beginPath();
-          ctx.arc(bx, by, pSize, 0, Math.PI*2);
-          ctx.fill();
-      }
-  }
-  
-  // Laser Impact Core Flash (Localized white/red glow deep in the crater)
+  // Laser Impact Core Flash
   if (laserStrength > 0) {
-      let impactY = baseLiquidLevel + 35 * laserStrength; // Down in the crater
-      let flashSize = (10 + laserStrength * 10) * (0.8 + 0.2*Math.sin(t*50));
+      let flashSize = (15 + laserStrength * 12) * (0.8 + 0.2*Math.sin(t*50));
       
       // Core flash
       ctx.fillStyle = `rgba(255, 200, 200, ${0.8 * t4})`;
@@ -6424,7 +6508,42 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   ctx.lineWidth = 12;
   ctx.stroke(cavernPath);
   
-  ctx.restore(); // End Tier 0+
+  ctx.restore(); // End general transform
+  
+  // Render Particles physically in front of the laser and derrick, but still inside the cavern
+  ctx.save();
+  if (scale) ctx.scale(1/scale, 1/scale);
+  ctx.clip(cavernPath); // Don't let particles fly outside the 3D hole
+  
+  for (let i = 0; i < oilPhysicsParticles.length; i++) {
+      let p = oilPhysicsParticles[i];
+      let alpha = Math.max(0, p.life);
+      
+      let r = 15, g = 15, b = 20; // Default dark oil color
+      if (p.isHot) {
+          // Hot glowing droplets blasted by the laser
+          r = 255; 
+          g = 100 + Math.random() * 100; // Flicker yellow/orange
+          b = 50; 
+      }
+      
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      
+      // Motion blur effect
+      ctx.beginPath();
+      let stretchX = p.vx * 0.8;
+      let stretchY = p.vy * 0.8;
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - stretchX, p.y - stretchY);
+      ctx.lineWidth = p.mass * 2;
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.mass * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+  }
+  ctx.restore();
 
   // --- Tier 0: Diamond Derrick (A-Frame) ---
   if (t0 > 0) {
@@ -6653,22 +6772,18 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     
     // The Laser Beam going down through the Derrick and Cavern
     const laserWidth = 10 + Math.sin(t*25)*4; 
-    const beamAlpha = 0.8 + 0.2 * Math.sin(t*35);
     
-    let laserStrength = (t4 * 1.0) + (t6 * 1.0) + (t8 * 2.0);
-    let impactY = 130 + 35 * laserStrength;
-    let beamHeight = impactY + 190; // Since it starts at -190
+    // Core of the laser (white-hot)
+    let impactY = 120; // Center of the fluid pool (baseLiquidLevel)
+    let beamHeight = impactY - (-190);
     
-    const grad = ctx.createLinearGradient(0, -190, 0, impactY);
-    grad.addColorStop(0, `rgba(255, 150, 150, ${beamAlpha})`);
-    grad.addColorStop(0.5, `rgba(255, 0, 0, ${beamAlpha})`);
-    grad.addColorStop(1, `rgba(150, 0, 0, ${beamAlpha})`);
+    ctx.fillStyle = `rgba(255, 50, 50, ${0.8 * t4})`;
+    ctx.fillRect(-laserWidth, -190, laserWidth*2, beamHeight);
     
-    ctx.fillStyle = grad;
+    ctx.fillStyle = `rgba(255, 150, 150, ${0.9 * t4})`;
     ctx.fillRect(-laserWidth/2, -190, laserWidth, beamHeight);
     
-    // White hot core
-    ctx.fillStyle = `rgba(255, 200, 200, ${beamAlpha})`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${1.0 * t4})`;
     ctx.fillRect(-laserWidth/4, -190, laserWidth/2, beamHeight);
     
     // Explosive contact sparks in the oil
@@ -6740,9 +6855,11 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fill();
         ctx.stroke();
         
-        const strike = Math.pow(Math.sin(t*5 + delay), 8); 
+        const distFromCenter = Math.sqrt(x*x + y*y);
+        const intensity = Math.max(0, 1 - distFromCenter/300);
+        const strike = Math.pow(Math.sin(t*5 + delay), 8) * (0.5 + 0.5 * intensity); 
         
-        if (strike > 0.5) {
+        if (strike > 0.1) {
             ctx.strokeStyle = `rgba(255, 0, 0, ${1 - strike})`;
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -6818,14 +6935,15 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     // The Super Meltdown Laser (blows out the core of the derrick)
     const megaLaserWidth = 40 + Math.sin(t*50)*10;
     const grad = ctx.createLinearGradient(-megaLaserWidth/2, 0, megaLaserWidth/2, 0);
-    grad.addColorStop(0, "rgba(255, 0, 0, 0)");
-    grad.addColorStop(0.2, "rgba(255, 0, 0, 1)");
-    grad.addColorStop(0.5, "rgba(255, 255, 255, 1)");
-    grad.addColorStop(0.8, "rgba(255, 0, 0, 1)");
-    grad.addColorStop(1, "rgba(255, 0, 0, 0)");
+    grad.addColorStop(0, `rgba(255, 50, 50, 0)`);
+    grad.addColorStop(0.2, `rgba(255, 100, 100, ${0.5 * t8})`);
+    grad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * t8})`);
+    grad.addColorStop(0.8, `rgba(255, 100, 100, ${0.5 * t8})`);
+    grad.addColorStop(1, `rgba(255, 50, 50, 0)`);
     
     ctx.fillStyle = grad;
-    ctx.fillRect(-megaLaserWidth/2, -220, megaLaserWidth, 400); 
+    let megaBeamHeight = 120 - (-220); // Center of the fluid is 120
+    ctx.fillRect(-megaLaserWidth/2, -220, megaLaserWidth, megaBeamHeight); 
     
     // Crazy red lightning all over the derrick
     ctx.strokeStyle = "rgba(255, 50, 50, 1)";
