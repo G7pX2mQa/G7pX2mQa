@@ -1,4 +1,4 @@
-/* css/ui/sas/mainSettings.css */
+/* css/ui/sas/main_settings.css */
 
 .main-settings-container,
 .sas-settings-container {
@@ -683,14 +683,17 @@
   box-shadow: 0 28px 80px hsl(215 60% 2% / 0.65);
   padding: 16px;
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
 }
 
 .hide-ui-popup__row {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 0;
-  min-height: 200px;
+  padding: 0;
+  flex: 1;
 }
 
 .hide-ui-popup__text {
@@ -701,9 +704,15 @@
 }
 
 .hide-ui-popup__choices {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
-  margin-top: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .setting-info-tooltip.is-upwards {
