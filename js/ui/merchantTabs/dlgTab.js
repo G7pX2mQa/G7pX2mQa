@@ -685,6 +685,7 @@ export function loadDlgState() {
 }
 
 export function saveDlgState(s) {
+  if (getActiveSlot() == null) return;
   const key = sk(MERCHANT_DLG_STATE_KEY_BASE);
   try {
     const payload = JSON.stringify(s);
@@ -912,7 +913,9 @@ const engine = new DialogueEngine({
       if (stored) {
         initialChoice = parseInt(stored, 10);
       } else {
+      if (getActiveSlot() != null) {
         localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot()}`, '3');
+      }
       }
     } catch {}
 
@@ -1721,12 +1724,18 @@ function runFirstMeet() {
           if (opt.to === 'r_who') choice = 1;
           else if (opt.to === 'r_where') choice = 2;
           try {
+          if (getActiveSlot() != null) {
             localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot()}`, choice.toString());
+          }
           } catch {}
         }
       },
       onEnd: () => {
-      try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
+      try {
+        if (getActiveSlot() != null) {
+          localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1');
+        }
+      } catch {}
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
       merchantOverlayEl.classList.remove('firstchat-active');
@@ -1811,7 +1820,11 @@ export function openMerchant() {
 
   if (forcedDialogueTab) {
     last = 'dialogue';
-    try { localStorage.setItem(`ccc:delveTab:${merchantOverlayEl.id}:${slot}`, 'dialogue'); } catch {}
+    try {
+      if (slot != null) {
+        localStorage.setItem(`ccc:delveTab:${merchantOverlayEl.id}:${slot}`, 'dialogue');
+      }
+    } catch {}
   }
 
   selectMerchantTab(last);
@@ -1996,7 +2009,11 @@ function selectMerchantTab(key) {
     try { updateFlowTab(); } catch {}
   }
 
-  try { localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key); } catch {}
+  try {
+    if (getActiveSlot() != null) {
+      localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key);
+    }
+  } catch {}
 }
 
 export function isMerchantOpen() {
