@@ -67,6 +67,7 @@ export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
       } else {
         localStorage.removeItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`);
       }
+      window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "buildings", slot } }));
     } catch {}
   }
 }
@@ -273,6 +274,16 @@ export function renderBuildingsGrid(gridEl) {
                     handlePurchase('next');
                     currentBuildingId = null;
                     return;
+                }
+                
+                if (IS_MOBILE && settingsManager.get('building_insta_max')) {
+                    const affordableBn = getAffordableBuildingLevels(b.id);
+                    if (affordableBn && (affordableBn.isInfinite?.() || affordableBn.cmp(0) > 0)) {
+                        currentBuildingId = b.id;
+                        handlePurchase('max');
+                        currentBuildingId = null;
+                        return;
+                    }
                 }
                 openBuildingDetailOverlay(b.id); 
             });
