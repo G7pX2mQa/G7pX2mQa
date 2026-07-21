@@ -43,7 +43,7 @@ export const FONT_MAP = {
 
 export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
 
-export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
+export const DEBUG_PANEL_ACCESS = true; // MAKE SURE TO CHANGE THIS FOR TEST/PROD REPOS
 
 // Intercept innerHTML on Elements to prevent unnecessary updates
 const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
