@@ -609,10 +609,10 @@ function applyBuildingOnlyMode(enabled) {
         const actions = overlay.querySelector('.upg-actions');
         
         if (header) {
-            header.style.display = 'none';
+            header.style.visibility = 'hidden';
         }
         if (actions) {
-            actions.style.setProperty('display', 'none', 'important');
+            actions.style.setProperty('visibility', 'hidden', 'important');
         }
         
         const grabHandle = overlay.querySelector('.grab-handle');
@@ -621,23 +621,33 @@ function applyBuildingOnlyMode(enabled) {
         }
         
         const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
-        if (onlyBuildingBtn) onlyBuildingBtn.style.display = 'none';
+        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = 'hidden';
         
         overlay.style.cursor = 'none';
         
         if (overlayType === 'detail') {
             const textContainer = contentEl ? contentEl.querySelector('.upg-costs') : null;
             const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
-            if (textContainer) {
-                textContainer.style.display = 'none';
-            }
-            if (levelTextContainer) {
-                levelTextContainer.style.display = 'none';
-            }
+            const bonusRow = document.getElementById('building-detail-bonus-row');
+            const costRow = document.getElementById('building-detail-cost-row');
+            const walletRow = document.getElementById('building-detail-wallet-row');
+            
+            if (textContainer) textContainer.style.visibility = 'hidden';
+            if (levelTextContainer) levelTextContainer.style.visibility = 'hidden';
+            if (bonusRow) bonusRow.style.visibility = 'hidden';
+            if (costRow) costRow.style.visibility = 'hidden';
+            if (walletRow) walletRow.style.visibility = 'hidden';
+            
+            const btnBuy = document.getElementById('building-btn-buy');
+            const btnBuyMax = document.getElementById('building-btn-buy-max');
+            const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
+            if (btnBuy) btnBuy.style.visibility = 'hidden';
+            if (btnBuyMax) btnBuyMax.style.visibility = 'hidden';
+            if (btnBuyCheap) btnBuyCheap.style.visibility = 'hidden';
         } else if (overlayType === 'mysterious') {
             const desc = contentEl ? contentEl.querySelector('.upg-desc') : null;
             if (desc) {
-                desc.style.display = 'none';
+                desc.style.visibility = 'hidden';
             }
         }
 
@@ -716,10 +726,10 @@ function applyBuildingOnlyMode(enabled) {
         const actions = overlay.querySelector('.upg-actions');
         
         if (header) {
-            header.style.display = '';
+            header.style.visibility = '';
         }
         if (actions) {
-            actions.style.removeProperty('display');
+            actions.style.removeProperty('visibility');
         }
         
         const grabHandle = overlay.querySelector('.grab-handle');
@@ -728,23 +738,33 @@ function applyBuildingOnlyMode(enabled) {
         }
         
         const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
-        if (onlyBuildingBtn) onlyBuildingBtn.style.display = '';
+        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = '';
         
         overlay.style.cursor = '';
         
         if (overlayType === 'detail') {
             const textContainer = contentEl ? contentEl.querySelector('.upg-costs') : null;
             const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
-            if (textContainer) {
-                textContainer.style.display = '';
-            }
-            if (levelTextContainer) {
-                levelTextContainer.style.display = '';
-            }
+            const bonusRow = document.getElementById('building-detail-bonus-row');
+            const costRow = document.getElementById('building-detail-cost-row');
+            const walletRow = document.getElementById('building-detail-wallet-row');
+            
+            if (textContainer) textContainer.style.visibility = '';
+            if (levelTextContainer) levelTextContainer.style.visibility = '';
+            if (bonusRow) bonusRow.style.visibility = '';
+            if (costRow) costRow.style.visibility = '';
+            if (walletRow) walletRow.style.visibility = '';
+            
+            const btnBuy = document.getElementById('building-btn-buy');
+            const btnBuyMax = document.getElementById('building-btn-buy-max');
+            const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
+            if (btnBuy) btnBuy.style.visibility = '';
+            if (btnBuyMax) btnBuyMax.style.visibility = '';
+            if (btnBuyCheap) btnBuyCheap.style.visibility = '';
         } else if (overlayType === 'mysterious') {
             const desc = contentEl ? contentEl.querySelector('.upg-desc') : null;
             if (desc) {
-                desc.style.display = '';
+                desc.style.visibility = '';
             }
         }
         
@@ -1518,24 +1538,24 @@ export function updateOverlayUi() {
 
         // Restore/Reinstate everything when not in the opening/open Vault sequence,
         // EXCEPT if "Only show Building" mode is currently active.
-        if (levelText) levelText.style.display = isOnlyBuilding ? 'none' : '';
-        if (costsText) costsText.style.display = isOnlyBuilding ? 'none' : '';
-        if (bonusRow) bonusRow.style.display = isOnlyBuilding ? 'none' : '';
-        if (costRow) costRow.style.display = isOnlyBuilding ? 'none' : '';
-        if (walletRow) walletRow.style.display = isOnlyBuilding ? 'none' : '';
+        if (levelText) levelText.style.visibility = isOnlyBuilding ? 'hidden' : '';
+        if (costsText) costsText.style.visibility = isOnlyBuilding ? 'hidden' : '';
+        if (bonusRow) bonusRow.style.visibility = isOnlyBuilding ? 'hidden' : '';
+        if (costRow) costRow.style.visibility = isOnlyBuilding ? 'hidden' : '';
+        if (walletRow) walletRow.style.visibility = isOnlyBuilding ? 'hidden' : '';
 
         const upgHeader = document.querySelector('#building-detail-overlay .upg-header');
-        if (upgHeader) upgHeader.style.display = isOnlyBuilding ? 'none' : '';
+        if (upgHeader) upgHeader.style.visibility = isOnlyBuilding ? 'hidden' : '';
         const onlyBuildingBtn = document.querySelector('#building-detail-overlay .only-building-btn');
-        if (onlyBuildingBtn) onlyBuildingBtn.style.display = isOnlyBuilding ? 'none' : '';
+        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = isOnlyBuilding ? 'hidden' : '';
 
         // Restore/hide grab handle based on "Only show Building" mode
         if (grabHandle) {
             if (isOnlyBuilding) {
-                grabHandle.style.setProperty('display', 'none', 'important');
+                grabHandle.style.setProperty('visibility', 'hidden', 'important');
                 grabHandle.style.setProperty('opacity', '0', 'important');
             } else {
-                grabHandle.style.removeProperty('display');
+                grabHandle.style.removeProperty('visibility');
                 grabHandle.style.removeProperty('opacity');
             }
         }
@@ -1551,13 +1571,13 @@ export function updateOverlayUi() {
 
         // Restore Buy buttons based on standard rules (only if not infinite)
         if (levelBn.isInfinite && levelBn.isInfinite()) {
-            if (btnBuy) btnBuy.style.display = 'none';
+            if (btnBuy) btnBuy.style.display = 'none'; // Keeps layout clean for infinite cost, safe as it's a fixed state
             if (btnBuyMax) btnBuyMax.style.display = 'none';
             if (btnBuyCheap) btnBuyCheap.style.display = 'none';
         } else {
-            if (btnBuy) btnBuy.style.display = isOnlyBuilding ? 'none' : '';
-            if (btnBuyMax) btnBuyMax.style.display = isOnlyBuilding ? 'none' : '';
-            if (btnBuyCheap) btnBuyCheap.style.display = isOnlyBuilding ? 'none' : '';
+            if (btnBuy) btnBuy.style.visibility = isOnlyBuilding ? 'hidden' : '';
+            if (btnBuyMax) btnBuyMax.style.visibility = isOnlyBuilding ? 'hidden' : '';
+            if (btnBuyCheap) btnBuyCheap.style.visibility = isOnlyBuilding ? 'hidden' : '';
         }
 
         const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
