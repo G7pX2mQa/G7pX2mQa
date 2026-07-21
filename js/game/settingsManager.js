@@ -18,6 +18,7 @@ import {
   hasDoneSurgeReset
 } from '../ui/merchantTabs/resetTab.js';
 import { isCombineUnlocked, isCompressUnlocked } from '../ui/minerTabs/resetTab.js';
+import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 import { maxRefreshRate } from '../util/refreshRate.js';
 
 const SETTINGS_KEY_PREFIX = 'ccc:setting:';
@@ -186,12 +187,27 @@ export const SETTING_DEFINITIONS = {
         const slot = getActiveSlot();
         if (slot == null) return false;
         let labUnlocked = false;
-        if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
-            labUnlocked = true;
+        if (typeof isLabUnlocked === 'function') {
+            labUnlocked = isLabUnlocked();
         } else {
             labUnlocked = localStorage.getItem(`ccc:unlock:lab:${slot}`) === '1';
         }
         return labUnlocked && IS_MOBILE;
+      } catch {
+        return false;
+      }
+    },
+  },
+  building_insta_max: {
+    id: 'building_insta_max',
+    type: 'toggle',
+    label: 'Building Insta-Max',
+    hasExtraInfo: true,
+    info: 'Do you hate having to open a Building overlay, press Buy Max, close the overlay, then do it again later? Toggle this setting ON to instantly perform a Buy Max onto a Building just by tapping on it.',
+    default: false,
+    unlockCondition: () => {
+      try {
+        return isBuildingsUnlocked() && IS_MOBILE;
       } catch {
         return false;
       }
