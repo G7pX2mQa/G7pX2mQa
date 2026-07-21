@@ -103,47 +103,51 @@ function initDiamondPattern(ctx) {
   const pCtx = patternCanvas.getContext("2d");
 
   // Brighter base cyan color for diamond
-  pCtx.fillStyle = "#7eeef2"; // brighter cyan base
+  pCtx.fillStyle = "#00FFFF"; // brighter cyan base
   pCtx.fillRect(0, 0, 64, 64);
 
-  // Textured watercolor / paper look
-  for (let i = 0; i < 64 * 64; i++) {
-    const x = i % 64;
-    const y = Math.floor(i / 64);
-    
+  // Fine, uniform noise grain to match reference image (subtle)
+  const imgData = pCtx.getImageData(0, 0, 64, 64);
+  const data = imgData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const x = (i / 4) % 64;
+    const y = Math.floor((i / 4) / 64);
     const noise = Math.random();
     
-    // Canvas/paper weave effect
-    const isHorizontalGrain = (y % 2 === 0) && noise > 0.3;
-    const isVerticalGrain = (x % 2 === 0) && noise > 0.3;
+    // Base cyan is R:0, G:255, B:255
+    let r = 0;
+    let g = 255;
+    let b = 255;
+
+    // Weave pattern effect (very subtle criss-cross)
+    const isHorizontalGrain = (y % 2 === 0);
+    const isVerticalGrain = (x % 2 === 0);
     
     if (isHorizontalGrain && isVerticalGrain) {
-       pCtx.fillStyle = "rgba(255, 255, 255, 0.2)"; // lighter weave intersection
-       pCtx.fillRect(x, y, 1, 1);
+      // Intersection: lightest (very subtle)
+      if (noise > 0.5) { r = 35; g = 255; b = 255; }
+      else { r = 20; g = 255; b = 255; }
     } else if (isHorizontalGrain || isVerticalGrain) {
-       pCtx.fillStyle = "rgba(80, 200, 210, 0.15)"; // slightly darker weave line
-       pCtx.fillRect(x, y, 1, 1);
-    } else if (noise > 0.95) {
-       pCtx.fillStyle = "rgba(255, 255, 255, 0.4)"; // occasional bright fleck
-       pCtx.fillRect(x, y, 1, 1);
-    } else if (noise < 0.05) {
-       pCtx.fillStyle = "rgba(50, 160, 180, 0.15)"; // occasional dark fleck
-       pCtx.fillRect(x, y, 1, 1);
+      // Line: darker (very subtle)
+      if (noise > 0.5) { r = 0; g = 235; b = 240; }
+      else { r = 0; g = 240; b = 245; }
+    } else {
+      // Gap: darkest speckles (subtle)
+      if (noise > 0.8) { r = 0; g = 225; b = 230; }
+      else if (noise > 0.4) { r = 0; g = 230; b = 235; }
     }
-  }
-  
-  // Add subtle soft blotches for watercolor/mottled paper feel
-  for (let i = 0; i < 8; i++) {
-    pCtx.fillStyle = "rgba(255, 255, 255, 0.08)";
-    pCtx.beginPath();
-    pCtx.arc(Math.random() * 64, Math.random() * 64, 64 * (0.1 + Math.random() * 0.2), 0, Math.PI * 2);
-    pCtx.fill();
     
-    pCtx.fillStyle = "rgba(60, 190, 200, 0.06)";
-    pCtx.beginPath();
-    pCtx.arc(Math.random() * 64, Math.random() * 64, 64 * (0.1 + Math.random() * 0.2), 0, Math.PI * 2);
-    pCtx.fill();
+    // Add some random noise variations (extremely subtle so they don't look like large dots)
+    if (noise > 0.985) { r = 50; g = 255; b = 255; } // Occasional light fleck
+    if (noise < 0.015) { r = 0; g = 215; b = 220; } // Occasional darker fleck
+
+    data[i] = r;
+    data[i+1] = g;
+    data[i+2] = b;
+    data[i+3] = 255; // Alpha
   }
+  pCtx.putImageData(imgData, 0, 0);
 
   const targetCtx = activeCtx || ctx;
   if (targetCtx) {
