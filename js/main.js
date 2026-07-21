@@ -375,6 +375,7 @@ let globalCursorTrail = null;
 
 
 let currentMusic = null;
+window.isMusicPlaying = () => currentMusic !== null;
 let spawner = null;
 let ucSpawner = null;
 let cleanupUpgradesListener = null;
@@ -616,6 +617,7 @@ function startAreaMusic(areaID, src, volume = 1.0, fadeDuration = 0) {
   const startMusic = () => {
     if (currentArea !== areaID) return;
     currentMusic = playAudio(src, { loop: true, type: 'music', volume: volume, fadeDuration: fadeDuration });
+    window.dispatchEvent(new CustomEvent('music:started'));
     if (typeof unpauseNotifications === "function") unpauseNotifications();
   };
 
@@ -1004,8 +1006,19 @@ export function enterArea(areaID, fadeDuration = 0) {
 
       if (currentArea === AREAS.STARTER_COVE && spawner) {
           if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield();
-          spawner.start();
-          if (typeof spawner.playEntranceWave === "function") spawner.playEntranceWave();
+          
+          const startSpawner = () => {
+              if (currentArea === AREAS.STARTER_COVE && spawner) {
+                  spawner.start();
+                  if (typeof spawner.playEntranceWave === "function") spawner.playEntranceWave();
+              }
+          };
+          
+          if (window.isMusicPlaying && window.isMusicPlaying()) {
+              startSpawner();
+          } else {
+              window.addEventListener('music:started', startSpawner, { once: true });
+          }
       }
       if (ucSpawner) {
           ucSpawner.stop();
@@ -1481,8 +1494,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (currentArea === AREAS.STARTER_COVE) {
             currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
+            window.dispatchEvent(new CustomEvent('music:started'));
         } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
             currentMusic = playAudio('sounds/Underwater_Cavern.ogg', { loop: true, type: 'music', volume: 0.75 });
+            window.dispatchEvent(new CustomEvent('music:started'));
 		}
     });
   }
