@@ -398,6 +398,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
     "infuse:completed",
     "surge:completed",
     "unlock:change",
+    "saveSlot:change",
     "lab:node:change",
     "ccc:upgrades:changed"
   ];
