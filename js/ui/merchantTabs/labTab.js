@@ -431,7 +431,7 @@ class LabSystem {
         this.nerfBar.classList.add('lab-bar-text', 'lab-nerf-bar');
         applyBarStyle(this.nerfBar);
         applyTextStyle(this.nerfBar, '14px', '0.8px');
-        this.nerfBar.style.padding = '4px 12px';
+        this.nerfBar.style.padding = '3.5px 12px 4.5px 12px';
         this.nerfBar.style.height = '26px';
         this.nerfBar.style.width = 'calc(var(--coin-bar-w) * 0.8)';
         this.statsContainer.appendChild(this.nerfBar);
