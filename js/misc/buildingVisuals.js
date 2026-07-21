@@ -77,6 +77,7 @@ let stonePattern = null;
 let copperPattern = null;
 let ironPattern = null;
 let pureGoldPattern = null;
+let diamondPattern = null;
 
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
@@ -91,6 +92,67 @@ function getMaterialImage(matKey) {
     return img;
   }
   return null;
+}
+
+function initDiamondPattern(ctx) {
+  if (diamondPattern) return;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = 64;
+  patternCanvas.height = 64;
+  const pCtx = patternCanvas.getContext("2d");
+
+  // Brighter base cyan color for diamond
+  pCtx.fillStyle = "#7eeef2"; // brighter cyan base
+  pCtx.fillRect(0, 0, 64, 64);
+
+  // Textured watercolor / paper look
+  for (let i = 0; i < 64 * 64; i++) {
+    const x = i % 64;
+    const y = Math.floor(i / 64);
+    
+    const noise = Math.random();
+    
+    // Canvas/paper weave effect
+    const isHorizontalGrain = (y % 2 === 0) && noise > 0.3;
+    const isVerticalGrain = (x % 2 === 0) && noise > 0.3;
+    
+    if (isHorizontalGrain && isVerticalGrain) {
+       pCtx.fillStyle = "rgba(255, 255, 255, 0.2)"; // lighter weave intersection
+       pCtx.fillRect(x, y, 1, 1);
+    } else if (isHorizontalGrain || isVerticalGrain) {
+       pCtx.fillStyle = "rgba(80, 200, 210, 0.15)"; // slightly darker weave line
+       pCtx.fillRect(x, y, 1, 1);
+    } else if (noise > 0.95) {
+       pCtx.fillStyle = "rgba(255, 255, 255, 0.4)"; // occasional bright fleck
+       pCtx.fillRect(x, y, 1, 1);
+    } else if (noise < 0.05) {
+       pCtx.fillStyle = "rgba(50, 160, 180, 0.15)"; // occasional dark fleck
+       pCtx.fillRect(x, y, 1, 1);
+    }
+  }
+  
+  // Add subtle soft blotches for watercolor/mottled paper feel
+  for (let i = 0; i < 8; i++) {
+    pCtx.fillStyle = "rgba(255, 255, 255, 0.08)";
+    pCtx.beginPath();
+    pCtx.arc(Math.random() * 64, Math.random() * 64, 64 * (0.1 + Math.random() * 0.2), 0, Math.PI * 2);
+    pCtx.fill();
+    
+    pCtx.fillStyle = "rgba(60, 190, 200, 0.06)";
+    pCtx.beginPath();
+    pCtx.arc(Math.random() * 64, Math.random() * 64, 64 * (0.1 + Math.random() * 0.2), 0, Math.PI * 2);
+    pCtx.fill();
+  }
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      diamondPattern = targetCtx.createPattern(patternCanvas, "repeat");
+    } catch (e) {
+      console.error("Failed to create diamond pattern", e);
+    }
+  }
 }
 
 function initPureGoldPattern(ctx) {
@@ -239,6 +301,9 @@ export function startCanvasLoop(id, canvasEl) {
   initStonePattern(activeCtx);
   if (!pureGoldPattern) {
     initPureGoldPattern(activeCtx);
+  }
+  if (!diamondPattern) {
+    initDiamondPattern(activeCtx);
   }
 
   if (canvasResizeObserver) {
@@ -1005,7 +1070,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
   else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
   else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
-  else if (id === "diamond") drawOilRig(ctx, t, tier);
+  else if (id === "diamond") drawOilRig(ctx, t, tier, prevTier, animProgress);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier);
   else if (id === "ruby") drawRadiator(ctx, t, tier);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
@@ -1023,6 +1088,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
       if (bId === "copper") return 180 + bTier * 8;
       if (bId === "iron") return 220;
       if (bId === "pure_gold") return 250 + bTier * 10 + (bTier >= 4 ? 35 : 0);
+      if (bId === "diamond") return 200 + bTier * 15;
       return 180;
     };
 
@@ -6166,18 +6232,478 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   }
 }
 
-function drawOilRig(ctx, t, tier) {
-  ctx.fillStyle = "#50c3ca";
-  ctx.beginPath();
-  ctx.moveTo(-40, 0);
-  ctx.lineTo(-20, -120);
-  ctx.lineTo(20, -120);
-  ctx.lineTo(40, 0);
-  ctx.fill();
+function drawOilRig(ctx, t, tier, prevTier, animProgress) {
+  if (!diamondPattern && activeCtx) {
+    initDiamondPattern(activeCtx);
+  } else if (!diamondPattern) {
+    initDiamondPattern(ctx);
+  }
+  const fillDiamond = diamondPattern ? diamondPattern : "#8be9ed";
+  
+  // Progress helpers for smooth fading
+  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
 
-  const drillY = Math.sin(t * 10) * 10;
-  ctx.fillStyle = "#111";
-  ctx.fillRect(-5, -120 + drillY, 10, 140);
+  let t0 = getProg(0);
+  let t1 = getProg(1);
+  let t2 = getProg(2);
+  let t3 = getProg(3);
+  let t4 = getProg(4);
+  let t5 = getProg(5);
+  let t6 = getProg(6);
+  let t7 = getProg(7);
+  let t8 = getProg(8);
+
+  ctx.save();
+
+  // --- Tier 0+: Ground Cross-Section ---
+  // We want it to look like a cutaway into the earth with oil at the bottom
+  // The drill shaft goes down into this hole
+  ctx.save();
+  // Cutout background
+  ctx.fillStyle = "#1a1510"; // Very dark dirt/rock
+  ctx.fillRect(-60, 0, 120, 140);
+  
+  // Dirt texture/edges
+  ctx.strokeStyle = "#38291f";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(-60, 0, 120, 140);
+  
+  // Subterranean Oil Pool at the bottom of the cutaway
+  // Bubbling animation
+  ctx.fillStyle = "#0d0a07"; // Dark oil
+  ctx.fillRect(-55, 110, 110, 25);
+  
+  // Bubble effects in oil
+  for(let i=0; i<6; i++) {
+    const bx = -40 + i * 15;
+    const by = 135 - ((t*2 + i*3) % 25);
+    const alpha = Math.max(0, 1 - (135 - by) / 25);
+    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(bx, by, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // --- Tier 0: Basic Diamond A-Frame and Drill Shaft ---
+  if (t0 > 0) {
+    ctx.save();
+    
+    // Main drill shaft going down (animated up/down if < Tier 4, spinning if >= Tier 4)
+    ctx.fillStyle = "#222";
+    let drillY = Math.sin(t * 5) * 5;
+    if (t4 > 0) { drillY = 0; } // Lock drill shaft when laser takes over
+    ctx.fillRect(-6, -40 + drillY, 12, 160);
+    // Shaft horizontal grooves
+    for(let i=0; i<8; i++) {
+       const gy = -40 + drillY + i * 20;
+       if (gy < 120 && gy > -40) {
+           ctx.fillStyle = "#111";
+           ctx.fillRect(-6, gy, 12, 4);
+       }
+    }
+    
+    // The A-Frame Rig Base structure
+    ctx.fillStyle = fillDiamond;
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    ctx.moveTo(-50, 0);
+    ctx.lineTo(-20, -100);
+    ctx.lineTo(20, -100);
+    ctx.lineTo(50, 0);
+    ctx.lineTo(35, 0);
+    ctx.lineTo(10, -85);
+    ctx.lineTo(-10, -85);
+    ctx.lineTo(-35, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Top motor housing
+    ctx.fillRect(-25, -120, 50, 30);
+    ctx.strokeRect(-25, -120, 50, 30);
+    
+    // Horizontal supports
+    ctx.fillRect(-27, -40, 54, 8);
+    ctx.strokeRect(-27, -40, 54, 8);
+    ctx.fillRect(-38, -15, 76, 8);
+    ctx.strokeRect(-38, -15, 76, 8);
+    
+    ctx.restore();
+  }
+
+  // --- Tier 1: Pulsing Extractor Side Pipes ---
+  if (t1 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t1;
+    ctx.fillStyle = "#333";
+    
+    // Pipes running up the sides of the shaft
+    ctx.fillRect(-15, -110, 6, 230);
+    ctx.fillRect(9, -110, 6, 230);
+    
+    // Pulse animation indicating oil flow
+    const pulseOffset = (t * 20) % 30;
+    ctx.fillStyle = "#000"; // dark oil color pulsing
+    for(let i=0; i<8; i++) {
+        const py = -110 + i * 30 + pulseOffset;
+        if(py < 120 && py > -110) {
+            ctx.fillRect(-15, py, 6, 10);
+            ctx.fillRect(9, py, 6, 10);
+        }
+    }
+    ctx.restore();
+  }
+
+  // --- Tier 2: Spinning Diamond Gears ---
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    
+    const drawDiamondGear = (x, y, radius, teeth, time) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(time);
+        ctx.fillStyle = fillDiamond;
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI*2);
+        ctx.fill();
+        ctx.stroke();
+        
+        for(let i=0; i<teeth; i++) {
+            ctx.save();
+            ctx.rotate((Math.PI * 2 / teeth) * i);
+            ctx.fillRect(-radius/5, -radius-radius/3, radius/2.5, radius/3);
+            ctx.strokeRect(-radius/5, -radius-radius/3, radius/2.5, radius/3);
+            ctx.restore();
+        }
+        // Inner hole
+        ctx.fillStyle = "#111";
+        ctx.beginPath();
+        ctx.arc(0,0, radius/2.5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+    }
+    
+    // Side gears at the motor housing
+    drawDiamondGear(-30, -105, 12, 8, t);
+    drawDiamondGear(30, -105, 12, 8, -t);
+    
+    // Lower transmission gears
+    drawDiamondGear(-25, -40, 15, 10, -t*1.5);
+    drawDiamondGear(25, -40, 15, 10, t*1.5);
+    
+    ctx.restore();
+  }
+
+  // --- Tier 3: Bubbling Cyan Coolant Vats ---
+  if (t3 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+    
+    const drawVat = (x) => {
+        // Base
+        ctx.fillStyle = "#333";
+        ctx.fillRect(x - 15, -15, 30, 15);
+        ctx.fillRect(x - 12, -45, 24, 30);
+        
+        // Coolant fluid
+        const fluidLevel = 25 + Math.sin(t*3)*3;
+        ctx.fillStyle = "rgba(0, 255, 255, 0.6)"; // Cyan glow fluid
+        ctx.fillRect(x - 10, -15 - fluidLevel, 20, fluidLevel);
+        
+        // Bubbles
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        for(let i=0; i<3; i++) {
+            const bx = x - 5 + i * 5;
+            const by = -15 - ((t*4 + i*2) % fluidLevel);
+            ctx.beginPath();
+            ctx.arc(bx, by, 1.5, 0, Math.PI*2);
+            ctx.fill();
+        }
+        
+        // Glass shell
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 12, -45, 24, 30);
+    }
+    
+    drawVat(-60);
+    drawVat(60);
+    
+    ctx.restore();
+  }
+
+  // --- Tier 4: Laser Enhanced Drilling ---
+  // Core Feature: Laser firing down the middle
+  if (t4 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t4;
+    
+    // Laser Emitter at the top
+    ctx.fillStyle = fillDiamond;
+    ctx.beginPath();
+    ctx.moveTo(-15, -120);
+    ctx.lineTo(15, -120);
+    ctx.lineTo(5, -100);
+    ctx.lineTo(-5, -100);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#ff0000";
+    ctx.stroke();
+    
+    // Laser Beam
+    const laserWidth = 6 + Math.sin(t*20)*2; // Pulsing
+    const beamAlpha = 0.8 + 0.2 * Math.sin(t*30);
+    
+    const grad = ctx.createLinearGradient(0, 0, 0, 140);
+    grad.addColorStop(0, `rgba(255, 200, 200, ${beamAlpha})`);
+    grad.addColorStop(0.5, `rgba(255, 50, 50, ${beamAlpha})`);
+    grad.addColorStop(1, `rgba(255, 0, 0, ${beamAlpha})`);
+    
+    ctx.fillStyle = grad;
+    // Shoot laser down the middle (covering the physical drill bit)
+    ctx.fillRect(-laserWidth/2, -100, laserWidth, 220); // Reach oil pool
+    
+    // Core glow
+    ctx.fillStyle = `rgba(255, 255, 255, ${beamAlpha})`;
+    ctx.fillRect(-laserWidth/4, -100, laserWidth/2, 220);
+    
+    // Contact sparks at the oil pool
+    ctx.fillStyle = "#ffaa00";
+    for(let i=0; i<5; i++) {
+        const sx = (Math.random() - 0.5) * 20;
+        const sy = 120 + (Math.random() - 0.5) * 10;
+        ctx.fillRect(sx, sy, 2, 2);
+    }
+    
+    ctx.restore();
+  }
+
+  // --- Tier 5: Floating Focusing Lenses ---
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5;
+    
+    const drawLens = (y, rotation) => {
+        ctx.save();
+        ctx.translate(0, y);
+        
+        // Floating animation
+        const hover = Math.sin(t*2 + y)*5;
+        ctx.translate(0, hover);
+        
+        // Support rings
+        ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 20, 5, 0, 0, Math.PI*2);
+        ctx.stroke();
+        
+        // Diamond Lens
+        ctx.rotate(t + rotation);
+        ctx.fillStyle = fillDiamond;
+        ctx.globalAlpha = 0.8 * t5;
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.lineTo(15, 0);
+        ctx.lineTo(0, 10);
+        ctx.lineTo(-15, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = t5;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    
+    drawLens(-70, 0);
+    drawLens(-10, Math.PI/4);
+    drawLens(50, Math.PI/2); // In the subterranean shaft!
+    
+    ctx.restore();
+  }
+
+  // --- Tier 6: Subterranean Shockwave Pylons ---
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+    
+    const drawPylon = (x, y) => {
+        ctx.save();
+        ctx.translate(x, y);
+        // Base
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-10, 0, 20, 5);
+        ctx.beginPath();
+        ctx.moveTo(-8, 0);
+        ctx.lineTo(0, -25);
+        ctx.lineTo(8, 0);
+        ctx.fill();
+        
+        // Shockwave rings
+        const waveProg = (t*2 + Math.abs(x)) % Math.PI;
+        const waveRadius = waveProg * 15;
+        const waveAlpha = Math.max(0, 1 - waveProg/Math.PI);
+        
+        ctx.strokeStyle = `rgba(255, 0, 0, ${waveAlpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, waveRadius, waveRadius/3, 0, 0, Math.PI*2);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    
+    drawPylon(-45, 110);
+    drawPylon(45, 110);
+    drawPylon(-40, 50);
+    drawPylon(40, 50);
+    
+    ctx.restore();
+  }
+
+  // --- Tier 7: Orbital Laser Receptor ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    
+    ctx.translate(0, -140); // Top of rig
+    
+    // Floating Dish
+    ctx.rotate(-t*0.5);
+    
+    ctx.fillStyle = fillDiamond;
+    ctx.beginPath();
+    // Dish shape
+    ctx.arc(0, 0, 35, 0, Math.PI, true);
+    ctx.lineTo(0, 15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#444";
+    ctx.stroke();
+    
+    // Glowing central receptor orb
+    ctx.rotate(t*0.5); // Counter rotate so orb stays upright if wanted, or let it spin
+    const orbGlow = 0.5 + 0.5*Math.sin(t*5);
+    ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + orbGlow*0.2})`;
+    ctx.beginPath();
+    ctx.arc(0, -15, 10 + orbGlow*2, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Beam from orb to emitter
+    ctx.strokeStyle = `rgba(255, 0, 0, ${0.6 + orbGlow*0.4})`;
+    ctx.lineWidth = 4 + orbGlow*2;
+    ctx.beginPath();
+    ctx.moveTo(0, -5);
+    ctx.lineTo(0, 40);
+    ctx.stroke();
+    
+    ctx.restore();
+  }
+
+  // --- Tier 8: Massive Core Meltdown Laser & Diamond Halo Rings ---
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    
+    // 1. Thicken the core laser massively
+    const megaLaserWidth = 20 + Math.sin(t*30)*5;
+    const grad = ctx.createLinearGradient(-megaLaserWidth/2, 0, megaLaserWidth/2, 0);
+    grad.addColorStop(0, "rgba(255, 0, 0, 0)");
+    grad.addColorStop(0.2, "rgba(255, 0, 0, 0.8)");
+    grad.addColorStop(0.5, "rgba(255, 255, 255, 1)");
+    grad.addColorStop(0.8, "rgba(255, 0, 0, 0.8)");
+    grad.addColorStop(1, "rgba(255, 0, 0, 0)");
+    
+    ctx.fillStyle = grad;
+    ctx.fillRect(-megaLaserWidth/2, -120, megaLaserWidth, 240);
+    
+    // 2. Branching lightning around laser
+    ctx.strokeStyle = "rgba(255, 100, 100, 0.8)";
+    ctx.lineWidth = 2;
+    for(let i=0; i<3; i++) {
+        ctx.beginPath();
+        let lx = 0;
+        let ly = -100;
+        ctx.moveTo(lx, ly);
+        while(ly < 120) {
+            ly += 20;
+            lx = (Math.random() - 0.5) * 40;
+            ctx.lineTo(lx, ly);
+        }
+        ctx.stroke();
+    }
+    
+    // 3. Massive Giant Rotating Diamond Halo Rings surrounding the entire rig
+    const drawHalo = (yOffset, scale, speed, tilt) => {
+        ctx.save();
+        ctx.translate(0, yOffset);
+        
+        // Create 3D ring effect using ellipse
+        const rot = t * speed;
+        const radiusX = 80 * scale;
+        const radiusY = 20 * scale * Math.abs(Math.cos(tilt));
+        
+        ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + 0.5*Math.sin(rot*5)})`;
+        ctx.lineWidth = 4;
+        
+        // Draw orbital diamonds
+        for(let i=0; i<6; i++) {
+            const angle = rot + (Math.PI*2/6)*i;
+            const x = Math.cos(angle) * radiusX;
+            const y = Math.sin(angle) * radiusY;
+            
+            // Only draw if "in front" to give 3D depth, roughly y > 0
+            if (y > -5) {
+                ctx.save();
+                ctx.translate(x, y);
+                // Draw floating diamond shard
+                ctx.fillStyle = fillDiamond;
+                ctx.beginPath();
+                ctx.moveTo(0, -10);
+                ctx.lineTo(5, 0);
+                ctx.lineTo(0, 10);
+                ctx.lineTo(-5, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth=1;
+                ctx.stroke();
+                
+                // Connecting laser to core
+                ctx.beginPath();
+                ctx.moveTo(0,0);
+                ctx.lineTo(-x, -y); // To center
+                ctx.strokeStyle = "rgba(255, 0, 0, 0.4)";
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+        
+        // Draw orbital trail
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI*2);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    
+    drawHalo(-80, 1.2, 1.5, 0);
+    drawHalo(-20, 1.5, -1.2, Math.PI/8);
+    drawHalo(40, 1.2, 2.0, 0);
+    
+    ctx.restore();
+  }
+
+  ctx.restore();
 }
 
 function drawGreenhouse(ctx, t, tier) {
