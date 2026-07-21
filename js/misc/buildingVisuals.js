@@ -1074,7 +1074,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
   else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
   else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
-  else if (id === "diamond") drawOilRig(ctx, t, tier, prevTier, animProgress);
+  else if (id === "diamond") drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier);
   else if (id === "ruby") drawRadiator(ctx, t, tier);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
@@ -6236,7 +6236,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   }
 }
 
-function drawOilRig(ctx, t, tier, prevTier, animProgress) {
+function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   if (!diamondPattern && activeCtx) {
     initDiamondPattern(activeCtx);
   } else if (!diamondPattern) {
@@ -6262,18 +6262,25 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress) {
   // --- Tier 0+: Underground Cavern & Oil Reservoir ---
   ctx.save();
   
+  // Undo scaling so the cavern is constant size and perfectly centered in the 260px underground space
+  if (scale) ctx.scale(1/scale, 1/scale);
+  
+  // 130 is exactly halfway down the 260px underground area (floorY is at h - 260)
+  let cy = 130; 
+  let cavernRadiusX = w * 0.45; // 90% of viewport width
+  
   // Drill shaft down to the cavern
   ctx.fillStyle = "#050302"; // Deep cavern darkness
-  ctx.fillRect(-20, 0, 40, 60); 
+  ctx.fillRect(-20, 0, 40, cy); 
   
   // Diamond retaining walls for the drill shaft only (down to cavern ceiling)
   ctx.fillStyle = fillDiamond;
-  ctx.fillRect(-25, -10, 5, 70); 
-  ctx.fillRect(20, -10, 5, 70);
+  ctx.fillRect(-25, -10, 5, cy + 10); 
+  ctx.fillRect(20, -10, 5, cy + 10);
   
   // Define Cavern Path
   let cavernPath = new Path2D();
-  cavernPath.ellipse(0, 140, 220, 90, 0, 0, Math.PI * 2); 
+  cavernPath.ellipse(0, cy, cavernRadiusX, 90, 0, 0, Math.PI * 2); 
   
   // Cut out the cavern
   ctx.fillStyle = "#050302"; // Inside the cavern
@@ -6284,72 +6291,103 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress) {
   ctx.clip(cavernPath); // Restrict fluid entirely to the cavern
   
   let laserStrength = (t4 * 1.0) + (t6 * 1.0) + (t8 * 2.0); // 0 to 4 max
-  let baseLiquidLevel = 130; // Resting level of oil in the cavern
+  let baseLiquidLevel = cy - 10; // Resting level of oil in the cavern
   
   // Draw fluid waves
   const drawWave = (yOffset, amplitude, frequency, speed, r, g, b, alpha) => {
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
       ctx.beginPath();
-      ctx.moveTo(-220, 250); // Start at bottom left of cavern
+      ctx.moveTo(-cavernRadiusX, cy + 110); // Start at bottom left of cavern
       
-      for(let px = -220; px <= 220; px += 10) {
-          let distFromCenter = Math.abs(px);
-          let factor = Math.max(0, 1 - (distFromCenter / 150)); // 1 at center, 0 past 150
+      let prevX = -cavernRadiusX;
+      let prevY = 0;
+      let isFirst = true;
+      
+      for(let px = -cavernRadiusX; px <= cavernRadiusX + 20; px += 20) {
+          let realPx = Math.min(px, cavernRadiusX);
+          let distFromCenter = Math.abs(realPx);
+          // Smooth ease for center factor
+          let factor = Math.max(0, 1 - (distFromCenter / (cavernRadiusX * 0.8))); 
+          factor = factor * factor * (3 - 2 * factor);
           
-          let wave1 = Math.sin(px * frequency + t * speed) * amplitude;
-          // Chaotic high frequency waves based on laser, heavily amplified near the center
-          let chaoticAmp = amplitude * 0.5 * laserStrength * (1 + factor * 2);
-          let wave2 = Math.sin(px * frequency * 3.1 - t * speed * 4.3) * chaoticAmp;
+          let tierCraziness = 0.5 + tier * 0.4;
+          let localCraziness = (0.2 + factor * 1.5) * tierCraziness;
+
+          // Organic base wave (viscous fluid)
+          let wave1 = Math.sin(realPx * frequency + t * speed) * amplitude;
+          let wave2 = Math.sin(realPx * frequency * 1.7 - t * speed * 1.3 + 1.0) * amplitude * 0.6;
+          let wave3 = Math.sin(realPx * frequency * 0.8 + t * speed * 0.7 + 2.0) * amplitude * 0.4;
+          let baseWave = wave1 + wave2 + wave3;
+          
+          // Chaotic high frequency waves based on local craziness
+          let chaoticAmp = amplitude * localCraziness;
+          let chaoticWave = Math.sin(realPx * frequency * 3.1 - t * speed * 2.3) * chaoticAmp
+                          + Math.sin(realPx * frequency * 4.7 + t * speed * 3.1) * chaoticAmp * 0.5;
           
           // Crater effect from laser pushing down the oil (Vortex)
           let craterRadius = 60 + laserStrength * 15;
           let craterDepth = 0;
           if (laserStrength > 0 && distFromCenter < craterRadius) {
              let craterFactor = 1 - (distFromCenter / craterRadius); // 1 at center, 0 at edge
-             // Ease in quadratic for a smoother crater shape
              craterDepth = (craterFactor * craterFactor) * 35 * laserStrength; 
           }
           
           // Splashing spikes at the edge of the crater
           let splash = 0;
           if (laserStrength > 0 && distFromCenter > craterRadius * 0.4 && distFromCenter < craterRadius * 1.3) {
-              splash = Math.sin(px * frequency * 8 + t * speed * 6) * (15 * laserStrength);
+              splash = Math.sin(realPx * frequency * 8 + t * speed * 6) * (15 * laserStrength);
           }
           
-          let py = baseLiquidLevel + yOffset + wave1 + wave2 + craterDepth - splash;
-          ctx.lineTo(px, py);
+          let py = baseLiquidLevel + yOffset + baseWave + chaoticWave + craterDepth - splash;
+          
+          if (isFirst) {
+              ctx.lineTo(realPx, py);
+              isFirst = false;
+          } else {
+              // Smooth interpolation
+              let midX = (prevX + realPx) / 2;
+              let midY = (prevY + py) / 2;
+              ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+          }
+          prevX = realPx;
+          prevY = py;
+          
+          if (realPx === cavernRadiusX) break;
       }
-      ctx.lineTo(220, 250);
+      ctx.lineTo(cavernRadiusX, prevY);
+      ctx.lineTo(cavernRadiusX, cy + 110);
       ctx.closePath();
       ctx.fill();
   }
 
   // Draw layers of fluid
   // Very dark, oily colors
-  drawWave(15, 4 + laserStrength, 0.015, 2 + laserStrength, 10, 10, 12, 1.0);
-  drawWave(5,  6 + laserStrength*2, 0.02, 3 + laserStrength*1.5, 15, 15, 18, 1.0);
-  drawWave(-5, 8 + laserStrength*3, 0.025, 4 + laserStrength*2, 22, 22, 25, 1.0);
+  drawWave(15, 6, 0.015, 1.5, 10, 10, 12, 1.0);
+  drawWave(5,  8, 0.02, 2.0, 15, 15, 18, 1.0);
+  drawWave(-5, 10, 0.025, 2.5, 22, 22, 25, 1.0);
 
   // Particle System (Splashes)
-  let particleCount = 20 + Math.floor(laserStrength * 30);
+  let baseSplashCount = 10 + Math.floor(tier * 5);
+  let particleCount = baseSplashCount + Math.floor(laserStrength * 30);
   for(let i=0; i<particleCount; i++) {
-      let pSpeed = 1 + (i % 3) + laserStrength;
+      let pSpeed = 1 + (i % 3) + tier * 0.2 + laserStrength;
       
-      // Bias particle spawning towards the center when laser is strong
+      // Bias particle spawning towards the center
       let spread = 440;
       if (laserStrength > 0) spread = 150 + ((i*17) % 290);
+      else spread = 200 + ((i*17) % 240);
       let bx = -spread/2 + ((i * 73) % spread);
       
       // Calculate Y position - wraps around
-      let travelDist = 60 + laserStrength * 40; 
-      let by = 250 - ((t * pSpeed * 15 + i * 41) % travelDist); 
+      let travelDist = 40 + tier * 10 + laserStrength * 40; 
+      let by = (cy + 110) - ((t * pSpeed * 15 + i * 41) % travelDist); 
       
-      let pSize = 2 + (i % 4) + (laserStrength > 2 ? (i%3)*1.5 : 0);
+      let pSize = 2 + (i % 4) + (tier > 4 ? (i%3)*1.5 : 0);
       
       let alpha = 1;
       let surfacePy = baseLiquidLevel; // Approximate surface
       if (by < surfacePy) {
-          alpha = Math.max(0, 1 - (surfacePy - by) / (20 + laserStrength*15));
+          alpha = Math.max(0, 1 - (surfacePy - by) / (15 + tier * 5 + laserStrength*15));
       }
       
       if (alpha > 0) {
@@ -6397,21 +6435,35 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress) {
     
     // Physical drill bit (disappears / replaced at Tier 4)
     if (t4 < 1) {
+        let drillBottom = 130 / scale;
+        let drillLength = drillBottom - drillY;
+        
         ctx.fillStyle = fillDiamond;
+        // Drill body
+        ctx.fillRect(-15, drillY, 30, drillLength - 30);
+        
+        // Drill tip (triangle)
+        ctx.beginPath();
+        ctx.moveTo(-15, drillY + drillLength - 30);
+        ctx.lineTo(15, drillY + drillLength - 30);
+        ctx.lineTo(0, drillY + drillLength);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.fillStyle = "#220000";
         ctx.strokeStyle = "#440000";
         ctx.lineWidth = 2;
-        ctx.fillRect(-8, -40 + drillY, 16, 180);
-        ctx.strokeRect(-8, -40 + drillY, 16, 180);
+        ctx.fillRect(-8, -40 + drillY, 16, drillLength + 40 - 30);
+        ctx.strokeRect(-8, -40 + drillY, 16, drillLength + 40 - 30);
         
         // Drill grooves
-        for(let i=0; i<12; i++) {
-           const gy = -40 + drillY + i * 15;
-           if (gy < 140 && gy > -40) {
-               ctx.beginPath();
-               ctx.moveTo(-8, gy);
-               ctx.lineTo(8, gy+5);
-               ctx.stroke();
-           }
+        let numGrooves = Math.floor((drillLength - 30) / 6);
+        for(let i=0; i<numGrooves; i++) {
+            let gy = drillY + 10 + i*6;
+            ctx.beginPath();
+            ctx.moveTo(-15, gy);
+            ctx.lineTo(15, gy + 4);
+            ctx.stroke();
         }
     }
     
