@@ -15,6 +15,7 @@ let isComboPreservedFn = () => false; // Function to check if combo decay is dis
 
 // New: Rate limiting for growth
 let lastGrowthTime = 0;
+let lastMaxVal = -1;
 
 // New: Debug Panel features
 let isComboLocked = false;
@@ -69,6 +70,7 @@ function resetState() {
     decayCounter = 0;
     decayAccumulator = 0;
     lastGrowthTime = 0;
+    lastMaxVal = -1;
     notifyComboChange();
 }
 
@@ -124,6 +126,10 @@ export function updateCombo(dt) {
     let changed = false;
     if (activeComboValue > maxVal) {
         activeComboValue = maxVal;
+        changed = true;
+    }
+    if (maxVal !== lastMaxVal) {
+        lastMaxVal = maxVal;
         changed = true;
     }
     
