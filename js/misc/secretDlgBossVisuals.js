@@ -1644,7 +1644,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             
             // Fixed horizontal position
             const hatOffsetRatio = 6 / 512;
-            const bossX = width * 0.5 - bossWidth * hatOffsetRatio;
+            const bossX = width * 0.4955 - bossWidth * hatOffsetRatio;
             
             // The highest sand layer has baseY = height * 0.55
             const highestSandBaseY = height * 0.65;
@@ -1735,7 +1735,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             let hpBarY = bossTopY - 10;
             
             // Start at center x = bossX, y = hpBarY
-            let screenX = currentBossX;
+            let screenX = currentBossX + width * 0.0045;
             let screenY = hpBarY;
             
             if (camProgress > 0) {
@@ -1934,7 +1934,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             // Left half
             ctx.save();
             ctx.beginPath();
-            ctx.rect(0, 0, width / 2 - leftMove, height);
+            ctx.rect(0, 0, width * 0.4955 - leftMove, height);
             ctx.clip();
             ctx.drawImage(landscapeSnapshot, -leftMove, 0);
             ctx.restore();
@@ -1942,7 +1942,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             // Right half
             ctx.save();
             ctx.beginPath();
-            ctx.rect(width / 2 + rightMove, 0, width / 2 - rightMove, height);
+            ctx.rect(width * 0.4955 + rightMove, 0, width * 0.5045 - rightMove, height);
             ctx.clip();
             ctx.drawImage(landscapeSnapshot, rightMove, 0);
             ctx.restore();
