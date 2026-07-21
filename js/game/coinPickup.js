@@ -18,7 +18,7 @@ import {
 import { getMpValueMultiplierBn, getMagnetLevel, getLevelNumber } from './upgrades.js';
 import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
 import { playAudio } from '../util/audioManager.js';
-import { onCoinCollected } from './comboSystem.js';
+import { onCoinCollected, addComboChangeListener, removeComboChangeListener } from './comboSystem.js';
 import { getComboUiString } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from './collectionCore.js';
@@ -428,6 +428,9 @@ export function initCoinPickup({
   }
 
   initMutationSnapshot();
+  
+  // Listen for combo changes (including max combo updates triggered by tsunami exponent)
+  addComboChangeListener(scheduleHudUpdate);
   ensureMpValueMultiplierSync();
 
   pf.style.touchAction = 'none';
@@ -839,6 +842,7 @@ export function initCoinPickup({
       try { mutationUnsub(); } catch {}
       mutationUnsub = null;
     }
+    removeComboChangeListener(scheduleHudUpdate);
     if (magnetController?.destroy) {
       try { magnetController.destroy(); } catch {}
       magnetController = null;
