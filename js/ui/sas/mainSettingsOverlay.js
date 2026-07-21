@@ -10,7 +10,7 @@ let uiHiddenBtnEl = null;
 export function initUIHiding() {
   settingsManager.subscribe('user_interface', applyUserInterfaceSetting);
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'x' || e.key === 'X') {
+    if (e.key === 'u' || e.key === 'U') {
       if (!settingsManager.get('user_interface')) {
         settingsManager.set('user_interface', true);
       }
@@ -51,10 +51,6 @@ function applyUserInterfaceSetting(isUIEnabled) {
       card.setAttribute('role', 'dialog');
       const row = document.createElement('div');
       row.className = 'hide-ui-popup__row';
-      row.style.alignItems = 'center';
-      row.style.justifyContent = 'center';
-      row.style.padding = '24px 0';
-      row.style.minHeight = '200px';
 
       const text = document.createElement('div');
       text.className = 'hide-ui-popup__text';
@@ -65,18 +61,12 @@ function applyUserInterfaceSetting(isUIEnabled) {
       if (IS_MOBILE) {
         text.innerHTML = 'Press the button in the bottom right corner or refresh the tab to re-enable UI';
       } else {
-        text.innerHTML = 'Press "X" on your keyboard or refresh the tab to re-enable UI';
+        text.innerHTML = 'Press "U" on your keyboard or refresh the tab to re-enable UI';
       }
       row.appendChild(text);
 
       const actions = document.createElement('div');
       actions.className = 'hide-ui-popup__choices sas-actions'; // added sas-actions to inherit button styles properly
-      actions.style.display = 'flex';
-      actions.style.justifyContent = 'center';
-      actions.style.marginTop = '24px';
-      actions.style.padding = '0'; // reset any padding from sas-actions default
-      actions.style.border = 'none'; // reset any border
-      actions.style.background = 'transparent'; // reset background
       
       const closeBtn = document.createElement('button');
       closeBtn.className = 'sas-close'; // use existing button style
