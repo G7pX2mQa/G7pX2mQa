@@ -1469,7 +1469,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
   const { initPerformanceGraph } = performanceGraphModule;
-  const { initNotifications, unpauseNotifications: _unpause, pauseNotifications: _pause, showNotification, showWelcomePopup } = notificationModule;
+  const { initNotifications, unpauseNotifications: _unpause, pauseNotifications: _pause, showNotification, showWelcomePopup, triggerInitialLandscapeCheck } = notificationModule;
   const { initFlowSystem } = flowTabModule;
   unpauseNotifications = _unpause;
   pauseNotifications = _pause;
@@ -1786,6 +1786,9 @@ There are many ways to mark a save slot other than just using the debug panel.`)
             localStorage.setItem(welcomeKey, 'true');
             showWelcomePopup(IS_MOBILE);
           }
+        }
+        if (typeof triggerInitialLandscapeCheck === 'function') {
+           triggerInitialLandscapeCheck();
         }
       }, 300);
     }, 'Finished loading game', 200);
