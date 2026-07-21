@@ -6556,9 +6556,18 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           ctx.save();
           ctx.clip(); // Clip perfectly to the physics fluid surface
           for (let i = 0; i < 40; i++) {
+              // Base peaceful rising
               const bubbleT = (t * 0.2 + i * 0.37) % 1;
-              const bubbleX = -cavernRadiusX + ((i * 47) % (cavernRadiusX * 2)) + Math.sin(t * 2 + i) * 5;
-              const bubbleY = (cy + 110) - bubbleT * 160;
+              let bubbleY = (cy + 110) - bubbleT * 160;
+              
+              // Chaotic turbulence added when laser is active
+              const wobbleSpeed = 2 + laserStrength * 15;
+              const wobbleAmount = 5 + laserStrength * 15;
+              let bubbleX = -cavernRadiusX + ((i * 47) % (cavernRadiusX * 2)) + Math.sin(t * wobbleSpeed + i) * wobbleAmount;
+              
+              // Violent vertical shaking/churning
+              bubbleY += Math.sin(t * (8 + (i % 5)) + i * 13) * (40 * laserStrength);
+              
               const bubbleRadius = 1.5 + (i % 3);
               ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
               ctx.beginPath();
