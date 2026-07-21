@@ -175,7 +175,11 @@ function runFirstMeet() {
       pauseMultiplier: 2000 / 22,
       onEnd: () => {
       document.removeEventListener('keydown', blockEsc, { capture: true });
-      try { localStorage.setItem(sk(MINER_MET_KEY_BASE), '1'); } catch {}
+      try {
+        if (getActiveSlot() != null) {
+          localStorage.setItem(sk(MINER_MET_KEY_BASE), '1');
+        }
+      } catch {}
       try { window.dispatchEvent(new Event(MINER_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
       minerOverlayEl.classList.remove('firstchat-active');
