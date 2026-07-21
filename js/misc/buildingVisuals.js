@@ -7311,7 +7311,7 @@ function handleVaultCanvasKeyDown(e) {
     setVaultSequence(newSeq);
 
     if (newSeq === target) {
-      playAudio("sounds/correct.ogg");
+      playAudio("sounds/correct.ogg", { volume: 0.67 });
       isVaultOpening = true;
       vaultOpeningTime = 5.0;
       keypadZoomedIn = false;
@@ -7334,9 +7334,9 @@ function handleVaultCanvasKeyDown(e) {
       const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
       if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
     } else if (newLen === oldLen + 1) {
-      playAudio("sounds/correct.ogg");
+      playAudio("sounds/correct.ogg", { volume: 0.67 });
     } else {
-      playAudio("sounds/incorrect.ogg");
+      playAudio("sounds/incorrect.ogg", { volume: 0.33 });
       setVaultSequence("0000000000000000");
     }
   }
@@ -7387,7 +7387,7 @@ function handleVaultCanvasClick(e) {
           setVaultSequence(newSeq);
 
           if (newSeq === target) {
-            playAudio("sounds/correct.ogg");
+            playAudio("sounds/correct.ogg", { volume: 0.67 });
             isVaultOpening = true;
             vaultOpeningTime = 5.0;
             keypadZoomedIn = false;
@@ -7410,9 +7410,9 @@ function handleVaultCanvasClick(e) {
             const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
             if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
           } else if (newLen === oldLen + 1) {
-            playAudio("sounds/correct.ogg");
+            playAudio("sounds/correct.ogg", { volume: 0.67 });
           } else {
-            playAudio("sounds/incorrect.ogg");
+            playAudio("sounds/incorrect.ogg", { volume: 0.33 });
             setVaultSequence("0000000000000000");
           }
           return;
