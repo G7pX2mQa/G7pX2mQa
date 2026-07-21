@@ -719,6 +719,12 @@ function loop(currentTime) {
     if (activeCanvas.style.cursor !== cursor) {
       activeCanvas.style.cursor = cursor;
     }
+  } else if (activeCanvas) {
+    const isOnlyBuilding = settingsManager.get('only_show_building');
+    let cursor = isOnlyBuilding ? 'none' : 'default';
+    if (activeCanvas.style.cursor !== cursor) {
+      activeCanvas.style.cursor = cursor;
+    }
   }
 
   if (activeCanvas && activeCtx) {
