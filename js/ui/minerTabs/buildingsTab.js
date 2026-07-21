@@ -640,10 +640,6 @@ function applyBuildingOnlyMode(enabled) {
           card.setAttribute('role', 'dialog');
           const row = document.createElement('div');
           row.className = 'hide-ui-popup__row';
-          row.style.alignItems = 'center';
-          row.style.justifyContent = 'center';
-          row.style.padding = '24px 0';
-          row.style.minHeight = '200px';
 
           const text = document.createElement('div');
           text.className = 'hide-ui-popup__text';
@@ -660,12 +656,6 @@ function applyBuildingOnlyMode(enabled) {
 
           const popupActions = document.createElement('div');
           popupActions.className = 'hide-ui-popup__choices sas-actions';
-          popupActions.style.display = 'flex';
-          popupActions.style.justifyContent = 'center';
-          popupActions.style.marginTop = '24px';
-          popupActions.style.padding = '0';
-          popupActions.style.border = 'none';
-          popupActions.style.background = 'transparent';
           
           const closeBtn = document.createElement('button');
           closeBtn.className = 'sas-close';
