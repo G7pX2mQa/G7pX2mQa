@@ -1,9 +1,3 @@
-/* Workshop Tab Styles */
-
-/* 
-   Structural Fixes: 
-   Ensure the container hierarchy allows full-height expansion 
-*/
 .merchant-content {
   display: flex;
   flex-direction: column;
