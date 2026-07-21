@@ -1,6 +1,8 @@
 import { NODE_MAP } from '../game/labNodes.js';
 import { playAudio } from '../util/audioManager.js';
 import { isViewingLabTab } from './merchantTabs/dlgTab.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
+import { getActiveSlot } from '../util/storage.js';
 
 let container = null;
 const queue = [];
@@ -9,6 +11,9 @@ let isPaused = true;
 
 const activeNotifications = new Set();
 const activeWelcomePopups = new Set();
+const MIN_PLAYABLE_LANDSCAPE_HEIGHT = 500;
+let landscapeWarningTracker = null;
+let landscapeWarningShownForSession = false;
 
 export function nukeNotifications(clearAll = true) {
     if (clearAll) {
@@ -41,6 +46,18 @@ export function nukeNotifications(clearAll = true) {
         if (popup.fallbackTimeoutId) clearTimeout(popup.fallbackTimeoutId);
     }
     activeWelcomePopups.clear();
+
+    if (landscapeWarningTracker) {
+        if (landscapeWarningTracker.audio && typeof landscapeWarningTracker.audio.stop === 'function') {
+            landscapeWarningTracker.audio.stop();
+        }
+        if (landscapeWarningTracker.element) {
+            landscapeWarningTracker.element.remove();
+        }
+        if (landscapeWarningTracker.timeoutId) clearTimeout(landscapeWarningTracker.timeoutId);
+        if (landscapeWarningTracker.fallbackTimeoutId) clearTimeout(landscapeWarningTracker.fallbackTimeoutId);
+        landscapeWarningTracker = null;
+    }
 
     if (clearAll && container) {
         container.innerHTML = '';
@@ -154,6 +171,29 @@ export function showNotification(text, iconSrc, duration = 5000) {
 export function initNotifications() {
     if (typeof window === 'undefined') return;
     
+    if (IS_MOBILE) {
+        const checkOrientation = () => {
+            if (getActiveSlot() == null) {
+                hideLandscapeWarningPopup();
+                landscapeWarningShownForSession = false;
+                return;
+            }
+            if (window.innerWidth > window.innerHeight && window.innerHeight < MIN_PLAYABLE_LANDSCAPE_HEIGHT) {
+                if (!landscapeWarningShownForSession) {
+                    showLandscapeWarningPopup();
+                    landscapeWarningShownForSession = true;
+                }
+            } else {
+                hideLandscapeWarningPopup();
+                landscapeWarningShownForSession = false;
+            }
+        };
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+        // Initial check deferred slightly to ensure layout is ready
+        setTimeout(checkOrientation, 500);
+    }
+    
     window.addEventListener('lab:node:change', (e) => {
         const { id, level, suppressNotify } = e.detail || {};
         if (!id || level == null || suppressNotify) return;
@@ -221,4 +261,78 @@ export function showWelcomePopup(isMobile) {
             activeWelcomePopups.delete(popupTracker);
         }, 1200);
     }, 9000); // 1s enter + 8s wait = 9000ms
+}
+
+export function showLandscapeWarningPopup() {
+    if (landscapeWarningTracker) return;
+    
+    const parent = document.createElement('div');
+    parent.className = 'welcome-popup-container';
+    
+    const el = document.createElement('div');
+    el.className = 'welcome-popup notification-text';
+    
+    el.innerHTML = `This game is intended to be played in Portrait mode. Landscape mode may be unplayable.`;
+    
+    parent.appendChild(el);
+    document.body.appendChild(parent);
+    
+    const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+    
+    landscapeWarningTracker = {
+        element: parent,
+        el,
+        audio,
+        timeoutId: null,
+        fallbackTimeoutId: null
+    };
+    
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            el.classList.add('is-visible');
+        });
+    });
+    
+    landscapeWarningTracker.timeoutId = setTimeout(() => {
+        hideLandscapeWarningPopup();
+    }, 18000); // 18000ms
+}
+
+export function hideLandscapeWarningPopup() {
+    if (!landscapeWarningTracker) return;
+    
+    const tracker = landscapeWarningTracker;
+    landscapeWarningTracker = null;
+    
+    const { element: parent, el, timeoutId, fallbackTimeoutId } = tracker;
+    
+    if (timeoutId) clearTimeout(timeoutId);
+    if (fallbackTimeoutId) clearTimeout(fallbackTimeoutId);
+    
+    el.classList.remove('is-visible');
+    el.classList.add('is-leaving');
+    
+    const cleanup = () => {
+        if (parent.isConnected) {
+            parent.remove();
+        }
+    };
+    
+    el.addEventListener('transitionend', cleanup, { once: true });
+    
+    tracker.fallbackTimeoutId = setTimeout(() => {
+        if (parent.isConnected) {
+            parent.remove();
+        }
+    }, 1200);
+}
+
+export function triggerInitialLandscapeCheck() {
+    if (!IS_MOBILE) return;
+    if (getActiveSlot() == null) return;
+    landscapeWarningShownForSession = false;
+    if (window.innerWidth > window.innerHeight && window.innerHeight < MIN_PLAYABLE_LANDSCAPE_HEIGHT) {
+        showLandscapeWarningPopup();
+        landscapeWarningShownForSession = true;
+    }
 }
