@@ -1045,12 +1045,13 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   let bounce = 0;
 
   let topY = 0;
+  let glowOffsetX = 0;
   if (id === "core") topY = -200;
   else if (id === "crystal") topY = -(100 + tier * 10) - 30;
   else if (id === "stone") topY = -140;
   else if (id === "copper") topY = -90;
   else if (id === "iron") topY = -100;
-  else if (id === "pure_gold") topY = -60;
+  else if (id === "pure_gold") topY = -100; // Fixed vertical height for the glow
   else if (id === "diamond") topY = -120;
   else if (id === "emerald") topY = -130;
   else if (id === "ruby") topY = -100;
@@ -1065,10 +1066,10 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   ctx.save();
   const glowRadius = Math.abs(topY) * 0.8 + 40;
   const glowGrad = ctx.createRadialGradient(
-    0,
+    glowOffsetX,
     topY / 2,
     0,
-    0,
+    glowOffsetX,
     topY / 2,
     glowRadius,
   );
@@ -1076,7 +1077,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
   ctx.fillStyle = glowGrad;
   ctx.beginPath();
-  ctx.arc(0, topY / 2, glowRadius, 0, Math.PI * 2);
+  ctx.arc(glowOffsetX, topY / 2, glowRadius, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
