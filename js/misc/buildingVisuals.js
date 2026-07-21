@@ -6550,12 +6550,29 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.lineTo(cavernRadiusX, cy + 110);
       ctx.closePath();
       ctx.fill();
+      
+      // Draw subtle rising bubbles in the front layer
+      if (layerIdx === 0) {
+          ctx.save();
+          ctx.clip(); // Clip perfectly to the physics fluid surface
+          for (let i = 0; i < 40; i++) {
+              const bubbleT = (t * 0.2 + i * 0.37) % 1;
+              const bubbleX = -cavernRadiusX + ((i * 47) % (cavernRadiusX * 2)) + Math.sin(t * 2 + i) * 5;
+              const bubbleY = (cy + 110) - bubbleT * 160;
+              const bubbleRadius = 1.5 + (i % 3);
+              ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+              ctx.beginPath();
+              ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
+              ctx.fill();
+          }
+          ctx.restore();
+      }
   };
 
-  // Draw layers of fluid
-  drawPhysicsWave(2, 10, 10, 12, 1.0, 15);
-  drawPhysicsWave(1, 15, 15, 18, 1.0, 5);
-  drawPhysicsWave(0, 22, 22, 25, 1.0, -5);
+  // Draw layers of fluid (Refinery colors: 20,20,20)
+  drawPhysicsWave(2, 12, 12, 12, 1.0, 15);
+  drawPhysicsWave(1, 16, 16, 16, 1.0, 5);
+  drawPhysicsWave(0, 20, 20, 20, 1.0, -5);
 
   // Laser Impact Core Flash
   if (laserStrength > 0) {
@@ -6574,25 +6591,17 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.fill();
   }
   
-  ctx.restore(); // End fluid clip
-  
-  // Cavern rough edges/texture drawn over the fluid so it cleanly acts as a wall
-  ctx.strokeStyle = "#38291f";
-  ctx.lineWidth = 12;
-  ctx.stroke(cavernPath);
-  
-  ctx.restore(); // End general transform
+  ctx.restore(); // End fluid clip (pops SAVE 3)
   
   // Render Particles physically in front of the laser and derrick, but still inside the cavern
-  ctx.save();
-  if (scale) ctx.scale(1/scale, 1/scale);
+  ctx.save(); // Temporary save for the clip
   ctx.clip(cavernPath); // Don't let particles fly outside the 3D hole
   
   for (let i = 0; i < oilPhysicsParticles.length; i++) {
       let p = oilPhysicsParticles[i];
       let alpha = Math.max(0, p.life);
       
-      let r = 15, g = 15, b = 20; // Default dark oil color
+      let r = 20, g = 20, b = 20; // Default dark oil color (Refinery match)
       if (p.isHot) {
           // Hot glowing droplets blasted by the laser
           r = 255; 
@@ -6616,7 +6625,14 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.arc(p.x, p.y, p.mass * 1.5, 0, Math.PI * 2);
       ctx.fill();
   }
-  ctx.restore();
+  ctx.restore(); // End particle clip
+
+  // Cavern rough edges/texture drawn over the fluid and particles so it cleanly acts as a solid wall
+  ctx.strokeStyle = "#38291f";
+  ctx.lineWidth = 12;
+  ctx.stroke(cavernPath);
+
+  ctx.restore(); // End cavern transform (pops SAVE 2)
 
   // --- Tier 0: Diamond Derrick (A-Frame) ---
   if (t0 > 0) {
@@ -6859,15 +6875,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.fillStyle = `rgba(255, 255, 255, ${1.0 * t4})`;
     ctx.fillRect(-laserWidth/4, -190, laserWidth/2, beamHeight);
     
-    // Explosive contact sparks in the oil
-    ctx.fillStyle = "#ff5500";
-    for(let i=0; i<15; i++) {
-        const sx = (Math.random() - 0.5) * 40;
-        const sy = 130 + (Math.random() - 0.5) * 20;
-        const size = Math.random() * 4 + 2;
-        ctx.fillRect(sx, sy, size, size);
-    }
-    
     ctx.restore();
   }
 
@@ -7099,6 +7106,20 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     
     ctx.restore();
   }
+
+  // Draw the front (bottom) half of the cavern rim OVER everything (lasers, derricks, particles)
+  // This provides perfect 3D occlusion, making the laser pass "over" the back rim but "behind" the front rim.
+  ctx.save();
+  if (scale) ctx.scale(1/scale, 1/scale);
+  ctx.beginPath();
+  // cy is 130. We clip to only draw the bottom half of the screen
+  ctx.rect(-w, 130, w * 2, h); 
+  ctx.clip();
+  
+  ctx.strokeStyle = "#38291f";
+  ctx.lineWidth = 12;
+  ctx.stroke(cavernPath);
+  ctx.restore();
 
   ctx.restore();
 }
