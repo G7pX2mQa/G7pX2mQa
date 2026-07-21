@@ -14,6 +14,12 @@ import { settingsManager } from '../../game/settingsManager.js';
 
 const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
 const BUILDING_ITEM_UNLOCKED_KEY_BASE = 'ccc:buildingItemUnlocked';
+const BUILDING_LEVEL_KEY_BASE = 'ccc:buildingLevel';
+
+export const BUILDING_IDS = [
+    'core', 'crystal', 'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
+    'emerald', 'ruby', 'sapphire', 'unobtainium', 'prismatium'
+];
 
 export function isBuildingUnlocked(id) {
   const slotKey = String(getActiveSlot() ?? 'default');
@@ -66,6 +72,12 @@ export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
         localStorage.setItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`, '1');
       } else {
         localStorage.removeItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`);
+        
+        // Reset all building levels and individual unlock states when the tab is locked
+        BUILDING_IDS.forEach(id => {
+          localStorage.removeItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
+          localStorage.removeItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`);
+        });
       }
       window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "buildings", slot } }));
     } catch {}
@@ -874,13 +886,6 @@ function closeMysteriousBuildingOverlay() {
 
 
 // ----------------- Building Math & State ----------------- //
-
-const BUILDING_LEVEL_KEY_BASE = 'ccc:buildingLevel';
-
-export const BUILDING_IDS = [
-    'core', 'crystal', 'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
-    'emerald', 'ruby', 'sapphire', 'unobtainium', 'prismatium'
-];
 
 export function getBuildingLevel(id) {
     const slotKey = String(getActiveSlot() ?? 'default');
