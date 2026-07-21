@@ -1266,10 +1266,12 @@ registerFrame((time, dt) => {
                  if (crystal.side === 'left') {
                      const targetMaxX = trackStartX - 15;
                      cx = targetMaxX * crystal.baseXOffset;
+                     cx = Math.max(cx, 25);
                  } else {
                      const targetMinX = trackEndX + 15;
                      const availableWidth = width - targetMinX;
                      cx = width - (availableWidth * crystal.baseXOffset);
+                     cx = Math.min(cx, width - 25);
                  }
                  
                  if (crystal.cachedImage) {
