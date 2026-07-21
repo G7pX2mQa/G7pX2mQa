@@ -592,6 +592,7 @@ function getXpLevelNumber() {
 }
 
 function ensureResetSlot() {
+  if (resetState.slot != null) return resetState.slot;
   const slot = getActiveSlot();
   resetState.slot = slot;
   return slot;
@@ -1455,9 +1456,18 @@ function endTsunamiSequence() {
     
     // 5. Resume spawning
     if (window.spawner && typeof window.spawner.start === 'function') {
-        window.spawner.start();
-        if (typeof window.spawner.playEntranceWave === 'function') {
-            window.spawner.playEntranceWave();
+        const startSpawner = () => {
+            if (window.spawner && typeof window.spawner.start === 'function') {
+                window.spawner.start();
+                if (typeof window.spawner.playEntranceWave === 'function') {
+                    window.spawner.playEntranceWave();
+                }
+            }
+        };
+        if (window.isMusicPlaying && window.isMusicPlaying()) {
+            startSpawner();
+        } else {
+            window.addEventListener('music:started', startSpawner, { once: true });
         }
     }
     
