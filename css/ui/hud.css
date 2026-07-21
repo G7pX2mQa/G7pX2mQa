@@ -425,6 +425,7 @@ pointer-events:none;
 
 .coin-amount, .scrap-amount{
 position: relative;
+left: -1px;
 z-index: 1;
 font-weight: 900;
 white-space: nowrap;
