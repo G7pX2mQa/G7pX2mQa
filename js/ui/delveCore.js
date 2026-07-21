@@ -792,9 +792,12 @@ export function openDelveOverlay(overlayEl, sheetEl) {
                     // since the actual tab switching logic might be handled by the specific overlay.
                     allTabs.forEach(tab => {
                         tab.addEventListener('click', () => {
+                            const currentSlot = getActiveSlot();
+                            if (currentSlot == null) return;
+                            const currentTabKey = `ccc:delveTab:${overlayId}:${currentSlot}`;
                             const targetTab = tab.dataset.tab;
                             if (targetTab && !tab.disabled && !tab.classList.contains('is-locked')) {
-                                try { localStorage.setItem(tabKey, targetTab); } catch {}
+                                try { localStorage.setItem(currentTabKey, targetTab); } catch {}
                             }
                             // Automatically update the main custom scrollbar on tab switch
                             requestAnimationFrame(() => {
