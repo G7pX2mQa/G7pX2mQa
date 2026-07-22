@@ -84,6 +84,7 @@ let copperPattern = null;
 let ironPattern = null;
 let pureGoldPattern = null;
 let diamondPattern = null;
+let darkDiamondPattern = null;
 
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
@@ -112,45 +113,25 @@ function initDiamondPattern(ctx) {
   pCtx.fillStyle = "#00FFFF"; // brighter cyan base
   pCtx.fillRect(0, 0, 64, 64);
 
-  // Fine, uniform noise grain to match reference image (subtle)
+  // Fine, uniform noise grain to match reference image
   const imgData = pCtx.getImageData(0, 0, 64, 64);
   const data = imgData.data;
   
   for (let i = 0; i < data.length; i += 4) {
-    const x = (i / 4) % 64;
-    const y = Math.floor((i / 4) / 64);
     const noise = Math.random();
     
-    // Base cyan is R:0, G:255, B:255
-    let r = 0;
-    let g = 255;
-    let b = 255;
-
-    // Weave pattern effect (very subtle criss-cross)
-    const isHorizontalGrain = (y % 2 === 0);
-    const isVerticalGrain = (x % 2 === 0);
+    // Smooth random mix of light blues and cyans
+    // Mix between #5acde2 (90, 205, 226) and #b2f0f8 (178, 240, 248)
+    const baseR = 90 + noise * 88;
+    const baseG = 205 + noise * 35;
+    const baseB = 226 + noise * 22;
     
-    if (isHorizontalGrain && isVerticalGrain) {
-      // Intersection: lightest (very subtle)
-      if (noise > 0.5) { r = 35; g = 255; b = 255; }
-      else { r = 20; g = 255; b = 255; }
-    } else if (isHorizontalGrain || isVerticalGrain) {
-      // Line: darker (very subtle)
-      if (noise > 0.5) { r = 0; g = 235; b = 240; }
-      else { r = 0; g = 240; b = 245; }
-    } else {
-      // Gap: darkest speckles (subtle)
-      if (noise > 0.8) { r = 0; g = 225; b = 230; }
-      else if (noise > 0.4) { r = 0; g = 230; b = 235; }
-    }
-    
-    // Add some random noise variations (extremely subtle so they don't look like large dots)
-    if (noise > 0.985) { r = 50; g = 255; b = 255; } // Occasional light fleck
-    if (noise < 0.015) { r = 0; g = 215; b = 220; } // Occasional darker fleck
+    // Add tiny extra noise for that grainy feel
+    const speckle = (Math.random() - 0.5) * 20;
 
-    data[i] = r;
-    data[i+1] = g;
-    data[i+2] = b;
+    data[i] = Math.max(0, Math.min(255, baseR + speckle));
+    data[i+1] = Math.max(0, Math.min(255, baseG + speckle));
+    data[i+2] = Math.max(0, Math.min(255, baseB + speckle));
     data[i+3] = 255; // Alpha
   }
   pCtx.putImageData(imgData, 0, 0);
@@ -161,6 +142,48 @@ function initDiamondPattern(ctx) {
       diamondPattern = targetCtx.createPattern(patternCanvas, "repeat");
     } catch (e) {
       console.error("Failed to create diamond pattern", e);
+    }
+  }
+}
+
+function initDarkDiamondPattern(ctx) {
+  if (darkDiamondPattern) return;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = 64;
+  patternCanvas.height = 64;
+  const pCtx = patternCanvas.getContext("2d");
+
+  // Darker base cyan color for drill
+  pCtx.fillStyle = "#008888"; 
+  pCtx.fillRect(0, 0, 64, 64);
+
+  const imgData = pCtx.getImageData(0, 0, 64, 64);
+  const data = imgData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = Math.random();
+    
+    // Darker mix for dark diamond
+    const baseR = 43 + noise * 33;
+    const baseG = 120 + noise * 51;
+    const baseB = 134 + noise * 57;
+    
+    const speckle = (Math.random() - 0.5) * 15;
+
+    data[i] = Math.max(0, Math.min(255, baseR + speckle));
+    data[i+1] = Math.max(0, Math.min(255, baseG + speckle));
+    data[i+2] = Math.max(0, Math.min(255, baseB + speckle));
+    data[i+3] = 255; 
+  }
+  pCtx.putImageData(imgData, 0, 0);
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      darkDiamondPattern = targetCtx.createPattern(patternCanvas, "repeat");
+    } catch (e) {
+      console.error("Failed to create dark diamond pattern", e);
     }
   }
 }
@@ -6255,7 +6278,13 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   } else if (!diamondPattern) {
     initDiamondPattern(ctx);
   }
+  if (!darkDiamondPattern && activeCtx) {
+    initDarkDiamondPattern(activeCtx);
+  } else if (!darkDiamondPattern) {
+    initDarkDiamondPattern(ctx);
+  }
   const fillDiamond = diamondPattern ? diamondPattern : "#8be9ed";
+  const fillDarkDiamond = darkDiamondPattern ? darkDiamondPattern : "#008888";
   
   // Progress helpers for smooth fading
   const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
@@ -6382,6 +6411,33 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       for (let i = 0; i < numNodes; i++) {
           if (i > 0) oilPhysicsNodes[i - 1].y += lDeltas[i];
           if (i < numNodes - 1) oilPhysicsNodes[i + 1].y += rDeltas[i];
+      }
+  }
+
+  // Drill Interaction (Tier 0-3)
+  if (t4 < 1) {
+      let drillTipY = (130 / scale) + 15;
+      
+      for (let i = 0; i < numNodes; i++) {
+          let px = -cavernRadiusX + i * 10;
+          if (Math.abs(px) <= 20) {
+              if (oilPhysicsNodes[i].y < drillTipY) {
+                  let force = (drillTipY - oilPhysicsNodes[i].y) * 0.1;
+                  oilPhysicsNodes[i].vy += force + 0.5;
+                  
+                  if (Math.random() < 0.02) { // Less splashing since it doesn't bounce
+                      oilPhysicsParticles.push({
+                          x: px + (Math.random() - 0.5) * 10,
+                          y: oilPhysicsNodes[i].y,
+                          vx: (Math.random() - 0.5) * 5,
+                          vy: -Math.random() * 8 - 2,
+                          mass: Math.random() * 2 + 1,
+                          life: 1.0,
+                          isHot: false
+                      });
+                  }
+              }
+          }
       }
   }
 
@@ -6655,14 +6711,15 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.save();
     
     // Main drill shaft going down
-    let drillY = (t4 > 0) ? 0 : Math.sin(t * 5) * 5;
+    let drillY = 0;
     
     // Physical drill bit (disappears / replaced at Tier 4)
     if (t4 < 1) {
         let drillBottom = 130 / scale;
-        let drillLength = drillBottom - drillY;
+        // Drill body stretches dynamically
+        let drillLength = drillBottom + 15; 
         
-        ctx.fillStyle = fillDiamond;
+        ctx.fillStyle = fillDarkDiamond;
         // Drill body
         ctx.fillRect(-15, drillY, 30, drillLength - 30);
         
@@ -6674,27 +6731,30 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.closePath();
         ctx.fill();
         
-        ctx.fillStyle = "#220000";
-        ctx.strokeStyle = "#440000";
+        ctx.fillStyle = fillDarkDiamond;
+        ctx.strokeStyle = "#005555";
         ctx.lineWidth = 2;
         ctx.fillRect(-8, -40 + drillY, 16, drillLength + 40 - 30);
         ctx.strokeRect(-8, -40 + drillY, 16, drillLength + 40 - 30);
         
-        // Drill grooves
-        let numGrooves = Math.floor((drillLength - 30) / 6);
-        for(let i=0; i<numGrooves; i++) {
-            let gy = drillY + 10 + i*6;
-            ctx.beginPath();
-            ctx.moveTo(-15, gy);
-            ctx.lineTo(15, gy + 4);
-            ctx.stroke();
+        // Drill grooves - animate them to simulate rotation
+        let grooveOffset = (t * 40) % 6; 
+        let numGrooves = Math.floor((drillLength - 30) / 6) + 1; // Extra groove to cover offset
+        for(let i=-1; i<numGrooves; i++) {
+            let gy = drillY + grooveOffset + i*6;
+            if (gy > drillY && gy < drillY + drillLength - 30) {
+                ctx.beginPath();
+                ctx.moveTo(-15, gy);
+                ctx.lineTo(15, gy + 4);
+                ctx.stroke();
+            }
         }
     }
     
     // Traditional Oil Derrick (A-Frame) made of Diamond
     ctx.fillStyle = fillDiamond;
-    ctx.strokeStyle = "#aa0000"; // Red outlines for that laser theme
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = fillDiamond; // Use diamond texture for the supports
+    ctx.lineWidth = 3; // Slightly thicker so the pattern is visible on lines
     
     // Derrick legs
     ctx.beginPath();
