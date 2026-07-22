@@ -6432,7 +6432,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.translate(spinOffsetX, spinOffsetY);
       for(let i=-2; i<numGrooves; i++) {
           let gy = drillY + grooveOffset + i*8;
-          if (gy > drillY && gy < drillY + drillLength - 20) {
+          if (gy > drillY && gy < drillY + drillLength - 35) {
               ctx.beginPath();
               ctx.moveTo(-15 - spinOffsetX, gy - 2 - spinOffsetY);
               ctx.quadraticCurveTo(0 - spinOffsetX, gy + 3 - spinOffsetY, 15 - spinOffsetX, gy + 6 - spinOffsetY);
