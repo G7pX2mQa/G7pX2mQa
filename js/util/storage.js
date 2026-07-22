@@ -934,3 +934,30 @@ if (typeof window !== 'undefined') {
     window[currency] = bank[currency];
   }
 }
+
+export function incrementResetStat(resetName) {
+  try {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const statKey = `ccc:stats:${resetName}Resets:${slot}`;
+    
+    let count = BigNum.fromAny(localStorage.getItem(statKey) || 0);
+    count = count.add(1);
+    
+    // Store as BigNum string, checking for infinity explicitly to match BN representation
+    const valToStore = count.inf ? "BN:infinite" : count.toString();
+    localStorage.setItem(statKey, valToStore);
+    
+    // Add to list of performed resets
+    const listKey = `ccc:stats:performedResets:${slot}`;
+    const listRaw = localStorage.getItem(listKey);
+    let list = [];
+    if (listRaw) {
+        try { list = JSON.parse(listRaw); } catch {}
+    }
+    if (!list.includes(resetName)) {
+        list.push(resetName);
+        localStorage.setItem(listKey, JSON.stringify(list));
+    }
+  } catch {}
+}
