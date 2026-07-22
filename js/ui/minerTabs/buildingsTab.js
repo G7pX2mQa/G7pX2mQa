@@ -1261,7 +1261,7 @@ export function initBuildingOverlay() {
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
     costRow.style.margin = "0";
-    costRow.style.marginTop = "calc(50px - 0.9em)";
+    costRow.style.marginTop = "calc(52px - 0.9em)";
     costRow.style.padding = "0";
     costRow.className = "upg-line";
     costRow.style.lineHeight = "0.9";
@@ -1271,7 +1271,7 @@ export function initBuildingOverlay() {
     const walletRow = document.createElement("div");
     walletRow.id = "building-detail-wallet-row";
     walletRow.style.margin = "0";
-    walletRow.style.marginTop = "calc(37px - 0.9em)";
+    walletRow.style.marginTop = "calc(39px - 0.9em)";
     walletRow.style.padding = "0";
     walletRow.className = "upg-line";
     walletRow.style.lineHeight = "0.9";
@@ -1334,6 +1334,33 @@ export function initBuildingOverlay() {
     sheet.append(grabber, header, content, actions);
     overlayEl.appendChild(sheet);
     document.body.appendChild(overlayEl);
+
+    const actionsObserver = new ResizeObserver(() => {
+        const btns = Array.from(actions.children).filter(b => window.getComputedStyle(b).display !== 'none');
+        if (btns.length === 0) return;
+        
+        let wrapped = false;
+        if (btns.length > 1) {
+            const firstRect = btns[0].getBoundingClientRect();
+            const lastRect = btns[btns.length - 1].getBoundingClientRect();
+            if (lastRect.top > firstRect.top + 10) {
+                wrapped = true;
+            }
+        }
+        
+        const actionsHeight = actions.offsetHeight || 130;
+        
+        if (wrapped) {
+            costRow.style.setProperty('margin-top', '4px', 'important');
+            walletRow.style.setProperty('margin-top', '0px', 'important');
+            textContainer.style.setProperty('bottom', (actionsHeight + 29) + 'px', 'important');
+        } else {
+            costRow.style.setProperty('margin-top', 'calc(52px - 0.9em)', 'important');
+            walletRow.style.setProperty('margin-top', 'calc(39px - 0.9em)', 'important');
+            textContainer.style.setProperty('bottom', '177px', 'important');
+        }
+    });
+    actionsObserver.observe(actions);
     
     overlayEl.addEventListener('pointerdown', (e) => {
         if (e.target === overlayEl) {
