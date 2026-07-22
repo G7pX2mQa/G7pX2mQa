@@ -6357,9 +6357,11 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       
       // Draw moving texture
       ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDarkDiamond;
+      ctx.fillStyle = fillDiamond;
       ctx.fillRect(-15 - spinOffsetX, drillY - 20 - spinOffsetY - 64, 30 + 64, drillLength + 200);
       ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
+      
+
       
       // Edge shading to give it a 3D cylindrical look (applied to whole shape, clipped to tip)
       let grad = ctx.createLinearGradient(-15, 0, 15, 0);
@@ -6375,12 +6377,12 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.save();
       ctx.beginPath();
       // Starts from the top of the chuck (-15)
-      ctx.rect(-8, -60 + drillY, 16, 60 - 15);
+      ctx.rect(-8, -60 + drillY, 16, 60 - 15 + 1); // +1 to prevent subpixel gap
       ctx.clip();
       
       // Draw moving texture
       ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDarkDiamond;
+      ctx.fillStyle = fillDiamond;
       ctx.fillRect(-8 - spinOffsetX, -60 + drillY - spinOffsetY - 64, 16 + 64, 60 + 200);
       ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
       
@@ -6391,7 +6393,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       gradUpper.addColorStop(0.8, "rgba(0,0,0,0)");
       gradUpper.addColorStop(1, "rgba(0,0,0,0.45)");
       ctx.fillStyle = gradUpper;
-      ctx.fillRect(-8, -60 + drillY, 16, 60 - 15);
+      ctx.fillRect(-8, -60 + drillY, 16, 60 - 15 + 1); // +1 to prevent subpixel gap
       ctx.restore();
 
       // Top Drive Mechanism (motor that spins the drill)
@@ -6402,14 +6404,16 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       
       // Draw moving texture to match the drill material
       ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDarkDiamond;
+      ctx.fillStyle = fillDiamond;
       ctx.fillRect(-15 - spinOffsetX, -90 + drillY - spinOffsetY - 64, 30 + 64, 30 + 200);
       ctx.translate(-spinOffsetX, -spinOffsetY);
       
       // Mechanical bands (drawn before shading so they look curved!)
-      ctx.fillStyle = "#111"; 
-      ctx.fillRect(-15, -85 + drillY, 30, 5);
-      ctx.fillRect(-15, -70 + drillY, 30, 5);
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDarkDiamond; 
+      ctx.fillRect(-15 - spinOffsetX, -85 + drillY - spinOffsetY, 30, 5);
+      ctx.fillRect(-15 - spinOffsetX, -70 + drillY - spinOffsetY, 30, 5);
+      ctx.translate(-spinOffsetX, -spinOffsetY);
       
       // Edge shading for the top drive (uses the same gradient as the 30px main body)
       ctx.fillStyle = grad; 
@@ -6417,7 +6421,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.restore();
       
       // Cables suspending the top drive from the crown block
-      ctx.strokeStyle = "#555";
+      ctx.strokeStyle = fillDiamond;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(-10, -200);
