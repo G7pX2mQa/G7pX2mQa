@@ -1464,8 +1464,8 @@ function openHmMilestoneDialog(lines) {
     const li = document.createElement('li');
     const text = document.createElement('span');
     text.className = 'hm-milestone-text';
-    if (line && typeof line === 'object') { text.innerHTML = line.text ?? ''; if (line.achieved) li.classList.add('hm-milestone-achieved'); } 
-    else { text.innerHTML = line; }
+    if (line && typeof line === 'object') { setHtmlOrText(text, line.text ?? ''); if (line.achieved) li.classList.add('hm-milestone-achieved'); } 
+    else { setHtmlOrText(text, line); }
     li.appendChild(text); list.appendChild(li);
   }
   const closeBtn = document.createElement('button');
@@ -1908,13 +1908,13 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                         try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; } catch {}
                         return false; 
                      })();
-                     let text = `Level&nbsp;${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
-                     if (target === 'xp') text = `Level&nbsp;${levelText}: Multiplies XP value by ${mult}x`;
-                     if (target === 'coin'||target==='coins') text = `Level&nbsp;${levelText}: Multiplies Coin value by ${mult}x`;
-                     if (target === 'mp') text = `Level&nbsp;${levelText}: Multiplies MP value by ${mult}x`;
-                     if (target === 'scrap') text = `Level&nbsp;${levelText}: Multiplies Scrap value by ${mult}x`;
-                     if (target === 'dp') text = `Level&nbsp;${levelText}: Multiplies DP value by ${mult}x`;
-                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level&nbsp;${levelText}: Multiplies Material value by ${mult}x`;
+                     let text = `Level\u00A0${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
+                     if (target === 'xp') text = `Level\u00A0${levelText}: Multiplies XP value by ${mult}x`;
+                     if (target === 'coin'||target==='coins') text = `Level\u00A0${levelText}: Multiplies Coin value by ${mult}x`;
+                     if (target === 'mp') text = `Level\u00A0${levelText}: Multiplies MP value by ${mult}x`;
+                     if (target === 'scrap') text = `Level\u00A0${levelText}: Multiplies Scrap value by ${mult}x`;
+                     if (target === 'dp') text = `Level\u00A0${levelText}: Multiplies DP value by ${mult}x`;
+                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level\u00A0${levelText}: Multiplies Material value by ${mult}x`;
                      return { text, achieved };
                  });
                  openHmMilestoneDialog(lines);
