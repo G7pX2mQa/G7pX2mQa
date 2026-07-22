@@ -1615,13 +1615,13 @@ function updateFlowVisuals() {
             if (elLvl) {
                  if (elLvl.style.display === 'none') elLvl.style.display = '';
                  const newText = formatNumber(ch.level);
-                 if (elLvl.innerHTML !== newText) setHtmlOrText(elLvl, newText);
+                 setHtmlOrText(elLvl, newText);
             }
             if (elEffect) {
                 if (elEffect.style.display === 'none') elEffect.style.display = '';
                 const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
                 const newText = `+${formatNumber(effectVal)}%`;
-                if (elEffect.innerHTML !== newText) setHtmlOrText(elEffect, newText);
+                setHtmlOrText(elEffect, newText);
             }
             if (elControls) {
                 if (elControls.style.display === 'none') elControls.style.display = '';
