@@ -15,6 +15,7 @@ import { setupDragToClose } from '../../shopOverlay.js';
 // Import tabs logic
 import { initSecretAchievementsTab, updateSecretAchievementsTab } from './secretAchievementsTab.js';
 import { initVoidGemAltarTab, updateVoidGemAltarTab } from './voidGemAltarTab.js';
+import { initMiscStatsTab, updateMiscStatsTab } from './miscStatsTab.js';
 import { settingsManager } from '../../../game/settingsManager.js';
 
 const TAB_KEY_BASE = 'ccc:achievementExtrasTab';
@@ -23,6 +24,7 @@ const TABS_DEF = [
   { key: 'rainbow', label: 'Rainbow Gem Shop', unlocked: true },
   { key: 'secret', label: 'Secret Achievements', unlocked: true },
   { key: 'void', label: 'Void Gem Altar', unlocked: false, lockedLabel: '???' },
+  { key: 'misc', label: 'Miscellaneous Stats', unlocked: true },
 ];
 
 const tabUnlockState = new Map();
@@ -107,6 +109,9 @@ function selectTab(key) {
   if (key === 'void') {
       try { updateVoidGemAltarTab(); } catch {}
   }
+  if (key === 'misc') {
+      try { updateMiscStatsTab(); } catch {}
+  }
 
   try { localStorage.setItem(sk(TAB_KEY_BASE), key); } catch {}
 
@@ -168,6 +173,10 @@ export function ensureOverlay() {
     panelVoid.className = 'merchant-panel';
     panelVoid.id = 'ae-panel-void';
 
+    const panelMisc = document.createElement('section');
+    panelMisc.className = 'merchant-panel';
+    panelMisc.id = 'ae-panel-misc';
+
     syncVoidTabUnlockState();
 
     TABS_DEF.forEach(def => {
@@ -208,14 +217,16 @@ export function ensureOverlay() {
     tabsState.panels['rainbow'] = panelRainbow;
     tabsState.panels['secret'] = panelSecret;
     tabsState.panels['void'] = panelVoid;
+    tabsState.panels['misc'] = panelMisc;
     tabsState.tablist = tabs;
 
-    panelsWrap.append(panelRainbow, panelSecret, panelVoid);
+    panelsWrap.append(panelRainbow, panelSecret, panelVoid, panelMisc);
     content.append(tabs, panelsWrap);
 
     try { initRainbowGemShopTab(panelRainbow); } catch {}
     try { initSecretAchievementsTab(panelSecret); } catch {}
     try { initVoidGemAltarTab(panelVoid); } catch {}
+    try { initMiscStatsTab(panelMisc); } catch {}
     const progressRow = document.createElement("div");
     progressRow.id = "secret-achievements-progress-row";
     progressRow.className = "achievements-progress-row";
