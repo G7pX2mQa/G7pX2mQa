@@ -1,111 +1,147 @@
-/* css/ui/popups.css */
-
-.currency-popups {
-  position: fixed;
-  top: 30vh; /* centered vertically, slightly above midpoint */
-  right: calc(env(safe-area-inset-right) + 16px);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  pointer-events: none;
-  z-index: 1600;
-  font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+.notification-container {
+    position: fixed;
+    top: 15vh;
+    right: -5px; /* Hide the right border offscreen */
+    z-index: 2147483645;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: none;
+    gap: 10px;
+    padding-left: 16px;
+    padding-right: 0;
 }
 
-.currency-popup {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #fff;
-  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
-  font-weight: 800;
-  line-height: 1;
-  opacity: 0;
-  transform: translateX(16px);
-  transition: opacity 180ms ease, transform 180ms ease;
-  white-space: nowrap;
-  pointer-events: none;
+.notification {
+    background-color: #ada382;
+    border: 1px solid #ffeb3b;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    width: min(400px, 90vw);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    
+    transform: translateX(120%);
+    /* opacity: 0; removed to disable fade */
+    /* Enter transition: 0.5s */
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    pointer-events: none;
 }
 
-.currency-popup.is-visible { opacity: 1; transform: translateX(0); }
-.currency-popup.is-leaving { opacity: 0; transform: translateX(16px); }
-
-.currency-popup__plus,
-.currency-popup__amount {
-  text-shadow:
-    0 0.5px 0 #000,
-    0 -0.5px 0 #000,
-    0.5px 0 0 #000,
-    -0.5px 0 0 #000,
-    0.5px 0.5px 0 #000,
-    -0.5px 0.5px 0 #000,
-    0.5px -0.5px 0 #000,
-    -0.5px -0.5px 0 #000,
-    0 1px 0 rgba(0,0,0,0.55);
+.notification.is-visible {
+    transform: translateX(0);
+    /* opacity: 1; removed */
 }
 
-.currency-popup__plus {
-  font-size: 1.1em;
-  margin-right: -2px;
-  position: relative;
-  top: -2px;
+.notification.is-leaving {
+    transform: translateX(120%);
+    /* opacity: 0; removed */
+    /* Leave transition: 1s */
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.currency-popup__icon {
-  width: clamp(20px, 2.2vw, 26px);
-  height: clamp(20px, 2.2vw, 26px);
-  flex: 0 0 auto;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45));
-  position: relative;
-  top: 1.5px;
-  margin-right: 2px;
+.notification-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
 }
 
-.currency-popup__text {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 800;
+.notification-text {
+    color: #fff;
+    font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    font-weight: 900;
+    text-shadow: 
+        -1px -1px 0 #000,  
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 2px rgba(0,0,0,0.5);
+    line-height: 1.2;
+    word-break: break-word;
 }
 
-.currency-popup__amount { display: inline-block; min-width: 0; }
+.notification-subtext {
+    font-size: 0.79em;
+    font-weight: 600;
+    color: #fff;
+    -webkit-text-stroke: 0;
+    text-shadow: 
+        -0.5px -0.5px 0 #000,  
+        0.5px -0.5px 0 #000,
+        -0.5px 0.5px 0 #000,
+        0.5px 0.5px 0 #000,
+        0 1px 1px rgba(0,0,0,0.5);
+}
 
-.currency-popup__amount .infinity-symbol { top: -2px; }
+/* Welcome popup styles */
+.welcome-popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 2147483645;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+}
 
-@media (pointer: fine) {
-  .currency-popup__plus,
-  .currency-popup__amount {
-    -webkit-text-fill-color: #fff;
-    -webkit-text-stroke: 1px rgba(0,0,0,0.95);
-    text-stroke: 1x rgba(0,0,0,0.95);
-    text-shadow: 0 1px 0 rgba(0,0,0,0.25);
-  }
+.welcome-popup {
+    background-color: #ada382;
+    border: 1px solid #ffeb3b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 14px 20px;
+    width: max-content;
+    max-width: 90vw;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    
+    position: absolute;
+    top: 0;
+    transform: translateY(-120%);
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    pointer-events: none;
+}
+
+.welcome-popup.is-visible {
+    /* Slightly under the coin bar, e.g. 80px or 12vh down. Assuming coin bar is near the top */
+    transform: translateY(12vh);
+}
+
+.welcome-popup.is-leaving {
+    transform: translateY(-120%);
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.welcome-popup-text {
+    color: #fff;
+    font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    font-weight: 900;
+    -webkit-text-stroke: 1px #000;
+    text-stroke: 1px #000;
+    line-height: 1.2;
+    word-break: break-word;
 }
 
 @media (pointer: coarse) {
-  .currency-popups {
-    top: 30vh;
-    right: calc(env(safe-area-inset-right) + 12px);
-    gap: 8px;
-  }
-  .currency-popup {
-    font-size: clamp(1rem, 4.2vw, 1.3rem);
-    gap: 5px;
-  }
-  .currency-popup__icon {
-    width: clamp(18px, 5vw, 22px);
-    height: clamp(18px, 5vw, 22px);
-  }
-  .currency-popup__plus {
-    top: 1px;
-  }
-  .currency-popup__amount {
-    position: relative;
-    top: 1px;
-  }
-}
-@media (pointer: coarse) and (min-width: 1000px), (pointer: coarse) and (orientation: portrait) and (min-width: 600px) {
-  .currency-popup__amount {
-    top: 2px;
-  }
+    .welcome-popup-text {
+        -webkit-text-stroke: 0 !important;
+        text-stroke: 0 !important;
+        text-shadow:
+            0     1px 0 #000,   0    -1px 0 #000,
+            1px 0     0 #000,  -1px 0     0 #000,
+            1px 1px 0 #000,   1px -1px 0 #000,
+           -1px 1px 0 #000,  -1px -1px 0 #000;
+    }
 }
