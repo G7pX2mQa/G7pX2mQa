@@ -153,13 +153,17 @@
   white-space: normal;
 }
 
-@media (max-width: 1500px) {
-  #building-detail-overlay .upg-line {
-    font-size: clamp(14px, 3.5vw, 32px) !important;
-  }
-  #building-detail-level-text {
-    font-size: clamp(16px, 4vw, 28px) !important;
-  }
+#building-detail-overlay .upg-line {
+  font-size: clamp(14px, 3.33vw, 50px) !important;
+}
+#building-detail-level-text {
+  font-size: clamp(16px, 4vw, 28px) !important;
+}
+#building-detail-overlay .upg-costs {
+  bottom: clamp(167px, calc(1vw + 162px), 177px) !important;
+}
+#building-detail-cost-row {
+  margin-top: calc(clamp(50px, calc(54.5px - 0.3vw), 53px) - 0.9em) !important;
 }
 
 .buildings-tab .shop-upgrade {
