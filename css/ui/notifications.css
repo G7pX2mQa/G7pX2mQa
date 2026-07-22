@@ -101,7 +101,8 @@
     justify-content: center;
     text-align: center;
     padding: 14px 20px;
-    width: 90vw;
+    width: max-content;
+    max-width: 90vw;
     box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     
     position: absolute;
