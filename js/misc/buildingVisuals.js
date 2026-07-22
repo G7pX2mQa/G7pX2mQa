@@ -6310,6 +6310,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   // 130 is exactly halfway down the 260px underground area (floorY is at h - 260)
   let cy = 130; 
   let cavernRadiusX = w * 0.45; // 90% of viewport width
+  cavernRadiusX = Math.round(cavernRadiusX / 10) * 10; // Snap to nearest 10 to ensure perfectly symmetric physics nodes around x=0
   
   // Drill shaft down to the cavern (barely wide enough for drill)
   ctx.fillStyle = "#050302"; // Deep cavern darkness
@@ -6554,22 +6555,33 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 
   // Drill Interaction (Tier 0-3) Particles
   if (t4 < 1) {
-      for (let i = 0; i < numNodes; i++) {
-          let px = -cavernRadiusX + i * 10;
-          if (Math.abs(px) <= 35) { // Tighter splash area
-              if (Math.random() < 0.3) {
-                  let isLeft = px < 0;
-                  oilPhysicsParticles.push({
-                      x: px + (Math.random() - 0.5) * 15,
-                      y: oilPhysicsNodes[i].y,
-                      vx: (isLeft ? -1 : 1) * (Math.random() * 6 + 2), // Less horizontal, more vertical
-                      vy: -Math.random() * 16 - 6, // Channel spray upwards due to tight walls
-                      mass: Math.random() * 2 + 1,
-                      life: 1.0,
-                      isHot: false
-                  });
-              }
+      // Spawn particles symmetrically, independent of node alignment which could cause lopsided splashing
+      let numToSpawn = 0;
+      for(let k=0; k<7; k++) {
+          if (Math.random() < 0.3) numToSpawn++;
+      }
+      for(let i=0; i<numToSpawn; i++) {
+          let px = (Math.random() - 0.5) * 50; // -25 to 25
+          let isLeft = px < 0;
+          
+          // Find approximate liquid height at this x coordinate
+          let nodeIdx = Math.floor((px + cavernRadiusX) / 10);
+          let py = baseLiquidLevel;
+          if (nodeIdx >= 0 && nodeIdx < numNodes) {
+              py = oilPhysicsNodes[nodeIdx].y;
+          } else {
+              py = drillTipY;
           }
+
+          oilPhysicsParticles.push({
+              x: px,
+              y: py,
+              vx: (isLeft ? -1 : 1) * (Math.random() * 6 + 2), // Less horizontal, more vertical
+              vy: -Math.random() * 16 - 6, // Channel spray upwards due to tight walls
+              mass: Math.random() * 2 + 1,
+              life: 1.0,
+              isHot: false
+          });
       }
   }
 
