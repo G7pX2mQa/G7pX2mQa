@@ -727,7 +727,7 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
           combineLayerBtn.classList.add('is-active');
           compressLayerBtn.classList.remove('is-active');
           if (resetState.elements.combine.card) {
-              const scrollContainer = resetState.elements.combine.card.closest('.miner-reset');
+              const scrollContainer = resetState.elements.combine.card.closest('.merchant-content');
               if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
               else resetState.elements.combine.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
