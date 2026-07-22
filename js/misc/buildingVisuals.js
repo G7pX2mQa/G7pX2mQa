@@ -6341,7 +6341,22 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       let spinOffsetX = (t * 80) % 64;
       let spinOffsetY = (t * 40) % 64;
       
-      // Main drill body clipping path (for moving texture and shading)
+      // 1. Narrow upper shaft (drawn first, extended to overlap underneath the top drive and chuck)
+      ctx.save();
+      ctx.beginPath();
+      // Start higher (-65) to overlap top drive, go all the way to drillY to overlap chuck (height 65)
+      ctx.rect(-8, -65 + drillY, 16, 65);
+      ctx.clip();
+      
+      // Draw moving texture
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDiamond;
+      ctx.fillRect(-8 - spinOffsetX, -65 + drillY - spinOffsetY - 64, 16 + 64, 65 + 200);
+      ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
+      
+      ctx.restore();
+
+      // 2. Main drill body clipping path (for moving texture and shading)
       ctx.beginPath();
       // Added a trapezoidal "chuck" that smoothly connects the 30px body to the 16px upper shaft
       ctx.moveTo(-8, drillY - 15);
@@ -6371,29 +6386,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       grad.addColorStop(1, "rgba(0,0,0,0.45)");
       ctx.fillStyle = grad;
       ctx.fillRect(-15, drillY - 15, 30, drillLength + 15);
-      ctx.restore();
-
-      // Narrow upper shaft
-      ctx.save();
-      ctx.beginPath();
-      // Starts from the top of the chuck (-15)
-      ctx.rect(-8, -60 + drillY, 16, 60 - 15 + 1); // +1 to prevent subpixel gap
-      ctx.clip();
-      
-      // Draw moving texture
-      ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(-8 - spinOffsetX, -60 + drillY - spinOffsetY - 64, 16 + 64, 60 + 200);
-      ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
-      
-      // Edge shading for the upper shaft
-      let gradUpper = ctx.createLinearGradient(-8, 0, 8, 0);
-      gradUpper.addColorStop(0, "rgba(0,0,0,0.45)");
-      gradUpper.addColorStop(0.2, "rgba(0,0,0,0)");
-      gradUpper.addColorStop(0.8, "rgba(0,0,0,0)");
-      gradUpper.addColorStop(1, "rgba(0,0,0,0.45)");
-      ctx.fillStyle = gradUpper;
-      ctx.fillRect(-8, -60 + drillY, 16, 60 - 15 + 1); // +1 to prevent subpixel gap
       ctx.restore();
 
       // Top Drive Mechanism (motor that spins the drill)
@@ -6432,19 +6424,22 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 
       // 3D Grooves for the main body
       ctx.save();
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = fillDarkDiamond;
+      ctx.lineWidth = 3; // slightly thicker so pattern is visible
       let grooveOffset = (t * 80) % 8; // Grooves slide down
       let numGrooves = Math.floor((drillLength - 30) / 8) + 2; 
+      
+      ctx.translate(spinOffsetX, spinOffsetY);
       for(let i=-2; i<numGrooves; i++) {
           let gy = drillY + grooveOffset + i*8;
           if (gy > drillY && gy < drillY + drillLength - 20) {
               ctx.beginPath();
-              ctx.moveTo(-15, gy - 2);
-              ctx.quadraticCurveTo(0, gy + 3, 15, gy + 6);
+              ctx.moveTo(-15 - spinOffsetX, gy - 2 - spinOffsetY);
+              ctx.quadraticCurveTo(0 - spinOffsetX, gy + 3 - spinOffsetY, 15 - spinOffsetX, gy + 6 - spinOffsetY);
               ctx.stroke();
           }
       }
+      ctx.translate(-spinOffsetX, -spinOffsetY);
       ctx.restore();
       ctx.restore();
   }
