@@ -1464,8 +1464,8 @@ function openHmMilestoneDialog(lines) {
     const li = document.createElement('li');
     const text = document.createElement('span');
     text.className = 'hm-milestone-text';
-    if (line && typeof line === 'object') { text.textContent = line.text ?? ''; if (line.achieved) li.classList.add('hm-milestone-achieved'); } 
-    else { text.textContent = line; }
+    if (line && typeof line === 'object') { text.innerHTML = line.text ?? ''; if (line.achieved) li.classList.add('hm-milestone-achieved'); } 
+    else { text.innerHTML = line; }
     li.appendChild(text); list.appendChild(li);
   }
   const closeBtn = document.createElement('button');
@@ -1900,7 +1900,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                          if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
                          try { return BigNum.fromAny((Number(lvl) + evolutionOffset).toString()); } catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
                      })();
-                     const levelText = milestoneLevelBn?.isInfinite?.() ? 'Infinity' : formatNumber(milestoneLevelBn);
+                     const levelText = milestoneLevelBn?.isInfinite?.() ? '<span class="infinity-symbol">∞</span>' : formatNumber(milestoneLevelBn);
                      const mult = formatMultForUi(m?.multiplier??m?.mult??m?.value??1);
                      const target = `${m?.target??m?.type??'self'}`.toLowerCase();
                      const achieved = (() => {
@@ -1908,13 +1908,13 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                         try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; } catch {}
                         return false; 
                      })();
-                     let text = `Level ${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
-                     if (target === 'xp') text = `Level ${levelText}: Multiplies XP value by ${mult}x`;
-                     if (target === 'coin'||target==='coins') text = `Level ${levelText}: Multiplies Coin value by ${mult}x`;
-                     if (target === 'mp') text = `Level ${levelText}: Multiplies MP value by ${mult}x`;
-                     if (target === 'scrap') text = `Level ${levelText}: Multiplies Scrap value by ${mult}x`;
-                     if (target === 'dp') text = `Level ${levelText}: Multiplies DP value by ${mult}x`;
-                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level ${levelText}: Multiplies Material value by ${mult}x`;
+                     let text = `Level&nbsp;${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
+                     if (target === 'xp') text = `Level&nbsp;${levelText}: Multiplies XP value by ${mult}x`;
+                     if (target === 'coin'||target==='coins') text = `Level&nbsp;${levelText}: Multiplies Coin value by ${mult}x`;
+                     if (target === 'mp') text = `Level&nbsp;${levelText}: Multiplies MP value by ${mult}x`;
+                     if (target === 'scrap') text = `Level&nbsp;${levelText}: Multiplies Scrap value by ${mult}x`;
+                     if (target === 'dp') text = `Level&nbsp;${levelText}: Multiplies DP value by ${mult}x`;
+                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level&nbsp;${levelText}: Multiplies Material value by ${mult}x`;
                      return { text, achieved };
                  });
                  openHmMilestoneDialog(lines);
