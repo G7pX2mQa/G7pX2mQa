@@ -1,726 +1,963 @@
-// js/util/bigNum.js
+// js/util/storage.js
+import { BigNum } from '../util/bigNum.js';
+import { formatNumber } from '../util/numFormat.js';
 
-export class BigNum {
-  static DEFAULT_PRECISION = 15;
-  static MINIMUM_PRECISION = 3;
-  static MAX_E = 1.7976931348623157e+308; // Number.MAX_VALUE
-  static MAX_PLAIN_DIGITS = 1000;    // safety cap for plain integer strings
-  static MAX_UI_DIGITS = 100;
+const MULT_SCALE = BigNum.DEFAULT_PRECISION;
+const MULT_SCALE_TAG = 'XM:';
 
-  constructor(sig, e, p = BigNum.DEFAULT_PRECISION) {
-    let effectiveE = 0;
-    let inf = false;
-    this._isNaN = false;
-    if (Number.isNaN(sig)) {
-      this.sig = NaN;
-      this.e = 0;
-      this.inf = false;
-      this._isNaN = true;
-      this.p = p;
-      return;
-    }
+const STORAGE_WATCH_INTERVAL_MS = 140;
 
-    if (e && typeof e === 'object' && ('base' in e || 'inf' in e)) {
-      const base = Number(e.base ?? 0);
-      inf = !!e.inf;
-      if (inf || !Number.isFinite(base) || base >= BigNum.MAX_E) {
-        effectiveE = BigNum.MAX_E;
-        inf = true;
-      } else {
-        effectiveE = Math.trunc(base);
-      }
-    } else {
-      const ee = Number(e);
-      if (!Number.isFinite(ee) || ee >= BigNum.MAX_E) {
-        effectiveE = BigNum.MAX_E;
-        inf = true;
-      } else {
-        effectiveE = Math.trunc(ee);
-      }
-    }
+const storageWatchers = new Map();
+let storageWatcherTimer = null;
 
-    let targetP = p | 0;
-    const absE = Math.abs(effectiveE);
-    if (!inf && absE >= 10) {
-      if (absE >= 1e21) {
-        targetP = 0;
-      } else {
-        const eMag = Math.floor(Math.log10(absE));
-        targetP = Math.max(BigNum.MINIMUM_PRECISION, BigNum.DEFAULT_PRECISION - eMag);
-      }
-    }
-    this.p = Math.min(p | 0, targetP);
+const currencyChangeSubscribers = new Set();
 
-    this.e = effectiveE;
-    this.inf = inf;
-
-    if (this.p === 0 && !inf) {
-      this.sig = 1; 
-    } else {
-      this.sig = (sig !== '' && sig !== null && sig !== undefined) ? Number(sig) : 1;
-    }
-
-    this.#normalize();
-  }
-
-  // ---------------------- FACTORIES ----------------------
-  static zero(p = BigNum.DEFAULT_PRECISION) { return new BigNum(0, 0, p); }
-  static min(a, b) {
-    a = BigNum.fromAny(a);
-    b = BigNum.fromAny(b);
-    return a.cmp(b) <= 0 ? a : b;
-  }
-
-  static fromInt(n, p = BigNum.DEFAULT_PRECISION) {
-    return new BigNum(Number(n), 0, p);
-  }
-
-  static fromScientific(str, p = BigNum.DEFAULT_PRECISION) {
-    const s = String(str ?? '').trim();
-    if (!s) throw new TypeError('Invalid BigNum input: ' + str);
-
-    if (/^inf(?:inity)?$/i.test(s)) {
-      return new BigNum(1, BigNum.MAX_E, p);
-    }
-
-    const match = s.match(/^([+-]?\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i);
-    if (!match) {
-      return new BigNum(Number(s), 0, p);
-    }
-
-    let [, intPart, fracPart = '', expPart] = match;
-    let exponent = expPart ? parseInt(expPart, 10) : 0;
-    exponent -= fracPart.length;
-
-    let sign = '';
-    let digitsRaw = intPart + fracPart;
-    if (digitsRaw.startsWith('-')) {
-        sign = '-';
-        digitsRaw = digitsRaw.slice(1);
-    } else if (digitsRaw.startsWith('+')) {
-        digitsRaw = digitsRaw.slice(1);
-    }
-
-    const digits = digitsRaw.replace(/^0+/, '') || '0';
-    if (digits === '0') return new BigNum(0, 0, p);
-
-    // Do not coerce the full digit string with Number(...): plain save values
-    // can exceed Number.MAX_VALUE even though BigNum can represent them. Keep
-    // only the configured significant digits and move the rest into the
-    // decimal exponent.
-    const precision = Math.max(1, p | 0);
-    const sigDigits = digits.slice(0, precision);
-    const sig = Number(sign + sigDigits);
-    return new BigNum(sig, exponent + (digits.length - sigDigits.length), p);
-  }
-
-  static fromStorage(str, p = BigNum.DEFAULT_PRECISION) {
-    if (!str) return null;
-    if (typeof str !== 'string') str = String(str);
-    if (str.startsWith('BN:')) {
-      const parts = str.split(":");
-      if (parts[1] === 'NaN') return new BigNum(NaN, 0, p);
-      if (parts[1] === 'infinite') {
-        return new BigNum(1, { base: BigNum.MAX_E, inf: true }, p);
-      }
-      if (parts[1] === 'zero') {
-        return new BigNum(0, { base: 0 }, p);
-      }
-      if (parts.length < 4) return null;
-      const [, pStr, sigStr, eStr] = parts;
-      const pp = parseInt(pStr, 10) || p;
-      let eNum = Number(eStr);
-      if (!Number.isFinite(eNum)) return null;
-      const parsedSig = sigStr ? Number(sigStr) : 1;
-      if (!Number.isFinite(parsedSig)) return null;
-      return new BigNum(parsedSig, { base: eNum }, pp);
-    }
-    return BigNum.fromScientific(str, p);
-  }
-
-  // Accepts: BigNum | "BN:..." | scientific string | number
-  static fromAny(input, p = BigNum.DEFAULT_PRECISION) {
-    if (input instanceof BigNum) return input;
-    if (typeof input === 'string') {
-      const trimmed = input.trim();
-      if (trimmed.startsWith('BN:')) return BigNum.fromStorage(trimmed, p);
-      if (/^NaN$/i.test(trimmed)) return new BigNum(NaN, 0, p);
-      if (/^inf(?:inity)?$/i.test(trimmed)) return new BigNum(1, BigNum.MAX_E, p);
-      if (/^[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(trimmed)) return BigNum.fromScientific(trimmed, p);
-    }
-    if (typeof input === 'number') {
-      if (Number.isNaN(input)) return new BigNum(NaN, 0, p);
-      if (!Number.isFinite(input)) return new BigNum(1, BigNum.MAX_E, p);
-      return BigNum.fromScientific(input.toString(), p);
-    }
-    
-    throw new TypeError('Unsupported BigNum input: ' + input);
-    }
-
-  // ---------------------- PERSISTENCE ----------------------
-  toStorage() {
-    if (this._isNaN) return `BN:NaN`;
-    if (this.inf) return `BN:infinite`;
-    if (this.isZero()) return `BN:zero`;
-    if (this.p === 0) return `BN:0::${this.e}`;
-    return `BN:${this.p}:${this.sig.toString()}:${this.e}`;
-  }
-
-  clone() {
-    if (this._isNaN) return new BigNum(NaN, 0, this.p);
-    return new BigNum(this.sig, { base: this.e, inf: this.inf }, this.p);
-  }
-
-  // ---------------------- STATE QUERIES ----------------------
-  isNaN() { return !!this._isNaN; }
-  isZero() { return !this.inf && this.sig === 0; }
-  isInfinite() { return !!this.inf; }
-  isNegative() { return !this._isNaN && this.sig < 0; }
-
-  sub(b) {
-    b = BigNum.fromAny(b, this.p);
-    if (this._isNaN || b._isNaN) return new BigNum(NaN, 0, this.p);
-
-    if (this.inf) {
-      if (b.inf) return this.clone();
-      return this.clone();
-    }
-    if (b.isZero()) return this.clone();
-    if (b.inf) return BigNum.zero(this.p);
-
-    if (this.cmp(b) <= 0) return BigNum.zero(this.p);
-
-    const expCmp = this.#compareExponent(b);
-    if (expCmp >= 0) {
-      const aligned = expCmp === 0 ? b.sig : this.#alignSig(b);
-      const diffSig = this.sig - aligned;
-      if (diffSig > 0) {
-        return new BigNum(diffSig, this.#expObj(), this.p);
-      }
-    }
-
-    const maxCompensable = Math.max(this.p, b.p) + 2;
-    if (Math.abs(this.e - b.e) > maxCompensable) {
-      return this.e > b.e ? this.clone() : BigNum.zero(this.p);
-    }
-
-    const minE = Math.min(this.e, b.e);
-    const shiftA = this.e - minE;
-    const shiftB = b.e - minE;
-
-    const scaledA = shiftA === 0 ? this.sig : this.sig * this.#pow10(shiftA);
-    const scaledB = shiftB === 0 ? b.sig : b.sig * this.#pow10(shiftB);
-
-    const exactDiff = scaledA - scaledB;
-    if (exactDiff <= 0) return BigNum.zero(this.p);
-
-    return new BigNum(exactDiff, minE, this.p);
-  }
-
-  // ---------------------- PRIVATE HELPERS ----------------------
-  #pow10(k) { return k <= 0 ? 1 : Math.pow(10, k); }
-
-  #expObj() {
-    return { base: this.e, inf: this.inf };
-  }
-
-  #adjustExponent(delta) {
-    if (this.inf || !delta) return;
-    this.e += delta;
-  }
-
-  #compareExponent(other) {
-    if (this.inf || other.inf) {
-      if (this.inf && other.inf) return 0;
-      return this.inf ? 1 : -1;
-    }
-    if (this.e > other.e) return 1;
-    if (this.e < other.e) return -1;
-    return 0;
-  }
-
-  #expDiff(other) {
-    if (this.inf || other.inf) {
-      if (this.inf && other.inf) return 0;
-      return this.inf ? Number(this.p + 3) : -Number(this.p + 3);
-    }
-    const diff = Number(Math.trunc(this.e - other.e));
-    const absDiff = diff < 0 ? -diff : diff;
-    const limit = Number(this.p + 2);
-    if (absDiff > limit) {
-      return diff > 0 ? Number(this.p + 3) : -Number(this.p + 3);
-    }
-    return diff;
-  }
-
-  #effectiveExponentNumber() {
-    if (this.inf) return Number.POSITIVE_INFINITY;
-    return this.e;
-  }
-
-  #normalize() {
-    if (this.inf) return;
-    if (this.sig === 0) { this.e = 0; return; }
-
-    let s = this.sig;
-    const p = this.p;
-    
-    // If precision is 0, we treat it effectively as 1 digit for the sake of shifting (val=1 to 9),
-    // but the true value is just captured by exponent.
-    const targetP = p === 0 ? 1 : p;
-    const d = s === 0 ? 1 : fastDigitCount(s);
-    const shift = d - targetP;
-
-    if (shift > 0) {
-      const base = this.#pow10(shift);
-      let q = Math.floor(s / base);
-      const r = s - q * base;
-      if (r * 2 >= base) q += 1;
-      s = q;
-      this.#adjustExponent(shift);
-      if (this.e >= BigNum.MAX_E) { this.e = BigNum.MAX_E; this.inf = true; return; }
-      if ((s === 0 ? 1 : fastDigitCount(s)) > targetP) { // carry overflow
-        s = s / 10;
-        this.#adjustExponent(1);
-        if (this.e >= BigNum.MAX_E) { this.e = BigNum.MAX_E; this.inf = true; return; }
-      }
-    } else if (shift < 0) {
-      const k = -shift;
-      s = s * this.#pow10(k);
-      this.#adjustExponent(-k);
-    }
-
-    if (p === 0) {
-      // With precision 0, sig doesn't carry mantissa info but we can leave it normalized to 1.
-      // E.g., if sig was 5, it would just be 1 * 10^(e) + ... we'll just force it to 1 and perhaps tweak exponent if we wanted rounding, but at this scale it doesn't matter.
-      this.sig = 1;
-    } else {
-      this.sig = s;
-    }
-  }
-
-  #alignSig(other) {
-    const diff = this.#expDiff(other);
-    const absDiff = diff < 0 ? -diff : diff;
-    if (absDiff === 0) return other.sig;
-    if (absDiff > Number(this.p + 2)) return 0; // negligible
-    const diffNum = Number(absDiff);
-    const base = this.#pow10(diffNum);
-    let q = Math.floor(other.sig / base);
-    const r = other.sig - q * base;
-    if (r * 2 >= base) q += 1;
-    return q;
-  }
-
-  // ---------------------- ARITHMETIC ----------------------
-   add(b) {
-    b = BigNum.fromAny(b, this.p);
-    if (this._isNaN || b._isNaN) return new BigNum(NaN, 0, this.p);
-    if (this.inf || b.inf) {
-      const out = this.clone(); out.inf = this.inf || b.inf; out.e = BigNum.MAX_E; return out;
-    }
-    if (this.isZero()) return b.clone();
-    if (b.isZero()) return this.clone();
-    if (this.#compareExponent(b) >= 0) {
-      return new BigNum(this.sig + this.#alignSig(b), this.#expObj(), this.p);
-    }
-    return b.add(this);
-  }
-
-  iadd(b) { const r = this.add(b); this.sig = r.sig; this.e = r.e; this.inf = r.inf; this._isNaN = r._isNaN; return this; }
-
-  mulSmall(k) {
-    if (this._isNaN || Number.isNaN(k)) return new BigNum(NaN, 0, this.p);
-    if (k < 0) throw new Error('BigNum only supports non-negative values');
-    if (this.inf) return k === 0 ? new BigNum(NaN, 0, this.p) : this.clone();
-    if (k === 0) return BigNum.zero(this.p);
-    if (k === 1) return this.clone();
-    const out = new BigNum(this.sig * Number(k), this.#expObj(), this.p);
-    return out;
-  }
-
-  imulSmall(k) { const r = this.mulSmall(k); this.sig = r.sig; this.e = r.e; this.inf = r.inf; this._isNaN = r._isNaN; return this; }
-
-  // Multiply by another non-negative integer BigNum (exact).
-  mulBigNumInteger(other) {
-    const b = BigNum.fromAny(other, this.p);
-    if (this._isNaN || b._isNaN) return new BigNum(NaN, 0, this.p);
-    if ((this.inf && b.isZero()) || (b.inf && this.isZero())) return new BigNum(NaN, 0, this.p);
-    if (this.inf || b.inf) {
-      const out = this.clone();
-      out.inf = this.inf || b.inf;
-      out.e = BigNum.MAX_E;
-      return out;
-    }
-    if (this.isZero() || b.isZero()) return BigNum.zero(this.p);
-    return new BigNum(this.sig * b.sig, { base: this.e + b.e }, this.p);
-  }
-
-  imulBigNumInteger(other) {
-    const r = this.mulBigNumInteger(other);
-    this.sig = r.sig; this.e = r.e; this.inf = r.inf; this._isNaN = r._isNaN;
-    return this;
-  }
-
-  // Divide by another BigNum (returns new BigNum).
-  div(other) {
-    const b = BigNum.fromAny(other, this.p);
-    
-    // Handle infinite cases
-    if (this.inf) {
-        if (b.inf) return this.clone();
-        return this.clone(); // inf / finite -> inf
-    }
-    if (b.inf) {
-        return BigNum.zero(this.p); // finite / inf -> 0
-    }
-    
-    // Handle zero cases
-    if (b.isZero()) {
-        if (this.isZero()) return new BigNum(NaN, 0, this.p);
-        // finite / 0 -> infinity (mathematically undefined but useful here)
-        return new BigNum(1, BigNum.MAX_E, this.p);
-    }
-    if (this.isZero()) {
-        return BigNum.zero(this.p); // 0 / finite -> 0
-    }
-
-    // A / B = (sigA * 10^expA) / (sigB * 10^expB)
-    //       = (sigA / sigB) * 10^(expA - expB)
-    // To maintain precision, we scale sigA by 10^precision before integer division.
-    // result = (sigA * 10^p / sigB) * 10^(expA - expB - p)
-    
-    const targetPrecision = Math.max(this.p, b.p);
-    const scale = this.#pow10(targetPrecision);
-    const floatQuotient = this.sig / b.sig;
-    const sigQuotient = Math.round(floatQuotient * scale);
-    
-    // Exponent calculation:
-    // We used 'this.e' and 'b.e' for base exponents.
-    // However, BigNum normalization ensures sig is roughly 10^(p-1) to 10^p.
-    // So the exponent math is mostly correct if we trust .e.
-    
-    // The raw exponent difference:
-    const expDiffBase = this.e - b.e;
-    
-    // Adjust for the scaling we did (subtracting p from the exponent because we added it to sig)
-    const resultBase = expDiffBase - targetPrecision;
-    
-    // Construct new BigNum
-    // We pass the total exponent info. The constructor/normalization will handle if sigQuotient is small/large.
-    
-    return new BigNum(sigQuotient, { base: resultBase }, this.p);
-  }
-
-  cmp(b) {
-    b = BigNum.fromAny(b, this.p);
-    if (this._isNaN || b._isNaN) return NaN;
-    if (this.inf || b.inf) return this.inf === b.inf ? 0 : this.inf ? 1 : -1;
-    
-    const thisIsZero = this.isZero();
-    const otherIsZero = typeof b.isZero === 'function' ? b.isZero() : false;
-    if (thisIsZero || otherIsZero) {
-      if (thisIsZero && otherIsZero) return 0;
-      return thisIsZero ? -1 : 1;
-    }
-
-    const expCmp = this.#compareExponent(b);
-
-    // If magnitudes differ by a huge amount, safely fast path.
-    // The maximum possible compensation by a mismatched mantissa length is `p` (precision length).
-    const maxCompensable = Math.max(this.p, b.p) + 2; 
-    
-    if (Math.abs(this.e - b.e) > maxCompensable) {
-       return expCmp; // Cannot possibly be compensated by mantissa strings.
-    }
-
-    let aSig = this.sig;
-    let bSig = b.sig;
-
-    if (expCmp > 0) {
-      bSig = this.#alignSig(b);
-    } else if (expCmp < 0) {
-      aSig = b.#alignSig(this);
-    }
-
-    if (aSig === bSig) return 0;
-    return aSig > bSig ? 1 : -1;
-  }
-  // ----- Decimal multiply (exact, integer-safe) & flooring -----
-
-  // Parse decimal like "2.345" (or number) into { numer: Number, scale: Number } with up to maxScale frac digits.
-  static _parseDecimalMultiplier(x, maxScale = BigNum.DEFAULT_PRECISION) {
-    let s = (typeof x === 'number') ? String(x) : String(x ?? '').trim();
-    if (!s || s === '0') return { numer: 0, scale: 0 };
-
-    // normalize scientific like "1e3" to fixed decimal string
-    if (/e/i.test(s)) {
-      const n = Number(s);
-      if (!Number.isFinite(n) || n < 0) throw new TypeError('Invalid multiplier: ' + s);
-      if (n >= 1e21 || n <= 1e-7) {
-          return { _isBigNum: true, bn: BigNum.fromAny(n) };
-      }
-      const digits = Math.min(maxScale, BigNum.DEFAULT_PRECISION);
-      s = n.toFixed(digits).replace(/\.?0+$/, ''); // strip trailing zeros
-    }
-
-    if (!/^\d+(\.\d+)?$/.test(s)) throw new TypeError('Invalid multiplier: ' + s);
-
-    const [intPart, fracRaw = ''] = s.split('.');
-    const frac = fracRaw.slice(0, maxScale); // clamp fractional length
-    const scale = frac.length;
-    const numer = Number(intPart + frac);
-    return { numer, scale };
-  }
-
-  // Multiply by decimal multiplier given as number/string with up to 18 fractional digits (returns new BigNum).
-  mulDecimal(mult, maxScale = BigNum.DEFAULT_PRECISION) {
-    if (this._isNaN || Number.isNaN(mult)) return new BigNum(NaN, 0, this.p);
-    if (this.inf || this.isZero()) return this.clone();
-    const result = BigNum._parseDecimalMultiplier(mult, maxScale);
-    if (result._isBigNum) {
-        const b = result.bn;
-        return new BigNum(this.sig * b.sig, { base: this.e + b.e }, this.p);
-    }
-    const { numer, scale } = result;
-    if (numer === 0) return BigNum.zero(this.p);
-    return this.mulScaledInt(numer, scale);
-  }
-
-  // Floor to integer value by dropping fractional digits.
-  floorToInteger() {
-    if (this._isNaN) return new BigNum(NaN, 0, this.p);
-    if (this.inf) return this.clone();
-    if (this.isZero()) return this.clone();
-    const exp = this.#effectiveExponentNumber();
-    if (!Number.isFinite(exp)) return this.clone();
-    const intDigits = exp + this.p; // integer digits in the value
-    if (intDigits <= 0) return BigNum.zero(this.p); // < 1
-    if (intDigits >= this.p) return this.clone();   // already integral
-    const drop = this.p - intDigits;                // digits to truncate
-    const base = Math.pow(10, drop);
-    const newSig = Math.floor(this.sig / base) * base; // drop fractional digits
-    return new BigNum(newSig, this.#expObj(), this.p);
-  }
-
-  // Convenience: multiply by decimal and floor to integer immediately.
-  mulDecimalFloor(mult, maxScale = BigNum.DEFAULT_PRECISION) {
-    return this.mulDecimal(mult, maxScale).floorToInteger();
-  }
-
-  mulScaledInt(numer, scale) {
-    if (this._isNaN || Number.isNaN(numer)) return new BigNum(NaN, 0, this.p);
-    const numerNum = numer;
-    if (this.inf || this.isZero()) return this.clone();
-    const nb = Number(numerNum);
-    if (nb === 0) return BigNum.zero(this.p);
-    return new BigNum(this.sig * nb, { base: this.e - (scale | 0) }, this.p);
-  }
-
-  // Same as above but floors to an integer.
-  mulScaledIntFloor(numer, scale) {
-    return this.mulScaledInt(numer, scale).floorToInteger();
-  }
-
-  // ---------------------- FORMATTING ----------------------
-  get decExp() {
-    if (this.inf) return Number.POSITIVE_INFINITY;
-    const exp = this.#effectiveExponentNumber();
-    if (!Number.isFinite(exp)) return exp;
-    return exp + (this.p - 1);
-  }
-
-  toScientific(digits = 3) {
-    if (this._isNaN) return 'NaN';
-    if (this.inf) return 'Infinity';
-    if (this.isZero()) return '0';
-    
-    // We add p-1 for typical representations, but when p=0, effective p is 1 for magnitude calc.
-    const effectiveP = this.p === 0 ? 1 : this.p;
-    const E = this.e + (effectiveP - 1);
-    
-    if (E >= 1000000) {
-      // Just returning 'e' here; the ui/numFormat will handle styling 'e' followed by formatted exponent.
-      // E.g., it may replace e with 'e' and format E.
-      return `e${E}`;
-    }
-
-    const s = this.sig.toString().padStart(effectiveP, '0');
-    const head = s[0];
-    const tail = s.slice(1, 1 + digits).replace(/0+$/g, '');
-    const mant = tail ? `${head}.${tail}` : head;
-    
-    return `${mant}e${E}`;
-  }
-
-  toPlainIntegerString() {
-    if (this._isNaN) return 'NaN';
-    if (this.inf) return 'Infinity';
-    if (this.isZero()) return '0';
-    const exp = this.#effectiveExponentNumber();
-    if (!Number.isFinite(exp)) return exp > 0 ? 'Infinity' : '0';
-    const intDigits = exp + this.p;
-    if (intDigits <= 0) return '0';
-    if (intDigits > BigNum.MAX_PLAIN_DIGITS) return 'Infinity';
-
-    const s = this.sig.toString().padStart(this.p, '0');
-    if (intDigits <= this.p) {
-      return s.slice(0, intDigits).replace(/^0+/, '') || '0';
-    }
-
-    const extraZeros = intDigits - this.p;
-    return (s + '0'.repeat(extraZeros)).replace(/^0+/, '') || '0';
-  }
-
-  toString() {
-    if (this._isNaN) return 'NaN';
-    return this.toPlainIntegerString();
-  }
+function normalizeSlotValue(slot) {
+  const n = parseInt(slot, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-// --- BigNum Utilities ---
-
-function fastDigitCount(n) {
-  if (n < 1) {
-    if (n === 0) return 1;
-    return Math.floor(Math.log10(n)) + 1;
-  }
-  if (n < 1000000000) {
-    if (n < 10000) {
-      if (n < 100) return n < 10 ? 1 : 2;
-      return n < 1000 ? 3 : 4;
-    } else {
-      if (n < 1000000) return n < 100000 ? 5 : 6;
-      if (n < 100000000) return n < 10000000 ? 7 : 8;
-      return 9;
-    }
-  } else {
-    if (n < 100000000000000) {
-      if (n < 100000000000) return n < 10000000000 ? 10 : 11;
-      if (n < 10000000000000) return n < 1000000000000 ? 12 : 13;
-      return 14;
-    } else {
-      if (n < 100000000000000000) {
-        if (n < 1000000000000000) return 15;
-        if (n < 10000000000000000) return 16;
-        return 17;
-      } else {
-        if (n < 1000000000000000000) return 18;
-        if (n < 10000000000000000000) return 19;
-        if (n < 100000000000000000000) return 20;
-        if (n < 1000000000000000000000) return 21;
-        return Math.floor(Math.log10(n)) + 1;
-      }
-    }
-  }
+function slotSignatureKey(slot) {
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return null;
+  return `ccc:slotSig:${normalized}`;
 }
 
-export function approxLog10BigNum(value) {
-  if (!(value instanceof BigNum)) {
-    try {
-      value = BigNum.fromAny(value ?? 0);
-    } catch {
-      return Number.NEGATIVE_INFINITY;
-    }
-  }
-  if (!value) return Number.NEGATIVE_INFINITY;
-  if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
-  if (value.isNaN?.()) return NaN;
-  if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
+function slotModifiedKey(slot) {
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return null;
+  return `ccc:slotMod:${normalized}`;
+}
 
-  if (typeof value.sig === 'number') {
-    const sigNum = Number(value.sig);
-    if (sigNum > 0) {
-      const sigLog = Math.log10(sigNum);
-      const e = value.e || 0;
-      return sigLog + e;
-    }
-  }
+function notifyCurrencySubscribers(detail = {}) {
+  if (currencyChangeSubscribers.size === 0) return;
+  currencyChangeSubscribers.forEach((entry) => {
+    if (!entry || typeof entry.handler !== 'function') return;
+    if (entry.key && detail.key && entry.key !== detail.key) return;
+    if (entry.slot != null && detail.slot != null && entry.slot !== detail.slot) return;
+    try { entry.handler(detail); }
+    catch {}
+  });
+}
 
-  let storage;
+export function onCurrencyChange(handler, { key = null, slot = null } = {}) {
+  if (typeof handler !== 'function') {
+    return () => {};
+  }
+  const entry = {
+    handler,
+    key: key ?? null,
+    slot: slot ?? null,
+  };
+  currencyChangeSubscribers.add(entry);
+  return () => {
+    currencyChangeSubscribers.delete(entry);
+  };
+}
+
+function ensureStorageWatcherTimer() {
+  if (storageWatcherTimer != null || storageWatchers.size === 0) return;
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  storageWatcherTimer = root.setInterval(runStorageWatchers, STORAGE_WATCH_INTERVAL_MS);
+}
+
+function stopStorageWatcherTimerIfIdle() {
+  if (storageWatchers.size !== 0 || storageWatcherTimer == null) return;
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  root.clearInterval(storageWatcherTimer);
+  storageWatcherTimer = null;
+}
+
+function parseWith(entry, raw) {
+  if (!entry || typeof entry.parse !== 'function') return raw;
   try {
-    storage = value.toStorage();
+    return entry.parse(raw);
   } catch {
-    return Number.NEGATIVE_INFINITY;
+    return raw;
   }
-  const parts = storage.split(':');
-  const sigStr = parts[2] ?? '0';
-  const expPart = parts[3] ?? '0';
-  const baseExp = Number(expPart || '0');
-  const offset = 0;
-  const digits = sigStr.replace(/^0+/, '') || '0';
-  if (digits === '0') return Number.NEGATIVE_INFINITY;
-
-  let sigLog;
-  if (digits.length <= BigNum.DEFAULT_PRECISION) {
-    const sigNum = Number(digits);
-    if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
-    sigLog = Math.log10(sigNum);
-  } else {
-    const head = Number(digits.slice(0, BigNum.DEFAULT_PRECISION));
-    if (!Number.isFinite(head) || head <= 0) return Number.NEGATIVE_INFINITY;
-    sigLog = Math.log10(head) + (digits.length - BigNum.DEFAULT_PRECISION);
-  }
-
-  const expSum = (Number.isFinite(baseExp) ? baseExp : 0) + (Number.isFinite(offset) ? offset : 0);
-  return sigLog + expSum;
 }
 
-export function bigNumFromLog10(log10Value, noFuzz = false) {
-  if (Number.isNaN(log10Value)) return new BigNum(NaN, 0);
-  if (!Number.isFinite(log10Value)) {
-    return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
+function valuesEqual(entry, a, b) {
+  if (!entry || typeof entry.equals !== 'function') {
+    return Object.is(a, b);
   }
-  
-  if (log10Value <= -1e12) return BigNum.fromInt(0);
+  try {
+    return entry.equals(a, b);
+  } catch {
+    return Object.is(a, b);
+  }
+}
 
-  if (!noFuzz) {
-    const rounded = Math.round(log10Value);
-    if (Math.abs(log10Value - rounded) < 1e-12) {
-      log10Value = rounded;
+function runStorageWatchers() {
+  if (storageWatchers.size === 0) {
+    stopStorageWatcherTimerIfIdle();
+    return;
+  }
+  storageWatchers.forEach((entries, key) => {
+    if (!entries || entries.size === 0) return;
+    let raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch {
+      raw = null;
+    }
+    entries.forEach((entry) => {
+      if (!entry) return;
+      const parsed = parseWith(entry, raw);
+      if (!entry.initialized) {
+        entry.lastRaw = raw;
+        entry.lastValue = parsed;
+        entry.initialized = true;
+        if (entry.emitCurrentValue) {
+          try {
+            entry.onChange?.(parsed, {
+              key,
+              raw,
+              previous: undefined,
+              previousRaw: undefined,
+              initial: true,
+              rawChanged: true,
+              valueChanged: true,
+            });
+          } catch {}
+        }
+        return;
+      }
+      const rawChanged = raw !== entry.lastRaw;
+      const valueChanged = !valuesEqual(entry, entry.lastValue, parsed);
+      if (!rawChanged && !valueChanged) return;
+      const previousValue = entry.lastValue;
+      const previousRaw = entry.lastRaw;
+      entry.lastRaw = raw;
+      entry.lastValue = parsed;
+      try {
+        entry.onChange?.(parsed, {
+          key,
+          raw,
+          previous: previousValue,
+          previousRaw,
+          rawChanged,
+          valueChanged,
+        });
+      } catch {}
+    });
+  });
+}
+
+export function watchStorageKey(key, {
+  parse,
+  equals,
+  onChange,
+  emitCurrentValue = false,
+} = {}) {
+  if (!key || typeof localStorage === 'undefined') {
+    return () => {};
+  }
+  const entry = {
+    parse,
+    equals,
+    onChange,
+    emitCurrentValue,
+    lastRaw: undefined,
+    lastValue: undefined,
+    initialized: false,
+  };
+  let set = storageWatchers.get(key);
+  if (!set) {
+    set = new Set();
+    storageWatchers.set(key, set);
+  }
+  set.add(entry);
+  ensureStorageWatcherTimer();
+  return () => {
+    const entries = storageWatchers.get(key);
+    if (!entries) return;
+    entries.delete(entry);
+    if (entries.size === 0) {
+      storageWatchers.delete(key);
+      stopStorageWatcherTimerIfIdle();
+    }
+  };
+}
+
+export function primeStorageWatcherSnapshot(key, rawValue) {
+  if (!key) return;
+  const entries = storageWatchers.get(key);
+  if (!entries || entries.size === 0) return;
+  let raw = rawValue;
+  if (raw === undefined) {
+    try {
+      raw = localStorage.getItem(key);
+    } catch {
+      raw = null;
     }
   }
-
-  const p = BigNum.DEFAULT_PRECISION;
-  let intPart = Math.floor(log10Value);
-  let frac = log10Value - intPart;
-  if (frac < 0) {
-    frac += 1;
-    intPart -= 1;
-  }
-
-  let baseVal = Math.pow(10, frac);
-  let mantissa;
-  if (!noFuzz) {
-    baseVal = Math.round(baseVal * 1e14) / 1e14;
-    mantissa = Math.round(baseVal * 1e14) * Math.pow(10, p - 1 - 14);
-  } else {
-    mantissa = baseVal * Math.pow(10, p - 1);
-  }
-  const sig = Math.max(1, Math.round(mantissa));
-  const exp = intPart - (p - 1);
-  return new BigNum(sig, exp, p);
+  entries.forEach((entry) => {
+    if (!entry) return;
+    entry.lastRaw = raw;
+    entry.lastValue = parseWith(entry, raw);
+    entry.initialized = true;
+  });
 }
 
-const LN10 = Math.log(10);
+function bigNumEquals(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  if (a instanceof BigNum && typeof a.cmp === 'function') {
+    try { return a.cmp(b) === 0; } catch {}
+  }
+  if (b instanceof BigNum && typeof b.cmp === 'function') {
+    try { return b.cmp(a) === 0; } catch {}
+  }
+  if (typeof a?.cmp === 'function') {
+    try { return a.cmp(b) === 0; } catch {}
+  }
+  if (typeof b?.cmp === 'function') {
+    try { return b.cmp(a) === 0; } catch {}
+  }
+  try {
+    return Object.is(String(a), String(b));
+  } catch {
+    return Object.is(a, b);
+  }
+}
 
-export function log10OnePlusPow10(exponent) {
-  if (Number.isNaN(exponent)) return NaN;
-  if (!Number.isFinite(exponent)) {
-    if (exponent > 0) return exponent;
-    if (exponent === 0) return Math.log10(2);
+function parseBigNumOrZero(raw) {
+  if (raw == null) return BigNum.fromInt(0);
+  try {
+    return BigNum.fromAny(raw);
+  } catch {
+    return BigNum.fromInt(0);
+  }
+}
+
+const currencyWatcherCleanup = new Map();
+let currencyWatcherBoundSlot = null;
+
+function cleanupCurrencyWatchers() {
+  currencyWatcherCleanup.forEach((stop) => {
+    try { stop?.(); } catch {}
+  });
+  currencyWatcherCleanup.clear();
+}
+
+function bindCurrencyWatchersForSlot(slot) {
+  if (slot === currencyWatcherBoundSlot) return;
+  cleanupCurrencyWatchers();
+  currencyWatcherBoundSlot = slot ?? null;
+  if (slot == null) return;
+  for (const currencyKey of Object.values(CURRENCIES)) {
+    const storageKey = `${KEYS.CURRENCY[currencyKey]}:${slot}`;
+    const stop = watchStorageKey(storageKey, {
+      parse: parseBigNumOrZero,
+      equals: bigNumEquals,
+      onChange: (value, meta) => {
+        if (!meta?.valueChanged) return;
+        if (typeof window === 'undefined') return;
+        const detail = { key: currencyKey, value, slot };
+        notifyCurrencySubscribers(detail);
+        try {
+          window.dispatchEvent(new CustomEvent('currency:change', { detail }));
+        } catch {}
+      },
+    });
+    currencyWatcherCleanup.set(storageKey, stop);
+  }
+}
+
+function initCurrencyStorageWatchers() {
+  if (typeof window === 'undefined') return;
+  bindCurrencyWatchersForSlot(getActiveSlot());
+  window.addEventListener('saveSlot:change', () => {
+    bindCurrencyWatchersForSlot(getActiveSlot());
+  });
+}
+
+// -------------------- HEARTBEAT / OFFLINE TRACKING --------------------
+let lastSaveTimeTimer = null;
+let hasEnteredGameSession = false;
+
+export function notifyGameSessionStarted() {
+  hasEnteredGameSession = true;
+}
+
+export function getLastSaveTimeKey(slot = getActiveSlot()) {
+  if (slot == null) return null;
+  return `ccc:lastSaveTime:${slot}`;
+}
+
+export function updateLastSaveTime() {
+  if (!hasEnteredGameSession) return;
+  // If the document is hidden, we STOP updating the heartbeat.
+  // This causes the lastSaveTime to "drift" into the past,
+  // so when the user returns, (Date.now() - lastSaveTime) reflects
+  // the entire time they were away/tabbed-out.
+  if (document.hidden) return;
+  
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const now = Date.now();
+  try {
+    localStorage.setItem(getLastSaveTimeKey(slot), String(now));
+  } catch {}
+}
+
+export function getLastSaveTime() {
+  const slot = getActiveSlot();
+  if (slot == null) return 0;
+  try {
+    const raw = localStorage.getItem(getLastSaveTimeKey(slot));
+    const val = parseInt(raw, 10);
+    return Number.isFinite(val) ? val : 0;
+  } catch {
     return 0;
   }
-  if (exponent > 308) return exponent;
-  if (exponent < -20) {
-    const pow = Math.pow(10, exponent);
-    return pow / LN10;
-  }
-  const pow = Math.pow(10, exponent);
-  if (!Number.isFinite(pow)) return exponent > 0 ? exponent : 0;
-  return Math.log1p(pow) / LN10;
 }
 
-export function bigNumIsInfinite(bn) {
-  return !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+function initHeartbeat() {
+  if (typeof window === 'undefined') return;
+  
+  // Update every 1 second (was 2s), but only if visible
+  if (!lastSaveTimeTimer) {
+    lastSaveTimeTimer = setInterval(updateLastSaveTime, 1000);
+  }
+
+  // Ensure we save immediately before unloading
+  window.addEventListener('beforeunload', () => {
+      // Force update regardless of visibility state on unload
+      if (!hasEnteredGameSession) return;
+      const slot = getActiveSlot();
+      if (slot != null) {
+          try { localStorage.setItem(getLastSaveTimeKey(slot), String(Date.now())); } catch {}
+      }
+  });
+  
+  // When coming back to visibility, we do NOT update immediately here.
+  // We let the game loop or offline tracker handle the time diff first.
+}
+
+initHeartbeat();
+
+// -------------------- KEYS --------------------
+export const KEYS = {
+  HAS_OPENED_SAVE_SLOT: `ccc:hasOpenedSaveSlot`,
+  SAVE_SLOT:            `ccc:saveSlot`,
+  CURRENT_AREA:         `ccc:currentArea`,
+  CURRENCY:   {},
+  MULTIPLIER: {},
+};
+
+// -------------------- CURRENCIES --------------------
+export const CURRENCIES = {
+  VOID_GEMS: 'voidGems',
+  RAINBOW_GEMS: 'rainbowGems',
+  COINS: 'coins',
+  BOOKS: 'books',
+  GOLD: 'gold',
+  MAGIC: 'magic',
+  GEARS: 'gears',
+  WAVES: 'waves',
+  DNA: 'dna',
+  SCRAP: 'scrap',
+  STONE: 'stone',
+  COPPER: 'copper',
+  IRON: 'iron',
+  PURE_GOLD: 'pure_gold',
+  DIAMOND: 'diamond',
+  EMERALD: 'emerald',
+  RUBY: 'ruby',
+  SAPPHIRE: 'sapphire',
+  UNOBTAINIUM: 'unobtainium',
+  PRISMATIUM: 'prismatium',
+  CORES: 'cores',
+  CRYSTALS: 'crystals'
+};
+
+export const UC_MATERIALS = [
+  CURRENCIES.STONE,
+  CURRENCIES.COPPER,
+  CURRENCIES.IRON,
+  CURRENCIES.PURE_GOLD,
+  CURRENCIES.DIAMOND,
+  CURRENCIES.EMERALD,
+  CURRENCIES.RUBY,
+  CURRENCIES.SAPPHIRE,
+  CURRENCIES.UNOBTAINIUM,
+  CURRENCIES.PRISMATIUM
+];
+
+// Maps a currency to the area it belongs to.
+// IMPORTANT: Whenever you add a new currency to CURRENCIES above, make sure to add it here if it should appear in a specific area panel (like in the debug panel).
+// If a currency is not mapped here, it defaults to The Cove, so currencies that belong to The Cove don't need to be included here.
+export const CURRENCY_AREAS = {
+  [CURRENCIES.SCRAP]: 'underwater_cavern',
+  [CURRENCIES.STONE]: 'underwater_cavern',
+  [CURRENCIES.COPPER]: 'underwater_cavern',
+  [CURRENCIES.IRON]: 'underwater_cavern',
+  [CURRENCIES.PURE_GOLD]: 'underwater_cavern',
+  [CURRENCIES.DIAMOND]: 'underwater_cavern',
+  [CURRENCIES.EMERALD]: 'underwater_cavern',
+  [CURRENCIES.RUBY]: 'underwater_cavern',
+  [CURRENCIES.SAPPHIRE]: 'underwater_cavern',
+  [CURRENCIES.UNOBTAINIUM]: 'underwater_cavern',
+  [CURRENCIES.PRISMATIUM]: 'underwater_cavern',
+  [CURRENCIES.CORES]: 'underwater_cavern',
+  [CURRENCIES.CRYSTALS]: 'underwater_cavern'
+};
+
+let _activeSlotCache = undefined;
+const _myInstanceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+export function getActiveSlot() {
+  if (_activeSlotCache !== undefined) return _activeSlotCache;
+  const raw = localStorage.getItem(KEYS.SAVE_SLOT);
+  const n = parseInt(raw, 10);
+  const val = Number.isFinite(n) && n > 0 ? n : null;
+  _activeSlotCache = val;
+  return val;
+}
+
+export function setActiveSlot(n) {
+  const v = Math.max(1, parseInt(n, 10) || 1);
+  _activeSlotCache = v;
+  localStorage.setItem(KEYS.SAVE_SLOT, String(v));
+  try {
+    localStorage.setItem(`ccc:instanceId:${v}`, _myInstanceId);
+  } catch {}
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: v } }));
+  } catch {}
+}
+
+export function clearActiveSlot() {
+  const currentSlot = getActiveSlot();
+  if (currentSlot != null) {
+    try {
+      localStorage.setItem(getLastSaveTimeKey(currentSlot), String(Date.now()));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  hasEnteredGameSession = false;
+  _activeSlotCache = null;
+  localStorage.removeItem(KEYS.SAVE_SLOT);
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: null } }));
+  } catch {}
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (_activeSlotCache != null && e.key === `ccc:instanceId:${_activeSlotCache}`) {
+      if (e.newValue !== null && e.newValue !== _myInstanceId) {
+        try {
+          window.dispatchEvent(new CustomEvent('duplicateInstanceDetected'));
+        } catch {}
+      }
+    }
+  });
+}
+
+function keyFor(base, slot = getActiveSlot()) {
+  if (slot == null) return null;
+  return `${base}:${slot}`;
+}
+
+function isDebugLocked(key) {
+  try {
+    const lockedKeys = globalThis?.__cccLockedStorageKeys;
+    return lockedKeys?.has?.(key) ?? false;
+  } catch {
+    return false;
+  }
+}
+
+export function isStorageKeyLocked(key) {
+  return isDebugLocked(key);
+}
+
+export function getSlotSignatureKey(slot = getActiveSlot()) {
+  return slotSignatureKey(slot);
+}
+
+export function getSlotModifiedFlagKey(slot = getActiveSlot()) {
+  return slotModifiedKey(slot);
+}
+
+export function getSlotSignature(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return null;
+  const key = slotSignatureKey(slot);
+  if (!key) return null;
+  try { return localStorage.getItem(key); }
+  catch { return null; }
+}
+
+export function setSlotSignature(slot, signature) {
+  if (typeof localStorage === 'undefined') return;
+  const key = slotSignatureKey(slot);
+  if (!key) return;
+  try {
+    if (signature == null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, String(signature));
+    }
+  } catch {}
+}
+
+export function hasModifiedSave(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return false;
+  const key = slotModifiedKey(slot);
+  if (!key) return false;
+  try { return localStorage.getItem(key) === '1'; }
+  catch { return false; }
+}
+
+
+
+
+export function unmarkSaveSlotModified(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return;
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return;
+  const key = slotModifiedKey(normalized);
+  if (!key) return;
+  try {
+    localStorage.removeItem(key);
+  } catch { return; }
+  setSlotSignature(normalized, null);
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:modified', { detail: { slot: normalized } }));
+    window.dispatchEvent(new CustomEvent('saveIntegrity:storageMutation', { detail: { slot: normalized, trusted: true } }));
+    window.dispatchEvent(new CustomEvent('saveIntegrity:rebuildSnapshot', { detail: { slot: normalized } }));
+  } catch {}
+}
+
+export function markSaveSlotModified(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return;
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return;
+  if (hasModifiedSave(normalized)) return;
+  const key = slotModifiedKey(normalized);
+  if (!key) return;
+  try {
+    localStorage.setItem(key, '1');
+  } catch { return; }
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:modified', { detail: { slot: normalized } }));
+  } catch {}
+}
+
+for (const key of Object.values(CURRENCIES)) {
+  KEYS.CURRENCY[key]   = `ccc:${key}`;
+  KEYS.MULTIPLIER[key] = `ccc:mult:${key}`; // one key only
+}
+
+initCurrencyStorageWatchers();
+
+// -------------------- SAVE-SLOT HELPERS --------------------
+export function getHasOpenedSaveSlot() {
+  return localStorage.getItem(KEYS.HAS_OPENED_SAVE_SLOT) === 'true';
+}
+export function setHasOpenedSaveSlot(value) {
+  localStorage.setItem(KEYS.HAS_OPENED_SAVE_SLOT, value ? 'true' : 'false');
+}
+
+export function setSavedArea(areaID, slot = getActiveSlot()) {
+  if (slot == null || areaID === 0 || areaID === 666) return; // AREAS.MENU = 0, AREAS.JAIL = 666
+  localStorage.setItem(`${KEYS.CURRENT_AREA}:${slot}`, areaID);
+}
+
+export function getSavedArea(slot = getActiveSlot()) {
+  if (slot == null) return null;
+  const raw = localStorage.getItem(`${KEYS.CURRENT_AREA}:${slot}`);
+  return raw ? parseInt(raw, 10) : null;
+}
+
+// -------------------- DEFAULTS --------------------
+export function ensureStorageDefaults() {
+  if (localStorage.getItem(KEYS.HAS_OPENED_SAVE_SLOT) === null) {
+    setHasOpenedSaveSlot(false);
+  }
+}
+
+export function ensureCurrencyDefaults() {
+  const slot = getActiveSlot();
+  if (slot == null) return; // only seed AFTER a slot is chosen
+  for (const key of Object.values(CURRENCIES)) {
+    const k = `${KEYS.CURRENCY[key]}:${slot}`;
+    if (!localStorage.getItem(k)) localStorage.setItem(k, '0');
+  }
+}
+
+export function ensureMultiplierDefaults() {
+  const slot = getActiveSlot();
+  if (slot == null) return; // only seed AFTER a slot is chosen
+  for (const key of Object.values(CURRENCIES)) {
+    const km = `${KEYS.MULTIPLIER[key]}:${slot}`;
+    if (!localStorage.getItem(km)) {
+      const theor = scaledFromIntBN(BigNum.fromInt(1));
+      setMultiplierScaled(key, theor);
+    } else {
+      getMultiplierScaled(key);
+    }
+  }
+}
+
+// -------------------- CURRENCY UNLOCK STATE --------------------
+export function isCurrencyUnlocked(key, slot = getActiveSlot()) {
+  if (key === CURRENCIES.COINS) return true;
+  const k = `ccc:currency_unlocked:${key}:${slot}`;
+  return localStorage.getItem(k) === 'true';
+}
+
+export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
+  const k = `ccc:currency_unlocked:${key}:${slot}`;
+  const isCurrentlyUnlocked = isCurrencyUnlocked(key, slot);
+  const nextValue = !!value;
+  if (isCurrentlyUnlocked === nextValue) return;
+
+  localStorage.setItem(k, nextValue ? 'true' : 'false');
+  if (nextValue && typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('currency:unlock', { detail: { key, slot } }));
+    } catch {}
+  }
+}
+
+// -------------------- AMOUNTS (BN) --------------------
+export function getCurrency(key) {
+  const k = keyFor(KEYS.CURRENCY[key]);
+  if (!k) return BigNum.fromInt(0);
+  const raw = localStorage.getItem(k);
+  if (!raw) return BigNum.fromInt(0);
+  try { return BigNum.fromAny(raw); } catch { return BigNum.fromInt(0); }
+}
+
+export function setCurrency(key, value, { delta = null, previous = null } = {}) {
+  const slot = getActiveSlot();
+  const k = keyFor(KEYS.CURRENCY[key], slot);
+  const prev = previous ?? getCurrency(key);
+  const zero = BigNum.fromInt(0);
+  if (!k) return prev;
+  if (isCurrencyLocked(key, slot)) {
+    // ⚡ Bolt: Return early to prevent event spam and GC pressure when value is locked.
+    return prev;
+  } // Respect debug-panel storage locks
+
+  let bn;
+  try { bn = BigNum.fromAny(value); }
+  catch { bn = BigNum.fromInt(0); }
+  
+  if (bn && typeof bn.floorToInteger === 'function') {
+      bn = bn.floorToInteger();
+  }
+
+  if ((delta != null && BigNum.fromAny(delta).cmp(0) > 0) || bn.cmp(0) > 0) {
+    setCurrencyUnlocked(key, true, slot);
+  }
+  if (bn.isNegative?.()) bn = BigNum.fromInt(0);
+
+  const expectedRaw = bn.toStorage();
+
+  try { localStorage.setItem(k, expectedRaw); }
+  catch {}
+
+  let persistedRaw = null;
+  try { persistedRaw = localStorage.getItem(k); }
+  catch {}
+
+  const effectiveRaw = persistedRaw ?? expectedRaw;
+  let effective = bn;
+  try {
+    if (persistedRaw != null) {
+      effective = BigNum.fromAny(persistedRaw);
+      if (effective.isNegative?.()) effective = BigNum.fromInt(0);
+    }
+  } catch {}
+  
+  primeStorageWatcherSnapshot(k, effectiveRaw);
+
+  const changed = !bigNumEquals(prev, effective);
+
+  const parseDelta = (source) => {
+    if (source == null) return null;
+    try {
+      const bnDelta = source instanceof BigNum ? source.clone?.() ?? source : BigNum.fromAny(source);
+      if (typeof bnDelta.cmp === 'function') {
+        return bnDelta.cmp(zero) > 0 ? bnDelta : null;
+      }
+      if (!bnDelta.isZero?.()) return bnDelta;
+    } catch {}
+    return null;
+  };
+
+  const providedDelta = parseDelta(delta);
+  let deltaBn = null;
+  if (changed) {
+    try { deltaBn = effective.sub?.(prev); }
+    catch {}
+  }
+  if (!deltaBn || deltaBn.isZero?.() || (typeof deltaBn.cmp === 'function' && deltaBn.cmp(zero) <= 0)) {
+    deltaBn = providedDelta;
+  }
+
+  if (changed || deltaBn) {
+    const detail = { key, value: effective, slot, delta: deltaBn ?? undefined };
+    notifyCurrencySubscribers(detail);
+    try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
+  }
+
+  return effective;
+}
+
+function scaledFromIntBN(intBN) {
+  return intBN.mulScaledInt(1, -MULT_SCALE);
+}
+
+// theoretical (×10^MULT_SCALE) → integer BN multiplier (floor), min 1
+function intFromScaled(theorBN) {
+  const bn = BigNum.fromAny(theorBN);
+  if (bn.isInfinite()) return bn.clone();
+  const scaled = bn.mulScaledInt(1, MULT_SCALE);
+  return scaled;
+}
+
+function getMultiplierScaled(key) {
+  const k = keyFor(KEYS.MULTIPLIER[key]);
+  if (!k) return scaledFromIntBN(BigNum.fromInt(1));
+  const raw = localStorage.getItem(k);
+  if (!raw || !raw.startsWith(MULT_SCALE_TAG)) {
+    const theor = scaledFromIntBN(BigNum.fromInt(1));
+    setMultiplierScaled(key, theor);
+    return theor;
+  }
+  const payload = raw.slice(MULT_SCALE_TAG.length);
+  try { return BigNum.fromAny(payload); } catch {
+    const theor = scaledFromIntBN(BigNum.fromInt(1));
+    setMultiplierScaled(key, theor);
+    return theor;
+  }
+}
+
+function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
+  const k = keyFor(KEYS.MULTIPLIER[key], slot);
+  if (!k) return;
+  if (isDebugLocked(k)) return; // Respect debug-panel storage locks
+  let prev = scaledFromIntBN(BigNum.fromInt(1));
+  const existingRaw = localStorage.getItem(k);
+  if (existingRaw?.startsWith?.(MULT_SCALE_TAG)) {
+    try {
+      prev = BigNum.fromAny(existingRaw.slice(MULT_SCALE_TAG.length));
+    } catch {}
+  }
+  const bn = BigNum.fromAny(theoreticalBN);
+  const raw = MULT_SCALE_TAG + bn.toStorage();
+  try { localStorage.setItem(k, raw); }
+  catch {}
+
+  let persistedRaw = null;
+  try { persistedRaw = localStorage.getItem(k); }
+  catch {}
+
+  const effectiveRaw = persistedRaw ?? raw;
+  let effective = bn;
+  try {
+    const payload = effectiveRaw?.startsWith?.(MULT_SCALE_TAG)
+      ? effectiveRaw.slice(MULT_SCALE_TAG.length)
+      : null;
+    if (payload != null) effective = BigNum.fromAny(payload);
+  } catch {}
+  // Keep any live storage watchers (and save-integrity snapshots) aligned with the
+  // freshly-written multiplier so follow-up writes don't look like manual tampering.
+  try { primeStorageWatcherSnapshot(k, effectiveRaw); } catch {}
+  if (!bigNumEquals(prev, effective)) {
+    try {
+      window.dispatchEvent(new CustomEvent('currency:multiplier', {
+        detail: { key, mult: intFromScaled(effective), slot }
+      }));
+    } catch {}
+  }
+}
+
+export function getCurrencyMultiplierBN(key) {
+  return intFromScaled(getMultiplierScaled(key));
+}
+
+export function getCurrencyMultiplierScaledBN(key) {
+  return getMultiplierScaled(key);
+}
+
+export function isCurrencyLocked(key, slot = getActiveSlot()) {
+  const k = keyFor(KEYS.CURRENCY[key], slot);
+  return isDebugLocked(k);
+}
+
+// public set integer BN multiplier (stored as scaled theoretical)
+export function setCurrencyMultiplierBN(key, intBNValue) {
+  const v = BigNum.fromAny(intBNValue);
+  const theor = scaledFromIntBN(v);
+  setMultiplierScaled(key, theor, getActiveSlot());
+  return v;
+}
+
+export function peekCurrency(slot, key) {
+  const raw = localStorage.getItem(`${KEYS.CURRENCY[key]}:${slot}`);
+  if (!raw) return BigNum.fromInt(0);
+  try { return BigNum.fromAny(raw); } catch { return BigNum.fromInt(0); }
+}
+
+// -------------------- BANK FACADE --------------------
+function makeCurrencyHandle(key) {
+  // callable preview: bank.coins("1e3")
+  const fn = (x) => {
+    try {
+      const bn = BigNum.fromAny(x);
+      return typeof formatNumber === 'function' ? formatNumber(bn) : bn.toString();
+    } catch {
+      return 'NaN';
+    }
+  };
+
+  Object.defineProperty(fn, 'value', {
+    get() { return getCurrency(key); }
+  });
+
+  fn.toString = function toString() {
+    return this.value.toString();
+  };
+
+  // amount mutations
+  fn.add = function add(x) {
+    const amt  = BigNum.fromAny(x);
+    const next = this.value.add(amt);
+    const effective = setCurrency(key, next, { delta: amt, previous: this.value });
+    return effective;
+  };
+
+fn.sub = function sub(x) {
+  const amt = BigNum.fromAny(x);
+  const cur = this.value;
+
+  let next = cur.sub(amt);
+  if (next.isNegative?.()) next = BigNum.fromInt(0);
+
+  setCurrency(key, next);
+  return next;
+};
+
+  fn.set = function set(x) {
+    const val = BigNum.fromAny(x);
+    let delta = null;
+    let current;
+    try {
+      current = this.value;
+      if (current && typeof current.sub === 'function') {
+        delta = val.sub(current);
+      }
+    } catch {}
+    const effective = setCurrency(key, val, { delta, previous: current });
+    return effective;
+  };
+
+  fn.fmt = function fmt(x) {
+    const bn = BigNum.fromAny(x);
+    return typeof formatNumber === 'function' ? formatNumber(bn) : bn.toString();
+  };
+
+  // multiplier API (single-key theoretical + floor)
+  fn.mult = {
+    get() {
+      return getCurrencyMultiplierBN(key);
+    },
+    set(x) {
+      return setCurrencyMultiplierBN(key, x);
+    },
+    multiplyByInt(x) {
+      const factor = BigNum.fromAny(x).floorToInteger();
+      let theor = getMultiplierScaled(key).mulBigNumInteger(factor);
+      if (theor.isZero()) theor = scaledFromIntBN(BigNum.fromInt(1));
+      setMultiplierScaled(key, theor);
+      return intFromScaled(theor);
+    },
+    multiplyByDecimal(x) {
+      // parse "1.2" → { numer, scale }
+      let parsed;
+      try { parsed = BigNum._parseDecimalMultiplier(String(x), MULT_SCALE); }
+      catch { parsed = { numer: 1, scale: 0 }; }
+      let theor = getMultiplierScaled(key).mulScaledIntFloor(parsed.numer, parsed.scale);
+      if (theor.isZero()) theor = scaledFromIntBN(BigNum.fromInt(1));
+      setMultiplierScaled(key, theor);
+      const next = intFromScaled(theor);
+      return next.isZero() ? BigNum.fromInt(1) : next;
+    },
+    multiplyByPercent(pct) {
+      const factor = (Number(pct) / 100) + 1;
+      return this.multiplyByDecimal(String(factor));
+    },
+    applyTo(amount) {
+      let mult = this.get();
+      if (typeof window !== 'undefined' && window.getDebugCurrencyMultiplierOverride) {
+          const override = window.getDebugCurrencyMultiplierOverride(key);
+          if (override) mult = override;
+      }
+      if (mult.isInfinite()) {
+        return BigNum.fromAny('Infinity');
+      }
+      const amt = BigNum.fromAny(amount, mult.p);
+      if (amt.isZero() || mult.isZero()) return BigNum.fromInt(0);
+      return amt.mulBigNumInteger(mult);
+    }
+  };
+
+  fn.addWithMultiplier = function addWithMultiplier(baseAmount) {
+    const inc = fn.mult.applyTo(baseAmount);
+    return fn.add(inc);
+  };
+
+  return fn;
+}
+
+export const bank = new Proxy({}, {
+  get(_, prop) {
+    if (Object.values(CURRENCIES).includes(prop)) return makeCurrencyHandle(prop);
+    if (typeof prop === 'string' && CURRENCIES[prop.toUpperCase?.()]) {
+      return makeCurrencyHandle(CURRENCIES[prop.toUpperCase()]);
+    }
+    return undefined;
+  }
+});
+
+if (typeof window !== 'undefined') {
+  window.bank = bank;
+  for (const currency of Object.values(CURRENCIES)) {
+    window[currency] = bank[currency];
+  }
+}
+
+export function incrementResetStat(resetName) {
+  try {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const statKey = `ccc:stats:${resetName}Resets:${slot}`;
+    
+    let count = BigNum.fromAny(localStorage.getItem(statKey) || 0);
+    count = count.add(1);
+    
+    // Store as BigNum string, checking for infinity explicitly to match BN representation
+    const valToStore = count.inf ? "BN:infinite" : count.toString();
+    localStorage.setItem(statKey, valToStore);
+    
+    // Add to list of performed resets
+    const listKey = `ccc:stats:performedResets:${slot}`;
+    const listRaw = localStorage.getItem(listKey);
+    let list = [];
+    if (listRaw) {
+        try { list = JSON.parse(listRaw); } catch {}
+    }
+    if (!list.includes(resetName)) {
+        list.push(resetName);
+        localStorage.setItem(listKey, JSON.stringify(list));
+    }
+  } catch {}
 }
