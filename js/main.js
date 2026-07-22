@@ -662,6 +662,11 @@ function enterAreaFromSaveSlot(areaID) {
   try {
     enterArea(areaID);
     wakeBrowserThrottling();
+    setTimeout(() => {
+        if (typeof window.checkSaveSlotNotifications === 'function') {
+            window.checkSaveSlotNotifications();
+        }
+    }, 300);
   } finally {
     delayAreaMusicForSaveSlotLoad = false;
   }
@@ -1469,7 +1474,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
   const { initPerformanceGraph } = performanceGraphModule;
-  const { initNotifications, unpauseNotifications: _unpause, pauseNotifications: _pause, showNotification, showWelcomePopup, triggerInitialLandscapeCheck } = notificationModule;
+  const { initNotifications, unpauseNotifications: _unpause, pauseNotifications: _pause, showNotification, showWelcomePopup, showWeeklyReminderPopup, triggerInitialLandscapeCheck } = notificationModule;
+
+  window.checkSaveSlotNotifications = () => {
+    const slot = getActiveSlot();
+    if (slot != null) {
+      const welcomeKey = `ccc:welcome_shown:${slot}`;
+      const procsKey = `ccc:weekly_reminder_procs:${slot}`;
+      if (!localStorage.getItem(welcomeKey)) {
+        localStorage.setItem(welcomeKey, 'true');
+        showWelcomePopup(IS_MOBILE);
+      } else {
+        let procs = [];
+        try {
+          procs = JSON.parse(localStorage.getItem(procsKey) || '[]');
+        } catch (e) {
+          procs = [];
+        }
+        
+        const creationStr = localStorage.getItem(`ccc:creationTime:${slot}`);
+        const creationTime = creationStr ? parseInt(creationStr, 10) : Date.now();
+        
+        const lastProc = procs.length > 0 ? procs[procs.length - 1] : creationTime;
+        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+        
+        if (Date.now() - lastProc >= SEVEN_DAYS_MS) {
+          procs.push(Date.now());
+          localStorage.setItem(procsKey, JSON.stringify(procs));
+          showWeeklyReminderPopup();
+        }
+      }
+    }
+    if (typeof triggerInitialLandscapeCheck === 'function') {
+       triggerInitialLandscapeCheck();
+    }
+  };
   const { initFlowSystem } = flowTabModule;
   unpauseNotifications = _unpause;
   pauseNotifications = _pause;
@@ -1778,19 +1817,6 @@ There are many ways to mark a save slot other than just using the debug panel.`)
       }
 
       enterAreaFromSaveSlot(areaToLoad);
-      setTimeout(() => {
-        const slot = getActiveSlot();
-        if (slot != null) {
-          const welcomeKey = `ccc:welcome_shown:${slot}`;
-          if (!localStorage.getItem(welcomeKey)) {
-            localStorage.setItem(welcomeKey, 'true');
-            showWelcomePopup(IS_MOBILE);
-          }
-        }
-        if (typeof triggerInitialLandscapeCheck === 'function') {
-           triggerInitialLandscapeCheck();
-        }
-      }, 300);
     }, 'Finished loading game', 200);
   });
 
