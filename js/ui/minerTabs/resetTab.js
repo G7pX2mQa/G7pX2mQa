@@ -1,5 +1,5 @@
 import { setHtmlOrText } from '../../util/uiHelpers.js';
-import { getActiveSlot, bank, CURRENCIES, UC_MATERIALS, getCurrencyMultiplierScaledBN } from '../../util/storage.js';
+import { getActiveSlot, bank, CURRENCIES, UC_MATERIALS, getCurrencyMultiplierScaledBN, incrementResetStat } from '../../util/storage.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { getDpState, isDpSystemUnlocked, resetDpProgress } from '../../game/dpSystem.js';
@@ -177,6 +177,8 @@ export function performCompressReset() {
     
     setCompressResetCompleted(true);
     
+    incrementResetStat('Compress');
+
     // Play Compress reset sound
     try {
         playAudio('sounds/compress_reset.ogg', { type: 'sfx' });
@@ -483,6 +485,9 @@ export function performCombineReset() {
     setCombineResetCompleted(true);
     applyCombineResetLogic({ playSurgeEffects: false });
     recomputePendingCoresAndCrystals();
+    
+    incrementResetStat('Combine');
+    
     return true;
 }
 
