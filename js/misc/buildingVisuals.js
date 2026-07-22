@@ -6315,11 +6315,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   ctx.fillStyle = "#050302"; // Deep cavern darkness
   ctx.fillRect(-18, 0, 36, cy); 
 
-  // Diamond retaining walls for the drill shaft only (down to cavern ceiling)
-  ctx.fillStyle = fillDiamond;
-  ctx.fillRect(-22, 0, 4, cy); 
-  ctx.fillRect(18, 0, 4, cy);
-  
   // Define Cavern Path
   let cavernPath = new Path2D();
   cavernPath.ellipse(0, cy, cavernRadiusX, 90, 0, 0, Math.PI * 2); 
@@ -6328,6 +6323,13 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   // Cut out the cavern
   ctx.fillStyle = "#050302"; // Inside the cavern
   ctx.fill(cavernPath);
+
+  // Diamond retaining walls for the drill shaft only (punching completely through the cavern ceiling)
+  let cavernRoofY = cy - 90;
+  let strokeBottomY = cavernRoofY + 6; // Extend down to perfectly match the bottom edge of the 12px cavern stroke
+  ctx.fillStyle = fillDiamond;
+  ctx.fillRect(-22, 0, 4, strokeBottomY); 
+  ctx.fillRect(18, 0, 4, strokeBottomY);
   
   // --- NEW: Draw Drill Shaft BEFORE oil ---
   if (t0 > 0 && t4 < 1) {
@@ -6854,6 +6856,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   // --- Tier 0: Diamond Derrick (A-Frame) ---
   if (t0 > 0) {
     ctx.save();
+    ctx.translate(0, -1.5); // Lift the derrick by half the line width so it doesn't clip into the ground
     
     // Traditional Oil Derrick (A-Frame) made of Diamond
     ctx.fillStyle = fillDiamond;
