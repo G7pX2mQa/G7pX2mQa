@@ -32,10 +32,19 @@ export function updateMiscStatsTab() {
 
     const slot = getActiveSlot();
     
-    let html = `<div>Active playtime: ${formatTimeCompact((window.activePlaytime || 0) * 1000)}</div>`;
-    
-    const formattedCoins = formatNumber(BigNum.fromAny(window.coinsCollected || 0));
-    html += `<div>Coins collected: ${formattedCoins}</div>`;
+    const statsData = [];
+
+    statsData.push({
+        id: 'playtime',
+        label: 'Active playtime:',
+        value: formatTimeCompact((window.activePlaytime || 0) * 1000)
+    });
+
+    statsData.push({
+        id: 'coins',
+        label: 'Coins collected:',
+        value: formatNumber(BigNum.fromAny(window.coinsCollected || 0))
+    });
 
     let list = [];
     try {
@@ -54,9 +63,45 @@ export function updateMiscStatsTab() {
     for (const resetName of list) {
         const val = getStat(resetName);
         if (val.cmp(0) > 0) {
-            html += `<div>${resetName} resets performed: ${formatNumber(val)}</div>`;
+            statsData.push({
+                id: `reset-${resetName}`,
+                label: `${resetName} resets performed:`,
+                value: formatNumber(val)
+            });
         }
     }
 
-    setHtmlOrText(container, html);
+    const currentIds = new Set(statsData.map(s => s.id));
+    
+    Array.from(container.children).forEach(child => {
+        const id = child.getAttribute('data-stat-id');
+        if (!currentIds.has(id)) {
+            child.remove();
+        }
+    });
+
+    for (const stat of statsData) {
+        let row = container.querySelector(`[data-stat-id="${stat.id}"]`);
+        if (!row) {
+            row = document.createElement('div');
+            row.setAttribute('data-stat-id', stat.id);
+            
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'misc-stat-label';
+            labelSpan.textContent = stat.label + ' ';
+            
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'misc-stat-value';
+            
+            row.appendChild(labelSpan);
+            row.appendChild(valueSpan);
+            container.appendChild(row);
+        }
+        
+        const valueSpan = row.querySelector('.misc-stat-value');
+        if (valueSpan && valueSpan.__lastVal !== String(stat.value)) {
+            valueSpan.__lastVal = String(stat.value);
+            setHtmlOrText(valueSpan, stat.value);
+        }
+    }
 }
