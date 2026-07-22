@@ -708,16 +708,16 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
   const contentWrapper = document.createElement("div");
   contentWrapper.className = "offline-content-wrapper";
 
+  const scrollContainer = document.createElement("div");
+  scrollContainer.className = "offline-scroll-container";
+
   if (isPreAutomation) {
     const note = document.createElement("div");
     note.className = "offline-pre-auto-note";
     note.textContent =
       "Until you unlock proper automation, Coins have to be collected manually. As a gift to not discourage idle play before unlocking automation, provided below are the rewards from Coins that would have spawned if you were active in the game.";
-    contentWrapper.appendChild(note);
+    scrollContainer.appendChild(note);
   }
-
-  const scrollContainer = document.createElement("div");
-  scrollContainer.className = "offline-scroll-container";
 
   const list = document.createElement("div");
   list.className = "offline-list";
