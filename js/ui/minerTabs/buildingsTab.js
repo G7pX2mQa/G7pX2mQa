@@ -626,7 +626,7 @@ function applyBuildingOnlyMode(enabled) {
         overlay.style.cursor = 'none';
         
         if (overlayType === 'detail') {
-            const textContainer = contentEl ? contentEl.querySelector('.upg-costs') : null;
+            const textContainer = overlay ? overlay.querySelector('.upg-costs') : null;
             const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
             const bonusRow = document.getElementById('building-detail-bonus-row');
             const costRow = document.getElementById('building-detail-cost-row');
@@ -743,7 +743,7 @@ function applyBuildingOnlyMode(enabled) {
         overlay.style.cursor = '';
         
         if (overlayType === 'detail') {
-            const textContainer = contentEl ? contentEl.querySelector('.upg-costs') : null;
+            const textContainer = overlay ? overlay.querySelector('.upg-costs') : null;
             const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
             const bonusRow = document.getElementById('building-detail-bonus-row');
             const costRow = document.getElementById('building-detail-cost-row');
@@ -1261,7 +1261,7 @@ export function initBuildingOverlay() {
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
     costRow.style.margin = "0";
-    costRow.style.marginTop = "5px";
+    costRow.style.marginTop = "calc(50px - 0.9em)";
     costRow.style.padding = "0";
     costRow.className = "upg-line";
     costRow.style.lineHeight = "0.9";
@@ -1271,7 +1271,7 @@ export function initBuildingOverlay() {
     const walletRow = document.createElement("div");
     walletRow.id = "building-detail-wallet-row";
     walletRow.style.margin = "0";
-    walletRow.style.marginTop = "-8px";
+    walletRow.style.marginTop = "calc(37px - 0.9em)";
     walletRow.style.padding = "0";
     walletRow.className = "upg-line";
     walletRow.style.lineHeight = "0.9";
@@ -1282,7 +1282,6 @@ export function initBuildingOverlay() {
     textContainer.className = "upg-costs";
     textContainer.style.gap = "0px";
     textContainer.style.justifyContent = "center";
-    textContainer.style.marginBottom = "-11px";
     textContainer.style.pointerEvents = "auto";
     
     
@@ -1290,7 +1289,15 @@ export function initBuildingOverlay() {
     textContainer.appendChild(costRow);
     textContainer.appendChild(walletRow);
 
-    content.appendChild(textContainer);
+    // Position absolutely from its center to prevent drifting when shrunk
+    textContainer.style.position = "absolute";
+    textContainer.style.bottom = "177px";
+    textContainer.style.left = "0";
+    textContainer.style.width = "100%";
+    textContainer.style.transform = "translateY(50%)";
+    textContainer.style.zIndex = "2";
+
+    sheet.appendChild(textContainer);
     
     const btnBuyCheap = document.createElement("button");
     btnBuyCheap.className = "shop-delve";
