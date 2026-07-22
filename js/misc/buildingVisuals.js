@@ -6338,18 +6338,31 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       let spinOffsetX = (t * 80) % 64;
       let spinOffsetY = (t * 40) % 64;
       
-      // Main drill body clipping path (for moving texture)
+      // Main drill body clipping path (for moving texture and shading)
       ctx.beginPath();
-      ctx.rect(-15, drillY, 30, drillLength - 30);
-      ctx.moveTo(-15, drillY + drillLength - 30);
+      ctx.moveTo(-15, drillY);
+      ctx.lineTo(15, drillY);
       ctx.lineTo(15, drillY + drillLength - 30);
       ctx.lineTo(0, drillY + drillLength);
+      ctx.lineTo(-15, drillY + drillLength - 30);
       ctx.closePath();
       ctx.save();
       ctx.clip();
+      
+      // Draw moving texture
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDarkDiamond;
       ctx.fillRect(-15 - spinOffsetX, drillY - spinOffsetY - 64, 30 + 64, drillLength + 200);
+      ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
+      
+      // Edge shading to give it a 3D cylindrical look (applied to whole shape, clipped to tip)
+      let grad = ctx.createLinearGradient(-15, 0, 15, 0);
+      grad.addColorStop(0, "rgba(0,0,0,0.45)"); // Slightly lighter so it stays visible against dark cavern
+      grad.addColorStop(0.15, "rgba(0,0,0,0)");
+      grad.addColorStop(0.85, "rgba(0,0,0,0)");
+      grad.addColorStop(1, "rgba(0,0,0,0.45)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(-15, drillY, 30, drillLength);
       ctx.restore();
 
       // Narrow upper shaft
@@ -6365,8 +6378,8 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       // 3D Grooves for the main body
       ctx.save();
       ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
-      ctx.lineWidth = 3;
-      let grooveOffset = (t * 40) % 8; 
+      ctx.lineWidth = 2;
+      let grooveOffset = (t * 80) % 8; // Grooves slide down
       let numGrooves = Math.floor((drillLength - 30) / 8) + 2; 
       for(let i=-2; i<numGrooves; i++) {
           let gy = drillY + grooveOffset + i*8;
@@ -6377,23 +6390,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
               ctx.stroke();
           }
       }
-      
-      // Edge shading to give it a 3D cylindrical look
-      let grad = ctx.createLinearGradient(-15, 0, 15, 0);
-      grad.addColorStop(0, "rgba(0,0,0,0.6)");
-      grad.addColorStop(0.15, "rgba(0,0,0,0)");
-      grad.addColorStop(0.85, "rgba(0,0,0,0)");
-      grad.addColorStop(1, "rgba(0,0,0,0.6)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(-15, drillY, 30, drillLength - 30);
-      
-      // Tip shading
-      ctx.beginPath();
-      ctx.moveTo(-15, drillY + drillLength - 30);
-      ctx.lineTo(15, drillY + drillLength - 30);
-      ctx.lineTo(0, drillY + drillLength);
-      ctx.closePath();
-      ctx.fill();
       ctx.restore();
       ctx.restore();
   }
@@ -6435,7 +6431,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   
   // 1. Update spring node velocities and positions
   let drillTipY = 0;
-  if (t4 < 1) drillTipY = 170; // Slightly above drill tip (175) so it's barely submerged
+  if (t4 < 1) drillTipY = 173; // Dips to just above the physical tip (175) so it's barely submerged
 
   for (let i = 0; i < numNodes; i++) {
       let node = oilPhysicsNodes[i];
@@ -6444,9 +6440,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       
       // Node wants to return to flat pool
       let vortexDip = 0;
-      if (t4 < 1 && Math.abs(px) <= 50) { // Narrower vortex
-          let pt = Math.abs(px) / 50;
-          vortexDip = (1 - pt * pt) * (drillTipY - baseLiquidLevel);
+      if (t4 < 1 && Math.abs(px) <= 45) { // Sharp V-shape curve, quickly returns to normal
+          let pt = Math.abs(px) / 45;
+          vortexDip = (1 - pt) * (drillTipY - baseLiquidLevel);
       }
       node.baseY = baseLiquidLevel + ambientWave + vortexDip;
       
@@ -6491,18 +6487,33 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       }
   }
 
+  // Enforce hard physical boundary for the drill (prevents wave smoothing from filling the hole)
+  if (t4 < 1) {
+      for (let i = 0; i < numNodes; i++) {
+          let px = -cavernRadiusX + i * 10;
+          if (Math.abs(px) <= 45) {
+              let pt = Math.abs(px) / 45;
+              let boundaryY = baseLiquidLevel + (1 - pt) * (drillTipY - baseLiquidLevel);
+              if (oilPhysicsNodes[i].y < boundaryY) {
+                  oilPhysicsNodes[i].y = boundaryY;
+                  if (oilPhysicsNodes[i].vy < 0) oilPhysicsNodes[i].vy = 0;
+              }
+          }
+      }
+  }
+
   // Drill Interaction (Tier 0-3) Particles
   if (t4 < 1) {
       for (let i = 0; i < numNodes; i++) {
           let px = -cavernRadiusX + i * 10;
-          if (Math.abs(px) <= 40) {
+          if (Math.abs(px) <= 35) { // Tighter splash area
               if (Math.random() < 0.3) {
                   let isLeft = px < 0;
                   oilPhysicsParticles.push({
                       x: px + (Math.random() - 0.5) * 15,
                       y: oilPhysicsNodes[i].y,
-                      vx: (isLeft ? -1 : 1) * (Math.random() * 10 + 3),
-                      vy: -Math.random() * 12 - 3,
+                      vx: (isLeft ? -1 : 1) * (Math.random() * 6 + 2), // Less horizontal, more vertical
+                      vy: -Math.random() * 16 - 6, // Channel spray upwards due to tight walls
                       mass: Math.random() * 2 + 1,
                       life: 1.0,
                       isHot: false
@@ -6657,18 +6668,27 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.beginPath();
       ctx.moveTo(-cavernRadiusX, cy + 110);
       
-      let xShift = (layerIdx - 1) * 5;
+      let baseShift = (layerIdx - 1) * 5;
       
       let firstNode = oilPhysicsNodes[0];
-      ctx.lineTo(-cavernRadiusX + xShift, firstNode.y + yOffset);
+      let firstPx = -cavernRadiusX;
+      let firstShift = baseShift * Math.min(1, Math.abs(firstPx) / 100);
+      ctx.lineTo(firstPx + firstShift, firstNode.y + yOffset);
       
       // Use quadratic curves to draw the fluid completely smoothly, eliminating jagged spikes
       for (let i = 0; i < numNodes - 1; i++) {
           let p0 = oilPhysicsNodes[i];
           let p1 = oilPhysicsNodes[i + 1];
-          let px0 = -cavernRadiusX + i * 10 + xShift;
+          let nx0 = -cavernRadiusX + i * 10;
+          let nx1 = -cavernRadiusX + (i + 1) * 10;
+          
+          // Taper the horizontal parallax near the center so the hole perfectly aligns with the drill
+          let shift0 = baseShift * Math.min(1, Math.abs(nx0) / 100);
+          let shift1 = baseShift * Math.min(1, Math.abs(nx1) / 100);
+          
+          let px0 = nx0 + shift0;
           let py0 = p0.y + yOffset;
-          let px1 = -cavernRadiusX + (i + 1) * 10 + xShift;
+          let px1 = nx1 + shift1;
           let py1 = p1.y + yOffset;
           
           let cx = (px0 + px1) / 2;
@@ -6678,8 +6698,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       }
       
       let lastNode = oilPhysicsNodes[numNodes - 1];
-      let lastPx = -cavernRadiusX + (numNodes - 1) * 10 + xShift;
-      ctx.lineTo(lastPx, lastNode.y + yOffset);
+      let lastNx = -cavernRadiusX + (numNodes - 1) * 10;
+      let lastShift = baseShift * Math.min(1, Math.abs(lastNx) / 100);
+      ctx.lineTo(lastNx + lastShift, lastNode.y + yOffset);
       
       ctx.lineTo(cavernRadiusX, cy + 110);
       ctx.closePath();
