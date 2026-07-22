@@ -6329,6 +6329,75 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   ctx.fillStyle = "#050302"; // Inside the cavern
   ctx.fill(cavernPath);
   
+  // --- NEW: Draw Drill Shaft BEFORE oil ---
+  if (t0 > 0 && t4 < 1) {
+      ctx.save();
+      let drillY = 0;
+      let drillLength = 175; // Deep, but not touching the bottom
+      
+      let spinOffsetX = (t * 80) % 64;
+      let spinOffsetY = (t * 40) % 64;
+      
+      // Main drill body clipping path (for moving texture)
+      ctx.beginPath();
+      ctx.rect(-15, drillY, 30, drillLength - 30);
+      ctx.moveTo(-15, drillY + drillLength - 30);
+      ctx.lineTo(15, drillY + drillLength - 30);
+      ctx.lineTo(0, drillY + drillLength);
+      ctx.closePath();
+      ctx.save();
+      ctx.clip();
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDarkDiamond;
+      ctx.fillRect(-15 - spinOffsetX, drillY - spinOffsetY - 64, 30 + 64, drillLength + 200);
+      ctx.restore();
+
+      // Narrow upper shaft
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-8, -40 + drillY, 16, 40);
+      ctx.clip();
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDarkDiamond;
+      ctx.fillRect(-8 - spinOffsetX, -40 + drillY - spinOffsetY - 64, 16 + 64, 40 + 200);
+      ctx.restore();
+
+      // 3D Grooves for the main body
+      ctx.save();
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.lineWidth = 3;
+      let grooveOffset = (t * 40) % 8; 
+      let numGrooves = Math.floor((drillLength - 30) / 8) + 2; 
+      for(let i=-2; i<numGrooves; i++) {
+          let gy = drillY + grooveOffset + i*8;
+          if (gy > drillY && gy < drillY + drillLength - 20) {
+              ctx.beginPath();
+              ctx.moveTo(-15, gy - 2);
+              ctx.quadraticCurveTo(0, gy + 3, 15, gy + 6);
+              ctx.stroke();
+          }
+      }
+      
+      // Edge shading to give it a 3D cylindrical look
+      let grad = ctx.createLinearGradient(-15, 0, 15, 0);
+      grad.addColorStop(0, "rgba(0,0,0,0.6)");
+      grad.addColorStop(0.15, "rgba(0,0,0,0)");
+      grad.addColorStop(0.85, "rgba(0,0,0,0)");
+      grad.addColorStop(1, "rgba(0,0,0,0.6)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(-15, drillY, 30, drillLength - 30);
+      
+      // Tip shading
+      ctx.beginPath();
+      ctx.moveTo(-15, drillY + drillLength - 30);
+      ctx.lineTo(15, drillY + drillLength - 30);
+      ctx.lineTo(0, drillY + drillLength);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      ctx.restore();
+  }
+
   // 3. Fluid Oil Pool inside the Cavern
   ctx.save();
   ctx.clip(cavernPath); // Restrict fluid entirely to the cavern
@@ -6365,13 +6434,21 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   const spread = 0.12; // Faster wave propagation to smooth out the surface
   
   // 1. Update spring node velocities and positions
+  let drillTipY = 0;
+  if (t4 < 1) drillTipY = 170; // Slightly above drill tip (175) so it's barely submerged
+
   for (let i = 0; i < numNodes; i++) {
       let node = oilPhysicsNodes[i];
       let px = -cavernRadiusX + i * 10;
       let ambientWave = Math.sin(px * 0.015 + t * 1.5) * 4 + Math.sin(px * 0.025 - t * 2.1) * 2;
       
       // Node wants to return to flat pool
-      node.baseY = baseLiquidLevel + ambientWave;
+      let vortexDip = 0;
+      if (t4 < 1 && Math.abs(px) <= 50) { // Narrower vortex
+          let pt = Math.abs(px) / 50;
+          vortexDip = (1 - pt * pt) * (drillTipY - baseLiquidLevel);
+      }
+      node.baseY = baseLiquidLevel + ambientWave + vortexDip;
       
       let x = node.y - node.baseY;
       node.vy -= k * x;
@@ -6414,28 +6491,22 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       }
   }
 
-  // Drill Interaction (Tier 0-3)
+  // Drill Interaction (Tier 0-3) Particles
   if (t4 < 1) {
-      let drillTipY = (130 / scale) + 15;
-      
       for (let i = 0; i < numNodes; i++) {
           let px = -cavernRadiusX + i * 10;
-          if (Math.abs(px) <= 20) {
-              if (oilPhysicsNodes[i].y < drillTipY) {
-                  let force = (drillTipY - oilPhysicsNodes[i].y) * 0.1;
-                  oilPhysicsNodes[i].vy += force + 0.5;
-                  
-                  if (Math.random() < 0.02) { // Less splashing since it doesn't bounce
-                      oilPhysicsParticles.push({
-                          x: px + (Math.random() - 0.5) * 10,
-                          y: oilPhysicsNodes[i].y,
-                          vx: (Math.random() - 0.5) * 5,
-                          vy: -Math.random() * 8 - 2,
-                          mass: Math.random() * 2 + 1,
-                          life: 1.0,
-                          isHot: false
-                      });
-                  }
+          if (Math.abs(px) <= 40) {
+              if (Math.random() < 0.3) {
+                  let isLeft = px < 0;
+                  oilPhysicsParticles.push({
+                      x: px + (Math.random() - 0.5) * 15,
+                      y: oilPhysicsNodes[i].y,
+                      vx: (isLeft ? -1 : 1) * (Math.random() * 10 + 3),
+                      vy: -Math.random() * 12 - 3,
+                      mass: Math.random() * 2 + 1,
+                      life: 1.0,
+                      isHot: false
+                  });
               }
           }
       }
@@ -6709,47 +6780,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   // --- Tier 0: Diamond Derrick (A-Frame) ---
   if (t0 > 0) {
     ctx.save();
-    
-    // Main drill shaft going down
-    let drillY = 0;
-    
-    // Physical drill bit (disappears / replaced at Tier 4)
-    if (t4 < 1) {
-        let drillBottom = 130 / scale;
-        // Drill body stretches dynamically
-        let drillLength = drillBottom + 15; 
-        
-        ctx.fillStyle = fillDarkDiamond;
-        // Drill body
-        ctx.fillRect(-15, drillY, 30, drillLength - 30);
-        
-        // Drill tip (triangle)
-        ctx.beginPath();
-        ctx.moveTo(-15, drillY + drillLength - 30);
-        ctx.lineTo(15, drillY + drillLength - 30);
-        ctx.lineTo(0, drillY + drillLength);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.fillStyle = fillDarkDiamond;
-        ctx.strokeStyle = "#005555";
-        ctx.lineWidth = 2;
-        ctx.fillRect(-8, -40 + drillY, 16, drillLength + 40 - 30);
-        ctx.strokeRect(-8, -40 + drillY, 16, drillLength + 40 - 30);
-        
-        // Drill grooves - animate them to simulate rotation
-        let grooveOffset = (t * 40) % 6; 
-        let numGrooves = Math.floor((drillLength - 30) / 6) + 1; // Extra groove to cover offset
-        for(let i=-1; i<numGrooves; i++) {
-            let gy = drillY + grooveOffset + i*6;
-            if (gy > drillY && gy < drillY + drillLength - 30) {
-                ctx.beginPath();
-                ctx.moveTo(-15, gy);
-                ctx.lineTo(15, gy + 4);
-                ctx.stroke();
-            }
-        }
-    }
     
     // Traditional Oil Derrick (A-Frame) made of Diamond
     ctx.fillStyle = fillDiamond;
