@@ -263,6 +263,54 @@ export function showWelcomePopup(isMobile) {
     }, 9000); // 1s enter + 8s wait = 9000ms
 }
 
+export function showWeeklyReminderPopup() {
+    const parent = document.createElement('div');
+    parent.className = 'welcome-popup-container';
+    
+    const el = document.createElement('div');
+    el.className = 'welcome-popup notification-text';
+    
+    el.innerHTML = `Weekly reminder: Remember to export your save data (Main menu → Manage save slots) in case you lose it!`;
+    
+    parent.appendChild(el);
+    document.body.appendChild(parent);
+    
+    const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+    
+    const popupTracker = {
+        element: parent,
+        audio,
+        timeoutId: null,
+        fallbackTimeoutId: null
+    };
+    activeWelcomePopups.add(popupTracker);
+    
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            el.classList.add('is-visible');
+        });
+    });
+    
+    popupTracker.timeoutId = setTimeout(() => {
+        el.classList.remove('is-visible');
+        el.classList.add('is-leaving');
+        
+        const cleanup = () => {
+            parent.remove();
+            activeWelcomePopups.delete(popupTracker);
+        };
+        
+        el.addEventListener('transitionend', cleanup, { once: true });
+        
+        popupTracker.fallbackTimeoutId = setTimeout(() => {
+            if (parent.isConnected) {
+                parent.remove();
+            }
+            activeWelcomePopups.delete(popupTracker);
+        }, 1200);
+    }, 18000); // 1s enter + 17s wait = 18000ms (Double the time of first-time notification)
+}
+
 export function showLandscapeWarningPopup() {
     if (landscapeWarningTracker) return;
     
