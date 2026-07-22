@@ -99,8 +99,7 @@ export function updateMiscStatsTab() {
         }
         
         const valueSpan = row.querySelector('.misc-stat-value');
-        if (valueSpan && valueSpan.__lastVal !== String(stat.value)) {
-            valueSpan.__lastVal = String(stat.value);
+        if (valueSpan) {
             setHtmlOrText(valueSpan, stat.value);
         }
     }
