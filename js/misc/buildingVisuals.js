@@ -6311,14 +6311,14 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   let cy = 130; 
   let cavernRadiusX = w * 0.45; // 90% of viewport width
   
-  // Drill shaft down to the cavern
+  // Drill shaft down to the cavern (barely wide enough for drill)
   ctx.fillStyle = "#050302"; // Deep cavern darkness
-  ctx.fillRect(-20, 0, 40, cy); 
-  
+  ctx.fillRect(-18, 0, 36, cy); 
+
   // Diamond retaining walls for the drill shaft only (down to cavern ceiling)
   ctx.fillStyle = fillDiamond;
-  ctx.fillRect(-25, -10, 5, cy + 10); 
-  ctx.fillRect(20, -10, 5, cy + 10);
+  ctx.fillRect(-22, 0, 4, cy); 
+  ctx.fillRect(18, 0, 4, cy);
   
   // Define Cavern Path
   let cavernPath = new Path2D();
@@ -6340,11 +6340,14 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       
       // Main drill body clipping path (for moving texture and shading)
       ctx.beginPath();
-      ctx.moveTo(-15, drillY);
+      // Added a trapezoidal "chuck" that smoothly connects the 30px body to the 16px upper shaft
+      ctx.moveTo(-8, drillY - 15);
+      ctx.lineTo(8, drillY - 15);
       ctx.lineTo(15, drillY);
       ctx.lineTo(15, drillY + drillLength - 30);
       ctx.lineTo(0, drillY + drillLength);
       ctx.lineTo(-15, drillY + drillLength - 30);
+      ctx.lineTo(-15, drillY);
       ctx.closePath();
       ctx.save();
       ctx.clip();
@@ -6352,7 +6355,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       // Draw moving texture
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDarkDiamond;
-      ctx.fillRect(-15 - spinOffsetX, drillY - spinOffsetY - 64, 30 + 64, drillLength + 200);
+      ctx.fillRect(-15 - spinOffsetX, drillY - 20 - spinOffsetY - 64, 30 + 64, drillLength + 200);
       ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
       
       // Edge shading to give it a 3D cylindrical look (applied to whole shape, clipped to tip)
@@ -6362,18 +6365,63 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       grad.addColorStop(0.85, "rgba(0,0,0,0)");
       grad.addColorStop(1, "rgba(0,0,0,0.45)");
       ctx.fillStyle = grad;
-      ctx.fillRect(-15, drillY, 30, drillLength);
+      ctx.fillRect(-15, drillY - 15, 30, drillLength + 15);
       ctx.restore();
 
       // Narrow upper shaft
       ctx.save();
       ctx.beginPath();
-      ctx.rect(-8, -40 + drillY, 16, 40);
+      // Starts from the top of the chuck (-15)
+      ctx.rect(-8, -60 + drillY, 16, 60 - 15);
       ctx.clip();
+      
+      // Draw moving texture
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDarkDiamond;
-      ctx.fillRect(-8 - spinOffsetX, -40 + drillY - spinOffsetY - 64, 16 + 64, 40 + 200);
+      ctx.fillRect(-8 - spinOffsetX, -60 + drillY - spinOffsetY - 64, 16 + 64, 60 + 200);
+      ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
+      
+      // Edge shading for the upper shaft
+      let gradUpper = ctx.createLinearGradient(-8, 0, 8, 0);
+      gradUpper.addColorStop(0, "rgba(0,0,0,0.45)");
+      gradUpper.addColorStop(0.2, "rgba(0,0,0,0)");
+      gradUpper.addColorStop(0.8, "rgba(0,0,0,0)");
+      gradUpper.addColorStop(1, "rgba(0,0,0,0.45)");
+      ctx.fillStyle = gradUpper;
+      ctx.fillRect(-8, -60 + drillY, 16, 60 - 15);
       ctx.restore();
+
+      // Top Drive Mechanism (motor that spins the drill)
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-15, -90 + drillY, 30, 30);
+      ctx.clip();
+      
+      // Draw moving texture to match the drill material
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDarkDiamond;
+      ctx.fillRect(-15 - spinOffsetX, -90 + drillY - spinOffsetY - 64, 30 + 64, 30 + 200);
+      ctx.translate(-spinOffsetX, -spinOffsetY);
+      
+      // Mechanical bands (drawn before shading so they look curved!)
+      ctx.fillStyle = "#111"; 
+      ctx.fillRect(-15, -85 + drillY, 30, 5);
+      ctx.fillRect(-15, -70 + drillY, 30, 5);
+      
+      // Edge shading for the top drive (uses the same gradient as the 30px main body)
+      ctx.fillStyle = grad; 
+      ctx.fillRect(-15, -90 + drillY, 30, 30);
+      ctx.restore();
+      
+      // Cables suspending the top drive from the crown block
+      ctx.strokeStyle = "#555";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-10, -200);
+      ctx.lineTo(-10, -90 + drillY);
+      ctx.moveTo(10, -200);
+      ctx.lineTo(10, -90 + drillY);
+      ctx.stroke();
 
       // 3D Grooves for the main body
       ctx.save();
@@ -6794,7 +6842,12 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   // Cavern rough edges/texture drawn over the fluid and particles so it cleanly acts as a solid wall
   ctx.strokeStyle = "#38291f";
   ctx.lineWidth = 12;
-  ctx.stroke(cavernPath);
+  
+  // Draw the cavern wall outline, but leave a gap at the top for the drill shaft hole
+  let gapAngle = Math.asin(22 / cavernRadiusX);
+  let cavernWallPath = new Path2D();
+  cavernWallPath.ellipse(0, cy, cavernRadiusX, 90, 0, -Math.PI/2 + gapAngle, Math.PI * 1.5 - gapAngle);
+  ctx.stroke(cavernWallPath);
 
   ctx.restore(); // End cavern transform (pops SAVE 2)
 
