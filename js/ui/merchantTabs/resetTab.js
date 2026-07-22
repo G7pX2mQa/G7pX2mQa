@@ -8,6 +8,7 @@ import {
   primeStorageWatcherSnapshot,
   onCurrencyChange,
   CURRENCIES,
+  incrementResetStat
 } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { setHtmlOrText } from '../../util/uiHelpers.js';
@@ -1230,6 +1231,8 @@ export function performForgeReset() {
   initMutationSystem();
   unlockMutationSystem();
   
+  incrementResetStat('Forge');
+  
   if (shouldWipePlayfield('forge')) {
     try { window.spawner?.clearPlayfield?.('forge'); } catch {}
   }
@@ -1274,6 +1277,8 @@ export function performInfuseReset() {
   if (!resetState.hasDoneInfuseReset) {
     setInfuseResetCompleted(true);
   }
+
+  incrementResetStat('Infuse');
 
   updateResetPanel();
   return true;
@@ -1372,6 +1377,8 @@ function performExperimentReset() {
     recomputePendingWaves();
     recomputePendingDna();
     updateResetPanel();
+    
+    incrementResetStat('Experiment');
     
     return true;
 }
@@ -1570,6 +1577,9 @@ export function performSurgeReset() {
 
   // Normal reset
   applySurgeResetLogic(reward, { playEffects: true });
+  
+  incrementResetStat('Surge');
+  
   return true;
 }
 
