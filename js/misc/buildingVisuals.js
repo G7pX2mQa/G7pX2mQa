@@ -6979,6 +6979,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           r = 255; 
           g = 100 + Math.random() * 100; // Flicker yellow/orange
           b = 50; 
+          alpha *= t8;
       }
       
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
