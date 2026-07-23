@@ -1572,11 +1572,13 @@ export function updateOverlayUi() {
 
         // Restore/Reinstate everything when not in the opening/open Vault sequence,
         // EXCEPT if "Only show Building" mode is currently active.
+        const isInfinite = levelBn && typeof levelBn.isInfinite === 'function' && levelBn.isInfinite();
+
         if (levelText) levelText.style.visibility = isOnlyBuilding ? 'hidden' : '';
         if (costsText) costsText.style.visibility = isOnlyBuilding ? 'hidden' : '';
         if (bonusRow) bonusRow.style.visibility = isOnlyBuilding ? 'hidden' : '';
-        if (costRow) costRow.style.visibility = isOnlyBuilding ? 'hidden' : '';
-        if (walletRow) walletRow.style.visibility = isOnlyBuilding ? 'hidden' : '';
+        if (costRow) costRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : '';
+        if (walletRow) walletRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : '';
 
         const upgHeader = document.querySelector('#building-detail-overlay .upg-header');
         if (upgHeader) upgHeader.style.visibility = isOnlyBuilding ? 'hidden' : '';
