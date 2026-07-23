@@ -118,8 +118,11 @@ function selectTab(key) {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       const scroller = overlayEl?.querySelector(".merchant-content");
-      if (scroller && scroller.__customScroll && typeof scroller.__customScroll.updateAll === "function") {
-        scroller.__customScroll.updateAll();
+      if (scroller) {
+        scroller.scrollTop = 0;
+        if (scroller.__customScroll && typeof scroller.__customScroll.update === "function") {
+          scroller.__customScroll.update();
+        }
       }
     });
   });
