@@ -6333,7 +6333,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   ctx.fillRect(18, 0, 4, strokeBottomY);
   
   // --- NEW: Draw Drill Shaft BEFORE oil ---
-  if (t0 > 0 && t4 < 1) {
+  if (t0 > 0) {
       ctx.save();
       let drillY = 0;
       let drillLength = 175; // Deep, but not touching the bottom
@@ -6347,49 +6347,76 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       let topDriveBottom = -60 * scale;
       let shaftTop = -65 * scale;
       
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(-8, shaftTop + drillY, 16, -shaftTop);
-      ctx.clip();
-      
-      // Draw moving texture
-      ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(-8 - spinOffsetX, shaftTop + drillY - spinOffsetY - 64, 16 + 64, -shaftTop + 200);
-      ctx.translate(-spinOffsetX, -spinOffsetY);
-      
-      ctx.restore();
-
-      // 2. Main drill body clipping path (for moving texture and shading)
-      ctx.beginPath();
-      ctx.moveTo(-8, drillY - 15);
-      ctx.lineTo(8, drillY - 15);
-      ctx.lineTo(15, drillY);
-      ctx.lineTo(15, drillY + drillLength - 30);
-      ctx.lineTo(0, drillY + drillLength);
-      ctx.lineTo(-15, drillY + drillLength - 30);
-      ctx.lineTo(-15, drillY);
-      ctx.closePath();
-      ctx.save();
-      ctx.clip();
-      
-      // Draw moving texture
-      ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(-15 - spinOffsetX, drillY - 20 - spinOffsetY - 64, 30 + 64, drillLength + 200);
-      ctx.translate(-spinOffsetX, -spinOffsetY);
-      
-
-      
       // Edge shading to give it a 3D cylindrical look
       let grad = ctx.createLinearGradient(-15, 0, 15, 0);
       grad.addColorStop(0, "rgba(0,0,0,0.45)");
       grad.addColorStop(0.15, "rgba(0,0,0,0)");
       grad.addColorStop(0.85, "rgba(0,0,0,0)");
       grad.addColorStop(1, "rgba(0,0,0,0.45)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(-15, drillY - 15, 30, drillLength + 15);
-      ctx.restore();
+
+      if (t4 < 1) {
+          ctx.save();
+          // Fade out the physical drill as tier 4 activates
+          ctx.globalAlpha = 1 - t4; 
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(-8, shaftTop + drillY, 16, -shaftTop);
+          ctx.clip();
+          
+          // Draw moving texture
+          ctx.translate(spinOffsetX, spinOffsetY);
+          ctx.fillStyle = fillDiamond;
+          ctx.fillRect(-8 - spinOffsetX, shaftTop + drillY - spinOffsetY - 64, 16 + 64, -shaftTop + 200);
+          ctx.translate(-spinOffsetX, -spinOffsetY);
+          
+          ctx.restore();
+
+          // 2. Main drill body clipping path (for moving texture and shading)
+          ctx.beginPath();
+          ctx.moveTo(-8, drillY - 15);
+          ctx.lineTo(8, drillY - 15);
+          ctx.lineTo(15, drillY);
+          ctx.lineTo(15, drillY + drillLength - 30);
+          ctx.lineTo(0, drillY + drillLength);
+          ctx.lineTo(-15, drillY + drillLength - 30);
+          ctx.lineTo(-15, drillY);
+          ctx.closePath();
+          ctx.save();
+          ctx.clip();
+          
+          // Draw moving texture
+          ctx.translate(spinOffsetX, spinOffsetY);
+          ctx.fillStyle = fillDiamond;
+          ctx.fillRect(-15 - spinOffsetX, drillY - 20 - spinOffsetY - 64, 30 + 64, drillLength + 200);
+          ctx.translate(-spinOffsetX, -spinOffsetY);
+          
+          // Edge shading to give it a 3D cylindrical look
+          ctx.fillStyle = grad;
+          ctx.fillRect(-15, drillY - 15, 30, drillLength + 15);
+          ctx.restore();
+
+          // 3D Grooves for the main body
+          ctx.save();
+          ctx.strokeStyle = fillDarkDiamond;
+          ctx.lineWidth = 3; // slightly thicker so pattern is visible
+          let grooveOffset = (t * 80) % 8; // Grooves slide down
+          let numGrooves = Math.floor((drillLength - 30) / 8) + 2; 
+          
+          ctx.translate(spinOffsetX, spinOffsetY);
+          for(let i=-2; i<numGrooves; i++) {
+              let gy = drillY + grooveOffset + i*8;
+              if (gy > drillY && gy < drillY + drillLength - 35) {
+                  ctx.beginPath();
+                  ctx.moveTo(-15 - spinOffsetX, gy - 2 - spinOffsetY);
+                  ctx.quadraticCurveTo(0 - spinOffsetX, gy + 3 - spinOffsetY, 15 - spinOffsetX, gy + 6 - spinOffsetY);
+                  ctx.stroke();
+              }
+          }
+          ctx.translate(-spinOffsetX, -spinOffsetY);
+          ctx.restore();
+          ctx.restore(); // Restore alpha
+      }
 
       // Top Drive Mechanism (motor that spins the drill) — scaled with building
       let topDriveH = topDriveBottom - topDriveTop;
@@ -6426,25 +6453,46 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.lineTo(10, topDriveTop + drillY);
       ctx.stroke();
 
-      // 3D Grooves for the main body
-      ctx.save();
-      ctx.strokeStyle = fillDarkDiamond;
-      ctx.lineWidth = 3; // slightly thicker so pattern is visible
-      let grooveOffset = (t * 80) % 8; // Grooves slide down
-      let numGrooves = Math.floor((drillLength - 30) / 8) + 2; 
-      
-      ctx.translate(spinOffsetX, spinOffsetY);
-      for(let i=-2; i<numGrooves; i++) {
-          let gy = drillY + grooveOffset + i*8;
-          if (gy > drillY && gy < drillY + drillLength - 35) {
-              ctx.beginPath();
-              ctx.moveTo(-15 - spinOffsetX, gy - 2 - spinOffsetY);
-              ctx.quadraticCurveTo(0 - spinOffsetX, gy + 3 - spinOffsetY, 15 - spinOffsetX, gy + 6 - spinOffsetY);
-              ctx.stroke();
-          }
+      // Tier 4 Laser Focus Lens at the bottom of the Top Drive
+      if (t4 > 0) {
+          ctx.save();
+          ctx.globalAlpha = t4;
+          
+          let lensPulse = 0.5 + 0.5 * Math.sin(t * 15);
+          
+          // Lens casing
+          ctx.fillStyle = fillDarkDiamond;
+          ctx.beginPath();
+          ctx.moveTo(-15, topDriveBottom + drillY);
+          ctx.lineTo(15, topDriveBottom + drillY);
+          ctx.lineTo(10, topDriveBottom + drillY + 8);
+          ctx.lineTo(-10, topDriveBottom + drillY + 8);
+          ctx.closePath();
+          ctx.fill();
+
+          // Glowing emitter crystal
+          ctx.fillStyle = `rgba(255, 80, 80, ${0.8 + 0.2 * lensPulse})`;
+          ctx.beginPath();
+          ctx.moveTo(-10, topDriveBottom + drillY + 8);
+          ctx.lineTo(10, topDriveBottom + drillY + 8);
+          ctx.lineTo(4, topDriveBottom + drillY + 12);
+          ctx.lineTo(-4, topDriveBottom + drillY + 12);
+          ctx.closePath();
+          ctx.fill();
+          
+          // White hot core in the crystal
+          ctx.fillStyle = `rgba(255, 255, 255, 0.9)`;
+          ctx.beginPath();
+          ctx.moveTo(-5, topDriveBottom + drillY + 8);
+          ctx.lineTo(5, topDriveBottom + drillY + 8);
+          ctx.lineTo(2, topDriveBottom + drillY + 11);
+          ctx.lineTo(-2, topDriveBottom + drillY + 11);
+          ctx.closePath();
+          ctx.fill();
+          
+          ctx.restore();
       }
-      ctx.translate(-spinOffsetX, -spinOffsetY);
-      ctx.restore();
+
       ctx.restore();
   }
 
