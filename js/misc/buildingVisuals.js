@@ -7192,22 +7192,37 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.fillStyle = `rgba(255, 230, 230, 0.95)`;
     ctx.fillRect(-centerWidth, laserStartY, centerWidth * 2, beamHeight);
     
-    // Spinning helical lines wrapping around the beam
+    // Spinning helical lines wrapping around the beam (3D rotating effect)
     const helixSpeed = t * 6;
     const helixAmp = 5.25;
     const helixFreq = 0.06;
     
     for (let hx = 0; hx < 2; hx++) {
         const phaseOffset = hx * Math.PI;
-        ctx.strokeStyle = `rgba(255, 160, 160, ${0.35 + 0.2 * Math.sin(t * 10 + hx)})`;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        for (let ly = 0; ly < beamHeight; ly += 2) {
-            const lx = Math.sin(ly * helixFreq + helixSpeed + phaseOffset) * helixAmp;
-            if (ly === 0) ctx.moveTo(lx, laserStartY + ly);
-            else ctx.lineTo(lx, laserStartY + ly);
+        
+        for (let ly = 2; ly < beamHeight; ly += 2) {
+            // Subtract helixSpeed so the wave travels downwards (increasing Y)
+            const anglePrev = (ly - 2) * helixFreq - helixSpeed + phaseOffset;
+            const angle = ly * helixFreq - helixSpeed + phaseOffset;
+            
+            const lxPrev = Math.sin(anglePrev) * helixAmp;
+            const lx = Math.sin(angle) * helixAmp;
+            
+            // Calculate z-depth (-1 to 1) for 3D effect
+            const lz = (Math.cos(anglePrev) + Math.cos(angle)) / 2;
+            
+            // Adjust opacity and thickness based on depth
+            const alpha = 0.4 + 0.35 * lz;
+            const thickness = 1.4 + 1.0 * lz;
+            
+            ctx.strokeStyle = `rgba(255, 160, 160, ${Math.max(0.05, alpha)})`;
+            ctx.lineWidth = Math.max(0.2, thickness);
+            
+            ctx.beginPath();
+            ctx.moveTo(lxPrev, laserStartY + ly - 2);
+            ctx.lineTo(lx, laserStartY + ly);
+            ctx.stroke();
         }
-        ctx.stroke();
     }
     
     ctx.restore();
