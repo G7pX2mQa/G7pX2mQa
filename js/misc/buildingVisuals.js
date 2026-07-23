@@ -6484,21 +6484,35 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   const spread = 0.12; // Faster wave propagation to smooth out the surface
   
   // 1. Update spring node velocities and positions
-  let drillTipY = 0;
-  if (t4 < 1) drillTipY = 173; // Dips to just above the physical tip (175) so it's barely submerged
+  let drillTipY = baseLiquidLevel + (173 - baseLiquidLevel) * (1 - t4); // Smoothly retracts from 173 up to surface level during t4 transition
 
   for (let i = 0; i < numNodes; i++) {
       let node = oilPhysicsNodes[i];
       let px = -cavernRadiusX + i * 10;
+      
+      // Ambient gentle waves
       let ambientWave = Math.sin(px * 0.015 + t * 1.5) * 4 + Math.sin(px * 0.025 - t * 2.1) * 2;
+      
+      // Violent, asymmetric chaotic swells when laser is active
+      let laserSwell = 0;
+      if (laserStrength > 0) {
+          // Use very low frequencies for large, rolling, tsunami-like waves
+          let swell1 = Math.sin(px * 0.006 + t * 3.7) * 25;
+          let swell2 = Math.sin(px * 0.011 - t * 4.9 + Math.sin(t * 2.1)) * 18;
+          let falloff = 1 - Math.pow(Math.abs(px) / cavernRadiusX, 2); // Stronger near center
+          laserSwell = (swell1 + swell2) * laserStrength * falloff;
+          
+          // Break symmetry explicitly
+          if (px < 0) laserSwell *= 0.6; 
+      }
       
       // Node wants to return to flat pool
       let vortexDip = 0;
-      if (t4 < 1 && Math.abs(px) <= 45) { // Sharp V-shape curve, quickly returns to normal
+      if (t4 < 1 && Math.abs(px) <= 45) { 
           let pt = Math.abs(px) / 45;
-          vortexDip = (1 - pt) * (drillTipY - baseLiquidLevel);
+          vortexDip = (1 - pt) * (drillTipY - baseLiquidLevel); // Naturally fades as drillTipY goes to baseLiquidLevel
       }
-      node.baseY = baseLiquidLevel + ambientWave + vortexDip;
+      node.baseY = baseLiquidLevel + ambientWave + laserSwell + vortexDip;
       
       let x = node.y - node.baseY;
       node.vy -= k * x;
@@ -6516,9 +6530,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   for (let i = 0; i < numNodes; i++) {
       currentVol += (oilPhysicsNodes[i].y - oilPhysicsNodes[i].baseY);
   }
-  let correction = (currentVol / numNodes) * 0.1; // Apply only 10% of correction per frame
+  let correction = (currentVol / numNodes) * 0.1; 
   for (let i = 0; i < numNodes; i++) {
-      oilPhysicsNodes[i].vy -= correction; // Apply as velocity so it sloshes smoothly
+      oilPhysicsNodes[i].vy -= correction; 
   }
 
   // 2. Propagate waves to neighbors
@@ -6541,7 +6555,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       }
   }
 
-  // Enforce hard physical boundary for the drill (prevents wave smoothing from filling the hole)
+  // Enforce hard physical boundary for the drill 
   if (t4 < 1) {
       for (let i = 0; i < numNodes; i++) {
           let px = -cavernRadiusX + i * 10;
@@ -6558,16 +6572,14 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 
   // Drill Interaction (Tier 0-3) Particles
   if (t4 < 1) {
-      // Spawn particles symmetrically, independent of node alignment which could cause lopsided splashing
       let numToSpawn = 0;
       for(let k=0; k<7; k++) {
-          if (Math.random() < 0.3) numToSpawn++;
+          if (Math.random() < 0.3 * (1 - t4)) numToSpawn++; // Smoothly fade out drill particles
       }
       for(let i=0; i<numToSpawn; i++) {
-          let px = (Math.random() - 0.5) * 50; // -25 to 25
+          let px = (Math.random() - 0.5) * 50; 
           let isLeft = px < 0;
           
-          // Find approximate liquid height at this x coordinate
           let nodeIdx = Math.floor((px + cavernRadiusX) / 10);
           let py = baseLiquidLevel;
           if (nodeIdx >= 0 && nodeIdx < numNodes) {
@@ -6579,8 +6591,8 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           oilPhysicsParticles.push({
               x: px,
               y: py,
-              vx: (isLeft ? -1 : 1) * (Math.random() * 6 + 2), // Less horizontal, more vertical
-              vy: -Math.random() * 16 - 6, // Channel spray upwards due to tight walls
+              vx: (isLeft ? -1 : 1) * (Math.random() * 6 + 2), 
+              vy: -Math.random() * 16 - 6, 
               mass: Math.random() * 2 + 1,
               life: 1.0,
               isHot: false
@@ -6594,17 +6606,26 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       for (let i = 0; i < numNodes; i++) {
           let px = -cavernRadiusX + i * 10;
           let distFromCenter = Math.abs(px);
+          
+          // Global boiling/turbulence caused by the laser impact (affects entire pool, scaling down towards edges)
+          let globalTurbulence = (1 - Math.min(1, distFromCenter / cavernRadiusX)) * laserStrength;
+          
+          // Random explosive boiling rather than uniform sine waves
+          if (Math.random() < 0.15 * globalTurbulence) {
+              oilPhysicsNodes[i].vy -= (Math.random() * 25 + 5); // Violent upward burst
+          }
+          if (Math.random() < 0.1 * globalTurbulence) {
+              oilPhysicsNodes[i].vy += (Math.random() * 15 + 5); // Downward suction
+          }
+          
           if (distFromCenter <= blastRadius) {
               let forceFactor = 1.0; 
               
-              // Target depth of the laser crater (100 is exactly to the bottom of the cavern oval)
               let craterDepth = baseLiquidLevel + 100 * laserStrength * forceFactor;
-              let maxDepth = 130 + 90 * Math.sqrt(1 - Math.pow(Math.abs(px) / cavernRadiusX, 2)); // cy=130, ry=90
+              let maxDepth = 130 + 90 * Math.sqrt(1 - Math.pow(Math.abs(px) / cavernRadiusX, 2)); 
               if (craterDepth > maxDepth) craterDepth = maxDepth;
               
-              // Hard boundary: completely expel oil from the laser beam's path
               if (oilPhysicsNodes[i].y < craterDepth) {
-                  // Spawn splash of particles as the fluid is vaporized
                   if (Math.random() < 0.8 * forceFactor) { 
                       let spawnPx = px + (Math.random()-0.5)*10;
                       let dir = spawnPx < 0 ? -1 : 1;
@@ -6621,26 +6642,18 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
                       });
                   }
                   
-                  // Snap the node down to the crater boundary, ignoring wave smoothing
                   oilPhysicsNodes[i].y = craterDepth;
                   if (oilPhysicsNodes[i].vy < 0) oilPhysicsNodes[i].vy = 0;
                   
-                  // Strong outward force to maintain the crater visually for neighbors
                   oilPhysicsNodes[i].vy += forceFactor * 15.0 * laserStrength;
               } else {
-                  // At crater bottom — strong sustained pressure
                   oilPhysicsNodes[i].vy += forceFactor * 4.0 * laserStrength;
               }
               
-              // Hard limit to prevent surface from poking through the bottom of the cavern
               if (oilPhysicsNodes[i].y > maxDepth - 2) {
                   oilPhysicsNodes[i].y = maxDepth - 2;
                   if (oilPhysicsNodes[i].vy > 0) oilPhysicsNodes[i].vy = 0;
               }
-              
-              // Boiling chaos
-              let boilPhase = Math.sin(t * 20 + i * 1.5) * Math.sin(t * 13 - i * 0.8);
-              oilPhysicsNodes[i].vy += boilPhase * 3.0 * laserStrength * forceFactor;
           }
       }
       
