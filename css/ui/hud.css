@@ -241,6 +241,7 @@ grid-auto-flow: row;
 grid-template-columns: auto;
 gap: clamp(4px, 0.9svh, 10px);
 pointer-events: none;
+user-select: none;
 }
 
 .hud-top > * {
@@ -1007,7 +1008,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   .xp-bar__progress *,
   .xp-bar__level,
   .xp-bar__level * {
-    user-select: text;
+    user-select: none;
   }
   
   .dp-plus,
@@ -1067,7 +1068,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   .mp-bar__progress *,
   .mp-bar__level,
   .mp-bar__level * {
-    user-select: text;
+    user-select: none;
   }
 
   .mp-plus {
