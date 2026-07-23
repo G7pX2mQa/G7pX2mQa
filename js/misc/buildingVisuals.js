@@ -6590,51 +6590,62 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 
   // 3. Laser interaction (Crater & Flung Droplets)
   if (laserStrength > 0) {
-      let blastRadius = 35 + laserStrength * 20;
+      let blastRadius = 15; // Only affect immediate center nodes for vertical cliffs
       for (let i = 0; i < numNodes; i++) {
           let px = -cavernRadiusX + i * 10;
           let distFromCenter = Math.abs(px);
-          if (distFromCenter < blastRadius) {
-              let forceFactor = Math.pow(1 - (distFromCenter / blastRadius), 2.5);
+          if (distFromCenter <= blastRadius) {
+              let forceFactor = 1.0; 
               
-              // Target depth of the laser crater (sharp V near center)
-              let craterDepth = baseLiquidLevel + 70 * laserStrength * forceFactor;
+              // Target depth of the laser crater (100 is exactly to the bottom of the cavern oval)
+              let craterDepth = baseLiquidLevel + 100 * laserStrength * forceFactor;
+              let maxDepth = 130 + 90 * Math.sqrt(1 - Math.pow(Math.abs(px) / cavernRadiusX, 2)); // cy=130, ry=90
+              if (craterDepth > maxDepth) craterDepth = maxDepth;
               
+              // Hard boundary: completely expel oil from the laser beam's path
               if (oilPhysicsNodes[i].y < craterDepth) {
-                  // The fluid is seeping back — violently push it away
-                  
-                  // Strong outward force to maintain the crater
-                  oilPhysicsNodes[i].vy += forceFactor * 4.0 * laserStrength;
-                  
                   // Spawn splash of particles as the fluid is vaporized
-                  if (Math.random() < 0.3 * forceFactor) { // Reduced particle spam
+                  if (Math.random() < 0.8 * forceFactor) { 
                       let spawnPx = px + (Math.random()-0.5)*10;
                       let dir = spawnPx < 0 ? -1 : 1;
-                      let pushVx = dir * (Math.random() * 20 + 5) * laserStrength;
+                      let pushVx = dir * (Math.random() * 40 + 15) * laserStrength;
                       
                       oilPhysicsParticles.push({
                           x: spawnPx,
                           y: oilPhysicsNodes[i].y,
                           vx: pushVx,
-                          vy: -Math.random() * 25 * laserStrength - 15,
+                          vy: -Math.random() * 50 * laserStrength - 20,
                           mass: Math.random() * 3 + 1,
                           life: 1.0,
                           isHot: t8 > 0
                       });
                   }
+                  
+                  // Snap the node down to the crater boundary, ignoring wave smoothing
+                  oilPhysicsNodes[i].y = craterDepth;
+                  if (oilPhysicsNodes[i].vy < 0) oilPhysicsNodes[i].vy = 0;
+                  
+                  // Strong outward force to maintain the crater visually for neighbors
+                  oilPhysicsNodes[i].vy += forceFactor * 15.0 * laserStrength;
               } else {
                   // At crater bottom — strong sustained pressure
-                  oilPhysicsNodes[i].vy += forceFactor * 1.0 * laserStrength;
+                  oilPhysicsNodes[i].vy += forceFactor * 4.0 * laserStrength;
+              }
+              
+              // Hard limit to prevent surface from poking through the bottom of the cavern
+              if (oilPhysicsNodes[i].y > maxDepth - 2) {
+                  oilPhysicsNodes[i].y = maxDepth - 2;
+                  if (oilPhysicsNodes[i].vy > 0) oilPhysicsNodes[i].vy = 0;
               }
               
               // Boiling chaos
               let boilPhase = Math.sin(t * 20 + i * 1.5) * Math.sin(t * 13 - i * 0.8);
-              oilPhysicsNodes[i].vy += boilPhase * 2.0 * laserStrength * forceFactor;
+              oilPhysicsNodes[i].vy += boilPhase * 3.0 * laserStrength * forceFactor;
           }
       }
       
       // Baseline continuous sparks for aesthetics
-      let numToSpawn = Math.floor(laserStrength * 2 * (Math.random() + 0.5));
+      let numToSpawn = Math.floor(laserStrength * 4 * (Math.random() + 0.5));
       for (let j = 0; j < numToSpawn; j++) {
           let spawnPx = (Math.random() - 0.5) * blastRadius * 1.5;
           let nodeIdx = Math.floor((spawnPx + cavernRadiusX) / 10);
@@ -6643,13 +6654,13 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
               let surfaceY = oilPhysicsNodes[nodeIdx].y * (1 - tFrac) + oilPhysicsNodes[nodeIdx+1].y * tFrac;
               
               let dir = spawnPx < 0 ? -1 : 1;
-              let pushVx = dir * (Math.random() * 10 + 5) * laserStrength;
+              let pushVx = dir * (Math.random() * 30 + 10) * laserStrength;
               
               oilPhysicsParticles.push({
                   x: spawnPx,
                   y: surfaceY,
                   vx: pushVx,
-                  vy: -Math.random() * 20 * laserStrength - 5,
+                  vy: -Math.random() * 35 * laserStrength - 10,
                   mass: Math.random() * 2 + 1,
                   life: 1.0,
                   isHot: t8 > 0
@@ -6756,10 +6767,33 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           let px1 = nx1 + shift1;
           let py1 = p1.y + yOffset;
           
+          // Visually squish the U-shape heavily towards the center
+          if (laserStrength > 0) {
+              const squish = (x) => {
+                  let absX = Math.abs(x);
+                  if (absX < 80) {
+                      if (absX === 0) return 0;
+                      // Use a power curve to heavily compress the center, smoothly blending out
+                      let factor = Math.pow(absX / 80, 2.5);
+                      let targetX = 3.5 + factor * 76.5; // 3.5px is just slightly inside the laser beam's visual radius
+                      return x < 0 ? -targetX : targetX;
+                  }
+                  return x;
+              };
+              
+              px0 = px0 + (squish(px0) - px0) * laserStrength;
+              px1 = px1 + (squish(px1) - px1) * laserStrength;
+          }
+          
           let cx = (px0 + px1) / 2;
           let cy_curve = (py0 + py1) / 2;
           
-          ctx.quadraticCurveTo(px0, py0, cx, cy_curve);
+          // Bypass smoothing for the tight center to ensure it reaches the flat bottom and stays sharp
+          if (laserStrength > 0 && (Math.abs(nx0) <= 20 || Math.abs(nx1) <= 20)) {
+              ctx.lineTo(px0, py0);
+          } else {
+              ctx.quadraticCurveTo(px0, py0, cx, cy_curve);
+          }
       }
       
       let lastNode = oilPhysicsNodes[numNodes - 1];
