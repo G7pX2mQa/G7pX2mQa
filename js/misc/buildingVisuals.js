@@ -6342,23 +6342,26 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       let spinOffsetY = (t * 40) % 64;
       
       // 1. Narrow upper shaft (drawn first, extended to overlap underneath the top drive and chuck)
+      // Scale above-ground components so they track the derrick as building grows
+      let topDriveTop = -90 * scale;
+      let topDriveBottom = -60 * scale;
+      let shaftTop = -65 * scale;
+      
       ctx.save();
       ctx.beginPath();
-      // Start higher (-65) to overlap top drive, go all the way to drillY to overlap chuck (height 65)
-      ctx.rect(-8, -65 + drillY, 16, 65);
+      ctx.rect(-8, shaftTop + drillY, 16, -shaftTop);
       ctx.clip();
       
       // Draw moving texture
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDiamond;
-      ctx.fillRect(-8 - spinOffsetX, -65 + drillY - spinOffsetY - 64, 16 + 64, 65 + 200);
-      ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
+      ctx.fillRect(-8 - spinOffsetX, shaftTop + drillY - spinOffsetY - 64, 16 + 64, -shaftTop + 200);
+      ctx.translate(-spinOffsetX, -spinOffsetY);
       
       ctx.restore();
 
       // 2. Main drill body clipping path (for moving texture and shading)
       ctx.beginPath();
-      // Added a trapezoidal "chuck" that smoothly connects the 30px body to the 16px upper shaft
       ctx.moveTo(-8, drillY - 15);
       ctx.lineTo(8, drillY - 15);
       ctx.lineTo(15, drillY);
@@ -6374,13 +6377,13 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDiamond;
       ctx.fillRect(-15 - spinOffsetX, drillY - 20 - spinOffsetY - 64, 30 + 64, drillLength + 200);
-      ctx.translate(-spinOffsetX, -spinOffsetY); // Undo translation for shading
+      ctx.translate(-spinOffsetX, -spinOffsetY);
       
 
       
-      // Edge shading to give it a 3D cylindrical look (applied to whole shape, clipped to tip)
+      // Edge shading to give it a 3D cylindrical look
       let grad = ctx.createLinearGradient(-15, 0, 15, 0);
-      grad.addColorStop(0, "rgba(0,0,0,0.45)"); // Slightly lighter so it stays visible against dark cavern
+      grad.addColorStop(0, "rgba(0,0,0,0.45)");
       grad.addColorStop(0.15, "rgba(0,0,0,0)");
       grad.addColorStop(0.85, "rgba(0,0,0,0)");
       grad.addColorStop(1, "rgba(0,0,0,0.45)");
@@ -6388,28 +6391,29 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.fillRect(-15, drillY - 15, 30, drillLength + 15);
       ctx.restore();
 
-      // Top Drive Mechanism (motor that spins the drill)
+      // Top Drive Mechanism (motor that spins the drill) — scaled with building
+      let topDriveH = topDriveBottom - topDriveTop;
       ctx.save();
       ctx.beginPath();
-      ctx.rect(-15, -90 + drillY, 30, 30);
+      ctx.rect(-15, topDriveTop + drillY, 30, topDriveH);
       ctx.clip();
       
       // Draw moving texture to match the drill material
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDiamond;
-      ctx.fillRect(-15 - spinOffsetX, -90 + drillY - spinOffsetY - 64, 30 + 64, 30 + 200);
+      ctx.fillRect(-15 - spinOffsetX, topDriveTop + drillY - spinOffsetY - 64, 30 + 64, topDriveH + 200);
       ctx.translate(-spinOffsetX, -spinOffsetY);
       
       // Mechanical bands (drawn before shading so they look curved!)
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDarkDiamond; 
-      ctx.fillRect(-15 - spinOffsetX, -85 + drillY - spinOffsetY, 30, 5);
-      ctx.fillRect(-15 - spinOffsetX, -70 + drillY - spinOffsetY, 30, 5);
+      ctx.fillRect(-15 - spinOffsetX, topDriveTop + 5 + drillY - spinOffsetY, 30, 5);
+      ctx.fillRect(-15 - spinOffsetX, topDriveBottom - 10 + drillY - spinOffsetY, 30, 5);
       ctx.translate(-spinOffsetX, -spinOffsetY);
       
-      // Edge shading for the top drive (uses the same gradient as the 30px main body)
+      // Edge shading for the top drive
       ctx.fillStyle = grad; 
-      ctx.fillRect(-15, -90 + drillY, 30, 30);
+      ctx.fillRect(-15, topDriveTop + drillY, 30, topDriveH);
       ctx.restore();
       
       // Cables suspending the top drive from the crown block
@@ -6417,9 +6421,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(-10, -200 * scale);
-      ctx.lineTo(-10, -90 + drillY);
+      ctx.lineTo(-10, topDriveTop + drillY);
       ctx.moveTo(10, -200 * scale);
-      ctx.lineTo(10, -90 + drillY);
+      ctx.lineTo(10, topDriveTop + drillY);
       ctx.stroke();
 
       // 3D Grooves for the main body
@@ -6586,21 +6590,21 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 
   // 3. Laser interaction (Crater & Flung Droplets)
   if (laserStrength > 0) {
-      let blastRadius = 60 + laserStrength * 15;
+      let blastRadius = 35 + laserStrength * 20;
       for (let i = 0; i < numNodes; i++) {
           let px = -cavernRadiusX + i * 10;
           let distFromCenter = Math.abs(px);
           if (distFromCenter < blastRadius) {
-              let forceFactor = 1 - (distFromCenter / blastRadius);
+              let forceFactor = Math.pow(1 - (distFromCenter / blastRadius), 2.5);
               
-              // Target depth of the laser crater
-              let craterDepth = baseLiquidLevel + 40 * laserStrength * forceFactor;
+              // Target depth of the laser crater (sharp V near center)
+              let craterDepth = baseLiquidLevel + 70 * laserStrength * forceFactor;
               
               if (oilPhysicsNodes[i].y < craterDepth) {
-                  // The fluid is seeping back towards the middle (it's above the crater floor)!
+                  // The fluid is seeping back — violently push it away
                   
-                  // Fling the fluid node down slightly to maintain the crater pressure
-                  oilPhysicsNodes[i].vy += forceFactor * 1.5 * laserStrength; // Much gentler push
+                  // Strong outward force to maintain the crater
+                  oilPhysicsNodes[i].vy += forceFactor * 4.0 * laserStrength;
                   
                   // Spawn splash of particles as the fluid is vaporized
                   if (Math.random() < 0.3 * forceFactor) { // Reduced particle spam
@@ -6619,13 +6623,13 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
                       });
                   }
               } else {
-                  // It's at the bottom of the crater, just maintain pressure gently
-                  oilPhysicsNodes[i].vy += forceFactor * 0.2 * laserStrength;
+                  // At crater bottom — strong sustained pressure
+                  oilPhysicsNodes[i].vy += forceFactor * 1.0 * laserStrength;
               }
               
-              // Boiling chaos - smooth sine waves, greatly reduced force to prevent spiking
+              // Boiling chaos
               let boilPhase = Math.sin(t * 20 + i * 1.5) * Math.sin(t * 13 - i * 0.8);
-              oilPhysicsNodes[i].vy += boilPhase * 1.0 * laserStrength * forceFactor;
+              oilPhysicsNodes[i].vy += boilPhase * 2.0 * laserStrength * forceFactor;
           }
       }
       
@@ -7118,43 +7122,46 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.save();
     ctx.globalAlpha = t4;
     
-    // Thin, concentrated laser from drill base to cavern floor
-    const laserStartY = 5; // Just below ground level
-    const laserEndY = (cy + 80) / scale; // Cavern floor in scaled coords
+    // Laser originates from the top drive position (where the drill used to start)
+    const laserStartY = -60; // Bottom of top drive mechanism
+    const laserEndY = (cy + 88) / scale; // Cavern floor in scaled coords
     const beamHeight = laserEndY - laserStartY;
     
-    // Outer glow (subtle red haze)
-    const glowPulse = 0.8 + 0.2 * Math.sin(t * 12);
+    // Outer glow (subtle red haze, pulsing)
+    const glowPulse = 0.7 + 0.3 * Math.sin(t * 8);
     const glowWidth = 5 * glowPulse;
-    ctx.fillStyle = `rgba(255, 30, 30, 0.2)`;
+    ctx.fillStyle = `rgba(255, 30, 30, 0.15)`;
     ctx.fillRect(-glowWidth, laserStartY, glowWidth * 2, beamHeight);
     
-    // Main beam (bright red core)
-    const corePulse = 0.9 + 0.1 * Math.sin(t * 18);
+    // Main beam (bright red core, pulsing)
+    const corePulse = 0.85 + 0.15 * Math.sin(t * 15);
     const coreWidth = 2.5 * corePulse;
-    ctx.fillStyle = `rgba(255, 80, 80, 0.75)`;
+    ctx.fillStyle = `rgba(255, 80, 80, 0.7)`;
     ctx.fillRect(-coreWidth, laserStartY, coreWidth * 2, beamHeight);
     
-    // White-hot center (hair-thin)
-    const centerWidth = 1.2 + Math.sin(t * 25) * 0.2;
-    ctx.fillStyle = `rgba(255, 220, 220, 0.9)`;
+    // White-hot center (thin, pulsing)
+    const centerPulse = 0.8 + 0.2 * Math.sin(t * 22);
+    const centerWidth = 1.0 * centerPulse;
+    ctx.fillStyle = `rgba(255, 230, 230, 0.95)`;
     ctx.fillRect(-centerWidth, laserStartY, centerWidth * 2, beamHeight);
     
-    // Subtle aperture/lens at the emitter point
-    ctx.fillStyle = fillDiamond;
-    ctx.strokeStyle = fillDarkDiamond;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(0, laserStartY, 10, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    // Spinning helical lines wrapping around the beam
+    const helixSpeed = t * 6;
+    const helixAmp = 3.5;
+    const helixFreq = 0.06;
     
-    // Small emitter housing above aperture
-    ctx.fillStyle = fillDarkDiamond;
-    ctx.fillRect(-6, laserStartY - 8, 12, 8);
-    ctx.fillStyle = fillDiamond;
-    ctx.strokeStyle = fillDarkDiamond;
-    ctx.strokeRect(-6, laserStartY - 8, 12, 8);
+    for (let hx = 0; hx < 2; hx++) {
+        const phaseOffset = hx * Math.PI;
+        ctx.strokeStyle = `rgba(255, 160, 160, ${0.35 + 0.2 * Math.sin(t * 10 + hx)})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let ly = 0; ly < beamHeight; ly += 2) {
+            const lx = Math.sin(ly * helixFreq + helixSpeed + phaseOffset) * helixAmp;
+            if (ly === 0) ctx.moveTo(lx, laserStartY + ly);
+            else ctx.lineTo(lx, laserStartY + ly);
+        }
+        ctx.stroke();
+    }
     
     ctx.restore();
   }
@@ -7422,7 +7429,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     // The Super Meltdown Laser
     const megaLaserWidth = 40 + Math.sin(t * 50) * 10;
     const megaStartY = -220;
-    const megaEndY = (cy + 80) / scale;
+    const megaEndY = (cy + 88) / scale;
     const megaBeamHeight = megaEndY - megaStartY;
     
     const megaGrad = ctx.createLinearGradient(-megaLaserWidth / 2, 0, megaLaserWidth / 2, 0);
