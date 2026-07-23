@@ -6299,6 +6299,11 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   let t7 = getProg(7);
   let t8 = getProg(8);
 
+  let effTier = prevTier + (tier - prevTier) * animProgress;
+  effTier = Math.max(0, Math.min(8, effTier));
+  // Scale the physical width of the rig gradually from 1.0 (Tier 0) to 2.666 (Tier 8, making a 30px top drive become 80px)
+  const widthScale = 1.0 + (effTier / 8.0) * ((80.0 / 30.0) - 1.0);
+
   ctx.save();
 
   // --- Tier 0+: Underground Cavern & Oil Reservoir ---
@@ -6420,57 +6425,47 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 
       // Top Drive Mechanism (motor that spins the drill)
       let topDriveH = topDriveBottom - topDriveTop;
+      let topDriveW = 30 * widthScale;
+      let topDriveX = -15 * widthScale;
       
-      let drawTopDrive = (w, x, alpha) => {
-          if (alpha <= 0) return;
-          ctx.save();
-          ctx.globalAlpha = (ctx.globalAlpha || 1) * alpha;
-          
-          let tdGrad = ctx.createLinearGradient(x, 0, x + w, 0);
-          tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
-          tdGrad.addColorStop(0.15, "rgba(0,0,0,0)");
-          tdGrad.addColorStop(0.85, "rgba(0,0,0,0)");
-          tdGrad.addColorStop(1, "rgba(0,0,0,0.45)");
+      let tdGrad = ctx.createLinearGradient(topDriveX, 0, topDriveX + topDriveW, 0);
+      tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
+      tdGrad.addColorStop(0.15, "rgba(0,0,0,0)");
+      tdGrad.addColorStop(0.85, "rgba(0,0,0,0)");
+      tdGrad.addColorStop(1, "rgba(0,0,0,0.45)");
 
-          ctx.beginPath();
-          ctx.rect(x, topDriveTop + drillY, w, topDriveH);
-          ctx.clip();
-          
-          // Draw moving texture to match the drill material
-          ctx.translate(spinOffsetX, spinOffsetY);
-          ctx.fillStyle = fillDiamond;
-          ctx.fillRect(x - spinOffsetX, topDriveTop + drillY - spinOffsetY - 64, w + 64, topDriveH + 200);
-          ctx.translate(-spinOffsetX, -spinOffsetY);
-          
-          // Mechanical bands (drawn before shading so they look curved!)
-          ctx.translate(spinOffsetX, spinOffsetY);
-          ctx.fillStyle = fillDarkDiamond; 
-          ctx.fillRect(x - spinOffsetX, topDriveTop + 5 + drillY - spinOffsetY, w, 5);
-          ctx.fillRect(x - spinOffsetX, topDriveBottom - 10 + drillY - spinOffsetY, w, 5);
-          ctx.translate(-spinOffsetX, -spinOffsetY);
-          
-          // Edge shading for the top drive
-          ctx.fillStyle = tdGrad; 
-          ctx.fillRect(x, topDriveTop + drillY, w, topDriveH);
-          ctx.restore();
-      };
-
-      // Standard Top Drive (Tier 0-7)
-      drawTopDrive(30, -15, 1 - t8);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
+      ctx.clip();
       
-      // Mega Top Drive (Tier 8)
-      if (t8 > 0) {
-          drawTopDrive(80, -40, t8);
-      }
+      // Draw moving texture to match the drill material
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDiamond;
+      ctx.fillRect(topDriveX - spinOffsetX, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 64, topDriveH + 200);
+      ctx.translate(-spinOffsetX, -spinOffsetY);
+      
+      // Mechanical bands
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDarkDiamond; 
+      ctx.fillRect(topDriveX - spinOffsetX, topDriveTop + 5 + drillY - spinOffsetY, topDriveW, 5);
+      ctx.fillRect(topDriveX - spinOffsetX, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW, 5);
+      ctx.translate(-spinOffsetX, -spinOffsetY);
+      
+      // Edge shading
+      ctx.fillStyle = tdGrad; 
+      ctx.fillRect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
+      ctx.restore();
       
       // Cables suspending the top drive from the crown block
+      let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
       ctx.strokeStyle = fillDiamond;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * widthScale; // Increase the width (thickness) of the cables gradually
       ctx.beginPath();
-      ctx.moveTo(-10, -200 * scale);
-      ctx.lineTo(-10, topDriveTop + drillY);
-      ctx.moveTo(10, -200 * scale);
-      ctx.lineTo(10, topDriveTop + drillY);
+      ctx.moveTo(-10 * cablePosScale, -200 * scale);
+      ctx.lineTo(-10 * cablePosScale, topDriveTop + drillY);
+      ctx.moveTo(10 * cablePosScale, -200 * scale);
+      ctx.lineTo(10 * cablePosScale, topDriveTop + drillY);
       ctx.stroke();
 
       // Tier 4 Laser Focus Lens at the bottom of the Top Drive
@@ -6483,30 +6478,30 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           // Lens casing
           ctx.fillStyle = fillDarkDiamond;
           ctx.beginPath();
-          ctx.moveTo(-15, topDriveBottom + drillY);
-          ctx.lineTo(15, topDriveBottom + drillY);
-          ctx.lineTo(10, topDriveBottom + drillY + 8);
-          ctx.lineTo(-10, topDriveBottom + drillY + 8);
+          ctx.moveTo(-15 * widthScale, topDriveBottom + drillY);
+          ctx.lineTo(15 * widthScale, topDriveBottom + drillY);
+          ctx.lineTo(10 * widthScale, topDriveBottom + drillY + 8);
+          ctx.lineTo(-10 * widthScale, topDriveBottom + drillY + 8);
           ctx.closePath();
           ctx.fill();
 
           // Glowing emitter crystal
           ctx.fillStyle = `rgba(255, 80, 80, ${0.8 + 0.2 * lensPulse})`;
           ctx.beginPath();
-          ctx.moveTo(-10, topDriveBottom + drillY + 8);
-          ctx.lineTo(10, topDriveBottom + drillY + 8);
-          ctx.lineTo(4, topDriveBottom + drillY + 12);
-          ctx.lineTo(-4, topDriveBottom + drillY + 12);
+          ctx.moveTo(-10 * widthScale, topDriveBottom + drillY + 8);
+          ctx.lineTo(10 * widthScale, topDriveBottom + drillY + 8);
+          ctx.lineTo(4 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(-4 * widthScale, topDriveBottom + drillY + 12);
           ctx.closePath();
           ctx.fill();
           
           // White hot core in the crystal
           ctx.fillStyle = `rgba(255, 255, 255, 0.9)`;
           ctx.beginPath();
-          ctx.moveTo(-5, topDriveBottom + drillY + 8);
-          ctx.lineTo(5, topDriveBottom + drillY + 8);
-          ctx.lineTo(2, topDriveBottom + drillY + 11);
-          ctx.lineTo(-2, topDriveBottom + drillY + 11);
+          ctx.moveTo(-5 * widthScale, topDriveBottom + drillY + 8);
+          ctx.lineTo(5 * widthScale, topDriveBottom + drillY + 8);
+          ctx.lineTo(2 * widthScale, topDriveBottom + drillY + 11);
+          ctx.lineTo(-2 * widthScale, topDriveBottom + drillY + 11);
           ctx.closePath();
           ctx.fill();
           
@@ -6522,30 +6517,30 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           // Wider Lens casing
           ctx.fillStyle = fillDarkDiamond;
           ctx.beginPath();
-          ctx.moveTo(-40, topDriveBottom + drillY);
-          ctx.lineTo(40, topDriveBottom + drillY);
-          ctx.lineTo(30, topDriveBottom + drillY + 12);
-          ctx.lineTo(-30, topDriveBottom + drillY + 12);
+          ctx.moveTo(-15 * widthScale, topDriveBottom + drillY);
+          ctx.lineTo(15 * widthScale, topDriveBottom + drillY);
+          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
           ctx.closePath();
           ctx.fill();
 
           // Glowing emitter crystal
           ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + 0.2 * lensPulse})`;
           ctx.beginPath();
-          ctx.moveTo(-30, topDriveBottom + drillY + 12);
-          ctx.lineTo(30, topDriveBottom + drillY + 12);
-          ctx.lineTo(16, topDriveBottom + drillY + 18);
-          ctx.lineTo(-16, topDriveBottom + drillY + 18);
+          ctx.moveTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(6 * widthScale, topDriveBottom + drillY + 18);
+          ctx.lineTo(-6 * widthScale, topDriveBottom + drillY + 18);
           ctx.closePath();
           ctx.fill();
           
           // White hot core in the crystal
           ctx.fillStyle = `rgba(255, 255, 255, 0.95)`;
           ctx.beginPath();
-          ctx.moveTo(-18, topDriveBottom + drillY + 12);
-          ctx.lineTo(18, topDriveBottom + drillY + 12);
-          ctx.lineTo(8, topDriveBottom + drillY + 16);
-          ctx.lineTo(-8, topDriveBottom + drillY + 16);
+          ctx.moveTo(-6.75 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(6.75 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(3 * widthScale, topDriveBottom + drillY + 16);
+          ctx.lineTo(-3 * widthScale, topDriveBottom + drillY + 16);
           ctx.closePath();
           ctx.fill();
           ctx.restore();
