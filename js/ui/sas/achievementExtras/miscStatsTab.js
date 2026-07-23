@@ -8,8 +8,10 @@ export function initMiscStatsTab(panel) {
     if (!panel || panel.__msInit) return;
     panel.__msInit = true;
     panel.innerHTML = `
-        <div class="misc-stats-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 12px; font-size: 1.1em; color: #fff; user-select: text; -webkit-user-select: text;">
-            <!-- content will be built here -->
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; box-sizing: border-box; user-select: text; -webkit-user-select: text;">
+            <div class="misc-stats-container" style="display: flex; flex-direction: column; width: 90%; max-width: 550px; font-size: clamp(0.67em, 4vw, 1.1em); color: #fff; border: 2px dashed rgba(255, 255, 255, 0.4); padding: 12px 20px; border-radius: 8px; box-sizing: border-box; background: rgba(0, 0, 0, 0.2);">
+                <!-- content will be built here -->
+            </div>
         </div>
     `;
 
@@ -35,14 +37,12 @@ export function updateMiscStatsTab() {
     const statsData = [];
 
     statsData.push({
-        id: 'playtime',
-        label: 'Active playtime:',
+        label: 'Active playtime',
         value: formatTimeCompact((window.activePlaytime || 0) * 1000)
     });
 
     statsData.push({
-        id: 'coins',
-        label: 'Coins collected:',
+        label: 'Coins collected',
         value: formatNumber(BigNum.fromAny(window.coinsCollected || 0))
     });
 
@@ -63,44 +63,29 @@ export function updateMiscStatsTab() {
     for (const resetName of list) {
         const val = getStat(resetName);
         if (val.cmp(0) > 0) {
+            const capitalizedResetName = resetName.charAt(0).toUpperCase() + resetName.slice(1);
             statsData.push({
-                id: `reset-${resetName}`,
-                label: `${resetName} resets performed:`,
+                label: `${capitalizedResetName} resets performed`,
                 value: formatNumber(val)
             });
         }
     }
 
-    const currentIds = new Set(statsData.map(s => s.id));
-    
-    Array.from(container.children).forEach(child => {
-        const id = child.getAttribute('data-stat-id');
-        if (!currentIds.has(id)) {
-            child.remove();
-        }
-    });
-
-    for (const stat of statsData) {
-        let row = container.querySelector(`[data-stat-id="${stat.id}"]`);
-        if (!row) {
-            row = document.createElement('div');
-            row.setAttribute('data-stat-id', stat.id);
-            
-            const labelSpan = document.createElement('span');
-            labelSpan.className = 'misc-stat-label';
-            labelSpan.textContent = stat.label + ' ';
-            
-            const valueSpan = document.createElement('span');
-            valueSpan.className = 'misc-stat-value';
-            
-            row.appendChild(labelSpan);
-            row.appendChild(valueSpan);
-            container.appendChild(row);
-        }
+    let html = '';
+    for (let i = 0; i < statsData.length; i++) {
+        const stat = statsData[i];
+        const isLast = i === statsData.length - 1;
         
-        const valueSpan = row.querySelector('.misc-stat-value');
-        if (valueSpan) {
-            setHtmlOrText(valueSpan, stat.value);
-        }
+        const rowStyle = `display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; ${!isLast ? 'border-bottom: 1px dashed rgba(255, 255, 255, 0.3);' : ''}`;
+        
+        html += `<div style="${rowStyle}">
+            <span style="opacity: 0.9;">${stat.label}</span>
+            <span style="font-weight: 500;">${stat.value}</span>
+        </div>`;
+    }
+
+    if (container.dataset.lastHtml !== html) {
+        container.dataset.lastHtml = html;
+        container.innerHTML = html;
     }
 }
