@@ -6419,38 +6419,49 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       }
 
       // Top Drive Mechanism (motor that spins the drill)
-      let topDriveW = 30 + 50 * t8;
-      let topDriveX = -15 - 25 * t8;
       let topDriveH = topDriveBottom - topDriveTop;
       
-      let tdGrad = ctx.createLinearGradient(topDriveX, 0, topDriveX + topDriveW, 0);
-      tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
-      tdGrad.addColorStop(0.15, "rgba(0,0,0,0)");
-      tdGrad.addColorStop(0.85, "rgba(0,0,0,0)");
-      tdGrad.addColorStop(1, "rgba(0,0,0,0.45)");
+      let drawTopDrive = (w, x, alpha) => {
+          if (alpha <= 0) return;
+          ctx.save();
+          ctx.globalAlpha = (ctx.globalAlpha || 1) * alpha;
+          
+          let tdGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+          tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
+          tdGrad.addColorStop(0.15, "rgba(0,0,0,0)");
+          tdGrad.addColorStop(0.85, "rgba(0,0,0,0)");
+          tdGrad.addColorStop(1, "rgba(0,0,0,0.45)");
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
-      ctx.clip();
+          ctx.beginPath();
+          ctx.rect(x, topDriveTop + drillY, w, topDriveH);
+          ctx.clip();
+          
+          // Draw moving texture to match the drill material
+          ctx.translate(spinOffsetX, spinOffsetY);
+          ctx.fillStyle = fillDiamond;
+          ctx.fillRect(x - spinOffsetX, topDriveTop + drillY - spinOffsetY - 64, w + 64, topDriveH + 200);
+          ctx.translate(-spinOffsetX, -spinOffsetY);
+          
+          // Mechanical bands (drawn before shading so they look curved!)
+          ctx.translate(spinOffsetX, spinOffsetY);
+          ctx.fillStyle = fillDarkDiamond; 
+          ctx.fillRect(x - spinOffsetX, topDriveTop + 5 + drillY - spinOffsetY, w, 5);
+          ctx.fillRect(x - spinOffsetX, topDriveBottom - 10 + drillY - spinOffsetY, w, 5);
+          ctx.translate(-spinOffsetX, -spinOffsetY);
+          
+          // Edge shading for the top drive
+          ctx.fillStyle = tdGrad; 
+          ctx.fillRect(x, topDriveTop + drillY, w, topDriveH);
+          ctx.restore();
+      };
+
+      // Standard Top Drive (Tier 0-7)
+      drawTopDrive(30, -15, 1 - t8);
       
-      // Draw moving texture to match the drill material
-      ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(topDriveX - spinOffsetX, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 64, topDriveH + 200);
-      ctx.translate(-spinOffsetX, -spinOffsetY);
-      
-      // Mechanical bands (drawn before shading so they look curved!)
-      ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDarkDiamond; 
-      ctx.fillRect(topDriveX - spinOffsetX, topDriveTop + 5 + drillY - spinOffsetY, topDriveW, 5);
-      ctx.fillRect(topDriveX - spinOffsetX, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW, 5);
-      ctx.translate(-spinOffsetX, -spinOffsetY);
-      
-      // Edge shading for the top drive
-      ctx.fillStyle = tdGrad; 
-      ctx.fillRect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
-      ctx.restore();
+      // Mega Top Drive (Tier 8)
+      if (t8 > 0) {
+          drawTopDrive(80, -40, t8);
+      }
       
       // Cables suspending the top drive from the crown block
       ctx.strokeStyle = fillDiamond;
