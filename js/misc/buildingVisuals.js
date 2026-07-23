@@ -6317,10 +6317,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   let cavernRadiusX = w * 0.45; // 90% of viewport width
   cavernRadiusX = Math.round(cavernRadiusX / 10) * 10; // Snap to nearest 10 to ensure perfectly symmetric physics nodes around x=0
   
-  // Drill shaft down to the cavern (barely wide enough for drill)
-  ctx.fillStyle = "#050302"; // Deep cavern darkness
-  ctx.fillRect(-18, 0, 36, cy); 
-
   // Define Cavern Path
   let cavernPath = new Path2D();
   cavernPath.ellipse(0, cy, cavernRadiusX, 90, 0, 0, Math.PI * 2); 
@@ -6330,12 +6326,26 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   ctx.fillStyle = "#050302"; // Inside the cavern
   ctx.fill(cavernPath);
 
-  // Diamond retaining walls for the drill shaft only (punching completely through the cavern ceiling)
-  let cavernRoofY = cy - 90;
-  let strokeBottomY = cavernRoofY + 6; // Extend down to perfectly match the bottom edge of the 12px cavern stroke
-  ctx.fillStyle = fillDiamond;
-  ctx.fillRect(-22, 0, 4, strokeBottomY); 
-  ctx.fillRect(18, 0, 4, strokeBottomY);
+  let radiusNarrow = 18;
+  let radiusWide = 32;
+  
+  let gapAngleNarrow = Math.asin((radiusNarrow + 4) / cavernRadiusX);
+  let strokeBottomYNarrow = cy - 90 * Math.cos(gapAngleNarrow) + 6;
+  
+  let gapAngleWide = Math.asin((radiusWide + 4) / cavernRadiusX);
+  let strokeBottomYWide = cy - 90 * Math.cos(gapAngleWide) + 6;
+  
+  // Drill shaft base darkness (always solid to prevent transparency)
+  ctx.fillStyle = "#050302";
+  ctx.fillRect(-radiusNarrow, 0, radiusNarrow * 2, cy); 
+  
+  if (t8 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t8;
+      ctx.fillStyle = "#050302";
+      ctx.fillRect(-radiusWide, 0, radiusWide * 2, cy); 
+      ctx.restore();
+  }
   
   // --- NEW: Draw Drill Shaft BEFORE oil ---
   if (t0 > 0) {
@@ -6992,12 +7002,54 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   // Cavern rough edges/texture drawn over the fluid and particles so it cleanly acts as a solid wall
   ctx.strokeStyle = "#38291f";
   ctx.lineWidth = 12;
+  ctx.lineCap = "butt";
   
-  // Draw the cavern wall outline, but leave a gap at the top for the drill shaft hole
-  let gapAngle = Math.asin(22 / cavernRadiusX);
-  let cavernWallPath = new Path2D();
-  cavernWallPath.ellipse(0, cy, cavernRadiusX, 90, 0, -Math.PI/2 + gapAngle, Math.PI * 1.5 - gapAngle);
-  ctx.stroke(cavernWallPath);
+  if (t8 < 1) {
+      ctx.save();
+      ctx.globalAlpha = 1 - t8;
+      ctx.beginPath();
+      ctx.rect(-w, -h, w * 3, h * 3); // Outer bounds
+      ctx.rect(-radiusNarrow - 4, 0, radiusNarrow * 2 + 8, strokeBottomYNarrow); // Inner hole to protect
+      ctx.clip("evenodd");
+      
+      let cavernWallPathNarrow = new Path2D();
+      cavernWallPathNarrow.ellipse(0, cy, cavernRadiusX, 90, 0, -Math.PI/2 + gapAngleNarrow, Math.PI * 1.5 - gapAngleNarrow);
+      ctx.stroke(cavernWallPathNarrow);
+      ctx.restore();
+  }
+  
+  if (t8 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t8;
+      ctx.beginPath();
+      ctx.rect(-w, -h, w * 3, h * 3); // Outer bounds
+      ctx.rect(-radiusWide - 4, 0, radiusWide * 2 + 8, strokeBottomYWide); // Inner hole to protect
+      ctx.clip("evenodd");
+      
+      let cavernWallPathWide = new Path2D();
+      cavernWallPathWide.ellipse(0, cy, cavernRadiusX, 90, 0, -Math.PI/2 + gapAngleWide, Math.PI * 1.5 - gapAngleWide);
+      ctx.stroke(cavernWallPathWide);
+      ctx.restore();
+  }
+
+  // Draw retaining walls AFTER cavern strokes so they are not overlapped by the dirt edge
+  if (t8 < 1) {
+      ctx.save();
+      ctx.globalAlpha = 1 - t8;
+      ctx.fillStyle = fillDiamond;
+      ctx.fillRect(-radiusNarrow - 4, 0, 4, strokeBottomYNarrow); 
+      ctx.fillRect(radiusNarrow, 0, 4, strokeBottomYNarrow);
+      ctx.restore();
+  }
+  
+  if (t8 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t8;
+      ctx.fillStyle = fillDiamond;
+      ctx.fillRect(-radiusWide - 4, 0, 4, strokeBottomYWide); 
+      ctx.fillRect(radiusWide, 0, 4, strokeBottomYWide);
+      ctx.restore();
+  }
 
   ctx.restore(); // End cavern transform (pops SAVE 2)
 
