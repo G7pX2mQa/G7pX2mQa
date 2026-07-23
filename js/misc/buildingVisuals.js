@@ -7176,31 +7176,31 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     
     // Outer glow (subtle red haze, pulsing)
     const glowPulse = 0.7 + 0.3 * Math.sin(t * 8);
-    const glowWidth = 5 * glowPulse;
+    const glowWidth = 7.5 * glowPulse;
     ctx.fillStyle = `rgba(255, 30, 30, 0.15)`;
     ctx.fillRect(-glowWidth, laserStartY, glowWidth * 2, beamHeight);
     
     // Main beam (bright red core, pulsing)
     const corePulse = 0.85 + 0.15 * Math.sin(t * 15);
-    const coreWidth = 2.5 * corePulse;
+    const coreWidth = 3.75 * corePulse;
     ctx.fillStyle = `rgba(255, 80, 80, 0.7)`;
     ctx.fillRect(-coreWidth, laserStartY, coreWidth * 2, beamHeight);
     
     // White-hot center (thin, pulsing)
     const centerPulse = 0.8 + 0.2 * Math.sin(t * 22);
-    const centerWidth = 1.0 * centerPulse;
+    const centerWidth = 1.5 * centerPulse;
     ctx.fillStyle = `rgba(255, 230, 230, 0.95)`;
     ctx.fillRect(-centerWidth, laserStartY, centerWidth * 2, beamHeight);
     
     // Spinning helical lines wrapping around the beam
     const helixSpeed = t * 6;
-    const helixAmp = 3.5;
+    const helixAmp = 5.25;
     const helixFreq = 0.06;
     
     for (let hx = 0; hx < 2; hx++) {
         const phaseOffset = hx * Math.PI;
         ctx.strokeStyle = `rgba(255, 160, 160, ${0.35 + 0.2 * Math.sin(t * 10 + hx)})`;
-        ctx.lineWidth = 1.2;
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
         for (let ly = 0; ly < beamHeight; ly += 2) {
             const lx = Math.sin(ly * helixFreq + helixSpeed + phaseOffset) * helixAmp;
