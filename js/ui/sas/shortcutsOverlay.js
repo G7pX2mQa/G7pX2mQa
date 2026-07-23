@@ -4,6 +4,7 @@ import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { getActiveSlot } from '../../util/storage.js';
 import { isMapUnlocked } from '../hudButtons.js';
 import { isFlowUnlocked } from '../../ui/merchantTabs/flowTab.js';
+import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 
 const SHORTCUTS_PERMA_UNLOCK_KEY_BASE = 'ccc:shortcuts:permaUnlocks';
 const shortcutsPermaUnlockStateCache = new Map();
@@ -90,11 +91,17 @@ function populateShortcutsOverlay(overlayEl) {
 
   const shortcuts = [
     { id: "rc", key: "RC", desc: rcDesc },
-    { key: "Shift+LC", desc: "On any sort of Shop upgrade, hold shift and left-click its icon to perform a Buy Cheap onto it. Upgrades that do not support this will default to Buy Max." },
-    { key: "Ctrl+LC", desc: "On any sort of Shop upgrade, hold ctrl and left-click its icon to perform a Buy Next onto it. Upgrades that do not support this will default to Buy Max." },
+    { key: "Shift+LC", desc: "On any sort of Shop upgrade, hold shift and left-click its icon to perform a Buy Cheap onto it. Upgrades that do not support this will default to Buy Max." }
+  ];
+
+  if (typeof hasDoneForgeReset === 'function' && hasDoneForgeReset()) {
+    shortcuts.push({ key: "Ctrl+LC", desc: "On any sort of Shop upgrade, hold ctrl and left-click its icon to perform a Buy Next onto it. Upgrades that do not support this will default to Buy Max." });
+  }
+
+  shortcuts.push(
     { id: "0-9", key: "0-9", desc: numberKeyDesc },
     { key: "Esc", desc: "Inside any overlay, pressing Esc will instantly close all currently open overlays with a few exceptions." }
-  ];
+  );
 
   let isBossBeaten = isShortcutTextPermanentlyUnlocked(2);
   if (!isBossBeaten && typeof getLifetimeBossBeaten === 'function' && getLifetimeBossBeaten()) {
@@ -229,5 +236,12 @@ if (typeof window !== 'undefined') {
         populateShortcutsOverlay(overlayEl);
       }
     }
+  });
+
+  window.addEventListener('forge:completed', (e) => {
+    if (!shortcutsOverlay.isOpen) return;
+    const overlayEl = shortcutsOverlay.overlayEl;
+    if (!overlayEl) return;
+    populateShortcutsOverlay(overlayEl);
   });
 }
