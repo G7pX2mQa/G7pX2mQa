@@ -7193,7 +7193,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.fillRect(-centerWidth, laserStartY, centerWidth * 2, beamHeight);
     
     // Spinning helical lines wrapping around the beam (3D rotating effect)
-    const helixSpeed = t * 6;
+    const helixSpeed = t * 40;
     const helixAmp = 5.25;
     const helixFreq = 0.06;
     
