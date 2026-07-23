@@ -71,21 +71,28 @@ export function updateMiscStatsTab() {
         }
     }
 
-    let html = '';
+    const children = container.children;
     for (let i = 0; i < statsData.length; i++) {
         const stat = statsData[i];
         const isLast = i === statsData.length - 1;
         
-        const rowStyle = `display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; ${!isLast ? 'border-bottom: 1px dashed rgba(255, 255, 255, 0.3);' : ''}`;
+        let row = children[i];
+        if (!row) {
+            row = document.createElement('div');
+            row.innerHTML = `<span class="stat-label" style="opacity: 0.9;"></span><span class="stat-value" style="font-weight: 500;"></span>`;
+            container.appendChild(row);
+        }
         
-        html += `<div style="${rowStyle}">
-            <span style="opacity: 0.9;">${stat.label}</span>
-            <span style="font-weight: 500;">${stat.value}</span>
-        </div>`;
+        row.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; ${!isLast ? 'border-bottom: 1px dashed rgba(255, 255, 255, 0.3);' : ''}`;
+        
+        const labelSpan = row.querySelector('.stat-label');
+        setHtmlOrText(labelSpan, stat.label);
+        
+        const valueSpan = row.querySelector('.stat-value');
+        setHtmlOrText(valueSpan, stat.value);
     }
 
-    if (container.dataset.lastHtml !== html) {
-        container.dataset.lastHtml = html;
-        container.innerHTML = html;
+    while (container.children.length > statsData.length) {
+        container.removeChild(container.lastChild);
     }
 }
