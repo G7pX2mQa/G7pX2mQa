@@ -4056,7 +4056,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 }
 
 // Global helper to draw animated fluid pipes
-function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset, alpha = 1, capStyle = "round", customStroke = null) {
+function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset, alpha = 1, capStyle = "round", customStroke = null, customSlit = null, customDash = null) {
     if (alpha <= 0) return;
     const isMulti = pathsOrPts.length > 0 && Array.isArray(pathsOrPts[0]);
     const paths = isMulti ? pathsOrPts : [pathsOrPts];
@@ -4097,7 +4097,7 @@ function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset
 
     // Fluid slit
     if (fluidColor) {
-      ctx.strokeStyle = "#1a1a1a";
+      ctx.strokeStyle = customSlit ? customSlit : "#1a1a1a";
       ctx.lineWidth = width * 0.35;
       ctx.beginPath();
       for (const pts of paths) {
@@ -4109,8 +4109,14 @@ function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset
 
       ctx.strokeStyle = fluidColor;
       ctx.lineWidth = width * 0.2;
-      const dashLen = width * 2.5;
-      ctx.setLineDash([dashLen, dashLen * 1.5]);
+      
+      if (customDash) {
+          ctx.setLineDash(customDash);
+      } else {
+          const dashLen = width * 2.5;
+          ctx.setLineDash([dashLen, dashLen * 1.5]);
+      }
+      
       ctx.lineDashOffset = -timeOffset * flowSpeed * 20;
       ctx.stroke();
 
@@ -7105,10 +7111,8 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.save();
     ctx.globalAlpha = t1;
     
-    // Noticeable brown palette for the mud pumps
-    const brownBase = "#5c4033"; // Dark brown
-    const brownLight = "#8b5a2b"; // Lighter brown
-    const brownDark = "#3e2723"; // Very dark brown
+    // Noticeable dirt brown palette
+    const brownDark = "#5C4033"; // Dark dirt
     
     const drawMudPump = (xPos, facingRight) => {
         ctx.save();
@@ -7121,7 +7125,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fillRect(-41, -5, 56, 5); 
         
         // Power end (main housing)
-        ctx.fillStyle = brownDark;
+        ctx.fillStyle = fillDarkDiamond;
         ctx.beginPath();
         ctx.moveTo(-37, -5);
         ctx.lineTo(-37, -28); // High back
@@ -7131,55 +7135,57 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fill();
         
         // Housing side panel/door
-        ctx.fillStyle = brownLight;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-33, -22, 10, 12);
         
         // Spinning external shaft/wheel for animation
         ctx.save();
         ctx.translate(-28, -16);
         ctx.rotate(t * 15 + xPos);
-        ctx.fillStyle = fillDarkDiamond; // Keep shaft metal
+        ctx.fillStyle = brownDark; // Circle is brown
         ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = fillDiamond;
+        ctx.fillStyle = fillDiamond; // Rectangle is diamond
         ctx.fillRect(-5, -1, 10, 2);
         ctx.restore();
         
         // Fluid end (valves and block)
-        ctx.fillStyle = brownBase;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-5, -18, 12, 13);
         
         // 3 horizontal valve covers (triplex)
-        ctx.fillStyle = brownDark;
+        ctx.fillStyle = fillDarkDiamond;
         for(let i=0; i<3; i++) {
             let vy = -16 + i * 4;
             ctx.fillRect(7, vy, 5, 3);
-            ctx.fillStyle = brownLight; // bolt cap
+            ctx.fillStyle = fillDiamond; // bolt cap
             ctx.fillRect(12, vy + 0.5, 2, 2);
-            ctx.fillStyle = brownDark;
+            ctx.fillStyle = fillDarkDiamond;
         }
         
         // Pulsation dampener (sphere on top of fluid end)
-        ctx.fillStyle = brownLight;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-3, -22, 6, 4); // Neck
-        ctx.fillStyle = brownBase;
+        ctx.fillStyle = fillDarkDiamond;
         ctx.beginPath();
         ctx.arc(0, -30, 9, 0, Math.PI*2); // Sphere exactly at local x=0
         ctx.fill();
-        ctx.fillStyle = brownLight;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-3, -40, 6, 2); // Top cap
         
         // High-pressure pulsing animation (Dampener swells slightly)
         let pressure = (Math.sin(t * 20 + xPos) + 1) / 2;
-        ctx.fillStyle = `rgba(139, 90, 43, ${0.4 + pressure * 0.4})`; // Brown pulsing inside
+        // Inner mud is visible dirt brown (SaddleBrown)
+        ctx.fillStyle = `rgba(139, 69, 19, ${0.5 + pressure * 0.5})`; 
         ctx.beginPath();
-        ctx.arc(0, -30, 4 + pressure * 2, 0, Math.PI*2);
+        ctx.arc(0, -30, 4 + pressure * 2.5, 0, Math.PI*2);
         ctx.fill();
 
         // Vertical pipe up to y=-50 for Tier 2 connection
-        ctx.fillStyle = brownDark;
+        ctx.fillStyle = fillDarkDiamond;
         ctx.fillRect(-3, -50, 6, 10);
         
-        // Ground suction pipe (dark brown)
+        // Ground suction pipe
+        ctx.fillStyle = fillDarkDiamond;
         ctx.fillRect(-3, -5, 6, 5);
         
         ctx.restore();
@@ -7198,27 +7204,38 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.globalAlpha = t2;
     
     const drawPipe = (xSign) => {
-        // Start at top of the pump (-55, -50)
-        let startX = xSign * 55;
+        let xPos = xSign * 55;
         let startY = -50;
         
         // Orthogonal routing exactly like the Refinery tanks
         let pts = [
-            { x: startX, y: startY },
-            { x: startX, y: -90 }, // Up
+            { x: xPos, y: startY },
+            { x: xPos, y: -90 }, // Up
             { x: xSign * 30, y: -90 }, // Inwards
             { x: xSign * 30, y: -140 }, // Up
             { x: xSign * 15, y: -140 }, // Inwards
             { x: xSign * 15, y: -180 }, // Up to top drive
         ];
         
-        // Drilling fluid/mud is a thick brown slurry
-        let mudColor = "#8b5a2b"; 
-        let pipeStroke = "#4e342e"; // Dark brown pipe exterior
+        // By using a low-contrast slit background and dash color, we mimic the 
+        // thick, solid-looking fluid core of the Refinery's tank pipes,
+        // without creating the high-contrast dashed look of the electrical box pipes.
+        let mudDash = "#A0522D"; // Sienna (visible dirt brown)
+        let mudSlit = "#5C4033"; // Dark dirt
         
-        // Use the global fluid pipe drawer with orthogonal routing and "butt" caps
-        // The mud flows UP from the mud pumps to the top drive, where it is injected down the hollow drill string!
-        drawFluidPipe(ctx, pts, 8, mudColor, 2.5, t, t2, "butt", pipeStroke);
+        // The mud pump reaches max pressure at t = (Math.PI/2 - xPos)/20.
+        // It bursts (pushes mud) for the next half-cycle (PI/20 seconds).
+        // We want a constant flow speed where 1 slug (length 25) and 1 gap (length 25) are pushed per cycle.
+        // Total pattern length L = 50. Cycle time T = 2*PI/20.
+        // Flow speed = L / T = 500 / PI pixels per second.
+        let flowSpeed = 25 / Math.PI; // flowSpeed is internally multiplied by 20 in drawFluidPipe
+        
+        // We sync the offset so that the mud slug starts entering the pipe exactly when the burst begins.
+        let timeOffset = t + (xPos + Math.PI / 2) / 20;
+        
+        // Use the global fluid pipe drawer with orthogonal routing, "butt" caps, standard iron exterior,
+        // and our custom flow logic so discrete mud slugs pulse in sync with the pump!
+        drawFluidPipe(ctx, pts, 8, mudDash, flowSpeed, timeOffset, t2, "butt", null, mudSlit, [25, 25]);
     };
     
     drawPipe(-1);
