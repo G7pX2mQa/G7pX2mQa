@@ -7067,52 +7067,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 
   ctx.restore(); // End cavern transform (pops SAVE 2)
 
-  // --- Tier 0: Diamond Derrick (A-Frame) ---
-  if (t0 > 0) {
-    ctx.save();
-    ctx.translate(0, -1.5); // Lift the derrick by half the line width so it doesn't clip into the ground
-    
-    // Traditional Oil Derrick (A-Frame) made of Diamond
-    ctx.fillStyle = fillDiamond;
-    ctx.strokeStyle = fillDiamond; // Use diamond texture for the supports
-    ctx.lineWidth = 3; // Slightly thicker so the pattern is visible on lines
-    
-    // Derrick legs
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(-20, -180);
-    ctx.lineTo(20, -180);
-    ctx.lineTo(40, 0);
-    ctx.lineTo(30, 0);
-    ctx.lineTo(12, -170);
-    ctx.lineTo(-12, -170);
-    ctx.lineTo(-30, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Cross bracing (X patterns)
-    ctx.beginPath();
-    for(let i=0; i<4; i++) {
-        let yBottom = -i * 42.5;
-        let yTop = -(i+1) * 42.5;
-        let wBottom = 30 - i*5;
-        let wTop = 30 - (i+1)*5;
-        
-        ctx.moveTo(-wBottom, yBottom);
-        ctx.lineTo(wTop, yTop);
-        ctx.moveTo(wBottom, yBottom);
-        ctx.lineTo(-wTop, yTop);
-    }
-    ctx.stroke();
-
-    // Top Platform / Crown Block
-    ctx.fillRect(-25, -200, 50, 20);
-    ctx.strokeRect(-25, -200, 50, 20);
-    
-    ctx.restore();
-  }
-
 // --- Tier 1: High-Pressure Mud Pumps ---
   if (t1 > 0) {
     ctx.save();
@@ -7186,10 +7140,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.beginPath();
         ctx.arc(0, -30, 4 + pressure * 2.5, 0, Math.PI*2);
         ctx.fill();
-
-        // Vertical pipe up to y=-50 for Tier 2 connection
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-3, -50, 6, 10);
         
         // Ground suction pipe
         ctx.fillStyle = fillDiamond;
@@ -7205,6 +7155,52 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
+  // --- Tier 0: Diamond Derrick (A-Frame) ---
+  if (t0 > 0) {
+    ctx.save();
+    ctx.translate(0, -1.5); // Lift the derrick by half the line width so it doesn't clip into the ground
+    
+    // Traditional Oil Derrick (A-Frame) made of Diamond
+    ctx.fillStyle = fillDiamond;
+    ctx.strokeStyle = fillDiamond; // Use diamond texture for the supports
+    ctx.lineWidth = 3; // Slightly thicker so the pattern is visible on lines
+    
+    // Derrick legs
+    ctx.beginPath();
+    ctx.moveTo(-40, 0);
+    ctx.lineTo(-20, -180);
+    ctx.lineTo(20, -180);
+    ctx.lineTo(40, 0);
+    ctx.lineTo(30, 0);
+    ctx.lineTo(12, -170);
+    ctx.lineTo(-12, -170);
+    ctx.lineTo(-30, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // Cross bracing (X patterns)
+    ctx.beginPath();
+    for(let i=0; i<4; i++) {
+        let yBottom = -i * 42.5;
+        let yTop = -(i+1) * 42.5;
+        let wBottom = 30 - i*5;
+        let wTop = 30 - (i+1)*5;
+        
+        ctx.moveTo(-wBottom, yBottom);
+        ctx.lineTo(wTop, yTop);
+        ctx.moveTo(wBottom, yBottom);
+        ctx.lineTo(-wTop, yTop);
+    }
+    ctx.stroke();
+
+    // Top Platform / Crown Block
+    ctx.fillRect(-25, -200, 50, 20);
+    ctx.strokeRect(-25, -200, 50, 20);
+    
+    ctx.restore();
+  }
+
   // --- Tier 2: Heavy Mud Circulation Pipes ---
   if (t2 > 0) {
     ctx.save();
@@ -7212,7 +7208,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     
     const drawPipe = (xSign) => {
         let xPos = xSign * 55;
-        let startY = -50;
+        let startY = -40;
         
         // Orthogonal routing exactly like the Refinery tanks
         let pts = [
