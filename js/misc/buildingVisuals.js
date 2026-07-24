@@ -4055,6 +4055,75 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   }
 }
 
+// Global helper to draw animated fluid pipes
+function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset, alpha = 1, capStyle = "round", customStroke = null) {
+    if (alpha <= 0) return;
+    const isMulti = pathsOrPts.length > 0 && Array.isArray(pathsOrPts[0]);
+    const paths = isMulti ? pathsOrPts : [pathsOrPts];
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineJoin = "round";
+    ctx.lineCap = capStyle;
+
+    // Outer pipe
+    ctx.strokeStyle = customStroke ? customStroke : (ironPattern ? ironPattern : "#5a6a75");
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    for (const pts of paths) {
+      if (pts.length === 0) continue;
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
+
+    // Shadow overlay
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = width * 0.7;
+    ctx.stroke();
+
+    // Specular highlight
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = width * 0.2;
+    ctx.beginPath();
+    for (const pts of paths) {
+      if (pts.length === 0) continue;
+      for (let i = 0; i < pts.length; i++) {
+        if (i === 0) ctx.moveTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
+        else ctx.lineTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
+      }
+    }
+    ctx.stroke();
+
+    // Fluid slit
+    if (fluidColor) {
+      ctx.strokeStyle = "#1a1a1a";
+      ctx.lineWidth = width * 0.35;
+      ctx.beginPath();
+      for (const pts of paths) {
+        if (pts.length === 0) continue;
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = fluidColor;
+      ctx.lineWidth = width * 0.2;
+      const dashLen = width * 2.5;
+      ctx.setLineDash([dashLen, dashLen * 1.5]);
+      ctx.lineDashOffset = -timeOffset * flowSpeed * 20;
+      ctx.stroke();
+
+      ctx.shadowColor = fluidColor;
+      ctx.shadowBlur = width;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+}
+
 function drawRefinery(ctx, times, tier, prevTier, animProgress) {
   const t = times.base;
   const tPipe = times.pipe;
@@ -4117,75 +4186,6 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     ctx.strokeStyle = "rgba(255,255,255,0.9)";
     ctx.lineWidth = lineWidth * 0.4;
     ctx.stroke();
-    ctx.restore();
-  };
-
-  // Helper to draw fluid pipes
-  const drawFluidPipe = (pathsOrPts, width, fluidColor, flowSpeed, alpha = 1, capStyle = "round") => {
-    if (alpha <= 0) return;
-    const isMulti = pathsOrPts.length > 0 && Array.isArray(pathsOrPts[0]);
-    const paths = isMulti ? pathsOrPts : [pathsOrPts];
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.lineJoin = "round";
-    ctx.lineCap = capStyle;
-
-    // Outer pipe
-    ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    for (const pts of paths) {
-      if (pts.length === 0) continue;
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.stroke();
-
-    // Shadow overlay
-    ctx.strokeStyle = "rgba(0,0,0,0.4)";
-    ctx.lineWidth = width * 0.7;
-    ctx.stroke();
-
-    // Specular highlight
-    ctx.strokeStyle = "rgba(255,255,255,0.3)";
-    ctx.lineWidth = width * 0.2;
-    ctx.beginPath();
-    for (const pts of paths) {
-      if (pts.length === 0) continue;
-      for (let i = 0; i < pts.length; i++) {
-        if (i === 0) ctx.moveTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
-        else ctx.lineTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
-      }
-    }
-    ctx.stroke();
-
-    // Fluid slit
-    if (fluidColor) {
-      ctx.strokeStyle = "#1a1a1a";
-      ctx.lineWidth = width * 0.35;
-      ctx.beginPath();
-      for (const pts of paths) {
-        if (pts.length === 0) continue;
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      }
-      ctx.stroke();
-
-      ctx.strokeStyle = fluidColor;
-      ctx.lineWidth = width * 0.2;
-      const dashLen = width * 2.5;
-      ctx.setLineDash([dashLen, dashLen * 1.5]);
-      ctx.lineDashOffset = -tPipe * flowSpeed * 20;
-      ctx.stroke();
-
-      ctx.shadowColor = fluidColor;
-      ctx.shadowBlur = width;
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.shadowBlur = 0;
-    }
-
     ctx.restore();
   };
 
@@ -4431,9 +4431,9 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(oldPts, 8, oilColor, 2.5, 1.0 - t1, "butt");
+    drawFluidPipe(ctx, oldPts, 8, oilColor, 2.5, tPipe, 1.0 - t1, "butt");
     
-    drawFluidPipe(allPts, 8, oilColor, 2.5, t1, "butt");
+    drawFluidPipe(ctx, allPts, 8, oilColor, 2.5, tPipe, t1, "butt");
     
   } else {
     let allPts = [];
@@ -4443,7 +4443,7 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
       { x: 60, y: baseY - tankH - 15 },
       { x: 60, y: baseY },
     ]);
-    drawFluidPipe(allPts, 8, oilColor, 2.5, 1.0, "butt");
+    drawFluidPipe(ctx, allPts, 8, oilColor, 2.5, tPipe, 1.0, "butt");
   }
 
   // 3. Draw the tanks
@@ -4671,11 +4671,11 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
         // Since we are in the t4 block which has ctx.globalAlpha = t4, we need to temporarily
         // reset it to 1 to allow drawFluidPipe to draw at the correct t7 alpha.
         ctx.globalAlpha = 1;
-        drawFluidPipe([
+        drawFluidPipe(ctx, [
           { x: conf.x, y: baseY - 40 },
           { x: conf.x, y: pTargetY },
           { x: -columnW/2 + 5, y: pTargetY } // Slightly inside so no gap
-        ], 6, pipeColor, 2, conf.tierAlpha);
+        ], 6, pipeColor, 2, tPipe, conf.tierAlpha);
         ctx.restore();
       }
     }
@@ -4694,11 +4694,11 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
         const pTargetY = columnY - (columnH * conf.pct);
         ctx.save();
         ctx.globalAlpha = 1;
-        drawFluidPipe([
+        drawFluidPipe(ctx, [
           { x: conf.x, y: baseY - 40 },
           { x: conf.x, y: pTargetY },
           { x: columnW/2 - 5, y: pTargetY } // Slightly inside so no gap
-        ], 6, pipeColor, 2, conf.tierAlpha);
+        ], 6, pipeColor, 2, tPipe, conf.tierAlpha);
         ctx.restore();
       }
     }
@@ -7100,127 +7100,222 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
-// --- Tier 1: Coolant Lines ---
+// --- Tier 1: High-Pressure Mud Pumps ---
   if (t1 > 0) {
     ctx.save();
     ctx.globalAlpha = t1;
     
-    ctx.strokeStyle = "#00ffff"; // Cyan coolant
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    // Noticeable brown palette for the mud pumps
+    const brownBase = "#5c4033"; // Dark brown
+    const brownLight = "#8b5a2b"; // Lighter brown
+    const brownDark = "#3e2723"; // Very dark brown
     
-    // Animate flow
-    ctx.setLineDash([10, 10]);
-    ctx.lineDashOffset = -t * 30;
-    
-    // Left leg coolant line
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(-20, -180);
-    ctx.stroke();
+    const drawMudPump = (xPos, facingRight) => {
+        ctx.save();
+        ctx.translate(xPos, 0);
+        let dir = facingRight ? 1 : -1;
+        ctx.scale(dir, 1); 
+        
+        // Base plate (skid)
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-41, -5, 56, 5); 
+        
+        // Power end (main housing)
+        ctx.fillStyle = brownDark;
+        ctx.beginPath();
+        ctx.moveTo(-37, -5);
+        ctx.lineTo(-37, -28); // High back
+        ctx.lineTo(-25, -28); // Flat top
+        ctx.lineTo(-5, -18);  // Sloped front
+        ctx.lineTo(-5, -5);   // Down
+        ctx.fill();
+        
+        // Housing side panel/door
+        ctx.fillStyle = brownLight;
+        ctx.fillRect(-33, -22, 10, 12);
+        
+        // Spinning external shaft/wheel for animation
+        ctx.save();
+        ctx.translate(-28, -16);
+        ctx.rotate(t * 15 + xPos);
+        ctx.fillStyle = fillDarkDiamond; // Keep shaft metal
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-5, -1, 10, 2);
+        ctx.restore();
+        
+        // Fluid end (valves and block)
+        ctx.fillStyle = brownBase;
+        ctx.fillRect(-5, -18, 12, 13);
+        
+        // 3 horizontal valve covers (triplex)
+        ctx.fillStyle = brownDark;
+        for(let i=0; i<3; i++) {
+            let vy = -16 + i * 4;
+            ctx.fillRect(7, vy, 5, 3);
+            ctx.fillStyle = brownLight; // bolt cap
+            ctx.fillRect(12, vy + 0.5, 2, 2);
+            ctx.fillStyle = brownDark;
+        }
+        
+        // Pulsation dampener (sphere on top of fluid end)
+        ctx.fillStyle = brownLight;
+        ctx.fillRect(-3, -22, 6, 4); // Neck
+        ctx.fillStyle = brownBase;
+        ctx.beginPath();
+        ctx.arc(0, -30, 9, 0, Math.PI*2); // Sphere exactly at local x=0
+        ctx.fill();
+        ctx.fillStyle = brownLight;
+        ctx.fillRect(-3, -40, 6, 2); // Top cap
+        
+        // High-pressure pulsing animation (Dampener swells slightly)
+        let pressure = (Math.sin(t * 20 + xPos) + 1) / 2;
+        ctx.fillStyle = `rgba(139, 90, 43, ${0.4 + pressure * 0.4})`; // Brown pulsing inside
+        ctx.beginPath();
+        ctx.arc(0, -30, 4 + pressure * 2, 0, Math.PI*2);
+        ctx.fill();
 
-    // Right leg coolant line
-    ctx.beginPath();
-    ctx.moveTo(40, 0);
-    ctx.lineTo(20, -180);
-    ctx.stroke();
-
-    // Connect them at the top
-    ctx.beginPath();
-    ctx.moveTo(-20, -180);
-    ctx.lineTo(-25, -200);
-    ctx.lineTo(25, -200);
-    ctx.lineTo(20, -180);
-    ctx.stroke();
+        // Vertical pipe up to y=-50 for Tier 2 connection
+        ctx.fillStyle = brownDark;
+        ctx.fillRect(-3, -50, 6, 10);
+        
+        // Ground suction pipe (dark brown)
+        ctx.fillRect(-3, -5, 6, 5);
+        
+        ctx.restore();
+    };
     
-    // Add glowing effect
-    ctx.shadowColor = "#00ffff";
-    ctx.shadowBlur = 10;
-    ctx.stroke();
+    // Positioned at +/- 55, facing inwards
+    drawMudPump(-55, true);
+    drawMudPump(55, false);
     
     ctx.restore();
   }
 
-  // --- Tier 2: Twin Plasma Capacitors ---
+  // --- Tier 2: Heavy Mud Circulation Pipes ---
   if (t2 > 0) {
     ctx.save();
     ctx.globalAlpha = t2;
     
-    const drawCapacitor = (xPos) => {
-        ctx.save();
-        ctx.translate(xPos, 0);
+    const drawPipe = (xSign) => {
+        // Start at top of the pump (-55, -50)
+        let startX = xSign * 55;
+        let startY = -50;
         
-        // Base and top caps
-        ctx.fillStyle = fillDarkDiamond;
-        ctx.fillRect(-15, -10, 30, 10);
-        ctx.fillRect(-15, -60, 30, 10);
+        // Orthogonal routing exactly like the Refinery tanks
+        let pts = [
+            { x: startX, y: startY },
+            { x: startX, y: -90 }, // Up
+            { x: xSign * 30, y: -90 }, // Inwards
+            { x: xSign * 30, y: -140 }, // Up
+            { x: xSign * 15, y: -140 }, // Inwards
+            { x: xSign * 15, y: -180 }, // Up to top drive
+        ];
         
-        // Glass tube
-        ctx.fillStyle = "rgba(0, 50, 50, 0.6)";
-        ctx.fillRect(-12, -50, 24, 40);
+        // Drilling fluid/mud is a thick brown slurry
+        let mudColor = "#8b5a2b"; 
+        let pipeStroke = "#4e342e"; // Dark brown pipe exterior
         
-        // Plasma energy inside
-        const energyH = 30 + Math.sin(t * 10 + xPos) * 10;
-        ctx.fillStyle = `rgba(0, 255, 255, ${0.6 + 0.3 * Math.sin(t * 15)})`;
-        ctx.fillRect(-12, -10 - energyH, 24, energyH);
-        
-        // Coil around tube
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for(let i=0; i<6; i++) {
-            let y = -15 - i * 7;
-            ctx.moveTo(-14, y);
-            ctx.lineTo(14, y - 2);
-        }
-        ctx.stroke();
-        ctx.restore();
+        // Use the global fluid pipe drawer with orthogonal routing and "butt" caps
+        // The mud flows UP from the mud pumps to the top drive, where it is injected down the hollow drill string!
+        drawFluidPipe(ctx, pts, 8, mudColor, 2.5, t, t2, "butt", pipeStroke);
     };
     
-    drawCapacitor(-55);
-    drawCapacitor(55);
+    drawPipe(-1);
+    drawPipe(1);
     
     ctx.restore();
   }
 
-  // --- Tier 3: Magnetic Confinement Ring ---
+  // --- Tier 3: Auxiliary Pumpjacks ---
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
     
-    // Floating just below top drive (using -60 / scale as anchor)
-    const ringY = -60 / scale;
-    ctx.translate(0, ringY + 20); // Hover a bit lower
-    
-    // Oscillating hover
-    ctx.translate(0, Math.sin(t * 3) * 5);
-    
-    // 3D Rotating Ring
-    ctx.scale(1, 0.3); // Perspective
-    ctx.rotate(t * 2);
-    
-    ctx.strokeStyle = fillDarkDiamond;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(0, 0, 35, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Glowing inner ring
-    ctx.strokeStyle = "#ff3333";
-    ctx.lineWidth = 2;
-    ctx.shadowColor = "#ff0000";
-    ctx.shadowBlur = 10;
-    ctx.stroke();
-    
-    // Nodules
-    ctx.fillStyle = fillDiamond;
-    for(let i=0; i<4; i++) {
+    const drawPumpjack = (xPos) => {
         ctx.save();
-        ctx.rotate(i * Math.PI / 2);
-        ctx.fillRect(-5, -40, 10, 10);
+        ctx.translate(xPos, 0);
+        
+        let dir = xPos > 0 ? -1 : 1; 
+        
+        // Base (reduced size to prevent overlap)
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-20, -6, 40, 6);
+        
+        // A-Frame support
+        ctx.strokeStyle = fillDiamond;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(-12, -6);
+        ctx.lineTo(0, -35);
+        ctx.lineTo(12, -6);
+        ctx.stroke();
+        
+        let cycle = t * 3 + (xPos > 0 ? 1 : 0);
+        
+        let crankRot = cycle;
+        let cx = -dir * 16;
+        let cy = -12;
+        let crankRad = 8;
+        let pinX = cx + Math.cos(crankRot) * crankRad;
+        let pinY = cy + Math.sin(crankRot) * crankRad;
+        
+        // Counter weight crank
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(crankRot);
+        ctx.beginPath();
+        ctx.arc(crankRad/2, 0, 5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillRect(-3, -2, crankRad + 3, 4); // Arm from center to pin
         ctx.restore();
-    }
+        
+        let beamAngle = Math.sin(crankRot) * 0.25; 
+        
+        // Pitman arm (Connecting rod)
+        let beamBackX = -dir * 18 * Math.cos(beamAngle);
+        let beamBackY = -35 - dir * 18 * Math.sin(beamAngle);
+        
+        ctx.strokeStyle = fillDiamond;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(pinX, pinY);
+        ctx.lineTo(beamBackX, beamBackY);
+        ctx.stroke();
+        
+        // Walking beam (Nodding Donkey head)
+        ctx.save();
+        ctx.translate(0, -35);
+        ctx.rotate(beamAngle);
+        
+        // Main beam
+        ctx.fillRect(-20, -3, 40, 6);
+        
+        // Horsehead
+        ctx.beginPath();
+        ctx.arc(dir * 20, 0, 8, -Math.PI/2, Math.PI/2);
+        ctx.fill();
+        ctx.restore();
+        
+        // Cable dropping down
+        ctx.strokeStyle = "#111"; // Black cable for oil
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let headY = -35 + dir * 20 * Math.sin(beamAngle);
+        let headX = dir * 20;
+        ctx.moveTo(headX, headY);
+        ctx.lineTo(headX, 0);
+        ctx.stroke();
+        
+        // Small wellhead
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(headX - 4, -8, 8, 8);
+        
+        ctx.restore();
+    };
+    
+    drawPumpjack(-115);
+    drawPumpjack(115);
     
     ctx.restore();
   }
@@ -7289,107 +7384,220 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
-  // --- Tier 5: Floating Focusing Lenses ---
+  // --- Tier 5: Massive Flywheel Dynamos ---
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
     
-    const lensStartY = -60 / scale;
-    
-    for (let i = 0; i < 3; i++) {
+    const drawFlywheel = (xPos) => {
         ctx.save();
-        // Spaced out down the beam
-        let ly = lensStartY + 40 + i * 35;
-        // Float up and down slightly out of phase
-        ly += Math.sin(t * 2 + i * 2) * 8;
+        ctx.translate(xPos, -25);
         
-        ctx.translate(0, ly);
-        
-        // Spin back and forth
-        ctx.scale(1, 0.4);
-        ctx.rotate(Math.sin(t * 1.5 + i) * Math.PI / 4);
-        
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 3;
+        // Base pedestal firmly on the ground
+        ctx.fillStyle = fillDarkDiamond;
         ctx.beginPath();
-        ctx.arc(0, 0, 15 - i * 2, 0, Math.PI * 2); // Get smaller as they go down
+        ctx.moveTo(-15, 25);
+        ctx.lineTo(-8, 0);
+        ctx.lineTo(8, 0);
+        ctx.lineTo(15, 25);
+        ctx.fill();
+        
+        // Fast rotation
+        ctx.save();
+        ctx.rotate(t * 10 * (xPos > 0 ? 1 : -1));
+        
+        // Inner wheel
+        ctx.strokeStyle = fillDarkDiamond;
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Inner glow
-        ctx.fillStyle = `rgba(255, 100, 100, 0.4)`;
+        // Outer teeth/spokes
+        ctx.fillStyle = fillDiamond;
+        for(let i=0; i<6; i++) {
+            ctx.save();
+            ctx.rotate(i * Math.PI / 3);
+            ctx.fillRect(-3, -25, 6, 15);
+            ctx.restore();
+        }
+        
+        // Center hub
+        ctx.fillStyle = fillDiamond;
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore(); // end rotation
+        
+        // Drive belt connecting to the top drive
+        ctx.strokeStyle = "#111"; // Black rubber belt
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        let dx = -xPos; 
+        let dy = -125; // Relative to flywheel center (-25) -> -150 on rig
+        ctx.moveTo(-20, 0); // Left side of flywheel
+        ctx.lineTo(dx - 5, dy); // Left side of top pulley
+        ctx.moveTo(20, 0); // Right side of flywheel
+        ctx.lineTo(dx + 5, dy);
+        ctx.stroke();
+        
         ctx.restore();
-    }
+    };
+    
+    drawFlywheel(-25);
+    drawFlywheel(25);
     
     ctx.restore();
   }
 
-  // --- Tier 6: Heat Radiator Panels ---
+  // --- Tier 6: Industrial Cooling Towers ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    const drawRadiatorPanel = (xSign, yPos, angle) => {
+    const drawCoolingTower = (xPos) => {
         ctx.save();
-        ctx.translate(xSign * 25, yPos);
-        ctx.rotate(angle);
+        ctx.translate(xPos, 0);
         
+        let tw = 14; // top width
+        let bw = 20; // base width
+        let th = -60; // top height
+        
+        // Tower body
         ctx.fillStyle = fillDarkDiamond;
-        ctx.fillRect(-5, -20, 10, 40);
+        ctx.beginPath();
+        ctx.moveTo(-bw, 0);
+        ctx.lineTo(-tw, th);
+        ctx.lineTo(tw, th);
+        ctx.lineTo(bw, 0);
+        ctx.fill();
         
-        // Glowing fins
-        ctx.fillStyle = `rgba(255, 60, 0, ${0.5 + 0.5 * Math.sin(t * 5 + yPos)})`;
-        for (let i = 0; i < 6; i++) {
-            ctx.fillRect(xSign > 0 ? 5 : -15, -15 + i * 6, 10, 3);
+        // Base ellipse for 3D grounding
+        ctx.beginPath();
+        ctx.ellipse(0, 0, bw, 5, 0, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Top ellipse
+        ctx.fillStyle = "#111"; // Inside hole
+        ctx.beginPath();
+        ctx.ellipse(0, th, tw, 3, 0, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Rim
+        ctx.strokeStyle = fillDiamond;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, th, tw, 3, 0, 0, Math.PI*2);
+        ctx.stroke();
+        
+        // Internal spinning fan at the top (perspective)
+        ctx.save();
+        ctx.translate(0, th);
+        ctx.scale(1, 0.25);
+        ctx.rotate(t * 8);
+        ctx.fillStyle = fillDiamond;
+        for(let i=0; i<4; i++) {
+            ctx.save();
+            ctx.rotate(i * Math.PI / 2);
+            ctx.fillRect(-2, 0, 4, 10);
+            ctx.restore();
+        }
+        ctx.restore();
+        
+        // Venting steam (white puffs)
+        for(let i=0; i<3; i++) {
+            let pT = (t * 0.5 + i * 0.33 + (xPos > 0 ? 0.5 : 0)) % 1; // Phase
+            let pY = th - pT * 40;
+            let pSize = 5 + pT * 15;
+            let pAlpha = (1 - pT) * 0.4;
+            
+            // Wobble
+            let pX = Math.sin(t * 2 + i * 5) * 8 * pT;
+            
+            ctx.fillStyle = `rgba(220, 220, 220, ${pAlpha})`;
+            ctx.beginPath();
+            ctx.arc(pX, pY, pSize, 0, Math.PI * 2);
+            ctx.fill();
         }
         
         ctx.restore();
     };
     
-    // Attach to left leg
-    drawRadiatorPanel(-1, -120, -0.15);
-    drawRadiatorPanel(-1, -70, -0.1);
-    
-    // Attach to right leg
-    drawRadiatorPanel(1, -120, 0.15);
-    drawRadiatorPanel(1, -70, 0.1);
+    // Placed on far edges (moved out to 160)
+    drawCoolingTower(-160);
+    drawCoolingTower(160);
     
     ctx.restore();
   }
 
-  // --- Tier 7: Tachyon Core ---
+  // --- Tier 7: Automated Maintenance Elevators & Scaffolding ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    ctx.translate(0, -150); // Near the crown block
-    
-    // Pulsing dark energy sphere
-    const corePulse = 1 + 0.1 * Math.sin(t * 20);
-    
-    ctx.scale(corePulse, corePulse);
-    
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
-    grad.addColorStop(0, "#ffffff");
-    grad.addColorStop(0.3, "#ff5555");
-    grad.addColorStop(0.8, "#550000");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Orbiting particles
-    ctx.fillStyle = "#ffaaaa";
-    for(let i=0; i<3; i++) {
+    // Elevator platforms riding the very outer edge of the A-frame
+    const drawElevator = (xSign, phase) => {
+        let cycle = (t * 0.15 + phase) % 1;
+        let trip = cycle < 0.5 ? cycle * 2 : 2 - cycle * 2;
+        
+        let yPos = -5 - trip * 170;
+        
+        // Follow the exact angle of the A-frame's outer edge.
+        // A-Frame outer edge goes from (+/- 40, 0) to (+/- 20, -180).
+        let legX = xSign * (40 + (yPos / -180) * -20);
+        
+        // Elevator track just outside the leg
+        let trackX = legX + (xSign * 10);
+        
         ctx.save();
-        ctx.rotate(t * 8 + i * Math.PI * 2 / 3);
+        ctx.translate(trackX, yPos);
+        
+        // Draw the local track segment so it looks attached
+        ctx.strokeStyle = fillDarkDiamond;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(25, 0, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(0, 15);
+        ctx.stroke();
+        
+        // Connect to leg
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-xSign * 10, 0);
+        ctx.stroke();
+        
+        // Platform
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-6, -2, 12, 3);
+        
+        // Elevator cage/box
+        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillRect(-4, -10, 8, 8);
+        
+        // Warning light blink
+        if ((t * 5) % 1 > 0.5) {
+            ctx.fillStyle = "rgba(255, 100, 0, 0.8)";
+            ctx.beginPath();
+            ctx.arc(0, -12, 1.5, 0, Math.PI*2);
+            ctx.fill();
+        }
+        
         ctx.restore();
-    }
+    };
+    
+    // Draw an outer rail line from bottom to top
+    ctx.strokeStyle = fillDarkDiamond;
+    ctx.lineWidth = 2;
+    // Left rail
+    ctx.beginPath(); ctx.moveTo(-50, 0); ctx.lineTo(-30, -180); ctx.stroke();
+    // Right rail
+    ctx.beginPath(); ctx.moveTo(50, 0); ctx.lineTo(30, -180); ctx.stroke();
+    
+    // Elevators
+    drawElevator(-1, 0);
+    drawElevator(-1, 0.5); 
+    drawElevator(1, 0.25);
+    drawElevator(1, 0.75); 
     
     ctx.restore();
   }
