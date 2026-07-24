@@ -6446,6 +6446,42 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           ctx.restore(); // Restore alpha
       }
 
+      // --- Tier 2: Heavy Mud Circulation Pipes ---
+      // Drawn here (unscaled section) so they go behind the top drive
+      if (t2 > 0) {
+          ctx.save();
+          ctx.globalAlpha = t2;
+          
+          let s = scale || 1;
+          const drawPipe = (xSign) => {
+              // Mud pumps are drawn in scaled section at x=55, y=-40
+              let xPos = xSign * 55 * s;
+              let startY = -40 * s;
+              
+              let tdCenterY = -75; // Top drive sits between -60 and -90 (unscaled)
+              
+              let pts = [
+                  { x: xPos, y: startY },
+                  { x: xPos, y: -140 * s }, // Up (Standpipe)
+                  { x: xSign * 30 * s, y: -140 * s }, // Inwards
+                  { x: xSign * 30 * s, y: tdCenterY }, // Down (Rotary hose loop)
+                  { x: 0, y: tdCenterY }, // Connect exactly into the center of the top drive
+              ];
+              
+              let mudDash = "#594940"; 
+              let mudSlit = null; 
+              let flowSpeed = 25 / Math.PI; 
+              let timeOffset = t - (Math.PI / 2) / 20;
+              
+              drawFluidPipe(ctx, pts, 6 * s, mudDash, flowSpeed, timeOffset, t2, "butt", fillDiamond, mudSlit, [25 * s, 25 * s], true, false);
+          };
+          
+          drawPipe(-1);
+          drawPipe(1);
+          
+          ctx.restore();
+      }
+
       // Top Drive Mechanism (motor that spins the drill)
       let topDriveH = topDriveBottom - topDriveTop;
       let topDriveW = 30 * widthScale;
@@ -7201,51 +7237,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
-  // --- Tier 2: Heavy Mud Circulation Pipes ---
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    
-    const drawPipe = (xSign) => {
-        let xPos = xSign * 55;
-        let startY = -40;
-        
-        // Orthogonal routing exactly like the Refinery tanks
-        let pts = [
-            { x: xPos, y: startY },
-            { x: xPos, y: -90 }, // Up
-            { x: xSign * 30, y: -90 }, // Inwards
-            { x: xSign * 30, y: -140 }, // Up
-            { x: xSign * 15, y: -140 }, // Inwards
-            { x: xSign * 15, y: -180 }, // Up to top drive
-        ];
-        
-        // Exact palette brown
-        let mudDash = "#594940"; 
-        let mudSlit = null; // null defaults to #1a1a1a (exactly the same pipe background color as refinery pipes)
-        
-        // The mud pump reaches max pressure at t = (Math.PI / 2) / 20.
-        // It bursts (pushes mud) for the next half-cycle.
-        // We want a constant flow speed where 1 slug (length 25) and 1 gap (length 25) are pushed per cycle.
-        // Total pattern length L = 50. Cycle time T = 2*PI/20.
-        // Flow speed = L / T = 500 / PI pixels per second.
-        let flowSpeed = 25 / Math.PI; // flowSpeed is internally multiplied by 20 in drawFluidPipe
-        
-        // We sync the offset so that the mud slug starts entering the pipe exactly when the burst begins.
-        let timeOffset = t - (Math.PI / 2) / 20;
-        
-        // Use the global fluid pipe drawer with orthogonal routing, "butt" caps, diamond exterior,
-        // custom flow logic for slugs, fullFill=true so the mud fills the inside of the pipe,
-        // and glow=false so the mud doesn't emit light.
-        // Pipe width is exactly 6 to flawlessly match the width of the mud pump's vertical connection.
-        drawFluidPipe(ctx, pts, 6, mudDash, flowSpeed, timeOffset, t2, "butt", fillDiamond, mudSlit, [25, 25], true, false);
-    };
-    
-    drawPipe(-1);
-    drawPipe(1);
-    
-    ctx.restore();
-  }
 
   // --- Tier 3: Auxiliary Pumpjacks ---
   if (t3 > 0) {
