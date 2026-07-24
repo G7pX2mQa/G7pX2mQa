@@ -7102,7 +7102,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         // Spinning external shaft/wheel for animation
         ctx.save();
         ctx.translate(-28, -16);
-        ctx.rotate(t * 15 + xPos);
+        ctx.rotate(t * 20); // Synced with pressure cycle
         ctx.fillStyle = brownDark; // Circle is brown
         ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = fillDarkDiamond; // Rectangle is diamond
@@ -7134,7 +7134,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fillRect(-3, -40, 6, 2); // Top cap
         
         // High-pressure pulsing animation (Dampener swells slightly)
-        let pressure = (Math.sin(t * 20 + xPos) + 1) / 2;
+        let pressure = (Math.sin(t * 20) + 1) / 2;
         // Inner mud is visible dirt brown
         ctx.fillStyle = `rgba(89, 73, 64, ${0.5 + pressure * 0.5})`; // #594940 is rgb(89, 73, 64)
         ctx.beginPath();
@@ -7224,15 +7224,15 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         let mudDash = "#594940"; 
         let mudSlit = null; // null defaults to #1a1a1a (exactly the same pipe background color as refinery pipes)
         
-        // The mud pump reaches max pressure at t = (Math.PI/2 - xPos)/20.
-        // It bursts (pushes mud) for the next half-cycle (PI/20 seconds).
+        // The mud pump reaches max pressure at t = (Math.PI / 2) / 20.
+        // It bursts (pushes mud) for the next half-cycle.
         // We want a constant flow speed where 1 slug (length 25) and 1 gap (length 25) are pushed per cycle.
         // Total pattern length L = 50. Cycle time T = 2*PI/20.
         // Flow speed = L / T = 500 / PI pixels per second.
         let flowSpeed = 25 / Math.PI; // flowSpeed is internally multiplied by 20 in drawFluidPipe
         
         // We sync the offset so that the mud slug starts entering the pipe exactly when the burst begins.
-        let timeOffset = t + (xPos + Math.PI / 2) / 20;
+        let timeOffset = t - (Math.PI / 2) / 20;
         
         // Use the global fluid pipe drawer with orthogonal routing, "butt" caps, diamond exterior,
         // custom flow logic for slugs, fullFill=true so the mud fills the inside of the pipe,
