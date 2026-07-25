@@ -498,7 +498,7 @@ function updateHud() {
       fill.style.setProperty('--dp-fill', '0%');
       fill.style.width = '0%';
     }
-    if (dpLevelValue) dpLevelValue.textContent = '0';
+    if (dpLevelValue) setHtmlOrText(dpLevelValue, '0');
     if (progress) {
       const reqHtml = formatNumber(requirementBn);
       setHtmlOrText(progress, `<span class="dp-progress-current">0</span><span class="dp-progress-separator">/</span><span class="dp-progress-required">${reqHtml}</span><span class="dp-progress-suffix">DP</span>`);
