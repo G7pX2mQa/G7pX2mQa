@@ -358,7 +358,7 @@ function updateHud() {
       fill.style.setProperty('--mp-fill', '0%');
       fill.style.width = '0%';
     }
-    if (levelValue) levelValue.textContent = '0';
+    if (levelValue) setHtmlOrText(levelValue, '0');
     if (progress) {
       const reqHtml = formatBn(mutationState.requirement);
       progress.innerHTML = `0<span class="mp-progress-separator">/</span><span class="mp-progress-required">${reqHtml}</span><span class="mp-progress-suffix">MP</span>`;
