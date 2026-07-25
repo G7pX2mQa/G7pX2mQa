@@ -7256,6 +7256,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         // A-Frame support
         ctx.strokeStyle = fillDiamond;
         ctx.lineWidth = 4;
+        ctx.lineJoin = "round";
         ctx.beginPath();
         ctx.moveTo(-12, -6);
         ctx.lineTo(0, -35);
@@ -7281,7 +7282,20 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fillRect(-3, -2, crankRad + 3, 4); // Arm from center to pin
         ctx.restore();
         
-        let beamAngle = Math.sin(crankRot) * 0.25; 
+        // Inverse Kinematics for Pitman Arm
+        let dx = pinX;
+        let dy = pinY - (-35);
+        let d = Math.sqrt(dx * dx + dy * dy);
+        let L_beam = 18;
+        let L_pitman = 28;
+        
+        let cosAlpha = (d * d + L_beam * L_beam - L_pitman * L_pitman) / (2 * d * L_beam);
+        cosAlpha = Math.max(-1, Math.min(1, cosAlpha));
+        let alpha = Math.acos(cosAlpha);
+        
+        let theta_pin = Math.atan2(dy, dx);
+        let theta_back = theta_pin + dir * alpha;
+        let beamAngle = theta_back - (dir === 1 ? Math.PI : 0);
         
         // Pitman arm (Connecting rod)
         let beamBackX = -dir * 18 * Math.cos(beamAngle);
@@ -7304,29 +7318,17 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         
         // Horsehead
         ctx.beginPath();
-        ctx.arc(dir * 20, 0, 8, -Math.PI/2, Math.PI/2);
+        let startAngle = dir === 1 ? -Math.PI/2 : Math.PI/2;
+        let endAngle = dir === 1 ? Math.PI/2 : 3*Math.PI/2;
+        ctx.arc(dir * 20, 0, 8, startAngle, endAngle);
         ctx.fill();
         ctx.restore();
-        
-        // Cable dropping down
-        ctx.strokeStyle = "#111"; // Black cable for oil
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        let headY = -35 + dir * 20 * Math.sin(beamAngle);
-        let headX = dir * 20;
-        ctx.moveTo(headX, headY);
-        ctx.lineTo(headX, 0);
-        ctx.stroke();
-        
-        // Small wellhead
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(headX - 4, -8, 8, 8);
         
         ctx.restore();
     };
     
-    drawPumpjack(-115);
-    drawPumpjack(115);
+    drawPumpjack(-125);
+    drawPumpjack(125);
     
     ctx.restore();
   }
