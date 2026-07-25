@@ -6530,7 +6530,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
       let redAlpha = 0;
       if (t4 > 0) {
-          let basePulse = (Math.sin(t * Math.PI) + 1) / 2;
+          let basePulse = 0.5 + ((Math.sin(t * Math.PI) + 1) / 4);
           // At 5x speed (Tier 8), human eyes average out the fast flicker. 
           // We raise the minimum floor of the pulse so it stays intensely red on average.
           let glowPulse = basePulse + (t8 * 0.5 * (1 - basePulse)); 
