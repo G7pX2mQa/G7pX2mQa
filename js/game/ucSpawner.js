@@ -100,7 +100,7 @@ export function createUcSpawner(config = {}) {
     const soundURL = new URL('sounds/got_our_pickaxe_swinging_from_side_to_side.ogg', document.baseURI).href;
 	const basePickaxeSoundVolume = 0.3;
     const spawnRateAtWhichTheVolumeIsNormal = 0.2;
-    const spawnRateAtWhichTheVolumeIsOneFourthOfNormal = 2;
+    const spawnRateAtWhichTheVolumeIsOneSixthOfNormal = 2;
 
     let pickaxeSize = 64;
     function updatePickaxeSize() {
@@ -124,9 +124,12 @@ export function createUcSpawner(config = {}) {
         
         cachedRate = currentRate;
 
-        const fadeProgress = clamp((currentRate - spawnRateAtWhichTheVolumeIsNormal) / (spawnRateAtWhichTheVolumeIsOneFourthOfNormal - spawnRateAtWhichTheVolumeIsNormal), 0, 1);
+        const fadeProgress = clamp((currentRate - spawnRateAtWhichTheVolumeIsNormal) / (spawnRateAtWhichTheVolumeIsOneSixthOfNormal - spawnRateAtWhichTheVolumeIsNormal), 0, 1);
         
-        cachedVolume = basePickaxeSoundVolume * (1 - Math.sqrt(fadeProgress) * 0.75);
+        // A quadratic ease-out curve (drops quickly early on, then gently eases into the cap)
+        // Drops down to ~16.6% volume (6x quieter) at the max spawn rate.
+        const easeOut = fadeProgress * (2 - fadeProgress);
+        cachedVolume = basePickaxeSoundVolume * (1 - easeOut * (5 / 6));
         return cachedVolume;
     }
 	
