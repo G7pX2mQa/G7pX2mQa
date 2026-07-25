@@ -1255,13 +1255,19 @@ function isStorageKeyLocked(key) {
 function lockStorageKey(key) {
     if (!key) return;
     ensureStorageLockPatch();
-    lockedStorageKeys.add(key);
-    flagDebugUsage();
+    if (!lockedStorageKeys.has(key)) {
+        lockedStorageKeys.add(key);
+        logAction(`Locked ${key}`);
+        flagDebugUsage();
+    }
 }
 
 function unlockStorageKey(key) {
     if (!key) return;
-    lockedStorageKeys.delete(key);
+    if (lockedStorageKeys.has(key)) {
+        lockedStorageKeys.delete(key);
+        logAction(`Unlocked ${key}`);
+    }
 }
 
 function toggleStorageLock(key) {
