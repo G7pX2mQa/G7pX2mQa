@@ -546,8 +546,6 @@ export function openMapOverlay(unlockedNodeId = null) {
                                 if (label) label.style.display = '';
                                 setMapNodeInteractiveCursor(nodeBtn.btn, false);
                                 
-                                const pinBtn = nodeBtn.btn.querySelector('.map-node-pin-btn');
-                                if (pinBtn) pinBtn.style.display = '';
                             }
                             
                             window.__mapSequenceActive = false; window.dispatchEvent(new Event('pinnedAreas:changed'));
