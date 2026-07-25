@@ -7197,6 +7197,30 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
+  // --- Tier 6: Scaffolding (Drawn before A-frame) ---
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+    let baseY = -175; 
+    let drawScaffold = (xSign) => {
+        let legX = xSign * 20.5; // X pos of leg at y = -175
+        let pylonX = xSign * 75; // X pos of pylon core
+        
+        ctx.fillStyle = fillDiamond;
+        
+        ctx.beginPath();
+        ctx.moveTo(legX, baseY - 5);
+        ctx.lineTo(pylonX + xSign * 12, baseY - 5);
+        ctx.lineTo(pylonX + xSign * 12, baseY + 5);
+        ctx.lineTo(legX, baseY + 20);
+        ctx.closePath();
+        ctx.fill();
+    };
+    drawScaffold(-1);
+    drawScaffold(1);
+    ctx.restore();
+  }
+
   // --- Tier 0: Diamond Derrick (A-Frame) ---
   if (t0 > 0) {
     ctx.save();
@@ -7407,220 +7431,270 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
-  // --- Tier 5: Massive Flywheel Dynamos ---
+  // --- Tier 5: Flare Stacks (Ground Mounted) ---
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
     
-    const drawFlywheel = (xPos) => {
+    const drawFlareStack = (xPos) => {
         ctx.save();
-        ctx.translate(xPos, -25);
+        ctx.translate(xPos, 0); // On the ground
         
-        // Base pedestal firmly on the ground
-        ctx.fillStyle = fillDarkDiamond;
-        ctx.beginPath();
-        ctx.moveTo(-15, 25);
-        ctx.lineTo(-8, 0);
-        ctx.lineTo(8, 0);
-        ctx.lineTo(15, 25);
-        ctx.fill();
-        
-        // Fast rotation
-        ctx.save();
-        ctx.rotate(t * 10 * (xPos > 0 ? 1 : -1));
-        
-        // Inner wheel
-        ctx.strokeStyle = fillDarkDiamond;
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.arc(0, 0, 20, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Outer teeth/spokes
-        ctx.fillStyle = fillDiamond;
-        for(let i=0; i<6; i++) {
-            ctx.save();
-            ctx.rotate(i * Math.PI / 3);
-            ctx.fillRect(-3, -25, 6, 15);
-            ctx.restore();
-        }
-        
-        // Center hub
+        // Stack body
         ctx.fillStyle = fillDiamond;
         ctx.beginPath();
-        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.moveTo(-10, 0);
+        ctx.lineTo(-4, -140);
+        ctx.lineTo(4, -140);
+        ctx.lineTo(10, 0);
         ctx.fill();
-        ctx.restore(); // end rotation
         
-        // Drive belt connecting to the top drive
-        ctx.strokeStyle = "#111"; // Black rubber belt
-        ctx.lineWidth = 3;
+        // Heat shield / rim at top
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-6, -140, 12, 4);
+        ctx.fillRect(-8, -135, 16, 2);
+        
+        // Flame
+        let flameScale = 1;
+        let flicker = Math.sin(t * 15) * 0.2 + Math.sin(t * 23) * 0.1;
+        
+        ctx.translate(0, -140);
+        ctx.scale(flameScale, flameScale);
+        
+        // Inner white-hot
+        ctx.fillStyle = `rgba(255, 255, 200, 0.9)`;
         ctx.beginPath();
-        let dx = -xPos; 
-        let dy = -125; // Relative to flywheel center (-25) -> -150 on rig
-        ctx.moveTo(-20, 0); // Left side of flywheel
-        ctx.lineTo(dx - 5, dy); // Left side of top pulley
-        ctx.moveTo(20, 0); // Right side of flywheel
-        ctx.lineTo(dx + 5, dy);
-        ctx.stroke();
+        ctx.moveTo(-2, 0);
+        ctx.quadraticCurveTo(-3, -15 + flicker * 5, 0, -20 - flicker * 10);
+        ctx.quadraticCurveTo(3, -15 - flicker * 5, 2, 0);
+        ctx.fill();
+        
+        // Mid yellow/orange
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = `rgba(255, 150, 0, 0.7)`;
+        ctx.beginPath();
+        ctx.moveTo(-4, 0);
+        ctx.quadraticCurveTo(-6, -20 + flicker * 8, 0, -35 - flicker * 15);
+        ctx.quadraticCurveTo(6, -20 - flicker * 8, 4, 0);
+        ctx.fill();
+        
+        // Outer red/dark orange
+        ctx.fillStyle = `rgba(255, 50, 0, 0.5)`;
+        ctx.beginPath();
+        ctx.moveTo(-5, 0);
+        ctx.quadraticCurveTo(-8, -25 + flicker * 10, 0, -45 - flicker * 20);
+        ctx.quadraticCurveTo(8, -25 - flicker * 10, 5, 0);
+        ctx.fill();
         
         ctx.restore();
     };
     
-    drawFlywheel(-25);
-    drawFlywheel(25);
+    drawFlareStack(-205);
+    drawFlareStack(205);
     
     ctx.restore();
   }
 
-  // --- Tier 6: Industrial Cooling Towers ---
+  // --- Tier 6: Arc Amplification Pylons (Leg Mounted) ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    const drawCoolingTower = (xPos) => {
+    const drawPylon = (xSign) => {
         ctx.save();
-        ctx.translate(xPos, 0);
         
-        let tw = 14; // top width
-        let bw = 20; // base width
-        let th = -60; // top height
+        let baseY = -175; 
+        let legX = xSign * 20.5; // X pos of leg at y = -175
+        let pylonX = xSign * 75; // X pos of pylon core (much wider)
         
-        // Tower body
-        ctx.fillStyle = fillDarkDiamond;
-        ctx.beginPath();
-        ctx.moveTo(-bw, 0);
-        ctx.lineTo(-tw, th);
-        ctx.lineTo(tw, th);
-        ctx.lineTo(bw, 0);
-        ctx.fill();
+        ctx.translate(pylonX, baseY);
         
-        // Base ellipse for 3D grounding
-        ctx.beginPath();
-        ctx.ellipse(0, 0, bw, 5, 0, 0, Math.PI*2);
-        ctx.fill();
+        // --- Pylon Structure (Larger) ---
+        let pScale = 1.6;
+        ctx.scale(pScale, pScale);
         
-        // Top ellipse
-        ctx.fillStyle = "#111"; // Inside hole
-        ctx.beginPath();
-        ctx.ellipse(0, th, tw, 3, 0, 0, Math.PI*2);
-        ctx.fill();
-        
-        // Rim
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(0, th, tw, 3, 0, 0, Math.PI*2);
-        ctx.stroke();
-        
-        // Internal spinning fan at the top (perspective)
-        ctx.save();
-        ctx.translate(0, th);
-        ctx.scale(1, 0.25);
-        ctx.rotate(t * 8);
+        // Pylon spire (points up)
         ctx.fillStyle = fillDiamond;
-        for(let i=0; i<4; i++) {
-            ctx.save();
-            ctx.rotate(i * Math.PI / 2);
-            ctx.fillRect(-2, 0, 4, 10);
-            ctx.restore();
-        }
-        ctx.restore();
+        ctx.beginPath();
+        ctx.moveTo(-4, 0);
+        ctx.lineTo(-1, -30);
+        ctx.lineTo(1, -30);
+        ctx.lineTo(4, 0);
+        ctx.fill();
         
-        // Venting steam (white puffs)
-        for(let i=0; i<3; i++) {
-            let pT = (t * 0.5 + i * 0.33 + (xPos > 0 ? 0.5 : 0)) % 1; // Phase
-            let pY = th - pT * 40;
-            let pSize = 5 + pT * 15;
-            let pAlpha = (1 - pT) * 0.4;
-            
-            // Wobble
-            let pX = Math.sin(t * 2 + i * 5) * 8 * pT;
-            
-            ctx.fillStyle = `rgba(220, 220, 220, ${pAlpha})`;
+        // Tesla coil rings
+        ctx.strokeStyle = fillDarkDiamond;
+        ctx.lineWidth = 1.5 / pScale;
+        for (let i = 0; i < 4; i++) {
+            let ry = -10 - i * 8;
+            let rw = 6 - i * 1;
             ctx.beginPath();
-            ctx.arc(pX, pY, pSize, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.ellipse(0, ry, rw, 2, 0, 0, Math.PI*2);
+            ctx.stroke();
         }
         
-        ctx.restore();
+        // Glowing core orb
+        let coreGlow = 0.5 + 0.5 * Math.sin(t * 5 + xSign);
+        if (t8 > 0) coreGlow = 1.0;
+        
+        ctx.fillStyle = fillDiamond;
+        ctx.beginPath();
+        ctx.arc(0, -35, 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = `rgba(100, 200, 255, ${0.4 + coreGlow * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(0, -35, 8 + coreGlow * 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore(); // Restores scale and translate
     };
     
-    // Placed on far edges (moved out to 160)
-    drawCoolingTower(-160);
-    drawCoolingTower(160);
+    drawPylon(-1);
+    drawPylon(1);
+    
+    // Lightning Arc connecting the two pylons (Always visible, changes shape based on interval)
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = `rgba(150, 220, 255, ${0.6 + t8 * 0.4})`;
+    ctx.lineWidth = 2 + t8 * 2;
+    
+    let pScale = 1.6;
+    let pylonX = 75;
+    let baseY = -175;
+    let startY = baseY - (35 * pScale); // y = -231
+    
+    // Determine how often the shape updates (Normal: 83.33ms, Tier 8: 16.67ms)
+    let stepInterval = 0.08333 - (t8 * 0.06666);
+    let stepSeed = Math.floor(t / stepInterval);
+    
+    // Deterministic random function based on the time step
+    const pRand = (seed, index) => {
+        let x = Math.sin(seed * 1.2345 + index * 5.4321) * 10000;
+        return x - Math.floor(x);
+    };
+    
+    ctx.beginPath();
+    ctx.moveTo(-pylonX, startY);
+    
+    let segments = 8 + Math.floor(pRand(stepSeed, 0) * 4);
+    for (let i = 1; i < segments; i++) {
+        let p = i / segments;
+        let mx = -pylonX + (pylonX * 2) * p;
+        let my = startY;
+        // Add jagged randomness that persists for the duration of the step
+        mx += (pRand(stepSeed, i) - 0.5) * 20;
+        my += (pRand(stepSeed, i + 100) - 0.5) * 35; // Vertical jitter
+        ctx.lineTo(mx, my);
+    }
+    ctx.lineTo(pylonX, startY);
+    ctx.stroke();
+    
+    // Extra inner core for the arc
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 + t8 * 0.2})`;
+    ctx.lineWidth = 1 + t8;
+    ctx.stroke();
+    
+    // Core flashes at the pylons
+    ctx.fillStyle = `rgba(150, 220, 255, ${0.4 + t8 * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(-pylonX, startY, 12, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.arc(pylonX, startY, 12, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
     
     ctx.restore();
   }
 
-  // --- Tier 7: Automated Maintenance Elevators & Scaffolding ---
+  // --- Tier 7: Cryogenic Coolant Silos (Inner A-Frame) ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    // Elevator platforms riding the very outer edge of the A-frame
-    const drawElevator = (xSign, phase) => {
-        let cycle = (t * 0.15 + phase) % 1;
-        let trip = cycle < 0.5 ? cycle * 2 : 2 - cycle * 2;
-        
-        let yPos = -5 - trip * 170;
-        
-        // Follow the exact angle of the A-frame's outer edge.
-        // A-Frame outer edge goes from (+/- 40, 0) to (+/- 20, -180).
-        let legX = xSign * (40 + (yPos / -180) * -20);
-        
-        // Elevator track just outside the leg
-        let trackX = legX + (xSign * 10);
-        
+    const drawSilo = (xSign) => {
         ctx.save();
-        ctx.translate(trackX, yPos);
+        let tankX = xSign * 16;
+        ctx.translate(tankX, -180); // Hang from the crown block
         
-        // Draw the local track segment so it looks attached
-        ctx.strokeStyle = fillDarkDiamond;
+        let width = 4;
+        let height = 50; // Hangs down 50px
+        
+        // Back half of silo/glass
+        ctx.fillStyle = `rgba(0, 50, 60, 0.4)`;
+        ctx.fillRect(-width, 0, width * 2, height);
+        
+        // Fluid Level
+        let fluidLevel = 0.7 - 0.1 * Math.sin(t * 2 + xSign);
+        if (t8 > 0) fluidLevel = 0.5 + 0.1 * Math.sin(t * 15 + xSign); 
+        
+        let fluidY = height * (1 - fluidLevel);
+        
+        // Liquid body
+        let grad = ctx.createLinearGradient(0, height, 0, 0);
+        grad.addColorStop(0, `rgba(0, 255, 255, 0.8)`);
+        grad.addColorStop(1, `rgba(0, 150, 200, 0.8)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(-width + 1, fluidY, width * 2 - 2, height - fluidY);
+        
+        // Bubbles in the liquid
+        let numBubbles = 3 + (t8 * 10);
+        ctx.fillStyle = `rgba(255, 255, 255, 0.5)`;
+        for (let i = 0; i < numBubbles; i++) {
+            let bT = ((t * (1 + t8 * 2) + i * 0.23 + xSign) % 1 + 1) % 1;
+            let bx = Math.sin(i * 123) * (width - 2);
+            let by = height - bT * (height - fluidY);
+            
+            // Wobble
+            bx += Math.sin(t * 5 + i) * 1;
+            
+            ctx.beginPath();
+            ctx.arc(bx, by, Math.max(0, 1 + (i % 2)), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Front glass reflection
+        ctx.fillStyle = `rgba(255, 255, 255, 0.1)`;
+        ctx.fillRect(-width + 1.5, 2, 2, height - 4);
+        
+        // Silo Frame / Caps
+        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillRect(-width - 1, 0, width * 2 + 2, 4); // Top cap
+        ctx.fillRect(-width - 1, height - 4, width * 2 + 2, 4); // Bottom cap
+        
+        // Vertical struts
+        ctx.fillRect(-width, 0, 1.5, height);
+        ctx.fillRect(width - 1.5, 0, 1.5, height);
+        
+        // Coolant pipe to center
+        ctx.strokeStyle = fillDiamond;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(0, -15);
-        ctx.lineTo(0, 15);
+        ctx.moveTo(xSign > 0 ? -width : width, height - 2);
+        ctx.lineTo(xSign > 0 ? -width - 4 : width + 4, height + 10);
         ctx.stroke();
         
-        // Connect to leg
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(-xSign * 10, 0);
-        ctx.stroke();
-        
-        // Platform
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-6, -2, 12, 3);
-        
-        // Elevator cage/box
-        ctx.fillStyle = fillDarkDiamond;
-        ctx.fillRect(-4, -10, 8, 8);
-        
-        // Warning light blink
-        if ((t * 5) % 1 > 0.5) {
-            ctx.fillStyle = "rgba(255, 100, 0, 0.8)";
+        // Steam Venting (especially at Tier 8)
+        let steamStrength = 0.2 + t8 * 1.5;
+        for (let i = 0; i < 3; i++) {
+            let sT = ((t * steamStrength + i * 0.33) % 1 + 1) % 1;
+            let sy = 2 - sT * 30;
+            let sx = Math.sin(t * 3 + i) * 10 * sT;
+            let sAlpha = (1 - sT) * 0.5 * Math.min(1, steamStrength);
+            
+            ctx.fillStyle = `rgba(200, 240, 255, ${sAlpha})`;
             ctx.beginPath();
-            ctx.arc(0, -12, 1.5, 0, Math.PI*2);
+            ctx.arc(sx, sy, Math.max(0, 4 + sT * 10), 0, Math.PI * 2);
             ctx.fill();
         }
         
         ctx.restore();
     };
     
-    // Draw an outer rail line from bottom to top
-    ctx.strokeStyle = fillDarkDiamond;
-    ctx.lineWidth = 2;
-    // Left rail
-    ctx.beginPath(); ctx.moveTo(-50, 0); ctx.lineTo(-30, -180); ctx.stroke();
-    // Right rail
-    ctx.beginPath(); ctx.moveTo(50, 0); ctx.lineTo(30, -180); ctx.stroke();
-    
-    // Elevators
-    drawElevator(-1, 0);
-    drawElevator(-1, 0.5); 
-    drawElevator(1, 0.25);
-    drawElevator(1, 0.75); 
+    drawSilo(-1);
+    drawSilo(1);
     
     ctx.restore();
   }
