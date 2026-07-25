@@ -7513,39 +7513,49 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         let pScale = 1.6;
         ctx.scale(pScale, pScale);
         
-        // Pylon spire (points up)
-        ctx.fillStyle = fillDiamond;
-        ctx.beginPath();
-        ctx.moveTo(-4, 0);
-        ctx.lineTo(-1, -30);
-        ctx.lineTo(1, -30);
-        ctx.lineTo(4, 0);
-        ctx.fill();
-        
-        // Tesla coil rings
+        // Tesla coil rings (BACK half)
         ctx.strokeStyle = fillDarkDiamond;
         ctx.lineWidth = 1.5 / pScale;
         for (let i = 0; i < 4; i++) {
             let ry = -10 - i * 8;
             let rw = 6 - i * 1;
             ctx.beginPath();
-            ctx.ellipse(0, ry, rw, 2, 0, 0, Math.PI*2);
+            ctx.ellipse(0, ry, rw, 2, 0, Math.PI, Math.PI * 2);
             ctx.stroke();
         }
         
-        // Glowing core orb
-        let coreGlow = 0.5 + 0.5 * Math.sin(t * 5 + xSign);
-        if (t8 > 0) coreGlow = 1.0;
+        // Pylon spire (points up)
+        ctx.fillStyle = fillDiamond;
+        ctx.beginPath();
+        ctx.moveTo(-4, 0);
+        ctx.lineTo(-1, -31); // Extended up to connect directly to the orb
+        ctx.lineTo(1, -31);
+        ctx.lineTo(4, 0);
+        ctx.fill();
         
+        // Tesla coil rings (FRONT half)
+        for (let i = 0; i < 4; i++) {
+            let ry = -10 - i * 8;
+            let rw = 6 - i * 1;
+            ctx.beginPath();
+            ctx.ellipse(0, ry, rw, 2, 0, 0, Math.PI);
+            ctx.stroke();
+        }
+        
+        // Solid Diamond Core (Restored)
         ctx.fillStyle = fillDiamond;
         ctx.beginPath();
         ctx.arc(0, -35, 4, 0, Math.PI * 2);
         ctx.fill();
         
+        // Glowing core orb
+        let coreGlow = 0.5 + 0.5 * Math.sin(t * 5); // Synced
+        if (t8 > 0) coreGlow = 1.0;
+        
         ctx.globalCompositeOperation = "lighter";
         ctx.fillStyle = `rgba(100, 200, 255, ${0.4 + coreGlow * 0.6})`;
         ctx.beginPath();
-        ctx.arc(0, -35, 8 + coreGlow * 3, 0, Math.PI * 2);
+        ctx.arc(0, -35, 6 + coreGlow * 2, 0, Math.PI * 2); // Smaller glow
         ctx.fill();
         
         ctx.restore(); // Restores scale and translate
@@ -7595,14 +7605,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 + t8 * 0.2})`;
     ctx.lineWidth = 1 + t8;
     ctx.stroke();
-    
-    // Core flashes at the pylons
-    ctx.fillStyle = `rgba(150, 220, 255, ${0.4 + t8 * 0.4})`;
-    ctx.beginPath();
-    ctx.arc(-pylonX, startY, 12, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.arc(pylonX, startY, 12, 0, Math.PI * 2);
-    ctx.fill();
     
     ctx.restore();
     
