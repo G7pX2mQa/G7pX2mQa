@@ -7118,7 +7118,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.scale(dir, 1); 
         
         // Base plate (skid)
-        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-41, -5, 56, 5); 
         
         // Power end (main housing)
@@ -7132,7 +7132,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fill();
         
         // Housing side panel/door
-        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-33, -22, 10, 12);
         
         // Spinning external shaft/wheel for animation
@@ -7141,12 +7141,12 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.rotate(t * 20); // Synced with pressure cycle
         ctx.fillStyle = brownDark; // Circle is brown
         ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = fillDarkDiamond; // Rectangle is diamond
+        ctx.fillStyle = fillDiamond; // Rectangle is diamond
         ctx.fillRect(-5, -1, 10, 2);
         ctx.restore();
         
         // Fluid end (valves and block)
-        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-5, -18, 12, 13);
         
         // 3 horizontal valve covers (triplex) - extended slightly
@@ -7154,19 +7154,19 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         for(let i=0; i<3; i++) {
             let vy = -16 + i * 4;
             ctx.fillRect(7, vy, 10, 3);
-            ctx.fillStyle = fillDarkDiamond; // bolt cap
+            ctx.fillStyle = fillDiamond; // bolt cap
             ctx.fillRect(17, vy + 0.5, 2, 2);
             ctx.fillStyle = fillDiamond;
         }
         
         // Pulsation dampener (sphere on top of fluid end)
-        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-3, -22, 6, 4); // Neck
         ctx.fillStyle = fillDiamond;
         ctx.beginPath();
         ctx.arc(0, -30, 9, 0, Math.PI*2); // Sphere exactly at local x=0
         ctx.fill();
-        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillStyle = fillDiamond;
         ctx.fillRect(-3, -40, 6, 2); // Top cap
         
         // High-pressure pulsing animation (Dampener swells slightly)
