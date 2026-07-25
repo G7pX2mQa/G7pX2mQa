@@ -6527,45 +6527,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.lineTo(10 * cablePosScale, topDriveTop + drillY);
       ctx.stroke();
 
-      // Tier 4 Laser Focus Lens at the bottom of the Top Drive
-      if (t4 > 0) {
-          ctx.save();
-          ctx.globalAlpha = t4 * (1 - t8);
-          
-          let lensPulse = 0.5 + 0.5 * Math.sin(t * 15);
-          
-          // Lens casing
-          ctx.fillStyle = fillDarkDiamond;
-          ctx.beginPath();
-          ctx.moveTo(-15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(10 * widthScale, topDriveBottom + drillY + 8);
-          ctx.lineTo(-10 * widthScale, topDriveBottom + drillY + 8);
-          ctx.closePath();
-          ctx.fill();
 
-          // Glowing emitter crystal
-          ctx.fillStyle = `rgba(255, 80, 80, ${0.8 + 0.2 * lensPulse})`;
-          ctx.beginPath();
-          ctx.moveTo(-10 * widthScale, topDriveBottom + drillY + 8);
-          ctx.lineTo(10 * widthScale, topDriveBottom + drillY + 8);
-          ctx.lineTo(4 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(-4 * widthScale, topDriveBottom + drillY + 12);
-          ctx.closePath();
-          ctx.fill();
-          
-          // White hot core in the crystal
-          ctx.fillStyle = `rgba(255, 255, 255, 0.9)`;
-          ctx.beginPath();
-          ctx.moveTo(-5 * widthScale, topDriveBottom + drillY + 8);
-          ctx.lineTo(5 * widthScale, topDriveBottom + drillY + 8);
-          ctx.lineTo(2 * widthScale, topDriveBottom + drillY + 11);
-          ctx.lineTo(-2 * widthScale, topDriveBottom + drillY + 11);
-          ctx.closePath();
-          ctx.fill();
-          
-          ctx.restore();
-      }
 
       // Tier 8 Wider Emitter
       if (t8 > 0) {
