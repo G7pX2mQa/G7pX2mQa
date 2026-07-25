@@ -143,14 +143,14 @@ export function getLabCost(level) {
              return BigNum.fromAny('Infinity');
         }
         
-        const lvlStr = lvl.inf || lvl.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : lvl.toPlainIntegerString();
-        if (lvlStr === 'Infinity') return BigNum.fromAny('Infinity');
+        const exponent = lvl.add(20);
+        let expNum = exponent.sig * Math.pow(10, exponent.e);
         
-        const lvlNum = Number(lvlStr);
-        const totalExponent = 20 + lvlNum;
+        if (!Number.isFinite(expNum)) {
+             return BigNum.fromAny('Infinity');
+        }
         
-        let expNum = Number(totalExponent); if (!Number.isFinite(expNum)) expNum = BigNum.MAX_E; return new BigNum(1, expNum);
-
+        return new BigNum(1, expNum);
     } catch (e) {
         console.error("Error calculating lab cost", e);
         return BigNum.fromAny('Infinity');
