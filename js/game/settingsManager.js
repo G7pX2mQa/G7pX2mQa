@@ -227,7 +227,7 @@ export const SETTING_DEFINITIONS = {
   sfx_volume: {
     id: 'sfx_volume',
     type: 'slider',
-    label: 'All SFX Volume',
+    label: 'SFX Volume',
     hasExtraInfo: false,
     min: 0,
     max: 100,
