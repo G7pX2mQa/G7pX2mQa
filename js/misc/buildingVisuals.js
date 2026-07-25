@@ -6483,9 +6483,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       }
 
       // Top Drive Mechanism (motor that spins the drill, origin of the laser)
-      let topDriveH = topDriveBottom - topDriveTop;
-      let topDriveW = 30 * widthScale;
-      let topDriveX = -15 * widthScale;
+      let topDriveH = Math.round(topDriveBottom - topDriveTop);
+      let topDriveW = Math.round(30 * widthScale);
+      let topDriveX = Math.round(-15 * widthScale);
       
       let tdGrad = ctx.createLinearGradient(topDriveX, 0, topDriveX + topDriveW, 0);
       tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
@@ -6504,26 +6504,20 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 200, topDriveH + 200);
       
       // Mechanical bands
-      // source-atop perfectly replaces the lighter texture underneath without stacking anti-aliased alpha on the clip mask edges!
-      ctx.save();
-      ctx.globalCompositeOperation = "source-atop"; 
       ctx.fillStyle = fillDarkDiamond; 
       ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + 5 + drillY - spinOffsetY, topDriveW + 200, 5);
       ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW + 200, 5);
-      ctx.restore();
       ctx.translate(-spinOffsetX, -spinOffsetY);
       
       // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
       let redAlpha = 0;
       if (t4 > 0) {
-          // Math.PI * t gives a period of exactly 2 seconds for a full cycle
-          // We use sine to oscillate between 0 and 1
           let glowPulse = (Math.sin(t * Math.PI) + 1) / 2;
-          redAlpha = glowPulse * t4 * (1 - (t8 * 0.5)); // Fade slightly if t8 is active, or just t4
+          redAlpha = glowPulse * t4 * (1 - (t8 * 0.5));
           
           if (redAlpha > 0) {
               ctx.save();
-              ctx.globalCompositeOperation = "color"; // Tints the texture pure red without destroying its contrast
+              ctx.globalCompositeOperation = "color"; 
               ctx.fillStyle = `rgba(255, 0, 0, ${redAlpha})`;
               ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
               ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
