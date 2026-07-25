@@ -6792,16 +6792,25 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
               if (craterDepth > maxDepth) craterDepth = maxDepth;
               
               if (oilPhysicsNodes[i].y < craterDepth) {
-                  if (Math.random() < 0.8 * forceFactor) { 
+                  let spawnChance = 0.8 * forceFactor;
+                  if (t8 > 0) spawnChance *= 3.0; // Spawn way more droplets in tier 8
+                  
+                  if (Math.random() < spawnChance) { 
                       let spawnPx = px + (Math.random()-0.5)*10;
                       let dir = spawnPx < 0 ? -1 : 1;
                       let pushVx = dir * (Math.random() * 40 + 15) * laserStrength;
+                      let pushVy = -Math.random() * 50 * laserStrength - 20;
+                      
+                      if (t8 > 0) {
+                          pushVx *= 2.5; // Fling violently away horizontally
+                          pushVy *= 0.5; // More horizontal, less vertical
+                      }
                       
                       oilPhysicsParticles.push({
                           x: spawnPx,
                           y: oilPhysicsNodes[i].y,
                           vx: pushVx,
-                          vy: -Math.random() * 50 * laserStrength - 20,
+                          vy: pushVy,
                           mass: Math.random() * 3 + 1,
                           life: 1.0,
                           isHot: Math.random() < t8
@@ -6960,8 +6969,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
                   return x;
               };
               
-              px0 = px0 + (squish(px0) - px0) * laserStrength;
-              px1 = px1 + (squish(px1) - px1) * laserStrength;
+              let blend = Math.min(1, laserStrength);
+              px0 = px0 + (squish(px0) - px0) * blend;
+              px1 = px1 + (squish(px1) - px1) * blend;
           }
           
           let cx = (px0 + px1) / 2;
