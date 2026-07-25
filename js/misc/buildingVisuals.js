@@ -7246,24 +7246,25 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     const drawPumpjack = (xPos) => {
         ctx.save();
         ctx.translate(xPos, 0);
+        ctx.scale(2, 2);
         
         let dir = xPos > 0 ? -1 : 1; 
-        
-        // Base (reduced size to prevent overlap)
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-20, -6, 40, 6);
         
         // A-Frame support
         ctx.strokeStyle = fillDiamond;
         ctx.lineWidth = 4;
         ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.moveTo(-12, -6);
+        ctx.moveTo(-14, -2);
         ctx.lineTo(0, -35);
-        ctx.lineTo(12, -6);
+        ctx.lineTo(14, -2);
         ctx.stroke();
         
-        let cycle = t * 3 + (xPos > 0 ? 1 : 0);
+        // Base (reduced size to prevent overlap)
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-20, -6, 40, 6);
+        
+        let cycle = t * 3;
         
         let crankRot = cycle;
         let cx = -dir * 16;
@@ -7271,16 +7272,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         let crankRad = 8;
         let pinX = cx + Math.cos(crankRot) * crankRad;
         let pinY = cy + Math.sin(crankRot) * crankRad;
-        
-        // Counter weight crank
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(crankRot);
-        ctx.beginPath();
-        ctx.arc(crankRad/2, 0, 5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillRect(-3, -2, crankRad + 3, 4); // Arm from center to pin
-        ctx.restore();
         
         // Inverse Kinematics for Pitman Arm
         let dx = pinX;
@@ -7308,6 +7299,16 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.lineTo(beamBackX, beamBackY);
         ctx.stroke();
         
+        // Counter weight crank
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(crankRot);
+        ctx.fillRect(-3, -2, crankRad + 3, 4); // Arm from center to pin
+        ctx.beginPath();
+        ctx.arc(crankRad/2, 0, 5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+        
         // Walking beam (Nodding Donkey head)
         ctx.save();
         ctx.translate(0, -35);
@@ -7318,17 +7319,20 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         
         // Horsehead
         ctx.beginPath();
-        let startAngle = dir === 1 ? -Math.PI/2 : Math.PI/2;
-        let endAngle = dir === 1 ? Math.PI/2 : 3*Math.PI/2;
-        ctx.arc(dir * 20, 0, 8, startAngle, endAngle);
+        let hx = dir * 20;
+        ctx.moveTo(hx + dir * 1, -8);
+        ctx.quadraticCurveTo(hx + dir * 7, -2, hx + dir * 1, 12);
+        ctx.lineTo(hx - dir * 2, 10);
+        ctx.lineTo(hx - dir * 3, -7);
+        ctx.closePath();
         ctx.fill();
         ctx.restore();
         
         ctx.restore();
     };
     
-    drawPumpjack(-125);
-    drawPumpjack(125);
+    drawPumpjack(-140);
+    drawPumpjack(140);
     
     ctx.restore();
   }
