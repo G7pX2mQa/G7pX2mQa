@@ -6366,8 +6366,8 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       let drillY = 0;
       let drillLength = 175; // Deep, but not touching the bottom
       
-      let spinOffsetX = (t * 80) % 64;
-      let spinOffsetY = (t * 40) % 64;
+      let spinOffsetX = Math.round(t * 80) % 64;
+      let spinOffsetY = Math.round(t * 40) % 64;
       
       // 1. Narrow upper shaft (drawn first, extended to overlap underneath the top drive and chuck)
       // Keep these unscaled so the top drive stays near the ground, allowing cables to elongate as derrick scales
@@ -6482,7 +6482,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           ctx.restore();
       }
 
-      // Top Drive Mechanism (motor that spins the drill)
+      // Top Drive Mechanism (motor that spins the drill, origin of the laser)
       let topDriveH = topDriveBottom - topDriveTop;
       let topDriveW = 30 * widthScale;
       let topDriveX = -15 * widthScale;
@@ -6501,20 +6501,64 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       // Draw moving texture to match the drill material
       ctx.translate(spinOffsetX, spinOffsetY);
       ctx.fillStyle = fillDiamond;
-      ctx.fillRect(topDriveX - spinOffsetX, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 64, topDriveH + 200);
-      ctx.translate(-spinOffsetX, -spinOffsetY);
+      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 200, topDriveH + 200);
       
       // Mechanical bands
-      ctx.translate(spinOffsetX, spinOffsetY);
+      // source-atop perfectly replaces the lighter texture underneath without stacking anti-aliased alpha on the clip mask edges!
+      ctx.save();
+      ctx.globalCompositeOperation = "source-atop"; 
       ctx.fillStyle = fillDarkDiamond; 
-      ctx.fillRect(topDriveX - spinOffsetX, topDriveTop + 5 + drillY - spinOffsetY, topDriveW, 5);
-      ctx.fillRect(topDriveX - spinOffsetX, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW, 5);
+      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + 5 + drillY - spinOffsetY, topDriveW + 200, 5);
+      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW + 200, 5);
+      ctx.restore();
       ctx.translate(-spinOffsetX, -spinOffsetY);
+      
+      // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
+      let redAlpha = 0;
+      if (t4 > 0) {
+          // Math.PI * t gives a period of exactly 2 seconds for a full cycle
+          // We use sine to oscillate between 0 and 1
+          let glowPulse = (Math.sin(t * Math.PI) + 1) / 2;
+          redAlpha = glowPulse * t4 * (1 - (t8 * 0.5)); // Fade slightly if t8 is active, or just t4
+          
+          if (redAlpha > 0) {
+              ctx.save();
+              ctx.globalCompositeOperation = "color"; // Tints the texture pure red without destroying its contrast
+              ctx.fillStyle = `rgba(255, 0, 0, ${redAlpha})`;
+              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
+              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
+              ctx.restore();
+          }
+      }
       
       // Edge shading
       ctx.fillStyle = tdGrad; 
       ctx.fillRect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
-      ctx.restore();
+      ctx.restore(); // Popping the clip mask
+      
+      // Menacing outer ambient glow drawn OUTSIDE the clip to shine on surrounding elements
+      if (redAlpha > 0) {
+          ctx.save();
+          ctx.globalCompositeOperation = "source-over"; // Pure red overlay
+          
+          // Massive ambient light sphere spilling onto surrounding elements
+          let centerX = topDriveX + topDriveW / 2;
+          let centerY = topDriveTop + topDriveH / 2 + drillY;
+          let glowRadius = 250 * widthScale; // Huge radius to illuminate even more surroundings
+          
+          let ambientGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
+          ambientGlow.addColorStop(0, `rgba(255, 0, 0, ${redAlpha * 0.4})`); // Lower opacity so texture shows through
+          ambientGlow.addColorStop(0.3, `rgba(255, 0, 0, ${redAlpha * 0.15})`);
+          ambientGlow.addColorStop(0.6, `rgba(255, 0, 0, ${redAlpha * 0.05})`);
+          ambientGlow.addColorStop(1, `rgba(255, 0, 0, 0)`);
+          
+          ctx.fillStyle = ambientGlow;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+      }
       
       // Cables suspending the top drive from the crown block
       let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
