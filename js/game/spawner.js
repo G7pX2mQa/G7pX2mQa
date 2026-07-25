@@ -125,7 +125,9 @@ export function createSpawner(config = {}) {
 
         const fadeProgress = clamp((currentRate - spawnRateAtWhichTheVolumeIsNormal) / (spawnRateAtWhichTheVolumeIsOneThirdOfNormal - spawnRateAtWhichTheVolumeIsNormal), 0, 1);
 
-        cachedVolume = baseVol * (1 - Math.sqrt(fadeProgress) * (2 / 3));
+        // A quadratic ease-out curve (drops quickly early on, then gently eases into the cap)
+        const easeOut = fadeProgress * (2 - fadeProgress);
+        cachedVolume = baseVol * (1 - easeOut * (2 / 3));
         return cachedVolume;
     }
 
