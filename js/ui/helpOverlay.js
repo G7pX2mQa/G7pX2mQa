@@ -212,7 +212,7 @@ const HELP_ENTRIES = [
   },
   {
     id: 8,
-    title: "UC (Area 2)",
+    title: "Underwater Cavern",
     icon: "img/currencies/scrap/scrap.webp",
     text: "placeholder",
     isVisible: () => {
