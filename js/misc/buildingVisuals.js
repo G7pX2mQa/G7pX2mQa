@@ -7560,7 +7560,10 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         
         // Glowing core orb
         let coreGlow = 0.5 + 0.5 * Math.sin(t * 5); // Synced
-        if (t8 > 0) coreGlow = 1.0;
+        if (t8 > 0) {
+            let t8Glow = 0.7 + 0.3 * Math.sin(t * 25);
+            coreGlow = coreGlow * (1 - t8) + t8Glow * t8;
+        }
         
         ctx.globalCompositeOperation = "lighter";
         ctx.fillStyle = `rgba(100, 200, 255, ${0.4 + coreGlow * 0.6})`;
