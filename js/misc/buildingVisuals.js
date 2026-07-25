@@ -6530,7 +6530,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
       let redAlpha = 0;
       if (t4 > 0) {
-          let basePulse = 0.5 + ((Math.sin(t * Math.PI) + 1) / 4);
+          let basePulse = (Math.sin(t * Math.PI) + 1) / 2;
           // At 5x speed (Tier 8), human eyes average out the fast flicker. 
           // We raise the minimum floor of the pulse so it stays intensely red on average.
           let glowPulse = basePulse + (t8 * 0.5 * (1 - basePulse)); 
@@ -6559,30 +6559,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.fillStyle = tdGrad; 
       ctx.fillRect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
       ctx.restore(); // Popping the clip mask
-      
-      // Menacing outer ambient glow drawn OUTSIDE the clip to shine on surrounding elements
-      if (redAlpha > 0) {
-          ctx.save();
-          ctx.globalCompositeOperation = "source-over"; // Pure red overlay
-          
-          // Massive ambient light sphere spilling onto surrounding elements
-          let centerX = topDriveX + topDriveW / 2;
-          let centerY = topDriveTop + topDriveH / 2 + drillY;
-          let glowRadius = 250 * widthScale; // Huge radius to illuminate even more surroundings
-          
-          let ambientGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
-          ambientGlow.addColorStop(0, `rgba(255, 0, 0, ${redAlpha * 0.4})`); // Lower opacity so texture shows through
-          ambientGlow.addColorStop(0.3, `rgba(255, 0, 0, ${redAlpha * 0.15})`);
-          ambientGlow.addColorStop(0.6, `rgba(255, 0, 0, ${redAlpha * 0.05})`);
-          ambientGlow.addColorStop(1, `rgba(255, 0, 0, 0)`);
-          
-          ctx.fillStyle = ambientGlow;
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          ctx.restore();
-      }
       
       // Cables suspending the top drive from the crown block
       let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
