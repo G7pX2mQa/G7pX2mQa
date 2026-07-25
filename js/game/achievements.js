@@ -2,7 +2,6 @@ import { getActiveSlot } from '../util/storage.js';
 import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from '../ui/merchantTabs/resetTab.js';
 import { isLabUnlocked, getMapSequenceSeen } from './surgeEffects.js';
 import { hasDoneExperimentReset } from '../ui/merchantTabs/resetTab.js';
-import { getFlowUnlockState } from '../ui/merchantTabs/flowTab.js';
 import { hasEvolvedAnyUpgrade } from './upgrades.js';
 import { showNotification } from '../ui/notifications.js';
 
@@ -67,8 +66,9 @@ const _rawAchievements = [
         desc: 'Unlock the Flow tab',
         icon: 'img/stats/fp/fp_plus_base.webp',
         checkCondition: () => {
-            if (typeof getFlowUnlockState === 'function') {
-                return !!getFlowUnlockState();
+            if (typeof localStorage !== 'undefined') {
+                const slot = getActiveSlot();
+                return localStorage.getItem(`ccc:unlock:flow:${slot}`) === '1';
             }
             return false;
         }
