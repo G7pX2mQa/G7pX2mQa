@@ -933,7 +933,7 @@ function updateHud() {
       fill.style.setProperty('--xp-fill', '0%');
       fill.style.width = '0%';
     }
-    if (xpLevelValue) xpLevelValue.textContent = '0';
+    if (xpLevelValue) setHtmlOrText(xpLevelValue, '0');
     if (progress) {
       const reqHtml = formatNumber(requirementBn);
       setHtmlOrText(progress, `<span class="xp-progress-current">0</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`);
