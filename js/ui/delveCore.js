@@ -862,6 +862,10 @@ export function bindDelveTabHotkey(sheetEl) {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
     if (e.key === 'f' || e.key === 'F') {
+        const flowTab = sheetEl.querySelector('.merchant-tab[data-tab="flow"]');
+        const isFlowTabActive = flowTab && flowTab.classList.contains('is-active');
+        if (!isFlowTabActive) return;
+
         if (typeof isFlowUnlocked === 'function' && isFlowUnlocked()) {
             import('../util/storage.js').then(({ getActiveSlot }) => {
                 const slot = getActiveSlot();
