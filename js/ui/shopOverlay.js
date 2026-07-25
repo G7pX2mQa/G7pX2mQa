@@ -3,6 +3,7 @@
 import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
+import { FONT_MAP } from '../main.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
 import { openMerchant,
     ensureMerchantOverlay,
@@ -1730,7 +1731,14 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           } else {
               desc.style.removeProperty('font-size');
           }
-          if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
+          if (mode === 'rainbow_gem_shop' && model.upg.modType === 'font' && FONT_MAP[model.upg.id]) {
+              const fontClass = FONT_MAP[model.upg.id];
+              const fontName = model.displayTitle || model.upg.title;
+              const formattedDesc = baseDesc.replace(fontName, `<span class="${fontClass}">${fontName}</span>`);
+              if (desc.innerHTML !== formattedDesc) desc.innerHTML = formattedDesc;
+          } else {
+              if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
+          }
           desc.hidden = false;
       } else desc.hidden = true;
       
