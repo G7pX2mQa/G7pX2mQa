@@ -23,6 +23,7 @@ let globalPrismAngle = 0; // Integrated angle for smooth prism rotation
 let globalRefineryAnimTime = 0; // Integrated time for smooth refinery animations
 let globalRefineryPipeTime = 0;
 let globalRefineryTankTime = 0;
+let globalOilRigAnimTime = 0;
 
 let keypadZoomedIn = false;
 let isVaultOpening = false;
@@ -634,6 +635,23 @@ function loop(currentTime) {
   globalRefineryPipeTime += dt * refineryPipeSpeedMult;
   globalRefineryTankTime += dt * refineryTankSpeedMult;
 
+  let oilRigSpeedMult = 1.0;
+  if (currentBuildingId === "diamond") {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress =
+        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
+    }
+    const tier8Prog =
+      drawTier >= 8 && previousTier < 8 ? animProgress : drawTier >= 8 ? 1 : 0;
+    
+    // 5x faster
+    oilRigSpeedMult = 1.0 + tier8Prog * 4.0; 
+  }
+  globalOilRigAnimTime += dt * oilRigSpeedMult;
 
   if (isVaultOpening) {
     vaultOpeningTime -= dt;
@@ -1110,7 +1128,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
   else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
   else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
-  else if (id === "diamond") drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale);
+  else if (id === "diamond") drawOilRig(ctx, globalOilRigAnimTime, tier, prevTier, animProgress, w, h, scale);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier);
   else if (id === "ruby") drawRadiator(ctx, t, tier);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
