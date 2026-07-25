@@ -1,8070 +1,2154 @@
-import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
-import { levelBigNumToNumber } from "../game/upgrades.js";
-import { playAudio } from "../util/audioManager.js";
-import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoinCollected, checkSecretAchievements } from "../game/secretAchievements.js";
-import { createCursorTrail } from "../game/cursorTrail.js";
-import { getPreRenderedItem } from "../game/spawnerCore.js";
-import { settingsManager } from "../game/settingsManager.js";
+// js/ui/shopOverlay.js
 
-let activeCanvas = null;
-let activeCtx = null;
-let animationFrameId = null;
-let currentBuildingId = null;
-let lastTime = 0;
-let time = 0;
-let lastDrawTime = 0;
+import { bank, getActiveSlot } from '../util/storage.js';
+import { BigNum } from '../util/bigNum.js';
+import { formatNumber } from '../util/numFormat.js';
+import { FONT_MAP } from '../main.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
+import { openMerchant,
+    ensureMerchantOverlay,
+    unlockMerchantTabs,
+    hasMetMerchant,
+    MERCHANT_MET_EVENT,
+    runPostTsunamiShopDialogue
+} from './merchantTabs/dlgTab.js';
+import { openMiner, hasMetMiner, MINER_MET_EVENT } from './minerTabs/dlgTab.js';
+import { primeTypingSfx } from './delveCore.js';
+import { takePreloadedAudio } from '../util/audioCache.js';
+import { playAudio } from '../util/audioManager.js';
+import { settingsManager } from '../game/settingsManager.js';
+import {
+  AREA_KEYS,
+  UPGRADE_TIES,
+  getCurrentAreaKey,
+  getUpgradesForArea,
+  getLevel,
+  getLevelNumber,
+  getIconUrl,
+  normalizeUpgradeIconPath,
+  formatMultForUi,
+  upgradeUiModel,
+  buyOne,
+  buyMax,
+  buyCheap,
+  buyTowards,
+  evaluateBulkPurchase,
+  getUpgradeLockState,
+  evolveUpgrade,
+  HM_EVOLUTION_INTERVAL,
+  isHmReadyToEvolve,
+  getHmEvolutions,
+} from '../game/upgrades.js';
+import {
+  shouldSkipGhostTap,
+  suppressNextGhostTap,
+} from '../util/ghostTapGuard.js';
+import { 
+  AUTOMATION_AREA_KEY, 
+  AUTOBUY_WORKSHOP_LEVELS_ID,
+  AUTOBUY_EVOLVE_UPGRADES_ID,
+  MASTER_AUTOBUY_IDS
+} from '../game/automationUpgrades.js';
+import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
+import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
-let currentLevelNum = 0;
-let levelUpAnimTimes = {};
-let tierUpAnimTime = 0;
-let previousTier = 0;
-let globalDiskAngle = 0; // Integrated angle for smooth accretion disk rotation
-let globalPrismAngle = 0; // Integrated angle for smooth prism rotation
-let globalRefineryAnimTime = 0; // Integrated time for smooth refinery animations
-let globalRefineryPipeTime = 0;
-let globalRefineryTankTime = 0;
-let globalOilRigAnimTime = 0;
+// --- Shared State ---
+const scrollingElements = new Set();
+export function isAnyMenuScrolling() { return scrollingElements.size > 0; }
 
-let keypadZoomedIn = false;
-let isVaultOpening = false;
-let vaultOpeningTime = 0;
-let isVaultOpen = false;
-let canvasClickListener = null;
-let canvasPointerMoveListener = null;
-let canvasKeyDownListener = null;
-let lastHotkeyNum = null;
-let canvasMouseX = 0;
-let canvasMouseY = 0;
-const coinImg = new Image();
-coinImg.src = 'img/currencies/coin/coin.webp';
+const BASE_ICON_SRC_BY_COST = {
+  coins: 'img/currencies/coin/coin_base.webp',
+  books: 'img/currencies/book/book_base.webp',
+  gold: 'img/currencies/gold/gold_base.webp',
+  magic: 'img/currencies/magic/magic_base.webp',
+  gears: 'img/currencies/gear/gear_base.webp',
+  dna: 'img/currencies/dna/dna_base.webp',
+  scrap: 'img/currencies/scrap/scrap_base.webp',
+};
+const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
+const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
+const AUTOMATED_OVERLAY_SRC = 'img/misc/green_border.webp';
+const EVOLVE_READY_OVERLAY_SRC = 'img/misc/evolve_ready.webp';
+const CURRENCY_ICON_SRC = {
+  coins: 'img/currencies/coin/coin.webp',
+  books: 'img/currencies/book/book.webp',
+  gold: 'img/currencies/gold/gold.webp',
+  magic: 'img/currencies/magic/magic.webp',
+  gears: 'img/currencies/gear/gear.webp',
+  dna: 'img/currencies/dna/dna.webp',
+  scrap: 'img/currencies/scrap/scrap.webp',
+  rainbowGems: 'img/currencies/rainbow_gem.webp',
+};
 
-let vaultCursorTrail = null;
-let vaultCoinCollectedLocal = false;
+const FORGE_UNLOCK_UPGRADE_ID = 7;
 
-// Physics state for Oil Rig
-let oilPhysicsNodes = [];
-let oilPhysicsParticles = [];
-let oilPhysicsLastUpdate = 0;
-let oilPhysicsLastWidth = 0;
+// --- Automation Mappings ---
+// Maps standard cost types to the ID of the automation upgrade that unlocks autobuy for them.
+const COST_TYPE_TO_AUTOBUY_ID = {};
+for (const [autoId, costType] of Object.entries(MASTER_AUTOBUY_IDS)) {
+  COST_TYPE_TO_AUTOBUY_ID[costType] = Number(autoId);
+}
+
+function isUpgradeAutomated(upgDef) {
+    if (!upgDef || !upgDef.costType) return false;
+    const autoId = COST_TYPE_TO_AUTOBUY_ID[upgDef.costType];
+    if (!autoId) return false;
+    
+    // Check if player has the automation upgrade
+    const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, autoId);
+    if (autoLevel <= 0) return false;
+    
+    // Check toggle
+    const val = getAutobuyerToggle(upgDef.area, upgDef.id);
+    
+    // Default is ON (if not '0')
+    return val !== '0';
+}
 
 
 
-let canvasResizeObserver = null;
-let canvasIntersectionObserver = null;
-let isCanvasIntersecting = false;
-
-const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
-
-let wasRunningBeforeHide = false;
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    if (activeCanvas) {
-      activeCanvas.style.display = 'none';
-    }
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
-      wasRunningBeforeHide = true;
-    }
-  } else {
-    if (activeCanvas) {
-      activeCanvas.style.display = '';
-    }
-    if (wasRunningBeforeHide && activeCanvas && activeCtx && isCanvasIntersecting) {
-      lastTime = performance.now();
-      lastDrawTime = 0;
-      loop(performance.now());
-      wasRunningBeforeHide = false;
-    }
+function resolveUpgradeId(upgLike) {
+  if (!upgLike) return null;
+  const rawId = typeof upgLike.id !== 'undefined' ? upgLike.id : upgLike;
+  if (typeof rawId === 'number') {
+    return Number.isFinite(rawId) ? Math.trunc(rawId) : null;
   }
-});
-
-const imageCache = {};
-let stonePattern = null;
-let copperPattern = null;
-let ironPattern = null;
-let pureGoldPattern = null;
-let diamondPattern = null;
-let darkDiamondPattern = null;
-
-function getMaterialImage(matKey) {
-  if (imageCache[matKey]) return imageCache[matKey];
-  let actualKey = matKey;
-  if (matKey === "core") actualKey = "cores";
-  if (matKey === "crystal") actualKey = "crystals";
-  const config = RESOURCE_REGISTRY.find((r) => r.key === actualKey);
-  if (config && config.icon) {
-    const img = new Image();
-    img.src = config.icon;
-    imageCache[matKey] = img;
-    return img;
+  if (typeof rawId === 'string') {
+    const parsed = Number.parseInt(rawId.trim(), 10);
+    return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
 }
 
-function initDiamondPattern(ctx) {
-  if (diamondPattern) return;
-
-  const patternCanvas = document.createElement("canvas");
-  patternCanvas.width = 64;
-  patternCanvas.height = 64;
-  const pCtx = patternCanvas.getContext("2d");
-
-  // Brighter base cyan color for diamond
-  pCtx.fillStyle = "#00FFFF"; // brighter cyan base
-  pCtx.fillRect(0, 0, 64, 64);
-
-  // Fine, uniform noise grain to match reference image
-  const imgData = pCtx.getImageData(0, 0, 64, 64);
-  const data = imgData.data;
-  
-  for (let i = 0; i < data.length; i += 4) {
-    const noise = Math.random();
-    
-    // Smooth random mix of light blues and cyans
-    // Mix between #5acde2 (90, 205, 226) and #b2f0f8 (178, 240, 248)
-    const baseR = 90 + noise * 88;
-    const baseG = 205 + noise * 35;
-    const baseB = 226 + noise * 22;
-    
-    // Add tiny extra noise for that grainy feel
-    const speckle = (Math.random() - 0.5) * 20;
-
-    data[i] = Math.max(0, Math.min(255, baseR + speckle));
-    data[i+1] = Math.max(0, Math.min(255, baseG + speckle));
-    data[i+2] = Math.max(0, Math.min(255, baseB + speckle));
-    data[i+3] = 255; // Alpha
-  }
-  pCtx.putImageData(imgData, 0, 0);
-
-  const targetCtx = activeCtx || ctx;
-  if (targetCtx) {
-    try {
-      diamondPattern = targetCtx.createPattern(patternCanvas, "repeat");
-    } catch (e) {
-      console.error("Failed to create diamond pattern", e);
-    }
-  }
+function isBuyCheapExcluded(upgDef) {
+    if (!upgDef) return false;
+    const upgId = resolveUpgradeId(upgDef);
+    return (upgDef.area === 'starter_cove' && [1, 3, 4, 5, 6].includes(upgId)) ||
+           (upgDef.area === 'underwater_cavern' && [5, 9].includes(upgId)) ||
+           (upgDef.area === 'automation' && [1, 10, 11, 12].includes(upgId));
 }
 
-function initDarkDiamondPattern(ctx) {
-  if (darkDiamondPattern) return;
-
-  const patternCanvas = document.createElement("canvas");
-  patternCanvas.width = 64;
-  patternCanvas.height = 64;
-  const pCtx = patternCanvas.getContext("2d");
-
-  // Darker base cyan color for drill
-  pCtx.fillStyle = "#008888"; 
-  pCtx.fillRect(0, 0, 64, 64);
-
-  const imgData = pCtx.getImageData(0, 0, 64, 64);
-  const data = imgData.data;
-  
-  for (let i = 0; i < data.length; i += 4) {
-    const noise = Math.random();
-    
-    // Darker mix for dark diamond
-    const baseR = 43 + noise * 33;
-    const baseG = 120 + noise * 51;
-    const baseB = 134 + noise * 57;
-    
-    const speckle = (Math.random() - 0.5) * 15;
-
-    data[i] = Math.max(0, Math.min(255, baseR + speckle));
-    data[i+1] = Math.max(0, Math.min(255, baseG + speckle));
-    data[i+2] = Math.max(0, Math.min(255, baseB + speckle));
-    data[i+3] = 255; 
-  }
-  pCtx.putImageData(imgData, 0, 0);
-
-  const targetCtx = activeCtx || ctx;
-  if (targetCtx) {
-    try {
-      darkDiamondPattern = targetCtx.createPattern(patternCanvas, "repeat");
-    } catch (e) {
-      console.error("Failed to create dark diamond pattern", e);
-    }
-  }
+function isForgeUnlockUpgrade(upgLike, mode) {
+  return mode === 'standard' && resolveUpgradeId(upgLike) === FORGE_UNLOCK_UPGRADE_ID;
 }
 
-function initPureGoldPattern(ctx) {
-  if (pureGoldPattern) return;
-
-  const patternCanvas = document.createElement("canvas");
-  patternCanvas.width = 64;
-  patternCanvas.height = 64;
-  const pCtx = patternCanvas.getContext("2d");
-
-  pCtx.fillStyle = "#f0c94c";
-  pCtx.fillRect(0, 0, 64, 64);
-
-  const imgData = pCtx.getImageData(0, 0, 64, 64);
-  const data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const noise = (Math.random() - 0.5) * 30; // Subtle hammered texture
-    data[i] = Math.max(0, Math.min(255, data[i] + noise));
-    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.9));
-    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.5));
-  }
-  pCtx.putImageData(imgData, 0, 0);
-
-  const targetCtx = activeCtx || ctx;
-  if (targetCtx) {
-    try {
-      pureGoldPattern = targetCtx.createPattern(patternCanvas, "repeat");
-    } catch (e) {
-      console.error("Failed to create pure gold pattern", e);
+function getShopUiData(areaKey) {
+    const defs = getUpgradesForArea(areaKey);
+    const upgrades = {};
+    for (const def of defs) {
+        const lvlBn = getLevel(areaKey, def.id);
+        const lvlNum = getLevelNumber(areaKey, def.id);
+        const lockState = getUpgradeLockState(areaKey, def.id);
+        const icon = lockState.iconOverride ?? getIconUrl(def);
+        const title = lockState.titleOverride ?? def.title;
+        const desc = lockState.descOverride ?? def.desc;
+        const locked = !!lockState.locked;
+        const hmReady = (def.upgType === 'HM')
+            ? isHmReadyToEvolve(def, lvlBn, getHmEvolutions(areaKey, def.id))
+            : false;
+        upgrades[def.id] = {
+            id: def.id,
+            icon,
+            title,
+            desc,
+            level: lvlBn,
+            levelNumeric: lvlNum,
+            area: def.area,
+            meta: def,
+            locked,
+            lockState,
+            useLockedBase: !!lockState.useLockedBase || locked,
+            baseIconOverride: normalizeUpgradeIconPath(def.baseIconOverride || lockState.baseIconOverride),
+            hmReady,
+        };
     }
-  }
+    return upgrades;
 }
 
-function initCopperPattern(ctx) {
-  if (copperPattern) return;
-
-  const patternCanvas = document.createElement("canvas");
-  patternCanvas.width = 64;
-  patternCanvas.height = 64;
-  const pCtx = patternCanvas.getContext("2d");
-
-  pCtx.fillStyle = "#c0744b";
-  pCtx.fillRect(0, 0, 64, 64);
-
-  const imgData = pCtx.getImageData(0, 0, 64, 64);
-  const data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const noise = (Math.random() - 0.5) * 40;
-    data[i] = Math.max(0, Math.min(255, data[i] + noise));
-    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.8));
-    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.6));
-  }
-  pCtx.putImageData(imgData, 0, 0);
-
-  const targetCtx = activeCtx || ctx;
-  if (targetCtx) {
-    try {
-      copperPattern = targetCtx.createPattern(patternCanvas, "repeat");
-    } catch (e) {
-      console.error("Failed to create copper pattern", e);
-    }
-  }
-}
-
-function initStonePattern(ctx) {
-  if (stonePattern) return;
-
-  const patternCanvas = document.createElement("canvas");
-  patternCanvas.width = 64;
-  patternCanvas.height = 64;
-  const pCtx = patternCanvas.getContext("2d");
-
-  // Base color darker to match user feedback and image analysis (#83817c)
-  pCtx.fillStyle = "#83817c";
-  pCtx.fillRect(0, 0, 64, 64);
-
-  const imgData = pCtx.getImageData(0, 0, 64, 64);
-  const data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    // Range based on std_dev of ~18
-    const noise = (Math.random() - 0.5) * 36;
-    data[i] = Math.max(0, Math.min(255, data[i] + noise));
-    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
-    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
-  }
-  pCtx.putImageData(imgData, 0, 0);
-
-  const targetCtx = activeCtx || ctx;
-  if (targetCtx) {
-    try {
-      stonePattern = targetCtx.createPattern(patternCanvas, "repeat");
-    } catch (e) {
-      console.error("Failed to create stone pattern", e);
-    }
-  }
-}
-
-function initIronPattern(ctx) {
-  if (ironPattern) return;
-
-  const patternCanvas = document.createElement("canvas");
-  patternCanvas.width = 64;
-  patternCanvas.height = 64;
-  const pCtx = patternCanvas.getContext("2d");
-
-  pCtx.fillStyle = "#ced2d6";
-  pCtx.fillRect(0, 0, 64, 64);
-
-  const imgData = pCtx.getImageData(0, 0, 64, 64);
-  const data = imgData.data;
-
-  for (let y = 0; y < 64; y++) {
-    for (let x = 0; x < 64; x++) {
-      const i = (y * 64 + x) * 4;
-      const diag = (x + y) % 4;
-      let noise = (Math.random() - 0.5) * 20;
-      if (diag === 0) noise -= 10;
-      else if (diag === 2) noise += 10;
-
-      data[i] = Math.max(0, Math.min(255, data[i] + noise));
-      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
-      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
-    }
-  }
-  pCtx.putImageData(imgData, 0, 0);
-
-  const targetCtx = activeCtx || ctx;
-  if (targetCtx) {
-    try {
-      ironPattern = targetCtx.createPattern(patternCanvas, "repeat");
-    } catch (e) {
-      console.error("Failed to create iron pattern", e);
-    }
-  }
-}
-
-export function startCanvasLoop(id, canvasEl) {
-  if (animationFrameId) cancelAnimationFrame(animationFrameId);
-  window.currentCavernLayout = null;
-  activeCanvas = canvasEl;
-  activeCtx = canvasEl.getContext("2d");
-  currentBuildingId = id;
-  lastTime = performance.now();
-  lastDrawTime = 0;
-
-  initStonePattern(activeCtx);
-  if (!pureGoldPattern) {
-    initPureGoldPattern(activeCtx);
-  }
-  if (!diamondPattern) {
-    initDiamondPattern(activeCtx);
-  }
-
-  if (canvasResizeObserver) {
-    canvasResizeObserver.disconnect();
-  }
-  canvasResizeObserver = new ResizeObserver(() => {
-    if (!activeCanvas) return;
-    const rect = activeCanvas.parentElement.getBoundingClientRect();
-    activeCanvas.width = rect.width;
-    activeCanvas.height = rect.height;
-    const keypadCanvas = document.getElementById('building-keypad-canvas');
-    if (keypadCanvas) {
-      keypadCanvas.width = rect.width;
-      keypadCanvas.height = rect.height;
-    }
-  });
-  canvasResizeObserver.observe(activeCanvas.parentElement);
-
-  if (canvasIntersectionObserver) {
-    canvasIntersectionObserver.disconnect();
-  }
-  if (typeof IntersectionObserver !== 'undefined') {
-    canvasIntersectionObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        isCanvasIntersecting = entry.isIntersecting;
-        if (isCanvasIntersecting) {
-          if (!document.hidden && !animationFrameId && activeCanvas && activeCtx) {
-            lastTime = performance.now();
-            loop(performance.now());
-          }
-        } else {
-          if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
-            wasRunningBeforeHide = true;
-          }
-        }
-      });
-    });
-    canvasIntersectionObserver.observe(activeCanvas);
-  } else {
-    isCanvasIntersecting = true;
-  }
-
-  const rect = activeCanvas.parentElement.getBoundingClientRect();
-  activeCanvas.width = rect.width;
-  activeCanvas.height = rect.height;
-  const keypadCanvas = document.getElementById('building-keypad-canvas');
-  if (keypadCanvas) {
-    keypadCanvas.width = rect.width;
-    keypadCanvas.height = rect.height;
-  }
-
-  // Using import for ES modules instead of require for local scope
-  import("../ui/minerTabs/buildingsTab.js")
-    .then((module) => {
-      try {
-        currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
-        let currentTier = getTier();
-        previousTier = currentTier;
-        tierUpAnimTime = 0;
-      } catch {
-        currentLevelNum = 1;
-      }
-    })
-    .catch(() => {
-      currentLevelNum = 1;
-    });
-
-  if (currentBuildingId === 'pure_gold') {
-    canvasEl.style.pointerEvents = 'auto';
-    keypadZoomedIn = false;
-    isVaultOpening = false;
-    vaultOpeningTime = 0;
-    isVaultOpen = false;
-    vaultCoinCollectedLocal = getVaultCoinCollected();
-
-    canvasClickListener = (e) => {
-      handleVaultCanvasClick(e);
-    };
-    canvasPointerMoveListener = (e) => {
-      handleVaultCanvasPointerMove(e);
-    };
-    canvasKeyDownListener = (e) => {
-      handleVaultCanvasKeyDown(e);
-    };
-
-    canvasEl.addEventListener('click', canvasClickListener);
-    canvasEl.addEventListener('pointermove', canvasPointerMoveListener);
-    window.addEventListener('keydown', canvasKeyDownListener);
-  }
-
-  if (document.hidden || !isCanvasIntersecting) {
-    if (activeCanvas && document.hidden) {
-      activeCanvas.style.display = 'none';
-    }
-    wasRunningBeforeHide = true;
-  } else {
-    if (activeCanvas) {
-      activeCanvas.style.display = '';
-    }
-	loop(performance.now());
-  }
-}
-
-export function stopCanvasLoop() {
-  const wasOpeningOrOpen = isVaultOpening || isVaultOpen;
-
-  if (activeCanvas) {
-    if (canvasClickListener) {
-      activeCanvas.removeEventListener('click', canvasClickListener);
-      canvasClickListener = null;
-    }
-    if (canvasPointerMoveListener) {
-      activeCanvas.removeEventListener('pointermove', canvasPointerMoveListener);
-      canvasPointerMoveListener = null;
-    }
-  }
-  if (canvasKeyDownListener) {
-    window.removeEventListener('keydown', canvasKeyDownListener);
-    canvasKeyDownListener = null;
-  }
-  lastHotkeyNum = null;
-
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-  if (canvasResizeObserver) {
-    canvasResizeObserver.disconnect();
-    canvasResizeObserver = null;
-  }
-  if (canvasIntersectionObserver) {
-    canvasIntersectionObserver.disconnect();
-    canvasIntersectionObserver = null;
-  }
-  wasRunningBeforeHide = false;
-  activeCanvas = null;
-  activeCtx = null;
-  currentBuildingId = null;
-  tierUpAnimTime = 0;
-  keypadZoomedIn = false;
-  isVaultOpening = false;
-  vaultOpeningTime = 0;
-  isVaultOpen = false;
-  vaultCoinCollectedLocal = false;
-  if (vaultCursorTrail) {
-    vaultCursorTrail.destroy();
-    vaultCursorTrail = null;
-  }
-  const overlayEl = document.getElementById('building-detail-overlay');
-  if (overlayEl) {
-    overlayEl.style.cursor = '';
-  }
-
-  if (wasOpeningOrOpen) {
-    const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
-    if (closeBtn) closeBtn.style.removeProperty('display');
-    const btnBuy = document.getElementById('building-btn-buy');
-    if (btnBuy) btnBuy.style.removeProperty('display');
-    const btnBuyMax = document.getElementById('building-btn-buy-max');
-    if (btnBuyMax) btnBuyMax.style.removeProperty('display');
-    const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-    if (btnBuyCheap) btnBuyCheap.style.removeProperty('display');
-
-    window.dispatchEvent(new CustomEvent('audio:restartMusic'));
-  }
-}
-
-export function triggerLevelUpAnimation(id) {
-  levelUpAnimTimes[id] = 1.0;
-}
-
-export function checkTierUp(id, oldLevelBn, newLevelBn) {
-  if (id !== currentBuildingId) return;
-
-  const oldNum = levelBigNumToNumber(oldLevelBn);
-  const newNum = levelBigNumToNumber(newLevelBn);
-  currentLevelNum = newNum;
-
-  let oldTier = 0;
-  let newTier = 0;
-
-  for (let i = 0; i < TIERS.length; i++) {
-    if (oldNum >= TIERS[i]) oldTier = i + 1;
-    if (newNum >= TIERS[i]) newTier = i + 1;
-  }
-
-  if (newTier < oldTier) {
-    previousTier = newTier;
-    tierUpAnimTime = 0;
-  } else if (newTier > oldTier) {
-    previousTier = oldTier;
-    if (newTier >= 1) {
-      tierUpAnimTime = 6.0;
-      playAudio("sounds/building_tier_up.ogg");
-    }
-  }
-}
-
-function loop(currentTime) {
-  if (!activeCanvas) return;
-
-  const fpsInterval = 1000 / 60;
-  const elapsedSinceLastDraw = currentTime - lastDrawTime;
-
-  if (elapsedSinceLastDraw < fpsInterval) {
-    animationFrameId = requestAnimationFrame(loop);
-    return;
-  }
-
-  // Adjust lastDrawTime using the accumulator approach
-  lastDrawTime = currentTime - (elapsedSinceLastDraw % fpsInterval);
-
-  if (activeCanvas.parentElement) {
-    activeCanvas.parentElement.style.zIndex = keypadZoomedIn ? '999999' : '0';
-    const upgSheet = activeCanvas.closest('.upg-sheet');
-    if (upgSheet) {
-      if (keypadZoomedIn) {
-        upgSheet.classList.add('keypad-zoomed-blur');
-      } else {
-        upgSheet.classList.remove('keypad-zoomed-blur');
-      }
-    }
-  }
-
-  const dt = (currentTime - lastTime) / 1000;
-  lastTime = currentTime;
-  time += dt;
-
-  for (const id in levelUpAnimTimes) {
-    if (levelUpAnimTimes[id] > 0) {
-      levelUpAnimTimes[id] -= dt;
-    }
-  }
-  if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
-
-  // Smoothly integrate global disk angle
-  // We calculate the speed multiplier here if it's the core building
-  let diskSpeedMult = 1.0;
-  if (currentBuildingId === "core") {
-    let currentTier = getTier();
-    let drawTier = currentTier;
-    let animProgress = 1.0;
-    if (tierUpAnimTime > 0) {
-      animProgress =
-        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
-      drawTier = currentTier;
-    }
-    const tier8Prog =
-      drawTier >= 8 && previousTier < 8 ? animProgress : drawTier >= 8 ? 1 : 0;
-    diskSpeedMult = 1.0 + 2.0 * tier8Prog;
-  }
-  globalDiskAngle += dt * diskSpeedMult;
-
-  let prismSpeedMult = 1.0;
-  if (currentBuildingId === "crystal") {
-    let currentTier = getTier();
-    let drawTier = currentTier;
-    let animProgress = 1.0;
-    if (tierUpAnimTime > 0) {
-      animProgress =
-        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
-      drawTier = currentTier;
-    }
-    const showTier3 = drawTier >= 3 ? 1 : 0;
-    const tier3Prog =
-      drawTier >= 3 && previousTier < 3 ? animProgress : showTier3;
-    prismSpeedMult = 0.4 + 0.6 * tier3Prog;
-    globalPrismAngle += dt * prismSpeedMult;
-  }
-
-  let refinerySpeedMult = 1.0;
-  let refineryPipeSpeedMult = 1.0;
-  let refineryTankSpeedMult = 1.0;
-  if (currentBuildingId === "iron") {
-    let currentTier = getTier();
-    let drawTier = currentTier;
-    let animProgress = 1.0;
-    if (tierUpAnimTime > 0) {
-      animProgress =
-        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
-      drawTier = currentTier;
-    }
-    const tier8Prog =
-      drawTier >= 8 && previousTier < 8 ? animProgress : drawTier >= 8 ? 1 : 0;
-    
-    refinerySpeedMult = 1.0 + tier8Prog * 2.0; 
-
-    refineryPipeSpeedMult = 1.0 + tier8Prog * 9.0;
-    
-    refineryTankSpeedMult = 1.0 + tier8Prog * 7.0;
-  }
-  globalRefineryAnimTime += dt * refinerySpeedMult;
-  globalRefineryPipeTime += dt * refineryPipeSpeedMult;
-  globalRefineryTankTime += dt * refineryTankSpeedMult;
-
-  let oilRigSpeedMult = 1.0;
-  if (currentBuildingId === "diamond") {
-    let currentTier = getTier();
-    let drawTier = currentTier;
-    let animProgress = 1.0;
-    if (tierUpAnimTime > 0) {
-      animProgress =
-        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
-      drawTier = currentTier;
-    }
-    const tier8Prog =
-      drawTier >= 8 && previousTier < 8 ? animProgress : drawTier >= 8 ? 1 : 0;
-    
-    // 5x faster
-    oilRigSpeedMult = 1.0 + tier8Prog * 4.0; 
-  }
-  globalOilRigAnimTime += dt * oilRigSpeedMult;
-
-  if (isVaultOpening) {
-    vaultOpeningTime -= dt;
-    if (vaultOpeningTime <= 0) {
-      isVaultOpening = false;
-      isVaultOpen = true;
-      document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
-    }
-  }
-
-  if (activeCanvas && currentBuildingId === 'pure_gold') {
-    const overlayEl = document.getElementById('building-detail-overlay');
-    const isOnlyBuilding = settingsManager.get('only_show_building');
-    
-    // Handle cursor trail and entire overlay's cursor hiding
-    if (overlayEl) {
-      if (isOnlyBuilding || (isVaultOpen && !vaultCoinCollectedLocal)) {
-        overlayEl.style.cursor = 'none';
-        if (isVaultOpen && !vaultCoinCollectedLocal) {
-          if (!vaultCursorTrail) {
-            vaultCursorTrail = createCursorTrail(overlayEl, { initInCenter: true, zIndex: '999999' });
-          }
-        } else {
-          if (vaultCursorTrail) {
-            vaultCursorTrail.destroy();
-            vaultCursorTrail = null;
-          }
-        }
-      } else {
-        overlayEl.style.cursor = '';
-        if (vaultCursorTrail) {
-          vaultCursorTrail.destroy();
-          vaultCursorTrail = null;
-        }
-      }
-    }
-
-    let cursor = 'default';
-    if (isOnlyBuilding) {
-      cursor = 'none';
-    } else if (isVaultOpen && !vaultCoinCollectedLocal) {
-      cursor = 'none';
-      const scale = 1.0 + getTier() * 0.1;
-      const coin_cx = activeCanvas.width / 2;
-      const floorY = activeCanvas.height - 260;
-      const coin_cy = floorY - (getTier() >= 1 ? 65 : 50) * scale;
-      
-      // Hitbox is a circular radius of 20 * scale representing the coin's physical boundaries.
-      // This ensures collecting the coin is perfectly accurate and works responsive from any direction.
-      const dx = canvasMouseX - coin_cx;
-      const dy = canvasMouseY - coin_cy;
-      const radius = 20 * scale;
-      
-      if (dx * dx + dy * dy <= radius * radius) {
-        cursor = 'pointer';
-        vaultCoinCollectedLocal = true;
-        setVaultCoinCollected(true);
-        playAudio("sounds/coin_pickup_size5.ogg");
-        checkSecretAchievements();
-        
-        // Restore ONLY Close Button
-        const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
-        if (closeBtn) {
-          closeBtn.style.display = '';
-        }
-        
-        document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
-        
-        window.dispatchEvent(new CustomEvent('audio:restartMusic'));
-      }
-    } else if (isVaultOpening) {
-      cursor = 'none';
-    } else if (keypadZoomedIn) {
-      const w = activeCanvas.width;
-      const h = activeCanvas.height;
-      const kx = (canvasMouseX - w / 2) / 8;
-      const ky = (canvasMouseY - h / 2) / 8;
-      if (kx >= -12.5 && kx <= 12.5 && ky >= -18 && ky <= 18) {
-        let onBtn = false;
-        for (let r = 0; r < 3; r++) {
-          for (let c = 0; c < 3; c++) {
-            const bx = -9.5 + c * 7;
-            const by = -3 + r * 7;
-            if (kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5) {
-              onBtn = true;
-            }
-          }
-        }
-        cursor = onBtn ? 'pointer' : 'default';
-      } else {
-        cursor = 'pointer';
-      }
-    } else {
-      const scale = 1.0 + getTier() * 0.1;
-      const floorY = activeCanvas.height - 260;
-      const centerX = activeCanvas.width / 2;
-      const dy = 15;
-      const left = centerX - 48 * scale;
-      const right = centerX - 23 * scale;
-      const top = floorY - (88 + dy) * scale;
-      const bottom = floorY - (52 + dy) * scale;
-      if (canvasMouseX >= left && canvasMouseX <= right && canvasMouseY >= top && canvasMouseY <= bottom && getTier() >= 2) {
-        cursor = 'pointer';
-      }
-    }
-    if (activeCanvas.style.cursor !== cursor) {
-      activeCanvas.style.cursor = cursor;
-    }
-  } else if (activeCanvas) {
-    const isOnlyBuilding = settingsManager.get('only_show_building');
-    let cursor = isOnlyBuilding ? 'none' : 'default';
-    if (activeCanvas.style.cursor !== cursor) {
-      activeCanvas.style.cursor = cursor;
-    }
-  }
-
-  if (activeCanvas && activeCtx) {
-    const keypadCanvas = document.getElementById('building-keypad-canvas');
-    let keypadCtx = null;
-    if (keypadCanvas) {
-      keypadCtx = keypadCanvas.getContext('2d');
-    }
-    draw(activeCtx, keypadCtx, activeCanvas.width, activeCanvas.height, time);
-  }
-
-  animationFrameId = requestAnimationFrame(loop);
-}
-
-function getTier() {
-  let t = 0;
-  for (let i = 0; i < TIERS.length; i++) {
-    if (currentLevelNum >= TIERS[i]) t = i + 1;
-  }
-  return t; // 0 to 8
-}
-
-function draw(ctx, keypadCtx, width, height, t) {
-  ctx.clearRect(0, 0, width, height);
-  if (keypadCtx) {
-    keypadCtx.clearRect(0, 0, width, height);
-  }
-
-  ctx.save();
-  let shakeAlpha = 0;
-  if (tierUpAnimTime > 0) {
-    shakeAlpha =
-      tierUpAnimTime > 2.5
-        ? (6.0 - tierUpAnimTime) / 3.5
-        : tierUpAnimTime / 2.5;
-    const shake = Math.sin(t * 50) * (shakeAlpha * 10);
-    const shakeY = Math.cos(t * 40) * (shakeAlpha * 5);
-    ctx.translate(shake, shakeY);
-  }
-
-  drawCavern(ctx, width, height, t);
-
-  if (currentBuildingId) {
-    let currentTier = getTier();
-    let drawTier = currentTier;
-    let animProgress = 1.0;
-    if (tierUpAnimTime > 0) {
-      // Reaches 1.0 at 3.5 seconds into the 6.0 second animation (when tierUpAnimTime is 2.5)
-      animProgress =
-        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
-      drawTier = currentTier;
-    }
-    drawBuilding(
-      ctx,
-      keypadCtx,
-      width,
-      height,
-      t,
-      currentBuildingId,
-      drawTier,
-      previousTier,
-      animProgress,
-    );
-  }
-  ctx.restore();
-  const currentBuildingFlashAlpha = levelUpAnimTimes[currentBuildingId] || 0;
-  if (currentBuildingFlashAlpha > 0) {
-    const alpha = Math.max(0, currentBuildingFlashAlpha);
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
-    grad.addColorStop(0.5, `rgba(255, 255, 255, ${alpha * 0.5})`);
-    grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  if (tierUpAnimTime > 0) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${shakeAlpha})`;
-    ctx.fillRect(0, 0, width, height);
-  }
-}
-
-function drawCavern(ctx, w, h, t) {
-  if (!window.currentCavernLayout) {
-    const numGems = 20 + Math.floor(Math.random() * 11);
-    const gems = [];
-    for (let i = 0; i < numGems; i++) {
-      gems.push({
-        xFrac: Math.random(),
-        yFrac: Math.random(),
-        gemType: Math.floor(Math.random() * 20), // 20 cached gemstone combinations
-      });
-    }
-
-    const numStalactites = 8 + Math.floor(Math.random() * 8);
-    const stalactites = [];
-    for (let i = 0; i < numStalactites; i++) {
-      const length = 50 + Math.random() * 100;
-      const width = 20 + Math.random() * 40;
-
-      // Generate bumpy paths for organic spikes, but keep them subtle so they look pointier
-      const leftPath = [];
-      const rightPath = [];
-      const segments = 5;
-      for (let s = 1; s < segments; s++) {
-        leftPath.push((Math.random() - 0.5) * 2); // smaller offsets
-        rightPath.push((Math.random() - 0.5) * 2);
-      }
-
-      let xFrac = Math.random();
-      let attempts = 0;
-      let valid = false;
-      while (attempts < 50) {
-        let tooClose = false;
-        for (const st of stalactites) {
-          if (Math.abs(st.xFrac - xFrac) < 0.06) {
-            tooClose = true;
-            break;
-          }
-        }
-        if (!tooClose) {
-          valid = true;
-          break;
-        }
-        xFrac = Math.random();
-        attempts++;
-      }
-      if (!valid) continue;
-
-      stalactites.push({
-        xFrac: xFrac,
-        length: length,
-        width: width,
-        dropPhase: Math.random() * Math.PI * 2,
-        dropSpeed: 0.5 + Math.random() * 1.5,
-        leftPath: leftPath,
-        rightPath: rightPath,
-      });
-    }
-
-    const cracks = [];
-    const cols = 15;
-    const rows = 12;
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r < rows; r++) {
-        if (Math.random() > 0.1) {
-          // 90% chance to have a crack in this cell, smaller cells -> more cracks
-          const points = [];
-          const numPoints = 3 + Math.floor(Math.random() * 5);
-          let cx = (c + Math.random()) / cols;
-          let cy = (r + Math.random()) / rows;
-          for (let p = 0; p < numPoints; p++) {
-            points.push({ x: cx, y: cy });
-            cx += (Math.random() - 0.5) * 0.05;
-            cy += (Math.random() - 0.5) * 0.05;
-          }
-          cracks.push(points);
-        }
-      }
-    }
-
-    window.currentCavernLayout = { gems, stalactites, cracks };
-  }
-
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, "#2e1c11");
-  grad.addColorStop(1, "#1a0d05");
-
-  ctx.fillStyle = grad;
-  ctx.fillRect(-50, -50, w + 100, h + 100);
-
-  // Draw cracky crumbly background details
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
-  ctx.lineWidth = 3;
-  if (window.currentCavernLayout.cracks) {
-    for (const crack of window.currentCavernLayout.cracks) {
-      ctx.beginPath();
-      ctx.moveTo(crack[0].x * w, crack[0].y * h);
-      for (let i = 1; i < crack.length; i++) {
-        ctx.lineTo(crack[i].x * w, crack[i].y * h);
-      }
-      ctx.stroke();
-    }
-  }
-
-  for (const st of window.currentCavernLayout.stalactites) {
-    const sx = st.xFrac * w;
-    const tipX = sx + Math.sin(st.dropPhase) * 10;
-
-    const stalactiteGrad = ctx.createLinearGradient(sx, 0, sx, st.length);
-    stalactiteGrad.addColorStop(0, "#1c100a");
-    stalactiteGrad.addColorStop(1, "#402618");
-    ctx.fillStyle = stalactiteGrad;
-
-    ctx.beginPath();
-    // perfect triangle
-    ctx.moveTo(sx - st.width / 2, 0);
-    ctx.lineTo(tipX, st.length); // The tip
-    ctx.lineTo(sx + st.width / 2, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    // draw water droplet
-    const dropT = (t * st.dropSpeed + st.dropPhase) % 6; // 6 seconds cycle
-    if (dropT < 1) {
-      // Falling phase
-      const dropY = st.length + dropT * (h - st.length);
-      ctx.fillStyle = "rgba(100, 200, 255, 0.4)";
-      ctx.beginPath();
-      ctx.arc(tipX, dropY, 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  const floorH = 260;
-
-  // Draw flat floor layers
-  ctx.fillStyle = "rgb(42, 30, 24)";
-  ctx.fillRect(-50, h - floorH, w + 100, floorH + 50);
-
-  ctx.fillStyle = "rgb(28, 20, 16)";
-  ctx.fillRect(-50, h - floorH * 0.8, w + 100, floorH * 0.8 + 50);
-
-  ctx.fillStyle = "rgb(18, 12, 10)";
-  ctx.fillRect(-50, h - floorH * 0.6, w + 100, floorH * 0.6 + 50);
-
-  // generate and draw clusters identically to sellTab.js
-  const colors = [
-    { r: 0, g: 255, b: 255 }, // Bright Cyan
-    { r: 148, g: 0, b: 211 }, // Deep Purple
-    { r: 235, g: 30, b: 50 }, // Red (Ruby)
-    { r: 40, g: 220, b: 100 }, // Green (Emerald)
-  ];
-
-  if (!window.cachedGemstones) {
-    window.cachedGemstones = [];
-    for (let i = 0; i < 20; i++) {
-      const sharedColor = colors[i % colors.length];
-      const clusters = [];
-      const numPieces = 3 + Math.floor(Math.abs(Math.sin(i * 123.45)) * 3);
-      for (let p = 0; p < numPieces; p++) {
-        const pSize = 4 + Math.abs(Math.sin(p * 456.78)) * 6;
-        const numVertices = 4 + Math.floor(Math.abs(Math.cos(p * 789.01)) * 4);
-        const facets = [];
-        for (let v = 0; v < numVertices; v++) {
-          const angle = (v / numVertices) * Math.PI * 2;
-          const rad = pSize * (0.6 + Math.abs(Math.sin(v * 12.34)) * 0.6);
-          const shade = 0.6 + Math.abs(Math.cos(v * 56.78)) * 0.6;
-          facets.push({
-            dx: Math.cos(angle) * rad,
-            dy: Math.sin(angle) * rad,
-            shade,
-          });
-        }
-        clusters.push({
-          ox: (Math.abs(Math.sin(p * 90.12)) - 0.5) * 10,
-          oy: (Math.abs(Math.cos(p * 34.56)) - 0.5) * 10,
-          facets,
-          size: pSize,
-        });
-      }
-
-      let cachedImage;
-      if (typeof OffscreenCanvas !== "undefined") {
-        cachedImage = new OffscreenCanvas(40, 40);
-      } else {
-        cachedImage = document.createElement("canvas");
-        cachedImage.width = 40;
-        cachedImage.height = 40;
-      }
-      const octx = cachedImage.getContext("2d");
-      octx.translate(20, 20); // Center drawing
-
-      for (const cl of clusters) {
-        const px = cl.ox;
-        const py = cl.oy;
-        if (cl.facets && cl.facets.length > 0) {
-          for (let v = 0; v < cl.facets.length; v++) {
-            const p1 = cl.facets[v];
-            const p2 = cl.facets[(v + 1) % cl.facets.length];
-
-            octx.beginPath();
-            octx.moveTo(px, py); // center point
-            octx.lineTo(px + p1.dx, py + p1.dy);
-            octx.lineTo(px + p2.dx, py + p2.dy);
-            octx.closePath();
-
-            // Calculate shaded color for this facet
-            const r = Math.min(255, sharedColor.r * p1.shade);
-            const g = Math.min(255, sharedColor.g * p1.shade);
-            const b = Math.min(255, sharedColor.b * p1.shade);
-            octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            octx.fill();
-          }
-        }
-      }
-      window.cachedGemstones.push(cachedImage);
-    }
-  }
-
-  // Gemstones completely removed from standard ground visuals
-}
-
-function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress) {
-  const floorY = h - 260; // Match new floor height
-  const cx = w / 2;
-
-  let currentY = floorY;
-
-  ctx.save();
-  ctx.translate(cx, floorY);
-
-  const targetScale = 1.0 + tier * 0.1;
-  const startScale = 1.0 + prevTier * 0.1;
-  const scale = startScale + (targetScale - startScale) * animProgress;
-  ctx.scale(scale, scale);
-
-  let bounce = 0;
-
-  let topY = 0;
-  let glowOffsetX = 0;
-  if (id === "core") topY = -200;
-  else if (id === "crystal") topY = -(100 + tier * 10) - 30;
-  else if (id === "stone") topY = -140;
-  else if (id === "copper") topY = -90;
-  else if (id === "iron") topY = -100;
-  else if (id === "pure_gold") topY = -100; // Fixed vertical height for the glow
-  else if (id === "diamond") topY = -120;
-  else if (id === "emerald") topY = -130;
-  else if (id === "ruby") topY = -100;
-  else if (id === "sapphire") topY = -80;
-  else if (id === "unobtainium") topY = -160;
-  else if (id === "prismatium") topY = -150;
-  else topY = -100;
-
-  // Scale the topY
-  let finalHighestY = floorY + topY * scale;
-
-  ctx.save();
-  const glowRadius = Math.abs(topY) * 0.8 + 40;
-  const glowGrad = ctx.createRadialGradient(
-    glowOffsetX,
-    topY / 2,
-    0,
-    glowOffsetX,
-    topY / 2,
-    glowRadius,
-  );
-  glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
-  glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
-  ctx.fillStyle = glowGrad;
-  ctx.beginPath();
-  ctx.arc(glowOffsetX, topY / 2, glowRadius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  if (id === "core") drawBlackHole(ctx, t, tier, prevTier, animProgress);
-  else if (id === "crystal") drawPrism(ctx, t, tier, prevTier, animProgress);
-  else if (id === "stone") drawFoundry(ctx, t, tier, prevTier, animProgress);
-  else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
-  else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
-  else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
-  else if (id === "diamond") drawOilRig(ctx, globalOilRigAnimTime, tier, prevTier, animProgress, w, h, scale);
-  else if (id === "emerald") drawGreenhouse(ctx, t, tier);
-  else if (id === "ruby") drawRadiator(ctx, t, tier);
-  else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
-  else if (id === "unobtainium") drawBeacon(ctx, t, tier);
-  else if (id === "prismatium") drawTesseract(ctx, t, tier);
-
-  ctx.restore();
-
-  // Update HTML element position
-  const levelText = document.getElementById("building-detail-level-text");
-  if (levelText) {
-    const getOffset = (bId, bTier) => {
-      if (bId === "core") return 150 - bTier * 2;
-      if (bId === "crystal") return 180 - bTier * 8;
-      if (bId === "copper") return 180 + bTier * 8;
-      if (bId === "iron") return 220;
-      if (bId === "pure_gold") return 250 + bTier * 10 + (bTier >= 4 ? 35 : 0);
-      if (bId === "diamond") return 200 + bTier * 15;
-      return 180;
-    };
-
-    const targetOffset = getOffset(id, tier);
-    const startOffset =
-      prevTier >= 0 ? getOffset(id, prevTier) : getOffset(id, 0);
-    const offset = startOffset + (targetOffset - startOffset) * animProgress;
-
-    levelText.style.position = "absolute";
-    // Calculate top offset based on parent container offset (which might be causing the drift)
-    // Adjust for padding or margins of the container
-    levelText.style.top = Math.max(50, finalHighestY - offset) + "px"; // Magic number offset to fix clipping
-    levelText.style.left = "0";
-    levelText.style.width = "100%";
-
-    let shakeAlphaText = 0;
-    if (tierUpAnimTime > 0) {
-      shakeAlphaText =
-        tierUpAnimTime > 2.5
-          ? (6.0 - tierUpAnimTime) / 3.5
-          : tierUpAnimTime / 2.5;
-    }
-    levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
-  }
-}
-
-// ----------------- Building Drawing Routines ----------------- //
-
-function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
-  const cx = 0;
-  const cy = -80; // Main vertical center of the black hole
-
-  const showTier0 = 1;
-  const tier0Prog = tier >= 0 && prevTier < 0 ? animProgress : showTier0;
-  const showTier1 = tier >= 1 ? 1 : 0;
-  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
-  const showTier2 = tier >= 2 ? 1 : 0;
-  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
-  const showTier3 = tier >= 3 ? 1 : 0;
-  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
-  const showTier4 = tier >= 4 ? 1 : 0;
-  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
-  const showTier5 = tier >= 5 ? 1 : 0;
-  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
-  const showTier6 = tier >= 6 ? 1 : 0;
-  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
-  const showTier7 = tier >= 7 ? 1 : 0;
-  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
-  const showTier8 = tier >= 8 ? 1 : 0;
-  const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
-
-  const baseRadius = 8;
-  let finalRadius = baseRadius;
-  if (tier >= 1) finalRadius += 10 * tier1Prog;
-  if (tier >= 2) finalRadius += 10 * tier2Prog;
-
-  if (tier5Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-
-    const coronaRadius = 100 + 30 * tier8Prog;
-    const coronaT = t * 0.5;
-
-    ctx.translate(cx, cy);
-    for (let i = 0; i < 4; i++) {
-      ctx.save();
-      ctx.rotate(coronaT + (i * Math.PI) / 2);
-      ctx.scale(1, 0.8 + 0.2 * Math.sin(t * 2 + i));
-
-      const mistGrad = ctx.createRadialGradient(0, 0, 20, 0, 0, coronaRadius);
-      mistGrad.addColorStop(0, "rgba(30, 10, 50, 0.8)");
-      mistGrad.addColorStop(0.5, "rgba(50, 20, 80, 0.4)");
-      mistGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-      ctx.fillStyle = mistGrad;
-      ctx.beginPath();
-      ctx.arc(0, 0, coronaRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-    ctx.restore();
-  }
-  // Tier 4: Pseudo-3D Accretion Disk Particle System (was Tier 5)
-  // Front/Back calculated here. Much more intense at Tier 8.
-  const diskOuterRadius = 120 + 40 * tier8Prog;
-  const diskInnerRadius = 35;
-  const numParticles = 300 + Math.floor(600 * tier8Prog);
-
-  const getParticle = (i) => {
-    const hash1 = Math.abs(Math.sin(i * 123.456));
-    const hash2 = Math.abs(Math.cos(i * 987.654));
-    const hash3 = Math.abs(Math.sin(i * 345.678));
-
-    const radius =
-      diskInnerRadius +
-      (diskOuterRadius - diskInnerRadius) * Math.pow(hash1, 1.5);
-
-    const normalizedR =
-      (radius - diskInnerRadius) / (diskOuterRadius - diskInnerRadius);
-
-    // speed depends on distance, integrated using globalDiskAngle to avoid jumps
-    const baseSpeed = 1.0 + (1.0 - normalizedR) * 2.0;
-
-    const baseAngle = hash2 * Math.PI * 2;
-    const angle = baseAngle + globalDiskAngle * baseSpeed;
-
-    const rawX = Math.cos(angle) * radius;
-    const rawY = Math.sin(angle) * radius;
-
-    const tilt = 0.25;
-    const angleRot = Math.PI / 8;
-
-    const flatX = rawX;
-    const flatY = rawY * tilt;
-
-    const finalX = flatX * Math.cos(angleRot) - flatY * Math.sin(angleRot);
-    const finalY = flatX * Math.sin(angleRot) + flatY * Math.cos(angleRot);
-
-    let color;
-    if (normalizedR < 0.1) color = "rgba(255, 255, 255, 1.0)";
-    else if (normalizedR < 0.4)
-      color = `rgba(255, ${150 + hash3 * 50}, 50, 0.9)`;
-    else color = `rgba(200, 50, 0, ${0.8 - normalizedR * 0.6})`;
-
-    const sizeMultiplier = 1.0 + 1.0 * tier8Prog;
-    const size = (1.5 + hash3 * 2) * sizeMultiplier;
-
-    const isBack = Math.sin(angle) < 0;
-
-    return { x: cx + finalX, y: cy + finalY, color, size, isBack };
-  };
-
-  if (tier4Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog;
-    for (let i = 0; i < numParticles; i++) {
-      const p = getParticle(i);
-      if (p.isBack) {
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-
-  if (tier1Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier1Prog;
-
-    // Base speed a lot faster
-    const rotationSpeed = 3.0 + tier * 0.5 + (tier >= 8 ? 4.0 : 0);
-    const startAngle = t * rotationSpeed;
-
-    const grad = ctx.createConicGradient(startAngle, cx, cy);
-    grad.addColorStop(0, "rgb(200, 50, 0)"); // Deep orange
-    grad.addColorStop(0.33, "rgb(255, 100, 0)"); // Orange
-    grad.addColorStop(0.66, "rgb(255, 160, 0)"); // Light orange
-    grad.addColorStop(1, "rgb(200, 50, 0)"); // Deep orange
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = grad;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "rgba(255, 100, 0, 0.8)";
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  // Tier 6: Orbiting Stars (Spaghettification)
-  if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-    ctx.translate(cx, cy);
-
-    const numStars = 3;
-    for (let i = 0; i < numStars; i++) {
-      // cycle goes from 0.0 (far away) to 1.0 (entering event horizon)
-      const cycleT = (t * 0.3 + i * (1.0 / numStars)) % 1.0;
-
-      const startDist = finalRadius + 150;
-      const currentDist = startDist * (1.0 - cycleT) + finalRadius * cycleT;
-
-      // Faster orbit as it gets closer
-      const angle = (i * Math.PI * 2) / numStars + t * 10.0;
-
-      const x = Math.cos(angle) * currentDist;
-      const y = Math.sin(angle) * currentDist * 0.3; // Accretion disk perspective
-
-      // Fade in at start, fade out at end
-      let alpha = 1.0;
-      if (cycleT < 0.1) alpha = cycleT / 0.1;
-      else if (cycleT > 0.9) alpha = (1.0 - cycleT) / 0.1;
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle + Math.PI / 2); // Point trail along orbit path
-
-      // "Spaghettify" stretch as it gets close
-      const stretch = 1.0 + Math.pow(cycleT, 3) * 10.0;
-      ctx.scale(1.0 / Math.sqrt(stretch), stretch);
-
-      // Draw star core
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-      ctx.beginPath();
-      ctx.arc(0, 0, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw star glow/trail
-      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
-      grad.addColorStop(0, `rgba(150, 200, 255, ${alpha * 0.8})`);
-      grad.addColorStop(1, `rgba(50, 100, 255, 0)`);
-
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(0, 0, 15, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-
-      // Draw a trailing streak behind the star
-      ctx.strokeStyle = `rgba(100, 150, 255, ${alpha * 0.5})`;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      for (let j = 0; j < 10; j++) {
-        const trailCycleT = Math.max(0, cycleT - j * 0.01);
-        const trailDist =
-          startDist * (1.0 - trailCycleT) + finalRadius * trailCycleT;
-        const trailAngle = (i * Math.PI * 2) / numStars + (t - j * 0.03) * 10.0;
-
-        const tx = Math.cos(trailAngle) * trailDist;
-        const ty = Math.sin(trailAngle) * trailDist * 0.3;
-
-        if (j === 0) ctx.moveTo(tx, ty);
-        else ctx.lineTo(tx, ty);
-      }
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  // Tier 7: Angled, pulsating beam (was Tier 8, Underneath the black hole body, above photon ring)
-  if (tier7Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier7Prog;
-
-    ctx.translate(cx, cy);
-    ctx.rotate(Math.PI / 4); // Angled to the right
-
-    const beamW = 20 + 10 * Math.abs(Math.sin(t * 12));
-    const beamHeight = 600; // Extends way past viewport
-
-    // Intense purple/white beam gradient
-    const beamGrad = ctx.createLinearGradient(-beamW / 2, 0, beamW / 2, 0);
-    beamGrad.addColorStop(0, `rgba(138, 43, 226, 0)`);
-    beamGrad.addColorStop(0.2, `rgba(180, 80, 255, ${0.8 * tier7Prog})`);
-    beamGrad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * tier7Prog})`);
-    beamGrad.addColorStop(0.8, `rgba(180, 80, 255, ${0.8 * tier7Prog})`);
-    beamGrad.addColorStop(1, `rgba(138, 43, 226, 0)`);
-
-    ctx.fillStyle = beamGrad;
-    // The beam goes straight through (top to bottom)
-    ctx.fillRect(-beamW / 2, -beamHeight, beamW, beamHeight * 2);
-
-    // Extra intense core line
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.5 * Math.sin(t * 20)})`;
-    const coreWidth = 4 + 2 * Math.abs(Math.sin(t * 12));
-    ctx.fillRect(-coreWidth / 2, -beamHeight, coreWidth, beamHeight * 2);
-
-    ctx.restore();
-  }
-
-  // Tier 2: Debris being sucked in (Back half)
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-    ctx.translate(cx, cy);
-
-    const numDebris = 15;
-    for (let i = 0; i < numDebris; i++) {
-      const debrisT = (t * 0.5 + i * (1.0 / numDebris)) % 1.0; // 0 to 1 cycle of falling in
-      const startDist = finalRadius + 100;
-      const currentDist = startDist * (1.0 - debrisT);
-
-      // Spiral angle
-      const angle = (i * Math.PI * 2) / numDebris + debrisT * Math.PI * 4;
-
-      if (Math.sin(angle) <= 0 && currentDist > finalRadius) {
-        // Back half
-        const size = 1.5 + Math.sin(i * 123) * 1.0;
-        const x = Math.cos(angle) * currentDist;
-        // Squish y to fit the disk perspective
-        const y = Math.sin(angle) * currentDist * 0.3;
-
-        const alpha =
-          Math.min(1.0, (startDist - currentDist) / 20) *
-          Math.min(1.0, (currentDist - finalRadius) / 10);
-
-        ctx.fillStyle = `rgba(180, 180, 180, ${alpha * 0.5})`; // Dimmer in back
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-
-  // The pure black hole body
-  ctx.beginPath();
-  ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
-  ctx.fillStyle = "#000000";
-  ctx.fill();
-
-  // Tier 2: Debris being sucked in (Front half)
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-    ctx.translate(cx, cy);
-
-    const numDebris = 15;
-    for (let i = 0; i < numDebris; i++) {
-      const debrisT = (t * 0.5 + i * (1.0 / numDebris)) % 1.0;
-      const startDist = finalRadius + 100;
-      const currentDist = startDist * (1.0 - debrisT);
-
-      const angle = (i * Math.PI * 2) / numDebris + debrisT * Math.PI * 4;
-
-      if (Math.sin(angle) > 0 && currentDist > finalRadius) {
-        // Front half
-        const size = 1.5 + Math.sin(i * 123) * 1.0;
-        const x = Math.cos(angle) * currentDist;
-        const y = Math.sin(angle) * currentDist * 0.3;
-
-        // Fade out as it crosses the event horizon or starts
-        const alpha =
-          Math.min(1.0, (startDist - currentDist) / 20) *
-          Math.min(1.0, (currentDist - finalRadius) / 10);
-
-        // Brighter in front
-        const heat = Math.max(0, 1.0 - (currentDist - finalRadius) / 30); // Heats up as it gets closer
-        const r = 180 + heat * 75;
-        const g = 180 - heat * 80;
-        const b = 180 - heat * 130;
-
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (heat > 0.5) {
-          ctx.shadowBlur = heat * 10;
-          ctx.shadowColor = `rgba(255, 100, 50, ${heat})`;
-          ctx.fill();
-        }
-      }
-    }
-    ctx.restore();
-  }
-
-  // Tier 3: Gravitational Lensing / Photon Ring
-  if (tier3Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier3Prog;
-    ctx.translate(cx, cy);
-
-    const lensingRadius = finalRadius * 1.2;
-    const lensingThickness = 15;
-
-    // Draw multiple overlapping rings for the lensing effect
-    for (let i = 0; i < 3; i++) {
-      ctx.save();
-      // Counter-rotating rings with different speeds
-      const spinDirection = i % 2 === 0 ? 1 : -1;
-      ctx.rotate(t * (0.2 + i * 0.1) * spinDirection);
-
-      // Slight elliptical distortion
-      ctx.scale(
-        1 + 0.05 * Math.sin(t * 1.5 + i),
-        1 - 0.05 * Math.sin(t * 1.5 + i),
-      );
-
-      const gradient = ctx.createRadialGradient(
-        0,
-        0,
-        finalRadius,
-        0,
-        0,
-        lensingRadius + lensingThickness,
-      );
-
-      // Subtle, shifting colors for light bending
-      const alpha1 = 0.4 + 0.2 * Math.sin(t * 2 + i * Math.PI);
-      const alpha2 = 0.1 + 0.1 * Math.cos(t * 3 + i);
-
-      gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
-      gradient.addColorStop(0.3, `rgba(200, 220, 255, ${alpha1})`);
-      gradient.addColorStop(0.7, `rgba(150, 100, 255, ${alpha2})`);
-      gradient.addColorStop(1, `rgba(100, 50, 200, 0)`);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, lensingRadius + lensingThickness, 0, Math.PI * 2);
-      ctx.fillStyle = gradient;
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // Add a thin, intense photon ring right near the event horizon
-    ctx.beginPath();
-    ctx.arc(0, 0, finalRadius * 1.05, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(255, 255, 255, ${0.6 + 0.3 * Math.sin(t * 5)})`;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  // Tier 4: Pseudo-3D Accretion Disk (Front Half)
-  if (tier4Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog;
-    for (let i = 0; i < numParticles; i++) {
-      const p = getParticle(i);
-      if (!p.isBack) {
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-}
-
-function drawPrism(ctx, t, tier, prevTier, animProgress) {
-  const showTier1 = tier >= 1 ? 1 : 0;
-  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
-  const showTier2 = tier >= 2 ? 1 : 0;
-  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
-  const showTier3 = tier >= 3 ? 1 : 0;
-  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
-  const showTier4 = tier >= 4 ? 1 : 0;
-  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
-  const showTier5 = tier >= 5 ? 1 : 0;
-  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
-  const showTier6 = tier >= 6 ? 1 : 0;
-  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
-  const showTier7 = tier >= 7 ? 1 : 0;
-  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
-  const showTier8 = tier >= 8 ? 1 : 0;
-  const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
-
-  // --- Hex to RGB helper ---
-  const hexToRgbStr = (hex) => {
-    const bigint = parseInt(hex.slice(1), 16);
-    return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
-  };
-
-  // --- Base Pedestal ---
-  // Removed base pedestal for all tiers. The Prism just floats.
-  // Hover logic
-  const hoverY = -25 - 25 + Math.sin(t * 1) * 5;
-
-  // --- 3D Projection Engine ---
-  const rotY = globalPrismAngle;
-  const cosY = Math.cos(rotY);
-  const sinY = Math.sin(rotY);
-
-  // Slight isometric tilt (rotate X)
-  const rotX = 0.3; // tilt down
-  const cosX = Math.cos(rotX);
-  const sinX = Math.sin(rotX);
-
-  function getRotated(x, y, z) {
-    // Rotate around Y axis
-    const nx = x * cosY - z * sinY;
-    const nz = x * sinY + z * cosY;
-    return { x: nx, y: y, z: nz };
-  }
-
-  function projectRotated(rx, ry, rz) {
-    // Apply rotX
-    const ny = ry * cosX - rz * sinX;
-    const nnz = ry * sinX + rz * cosX;
-
-    // Perspective
-    const fov = 300;
-    const scale = fov / (fov + nnz + 100);
-    return { x: rx * scale, y: hoverY + ny * scale, z: nnz, scale };
-  }
-
-  function getNormal(p0, p1, p2) {
-    // Cross product of (p1 - p0) and (p2 - p0)
-    const v1x = p1.x - p0.x;
-    const v1y = p1.y - p0.y;
-    const v1z = p1.z - p0.z;
-    const v2x = p2.x - p0.x;
-    const v2y = p2.y - p0.y;
-    const v2z = p2.z - p0.z;
-
-    const nx = v1y * v2z - v1z * v2y;
-    const ny = v1z * v2x - v1x * v2z;
-    const nz = v1x * v2y - v1y * v2x;
-
-    const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-    if (len === 0) return { x: 0, y: 0, z: 1 };
-    return { x: nx / len, y: ny / len, z: nz / len };
-  }
-
-  function getLightIntensity(normal) {
-    // Light intensity is fixed so all sides have the same lighting
-    // regardless of the direction they are facing.
-    return 1.0;
-  }
-
-  // Prism geometry (standing on rectangular face)
-  const targetSizeMult = 1.25 + tier * 0.125;
-  const prevSizeMult = 1.25 + prevTier * 0.125;
-  const sizeMult =
-    prevSizeMult + (targetSizeMult - prevSizeMult) * animProgress;
-  let ipts = null,
-    ifaces = null,
-    irotPts = null;
-  const w = 30 * sizeMult; // base half-width
-  const h = 50 * sizeMult; // height (from bottom to peak)
-  const d = 25 * sizeMult; // half-depth
-
-  const vertices = [
-    { x: -w, y: 0, z: -d },
-    { x: w, y: 0, z: -d },
-    { x: 0, y: -h, z: -d },
-    { x: -w, y: 0, z: d },
-    { x: w, y: 0, z: d },
-    { x: 0, y: -h, z: d },
-  ];
-
-  const rotPts = vertices.map((v) => getRotated(v.x, v.y, v.z));
-  const pts = rotPts.map((rp) => projectRotated(rp.x, rp.y, rp.z));
-
-  function project(x, y, z) {
-    const rp = getRotated(x, y, z);
-    return projectRotated(rp.x, rp.y, rp.z);
-  }
-
-  // Tier 5 Orbiting Crystals helper function
-  const drawTier5Shards = (isFront) => {
-    if (tier5Prog <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-
-    const numShards = 6;
-    const orbitRadius = 70 + tier6Prog * 20;
-
-    for (let i = 0; i < numShards; i++) {
-      const orbitRot = t * 1.5 + (i * Math.PI * 2) / numShards;
-      const sx = Math.cos(orbitRot) * orbitRadius;
-      const sz = Math.sin(orbitRot) * orbitRadius;
-
-      // Determine if this shard is front or back based on its Z position
-      // For getRotated, since it rotates around Y, the final Z determines depth.
-      const rp = getRotated(sx, 0, sz);
-      const isShardFront = rp.z <= 0;
-
-      if (isFront !== isShardFront) continue;
-
-      const sy = -h / 2;
-      const sp = project(sx, sy, sz);
-
-      // Draw shard
-      ctx.save();
-      ctx.translate(sp.x, sp.y);
-
-      ctx.fillStyle = "rgba(220, 100, 255, 0.8)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.lineWidth = 1;
-
-      const size = 12 * sp.scale;
-      ctx.beginPath();
-      ctx.moveTo(0, -size);
-      ctx.lineTo(-size * 0.6, 0);
-      ctx.lineTo(0, size);
-      ctx.lineTo(size * 0.6, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.restore();
-  };
-
-  // --- Tier 8/4 Rainbow Beam Calculations ---
-  // If we draw beams *behind* the prism, we should do it before drawing faces.
-  // We will draw all beams with globalCompositeOperation = 'screen' or 'lighter' later, but Z-order matters if it's solid.
-  // For glassy light effects, drawing on top is usually fine.
-
-  // Tier 3: Energy vortex swirling below the prism
-  if (tier3Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier3Prog;
-    ctx.globalCompositeOperation = "lighter";
-
-    const vortexY = hoverY + 20 - tier * 2; // Shift upward slightly as tier increases to prevent ground clipping
-
-    for (let i = 0; i < 3; i++) {
-      const ringScale = 1.0 + Math.sin(t * 2 + i * 2) * 0.2;
-      const ringRot = t * (1.5 + i * 0.5);
-      ctx.save();
-      ctx.translate(0, vortexY);
-      // Squish to fake 3D perspective
-      ctx.scale(1, 0.3);
-      ctx.rotate(ringRot);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, w * 1.5 * ringScale, 0, Math.PI * 2);
-      ctx.lineWidth = 3 - i;
-      ctx.strokeStyle = `rgba(200, 80, 220, ${0.4 + 0.2 * Math.sin(t * 4 + i)})`;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.restore();
-  }
-
-  // --- Tier 8/4 Rainbow Beam (drawn under prism faces) ---
-  if (tier4Prog > 0 && tier8Prog < 1) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
-    ctx.globalCompositeOperation = "lighter";
-
-    ctx.restore();
-  }
-
-  if (tier8Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier8Prog;
-    ctx.globalCompositeOperation = "lighter";
-
-    ctx.restore();
-  }
-
-  // Ensure center is calculated early so we can draw the beams
-  const center = project(0, -h / 2, 0);
-
-  // --- Tier 8/4 Rainbow Beam (drawn under prism faces) ---
-  if (tier4Prog > 0 && tier8Prog < 1) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
-    ctx.globalCompositeOperation = "lighter";
-
-    // Dispersed Rainbow Beams (exiting horizontally left and right)
-    const colors = [
-      "#ff0000",
-      "#ff7f00",
-      "#ffff00",
-      "#00ff00",
-      "#00ffff",
-      "#0000ff",
-      "#7000ff",
-    ];
-
-    // Tier 7 amplifies the spread and length
-    const spread = Math.PI / 4;
-    // Retract the ray length as it transitions to tier 8
-    const rayLen = 300 * (1 - tier8Prog);
-
-    const drawHorizontalRainbow = (baseAngle, isReversed) => {
-      for (let i = 0; i < colors.length; i++) {
-        const fraction = i / (colors.length - 1);
-        const angleOffset = -spread / 2 + fraction * spread;
-        const outAngle = baseAngle + angleOffset;
-
-        const colorIdx = isReversed ? colors.length - 1 - i : i;
-
-        const grad = ctx.createLinearGradient(
-          center.x,
-          center.y,
-          center.x + Math.cos(outAngle) * rayLen,
-          center.y + Math.sin(outAngle) * rayLen,
-        );
-        const rgbStr = hexToRgbStr(colors[colorIdx]);
-        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
-        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
-
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(center.x, center.y);
-        ctx.lineTo(
-          center.x + Math.cos(outAngle) * rayLen,
-          center.y + Math.sin(outAngle) * rayLen,
-        );
-        ctx.stroke();
-      }
-    };
-
-    // Shoot left (PI) and right (0)
-    drawHorizontalRainbow(0, false);
-    drawHorizontalRainbow(Math.PI, true);
-
-    ctx.restore();
-  }
-
-  if (tier8Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier8Prog;
-    ctx.globalCompositeOperation = "lighter";
-
-    // SYMMETRICAL Rainbow Beams (Left and Right)
-    const colors = [
-      "#ff0000",
-      "#ff7f00",
-      "#ffff00",
-      "#00ff00",
-      "#00ffff",
-      "#0000ff",
-      "#7000ff",
-    ];
-    const spread = Math.PI / 2; // 90 degree spread
-
-    const drawRainbowSide = (baseAngle, isReversed) => {
-      for (let i = 0; i < colors.length; i++) {
-        const fraction = i / (colors.length - 1);
-        // Spread centered around baseAngle
-        const angleOffset = -spread / 2 + fraction * spread;
-        const outAngle = baseAngle + angleOffset + Math.sin(t * 5 + i) * 0.02; // subtle wave
-
-        const colorIdx = isReversed ? colors.length - 1 - i : i;
-
-        const grad = ctx.createLinearGradient(
-          center.x,
-          center.y,
-          center.x + Math.cos(outAngle) * 400,
-          center.y + Math.sin(outAngle) * 400,
-        );
-        const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
-        const rgbStr = hexToRgbStr(colors[colorIdx]);
-        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
-        grad.addColorStop(0.5, `rgba(${rgbStr}, ${intensity})`);
-        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
-
-        ctx.fillStyle = grad;
-        const outW = 8 + Math.sin(t * 15 + i) * 3;
-
-        // Draw thick polygon beam
-        ctx.beginPath();
-        // Move perpendicular to outAngle to create thickness
-        const px = Math.sin(outAngle) * outW;
-        const py = -Math.cos(outAngle) * outW;
-
-        ctx.moveTo(center.x - px / 2, center.y - py / 2);
-        ctx.lineTo(
-          center.x + Math.cos(outAngle) * 400 - px,
-          center.y + Math.sin(outAngle) * 400 - py,
-        );
-        ctx.lineTo(
-          center.x + Math.cos(outAngle) * 400 + px,
-          center.y + Math.sin(outAngle) * 400 + py,
-        );
-        ctx.lineTo(center.x + px / 2, center.y + py / 2);
-        ctx.fill();
-      }
-    };
-
-    // Right side (base angle 0)
-    drawRainbowSide(0, false);
-    // Left side (base angle PI, reverse colors for symmetry)
-    drawRainbowSide(Math.PI, true);
-
-    ctx.restore();
-  }
-
-  // Draw back tier 5 crystals here
-  drawTier5Shards(false);
-
-  // --- Draw Prism Faces (Back-to-Front) ---
-  // Faces and normal/lighting colors
-  // We want a glassy pink look
-  const faces = [
-    { id: "front", pts: [0, 1, 2], baseColor: [200, 100, 200] },
-    { id: "back", pts: [3, 5, 4], baseColor: [200, 100, 200] },
-    { id: "bottom", pts: [0, 3, 4, 1], baseColor: [200, 100, 200] },
-    { id: "left", pts: [0, 2, 5, 3], baseColor: [200, 100, 200] },
-    { id: "right", pts: [1, 4, 5, 2], baseColor: [200, 100, 200] },
-  ];
-
-  faces.forEach((f) => {
-    f.normal = getNormal(rotPts[f.pts[0]], rotPts[f.pts[1]], rotPts[f.pts[2]]);
-    f.light = getLightIntensity(f.normal);
-    f.z = f.pts.reduce((sum, i) => sum + pts[i].z, 0) / f.pts.length;
-  });
-  faces.sort((a, b) => b.z - a.z); // Sort descending (back faces first)
-
-  // Edges calculation
-  const edges = [
-    [0, 1],
-    [1, 2],
-    [2, 0], // front
-    [3, 4],
-    [4, 5],
-    [5, 3], // back
-    [0, 3],
-    [1, 4],
-    [2, 5], // connecting
-  ].map((e) => ({ pts: e, isFront: false }));
-
-  edges.forEach((e) => {
-    // Top middle connecting line [2, 5] should always be considered 'back' so it renders before the beams
-    if (
-      (e.pts[0] === 2 && e.pts[1] === 5) ||
-      (e.pts[0] === 5 && e.pts[1] === 2)
-    ) {
-      e.isFront = false;
-      return;
-    }
-
-    // Determine front/back faces
-    const frontFace = faces.find((f) => f.id === "front");
-    const backFace = faces.find((f) => f.id === "back");
-
-    // If this edge belongs to the front face and the front face points away, it's NOT front
-    if (
-      frontFace &&
-      frontFace.normal.z > 0 &&
-      frontFace.pts.includes(e.pts[0]) &&
-      frontFace.pts.includes(e.pts[1])
-    ) {
-      e.isFront = false;
-      return;
-    }
-
-    // Same for back face: if it points away, it's NOT front
-    if (
-      backFace &&
-      backFace.normal.z > 0 &&
-      backFace.pts.includes(e.pts[0]) &&
-      backFace.pts.includes(e.pts[1])
-    ) {
-      e.isFront = false;
-      return;
-    }
-
-    // An edge is in front if it belongs to any face pointing towards the camera (normal.z < 0)
-    e.isFront = faces.some(
-      (f) =>
-        f.normal.z < 0 && f.pts.includes(e.pts[0]) && f.pts.includes(e.pts[1]),
-    );
-  });
-
-  ctx.save();
-  // In later tiers, it gets brighter and more transparent
-  const glassAlpha = 0.8 - tier1Prog * 0.2 - tier4Prog * 0.2;
-
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-    const innerScale = 0.45;
-
-    const iw = w * innerScale;
-    const ih = h * innerScale;
-    const id_ = d * innerScale;
-
-    const centerOffsetY = -h / 2 + ih / 2;
-    const iVertices = [
-      { x: -iw, y: centerOffsetY, z: -id_ },
-      { x: iw, y: centerOffsetY, z: -id_ },
-      { x: 0, y: centerOffsetY - ih, z: -id_ },
-      { x: -iw, y: centerOffsetY, z: id_ },
-      { x: iw, y: centerOffsetY, z: id_ },
-      { x: 0, y: centerOffsetY - ih, z: id_ },
-    ];
-
-    irotPts = iVertices.map((v) => getRotated(v.x, v.y, v.z));
-    ipts = irotPts.map((rp) => projectRotated(rp.x, rp.y, rp.z));
-
-    ifaces = [
-      { id: "front", pts: [0, 1, 2], baseColor: [200, 100, 200] },
-      { id: "back", pts: [3, 5, 4], baseColor: [200, 100, 200] },
-      { id: "bottom", pts: [0, 3, 4, 1], baseColor: [200, 100, 200] },
-      { id: "left", pts: [0, 2, 5, 3], baseColor: [200, 100, 200] },
-      { id: "right", pts: [1, 4, 5, 2], baseColor: [200, 100, 200] },
-    ];
-
-    ifaces.forEach((f) => {
-      f.normal = getNormal(
-        irotPts[f.pts[0]],
-        irotPts[f.pts[1]],
-        irotPts[f.pts[2]],
-      );
-      f.light = getLightIntensity(f.normal);
-      f.z = f.pts.reduce((sum, i) => sum + ipts[i].z, 0) / f.pts.length;
-    });
-    ifaces.sort((a, b) => b.z - a.z);
-
-    const iedges = [
-      [0, 1],
-      [1, 2],
-      [2, 0], // front
-      [3, 4],
-      [4, 5],
-      [5, 3], // back
-      [0, 3],
-      [1, 4],
-      [2, 5], // connecting
-    ].map((e) => ({ pts: e, isFront: false }));
-
-    iedges.forEach((e) => {
-      // Top middle connecting line [2, 5] should always be considered 'back' so it renders before the beams
-      if (
-        (e.pts[0] === 2 && e.pts[1] === 5) ||
-        (e.pts[0] === 5 && e.pts[1] === 2)
-      ) {
-        e.isFront = false;
-        return;
-      }
-
-      // Determine front/back faces
-      const iFrontFace = ifaces.find((f) => f.id === "front");
-      const iBackFace = ifaces.find((f) => f.id === "back");
-
-      // If this edge belongs to the front face and the front face points away, it's NOT front
-      if (
-        iFrontFace &&
-        iFrontFace.normal.z > 0 &&
-        iFrontFace.pts.includes(e.pts[0]) &&
-        iFrontFace.pts.includes(e.pts[1])
-      ) {
-        e.isFront = false;
-        return;
-      }
-
-      // Same for back face: if it points away, it's NOT front
-      if (
-        iBackFace &&
-        iBackFace.normal.z > 0 &&
-        iBackFace.pts.includes(e.pts[0]) &&
-        iBackFace.pts.includes(e.pts[1])
-      ) {
-        e.isFront = false;
-        return;
-      }
-
-      e.isFront = ifaces.some(
-        (f) =>
-          f.normal.z < 0 &&
-          f.pts.includes(e.pts[0]) &&
-          f.pts.includes(e.pts[1]),
-      );
-    });
-
-    // Draw all faces
-    ifaces.forEach((f) => {
-      let c = f.baseColor;
-      ctx.fillStyle = `rgba(${c[0] * f.light}, ${c[1] * f.light}, ${c[2] * f.light}, ${glassAlpha * 0.8})`;
-      ctx.beginPath();
-      ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
-      for (let i = 1; i < f.pts.length; i++) {
-        ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-    });
-
-    // We will store ifaces and ipts and iedges to draw edges later
-    // Hack: attach iedges to ifaces for access later
-    ifaces.iedges = iedges;
-
-    ctx.restore();
-  }
-
-  faces.forEach((f) => {
-    let c = f.baseColor;
-    ctx.fillStyle = `rgba(${c[0] * f.light}, ${c[1] * f.light}, ${c[2] * f.light}, ${glassAlpha * 0.9})`;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
-    for (let i = 1; i < f.pts.length; i++) {
-      ctx.lineTo(pts[f.pts[i]].x, pts[f.pts[i]].y);
-    }
-    ctx.closePath();
-    ctx.fill();
-  });
-
-  // Draw back edges of inner prism
-  if (
-    tier2Prog > 0 &&
-    typeof ipts !== "undefined" &&
-    typeof ifaces !== "undefined" &&
-    ifaces &&
-    ifaces.iedges
-  ) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-    ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
-    ctx.lineWidth = 1;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ifaces.iedges
-      .filter((e) => !e.isFront)
-      .forEach((e) => {
-        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
-        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
-      });
-    ctx.stroke();
-    ctx.restore();
-  }
-  // Draw back edges of outer prism
-  ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
-  ctx.lineWidth = 1;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  edges
-    .filter((e) => !e.isFront)
-    .forEach((e) => {
-      ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
-      ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
-    });
-  ctx.stroke();
-
-  ctx.restore();
-
-  // Tier 6: Resonating Edges (rendered before faces, attached to back edges)
-  if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
-
-    // Draw resonating outer back edges
-    ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
-    ctx.lineWidth = 1 + 6 * pulse;
-
-    ctx.beginPath();
-    edges
-      .filter((e) => !e.isFront)
-      .forEach((e) => {
-        ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
-        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
-      });
-    ctx.stroke();
-
-    // Draw resonating inner back edges
-    if (
-      tier2Prog > 0 &&
-      typeof ipts !== "undefined" &&
-      typeof ifaces !== "undefined" &&
-      ifaces &&
-      ifaces.iedges
-    ) {
-      ctx.save();
-      ctx.globalAlpha = tier6Prog * tier2Prog;
-      ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
-      ctx.lineWidth = 1 + 6 * pulse;
-
-      ctx.beginPath();
-      ifaces.iedges
-        .filter((e) => !e.isFront)
-        .forEach((e) => {
-          ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
-          ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
-        });
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.restore();
-  }
-
-  // Tier 7: Energy Lightning (Arcs between vertices)
-  if (tier7Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier7Prog;
-    ctx.globalCompositeOperation = "lighter";
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = "round";
-
-    // Hash function for random-looking but deterministic arcs based on time
-    const hash = (n) => Math.abs(Math.sin(n * 12.9898) * 43758.5453) % 1;
-
-    const drawLightningArcs = (points) => {
-      const numArcs = 4;
-      for (let i = 0; i < numArcs; i++) {
-        // Create a rapid flicker effect by changing indices frequently
-        const timeIndex = Math.floor(t * 15 + i * 2);
-
-        const idx1 = Math.floor(hash(timeIndex) * points.length);
-        const idx2 = Math.floor(hash(timeIndex + 1) * points.length);
-
-        if (idx1 !== idx2) {
-          const p1 = points[idx1];
-          const p2 = points[idx2];
-
-          // Draw jagged line
-          ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-
-          const segments = 4;
-          for (let j = 1; j < segments; j++) {
-            const tPos = j / segments;
-            const baseX = p1.x + (p2.x - p1.x) * tPos;
-            const baseY = p1.y + (p2.y - p1.y) * tPos;
-
-            // Add jitter perpendicular to the line
-            const jitterX = (hash(timeIndex + j * 0.1) - 0.5) * 15;
-            const jitterY = (hash(timeIndex + j * 0.2) - 0.5) * 15;
-
-            ctx.lineTo(baseX + jitterX, baseY + jitterY);
-          }
-          ctx.lineTo(p2.x, p2.y);
-
-          const flickerIntensity = 0.5 + 0.5 * hash(timeIndex + 0.5);
-          ctx.strokeStyle = `rgba(255, 182, 193, ${flickerIntensity})`;
-          ctx.stroke();
-        }
-      }
-    };
-
-    drawLightningArcs(pts);
-    if (tier2Prog > 0 && ipts) {
-      drawLightningArcs(ipts);
-    }
-
-    ctx.restore();
-  }
-
-  // --- Post-Prism Light Effects ---
-
-  // Tier 1: Pink Sparkles
-  if (tier1Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier1Prog;
-
-    const numSparkles = 15;
-    for (let i = 0; i < numSparkles; i++) {
-      const sparkleT = (t + i * (1 / numSparkles)) % 1;
-      const hash1 = (Math.sin(i * 12.9898) * 43758.5453) % 1;
-      const hash2 = (Math.cos(i * 78.233) * 43758.5453) % 1;
-      const hash3 = (Math.sin(i * 45.123) * 43758.5453) % 1;
-
-      const angle = hash2 * Math.PI * 2;
-      const speed = 100 + 100 * Math.abs(hash1);
-      const distance = speed * sparkleT;
-      const sx = Math.cos(angle) * distance;
-      const sz = Math.sin(angle) * distance;
-
-      const initialVy = -150 - 50 * Math.abs(hash3);
-      const gravity = 400;
-      const dy = initialVy * sparkleT + 0.5 * gravity * sparkleT * sparkleT;
-      const sparkleY = -h / 2 + dy;
-
-      const sp = project(sx, sparkleY, sz);
-
-      const sparkleAlpha = Math.sin(sparkleT * Math.PI); // Fade in and out
-      const sparkleSize = 4 * sp.scale * sparkleAlpha;
-
-      ctx.save();
-      ctx.translate(sp.x, sp.y);
-      ctx.rotate(t + i);
-
-      ctx.fillStyle = `rgba(230, 150, 255, ${sparkleAlpha * 0.9})`;
-
-      // Draw a 4-pointed star
-      ctx.beginPath();
-      ctx.moveTo(0, -sparkleSize);
-      ctx.quadraticCurveTo(0, 0, sparkleSize, 0);
-      ctx.quadraticCurveTo(0, 0, 0, sparkleSize);
-      ctx.quadraticCurveTo(0, 0, -sparkleSize, 0);
-      ctx.quadraticCurveTo(0, 0, 0, -sparkleSize);
-      ctx.fill();
-
-      ctx.restore();
-    }
-    ctx.restore();
-  }
-
-  // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
-  if (tier4Prog > 0 && tier8Prog < 1) {
-    ctx.save();
-    // Smoothly fade out alpha during tier 8 transition
-    ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
-    ctx.globalCompositeOperation = "lighter";
-
-    // Incoming white beam (from straight down/top)
-    const inAngle = -Math.PI / 2;
-
-    // In Tier 7, the incoming beam gets much wider and intense
-    const t7WidthAdd = 0;
-    // Shrink the width as it fades into Tier 8 to give a shrinking "fade away" effect
-    const beamW = (6 + Math.sin(t * 5) * 2 + t7WidthAdd) * (1 - tier8Prog);
-
-    ctx.fillStyle = "rgba(255, 255, 255, 1)";
-
-    ctx.beginPath();
-    ctx.moveTo(center.x - beamW, center.y - 2000);
-    ctx.lineTo(center.x + beamW, center.y - 2000);
-    ctx.lineTo(center.x + beamW / 2, center.y);
-    ctx.lineTo(center.x - beamW / 2, center.y);
-    ctx.fill();
-
-    // Glowing impact point
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(
-      center.x,
-      center.y,
-      (8 + t7WidthAdd / 2) * (1 - tier8Prog),
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  // --- Tier 8: Symmetrical Zenith ---
-  if (tier8Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier8Prog;
-    ctx.globalCompositeOperation = "lighter";
-
-    // Incoming massive white beams from BOTH sides (top-left, top-right)
-    // OR straight down. "massive white beams enter from both sides (or straight down)"
-    // Let's do straight down splitting into two huge rainbows perfectly symmetric
-
-    const inAngle = -Math.PI / 2; // straight up/down
-    ctx.fillStyle = ironPattern ? ironPattern : "#1a1c23";
-
-    // Draw incoming thick white beam
-    const beamW = 15 + Math.sin(t * 10) * 5;
-    // Fix: use center.x for gradient x coordinates to align with the beam!
-    ctx.fillStyle = "rgba(255, 255, 255, 1)";
-
-    ctx.beginPath();
-    ctx.moveTo(center.x - beamW, center.y - 2000);
-    ctx.lineTo(center.x + beamW, center.y - 2000);
-    ctx.lineTo(center.x + beamW / 2, center.y);
-    ctx.lineTo(center.x - beamW / 2, center.y);
-    ctx.fill();
-
-    // Explosive Core (smaller, pulsing)
-    ctx.fillStyle = "rgba(255, 255, 255, 1)";
-    ctx.beginPath();
-    // Inner prism size is about iw = w * 0.45 = 13.5 * sizeMult.
-    // We want the ball to be smaller than the inner prism width but still pulse erratically.
-    const corePulse = 8 + Math.random() * 6;
-    ctx.arc(center.x, center.y, corePulse, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  // Draw FRONT edges of the inner prism
-  if (
-    tier2Prog > 0 &&
-    typeof ipts !== "undefined" &&
-    typeof ifaces !== "undefined" &&
-    ifaces &&
-    ifaces.iedges
-  ) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-    ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
-    ctx.lineWidth = 1;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ifaces.iedges
-      .filter((e) => e.isFront)
-      .forEach((e) => {
-        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
-        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
-      });
-    ctx.stroke();
-    ctx.restore();
-  }
-  // Draw FRONT edges of outer prism
-  ctx.save();
-  ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
-  ctx.lineWidth = 1;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  edges
-    .filter((e) => e.isFront)
-    .forEach((e) => {
-      ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
-      ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
-    });
-  ctx.stroke();
-  ctx.restore();
-
-  // Tier 6: Resonating Edges (rendered after faces, attached to front edges)
-  if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
-
-    // Draw resonating outer front edges
-    ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
-    ctx.lineWidth = 1 + 6 * pulse;
-    ctx.beginPath();
-    edges
-      .filter((e) => e.isFront)
-      .forEach((e) => {
-        ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
-        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
-      });
-    ctx.stroke();
-
-    // Draw resonating inner front edges
-    if (
-      tier2Prog > 0 &&
-      typeof ipts !== "undefined" &&
-      typeof ifaces !== "undefined" &&
-      ifaces &&
-      ifaces.iedges
-    ) {
-      ctx.save();
-      ctx.globalAlpha = tier6Prog * tier2Prog;
-      ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
-      ctx.lineWidth = 1 + 6 * pulse;
-      ctx.beginPath();
-      ifaces.iedges
-        .filter((e) => e.isFront)
-        .forEach((e) => {
-          ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
-          ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
-        });
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.restore();
-  }
-  // Draw front tier 5 crystals here
-  drawTier5Shards(true);
-}
-
-function drawFoundry(ctx, t, tier, prevTier, animProgress) {
-  // Base structure (Tier 0+)
-  if (!stonePattern && activeCtx) {
-    initStonePattern(activeCtx);
-  }
-  if (!pureGoldPattern && activeCtx) {
-    initPureGoldPattern(activeCtx);
-  }
-  if (stonePattern) {
-    ctx.fillStyle = stonePattern;
-  } else {
-    ctx.fillStyle = "#544";
-  }
-
-  // Draw base building (rock oven)
-  ctx.fillRect(-70, -100, 140, 100);
-
-  // Tier 1: Multiple, staggered smokestacks emitting thick, animated smoke with glowing embers
-  const showTier1 = tier >= 1 ? 1 : 0;
-  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
-  if (tier1Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier1Prog;
-
-    const drawSmokestack = (x, y, w, h, timeOffset) => {
-      ctx.fillStyle = "#222";
-      ctx.fillRect(x - w / 2, y - h, w, h);
-
-      // Rim of smokestack
-      ctx.fillStyle = "#111";
-      ctx.fillRect(x - w / 2 - 2, y - h, w + 4, 5);
-
-      if (tier1Prog > 0) {
-        for (let i = 0; i < 5; i++) {
-          const smokeT = (t + i * 0.8 + timeOffset) % 4;
-          const smokeY = y - h - smokeT * 40;
-          const smokeX = x + Math.sin(smokeT * 3 + i) * 15;
-          const smokeSize = 10 + smokeT * 15;
-          const smokeAlpha = 1 - smokeT / 4;
-
-          // Smoke
-          ctx.fillStyle = `rgba(50, 50, 50, ${smokeAlpha * 0.8})`;
-          ctx.beginPath();
-          ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Embers
-          const emberX =
-            smokeX + Math.sin(smokeT * 5 + i * 2) * smokeSize * 0.5;
-          const emberY = smokeY + Math.cos(smokeT * 4 + i) * smokeSize * 0.5;
-          const emberAlpha = smokeAlpha * (0.5 + 0.5 * Math.sin(t * 10 + i));
-          ctx.fillStyle = `rgba(255, 100, 0, ${emberAlpha})`;
-          ctx.beginPath();
-          ctx.arc(
-            emberX,
-            emberY,
-            2 + Math.abs(Math.sin(i)) * 2,
-            0,
-            Math.PI * 2,
-          );
-          ctx.fill();
-        }
-      }
-    };
-
-    drawSmokestack(-35, -100, 20, 90, 0);
-    drawSmokestack(0, -100, 26, 100, 1.5);
-    drawSmokestack(35, -100, 20, 80, 2.5);
-
-    ctx.restore();
-  }
-
-  // Tier 2: Heavy dark metal plating with glowing orange seams
-  const showTier2 = tier >= 2 ? 1 : 0;
-  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-
-    // Base dark plating
-    ctx.fillStyle = "#111";
-    ctx.fillRect(-75, -105, 150, 10);
-    ctx.fillRect(-75, -10, 150, 10);
-    ctx.fillRect(-75, -105, 10, 105);
-    ctx.fillRect(65, -105, 10, 105);
-
-    // Glowing orange seams
-    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-    ctx.fillStyle = `rgba(255, ${100 + pulse * 100}, 0, ${0.7 + pulse * 0.3})`;
-    ctx.fillRect(-65, -103, 130, 2); // Top inner seam
-    ctx.fillRect(-65, -12, 130, 2); // Bottom inner seam
-    ctx.fillRect(-73, -95, 2, 85); // Left inner seam
-    ctx.fillRect(71, -95, 2, 85); // Right inner seam
-
-    // Rivets
-    ctx.fillStyle = "#555";
-    for (let i = -60; i <= 60; i += 20) {
-      const boltX = i < 0 ? i - 4 : (i === 0 ? -2 : i);
-      ctx.fillRect(boltX, -100, 4, 4);
-    }
-    
-    // Side bolts (4 on each side, spaced by 20, centered vertically)
-    const sideY = [-83.5, -63.5, -43.5, -23.5];
-    for (const y of sideY) {
-      ctx.fillRect(-70, y, 4, 4);
-      ctx.fillRect(66, y, 4, 4);
-    }
-    
-    // Bottom bolts
-    ctx.fillRect(-64, -7, 4, 4);
-    ctx.fillRect(-44, -7, 4, 4);
-    ctx.fillRect(-24, -7, 4, 4);
-    ctx.fillRect(20, -7, 4, 4);
-    ctx.fillRect(40, -7, 4, 4);
-    ctx.fillRect(60, -7, 4, 4);
-
-    ctx.restore();
-  }
-
-  // Tier 3: Dynamic lava falls spilling into cooling pools
-  const showTier3 = tier >= 3 ? 1 : 0;
-  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
-  if (tier3Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier3Prog;
-
-    // Lava pools at base
-    const poolGrad = ctx.createLinearGradient(0, -10, 0, 0);
-    poolGrad.addColorStop(0, "#f90");
-    poolGrad.addColorStop(1, "#a20");
-    ctx.fillStyle = poolGrad;
-    ctx.fillRect(-95, -10, 40, 10);
-    ctx.fillRect(55, -10, 40, 10);
-
-    // Cooling pools edges
-    ctx.fillStyle = "#222";
-    ctx.fillRect(-100, -15, 5, 15);
-    ctx.fillRect(-55, -15, 5, 15);
-    ctx.fillRect(50, -15, 5, 15);
-    ctx.fillRect(95, -15, 5, 15);
-
-    // Dynamic Lava Falls
-    const drawLavaFall = (x) => {
-      let scrollOffset = (t * 2) % 1;
-      if (scrollOffset < 0) scrollOffset += 1;
-      const lavaFallGrad = ctx.createLinearGradient(0, -90, 0, -10);
-
-      const stops = [
-        {
-          offset: Math.max(0, Math.min(1, (0 + scrollOffset) % 1)),
-          color: "#ff0",
-        },
-        {
-          offset: Math.max(0, Math.min(1, (0.33 + scrollOffset) % 1)),
-          color: "#f50",
-        },
-        {
-          offset: Math.max(0, Math.min(1, (0.66 + scrollOffset) % 1)),
-          color: "#a20",
-        },
-      ];
-
-      stops.sort((a, b) => a.offset - b.offset);
-      for (const s of stops) {
-        lavaFallGrad.addColorStop(s.offset, s.color);
-      }
-
-      const firstStop = stops[0];
-      const lastStop = stops[stops.length - 1];
-      if (firstStop.offset > 0) lavaFallGrad.addColorStop(0, lastStop.color);
-      if (lastStop.offset < 1) lavaFallGrad.addColorStop(1, firstStop.color);
-
-      // Just to be absolutely safe, avoid duplicate stops at 0 or 1. Actually the safest is just adding them if they aren't duplicate, but the clipping in math.max usually prevents exceptions.
-      // The negative issue was due to modulo of negative numbers in JS (if t was negative), so our `if (scrollOffset < 0) scrollOffset += 1;` fixes the negative.
-      ctx.fillStyle = lavaFallGrad;
-
-      // Straight lava stream
-      ctx.fillRect(x - 8, -90, 16, 80);
-
-      // Spouts
-      ctx.fillStyle = "#333";
-      ctx.fillRect(x - 12, -100, 24, 10);
-      ctx.fillStyle = "#f90";
-      ctx.fillRect(x - 10, -95, 20, 5);
-
-      // Steam from pool
-      if (tier3Prog > 0.8) {
-        for (let i = 0; i < 3; i++) {
-          const steamT = (t + i * 1.5) % 3;
-          const steamY = -10 - steamT * 20;
-          const steamX = x + Math.sin(steamT * 4 + i) * 10;
-          const steamAlpha = 1 - steamT / 3;
-          ctx.fillStyle = `rgba(200, 200, 200, ${steamAlpha * 0.4})`;
-          ctx.beginPath();
-          ctx.arc(steamX, steamY, 5 + steamT * 5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    };
-
-    drawLavaFall(-75);
-    drawLavaFall(75);
-
-    ctx.restore();
-  }
-
-  // Tier 5: Heavy Industrial Vents - Glowing orange/red heat emitting from industrial vents
-  const showTier5 = tier >= 5 ? 1 : 0;
-  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
-  if (tier5Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-
-    const heatGlow = 0.5 + 0.5 * Math.sin(t * 4);
-
-    const drawVent = (x, y, w, h) => {
-      ctx.save();
-      ctx.translate(x, y);
-
-      // Vent casing
-      ctx.fillStyle = "#222";
-      ctx.fillRect(-w / 2, -h / 2, w, h);
-      ctx.strokeStyle = "#111";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-w / 2, -h / 2, w, h);
-
-      // Glowing interior
-      ctx.fillStyle = `rgba(255, ${100 + heatGlow * 50}, 0, ${0.6 + 0.4 * heatGlow})`;
-      ctx.fillRect(-w / 2 + 2, -h / 2 + 2, w - 4, h - 4);
-
-      // Grates
-      ctx.fillStyle = "#000";
-      for (let i = -h / 2 + 4; i < h / 2 - 2; i += 4) {
-        ctx.fillRect(-w / 2 + 2, i, w - 4, 2);
-      }
-
-      ctx.restore();
-    };
-
-    // Draw vents embedded into the structure walls
-    // 3 vents on each side, slightly adjusted to fit
-    drawVent(-48, -27, 16, 20); // Bottom left
-    drawVent(-48, -54, 16, 20); // Mid left
-    drawVent(-48, -81, 16, 20); // Top left
-
-    drawVent(48, -27, 16, 20); // Bottom right
-    drawVent(48, -54, 16, 20); // Mid right
-    drawVent(48, -81, 16, 20); // Top right
-
-    // Two vents on top instead of 1 large one
-    drawVent(-16, -81, 16, 20);
-    drawVent(16, -81, 16, 20);
-
-    ctx.restore();
-  }
-
-  // Tier 6: Hyper-Accelerated Exhaust - Animated turbine fans blowing intense magma flame jets
-  const showTier6 = tier >= 6 ? 1 : 0;
-  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
-  if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-
-    const drawTurbineExhaust = (x, isLeft) => {
-      ctx.save();
-      ctx.translate(x, -80);
-
-      // Housing
-      ctx.fillStyle = "#1a1a1a";
-      ctx.fillRect(isLeft ? -30 : 0, -20, 30, 40);
-
-      // Turbine casing details
-      ctx.fillStyle = "#333";
-      ctx.fillRect(isLeft ? -25 : 5, -15, 20, 30);
-
-      // Glowing red-hot interior
-      const heatGlow = 0.5 + 0.5 * Math.sin(t * 8);
-      ctx.fillStyle = `rgba(255, ${50 + heatGlow * 100}, 0, 0.8)`;
-      ctx.fillRect(isLeft ? -22 : 8, -12, 14, 24);
-
-      // Turbine Fan blades
-      ctx.save();
-      ctx.translate(isLeft ? -15 : 15, 0);
-      ctx.rotate(t * (isLeft ? -20 : 20)); // Spin very fast
-      ctx.fillStyle = "#111";
-      for (let i = 0; i < 4; i++) {
-        ctx.rotate(Math.PI / 2);
-        ctx.beginPath();
-        ctx.moveTo(-2, 0);
-        ctx.lineTo(-8, -10);
-        ctx.lineTo(8, -10);
-        ctx.lineTo(2, 0);
-        ctx.fill();
-      }
-      // Center spinner
-      ctx.fillStyle = "#444";
-      ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      // Blue flame exhaust
-      if (tier6Prog > 0) {
-        const firePulse = Math.random() * 0.4;
-        const fireW = (40 + firePulse * 20) * (isLeft ? -1 : 1);
-        const fireGrad = ctx.createLinearGradient(
-          isLeft ? -30 : 30,
-          0,
-          isLeft ? -30 + fireW : 30 + fireW,
-          0,
-        );
-        fireGrad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
-        fireGrad.addColorStop(0.2, "rgba(255, 200, 0, 0.8)");
-        fireGrad.addColorStop(0.5, "rgba(255, 100, 0, 0.5)");
-        fireGrad.addColorStop(1, "rgba(255, 0, 0, 0)");
-
-        ctx.fillStyle = fireGrad;
-        ctx.beginPath();
-        ctx.moveTo(isLeft ? -30 : 30, -10);
-        ctx.lineTo(isLeft ? -30 + fireW : 30 + fireW, -5 - firePulse * 10);
-        ctx.lineTo(isLeft ? -30 + fireW : 30 + fireW, 5 + firePulse * 10);
-        ctx.lineTo(isLeft ? -30 : 30, 10);
-        ctx.fill();
-      }
-      ctx.restore();
-    };
-
-    drawTurbineExhaust(-65, true);
-    drawTurbineExhaust(65, false);
-
-    ctx.restore();
-  }
-
-  // Tier 7: Lava Containers
-  const showTier7 = tier >= 7 ? 1 : 0;
-  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
-  if (tier7Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier7Prog;
-
-    const drawLavaContainer = (x, isLeft) => {
-      ctx.save();
-      ctx.translate(x, -10); // Base of the building
-
-      // Pipe connection to the lava pool (KEEP)
-      ctx.fillStyle = "#111";
-      if (isLeft) {
-        ctx.fillRect(15, -20, 25, 15); // Connects to the right (towards the pool)
-      } else {
-        ctx.fillRect(-40, -20, 25, 15); // Connects to the left (towards the pool)
-      }
-
-      // Glowing intake (KEEP)
-      const heatPulse = 0.5 + 0.5 * Math.sin(t * 8);
-      ctx.fillStyle = `rgba(255, ${100 + heatPulse * 100}, 0, 0.8)`;
-      if (isLeft) {
-        ctx.fillRect(15, -15, 10, 5);
-      } else {
-        ctx.fillRect(-25, -15, 10, 5);
-      }
-
-      // Lifted Silo parameters
-      const containerWidth = 30;
-      const containerHeight = 40;
-      const siloX = isLeft ? -15 : -15; // center of the silo relative to connection point
-      const siloY = -containerHeight; // lift it up slightly so it doesn't touch ground
-
-      // Silo Back wall (dark background inside)
-      ctx.fillStyle = "#1a0a00";
-      ctx.fillRect(siloX, siloY, containerWidth, containerHeight);
-
-      // Lava inside
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(siloX, siloY, containerWidth, containerHeight);
-      ctx.clip();
-
-      // Lava level and motion
-      const fillLvl = 0.7 + 0.2 * Math.sin(t * 1);
-      const currentLavaHeight = containerHeight * fillLvl;
-      const lavaY = siloY + containerHeight - currentLavaHeight;
-
-      // Lava gradient
-      const lavaGrad = ctx.createLinearGradient(
-        0,
-        lavaY,
-        0,
-        siloY + containerHeight,
-      );
-      lavaGrad.addColorStop(0, "#ffcc00"); // top is hot/bright
-      lavaGrad.addColorStop(0.3, "#ff6600");
-      lavaGrad.addColorStop(1, "#cc2200"); // bottom is darker
-
-      ctx.fillStyle = lavaGrad;
-      ctx.fillRect(siloX, lavaY, containerWidth, currentLavaHeight);
-
-      // Lava bubbles moving up
-      for (let i = 0; i < 8; i++) {
-        const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
-        const bubbleX =
-          siloX +
-          5 +
-          ((i * 3) % (containerWidth - 10)) +
-          Math.sin(t * 3 + i) * 2;
-        const bubbleY = siloY + containerHeight - bubbleT * currentLavaHeight;
-        const bubbleRadius = 1 + (i % 3);
-
-        // only draw if below the surface
-        if (bubbleY > lavaY + bubbleRadius) {
-          ctx.fillStyle = "rgba(255, 200, 100, 0.7)";
-          ctx.beginPath();
-          ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      ctx.restore();
-
-      // Glass reflection/shine
-      if (isLeft) {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.fillRect(siloX + 3, siloY + 2, 5, containerHeight - 4);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
-        ctx.fillRect(siloX + 8, siloY + 2, 3, containerHeight - 4);
-      } else {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.fillRect(
-          siloX + containerWidth - 8,
-          siloY + 2,
-          5,
-          containerHeight - 4,
-        );
-        ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
-        ctx.fillRect(
-          siloX + containerWidth - 11,
-          siloY + 2,
-          3,
-          containerHeight - 4,
-        );
-      }
-
-      // Metal caps (Top and Bottom of Silo)
-      ctx.fillStyle = "#222";
-      ctx.fillRect(siloX - 2, siloY - 5, containerWidth + 4, 5); // Top cap
-      ctx.fillRect(siloX - 2, siloY + containerHeight, containerWidth + 4, 5); // Bottom cap
-
-      // Side supports/frame for the glass
-      ctx.fillStyle = "#111";
-      ctx.fillRect(siloX, siloY, 3, containerHeight); // Left frame
-      ctx.fillRect(siloX + containerWidth - 3, siloY, 3, containerHeight); // Right frame
-
-      ctx.restore();
-    };
-
-    // Positioned at the outer edges of the cooling pools
-    drawLavaContainer(-105, true);
-    drawLavaContainer(105, false);
-
-    ctx.restore();
-  }
-
-  // Tier 4: The Core Unleashed - Blast doors open revealing intensely bright plasma core casting rays
-  const showTier4 = tier >= 4 ? 1 : 0;
-  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
-
-  // Draw furnace opening
-  const pulse = Math.abs(Math.sin(t * 5));
-  const corePulse = 0.8 + 0.2 * Math.sin(t * 15);
-
-  ctx.fillStyle = "#050505";
-  if (tier4Prog < 1) {
-    ctx.save();
-    ctx.globalAlpha = 1 - tier4Prog;
-    ctx.fillRect(-20, -40, 40, 40);
-    ctx.restore();
-  }
-  if (tier4Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog;
-    ctx.fillRect(-30, -60, 60, 60);
-    ctx.restore();
-  }
-
-  const showTier8ForCore = tier >= 8 ? 1 : 0;
-  const tier8CoreProg =
-    tier >= 8 && prevTier < 8 ? animProgress : showTier8ForCore;
-
-  const drawPlasmaCore = (alpha, mult, baseRayAlpha) => {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    
-    // Plasma core
-    const coreRadius = (15 + pulse * 5) * mult;
-    const coreGrad = ctx.createRadialGradient(
-      0,
-      -30,
-      0,
-      0,
-      -30,
-      coreRadius * 2,
-    );
-    coreGrad.addColorStop(0, "#ffffff");
-    coreGrad.addColorStop(0.2, "#ffcc00");
-    coreGrad.addColorStop(0.5, "#ff3300");
-    coreGrad.addColorStop(1, "rgba(255, 50, 0, 0)");
-
-    ctx.fillStyle = coreGrad;
-    ctx.beginPath();
-    ctx.arc(0, -30, coreRadius * 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Light rays casting outwards
-    ctx.save();
-    ctx.translate(0, -30);
-    for (let i = 0; i < 6; i++) {
-      const angle = (t * 2 + (i * Math.PI) / 3) % (Math.PI * 2);
-      ctx.rotate(angle);
-
-      const rayLen = 80 * corePulse * mult;
-      const rayGrad = ctx.createLinearGradient(0, 0, 0, rayLen);
-      const rayAlpha = Math.min(1.0, baseRayAlpha);
-      rayGrad.addColorStop(0, `rgba(255, 200, 100, ${rayAlpha})`);
-      rayGrad.addColorStop(1, "rgba(255, 50, 0, 0)");
-
-      ctx.fillStyle = rayGrad;
-      ctx.beginPath();
-      ctx.moveTo(-2 * mult, 0);
-      ctx.lineTo(2 * mult, 0);
-      ctx.lineTo(10 * mult, rayLen);
-      ctx.lineTo(-10 * mult, rayLen);
-      ctx.fill();
-      ctx.rotate(-angle);
-    }
-    ctx.restore();
-    ctx.restore();
-  };
-
-  if (tier4Prog > 0 && tier8CoreProg < 1) {
-    drawPlasmaCore(tier4Prog * (1 - tier8CoreProg), 1, 0.4 * tier4Prog);
-  }
-  
-  if (tier8CoreProg > 0) {
-    drawPlasmaCore(tier8CoreProg, 2.5, 0.8 * tier8CoreProg);
-  }
-  
-  if (tier4Prog < 1) {
-    ctx.save();
-    ctx.globalAlpha = 1 - tier4Prog;
-    // Base tier opening (closed doors)
-    // Fiery orangish-red/yellow/orange glow
-    ctx.fillStyle = `rgba(255, ${50 + pulse * 100}, 0, 0.8)`;
-    ctx.fillRect(
-      -15,
-      -35,
-      30,
-      35,
-    );
-    ctx.restore();
-  }
-
-  // Handle ground glow crossfading between 3 states
-  if (tier4Prog < 1) {
-    ctx.save();
-    ctx.globalAlpha = 1 - tier4Prog;
-    const groundGlow = ctx.createRadialGradient(
-      0,
-      -20,
-      10,
-      0,
-      0,
-      60,
-    );
-    groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, 0.4)`);
-    groundGlow.addColorStop(1, "rgba(255, 100, 0, 0)");
-    ctx.fillStyle = groundGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, 60, Math.PI, 0);
-    ctx.fill();
-    ctx.restore();
-  }
-  
-  if (tier4Prog > 0 && tier8CoreProg < 1) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog * (1 - tier8CoreProg);
-    const groundGlow = ctx.createRadialGradient(
-      0,
-      -30,
-      10,
-      0,
-      0,
-      120,
-    );
-    groundGlow.addColorStop(
-      0,
-      `rgba(255, 100, 0, ${0.4 * corePulse})`,
-    );
-    groundGlow.addColorStop(1, "rgba(255, 50, 0, 0)");
-    ctx.fillStyle = groundGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, 120, Math.PI, 0);
-    ctx.fill();
-    ctx.restore();
-  }
-  
-  if (tier8CoreProg > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier8CoreProg;
-    const groundGlow = ctx.createRadialGradient(
-      0,
-      -30,
-      10,
-      0,
-      0,
-      200,
-    );
-    groundGlow.addColorStop(
-      0,
-      `rgba(255, 100, 0, ${0.8 * corePulse})`,
-    );
-    groundGlow.addColorStop(1, "rgba(255, 50, 0, 0)");
-    ctx.fillStyle = groundGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, 200, Math.PI, 0);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  /* COMMENTING OUT ALL OF THIS CODE IN CASE I WANT TO REUSE IT FOR A SIMILAR THING ANOTHER TIME. DO NOT REMOVE THIS COMMENTED OUT CODE.
-    // Tier 8: The World Forge - Geothermal magma engine
-    const showTier8 = (tier >= 8) ? 1 : 0;
-    const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
-    if (tier8Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier8Prog;
-        
-        // Cracked Ground Lava removed as per requirements
-
-        // Massive Contained Magma Core (Internal)
-        ctx.save();
-        ctx.translate(0, -100); // Placed within the base furnace area instead of high up
-        
-        const corePulse = Math.abs(Math.sin(t * 15));
-
-        // Exhaust magma beam firing upwards infinitely
-        const beamW = 30 + corePulse * 15;
-        const beamHeight = 1000; // Extend past top of viewport
-        
-        // Exhaust magma beam matching core colors (reddish-orange)
-        // Horizontal gradient for a constant vertical appearance
-        const beamGrad = ctx.createLinearGradient(-beamW/2, 0, beamW/2, 0);
-        
-        beamGrad.addColorStop(0, `rgba(255, 51, 0, ${0.9 * tier8Prog})`);       // Reddish-orange edge
-        beamGrad.addColorStop(0.2, `rgba(255, 102, 0, ${0.9 * tier8Prog})`);    // Fiery orange
-        beamGrad.addColorStop(0.5, `rgba(255, 204, 0, ${0.9 * tier8Prog})`);    // Yellowish center
-        beamGrad.addColorStop(0.8, `rgba(255, 102, 0, ${0.9 * tier8Prog})`);    // Fiery orange
-        beamGrad.addColorStop(1, `rgba(255, 51, 0, ${0.9 * tier8Prog})`);       // Reddish-orange edge
-        
-        ctx.fillStyle = beamGrad;
-        ctx.fillRect(-beamW/2, -beamHeight, beamW, beamHeight);
-
-        // Core housing (integrated)
-        ctx.fillStyle = '#0a0a0a';
-        ctx.fillRect(-45, -30, 90, 60);
-        
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(-45, -30, 90, 60);
-
-        // Glowing magma center
-        const magmaGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
-        magmaGrad.addColorStop(0, '#ffffff');
-        magmaGrad.addColorStop(0.2, '#ffcc00');
-        magmaGrad.addColorStop(0.6, '#ff3300');
-        magmaGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-        
-        ctx.fillStyle = magmaGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, 30 + corePulse * 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Magma containment vents (instead of rings)
-        ctx.fillStyle = '#111';
-        for(let i = -30; i <= 30; i+= 15) {
-             ctx.fillRect(i - 2, -25, 4, 50);
-        }
-
-        ctx.restore();
-        
-        ctx.restore();
-    }
-*/
-}
-
-function drawGear(ctx, r, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#222";
-  ctx.beginPath();
-  ctx.arc(0, 0, r / 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = color;
-  for (let i = 0; i < 8; i++) {
-    ctx.save();
-    ctx.rotate((i / 8) * Math.PI * 2);
-    ctx.fillRect(-2, -r - 3, 4, 6);
-    ctx.restore();
-  }
-}
-
-function drawCharger(ctx, t, tier, prevTier, animProgress) {
-  const showTier1 = tier >= 1 ? 1 : 0;
-  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
-  const showTier2 = tier >= 2 ? 1 : 0;
-  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
-  const showTier3 = tier >= 3 ? 1 : 0;
-  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
-  const showTier4 = tier >= 4 ? 1 : 0;
-  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
-  const showTier5 = tier >= 5 ? 1 : 0;
-  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
-  const showTier6 = tier >= 6 ? 1 : 0;
-  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
-  const showTier7 = tier >= 7 ? 1 : 0;
-  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
-  const showTier8 = tier >= 8 ? 1 : 0;
-  const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
-
-  // Common function for drawing lightning bolts
-  const drawLightning = (
-    sx,
-    sy,
-    ex,
-    ey,
-    segments,
-    jitter,
-    color,
-    lineWidth,
-  ) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    for (let j = 1; j < segments; j++) {
-      const tPos = j / segments;
-      const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
-      const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
-      ctx.lineTo(px, py);
-    }
-    ctx.lineTo(ex, ey);
-    ctx.stroke();
-
-    // Core (white)
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.lineWidth = lineWidth * 0.4;
-    ctx.stroke();
-  };
-
-  const extraBaseWidth = tier4Prog * 10;
-  const prongOffset = 40 + extraBaseWidth;
-
-  // Tier 0 (Foundation)
-  if (!copperPattern && activeCtx) {
-    initCopperPattern(activeCtx);
-  }
-
-  // Unpowered prongs/nodes for Tier 0 (Drawn before base so coils are behind)
-  ctx.fillStyle = "#111";
-  const prongHeight = 10.5 + tier1Prog * 36.4; // 30% shorter in Tier 1
-  ctx.fillRect(-prongOffset - 5, -40 - prongHeight, 10, prongHeight);
-  ctx.fillRect(prongOffset - 5, -40 - prongHeight, 10, prongHeight);
-  ctx.fillStyle = copperPattern ? copperPattern : "#b6673f";
-  ctx.beginPath();
-  ctx.arc(-prongOffset, -40 - prongHeight, 6, 0, Math.PI * 2);
-  ctx.arc(prongOffset, -40 - prongHeight, 6, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Tier 1 (Tall Coils & Glow - Drawn before base)
-  if (tier1Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier1Prog;
-
-    // Large copper coils wrapping around the tall prongs
-    ctx.strokeStyle = "#e99f79"; // bright copper
-    ctx.lineWidth = 2;
-    const numCoils = 3 + Math.floor(10 * tier1Prog); // Less dense coils
-    const coilSpacing = prongHeight / numCoils;
-    for (let i = 0; i < numCoils; i++) {
-      ctx.beginPath();
-      ctx.moveTo(-prongOffset - 8, -40 - prongHeight + 5 + i * coilSpacing);
-      ctx.lineTo(-prongOffset + 8, -40 - prongHeight + 7 + i * coilSpacing);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(prongOffset - 8, -40 - prongHeight + 5 + i * coilSpacing);
-      ctx.lineTo(prongOffset + 8, -40 - prongHeight + 7 + i * coilSpacing);
-      ctx.stroke();
-    }
-
-    // Faint glow
-    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-    const topY = -40 - prongHeight;
-    const glowRad = ctx.createRadialGradient(
-      -prongOffset,
-      topY,
-      0,
-      -prongOffset,
-      topY,
-      20 + 10 * tier1Prog,
-    );
-    glowRad.addColorStop(0, `rgba(0, 200, 255, ${0.4 * pulse})`);
-    glowRad.addColorStop(1, "rgba(0, 200, 255, 0)");
-    ctx.fillStyle = glowRad;
-    ctx.beginPath();
-    ctx.arc(-prongOffset, topY, 20 + 10 * tier1Prog, 0, Math.PI * 2);
-    ctx.fill();
-
-    const glowRad2 = ctx.createRadialGradient(
-      prongOffset,
-      topY,
-      0,
-      prongOffset,
-      topY,
-      20 + 10 * tier1Prog,
-    );
-    glowRad2.addColorStop(0, `rgba(0, 200, 255, ${0.4 * pulse})`);
-    glowRad2.addColorStop(1, "rgba(0, 200, 255, 0)");
-    ctx.fillStyle = glowRad2;
-    ctx.beginPath();
-    ctx.arc(prongOffset, topY, 20 + 10 * tier1Prog, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Occasional static spark
-    if (Math.random() > 0.9) {
-      drawLightning(
-        -prongOffset,
-        topY,
-        -prongOffset + (Math.random() - 0.5) * 20,
-        topY - Math.random() * 20,
-        2,
-        5,
-        "rgba(100, 200, 255, 0.6)",
-        1,
-      );
-    }
-    if (Math.random() > 0.9) {
-      drawLightning(
-        prongOffset,
-        topY,
-        prongOffset + (Math.random() - 0.5) * 20,
-        topY - Math.random() * 20,
-        2,
-        5,
-        "rgba(100, 200, 255, 0.6)",
-        1,
-      );
-    }
-
-    ctx.restore();
-  }
-
-  // Tier 2 (Small Capacitor Nodes - drawn behind base)
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-
-    const drawCapacitor = (x, y, index) => {
-      ctx.save();
-      ctx.translate(x, y);
-
-      // Capacitor body
-      if (copperPattern) {
-        ctx.fillStyle = copperPattern;
-      } else {
-        ctx.fillStyle = "#b6673f";
-      }
-      ctx.fillRect(-6, -12, 12, 12);
-      ctx.fillStyle = "#555";
-      ctx.fillRect(-4, -14, 8, 2);
-
-      // Dim glow
-      const pulse = 0.5 + 0.5 * Math.sin(t * 3 - index * (Math.PI / 2));
-      ctx.fillStyle = `rgba(0, 200, 255, ${0.3 * pulse})`;
-      ctx.beginPath();
-      ctx.arc(0, -14, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Tiny spark
-      if (Math.random() > 0.95) {
-        ctx.strokeStyle = "rgba(100, 255, 255, 0.8)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, -14);
-        ctx.lineTo((Math.random() - 0.5) * 10, -14 - Math.random() * 10);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    };
-
-    drawCapacitor(-74 - extraBaseWidth, -20, 0);
-    drawCapacitor(74 + extraBaseWidth, -20, 1);
-    drawCapacitor(-54 - extraBaseWidth, -40, 2);
-    drawCapacitor(54 + extraBaseWidth, -40, 3);
-
-    ctx.restore();
-  }
-
-  // Draw heavy metallic base / charging pad
-  if (copperPattern) {
-    ctx.fillStyle = copperPattern;
-  } else {
-    ctx.fillStyle = "#b6673f";
-  }
-  ctx.fillRect(-80 - extraBaseWidth, -20, 160 + extraBaseWidth * 2, 20);
-  ctx.beginPath();
-  ctx.moveTo(-70.5 - extraBaseWidth, -19);
-  ctx.lineTo(-60 - extraBaseWidth, -40);
-  ctx.lineTo(60 + extraBaseWidth, -40);
-  ctx.lineTo(70.5 + extraBaseWidth, -19);
-  ctx.fill();
-
-  if (copperPattern) {
-    ctx.fillStyle = copperPattern;
-  } else {
-    ctx.fillStyle = "#b6673f";
-  }
-  // Copper trim and small prongs
-  ctx.fillRect(-80 - extraBaseWidth, -5, 160 + extraBaseWidth * 2, 5);
-  ctx.fillRect(-60 - extraBaseWidth, -40, 120 + extraBaseWidth * 2, 5);
-
-  // Tier 0 Occasional Lightning Spark to center (From top of prongs)
-  if (Math.random() > 0.9) {
-    const yPos = -40 - prongHeight; // Top of the prongs
-    drawLightning(
-      -prongOffset,
-      yPos,
-      prongOffset,
-      yPos,
-      4,
-      10,
-      "rgba(0, 200, 255, 0.6)",
-      1.5,
-    );
-  }
-  // Tier 3 (Tesla Nodes)
-  if (tier3Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier3Prog;
-
-    const drawTeslaNode = (x, y, index) => {
-      ctx.save();
-      // Slight vertical bobbing
-      const bobbingY = y + Math.sin(t * 2 + index) * 5;
-      ctx.translate(x, bobbingY);
-
-      // Outer Glow
-      const glowRad = ctx.createRadialGradient(0, 0, 0, 0, 0, 18);
-      glowRad.addColorStop(0, `rgba(0, 255, 255, ${0.6 * tier3Prog})`);
-      glowRad.addColorStop(1, "rgba(0, 255, 255, 0)");
-      ctx.fillStyle = glowRad;
-      ctx.beginPath();
-      ctx.arc(0, 0, 18, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Inner bright sphere
-      ctx.fillStyle = "#e0ffff";
-      ctx.beginPath();
-      ctx.arc(0, 0, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Lightning arcs extending outwards from nodes
-      if (Math.random() > 0.9) {
-        ctx.strokeStyle = "rgba(150, 255, 255, 0.8)";
-        ctx.lineWidth = 1.5;
-        const angle = Math.random() * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(angle) * 15, Math.sin(angle) * 15);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    };
-
-    // Positioned hovering slightly above and corresponding to the Tier 2 capacitors
-    const nodePositions = [
-      { x: -74 - extraBaseWidth, y: -45 },
-      { x: 74 + extraBaseWidth, y: -45 },
-      { x: -54 - extraBaseWidth, y: -65 },
-      { x: 54 + extraBaseWidth, y: -65 },
-    ];
-
-    for (let i = 0; i < nodePositions.length; i++) {
-      drawTeslaNode(nodePositions[i].x, nodePositions[i].y, i);
-    }
-
-    // Connect left nodes (0 and 2) to avoid crossing the center
-    if (Math.random() > 0.95) {
-      const p1 = nodePositions[0];
-      const p2 = nodePositions[2];
-      const bobY1 = p1.y + Math.sin(t * 2 + 0) * 5;
-      const bobY2 = p2.y + Math.sin(t * 2 + 2) * 5;
-      drawLightning(
-        p1.x,
-        bobY1,
-        p2.x,
-        bobY2,
-        4,
-        8,
-        "rgba(100, 255, 255, 0.5)",
-        1.5,
-      );
-    }
-
-    // Connect right nodes (1 and 3) to avoid crossing the center
-    if (Math.random() > 0.95) {
-      const p1 = nodePositions[1];
-      const p2 = nodePositions[3];
-      const bobY1 = p1.y + Math.sin(t * 2 + 1) * 5;
-      const bobY2 = p2.y + Math.sin(t * 2 + 3) * 5;
-      drawLightning(
-        p1.x,
-        bobY1,
-        p2.x,
-        bobY2,
-        4,
-        8,
-        "rgba(100, 255, 255, 0.5)",
-        1.5,
-      );
-    }
-
-    ctx.restore();
-  }
-
-  // Tier 4 (Cyan Stepped Pyramid with Floating Rings and Glowing Orb)
-
-  const drawTier7Rings = (isFrontPass) => {
-    if (tier7Prog <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
-    ctx.globalCompositeOperation = "lighter";
-
-    const ringCenterY = -150; // Orbiting high above to prevent ground clipping
-
-    ctx.save();
-    ctx.translate(0, ringCenterY);
-
-    const numRings = 4;
-    for (let i = 0; i < numRings; i++) {
-      ctx.save();
-
-      // Rings have different, nested radii
-      const ringRadius = 90 + i * 25;
-
-      // Constrain angles for 3D rotation so they don't clip into the upright Tier 4 Tesla Coil
-      // We restrict angleX (tilt) to a small range (e.g., -PI/8 to PI/8)
-      // The Rings can spin freely around Y, but with limited tilt in X and Z.
-      // Rings act like a gyroscope: fixed tilt per ring, spinning around Y.
-      const angleX = Math.PI / 3; // Tilt them so they look like rings (fixed)
-      const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2); // Orbit over time, offset per ring
-      const angleZ = 0; // Not needed, Z rotation on an XY circle is invisible
-
-      // 3x3 Rotation matrix to calculate true 2D projection and Z-depth
-      const sinX = Math.sin(angleX),
-        cosX = Math.cos(angleX);
-      const sinY = Math.sin(angleY);
-      const cosY = Math.cos(angleY);
-
-      const sinZ = Math.sin(angleZ),
-        cosZ = Math.cos(angleZ);
-
-      // Elements of the combined rotation matrix R = Ry * Rx * Rz
-      const r00 = cosY * cosZ + sinY * sinX * sinZ;
-      const r01 = -cosY * sinZ + sinY * sinX * cosZ;
-      const r10 = cosX * sinZ;
-      const r11 = cosX * cosZ;
-      const r20 = -sinY * cosZ + cosY * sinX * sinZ;
-      const r21 = sinY * sinZ + cosY * sinX * cosZ;
-
-      // Apply the exact affine transform for the 2D projection
-      ctx.transform(r00, r10, r01, r11, 0, 0);
-
-      // Z = r20 * cos(a) + r21 * sin(a)
-      // We want to find the angles where Z = 0 (the split between front and back)
-      // Z = 0 => r20 * cos(a) + r21 * sin(a) = 0 => tan(a) = -r20 / r21
-      const theta0 = Math.atan2(-r20, r21);
-
-      // Check Z at mid-point (theta0 + PI/2)
-      const zAtMid =
-        r20 * Math.cos(theta0 + Math.PI / 2) +
-        r21 * Math.sin(theta0 + Math.PI / 2);
-      const isMidFront = zAtMid >= 0;
-
-      let startAngle, endAngle;
-      if (isFrontPass) {
-        startAngle = isMidFront ? theta0 : theta0 + Math.PI;
-        endAngle = startAngle + Math.PI;
-      } else {
-        startAngle = isMidFront ? theta0 + Math.PI : theta0;
-        endAngle = startAngle + Math.PI;
-      }
-
-      // Draw the ring path
-      ctx.beginPath();
-      ctx.arc(0, 0, ringRadius, startAngle, endAngle);
-
-      ctx.restore(); // Restore here so strokes and nodes aren't squashed
-
-      ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      // Inner core of the ring
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Add energy nodes on the ring
-      const numNodes = 3;
-      for (let j = 0; j < numNodes; j++) {
-        const nodeAngle = t * 3 + (j * Math.PI * 2) / numNodes;
-
-        // Normalize nodeAngle to [0, 2PI]
-        let normNodeAngle = nodeAngle % (Math.PI * 2);
-        if (normNodeAngle < 0) normNodeAngle += Math.PI * 2;
-
-        let nodeIsFront = false;
-
-        // Calculate continuous z-depth to ensure node logic exactly matches arc logic
-        const nz = r20 * Math.cos(nodeAngle) + r21 * Math.sin(nodeAngle);
-        nodeIsFront = nz >= 0;
-
-        if (nodeIsFront === isFrontPass) {
-          const nx = Math.cos(nodeAngle) * ringRadius;
-          const ny = Math.sin(nodeAngle) * ringRadius;
-
-          const px = r00 * nx + r01 * ny;
-          const py = r10 * nx + r11 * ny;
-
-          ctx.save();
-          ctx.translate(px, py);
-
-          const pScale = 0.85 + nz * 0.35;
-          ctx.scale(pScale, pScale);
-
-          const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
-          sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
-          sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
-          sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
-          ctx.fillStyle = sglow;
-          ctx.beginPath();
-          ctx.arc(0, 0, 16, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = "#fff";
-          ctx.beginPath();
-          ctx.arc(0, 0, 5, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.restore();
-        }
-      }
-    }
-
-    ctx.restore();
-    ctx.restore();
-  };
-
-  const drawT5Particles = (isFront) => {
-    if (tier5Prog <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-
-    const numRings = 3;
-    const numParticles = 3;
-    const orbitSpeed = 4;
-
-    for (let r = 0; r < numRings; r++) {
-      const ringYOffset = -80 - r * 50;
-      const ringWidth = 120 - r * 20;
-      const ringHeight = 30; // Matches tier 4 squashed ring
-
-      for (let i = 0; i < numParticles; i++) {
-        const dir = r % 2 === 0 ? 1 : -1;
-        const angle =
-          t * orbitSpeed * dir +
-          (i * Math.PI * 2) / numParticles +
-          (r * Math.PI) / 3;
-
-        const depth = Math.sin(angle);
-
-        if (isFront && depth < 0) continue;
-        if (!isFront && depth >= 0) continue;
-
-        const x = Math.cos(angle) * ringWidth;
-        const y = ringYOffset + depth * ringHeight;
-
-        ctx.save();
-        ctx.translate(x, y);
-
-        const pScale = 0.85 + depth * 0.35;
-        ctx.globalAlpha = tier5Prog;
-        ctx.scale(pScale, pScale);
-
-        const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
-        sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
-        sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
-        sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
-        ctx.fillStyle = sglow;
-        ctx.beginPath();
-        ctx.arc(0, 0, 16, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-      }
-    }
-
-    ctx.restore();
-  };
-
-  if (tier4Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog;
-
-    const steps = 8;
-    const stepHeight = 20;
-    const baseWidth = 80;
-    const numRings = 3;
-
-    drawTier7Rings(false);
-
-    // 1) Draw the BACK HALF of the Floating Rings first (so they are behind the pyramid)
-    ctx.lineWidth = 6;
-    const pulse = 0.5 + 0.5 * Math.sin(t * 4); // Shared pulse with the orb
-    for (let r = 0; r < numRings; r++) {
-      ctx.save();
-      const ringYOffset = -80 - r * 50;
-      ctx.translate(0, ringYOffset);
-      const ringWidth = 120 - r * 20;
-      const ringHeight = 30; // perspective squash
-
-      // Add cyan glow applied on top of the rings synced with orb. Glow size/intensity pulses.
-      ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
-      ctx.shadowBlur = 10 + pulse * 30;
-
-      // Draw back half of the ring with full brightness
-      ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * tier4Prog})`;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, Math.PI, 0); // top half (back)
-      ctx.stroke();
-
-      // Add a pure white core to the back part of the ring for intense electric look
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 0; // Turn off glow for the core so it doesn't double apply intensely
-      ctx.beginPath();
-      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, Math.PI, 0); // top half (back)
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    drawT5Particles(false);
-
-    // 2) Draw the Stepped Pyramid (covers the back half of the rings)
-    for (let i = 0; i < steps; i++) {
-      const y = -40 - i * stepHeight;
-      const width = baseWidth - i * 8; // Gets narrower at the top
-
-      if (copperPattern) {
-        ctx.fillStyle = copperPattern;
-      } else {
-        ctx.fillStyle = "#b6673f";
-      }
-
-      ctx.fillRect(-width / 2, y - stepHeight, width, stepHeight);
-	  
-      // Highlight edges for stepped look
-      ctx.strokeStyle = "#00ffff"; // Cyan edges
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = tier4Prog * 0.3; // subtle
-      ctx.strokeRect(-width / 2, y - stepHeight, width, stepHeight);
-      ctx.globalAlpha = tier4Prog;
-    }
-
-    // 3) The Glowing Orb at the top
-    const orbY = -40 - steps * stepHeight - 10;
-    const orbRadius = 25;
-
-    // pulse removed
-
-    // Outer glow for Orb
-    const orbGlow = ctx.createRadialGradient(
-      0,
-      orbY,
-      10,
-      0,
-      orbY,
-      60 + pulse * 20,
-    );
-    orbGlow.addColorStop(0, `rgba(0, 255, 255, ${0.8 * tier4Prog})`);
-    orbGlow.addColorStop(0.5, `rgba(0, 150, 255, ${0.4 * tier4Prog})`);
-    orbGlow.addColorStop(1, "rgba(0, 0, 255, 0)");
-    ctx.fillStyle = orbGlow;
-    ctx.beginPath();
-    ctx.arc(0, orbY, 80, 0, Math.PI * 2);
-    ctx.fill();
-
-    // The Orb itself
-    ctx.fillStyle = "#ffffff"; // pure white center
-    ctx.beginPath();
-    ctx.arc(0, orbY, orbRadius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Cyan inner shadow/gradient on Orb
-    const orbInner = ctx.createRadialGradient(0, orbY, 0, 0, orbY, orbRadius);
-    orbInner.addColorStop(0, "rgba(255,255,255,1)");
-    orbInner.addColorStop(0.7, "rgba(0,255,255,1)");
-    orbInner.addColorStop(1, "rgba(0,100,255,1)");
-    ctx.fillStyle = orbInner;
-    ctx.beginPath();
-    ctx.arc(0, orbY, orbRadius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 4) Draw the FRONT HALF of the Floating Rings (covers the pyramid)
-    ctx.lineWidth = 6;
-    for (let r = 0; r < numRings; r++) {
-      ctx.save();
-      const ringYOffset = -80 - r * 50;
-      ctx.translate(0, ringYOffset);
-      const ringWidth = 120 - r * 20;
-      const ringHeight = 30; // perspective squash
-
-      // Add cyan glow applied on top of the rings synced with orb. Glow size/intensity pulses.
-      ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
-      ctx.shadowBlur = 10 + pulse * 30;
-
-      // Draw front half of the ring
-      ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * tier4Prog})`;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, 0, Math.PI); // bottom half (front)
-      ctx.stroke();
-
-      // Add a pure white core to the front part of the ring for intense electric look
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 0; // Turn off glow for the core
-      ctx.beginPath();
-      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, 0, Math.PI); // bottom half (front)
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    drawT5Particles(true);
-
-    drawTier7Rings(true);
-
-    ctx.restore();
-  }
-  // Tier 6 (Plasma Crown)
-  if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-
-    const orbY = -40 - 8 * 20 - 10; // orb is at y = -210
-    const ringRadiusX = 70;
-    const ringRadiusY = 20;
-    const numSatellites = 6;
-    const orbitSpeed = 3;
-
-    for (let i = 0; i < numSatellites; i++) {
-      const angle = t * orbitSpeed + (i * Math.PI * 2) / numSatellites;
-      const px = Math.cos(angle) * ringRadiusX;
-      // Orbiting around the top orb
-      const py =
-        orbY + Math.sin(angle) * ringRadiusY + Math.sin(t * 5 + i) * 10;
-      const depth = Math.sin(angle);
-
-      // Pseudo-3D scale
-      const scale = 0.6 + depth * 0.4;
-
-      ctx.save();
-      ctx.translate(px, py);
-      ctx.scale(scale, scale);
-
-      // Crown node glow
-      const nodeGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
-      nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${1.0 * tier6Prog})`);
-      nodeGlow.addColorStop(0.4, `rgba(0, 255, 255, ${0.8 * tier6Prog})`);
-      nodeGlow.addColorStop(1, "rgba(0, 200, 255, 0)");
-
-      ctx.fillStyle = nodeGlow;
-      ctx.beginPath();
-      ctx.arc(0, 0, 25, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Node core
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Connect nodes to the orb with arcs
-      if (Math.random() > 0.8) {
-        ctx.strokeStyle = `rgba(150, 255, 255, ${0.5 * tier6Prog})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(
-          -px + (Math.random() - 0.5) * 10,
-          orbY - py + (Math.random() - 0.5) * 10,
-        );
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    }
-
-    ctx.restore();
-  }
-
-  // Tier 8 (Apex Unbound Energy)
-  if (tier8Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier8Prog;
-
-    const steps = 8;
-    const stepHeight = 20;
-    const orbY = -40 - steps * stepHeight - 10;
-
-    // Blinding plasma sphere enveloping the orb
-    const pulse = 0.5 + 0.5 * Math.sin(t * 12);
-
-    const glowRad = ctx.createRadialGradient(
-      0,
-      orbY,
-      20,
-      0,
-      orbY,
-      100 + pulse * 40,
-    );
-    glowRad.addColorStop(0, "rgba(255, 255, 255, 1.0)");
-    glowRad.addColorStop(0.3, "rgba(0, 255, 255, 0.8)");
-    glowRad.addColorStop(1, "rgba(0, 100, 255, 0)");
-    ctx.fillStyle = glowRad;
-    ctx.beginPath();
-    ctx.arc(0, orbY, 150, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Chaotic white-hot lightning firing OUT in ALL directions (360 degrees)
-    const numBolts = 4 + Math.floor(Math.random() * 4);
-    for (let i = 0; i < numBolts; i++) {
-      // Random angle in 360 degrees
-      const angle = Math.random() * Math.PI * 2;
-      // Random distance outwards
-      const dist = 100 + Math.random() * 150;
-
-      const destX = Math.cos(angle) * dist;
-      const destY = orbY + Math.sin(angle) * dist;
-
-      drawLightning(
-        0,
-        orbY,
-        destX,
-        destY,
-        6,
-        20,
-        "rgba(200, 255, 255, 0.9)",
-        3 + Math.random() * 3,
-      );
-    }
-
-    // Small occasional side arcs from the pyramid base
-    if (Math.random() > 0.5) {
-      drawLightning(
-        -40,
-        -60,
-        -100 - Math.random() * 40,
-        -60 + (Math.random() - 0.5) * 40,
-        4,
-        15,
-        "rgba(100, 255, 255, 0.7)",
-        2,
-      );
-    }
-    if (Math.random() > 0.5) {
-      drawLightning(
-        40,
-        -60,
-        100 + Math.random() * 40,
-        -60 + (Math.random() - 0.5) * 40,
-        4,
-        15,
-        "rgba(100, 255, 255, 0.7)",
-        2,
-      );
-    }
-
-    // Calculate and shoot lightning from orb to Tier 5 particles, and outwards from them
-    if (tier5Prog > 0) {
-      const numRings = 3;
-      const numParticles = 3;
-      const orbitSpeed = 4;
-
-      for (let r = 0; r < numRings; r++) {
-        const ringYOffset = -80 - r * 50;
-        const ringWidth = 120 - r * 20;
-        const ringHeight = 30;
-
-        for (let i = 0; i < numParticles; i++) {
-          // Only occasionally strike a particle
-          if (Math.random() > 0.85) continue;
-
-          const dir = r % 2 === 0 ? 1 : -1;
-          const angle =
-            t * orbitSpeed * dir +
-            (i * Math.PI * 2) / numParticles +
-            (r * Math.PI) / 3;
-
-          const depth = Math.sin(angle);
-          const x = Math.cos(angle) * ringWidth;
-          const y = ringYOffset + depth * ringHeight;
-
-          // Strike from orb to particle
-          drawLightning(
-            0,
-            orbY,
-            x,
-            y,
-            4,
-            15,
-            "rgba(150, 255, 255, 0.9)",
-            2 + Math.random(),
-          );
-
-          // Strike from particle outwards
-          const numOutwardBolts = 1 + Math.floor(Math.random() * 2);
-          for (let b = 0; b < numOutwardBolts; b++) {
-            // Add random spread to the angle outward
-            const outAngle = angle + (Math.random() - 0.5);
-            const dist = 60 + Math.random() * 100;
-            const endX = x + Math.cos(outAngle) * dist;
-            const endY = y + Math.sin(outAngle) * dist;
-
-            drawLightning(
-              x,
-              y,
-              endX,
-              endY,
-              4,
-              15,
-              "rgba(200, 255, 255, 0.9)",
-              1.5 + Math.random() * 1.5,
-            );
-          }
-        }
-      }
-    }
-
-    ctx.restore();
-  }
-}
-
-// Global helper to draw animated fluid pipes
-function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset, alpha = 1, capStyle = "round", customStroke = null, customSlit = null, customDash = null, fullFill = false, glow = true) {
-    if (alpha <= 0) return;
-    const isMulti = pathsOrPts.length > 0 && Array.isArray(pathsOrPts[0]);
-    const paths = isMulti ? pathsOrPts : [pathsOrPts];
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.lineJoin = "round";
-    ctx.lineCap = capStyle;
-
-    // Outer pipe
-    ctx.strokeStyle = customStroke ? customStroke : (ironPattern ? ironPattern : "#5a6a75");
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    for (const pts of paths) {
-      if (pts.length === 0) continue;
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.stroke();
-
-    if (!fullFill) {
-      // Pipe shadow overlay
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
-      ctx.lineWidth = width * 0.7;
-      ctx.stroke();
-
-      // Specular highlight
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.lineWidth = width * 0.2;
-      ctx.beginPath();
-      for (const pts of paths) {
-        if (pts.length === 0) continue;
-        for (let i = 0; i < pts.length; i++) {
-          if (i === 0) ctx.moveTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
-          else ctx.lineTo(pts[i].x - width * 0.15, pts[i].y - width * 0.15);
-        }
-      }
-      ctx.stroke();
-    }
-
-    // Fluid slit
-    if (fluidColor) {
-      let innerSlitW = fullFill ? (width > 6 ? width - 2 : width - 3) : width * 0.35;
-      let innerDashW = fullFill ? (width > 6 ? width - 2 : width - 3) : width * 0.2;
-
-      ctx.strokeStyle = customSlit ? customSlit : "#1a1a1a";
-      ctx.lineWidth = innerSlitW;
-      ctx.beginPath();
-      for (const pts of paths) {
-        if (pts.length === 0) continue;
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      }
-      ctx.stroke();
-
-      ctx.strokeStyle = fluidColor;
-      ctx.lineWidth = innerDashW;
-      
-      if (customDash) {
-          ctx.setLineDash(customDash);
-      } else {
-          const dashLen = width * 2.5;
-          ctx.setLineDash([dashLen, dashLen * 1.5]);
-      }
-      
-      ctx.lineDashOffset = -timeOffset * flowSpeed * 20;
-      ctx.stroke();
-
-      if (glow) {
-          ctx.shadowColor = fluidColor;
-          ctx.shadowBlur = width;
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-      }
-      ctx.setLineDash([]);
-    }
-
-    ctx.restore();
-}
-
-function drawRefinery(ctx, times, tier, prevTier, animProgress) {
-  const t = times.base;
-  const tPipe = times.pipe;
-  const tTank = times.tank;
-  const getProg = (targetTier) =>
-    tier >= targetTier && prevTier < targetTier
-      ? animProgress
-      : tier >= targetTier
-        ? 1
-        : 0;
-  const t1 = getProg(1);
-  const t2 = getProg(2);
-  const t3 = getProg(3);
-  const t4 = getProg(4);
-  const t5 = getProg(5);
-  const t6 = getProg(6);
-  const t7 = getProg(7);
-  const t8 = getProg(8);
-
-  if (!ironPattern && typeof activeCtx !== "undefined" && activeCtx) {
-    initIronPattern(activeCtx);
-  } else if (!ironPattern) {
-    initIronPattern(ctx);
-  }
-
-  const baseY = -20;
-  const baseWidth = 240; // Widened from 160
-  const oilColor = "rgba(20, 20, 20, 1)";
-  const sparkColor = "rgba(255, 255, 0, 0.9)"; // Bright yellow
-
-  // Common function for drawing lightning bolts
-  const drawLightning = (
-    sx,
-    sy,
-    ex,
-    ey,
-    segments,
-    jitter,
-    color,
-    lineWidth,
-  ) => {
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    for (let j = 1; j < segments; j++) {
-      const tPos = j / segments;
-      const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
-      const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
-      ctx.lineTo(px, py);
-    }
-    ctx.lineTo(ex, ey);
-    ctx.stroke();
-
-    // Core (white)
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.lineWidth = lineWidth * 0.4;
-    ctx.stroke();
-    ctx.restore();
-  };
-
-
-  const drawPrism3D = (x, y, w, h, d, colorTop, colorFront, colorSide, alpha, t_anim, mode = "all") => {
-    if (alpha <= 0) return;
-    if (mode === "none") return;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = "rgba(0,0,0,0.6)";
-
-    const dx = d * 0.7;
-    const dy = -d * 0.4;
-
-    const left = x - w / 2;
-    const right = x + w / 2;
-    const top = y - h;
-    const bottom = y;
-    
-    const capHeight = 12;
-    const isRefinery = t_anim !== undefined;
-
-    // The line where the main color ends and the cap begins
-    const mainTop = isRefinery ? top + capHeight : top;
-
-    const fillFace = (colorArg) => {
-      if (Array.isArray(colorArg)) {
-        ctx.fillStyle = colorArg[0];
-        ctx.fill();
-        if (colorArg[1]) {
-          ctx.fillStyle = colorArg[1];
-          ctx.fill();
-        }
-      } else {
-        ctx.fillStyle = colorArg;
-        ctx.fill();
-      }
-    };
-
-    if (mode === "all" || mode === "bodyOnly") {
-      // --- Fill the main body ---
-    // Side face
-    ctx.beginPath();
-    ctx.moveTo(right, bottom);
-    ctx.lineTo(right + dx, bottom);
-    ctx.lineTo(right + dx, mainTop + dy);
-    ctx.lineTo(right, mainTop);
-    ctx.closePath();
-    fillFace(colorSide);
-
-    // Front face
-    ctx.beginPath();
-    ctx.moveTo(left, bottom);
-    ctx.lineTo(right, bottom);
-    ctx.lineTo(right, mainTop);
-    ctx.lineTo(left, mainTop);
-    ctx.closePath();
-    fillFace(colorFront);
-
-    // --- Draw the lines up to mainTop ---
-    ctx.beginPath();
-    // Front face outline
-    ctx.moveTo(left, mainTop);
-    ctx.lineTo(left, bottom);
-    ctx.moveTo(right, bottom); // Lift pen, don't draw bottom line
-    ctx.lineTo(right, mainTop);
-    // Side face outline (bottom and right edge)
-    ctx.moveTo(right, bottom);
-    ctx.moveTo(right + dx, bottom); // Lift pen, don't draw bottom line
-    ctx.lineTo(right + dx, mainTop + dy);
-    // The vertical line separating front and side
-    ctx.moveTo(right, bottom);
-    ctx.lineTo(right, mainTop);
-    
-    // Horizontal line if it's NOT a refinery cap (i.e. standard top)
-    if (!isRefinery) {
-        ctx.moveTo(left, mainTop);
-        ctx.lineTo(right, mainTop);
-        ctx.lineTo(right + dx, mainTop + dy);
-    }
-    
-    ctx.stroke();
-    }
-
-    // --- Draw the top/cap ---
-    if (mode === "all" || mode === "capOnly") {
-      if (isRefinery) {
-      // The entire cap block should just be a single black polygon without inner lines.
-      // We will trace the outer perimeter of the cap area.
-      ctx.beginPath();
-      // Start at bottom-left of front cap
-      ctx.moveTo(left, mainTop);
-      // Up to top-left of front face
-      ctx.lineTo(left, top);
-      // Up-right to top-back corner
-      ctx.lineTo(left + dx, top + dy);
-      // Right to top-back-right corner
-      ctx.lineTo(right + dx, top + dy);
-      // Down to bottom-right of side cap
-      ctx.lineTo(right + dx, mainTop);
-      // Back left to start
-      ctx.lineTo(left, mainTop);
-      ctx.closePath();
-      fillFace(colorTop);
-      
-      // We do not stroke this so there are no lines in or around the black part.
-
-      // Smoke particles emitting from the top cap
-      const cx = x + dx / 2;
-      const cy = top + dy / 2;
-
-      ctx.globalAlpha = alpha * 0.7;
-      const smokeSpeed = 0.5; // Speed scaled via globalRefineryAnimTime
-      for (let i = 0; i < 4; i++) {
-         const pT = (t_anim * smokeSpeed + i * 0.25) % 1;
-         if (pT > 0) {
-             const px = cx + (Math.sin(t_anim * 3 + i) * 5) * pT;
-             const py = cy - (pT * 30);
-             const pr = 3 + pT * 10;
-             
-             ctx.fillStyle = `rgba(100, 100, 100, ${1 - pT})`;
-             ctx.beginPath();
-             ctx.arc(px, py, pr, 0, Math.PI * 2);
-             ctx.fill();
-         }
-      }
-    } else {
-        // Standard top face
-        ctx.beginPath();
-        ctx.moveTo(left, top);
-        ctx.lineTo(right, top);
-        ctx.lineTo(right + dx, top + dy);
-        ctx.lineTo(left + dx, top + dy);
-        ctx.closePath();
-        fillFace(colorTop);
-        ctx.stroke();
-      }
-    }
-
-    ctx.restore();
-  };
-
-  const drawTank = (x, y, w, h, fluidColor, fillLevel, alpha = 1, isTier8 = false) => {
-    if (alpha <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, y);
-
-    // Back frame
-    ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
-    ctx.fillRect(-w / 2, -h, w, h);
-
-    // Fluid
-    if (fluidColor) {
-      const fHeight = h;
-      const yOff = -fHeight;
-      ctx.fillStyle = fluidColor;
-      ctx.fillRect(-w / 2 + 2, yOff, w - 4, fHeight);
-
-      // Bubbles
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(-w / 2 + 2, yOff, w - 4, fHeight);
-      ctx.clip();
-
-      let bubbles = [];
-      for (let i = 0; i < 8; i++) {
-        const speedMult = 0.5;
-        const bubbleT = (tTank * speedMult + i * 0.43) % 1; // 0 to 1 cycle
-        const bubbleX =
-          -w / 2 + 4 + ((i * 5) % (w - 8)) + Math.sin(tTank * 3 + i) * 2;
-        const bubbleY = -bubbleT * fHeight;
-        const bubbleRadius = 1 + (i % 3);
-
-        if (bubbleY > yOff + bubbleRadius) {
-          bubbles.push({x: bubbleX, y: bubbleY});
-          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-          ctx.beginPath();
-          ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      
-      ctx.restore();
-    }
-
-    // Metal Caps
-    ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
-    ctx.fillRect(-w / 2 - 2, -h - 4, w + 4, 6);
-    ctx.fillRect(-w / 2 - 2, -2, w + 4, 6);
-
-    ctx.restore();
-  };
-
-  // ----------------------------------------------------
-
-
-
-
-  // Base platform (Tier 0)
-  ctx.save();
-  ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
-  ctx.fillRect(-baseWidth / 2, baseY, baseWidth, 20);
-  ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
-  ctx.fillRect(-baseWidth / 2, baseY, baseWidth, 4);
-  ctx.fillRect(-baseWidth / 2, baseY + 16, baseWidth, 4);
-  ctx.restore();
-
-  // ----------------------------------------------------
-  // Tier 0 & 1: Tanks and Piping
-  // ----------------------------------------------------
-  ctx.save();
-  ctx.globalAlpha = 1.0;
-
-  const tankW = 50;
-  const tankH = 60;
-  // Adjusted left tank position to perfectly mirror the right processing unit space
-  const leftTankX = -79;
-
-  // When combining lines in one stroke via our modified drawFluidPipe,
-  // overlaps do not create extra inner/outer borders! We can just pass all segments together.
-  
-  if (t1 > 0) {
-    let allPts = [];
-    allPts.push([
-      { x: 0, y: baseY - tankH + 10 },
-      { x: 0, y: baseY - tankH - 15 }, 
-    ]);
-    // The main flow path from the left tank to the right processor, made as one continuous line so the corners format properly
-    allPts.push([
-      { x: leftTankX, y: baseY - tankH + 10 },
-      { x: leftTankX, y: baseY - tankH - 15 },
-      { x: 60, y: baseY - tankH - 15 },
-      { x: 60, y: baseY },
-    ]);
-    
-    // Fade out original
-    let oldPts = [];
-    oldPts.push([
-      { x: 0, y: baseY - tankH + 10 },
-      { x: 0, y: baseY - tankH - 15 },
-      { x: 60, y: baseY - tankH - 15 },
-      { x: 60, y: baseY },
-    ]);
-    drawFluidPipe(ctx, oldPts, 8, oilColor, 2.5, tPipe, 1.0 - t1, "butt");
-    
-    drawFluidPipe(ctx, allPts, 8, oilColor, 2.5, tPipe, t1, "butt");
-    
-  } else {
-    let allPts = [];
-    allPts.push([
-      { x: 0, y: baseY - tankH + 10 },
-      { x: 0, y: baseY - tankH - 15 },
-      { x: 60, y: baseY - tankH - 15 },
-      { x: 60, y: baseY },
-    ]);
-    drawFluidPipe(ctx, allPts, 8, oilColor, 2.5, tPipe, 1.0, "butt");
-  }
-
-  // 3. Draw the tanks
-  // Central Small Tank sitting directly on the base platform
-  drawTank(
-    0,
-    baseY - 4,
-    tankW,
-    tankH,
-    oilColor,
-    0.7 + 0.1 * Math.sin(t * 1.5),
-    1.0,
-    t8 > 0
-  );
-  
-  // Left Auxiliary Tank
-  if (t1 > 0) {
-    drawTank(
-      leftTankX,
-      baseY - 4,
-      tankW,
-      tankH,
-      oilColor,
-      0.6 + 0.1 * Math.sin(t * 1.5 + 1),
-      t1,
-      t8 > 0
-    );
-  }
-
-  // Right Side Prisms (Moved from Tier 2, now rectangular prisms)
-  if (t1 > 0) {
-    // Original cylinder: x=90, width=32 -> min_x=74, max_x=106
-    // We set w=16, d=16 (dx=11.2). Total x extent is w + dx = 27.2.
-    // To span 74 to 106 (32px):
-    // Front prism: x=82 -> left=74, right+dx = 90+11.2 = 101.2
-    // Back prism: x=87 -> left=79, right+dx = 95+11.2 = 106.2
-    // Height=90 for both. Grounded at baseY.
-    
-    // Back prism (Right-most)
-    drawPrism3D(
-      87, baseY, 16, 90, 16,
-      [ironPattern, 'rgba(0, 0, 0, 0.8)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], [ironPattern, 'rgba(0, 0, 0, 0.6)'], t1, t, "bodyOnly"
-    );
-    // Front prism (Middle)
-    drawPrism3D(
-      82, baseY, 16, 90, 16,
-      [ironPattern, 'rgba(0, 0, 0, 0.8)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], [ironPattern, 'rgba(0, 0, 0, 0.3)'], t1, t, "bodyOnly"
-    );
-    // Unified cap
-    drawPrism3D(
-      84.5, baseY, 21, 90, 16,
-      [ironPattern, 'rgba(0, 0, 0, 0.8)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], [ironPattern, 'rgba(0, 0, 0, 0.0)'], t1, t, "capOnly"
-    );
-  }
-
-  ctx.restore();
-
-
-  // ----------------------------------------------------
-  // Tier 3: Catwalk and Supports
-  // ----------------------------------------------------
-  if (t3 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t3;
-
-    // The Catwalk stretching across the entire width of the iron base
-    const catwalkW = 340;
-    const catwalkH = 10;
-    const catwalkY = baseY - 115;
-    const catwalkBottom = catwalkY + catwalkH; // baseY - 105
-
-    // Supports for the catwalk, starting from on top of the electrical boxes
-    // Electrical boxes are at y = baseY - 40 (actually baseY - 60, top is -60)
-    // We draw the supports up to the bottom of the catwalk
-    ctx.strokeStyle = ironPattern ? ironPattern : "#444";
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    
-    // Left Box Supports (Box is at x = -150)
-    ctx.moveTo(-160, baseY - 40);
-    ctx.lineTo(-160, catwalkBottom);
-    ctx.moveTo(-140, baseY - 40);
-    ctx.lineTo(-140, catwalkBottom);
-    
-    // Right Box Supports (Box is at x = 150)
-    ctx.moveTo(140, baseY - 40);
-    ctx.lineTo(140, catwalkBottom);
-    ctx.moveTo(160, baseY - 40);
-    ctx.lineTo(160, catwalkBottom);
-    ctx.stroke();
-    
-    // X-bracing for supports
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-160, baseY - 40); ctx.lineTo(-140, catwalkBottom);
-    ctx.moveTo(-160, catwalkBottom); ctx.lineTo(-140, baseY - 40);
-    ctx.moveTo(140, baseY - 40); ctx.lineTo(160, catwalkBottom);
-    ctx.moveTo(140, catwalkBottom); ctx.lineTo(160, baseY - 40);
-    ctx.stroke();
-
-    // The Catwalk drawn on top of the supports
-    ctx.fillStyle = ironPattern ? ironPattern : "#333";
-    
-    // Main walkway (no stroke/outline)
-    ctx.fillRect(-catwalkW/2, catwalkY, catwalkW, catwalkH);
-    ctx.restore();
-  }
-
-  // ----------------------------------------------------
-  // Tier 5: Reinforced Support Scaffolding
-  // ----------------------------------------------------
-  if (t5 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t5;
-
-    // Heavy-duty metal scaffolding reinforcing the distillation column
-    const columnY = baseY - 115;
-    const columnH = 150;
-    const columnW = 100;
-    
-    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
-    ctx.lineJoin = "bevel";
-    
-    const drawScaffoldSide = (isLeft) => {
-      ctx.save();
-      const dir = isLeft ? -1 : 1;
-      const xStart = dir * (columnW / 2 - 5);
-      const xOuter = dir * (columnW / 2 + 30);
-      
-      const scaffoldTopY = columnY - 95; // Lower than observation platform (columnY - 110)
-      
-      // Vertical main support pillars
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(xOuter, columnY);
-      ctx.lineTo(xOuter, scaffoldTopY);
-      ctx.stroke();
-      
-      // Outer pillar highlight
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(xOuter - dir * 2, columnY);
-      ctx.lineTo(xOuter - dir * 2, scaffoldTopY);
-      ctx.stroke();
-      
-      ctx.strokeStyle = ironPattern ? ironPattern : "#333";
-      
-      // Horizontal crossbeams connecting to column
-      ctx.lineWidth = 6;
-      for (let h = columnY - 20; h >= scaffoldTopY; h -= 35) {
-        ctx.beginPath();
-        ctx.moveTo(xStart, h);
-        ctx.lineTo(xOuter, h);
-        ctx.stroke();
-        
-        // Diagonal bracing (X pattern)
-        if (h - 35 >= scaffoldTopY) {
-          ctx.lineWidth = 4;
-          ctx.beginPath();
-          // Diagonal 1
-          ctx.moveTo(xStart, h);
-          ctx.lineTo(xOuter, h - 35);
-          ctx.stroke();
-          // Diagonal 2
-          ctx.beginPath();
-          ctx.moveTo(xOuter, h);
-          ctx.lineTo(xStart, h - 35);
-          ctx.stroke();
-          ctx.lineWidth = 6; // Restore horizontal line width
-        }
-      }
-      
-      // Angle support at the base
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(xOuter, columnY - 30);
-      ctx.lineTo(xOuter + dir * 20, columnY);
-      ctx.stroke();
-      
-      // Footing pad
-      ctx.fillStyle = ironPattern ? ironPattern : "#222";
-      ctx.fillRect(xOuter - 10, columnY - 4, 20, 8);
-      ctx.fillRect(xOuter + dir * 20 - 10, columnY - 4, 20, 8);
-      
-      ctx.restore();
-    };
-
-    drawScaffoldSide(true);
-    drawScaffoldSide(false);
-    
-    ctx.restore();
-  }
-
-    // ----------------------------------------------------
-  // Tier 4: Distillation Column & Piping
-  // ----------------------------------------------------
-  if (t4 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t4;
-
-    const columnY = baseY - 115; // Starts exactly on top of catwalk
-    const columnH = 150;
-    const columnW = 100;
-
-    // Pipes connecting to the Distillation Column (Drawn FIRST so they are behind)
-    const pipeColor = "rgba(227, 197, 20, 0.8)"; // Golden yellow energy
-    
-    // Array of configuration for the pipes on the left side.
-    // { xOffset, heightPercent }
-    // The main T4 pipe is at x=-150, 50% height
-    // The others are Tier 7 pipes at varying heights
-    const leftPipeConfigs = [
-      { x: -170, pct: 0.75, tierAlpha: t7 },
-      { x: -160, pct: 0.625, tierAlpha: t7 },
-      { x: -150, pct: 0.50, tierAlpha: t4 }, // Existing T4 pipe
-      { x: -140, pct: 0.375, tierAlpha: t7 },
-      { x: -130, pct: 0.25, tierAlpha: t7 },
-    ];
-    
-    for (const conf of leftPipeConfigs) {
-      if (conf.tierAlpha > 0) {
-        const pTargetY = columnY - (columnH * conf.pct);
-        ctx.save();
-        // Since we are in the t4 block which has ctx.globalAlpha = t4, we need to temporarily
-        // reset it to 1 to allow drawFluidPipe to draw at the correct t7 alpha.
-        ctx.globalAlpha = 1;
-        drawFluidPipe(ctx, [
-          { x: conf.x, y: baseY - 40 },
-          { x: conf.x, y: pTargetY },
-          { x: -columnW/2 + 5, y: pTargetY } // Slightly inside so no gap
-        ], 6, pipeColor, 2, tPipe, conf.tierAlpha);
-        ctx.restore();
-      }
-    }
-
-    // Array of configuration for the pipes on the right side.
-    const rightPipeConfigs = [
-      { x: 130, pct: 0.25, tierAlpha: t7 },
-      { x: 140, pct: 0.375, tierAlpha: t7 },
-      { x: 150, pct: 0.50, tierAlpha: t4 }, // Existing T4 pipe
-      { x: 160, pct: 0.625, tierAlpha: t7 },
-      { x: 170, pct: 0.75, tierAlpha: t7 },
-    ];
-    
-    for (const conf of rightPipeConfigs) {
-      if (conf.tierAlpha > 0) {
-        const pTargetY = columnY - (columnH * conf.pct);
-        ctx.save();
-        ctx.globalAlpha = 1;
-        drawFluidPipe(ctx, [
-          { x: conf.x, y: baseY - 40 },
-          { x: conf.x, y: pTargetY },
-          { x: columnW/2 - 5, y: pTargetY } // Slightly inside so no gap
-        ], 6, pipeColor, 2, tPipe, conf.tierAlpha);
-        ctx.restore();
-      }
-    }
-    
-    // Main Silo Body
-    ctx.fillStyle = ironPattern ? ironPattern : "#8c92ac";
-    
-    // Silo Path
-    ctx.beginPath();
-    ctx.moveTo(-columnW/2, columnY);
-    ctx.lineTo(-columnW/2, columnY - columnH);
-    ctx.lineTo(columnW/2, columnY - columnH);
-    ctx.lineTo(columnW/2, columnY);
-    ctx.closePath();
-    
-    // Fill the pattern
-    ctx.fill();
-    
-    // Add 3D shading/bevel overlay
-    const gradient = ctx.createLinearGradient(-columnW/2, 0, columnW/2, 0);
-    gradient.addColorStop(0, "rgba(255, 255, 255, 0.4)"); // Highlight on left
-    gradient.addColorStop(0.3, "rgba(255, 255, 255, 0.1)");
-    gradient.addColorStop(0.7, "rgba(0, 0, 0, 0.2)");
-    gradient.addColorStop(1, "rgba(0, 0, 0, 0.6)"); // Shadow on right
-    
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // Silo Top (3D effect cylinder top)
-    const siloTopY = columnY - columnH;
-    const siloEllipseH = 5; // Semi-minor axis representing depth
-    ctx.beginPath();
-    ctx.ellipse(0, siloTopY, columnW/2, siloEllipseH, 0, 0, Math.PI * 2);
-    ctx.fillStyle = ironPattern ? ironPattern : "#8c92ac";
-    ctx.fill();
-    
-    // Top shading / depth bevel
-    const topGradient = ctx.createRadialGradient(0, siloTopY - 5, 0, 0, siloTopY, columnW/2);
-    topGradient.addColorStop(0, "rgba(255, 255, 255, 0.3)");
-    topGradient.addColorStop(0.6, "rgba(0, 0, 0, 0.2)");
-    topGradient.addColorStop(1, "rgba(0, 0, 0, 0.7)");
-    ctx.fillStyle = topGradient;
-    ctx.fill();
-    
-    
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.ellipse(0, siloTopY, columnW/2, siloEllipseH, 0, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Horizontal structural rings / levels on the column
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; // Use transparent dark stroke instead of solid color
-    ctx.lineWidth = 2;
-    for (let h = columnY - 30; h > columnY - columnH; h -= 30) {
-      ctx.beginPath();
-      ctx.moveTo(-columnW/2, h);
-      ctx.lineTo(columnW/2, h);
-      ctx.stroke();
-      
-      // Ring highlight
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.beginPath();
-      ctx.moveTo(-columnW/2, h - 2);
-      ctx.lineTo(columnW/2, h - 2);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; // Restore for next loop
-    }
-
-    // Warning stripes at the base
-    const stripeH = 8;
-    const stripeY = columnY - stripeH;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(-columnW/2, stripeY, columnW, stripeH);
-    ctx.clip();
-    
-    ctx.fillStyle = "#ffcc00"; // Yellow
-    ctx.fillRect(-columnW/2, stripeY, columnW, stripeH);
-    ctx.fillStyle = "#111111"; // Black
-    for(let sx = -columnW/2 - 20; sx < columnW/2 + 20; sx += 15) {
-        ctx.beginPath();
-        ctx.moveTo(sx, stripeY + stripeH);
-        ctx.lineTo(sx + 10, stripeY);
-        ctx.lineTo(sx + 18, stripeY);
-        ctx.lineTo(sx + 8, stripeY + stripeH);
-        ctx.fill();
-    }
-    
-    // Slight shadow on top of the stripes to match column curvature
-    ctx.fillStyle = gradient;
-    ctx.fillRect(-columnW/2, stripeY, columnW, stripeH);
-    ctx.restore();
-
-    // Access hatch (submarine style)
-    const hatchX = 0;
-    const hatchY = columnY - 20;
-    const hatchR = 12;
-    
-    // Outer hatch ring
-    ctx.beginPath();
-    ctx.arc(hatchX, hatchY, hatchR, 0, Math.PI * 2);
-    ctx.fillStyle = ironPattern ? ironPattern : "#5c6173";
-    ctx.fill();
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#222";
-    ctx.stroke();
-    
-    // Inner hatch door
-    ctx.beginPath();
-    ctx.arc(hatchX, hatchY, hatchR - 3, 0, Math.PI * 2);
-    ctx.fillStyle = ironPattern ? ironPattern : "#454957";
-    ctx.fill();
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fill();
-    ctx.stroke();
-    
-    // Hatch wheel
-    ctx.strokeStyle = ironPattern ? ironPattern : "#999";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(hatchX, hatchY, 4, 0, Math.PI * 2);
-    ctx.moveTo(hatchX - 4, hatchY);
-    ctx.lineTo(hatchX + 4, hatchY);
-    ctx.moveTo(hatchX, hatchY - 4);
-    ctx.lineTo(hatchX, hatchY + 4);
-    ctx.stroke();
-
-    // Ladder
-    const ladderX = -38;
-    const ladderW = 10;
-    const ladderStartY = columnY; // Starts at base
-    const ladderEndY = columnY - 110; // Goes up near the top
-    
-    // Ladder rails
-    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(ladderX - ladderW/2, ladderStartY);
-    ctx.lineTo(ladderX - ladderW/2, ladderEndY);
-    ctx.moveTo(ladderX + ladderW/2, ladderStartY);
-    ctx.lineTo(ladderX + ladderW/2, ladderEndY);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.stroke();
-    
-    // Ladder rungs
-    ctx.strokeStyle = ironPattern ? ironPattern : "#333";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let ry = ladderStartY - 5; ry > ladderEndY; ry -= 6) {
-        ctx.moveTo(ladderX - ladderW/2, ry);
-        ctx.lineTo(ladderX + ladderW/2, ry);
-    }
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.stroke();
-    
-
-
-  // ----------------------------------------------------
-  // Tier 8: Overcharged Distillation (Dark Alloy & Neon Core)
-  // ----------------------------------------------------
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-
-    const columnY = baseY - 115;
-    const columnH = 150;
-    const columnW = 100;
-    const columnTop = columnY - columnH;
-
-
-
-    // 2. Transparent Neon Fluid Windows
-    const windowW = 40;
-    const windowH = 78;
-    const windowY = columnY - 36; // Centered vertically
-    
-    // Window Recess (Dark background)
-    ctx.fillStyle = "#0a0c10";
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.fill();
-    
-    // Inner shadow for depth
-    ctx.strokeStyle = "rgba(0,0,0,0.8)";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    // Neon fluid bubbling up
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(-windowW/2, windowY - windowH, windowW, windowH, 10);
-    ctx.clip();
-    
-    // Oil fluid level (always full)
-    const fluidH = windowH;
-    const fluidTop = windowY - fluidH;
-    
-    ctx.fillStyle = oilColor;
-    ctx.fillRect(-windowW/2, fluidTop, windowW, fluidH);
-    
-    // High-speed upward bubbles and lightning sparks
-    const bubbleCount = 15;
-    let bubbles = [];
-    for(let i=0; i<bubbleCount; i++) {
-      const bT = (tTank * 0.5 + i * 0.3) % 1; // Fast upward movement, scaling smoothly from 0.5 to 4.0
-      const bx = -windowW/2 + 5 + ((i * 7) % (windowW - 10)) + Math.sin(tTank * 1 + i)*2;
-      const by = windowY - bT * windowH;
-      
-      if (by > fluidTop) {
-        bubbles.push({x: bx, y: by});
-        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.beginPath();
-        ctx.arc(bx, by, 1 + (i%3), 0, Math.PI*2);
-        ctx.fill();
-      }
-    }
-    
-    ctx.restore(); // Remove clip
-    
-    
-
-
-
-
-    ctx.restore();
-  }
-
-    // Observation platform with railings wrapping around the column
-    const platY = ladderEndY;
-    const platExt = 12; // Extends out from the column by 12px on each side
-    const platW = columnW + platExt * 2;
-    const railingH = 15;
-    
-    // Platform base
-    ctx.fillStyle = ironPattern ? ironPattern : "#333333";
-    ctx.fillRect(-platW/2 - 1, platY, platW + 2, 4);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(-platW/2 - 1, platY, platW + 2, 4);
-    
-    // Railings (Vertical posts)
-    ctx.strokeStyle = ironPattern ? ironPattern : "#555555";
-    ctx.lineWidth = 2;
-    const numPosts = 7;
-    ctx.beginPath();
-    for(let i=0; i<numPosts; i++) {
-        const postX = -platW/2 + (platW / (numPosts-1)) * i;
-        ctx.moveTo(postX, platY);
-        ctx.lineTo(postX, platY - railingH);
-    }
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.stroke();
-    
-    // Railings (Horizontal bars)
-    ctx.strokeStyle = ironPattern ? ironPattern : "#555555";
-    ctx.beginPath();
-    // Top rail
-    ctx.moveTo(-platW/1.99 - 1, platY - railingH);
-    ctx.lineTo(platW/1.99 + 1, platY - railingH);
-    // Mid rail
-    ctx.moveTo(-platW/1.99 - 1, platY - railingH/2);
-    ctx.lineTo(platW/1.99 + 1, platY - railingH/2);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-    // ----------------------------------------------------
-  // Tier 2: High Voltage Electrical Boxes
-  // ----------------------------------------------------
-  // Draw Tier 2 Electrical Boxes and Sparks on top of everything (including the iron base)
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    const drawElectricalBox = (bx, by) => {
-      ctx.save();
-      ctx.translate(bx, by);
-      
-      const boxW = 60;
-      const boxH = 60;
-      const lw = 4;
-      
-      // Prevent stroke clipping by drawing the rect slightly smaller
-      const pathW = boxW - lw;
-      const pathH = boxH - lw;
-      const pathX = -pathW / 2;
-      const pathY = -pathH - lw / 2;
-      
-      // Box body
-      ctx.fillStyle = ironPattern ? ironPattern : "#111111";
-      ctx.fillRect(pathX, pathY, pathW, pathH);
-      
-      // 70% black overlay
-      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-      ctx.fillRect(pathX, pathY, pathW, pathH);
-
-      ctx.strokeStyle = "#000000"; // Black outline
-      ctx.lineWidth = lw;
-      ctx.strokeRect(pathX, pathY, pathW, pathH);
-      
-      // High voltage symbol (lightning bolt) in the center
-      ctx.save();
-      ctx.translate(0, -boxH/2); // Center of the box
-      ctx.scale(1.5, 1.5);
-      ctx.fillStyle = "#e3c514"; // Yellow lightning
-      ctx.beginPath();
-      ctx.moveTo(3, -10); 
-      ctx.lineTo(-5, 2); 
-      ctx.lineTo(-1, 2); 
-      ctx.lineTo(-4, 12); 
-      ctx.lineTo(5, -2); 
-      ctx.lineTo(1, -2); 
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      // Sparks flying from the edges of it infrequently (every 3 seconds)
-
-      // Sparks flying from the edges of it infrequently (every 3 seconds)
-      // At tier 8, it becomes continuous.
-      const interval = 3.0;
-      const threshold = 0.15;
-      const sparkCycle = (t + Math.abs(bx)) % interval;
-      
-      // Calculate a probability of an extra spark to simulate the high frequency of Tier 8 without modulo jumping
-      const t8Prog = typeof t8 !== 'undefined' ? t8 : 0;
-      const extraSparkProb = t8Prog * 1.0; // 100% chance of a spark per frame at max t8
-      const hash = Math.abs(Math.sin(t * 123.456 + bx)) % 1;
-      
-      if (sparkCycle < threshold || hash < extraSparkProb) {
-
-        ctx.strokeStyle = sparkColor;
-        ctx.lineWidth = 2;
-        // Generate 1-2 sparks
-        for (let i = 0; i < 2; i++) {
-          const side = Math.random() > 0.5 ? 1 : -1;
-          const sparkX = (boxW/2) * side;
-          const sparkY = -boxH + Math.random() * boxH;
-          
-          ctx.beginPath();
-          ctx.moveTo(sparkX, sparkY);
-          const extX = sparkX + side * (10 + Math.random() * 15);
-          const extY = sparkY + (Math.random() - 0.5) * 20;
-          ctx.lineTo(extX, extY);
-          ctx.lineTo(extX + side * (5 + Math.random() * 10), extY + (Math.random() - 0.5) * 10);
-          ctx.stroke();
-        }
-      }
-
-      ctx.restore();
-    };
-
-    // Draw left and right electrical boxes on the ground
-    drawElectricalBox(-150, baseY + 20);
-    drawElectricalBox(150, baseY + 20);
-
-    ctx.restore();
-  }
-
-
-  // ----------------------------------------------------
-  // Tier 6: Energized Conduit Frame
-  // ----------------------------------------------------
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-
-    // Use pure white for the frame glow
-    const frameGlow = "rgba(255, 255, 255, 0.9)"; // White base
-    ctx.strokeStyle = frameGlow;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    // Adjust left edge to -120 and right edge to +120 (iron base width is 240)
-    // Max out height just above distillation column (column top is at baseY - 115 - 150 = baseY - 265)
-    const frameTopY = baseY - 282;
-    
-    // Because we are overlapping Tier 2, we start the frame at baseY
-    
-    const drawFramePath = () => {
-      ctx.beginPath();
-      // Left leg
-      ctx.moveTo(-115, baseY);
-      ctx.lineTo(-115, frameTopY);
-      
-      // Top connector
-      ctx.lineTo(115, frameTopY);
-      
-      // Right leg
-      ctx.lineTo(115, baseY);
-    };
-
-    // Fill with white color (since user asked for inverse colors, white background, yellow pulse)
-    ctx.fillStyle = ironPattern ? ironPattern : "#1a1c23";
-    
-    // To fill it properly, we need a closed shape with thickness
-    ctx.beginPath();
-    // Outer edge (left to right)
-    ctx.moveTo(-120, baseY);
-    ctx.lineTo(-120, frameTopY - 5);
-    ctx.lineTo(120, frameTopY - 5);
-    ctx.lineTo(120, baseY);
-    // Inner edge (right to left)
-    ctx.lineTo(110, baseY);
-    ctx.lineTo(110, frameTopY + 5);
-    ctx.lineTo(-110, frameTopY + 5);
-    ctx.lineTo(-110, baseY);
-    ctx.closePath();
-    ctx.fill();
-
-    // Draw thin glowing white strip in the middle
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "rgba(255, 255, 255, 1)";
-    drawFramePath();
-    ctx.stroke();
-    
-    // Animate energy pulses converging to the center
-    // Increased frequency: smaller gap
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "#FFFF00"; // Pure bright yellow
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = "rgba(255, 255, 0, 1)";
-    
-    const pulseLength = 30;
-    const gapLength = 100; // Much smaller gap for more frequent pulses
-    ctx.setLineDash([pulseLength, gapLength]);
-    
-    // Speed of convergence
-    const speed = 250;
-    
-    // Left side pulse (moving from start to center)
-    ctx.save();
-    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
-    ctx.beginPath();
-    ctx.moveTo(-115, baseY);
-    ctx.lineTo(-115, frameTopY);
-    ctx.lineTo(0, frameTopY); // Stop at center
-    ctx.stroke();
-    ctx.restore();
-    
-    // Right side pulse (moving from end to center)
-    // To make it move backwards, we draw the path in reverse
-    ctx.save();
-    ctx.lineDashOffset = - (t * speed) % (pulseLength + gapLength);
-    ctx.beginPath();
-    ctx.moveTo(115, baseY);
-    ctx.lineTo(115, frameTopY);
-    ctx.lineTo(0, frameTopY); // Stop at center
-    ctx.stroke();
-    ctx.restore();
-    ctx.restore();
-  }
-
-}
-
-let cachedFaceOnLink = null;
-let cachedSideOnLink = null;
-const cachedForcefields = {};
-
-function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
-  if (!pureGoldPattern && activeCtx) {
-    initPureGoldPattern(activeCtx);
-  } else if (!pureGoldPattern) {
-    initPureGoldPattern(ctx);
-  }
-
-  const fillGold = pureGoldPattern ? pureGoldPattern : "#FFD700";
-  const darkMetal = "#000000";
-  
-  // Progress helpers for smooth fading
-  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
-
-  let t0 = getProg(0);
-  let t1 = getProg(1);
-  let t2 = getProg(2);
-  let t3 = getProg(3);
-  let t4 = getProg(4);
-  let t5 = getProg(5);
-  let t6 = getProg(6);
-  let t7 = getProg(7);
-  let t8 = getProg(8);
-
-  if (isVaultOpening || isVaultOpen) {
-    t1 = 0;
-    t2 = 0;
-    t3 = 0;
-    t4 = 0;
-    t5 = 0;
-    t6 = 0;
-    t7 = 0;
-    t8 = 0;
-  }
-
-  // --- Utility Functions for this building ---
-  const drawCyberLine = (x1, y1, x2, y2, color, width, alpha) => {
-    if (alpha <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.restore();
-  };
-
-  const drawPolygon = (points, fill, stroke, strokeW, alpha) => {
-    if (alpha <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-    ctx.closePath();
-    ctx.fill();
-    if (stroke) {
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = strokeW || 1;
-      ctx.stroke();
-    }
-    ctx.restore();
-  };
-
-  // Tier 7 (Seismic Lockdown Clamps) back half is no longer needed.
-
-
-  // Caching arrays for the forcefield frames to avoid computing/rendering hexagon paths every single frame
-  const getCachedForcefield = (radiusX, radiusY, centerY, bottomY, hexScale, isBack) => {
-    // A unique key for this configuration
-    const key = `${radiusX}_${radiusY}_${centerY}_${bottomY}_${hexScale}_${isBack}`;
-    
-    if (cachedForcefields[key]) {
-      return cachedForcefields[key];
-    }
-    
-    const frames = 30; // 30 frames for a smooth looping animation
-    const cachedFrames = [];
-    
-    const hexSize = 15 * hexScale;
-    const sqrt3 = Math.sqrt(3);
-    const loopDistance = hexSize * sqrt3;
-    
-    // We need the canvas to cover the whole dome
-    // Width is 2 * radiusX
-    // Height is from (centerY - radiusY) to bottomY
-    const width = radiusX * 2 + 10; // plus some margin for stroke width
-    const height = (bottomY - (centerY - radiusY)) + 10;
-    
-    const offsetX = width / 2;
-    const offsetY_canvas = (centerY - radiusY) - 5;
-    
-    for (let f = 0; f < frames; f++) {
-      let offCanvas;
-      if (typeof OffscreenCanvas !== "undefined") {
-        offCanvas = new OffscreenCanvas(width, height);
-      } else {
-        offCanvas = document.createElement("canvas");
-        offCanvas.width = width;
-        offCanvas.height = height;
-      }
-      
-      const octx = offCanvas.getContext("2d");
-      octx.translate(offsetX, -offsetY_canvas);
-      
-      // Render frame
-      // Smooth 3D Red Holographic Shield Barrier
-      if (!isBack) {
-        const domeGrad = octx.createRadialGradient(0, centerY + radiusY*0.3, radiusY*0.1, 0, centerY, radiusX);
-        domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
-        domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
-        domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
-        
-        octx.fillStyle = domeGrad;
-        octx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-        octx.lineWidth = 3;
-        
-        octx.beginPath();
-        octx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
-        octx.lineTo(radiusX, bottomY);
-        octx.lineTo(-radiusX, bottomY);
-        octx.closePath();
-        octx.fill();
-      } else {
-        octx.beginPath();
-        octx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
-        octx.lineTo(radiusX, bottomY);
-        octx.lineTo(-radiusX, bottomY);
-        octx.closePath();
-      }
-      
-      octx.save();
-      octx.clip();
-      
-      octx.strokeStyle = "rgba(255, 100, 100, 0.4)";
-      octx.lineWidth = 1;
-      octx.beginPath();
-      
-      // Calculate offsetY for this frame specifically
-      let offsetY = (f / frames) * loopDistance;
-      if (isBack) {
-          offsetY = -offsetY;
-      }
-      
-      const halfPi = Math.PI / 2;
-      const equatorDist = halfPi * radiusX;
-      const max_hex_dist = equatorDist + Math.max(0, bottomY - centerY) + 100;
-
-      const maxRows = Math.ceil((max_hex_dist) / (hexSize * sqrt3)) + 4;
-      const minRows = -2;
-      const maxCols = Math.ceil((max_hex_dist) / (hexSize * 1.5)) + 4;
-      
-      const anglesCos = [
-        Math.cos(0), Math.cos(Math.PI / 3), Math.cos(2 * Math.PI / 3), Math.cos(Math.PI)
-      ];
-      const anglesSin = [
-        Math.sin(0), Math.sin(Math.PI / 3), Math.sin(2 * Math.PI / 3), Math.sin(Math.PI)
-      ];
-      
-      const mapPoint = (px, py) => {
-          let dist = Math.sqrt(px*px + py*py);
-          if (dist > max_hex_dist) return null;
-          let sR, my;
-          if (dist / radiusX <= halfPi) {
-              sR = radiusX * Math.sin(dist / radiusX);
-              my = centerY - radiusY * Math.cos(dist / radiusX);
-          } else {
-              sR = radiusX;
-              let pastEquatorDist = dist - equatorDist;
-              my = centerY + pastEquatorDist;
-          }
-          let mx = dist === 0 ? 0 : (px / dist) * sR;
-          if (my > bottomY + 100) return null;
-          return {x: mx, y: my};
-      };
-      
-      for (let row = minRows; row <= maxRows; row++) {
-        for (let col = -maxCols; col <= maxCols; col++) {
-          let hx = col * hexSize * 1.5;
-          let hy = row * hexSize * sqrt3 + (col % 2 === 0 ? 0 : hexSize * sqrt3 / 2) + offsetY;
-          
-          let centerDist = Math.sqrt(hx*hx + hy*hy);
-          if (centerDist > max_hex_dist) continue;
-          
-          for (let i = 0; i < 3; i++) {
-            let px1 = hx + hexSize * anglesCos[i];
-            let py1 = hy + hexSize * anglesSin[i];
-            let px2 = hx + hexSize * anglesCos[i+1];
-            let py2 = hy + hexSize * anglesSin[i+1];
-            
-            let p1 = mapPoint(px1, py1);
-            let p2 = mapPoint(px2, py2);
-            
-            if (p1 && p2) {
-              octx.moveTo(p1.x, p1.y);
-              octx.lineTo(p2.x, p2.y);
-            }
-          }
-        }
-      }
-      
-      octx.strokeStyle = "rgba(255, 70, 70, 0.6)";
-      octx.lineWidth = 2.5;
-      octx.shadowBlur = 0;
-      octx.stroke();
-      
-      octx.restore();
-
-      if (!isBack) {
-        octx.strokeStyle = "rgba(255, 50, 50, 0.8)";
-        octx.lineWidth = 4;
-        octx.beginPath();
-        octx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
-        octx.lineTo(radiusX, bottomY);
-        octx.lineTo(-radiusX, bottomY);
-        octx.closePath();
-        octx.stroke();
-      }
-      
-      cachedFrames.push(offCanvas);
-    }
-    
-    cachedForcefields[key] = {
-      frames: cachedFrames,
-      offsetX: offsetX,
-      offsetY: offsetY_canvas,
-      loopDistance: loopDistance
-    };
-    
-    return cachedForcefields[key];
-  };
-
-  const drawForcefield = (radiusX, radiusY, centerY, bottomY, alpha, hexScale, timeMultiplier = 1.0, isBack = false) => {
-    if (alpha <= 0) return;
-    
-    // Get or generate the cached frames for this configuration
-    const cachedData = getCachedForcefield(radiusX, radiusY, centerY, bottomY, hexScale, isBack);
-    
-    const hexSize = 15 * hexScale;
-    const scrollSpeed = 20 * hexScale;
-    
-    // Calculate the continuous un-moduloed distance it should have traveled
-    let rawDist = t * timeMultiplier * scrollSpeed;
-    
-    // Find the fractional progress through a single loop cycle (0.0 to 0.999...)
-    // Handling negative safely using modulo
-    let cycleProgress = (rawDist % cachedData.loopDistance) / cachedData.loopDistance;
-    if (cycleProgress < 0) cycleProgress += 1; // fix for negative t
-    
-    // Find nearest frame index
-    let frameIndex = Math.floor(cycleProgress * cachedData.frames.length);
-    if (frameIndex >= cachedData.frames.length) frameIndex = cachedData.frames.length - 1;
-    
-    const img = cachedData.frames[frameIndex];
-    
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    
-    // Draw the image at the correct offset
-    ctx.drawImage(img, -cachedData.offsetX, cachedData.offsetY);
-    
-    ctx.restore();
-  };
-
-  // --- Tier 0: Classic Safe ---
-  const drawT0Vault = (alpha) => {
-    if (alpha <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    
-    // Main solid golden cube
-    drawPolygon([
-      {x: -60, y: 0}, {x: -60, y: -100}, {x: 60, y: -100}, {x: 60, y: 0}
-    ], fillGold, fillGold, 4, alpha);
-
-    // If opening or open, draw dark interior and spinning coin
-    if (isVaultOpening || isVaultOpen) {
-      ctx.fillStyle = "#111111";
-      ctx.fillRect(-50, -90, 100, 80);
-      ctx.strokeStyle = darkMetal;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-50, -90, 100, 80);
-      
-      // Draw spinning coin
-      if ((isVaultOpening || isVaultOpen) && !vaultCoinCollectedLocal) {
-        ctx.save();
-        ctx.translate(0, -50);
-        ctx.scale(Math.sin(time * 5), 1);
-        const prCoin = getPreRenderedItem('img/currencies/coin/coin.webp', 40);
-        if (prCoin) {
-          ctx.drawImage(prCoin, -20, -20, 40, 40);
-        } else {
-          ctx.drawImage(coinImg, -15, -15, 30, 30);
-        }
-        ctx.restore();
-      }
-    }
-    
-    // Now draw the door (which swings open)
-    ctx.save();
-    if (isVaultOpening || isVaultOpen) {
-      const prog = isVaultOpen ? 1.0 : (5.0 - vaultOpeningTime) / 5.0;
-      const maxAngle = Math.acos(-0.5); // 120 degrees
-      const doorScaleX = Math.cos(prog * maxAngle);
-      ctx.translate(-50, 0);
-      ctx.scale(doorScaleX, 1);
-      ctx.translate(50, 0);
-    }
-    
-    // Vault door fill (using pure gold texture)
-    ctx.fillStyle = fillGold;
-    ctx.fillRect(-50, -90, 100, 80);
-    
-    // Vault door outline
-    ctx.strokeStyle = darkMetal;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-50, -90, 100, 80);
-    
-    // Central mechanical dial
-    ctx.fillStyle = darkMetal;
-    ctx.beginPath();
-    ctx.arc(0, -50, 20, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // Dial markers
-    ctx.save();
-    ctx.translate(0, -50);
-    ctx.rotate(t * 0.5); // Slow mechanical turn
-    for (let i = 0; i < 12; i++) {
-      ctx.beginPath();
-      ctx.moveTo(10, 0);
-      ctx.lineTo(18, 0);
-      ctx.stroke();
-      ctx.rotate((Math.PI * 2) / 12);
-    }
-    ctx.restore();
-    
-    // Handle (rounded rectangle)
-    const drawRoundRect = (x, y, w, h, r) => {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-    };
-    
-    drawRoundRect(31, -62, 8, 24, 4);
-    ctx.fillStyle = "#000000";
-    ctx.fill();
-    ctx.strokeStyle = darkMetal;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    
-    ctx.restore(); // restore door swing
-    
-    ctx.restore(); // restore global alpha
-  };
-
-  
-
-
-  function initChainPaths(fillGold) {
-    if (cachedFaceOnLink) return;
-    
-    let hw = 6, hh = 3.5, r = 3;
-    const faceOnLinkPath = new Path2D();
-    faceOnLinkPath.moveTo(-hw + r, -hh);
-    faceOnLinkPath.lineTo(hw - r, -hh);
-    faceOnLinkPath.quadraticCurveTo(hw, -hh, hw, -hh + r);
-    faceOnLinkPath.lineTo(hw, hh - r);
-    faceOnLinkPath.quadraticCurveTo(hw, hh, hw - r, hh);
-    faceOnLinkPath.lineTo(-hw + r, hh);
-    faceOnLinkPath.quadraticCurveTo(-hw, hh, -hw, hh - r);
-    faceOnLinkPath.lineTo(-hw, -hh + r);
-    faceOnLinkPath.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
-
-    const faceOnLinkShadowPath = new Path2D();
-    r = 1.5; hw = 4.5; hh = 2;
-    faceOnLinkShadowPath.moveTo(-hw + r, -hh);
-    faceOnLinkShadowPath.lineTo(hw - r, -hh);
-    faceOnLinkShadowPath.quadraticCurveTo(hw, -hh, hw, -hh + r);
-    faceOnLinkShadowPath.lineTo(hw, hh - r);
-    faceOnLinkShadowPath.quadraticCurveTo(hw, hh, hw - r, hh);
-    faceOnLinkShadowPath.lineTo(-hw + r, hh);
-    faceOnLinkShadowPath.quadraticCurveTo(-hw, hh, -hw, hh - r);
-    faceOnLinkShadowPath.lineTo(-hw, -hh + r);
-    faceOnLinkShadowPath.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
-
-    const sideOnLinkPath = new Path2D();
-    sideOnLinkPath.moveTo(-5.5, 0);
-    sideOnLinkPath.lineTo(5.5, 0);
-
-    const sideOnLinkShadowPath = new Path2D();
-    sideOnLinkShadowPath.moveTo(-4.5, 1);
-    sideOnLinkShadowPath.lineTo(4.5, 1);
-
-    const sideOnLinkHighlightPath = new Path2D();
-    sideOnLinkHighlightPath.moveTo(-4.5, -1);
-    sideOnLinkHighlightPath.lineTo(4.5, -1);
-
-    if (typeof OffscreenCanvas !== "undefined") {
-        cachedFaceOnLink = new OffscreenCanvas(20, 20);
-        cachedSideOnLink = new OffscreenCanvas(20, 20);
-    } else {
-        cachedFaceOnLink = document.createElement("canvas");
-        cachedFaceOnLink.width = 20;
-        cachedFaceOnLink.height = 20;
-        cachedSideOnLink = document.createElement("canvas");
-        cachedSideOnLink.width = 20;
-        cachedSideOnLink.height = 20;
-    }
-
-    const faceCtx = cachedFaceOnLink.getContext("2d");
-    faceCtx.translate(10, 10);
-    faceCtx.strokeStyle = fillGold;
-    faceCtx.lineWidth = 2.5;
-    faceCtx.lineCap = "round";
-    faceCtx.lineJoin = "round";
-    faceCtx.stroke(faceOnLinkPath);
-    faceCtx.strokeStyle = "#B39700";
-    faceCtx.lineWidth = 0.5;
-    faceCtx.stroke(faceOnLinkShadowPath);
-
-    const sideCtx = cachedSideOnLink.getContext("2d");
-    sideCtx.translate(10, 10);
-    sideCtx.strokeStyle = fillGold;
-    sideCtx.lineWidth = 3.5; 
-    sideCtx.lineCap = "round"; 
-    sideCtx.stroke(sideOnLinkPath);
-    sideCtx.strokeStyle = "#B39700";
-    sideCtx.lineWidth = 1;
-    sideCtx.stroke(sideOnLinkShadowPath);
-    sideCtx.strokeStyle = "#FFE866";
-    sideCtx.lineWidth = 1;
-    sideCtx.stroke(sideOnLinkHighlightPath);
-}
-  const drawT7Chains = (isBack, part = "all") => {
-    if (t7 <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = t7;
-
-    const endY = -50;
-    
-    let leftAnchorX, leftAnchorY, rightAnchorX, rightAnchorY;
-    
-    if (isBack) {
-      leftAnchorX = -240;
-      leftAnchorY = 15; // ground
-      rightAnchorX = 240;
-      rightAnchorY = 15; // ground
-    } else {
-      leftAnchorX = -230;
-      leftAnchorY = 15; // ground
-      rightAnchorX = 230;
-      rightAnchorY = 15; // ground
-    }
-    
-    const drawChain = (startX, startY, sign, groundOffset = 0, vaultOffset = 0) => {
-      // End point on the vault
-      const vaultX = sign * 67.5 + vaultOffset;
-      startX = startX + groundOffset;
-      const vaultY = endY;
-      
-      // Control point for a drooping curve
-      const midX = (startX + vaultX) / 2;
-      
-      // Modest upright concavity
-      const midY = Math.min(startY, vaultY) - 20; 
-      
-      // Calculate length to determine number of links
-      const waveAmp = 8;
-      const waveFreq = Math.PI * 2.5; // 1.25 waves
-      const waveSpeed = 4;
-      const phase = Math.PI;
-      
-      const approxLen = Math.sqrt(Math.pow(vaultX - startX, 2) + Math.pow(vaultY - startY, 2)) * 1.2;
-      const numLinks = Math.floor(approxLen / 8); // distance per link
-      
-      for (let i = 0; i <= numLinks; i++) {
-        const p = i / numLinks;
-        
-        // Quadratic bezier
-        const invP = 1 - p;
-        const x = invP * invP * startX + 2 * invP * p * midX + p * p * vaultX;
-        const base_y = invP * invP * startY + 2 * invP * p * midY + p * p * vaultY;
-        
-        // Envelope makes it rigid at ends
-        const env = Math.pow(Math.sin(p * Math.PI), 2);
-        const dEnv_dp = Math.PI * Math.sin(2 * p * Math.PI);
-        
-        const waveVal = Math.sin(p * waveFreq - t * waveSpeed + phase);
-        const dWave_dp = waveFreq * Math.cos(p * waveFreq - t * waveSpeed + phase);
-        
-        const waveOffset = env * waveAmp * waveVal;
-        const dWaveOffset_dp = dEnv_dp * waveAmp * waveVal + env * waveAmp * dWave_dp;
-        
-        const y = base_y + waveOffset;
-        
-        // Derivative for rotation
-        const dx = 2 * invP * (midX - startX) + 2 * p * (vaultX - midX);
-        const base_dy = 2 * invP * (midY - startY) + 2 * p * (vaultY - midY);
-        const dy = base_dy + dWaveOffset_dp;
-        const angle = Math.atan2(dy, dx);
-        
-        // Filter parts for front chains entering the tier 4 forcefield (rx = 130)
-        if (part !== "all") {
-            const isInner = Math.abs(x) < 130;
-            if (part === "inner" && !isInner) continue;
-            if (part === "outer" && isInner) continue;
-        }
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle);
-        
-        // Draw individual link
-        initChainPaths(fillGold);
-        if (i % 2 === 0) {
-            // "Face on" link
-            ctx.drawImage(cachedFaceOnLink, -10, -10);
-        } else {
-            // "Side on" link
-            ctx.drawImage(cachedSideOnLink, -10, -10);
-        }
-        
-        ctx.restore();
-      }
-    };
-    
-    if (isBack) {
-      // Offset back chains so they don't hide behind front ones
-      // We also need to triple them like the front chains.
-      const offsets = [-20, 0, 20];
-      offsets.forEach(off => {
-        drawChain(leftAnchorX, leftAnchorY, -1, off, 0);
-        drawChain(rightAnchorX, rightAnchorY, 1, off, 0);
-      });
-    } else {
-      const offsets = [-20, 0, 20];
-      offsets.forEach(off => {
-        drawChain(leftAnchorX, leftAnchorY, -1, off, 0);
-        drawChain(rightAnchorX, rightAnchorY, 1, off, 0);
-      });
-    }
-    
-    ctx.restore();
-  };
-
-
-
-  const drawT6Drones = (isBack, renderPass = "both") => {
-    if (t6 <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = t6;
-    
-    const numDrones = 2;
-    const droneOrbitRadiusX = 220;
-    const droneOrbitRadiusY = 30;
-    const droneHeight = -90; // Height they fly at
-    
-    for (let i = 0; i < numDrones; i++) {
-      const phase = (i / numDrones) * Math.PI * 2;
-      const speedMultiplier = 1.2;
-      
-      const angle = phase + (t * 0.8 * speedMultiplier); 
-      
-      const z = Math.sin(angle);
-      
-      // Filter out based on depth
-      if (isBack && z >= 0) continue;
-      if (!isBack && z < 0) continue;
-      
-      ctx.save();
-      
-      const dx = Math.cos(angle) * droneOrbitRadiusX;
-      // Add isometric depth and small bob
-      const dy = z * droneOrbitRadiusY + Math.sin(angle * 2) * 5 + droneHeight;
-      
-      const scale = 0.7 + (z + 1) * 0.3; // Scale between 0.7 and 1.3
-      
-      ctx.translate(dx, dy);
-      ctx.scale(scale, scale);
-      
-      if (renderPass === "both" || renderPass === "body") {
-        // Drone Body (Sleek black & gold)
-        ctx.fillStyle = darkMetal;
-        ctx.beginPath();
-        ctx.moveTo(-15, 0);
-        ctx.lineTo(0, -10);
-        ctx.lineTo(15, 0);
-        ctx.lineTo(0, 10);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.strokeStyle = fillGold;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-      
-      if (renderPass === "both" || renderPass === "lights") {
-        // If it's a back drone's light, clip it so it doesn't draw over the central vault and pylons
-        if (isBack) {
-          ctx.save();
-          // We define a clip region that excludes the center area containing the vault and pylons.
-          // The laser only shines downwards from droneHeight (-90), so we mainly need to avoid
-          // drawing it in the center. We can achieve an inverted clip using `clip("evenodd")`
-          // Note we are inside a context translated to (dx, dy) and scaled.
-          // Instead of popping the transform (which messes up the stack), we temporarily invert it.
-          ctx.scale(1/scale, 1/scale);
-          ctx.translate(-dx, -dy);
-          
-          ctx.beginPath();
-          ctx.rect(-2000, -2000, 4000, 4000); // Massive background rect
-          
-          // Vault bounding box
-          // T1 frame bounds roughly -75 to 75, height -115 to 15. 
-          ctx.rect(-75, -115, 150, 130);
-          
-          // Pylon bounding polygons (x: -165 and 165, anchored at y=15)
-          const pylonPoints = [
-            {x: -20, y: 0}, {x: 20, y: 0}, {x: 15, y: -10}, 
-            {x: 15, y: -9}, {x: 8, y: -140}, {x: 0, y: -155}, {x: -8, y: -140}, {x: -15, y: -9},
-            {x: -15, y: -10}
-          ];
-          
-          [-165, 165].forEach(xPos => {
-            ctx.moveTo(xPos + pylonPoints[0].x, 15 + pylonPoints[0].y);
-            for(let j=1; j<pylonPoints.length; j++) {
-              ctx.lineTo(xPos + pylonPoints[j].x, 15 + pylonPoints[j].y);
-            }
-            ctx.closePath();
-          });
-          
-          ctx.clip("evenodd");
-          
-          // Re-apply drone transform inside this save state
-          ctx.translate(dx, dy);
-          ctx.scale(scale, scale);
-        }
-
-        // Drone Core (Glowing Red Eye)
-        const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
-        ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
-        ctx.shadowColor = "#ff0000";
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(0, 0, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        
-        // Scanning Laser Cone (Pointing Down)
-        const sweepAngle = Math.sin(t * 3 + i * Math.PI) * 0.5;
-        
-        ctx.save();
-        ctx.rotate(sweepAngle);
-        
-        const laserGrad = ctx.createLinearGradient(0, 0, 0, 150);
-        laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
-        laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
-        
-        ctx.fillStyle = laserGrad;
-        ctx.beginPath();
-        ctx.moveTo(0, 5);
-        ctx.lineTo(-40, 150);
-        ctx.lineTo(40, 150);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.restore();
-        
-        // Restore inverted clip state if this was a backside drone
-        if (isBack) {
-          ctx.restore();
-        }
-      }
-      
-      ctx.restore();
-    }
-    
-    ctx.restore();
-  };
-  ctx.save();
-  // Move building up for T1 reinforcements (with cross-fade for T0)
-  if (tier >= 1) {
-    if (prevTier === 0 && tier === 1 && !isVaultOpening && !isVaultOpen) {
-      drawT0Vault(1 - t1);
-      ctx.translate(0, -15);
-      
-      // --- Tier 6: Hovering Security Drones (Backside) ---
-      if (t6 > 0) {
-        drawT6Drones(true, "body");
-      }
-      
-      // --- Tier 7: Back Chains ---
-      if (t7 > 0) {
-        drawT7Chains(true, "outer");
-      }
-      
-      // --- Tier 4 & 8: Backside Forcefield ---
-      if (t8 > 0) {
-        drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0, true);
-      }
-      if (t4 > 0) {
-        drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
-      }
-      
-      drawT0Vault(t1);
-    } else {
-      ctx.translate(0, -15);
-      
-      // --- Tier 6: Hovering Security Drones (Backside) ---
-      if (t6 > 0) {
-        drawT6Drones(true, "body");
-      }
-      
-      // --- Tier 7: Back Chains ---
-      if (t7 > 0) {
-        drawT7Chains(true, "outer");
-      }
-      
-      // --- Tier 4 & 8: Backside Forcefield ---
-      if (t8 > 0) {
-        drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0, true);
-      }
-      if (t4 > 0) {
-        drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
-      }
-      
-      drawT0Vault(1);
-    }
-  } else {
-    // --- Tier 6: Hovering Security Drones (Backside) ---
-    if (t6 > 0) {
-      drawT6Drones(true, "body");
-    }
-
-    // --- Tier 7: Back Chains ---
-      if (t7 > 0) {
-        drawT7Chains(true, "outer");
-      }
-      
-      // --- Tier 4 & 8: Backside Forcefield ---
-    if (t8 > 0) {
-      drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0, true);
-    }
-    if (t4 > 0) {
-      drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0, true);
-    }
-    
-    drawT0Vault(t0);
-  }
-
-  // --- Tier 1: Heavy Reinforced Frame ---
-  if (t1 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t1;
-    
-    // Steel framing Outline (Darkened pure gold texture)
-    
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 15;
-    ctx.strokeRect(-67.5, -107.5, 135, 115);
-    
-    // Draw 1px black outline on edges of the thick frame
-    ctx.strokeStyle = darkMetal;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-75, -115, 150, 130); // outer bound
-    ctx.strokeRect(-60, -100, 120, 100); // inner bound
-
-    // Large industrial rivets
-    ctx.fillStyle = "#888";
-    
-    // The frame is drawn at x: -67.5, y: -107.5, width: 135, height: 115
-    // Left edge: x = -67.5
-    // Right edge: x = 67.5
-    // Top edge: y = -107.5
-    // Bottom edge: y = 7.5
-    // The corner coordinates are: (-67.5, -107.5), (67.5, -107.5), (67.5, 7.5), (-67.5, 7.5)
-    
-    const corners = [
-      {x: -67.5, y: -107.5},
-      {x: 67.5, y: -107.5},
-      {x: 67.5, y: 7.5},
-      {x: -67.5, y: 7.5}
-    ];
-    
-    // Draw corners
-    for (let p of corners) {
-      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
-    }
-    
-    // Draw edges
-    // Distance horizontally is 135. Let's do 8 intervals (7 intermediate points)
-    // Distance vertically is 115. Let's do 7 intervals (6 intermediate points)
-    
-    const hIntervals = 7;
-    const vIntervals = 6;
-    
-    // Top and Bottom edges
-    for (let i = 1; i < hIntervals; i++) {
-      let x = -67.5 + (135 * i / hIntervals);
-      ctx.beginPath(); ctx.arc(x, -107.5, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x, 7.5, 3, 0, Math.PI * 2); ctx.fill();
-    }
-    
-    // Left and Right edges
-    for (let i = 1; i < vIntervals; i++) {
-      let y = -107.5 + (115 * i / vIntervals);
-      ctx.beginPath(); ctx.arc(-67.5, y, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(67.5, y, 3, 0, Math.PI * 2); ctx.fill();
-    }
-    
-    ctx.restore();
-  }
-
-  // --- Tier 2: Electronic Upgrade ---
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    
-    // Electronic keypad (shifted up to y=-88 to match horizontal margin of 2px)
-    ctx.fillStyle = "#111";
-    ctx.fillRect(-48, -88, 25, 36);
-    
-    // Blinking status lights
-    // If vault is open / perfectly matched: solid green
-    // If we have entered some numbers but not matched yet: let's determine if we have a valid prefix prefix sequence
-    const seq = getVaultSequence();
-    const target = "7887773346665553";
-    let lightColor = "#ff0000"; // Solid red by default/idle (not touched)
-    
-    if (seq === target) {
-      lightColor = "#00ff00"; // Solid green
-    } else if (seq && seq !== "0000000000000000" && seq.length > 0) {
-      const matchLen = getMatchLength(seq, target);
-      if (matchLen > 0) {
-        lightColor = "#00ff00"; // Solid green on correct prefix match
-      } else {
-        lightColor = "#ff0000"; // Solid red on incorrect prefix
-      }
-    }
-
-    ctx.fillStyle = lightColor;
-    ctx.beginPath();
-    ctx.arc(-35.5, -80.5, 2, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Keypad grid
-    ctx.fillStyle = "#555";
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        ctx.fillRect(-45 + c * 7, -73 + r * 7, 5, 5);
-      }
-    }
-    
-    ctx.restore();
-  }
-
-  // --- Tier 3: External Security Sensors ---
-  if (t3 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t3;
-
-    ctx.fillStyle = fillGold;
-    // Vault + T1 reinforcement total height is 130px (-115 to +15), top is -115, base is 15
-    ctx.fillRect(-90, -115, 10, 130);
-    ctx.fillRect(80, -115, 10, 130);
-    
-    // Sweeping laser scanners
-    const sweep = Math.sin(t * 2);
-    const laserY = -50 + sweep * 60; // sweep mostly along the new height
-    
-    ctx.strokeStyle = "rgba(255, 0, 0, 0.6)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-80, laserY);
-    ctx.lineTo(80, laserY);
-    ctx.stroke();
-    
-    // Laser glow removed per request (laser is shooting from the inside side of the base, perpendicular to POV)
-    
-    ctx.restore();
-  }
-
-  // --- Tier 7: Chains (Inner) ---
-  if (t7 > 0) {
-    drawT7Chains(true, "inner");
-    drawT7Chains(false, "inner");
-  }
-
-  // --- Tier 4: Core Feature - High-tech Energy Security System ---
-  if (t4 > 0) {
-    drawForcefield(130, 100, -50, 15, t4, 2.0, 1.0);
-  }
-
-  // --- Tier 5: Energy Pylons & Lightning ---
-  if (t5 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t5;
-    
-    const drawObeliskPylon = (xPos) => {
-      ctx.save();
-      ctx.translate(xPos, 15); // Anchor to ground
-      
-      // Base pedestal (pure gold texture)
-      ctx.fillStyle = fillGold;
-      ctx.beginPath();
-      ctx.moveTo(-20, 0);
-      ctx.lineTo(20, 0);
-      ctx.lineTo(15, -10);
-      ctx.lineTo(-15, -10);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Main obelisk body (sleek metallic)
-      ctx.fillStyle = fillGold;
-      ctx.beginPath();
-      ctx.moveTo(-15, -9);
-      ctx.lineTo(15, -9);
-      ctx.lineTo(8, -140);
-      ctx.lineTo(0, -155);
-      ctx.lineTo(-8, -140);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Inner glowing core track (exposed center)
-      const pulse = (Math.sin(t * 5) + 1) / 2;
-      ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`;
-      ctx.beginPath();
-      ctx.moveTo(-4, -20);
-      ctx.lineTo(4, -20);
-      ctx.lineTo(2, -130);
-      ctx.lineTo(-2, -130);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Top energy sphere
-      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
-      ctx.beginPath();
-      ctx.arc(0, -155, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowColor = "#ff0000";
-      ctx.shadowBlur = 10;
-      ctx.fill();
-      
-      ctx.restore();
-    };
-
-    drawObeliskPylon(-165);
-    drawObeliskPylon(165);
-    
-    // Animated lightning arcs to shield
-    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)"; // Red color
-    ctx.lineWidth = 2;
-      
-    // Arc from left pylon top sphere (-165, 15 - 155 = -140)
-    ctx.beginPath();
-    ctx.moveTo(-165, -140);
-    ctx.lineTo(-80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
-    ctx.lineTo(0, -49); // Connects to center mechanical dial
-    ctx.stroke();
-      
-    // Arc from right pylon top sphere (165, 15 - 155 = -140)
-    ctx.beginPath();
-    ctx.moveTo(165, -140);
-    ctx.lineTo(80 + Math.random()*20 - 10, -80 + Math.random()*20 - 10);
-    ctx.lineTo(0, -49); // Connects to center mechanical dial
-    ctx.stroke();
-    
-    ctx.restore();
-  }
-
-  // --- Tier 7: Front Chains (Outer) ---
-  if (t7 > 0) {
-    drawT7Chains(false, "outer");
-  }
-  // --- Tier 6: Hovering Security Drones (Backside Lights) ---
-  if (t6 > 0) {
-    drawT6Drones(true, "lights");
-  }
-
-
-  
-  // --- Tier 6: Hovering Security Drones ---
-  if (t6 > 0) {
-    drawT6Drones(false);
-  }
-
-  // --- Tier 8: Aegis Matrix Shield Upgrade ---
-  if (t8 > 0) {
-    // RadiusX: 260 covers cannons
-    // RadiusY shrunk to 160. CenterY -50. Base is 15.
-    drawForcefield(280, 160, -50, 15, t8, 2.0, 1.0);
-  }
-  
-  ctx.restore();
-
-  // Custom ground overlay for Vault
-  ctx.save();
-  const targetScale = 1.0 + tier * 0.1;
-  const startScale = 1.0 + prevTier * 0.1;
-  const currentScale = startScale + (targetScale - startScale) * animProgress;
-  ctx.scale(1 / currentScale, 1 / currentScale);
-  
-  const floorH = 260;
-  
-  ctx.fillStyle = "rgb(42, 30, 24)";
-  ctx.fillRect(-1600, 0, 3200, floorH + 50);
-
-  ctx.fillStyle = "rgb(28, 20, 16)";
-  ctx.fillRect(-1600, floorH - floorH * 0.8, 3200, floorH * 0.8 + 50);
-  
-  ctx.fillStyle = "rgb(18, 12, 10)";
-  ctx.fillRect(-1600, floorH - floorH * 0.6, 3200, floorH * 0.6 + 50);
-
-  // Gemstones completely removed from fake ground for Vault building
-
-  ctx.restore();
-
-  if (keypadZoomedIn && keypadCtx) {
-    keypadCtx.save();
-    keypadCtx.resetTransform();
-
-    // Dark background overlay on the keypad canvas
-    keypadCtx.fillStyle = "rgba(0, 0, 0, 0.75)";
-    keypadCtx.fillRect(0, 0, w, h);
-
-    // Translate to center
-    keypadCtx.translate(w / 2, h / 2);
-    const zoomFactor = 8;
-    keypadCtx.scale(zoomFactor, zoomFactor);
-
-    // Keypad body
-    keypadCtx.fillStyle = "#111111";
-    keypadCtx.fillRect(-12.5, -18, 25, 36);
-
-    // Status light on zoomed keypad
-    const zoomSeq = getVaultSequence();
-    const zoomTarget = "7887773346665553";
-    let zoomLightColor = "#ff0000"; // Solid red by default/idle
-    
-    if (zoomSeq === zoomTarget) {
-      zoomLightColor = "#00ff00"; // Solid green
-    } else if (zoomSeq && zoomSeq !== "0000000000000000" && zoomSeq.length > 0) {
-      const matchLen = getMatchLength(zoomSeq, zoomTarget);
-      if (matchLen > 0) {
-        zoomLightColor = "#00ff00"; // Solid green on correct prefix match
-      } else {
-        zoomLightColor = "#ff0000"; // Solid red on incorrect prefix
-      }
-    }
-    
-    keypadCtx.fillStyle = zoomLightColor;
-    keypadCtx.beginPath();
-    keypadCtx.arc(0, -10.5, 2, 0, Math.PI * 2);
-    keypadCtx.fill();
-
-    // 3x3 Button grid
-    const kx = (canvasMouseX - w / 2) / zoomFactor;
-    const ky = (canvasMouseY - h / 2) / zoomFactor;
-
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        const bx = -9.5 + c * 7;
-        const by = -3 + r * 7;
-        const btnNum = r * 3 + c + 1;
-
-        const isHovered = kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5;
-        if (isHovered && lastHotkeyNum !== null) {
-          lastHotkeyNum = null;
-        }
-        const isHighlighted = isHovered || (lastHotkeyNum === btnNum);
-        keypadCtx.fillStyle = isHighlighted ? "#656565" : "#434343";
-        keypadCtx.fillRect(bx, by, 5, 5);
-
-        if (isHighlighted) {
-          keypadCtx.strokeStyle = "#00ffff";
-          keypadCtx.lineWidth = 0.5;
-          keypadCtx.strokeRect(bx, by, 5, 5);
-        }
-
-        // Draw numbers
-        keypadCtx.fillStyle = "#ffffff";
-        keypadCtx.font = "bold 3px sans-serif";
-        keypadCtx.textAlign = "center";
-        keypadCtx.textBaseline = "middle";
-        keypadCtx.fillText(String(btnNum), bx + 2.5, by + 3.0);
-      }
-    }
-
-    keypadCtx.restore();
-  }
-}
-
-function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
-  if (!diamondPattern && activeCtx) {
-    initDiamondPattern(activeCtx);
-  } else if (!diamondPattern) {
-    initDiamondPattern(ctx);
-  }
-  if (!darkDiamondPattern && activeCtx) {
-    initDarkDiamondPattern(activeCtx);
-  } else if (!darkDiamondPattern) {
-    initDarkDiamondPattern(ctx);
-  }
-  const fillDiamond = diamondPattern ? diamondPattern : "#8be9ed";
-  const fillDarkDiamond = darkDiamondPattern ? darkDiamondPattern : "#008888";
-  
-  // Progress helpers for smooth fading
-  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
-
-  let t0 = getProg(0);
-  let t1 = getProg(1);
-  let t2 = getProg(2);
-  let t3 = getProg(3);
-  let t4 = getProg(4);
-  let t5 = getProg(5);
-  let t6 = getProg(6);
-  let t7 = getProg(7);
-  let t8 = getProg(8);
-
-  let effTier = prevTier + (tier - prevTier) * animProgress;
-  effTier = Math.max(0, Math.min(8, effTier));
-  // Scale the physical width of the rig gradually from 1.0 (Tier 0) to 2.666 (Tier 8, making a 30px top drive become 80px)
-  const widthScale = 1.0 + (effTier / 8.0) * ((80.0 / 30.0) - 1.0);
-
-  ctx.save();
-
-  // --- Tier 0+: Underground Cavern & Oil Reservoir ---
-  ctx.save();
-  
-  // Undo scaling so the cavern is constant size and perfectly centered in the 260px underground space
-  if (scale) ctx.scale(1/scale, 1/scale);
-  
-  // 130 is exactly halfway down the 260px underground area (floorY is at h - 260)
-  let cy = 130; 
-  let cavernRadiusX = w * 0.45; // 90% of viewport width
-  cavernRadiusX = Math.round(cavernRadiusX / 10) * 10; // Snap to nearest 10 to ensure perfectly symmetric physics nodes around x=0
-  
-  // Define Cavern Path
-  let cavernPath = new Path2D();
-  cavernPath.ellipse(0, cy, cavernRadiusX, 90, 0, 0, Math.PI * 2); 
-  
-  let baseLiquidLevel = cy - 10; // Scales proportionally with the width of the oval by staying at a fixed relative height
-  // Cut out the cavern
-  ctx.fillStyle = "#050302"; // Inside the cavern
-  ctx.fill(cavernPath);
-
-  let radiusNarrow = 18;
-  let radiusWide = 32;
-  
-  let gapAngleNarrow = Math.asin((radiusNarrow + 4) / cavernRadiusX);
-  let strokeBottomYNarrow = cy - 90 * Math.cos(gapAngleNarrow) + 6;
-  
-  let gapAngleWide = Math.asin((radiusWide + 4) / cavernRadiusX);
-  let strokeBottomYWide = cy - 90 * Math.cos(gapAngleWide) + 6;
-  
-  // Drill shaft base darkness (always solid to prevent transparency)
-  ctx.fillStyle = "#050302";
-  ctx.fillRect(-radiusNarrow, 0, radiusNarrow * 2, cy); 
-  
-  if (t8 > 0) {
-      ctx.save();
-      ctx.globalAlpha = t8;
-      ctx.fillStyle = "#050302";
-      ctx.fillRect(-radiusWide, 0, radiusWide * 2, cy); 
-      ctx.restore();
-  }
-  
-  // --- NEW: Draw Drill Shaft BEFORE oil ---
-  if (t0 > 0) {
-      ctx.save();
-      let drillY = 0;
-      let drillLength = 175; // Deep, but not touching the bottom
-      
-      let spinOffsetX = Math.round(t * 80) % 64;
-      let spinOffsetY = Math.round(t * 40) % 64;
-      
-      // 1. Narrow upper shaft (drawn first, extended to overlap underneath the top drive and chuck)
-      // Keep these unscaled so the top drive stays near the ground, allowing cables to elongate as derrick scales
-      let topDriveTop = -90;
-      let topDriveBottom = -60;
-      let shaftTop = -65;
-      
-      // Edge shading to give it a 3D cylindrical look
-      let grad = ctx.createLinearGradient(-15, 0, 15, 0);
-      grad.addColorStop(0, "rgba(0,0,0,0.45)");
-      grad.addColorStop(0.15, "rgba(0,0,0,0)");
-      grad.addColorStop(0.85, "rgba(0,0,0,0)");
-      grad.addColorStop(1, "rgba(0,0,0,0.45)");
-
-      if (t4 < 1) {
-          ctx.save();
-          // Fade out the physical drill as tier 4 activates
-          ctx.globalAlpha = 1 - t4; 
-
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(-8, shaftTop + drillY, 16, -shaftTop);
-          ctx.clip();
-          
-          // Draw moving texture
-          ctx.translate(spinOffsetX, spinOffsetY);
-          ctx.fillStyle = fillDiamond;
-          ctx.fillRect(-8 - spinOffsetX, shaftTop + drillY - spinOffsetY - 64, 16 + 64, -shaftTop + 200);
-          ctx.translate(-spinOffsetX, -spinOffsetY);
-          
-          ctx.restore();
-
-          // 2. Main drill body clipping path (for moving texture and shading)
-          ctx.beginPath();
-          ctx.moveTo(-8, drillY - 15);
-          ctx.lineTo(8, drillY - 15);
-          ctx.lineTo(15, drillY);
-          ctx.lineTo(15, drillY + drillLength - 30);
-          ctx.lineTo(0, drillY + drillLength);
-          ctx.lineTo(-15, drillY + drillLength - 30);
-          ctx.lineTo(-15, drillY);
-          ctx.closePath();
-          ctx.save();
-          ctx.clip();
-          
-          // Draw moving texture
-          ctx.translate(spinOffsetX, spinOffsetY);
-          ctx.fillStyle = fillDiamond;
-          ctx.fillRect(-15 - spinOffsetX, drillY - 20 - spinOffsetY - 64, 30 + 64, drillLength + 200);
-          ctx.translate(-spinOffsetX, -spinOffsetY);
-          
-          // Edge shading to give it a 3D cylindrical look
-          ctx.fillStyle = grad;
-          ctx.fillRect(-15, drillY - 15, 30, drillLength + 15);
-          ctx.restore();
-
-          // 3D Grooves for the main body
-          ctx.save();
-          ctx.strokeStyle = fillDarkDiamond;
-          ctx.lineWidth = 3; // slightly thicker so pattern is visible
-          let grooveOffset = (t * 80) % 8; // Grooves slide down
-          let numGrooves = Math.floor((drillLength - 30) / 8) + 2; 
-          
-          ctx.translate(spinOffsetX, spinOffsetY);
-          for(let i=-2; i<numGrooves; i++) {
-              let gy = drillY + grooveOffset + i*8;
-              if (gy > drillY && gy < drillY + drillLength - 35) {
-                  ctx.beginPath();
-                  ctx.moveTo(-15 - spinOffsetX, gy - 2 - spinOffsetY);
-                  ctx.quadraticCurveTo(0 - spinOffsetX, gy + 3 - spinOffsetY, 15 - spinOffsetX, gy + 6 - spinOffsetY);
-                  ctx.stroke();
-              }
-          }
-          ctx.translate(-spinOffsetX, -spinOffsetY);
-          ctx.restore();
-          ctx.restore(); // Restore alpha
-      }
-
-      // --- Tier 2: Heavy Mud Circulation Pipes ---
-      // Drawn here (unscaled section) so they go behind the top drive
-      if (t2 > 0) {
-          ctx.save();
-          ctx.globalAlpha = t2;
-          
-          let s = scale || 1;
-          const drawPipe = (xSign) => {
-              // Mud pumps are drawn in scaled section at x=55, y=-40
-              let xPos = xSign * 55 * s;
-              let startY = -40 * s;
-              
-              let tdCenterY = -75; // Top drive sits between -60 and -90 (unscaled)
-              
-              let pts = [
-                  { x: xPos, y: startY },
-                  { x: xPos, y: -140 * s }, // Up (Standpipe)
-                  { x: xSign * 30 * s, y: -140 * s }, // Inwards
-                  { x: xSign * 30 * s, y: tdCenterY }, // Down (Rotary hose loop)
-                  { x: 0, y: tdCenterY }, // Connect exactly into the center of the top drive
-              ];
-              
-              let mudDash = "#594940"; 
-              let mudSlit = null; 
-              let flowSpeed = 25 / Math.PI; 
-              let timeOffset = t - (Math.PI / 2) / 20;
-              
-              drawFluidPipe(ctx, pts, 6 * s, mudDash, flowSpeed, timeOffset, t2, "butt", fillDiamond, mudSlit, [25 * s, 25 * s], true, false);
-          };
-          
-          drawPipe(-1);
-          drawPipe(1);
-          
-          ctx.restore();
-      }
-
-      // Top Drive Mechanism (motor that spins the drill, origin of the laser)
-      let topDriveH = Math.round(topDriveBottom - topDriveTop);
-      let topDriveW = Math.round(30 * widthScale);
-      let topDriveX = Math.round(-15 * widthScale);
-      
-      let tdGrad = ctx.createLinearGradient(topDriveX, 0, topDriveX + topDriveW, 0);
-      tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
-      tdGrad.addColorStop(0.15, "rgba(0,0,0,0)");
-      tdGrad.addColorStop(0.85, "rgba(0,0,0,0)");
-      tdGrad.addColorStop(1, "rgba(0,0,0,0.45)");
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
-      ctx.clip();
-      
-      // Draw moving texture to match the drill material
-      ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 200, topDriveH + 200);
-      
-      // Mechanical bands
-      ctx.fillStyle = fillDarkDiamond; 
-      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + 5 + drillY - spinOffsetY, topDriveW + 200, 5);
-      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW + 200, 5);
-      ctx.translate(-spinOffsetX, -spinOffsetY);
-      
-      // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
-      let redAlpha = 0;
-      if (t4 > 0) {
-          let basePulse = (Math.sin(t * Math.PI) + 1) / 2;
-          // At 5x speed (Tier 8), human eyes average out the fast flicker. 
-          // We raise the minimum floor of the pulse so it stays intensely red on average.
-          let glowPulse = basePulse + (t8 * 0.5 * (1 - basePulse)); 
-          redAlpha = glowPulse * t4;
-          
-          if (redAlpha > 0) {
-              ctx.save();
-              
-              // 1. Force the underlying gray texture to be purely red, eliminating any white/gray that causes pinkness
-              ctx.globalCompositeOperation = "color";
-              ctx.fillStyle = `rgba(255, 0, 0, ${redAlpha})`;
-              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
-              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
-              
-              // 2. Add raw red luminosity to make it glow vibrantly (stays pure red because green/blue are gone)
-              ctx.globalCompositeOperation = "lighter";
-              ctx.fillStyle = `rgba(200, 0, 0, ${redAlpha})`;
-              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
-              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
-              
-              ctx.restore();
-          }
-      }
-      
-      // Edge shading
-      ctx.fillStyle = tdGrad; 
-      ctx.fillRect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
-      ctx.restore(); // Popping the clip mask
-      
-      // Cables suspending the top drive from the crown block
-      let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
-      ctx.strokeStyle = fillDiamond;
-      ctx.lineWidth = 2 * widthScale; // Increase the width (thickness) of the cables gradually
-      ctx.beginPath();
-      ctx.moveTo(-10 * cablePosScale, -200 * scale);
-      ctx.lineTo(-10 * cablePosScale, topDriveTop + drillY);
-      ctx.moveTo(10 * cablePosScale, -200 * scale);
-      ctx.lineTo(10 * cablePosScale, topDriveTop + drillY);
-      ctx.stroke();
-
-
-
-      // Tier 8 Wider Emitter
-      if (t8 > 0) {
-          ctx.save();
-          ctx.globalAlpha = t8;
-          let lensPulse = 0.5 + 0.5 * Math.sin(t * 25);
-          
-          // Wider Lens casing
-          ctx.fillStyle = fillDarkDiamond;
-          ctx.beginPath();
-          ctx.moveTo(-15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.closePath();
-          ctx.fill();
-
-          // Glowing emitter crystal
-          ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + 0.2 * lensPulse})`;
-          ctx.beginPath();
-          ctx.moveTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(6 * widthScale, topDriveBottom + drillY + 18);
-          ctx.lineTo(-6 * widthScale, topDriveBottom + drillY + 18);
-          ctx.closePath();
-          ctx.fill();
-          
-          // White hot core in the crystal
-          ctx.fillStyle = `rgba(255, 255, 255, 0.95)`;
-          ctx.beginPath();
-          ctx.moveTo(-6.75 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(6.75 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(3 * widthScale, topDriveBottom + drillY + 16);
-          ctx.lineTo(-3 * widthScale, topDriveBottom + drillY + 16);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-      }
-
-      ctx.restore();
-  }
-
-  // 3. Fluid Oil Pool inside the Cavern
-  ctx.save();
-  ctx.clip(cavernPath); // Restrict fluid entirely to the cavern
-  
-  let laserStrength = (t4 * 1.0) + (t8 * 2.0); // 0 to 4 max
-  
-  // --- PHYSICS UPDATE ---
-  let now = performance.now();
-  if (oilPhysicsLastUpdate === 0) oilPhysicsLastUpdate = now;
-  // Maximum dt to prevent explosion on lag
-  let dt = Math.min((now - oilPhysicsLastUpdate) / 1000, 0.05);
-  oilPhysicsLastUpdate = now;
-  
-  let impactY = baseLiquidLevel; // Center of the fluid pool
-
-  // Initialize or resize physics nodes
-  let numNodes = Math.ceil((cavernRadiusX * 2) / 10) + 1;
-  if (oilPhysicsNodes.length !== numNodes || oilPhysicsLastWidth !== cavernRadiusX) {
-      oilPhysicsNodes = [];
-      for (let i = 0; i < numNodes; i++) {
-          oilPhysicsNodes.push({
-              y: baseLiquidLevel,
-              vy: 0,
-              baseY: baseLiquidLevel
-          });
-      }
-      oilPhysicsParticles = [];
-      oilPhysicsLastWidth = cavernRadiusX;
-  }
-
-  // Physics params
-  const k = 0.03; // Slightly stronger spring to keep it controlled
-  const d = 0.04; // Higher damping to prevent unnatural spikes
-  const spread = 0.12; // Faster wave propagation to smooth out the surface
-  
-  // 1. Update spring node velocities and positions
-  let drillTipY = baseLiquidLevel + (173 - baseLiquidLevel) * (1 - t4); // Smoothly retracts from 173 up to surface level during t4 transition
-
-  for (let i = 0; i < numNodes; i++) {
-      let node = oilPhysicsNodes[i];
-      let px = -cavernRadiusX + i * 10;
-      
-      // Ambient gentle waves
-      let ambientWave = Math.sin(px * 0.015 + t * 1.5) * 4 + Math.sin(px * 0.025 - t * 2.1) * 2;
-      
-      // Violent, asymmetric chaotic swells when laser is active
-      let laserSwell = 0;
-      if (laserStrength > 0) {
-          // Use very low frequencies for large, rolling, tsunami-like waves
-          let swell1 = Math.sin(px * 0.006 + t * 3.7) * 25;
-          let swell2 = Math.sin(px * 0.011 - t * 4.9 + Math.sin(t * 2.1)) * 18;
-          let falloff = 1 - Math.pow(Math.abs(px) / cavernRadiusX, 2); // Stronger near center
-          laserSwell = (swell1 + swell2) * laserStrength * falloff;
-          
-          // Break symmetry explicitly
-          if (px < 0) laserSwell *= 0.6; 
-      }
-      
-      // Node wants to return to flat pool
-      let vortexDip = 0;
-      if (t4 < 1 && Math.abs(px) <= 45) { 
-          let pt = Math.abs(px) / 45;
-          vortexDip = (1 - pt) * (drillTipY - baseLiquidLevel); // Naturally fades as drillTipY goes to baseLiquidLevel
-      }
-      node.baseY = baseLiquidLevel + ambientWave + laserSwell + vortexDip;
-      
-      let x = node.y - node.baseY;
-      node.vy -= k * x;
-      node.vy *= (1 - d);
-      
-      // Clamp max velocity to prevent chaotic spikes
-      if (node.vy > 12) node.vy = 12;
-      if (node.vy < -12) node.vy = -12;
-      
-      node.y += node.vy;
-  }
-  
-  // Volume Conservation (Softened to prevent violent bounciness)
-  let currentVol = 0;
-  for (let i = 0; i < numNodes; i++) {
-      currentVol += (oilPhysicsNodes[i].y - oilPhysicsNodes[i].baseY);
-  }
-  let correction = (currentVol / numNodes) * 0.1; 
-  for (let i = 0; i < numNodes; i++) {
-      oilPhysicsNodes[i].vy -= correction; 
-  }
-
-  // 2. Propagate waves to neighbors
-  let lDeltas = new Array(numNodes).fill(0);
-  let rDeltas = new Array(numNodes).fill(0);
-  for (let pass = 0; pass < 3; pass++) {
-      for (let i = 0; i < numNodes; i++) {
-          if (i > 0) {
-              lDeltas[i] = spread * (oilPhysicsNodes[i].y - oilPhysicsNodes[i - 1].y);
-              oilPhysicsNodes[i - 1].vy += lDeltas[i];
-          }
-          if (i < numNodes - 1) {
-              rDeltas[i] = spread * (oilPhysicsNodes[i].y - oilPhysicsNodes[i + 1].y);
-              oilPhysicsNodes[i + 1].vy += rDeltas[i];
-          }
-      }
-      for (let i = 0; i < numNodes; i++) {
-          if (i > 0) oilPhysicsNodes[i - 1].y += lDeltas[i];
-          if (i < numNodes - 1) oilPhysicsNodes[i + 1].y += rDeltas[i];
-      }
-  }
-
-  // Enforce hard physical boundary for the drill 
-  if (t4 < 1) {
-      for (let i = 0; i < numNodes; i++) {
-          let px = -cavernRadiusX + i * 10;
-          if (Math.abs(px) <= 45) {
-              let pt = Math.abs(px) / 45;
-              let boundaryY = baseLiquidLevel + (1 - pt) * (drillTipY - baseLiquidLevel);
-              if (oilPhysicsNodes[i].y < boundaryY) {
-                  oilPhysicsNodes[i].y = boundaryY;
-                  if (oilPhysicsNodes[i].vy < 0) oilPhysicsNodes[i].vy = 0;
-              }
-          }
-      }
-  }
-
-  // Drill Interaction (Tier 0-3) Particles
-  if (t4 < 1) {
-      let numToSpawn = 0;
-      for(let k=0; k<7; k++) {
-          if (Math.random() < 0.3 * (1 - t4)) numToSpawn++; // Smoothly fade out drill particles
-      }
-      for(let i=0; i<numToSpawn; i++) {
-          let px = (Math.random() - 0.5) * 50; 
-          let isLeft = px < 0;
-          
-          let nodeIdx = Math.floor((px + cavernRadiusX) / 10);
-          let py = baseLiquidLevel;
-          if (nodeIdx >= 0 && nodeIdx < numNodes) {
-              py = oilPhysicsNodes[nodeIdx].y;
-          } else {
-              py = drillTipY;
-          }
-
-          oilPhysicsParticles.push({
-              x: px,
-              y: py,
-              vx: (isLeft ? -1 : 1) * (Math.random() * 6 + 2), 
-              vy: -Math.random() * 16 - 6, 
-              mass: Math.random() * 2 + 1,
-              life: 1.0,
-              isHot: false
-          });
-      }
-  }
-
-  // 3. Laser interaction (Crater & Flung Droplets)
-  if (laserStrength > 0) {
-      let blastRadius = 15; // Only affect immediate center nodes for vertical cliffs
-      for (let i = 0; i < numNodes; i++) {
-          let px = -cavernRadiusX + i * 10;
-          let distFromCenter = Math.abs(px);
-          
-          // Global boiling/turbulence caused by the laser impact (affects entire pool, scaling down towards edges)
-          let globalTurbulence = (1 - Math.min(1, distFromCenter / cavernRadiusX)) * laserStrength;
-          
-          // Random explosive boiling rather than uniform sine waves
-          if (Math.random() < 0.15 * globalTurbulence) {
-              oilPhysicsNodes[i].vy -= (Math.random() * 25 + 5); // Violent upward burst
-          }
-          if (Math.random() < 0.1 * globalTurbulence) {
-              oilPhysicsNodes[i].vy += (Math.random() * 15 + 5); // Downward suction
-          }
-          
-          if (distFromCenter <= blastRadius) {
-              let forceFactor = 1.0; 
-              
-              let craterDepth = baseLiquidLevel + 100 * laserStrength * forceFactor;
-              let maxDepth = 130 + 90 * Math.sqrt(1 - Math.pow(Math.abs(px) / cavernRadiusX, 2)); 
-              if (craterDepth > maxDepth) craterDepth = maxDepth;
-              
-              if (oilPhysicsNodes[i].y < craterDepth) {
-                  let spawnChance = 0.8 * forceFactor;
-                  if (t8 > 0) spawnChance *= 3.0; // Spawn way more droplets in tier 8
-                  
-                  if (Math.random() < spawnChance) { 
-                      let spawnPx = px + (Math.random()-0.5)*10;
-                      let dir = spawnPx < 0 ? -1 : 1;
-                      let pushVx = dir * (Math.random() * 40 + 15) * laserStrength;
-                      let pushVy = -Math.random() * 50 * laserStrength - 20;
-                      
-                      if (t8 > 0) {
-                          pushVx *= 2.5; // Fling violently away horizontally
-                          pushVy *= 0.5; // More horizontal, less vertical
-                      }
-                      
-                      oilPhysicsParticles.push({
-                          x: spawnPx,
-                          y: oilPhysicsNodes[i].y,
-                          vx: pushVx,
-                          vy: pushVy,
-                          mass: Math.random() * 3 + 1,
-                          life: 1.0,
-                          isHot: Math.random() < t8
-                      });
-                  }
-                  
-                  oilPhysicsNodes[i].y = craterDepth;
-                  if (oilPhysicsNodes[i].vy < 0) oilPhysicsNodes[i].vy = 0;
-                  
-                  oilPhysicsNodes[i].vy += forceFactor * 15.0 * laserStrength;
-              } else {
-                  oilPhysicsNodes[i].vy += forceFactor * 4.0 * laserStrength;
-              }
-              
-              if (oilPhysicsNodes[i].y > maxDepth - 2) {
-                  oilPhysicsNodes[i].y = maxDepth - 2;
-                  if (oilPhysicsNodes[i].vy > 0) oilPhysicsNodes[i].vy = 0;
-              }
-          }
-      }
-      
-      // Baseline continuous sparks for aesthetics
-      let numToSpawn = Math.floor(laserStrength * 4 * (Math.random() + 0.5));
-      for (let j = 0; j < numToSpawn; j++) {
-          let spawnPx = (Math.random() - 0.5) * blastRadius * 1.5;
-          let nodeIdx = Math.floor((spawnPx + cavernRadiusX) / 10);
-          if (nodeIdx >= 0 && nodeIdx < numNodes - 1) {
-              let tFrac = (spawnPx + cavernRadiusX) / 10 - nodeIdx;
-              let surfaceY = oilPhysicsNodes[nodeIdx].y * (1 - tFrac) + oilPhysicsNodes[nodeIdx+1].y * tFrac;
-              
-              let dir = spawnPx < 0 ? -1 : 1;
-              let pushVx = dir * (Math.random() * 30 + 10) * laserStrength;
-              
-              oilPhysicsParticles.push({
-                  x: spawnPx,
-                  y: surfaceY,
-                  vx: pushVx,
-                  vy: -Math.random() * 35 * laserStrength - 10,
-                  mass: Math.random() * 2 + 1,
-                  life: 1.0,
-                  isHot: Math.random() < t8
-              });
-          }
-      }
-  }
-
-  // Ambient bubbling - smoothed across multiple nodes to prevent sharp spikes
-  if (Math.random() < 0.15 + tier * 0.05) {
-      let bubNode = Math.floor(Math.random() * numNodes);
-      let force = 12 + Math.random() * 6 * tier;
-      
-      // Spread the bubble force to avoid a jagged spike
-      if (bubNode > 0) oilPhysicsNodes[bubNode - 1].vy -= force * 0.25;
-      oilPhysicsNodes[bubNode].vy -= force * 0.5;
-      if (bubNode < numNodes - 1) oilPhysicsNodes[bubNode + 1].vy -= force * 0.25;
-      
-      let px = -cavernRadiusX + bubNode * 10;
-      oilPhysicsParticles.push({
-          x: px,
-          y: oilPhysicsNodes[bubNode].y,
-          vx: (Math.random() - 0.5) * 5,
-          vy: -Math.random() * 12 - 5,
-          mass: Math.random() * 1.5 + 0.5,
-          life: 1.0,
-          isHot: false
-      });
-  }
-
-  // 4. Update Particles
-  for (let i = oilPhysicsParticles.length - 1; i >= 0; i--) {
-      let p = oilPhysicsParticles[i];
-      p.vy += 0.9; // Gravity
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life -= 0.01;
-      
-      // Hit cavern walls with a visual buffer so they don't clip into the walls
-      if (p.x < -cavernRadiusX + 15) { p.x = -cavernRadiusX + 15; p.vx *= -0.5; }
-      if (p.x > cavernRadiusX - 15) { p.x = cavernRadiusX - 15; p.vx *= -0.5; }
-      
-      // Hit cavern roof (true ellipse boundary: cy = 130, rx = cavernRadiusX, ry = 90)
-      let ellipseDistX = Math.abs(p.x) / cavernRadiusX;
-      if (ellipseDistX > 1) ellipseDistX = 1; // Clamp to avoid NaN
-      let ellipseY = 90 * Math.sqrt(1 - (ellipseDistX * ellipseDistX));
-      
-      // Add visual padding so the particle's size and motion-blur tail don't visually clip through the mask
-      let roofY = cy - ellipseY + 15;
-      
-      if (p.y < roofY) {
-          p.y = roofY;
-          p.vy *= -0.5; // Bounce off the ceiling!
-          p.vx *= 0.8; // Lose some horizontal speed on ceiling hit
-      }
-      
-      let nodeIdx = Math.floor((p.x + cavernRadiusX) / 10);
-      let hit = false;
-      if (nodeIdx >= 0 && nodeIdx < numNodes - 1) {
-          let tFrac = (p.x + cavernRadiusX) / 10 - nodeIdx;
-          let surfaceY = oilPhysicsNodes[nodeIdx].y * (1 - tFrac) + oilPhysicsNodes[nodeIdx+1].y * tFrac;
-          if (p.y > surfaceY && p.vy > 0) {
-              hit = true;
-              let force = p.vy * p.mass * 0.15;
-              // Smooth the droplet impact across 4 nodes to prevent sharp spikes
-              if (nodeIdx > 0) oilPhysicsNodes[nodeIdx - 1].vy += force * 0.15;
-              oilPhysicsNodes[nodeIdx].vy += force * 0.35;
-              oilPhysicsNodes[nodeIdx+1].vy += force * 0.35;
-              if (nodeIdx < numNodes - 2) oilPhysicsNodes[nodeIdx + 2].vy += force * 0.15;
-          }
-      }
-      
-      if (hit || p.life <= 0 || p.y > cy + 110) {
-          oilPhysicsParticles.splice(i, 1);
-      }
-  }
-
-  // --- RENDERING ---
-  const drawPhysicsWave = (layerIdx, r, g, b, alpha, yOffset) => {
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      ctx.beginPath();
-      ctx.moveTo(-cavernRadiusX, cy + 110);
-      
-      let baseShift = (layerIdx - 1) * 5;
-      
-      let firstNode = oilPhysicsNodes[0];
-      let firstPx = -cavernRadiusX;
-      let firstShift = baseShift * Math.min(1, Math.abs(firstPx) / 100);
-      ctx.lineTo(firstPx + firstShift, firstNode.y + yOffset);
-      
-      // Use quadratic curves to draw the fluid completely smoothly, eliminating jagged spikes
-      for (let i = 0; i < numNodes - 1; i++) {
-          let p0 = oilPhysicsNodes[i];
-          let p1 = oilPhysicsNodes[i + 1];
-          let nx0 = -cavernRadiusX + i * 10;
-          let nx1 = -cavernRadiusX + (i + 1) * 10;
-          
-          // Taper the horizontal parallax near the center so the hole perfectly aligns with the drill
-          let shift0 = baseShift * Math.min(1, Math.abs(nx0) / 100);
-          let shift1 = baseShift * Math.min(1, Math.abs(nx1) / 100);
-          
-          let px0 = nx0 + shift0;
-          let py0 = p0.y + yOffset;
-          let px1 = nx1 + shift1;
-          let py1 = p1.y + yOffset;
-          
-          // Visually squish the U-shape heavily towards the center
-          if (laserStrength > 0) {
-              const squish = (x) => {
-                  let absX = Math.abs(x);
-                  if (absX < 80) {
-                      if (absX === 0) return 0;
-                      // Use a power curve to heavily compress the center, smoothly blending out
-                      let factor = Math.pow(absX / 80, 2.5);
-                      let targetX = 3.5 + factor * 76.5; // 3.5px is just slightly inside the laser beam's visual radius
-                      return x < 0 ? -targetX : targetX;
-                  }
-                  return x;
-              };
-              
-              let blend = Math.min(1, laserStrength);
-              px0 = px0 + (squish(px0) - px0) * blend;
-              px1 = px1 + (squish(px1) - px1) * blend;
-          }
-          
-          let cx = (px0 + px1) / 2;
-          let cy_curve = (py0 + py1) / 2;
-          
-          // Bypass smoothing for the tight center to ensure it reaches the flat bottom and stays sharp
-          if (laserStrength > 0 && (Math.abs(nx0) <= 20 || Math.abs(nx1) <= 20)) {
-              ctx.lineTo(px0, py0);
-          } else {
-              ctx.quadraticCurveTo(px0, py0, cx, cy_curve);
-          }
-      }
-      
-      let lastNode = oilPhysicsNodes[numNodes - 1];
-      let lastNx = -cavernRadiusX + (numNodes - 1) * 10;
-      let lastShift = baseShift * Math.min(1, Math.abs(lastNx) / 100);
-      ctx.lineTo(lastNx + lastShift, lastNode.y + yOffset);
-      
-      ctx.lineTo(cavernRadiusX, cy + 110);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Draw subtle rising bubbles in the front layer
-      if (layerIdx === 0) {
-          ctx.save();
-          ctx.clip(); // Clip perfectly to the physics fluid surface
-          for (let i = 0; i < 40; i++) {
-              // Base peaceful rising
-              const bubbleT = (t * 0.2 + i * 0.37) % 1;
-              let bubbleY = (cy + 110) - bubbleT * 160;
-              
-              // Chaotic turbulence added when laser is active
-              const wobbleSpeed = 2 + laserStrength * 15;
-              const wobbleAmount = 5 + laserStrength * 15;
-              let bubbleX = -cavernRadiusX + ((i * 47) % (cavernRadiusX * 2)) + Math.sin(t * wobbleSpeed + i) * wobbleAmount;
-              
-              // Violent vertical shaking/churning
-              bubbleY += Math.sin(t * (8 + (i % 5)) + i * 13) * (40 * laserStrength);
-              
-              const bubbleRadius = 1.5 + (i % 3);
-              ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-              ctx.beginPath();
-              ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
-              ctx.fill();
-          }
-          ctx.restore();
-      }
-  };
-
-  // Draw layers of fluid (Refinery colors: 20,20,20)
-  drawPhysicsWave(2, 12, 12, 12, 1.0, 15);
-  drawPhysicsWave(1, 16, 16, 16, 1.0, 5);
-  drawPhysicsWave(0, 20, 20, 20, 1.0, -5);
-
-  // (Laser Impact Core Flash removed)
-  
-  ctx.restore(); // End fluid clip (pops SAVE 3)
-  
-  // Render Particles physically in front of the laser and derrick, but still inside the cavern
-  ctx.save(); // Temporary save for the clip
-  ctx.clip(cavernPath); // Don't let particles fly outside the 3D hole
-  
-  for (let i = 0; i < oilPhysicsParticles.length; i++) {
-      let p = oilPhysicsParticles[i];
-      let alpha = Math.max(0, p.life);
-      
-      let r = 20, g = 20, b = 20; // Default dark oil color (Refinery match)
-      if (p.isHot) {
-          // Hot glowing droplets blasted by the laser
-          r = 255; 
-          g = 100 + Math.random() * 100; // Flicker yellow/orange
-          b = 50; 
-          alpha *= t8;
-      }
-      
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      
-      // Motion blur effect
-      ctx.beginPath();
-      let stretchX = p.vx * 0.8;
-      let stretchY = p.vy * 0.8;
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(p.x - stretchX, p.y - stretchY);
-      ctx.lineWidth = p.mass * 2;
-      ctx.stroke();
-      
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.mass * 1.5, 0, Math.PI * 2);
-      ctx.fill();
-  }
-  ctx.restore(); // End particle clip
-
-  // Cavern rough edges/texture drawn over the fluid and particles so it cleanly acts as a solid wall
-  ctx.strokeStyle = "#38291f";
-  ctx.lineWidth = 12;
-  ctx.lineCap = "butt";
-  
-  if (t8 < 1) {
-      ctx.save();
-      ctx.globalAlpha = 1 - t8;
-      ctx.beginPath();
-      ctx.rect(-w, -h, w * 3, h * 3); // Outer bounds
-      ctx.rect(-radiusNarrow - 4, 0, radiusNarrow * 2 + 8, strokeBottomYNarrow); // Inner hole to protect
-      ctx.clip("evenodd");
-      
-      let cavernWallPathNarrow = new Path2D();
-      cavernWallPathNarrow.ellipse(0, cy, cavernRadiusX, 90, 0, -Math.PI/2 + gapAngleNarrow, Math.PI * 1.5 - gapAngleNarrow);
-      ctx.stroke(cavernWallPathNarrow);
-      ctx.restore();
-  }
-  
-  if (t8 > 0) {
-      ctx.save();
-      ctx.globalAlpha = t8;
-      ctx.beginPath();
-      ctx.rect(-w, -h, w * 3, h * 3); // Outer bounds
-      ctx.rect(-radiusWide - 4, 0, radiusWide * 2 + 8, strokeBottomYWide); // Inner hole to protect
-      ctx.clip("evenodd");
-      
-      let cavernWallPathWide = new Path2D();
-      cavernWallPathWide.ellipse(0, cy, cavernRadiusX, 90, 0, -Math.PI/2 + gapAngleWide, Math.PI * 1.5 - gapAngleWide);
-      ctx.stroke(cavernWallPathWide);
-      ctx.restore();
-  }
-
-  // Draw retaining walls AFTER cavern strokes so they are not overlapped by the dirt edge
-  if (t8 < 1) {
-      ctx.save();
-      ctx.globalAlpha = 1 - t8;
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(-radiusNarrow - 4, 0, 4, strokeBottomYNarrow); 
-      ctx.fillRect(radiusNarrow, 0, 4, strokeBottomYNarrow);
-      ctx.restore();
-  }
-  
-  if (t8 > 0) {
-      ctx.save();
-      ctx.globalAlpha = t8;
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(-radiusWide - 4, 0, 4, strokeBottomYWide); 
-      ctx.fillRect(radiusWide, 0, 4, strokeBottomYWide);
-      ctx.restore();
-  }
-
-  ctx.restore(); // End cavern transform (pops SAVE 2)
-
-// --- Tier 1: High-Pressure Mud Pumps ---
-  if (t1 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t1;
-    
-    // Noticeable dirt brown palette
-    const brownDark = "#594940"; // Exact palette brown
-    
-    const drawMudPump = (xPos, facingRight) => {
-        ctx.save();
-        ctx.translate(xPos, 0);
-        let dir = facingRight ? 1 : -1;
-        ctx.scale(dir, 1); 
-        
-        // Base plate (skid)
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-41, -5, 56, 5); 
-        
-        // Power end (main housing)
-        ctx.fillStyle = fillDiamond;
-        ctx.beginPath();
-        ctx.moveTo(-37, -5);
-        ctx.lineTo(-37, -28); // High back
-        ctx.lineTo(-25, -28); // Flat top
-        ctx.lineTo(-5, -18);  // Sloped front
-        ctx.lineTo(-5, -5);   // Down
-        ctx.fill();
-        
-        // Housing side panel/door
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-33, -22, 10, 12);
-        
-        // Spinning external shaft/wheel for animation
-        ctx.save();
-        ctx.translate(-28, -16);
-        ctx.rotate(t * 20); // Synced with pressure cycle
-        ctx.fillStyle = brownDark; // Circle is brown
-        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = fillDiamond; // Rectangle is diamond
-        ctx.fillRect(-5, -1, 10, 2);
-        ctx.restore();
-        
-        // Fluid end (valves and block)
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-5, -18, 12, 13);
-        
-        // 3 horizontal valve covers (triplex) - extended slightly
-        ctx.fillStyle = fillDiamond;
-        for(let i=0; i<3; i++) {
-            let vy = -16 + i * 4;
-            ctx.fillRect(7, vy, 10, 3);
-            ctx.fillStyle = fillDiamond; // bolt cap
-            ctx.fillRect(17, vy + 0.5, 2, 2);
-            ctx.fillStyle = fillDiamond;
-        }
-        
-        // Pulsation dampener (sphere on top of fluid end)
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-3, -22, 6, 4); // Neck
-        ctx.fillStyle = fillDiamond;
-        ctx.beginPath();
-        ctx.arc(0, -30, 9, 0, Math.PI*2); // Sphere exactly at local x=0
-        ctx.fill();
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-3, -40, 6, 2); // Top cap
-        
-        // High-pressure pulsing animation (Dampener swells slightly)
-        let pressure = (Math.sin(t * 20) + 1) / 2;
-        // Inner mud is visible dirt brown
-        ctx.fillStyle = `rgba(89, 73, 64, ${0.5 + pressure * 0.5})`; // #594940 is rgb(89, 73, 64)
-        ctx.beginPath();
-        ctx.arc(0, -30, 4 + pressure * 2.5, 0, Math.PI*2);
-        ctx.fill();
-        
-        // Ground suction pipe
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-3, -5, 6, 5);
-        
-        ctx.restore();
-    };
-    
-    // Positioned at +/- 55, facing inwards
-    drawMudPump(-55, true);
-    drawMudPump(55, false);
-    
-    ctx.restore();
-  }
-
-  // --- Tier 6: Scaffolding (Drawn before A-frame) ---
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-    let baseY = -175; 
-    let drawScaffold = (xSign) => {
-        let legX = xSign * 20.5; // X pos of leg at y = -175
-        let pylonX = xSign * 75; // X pos of pylon core
-        
-        ctx.fillStyle = fillDiamond;
-        
-        ctx.beginPath();
-        ctx.moveTo(legX, baseY - 5);
-        ctx.lineTo(pylonX + xSign * 12, baseY - 5);
-        ctx.lineTo(pylonX + xSign * 12, baseY + 5);
-        ctx.lineTo(legX, baseY + 20);
-        ctx.closePath();
-        ctx.fill();
-    };
-    drawScaffold(-1);
-    drawScaffold(1);
-    ctx.restore();
-  }
-
-  // --- Tier 0: Diamond Derrick (A-Frame) ---
-  if (t0 > 0) {
-    ctx.save();
-    ctx.translate(0, -1.5); // Lift the derrick by half the line width so it doesn't clip into the ground
-    
-    // Traditional Oil Derrick (A-Frame) made of Diamond
-    ctx.fillStyle = fillDiamond;
-    ctx.strokeStyle = fillDiamond; // Use diamond texture for the supports
-    ctx.lineWidth = 3; // Slightly thicker so the pattern is visible on lines
-    
-    // Derrick legs
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(-20, -180);
-    ctx.lineTo(20, -180);
-    ctx.lineTo(40, 0);
-    ctx.lineTo(30, 0);
-    ctx.lineTo(12, -170);
-    ctx.lineTo(-12, -170);
-    ctx.lineTo(-30, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Cross bracing (X patterns)
-    ctx.beginPath();
-    for(let i=0; i<4; i++) {
-        let yBottom = -i * 42.5;
-        let yTop = -(i+1) * 42.5;
-        let wBottom = 30 - i*5;
-        let wTop = 30 - (i+1)*5;
-        
-        ctx.moveTo(-wBottom, yBottom);
-        ctx.lineTo(wTop, yTop);
-        ctx.moveTo(wBottom, yBottom);
-        ctx.lineTo(-wTop, yTop);
-    }
-    ctx.stroke();
-
-    // Top Platform / Crown Block
-    ctx.fillRect(-25, -200, 50, 20);
-    ctx.strokeRect(-25, -200, 50, 20);
-    
-    ctx.restore();
-  }
-
-
-  // --- Tier 3: Auxiliary Pumpjacks ---
-  if (t3 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t3;
-    
-    const drawPumpjack = (xPos) => {
-        ctx.save();
-        ctx.translate(xPos, 0);
-        ctx.scale(2, 2);
-        
-        let dir = xPos > 0 ? -1 : 1; 
-        
-        // A-Frame support
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 4;
-        ctx.lineJoin = "round";
-        ctx.beginPath();
-        ctx.moveTo(-14, -2);
-        ctx.lineTo(0, -35);
-        ctx.lineTo(14, -2);
-        ctx.stroke();
-        
-        // Base (reduced size to prevent overlap)
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-20, -6, 40, 6);
-        
-        let cycle = t * 3;
-        
-        let crankRot = cycle;
-        let cx = -dir * 16;
-        let cy = -12;
-        let crankRad = 8;
-        let pinX = cx + Math.cos(crankRot) * crankRad;
-        let pinY = cy + Math.sin(crankRot) * crankRad;
-        
-        // Inverse Kinematics for Pitman Arm
-        let dx = pinX;
-        let dy = pinY - (-35);
-        let d = Math.sqrt(dx * dx + dy * dy);
-        let L_beam = 18;
-        let L_pitman = 28;
-        
-        let cosAlpha = (d * d + L_beam * L_beam - L_pitman * L_pitman) / (2 * d * L_beam);
-        cosAlpha = Math.max(-1, Math.min(1, cosAlpha));
-        let alpha = Math.acos(cosAlpha);
-        
-        let theta_pin = Math.atan2(dy, dx);
-        let theta_back = theta_pin + dir * alpha;
-        let beamAngle = theta_back - (dir === 1 ? Math.PI : 0);
-        
-        // Pitman arm (Connecting rod)
-        let beamBackX = -dir * 18 * Math.cos(beamAngle);
-        let beamBackY = -35 - dir * 18 * Math.sin(beamAngle);
-        
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(pinX, pinY);
-        ctx.lineTo(beamBackX, beamBackY);
-        ctx.stroke();
-        
-        // Counter weight crank
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(crankRot);
-        ctx.fillRect(-3, -2, crankRad + 3, 4); // Arm from center to pin
-        ctx.beginPath();
-        ctx.arc(crankRad/2, 0, 5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-        
-        // Walking beam (Nodding Donkey head)
-        ctx.save();
-        ctx.translate(0, -35);
-        ctx.rotate(beamAngle);
-        
-        // Main beam
-        ctx.fillRect(-20, -3, 40, 6);
-        
-        // Horsehead
-        ctx.beginPath();
-        let hx = dir * 20;
-        ctx.moveTo(hx + dir * 1, -8);
-        ctx.quadraticCurveTo(hx + dir * 7, -2, hx + dir * 1, 12);
-        ctx.lineTo(hx - dir * 2, 10);
-        ctx.lineTo(hx - dir * 3, -7);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-        
-        ctx.restore();
-    };
-    
-    drawPumpjack(-140);
-    drawPumpjack(140);
-    
-    ctx.restore();
-  }
-
-  // --- Tier 4: Concentrated Laser Drill ---
-  if (t4 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t4 * (1 - t8); // Fade out during tier 8 transition
-    
-    // Laser originates from the top drive position (where the drill used to start)
-    const laserStartY = -60 / scale; // Bottom of top drive mechanism
-    const laserEndY = (cy + 88) / scale; // Cavern floor in scaled coords
-    const beamHeight = laserEndY - laserStartY;
-    
-    // Outer glow (subtle red haze, pulsing)
-    const glowPulse = 0.7 + 0.3 * Math.sin(t * 8);
-    const glowWidth = 7.5 * glowPulse;
-    ctx.fillStyle = `rgba(255, 30, 30, 0.15)`;
-    ctx.fillRect(-glowWidth, laserStartY, glowWidth * 2, beamHeight);
-    
-    // Main beam (bright red core, pulsing)
-    const corePulse = 0.85 + 0.15 * Math.sin(t * 15);
-    const coreWidth = 3.75 * corePulse;
-    ctx.fillStyle = `rgba(255, 80, 80, 0.7)`;
-    ctx.fillRect(-coreWidth, laserStartY, coreWidth * 2, beamHeight);
-    
-    // White-hot center (thin, pulsing)
-    const centerPulse = 0.8 + 0.2 * Math.sin(t * 22);
-    const centerWidth = 1.5 * centerPulse;
-    ctx.fillStyle = `rgba(255, 230, 230, 0.95)`;
-    ctx.fillRect(-centerWidth, laserStartY, centerWidth * 2, beamHeight);
-    
-    // Spinning helical lines wrapping around the beam (3D rotating effect)
-    const helixSpeed = t * 40;
-    const helixAmp = 5.25;
-    const helixFreq = 0.06;
-    
-    for (let hx = 0; hx < 2; hx++) {
-        const phaseOffset = hx * Math.PI;
-        
-        for (let ly = 2; ly < beamHeight; ly += 2) {
-            // Subtract helixSpeed so the wave travels downwards (increasing Y)
-            const anglePrev = (ly - 2) * helixFreq - helixSpeed + phaseOffset;
-            const angle = ly * helixFreq - helixSpeed + phaseOffset;
-            
-            const lxPrev = Math.sin(anglePrev) * helixAmp;
-            const lx = Math.sin(angle) * helixAmp;
-            
-            // Calculate z-depth (-1 to 1) for 3D effect
-            const lz = (Math.cos(anglePrev) + Math.cos(angle)) / 2;
-            
-            // Adjust opacity and thickness based on depth
-            const alpha = 0.4 + 0.35 * lz;
-            const thickness = 1.4 + 1.0 * lz;
-            
-            ctx.strokeStyle = `rgba(255, 160, 160, ${Math.max(0.05, alpha)})`;
-            ctx.lineWidth = Math.max(0.2, thickness);
-            
-            ctx.beginPath();
-            ctx.moveTo(lxPrev, laserStartY + ly - 2);
-            ctx.lineTo(lx, laserStartY + ly);
-            ctx.stroke();
-        }
-    }
-    
-    ctx.restore();
-  }
-
-  // --- Tier 5: Flare Stacks (Ground Mounted) ---
-  if (t5 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t5;
-    
-    const drawFlareStack = (xPos) => {
-        ctx.save();
-        ctx.translate(xPos, 0); // On the ground
-        
-        // Stack body
-        ctx.fillStyle = fillDiamond;
-        ctx.beginPath();
-        ctx.moveTo(-10, 0);
-        ctx.lineTo(-4, -140);
-        ctx.lineTo(4, -140);
-        ctx.lineTo(10, 0);
-        ctx.fill();
-        
-        // Heat shield / rim at top
-        ctx.fillStyle = fillDiamond;
-        ctx.fillRect(-6, -140, 12, 4);
-        ctx.fillRect(-8, -135, 16, 2);
-        
-        // Flame
-        let flameScale = 1;
-        let flicker = Math.sin(t * 15) * 0.2 + Math.sin(t * 23) * 0.1;
-        
-        ctx.translate(0, -140);
-        ctx.scale(flameScale, flameScale);
-        
-        // Inner white-hot
-        ctx.fillStyle = `rgba(255, 255, 200, 0.9)`;
-        ctx.beginPath();
-        ctx.moveTo(-2, 0);
-        ctx.quadraticCurveTo(-3, -15 + flicker * 5, 0, -20 - flicker * 10);
-        ctx.quadraticCurveTo(3, -15 - flicker * 5, 2, 0);
-        ctx.fill();
-        
-        // Mid yellow/orange
-        ctx.globalCompositeOperation = "lighter";
-        ctx.fillStyle = `rgba(255, 150, 0, 0.7)`;
-        ctx.beginPath();
-        ctx.moveTo(-4, 0);
-        ctx.quadraticCurveTo(-6, -20 + flicker * 8, 0, -35 - flicker * 15);
-        ctx.quadraticCurveTo(6, -20 - flicker * 8, 4, 0);
-        ctx.fill();
-        
-        // Outer red/dark orange
-        ctx.fillStyle = `rgba(255, 50, 0, 0.5)`;
-        ctx.beginPath();
-        ctx.moveTo(-5, 0);
-        ctx.quadraticCurveTo(-8, -25 + flicker * 10, 0, -45 - flicker * 20);
-        ctx.quadraticCurveTo(8, -25 - flicker * 10, 5, 0);
-        ctx.fill();
-        
-        ctx.restore();
-    };
-    
-    drawFlareStack(-205);
-    drawFlareStack(205);
-    
-    ctx.restore();
-  }
-
-  // --- Tier 6: Arc Amplification Pylons (Leg Mounted) ---
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-    
-    const drawPylon = (xSign) => {
-        ctx.save();
-        
-        let baseY = -175; 
-        let legX = xSign * 20.5; // X pos of leg at y = -175
-        let pylonX = xSign * 75; // X pos of pylon core (much wider)
-        
-        ctx.translate(pylonX, baseY);
-        
-        // --- Pylon Structure (Larger) ---
-        let pScale = 1.6;
-        ctx.scale(pScale, pScale);
-        
-        // Tesla coil rings (BACK half)
-        ctx.strokeStyle = fillDarkDiamond;
-        ctx.lineWidth = 1.5 / pScale;
-        for (let i = 0; i < 4; i++) {
-            let ry = -10 - i * 8;
-            let rw = 6 - i * 1;
-            ctx.beginPath();
-            ctx.ellipse(0, ry, rw, 2, 0, Math.PI, Math.PI * 2);
-            ctx.stroke();
-        }
-        
-        // Pylon spire (points up)
-        ctx.fillStyle = fillDiamond;
-        ctx.beginPath();
-        ctx.moveTo(-4, 0);
-        ctx.lineTo(-1, -31); // Extended up to connect directly to the orb
-        ctx.lineTo(1, -31);
-        ctx.lineTo(4, 0);
-        ctx.fill();
-        
-        // Tesla coil rings (FRONT half)
-        for (let i = 0; i < 4; i++) {
-            let ry = -10 - i * 8;
-            let rw = 6 - i * 1;
-            ctx.beginPath();
-            ctx.ellipse(0, ry, rw, 2, 0, 0, Math.PI);
-            ctx.stroke();
-        }
-        
-        // Solid Diamond Core (Restored)
-        ctx.fillStyle = fillDiamond;
-        ctx.beginPath();
-        ctx.arc(0, -35, 4, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Glowing core orb
-        let coreGlow = 0.5 + 0.5 * Math.sin(t * 5); // Synced
-        if (t8 > 0) coreGlow = 1.0;
-        
-        ctx.globalCompositeOperation = "lighter";
-        ctx.fillStyle = `rgba(100, 200, 255, ${0.4 + coreGlow * 0.6})`;
-        ctx.beginPath();
-        ctx.arc(0, -35, 6 + coreGlow * 2, 0, Math.PI * 2); // Smaller glow
-        ctx.fill();
-        
-        ctx.restore(); // Restores scale and translate
-    };
-    
-    drawPylon(-1);
-    drawPylon(1);
-    
-    // Lightning Arc connecting the two pylons (Always visible, changes shape based on interval)
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = `rgba(150, 220, 255, ${0.6 + t8 * 0.4})`;
-    ctx.lineWidth = 2 + t8 * 2;
-    
-    let pScale = 1.6;
-    let pylonX = 75;
-    let baseY = -175;
-    let startY = baseY - (35 * pScale); // y = -231
-    
-    // Determine how often the shape updates (Normal: 83.33ms, Tier 8: 16.67ms)
-    let stepInterval = 0.08333 - (t8 * 0.06666);
-    let stepSeed = Math.floor(t / stepInterval);
-    
-    // Deterministic random function based on the time step
-    const pRand = (seed, index) => {
-        let x = Math.sin(seed * 1.2345 + index * 5.4321) * 10000;
-        return x - Math.floor(x);
-    };
-    
-    ctx.beginPath();
-    ctx.moveTo(-pylonX, startY);
-    
-    let segments = 8 + Math.floor(pRand(stepSeed, 0) * 4);
-    for (let i = 1; i < segments; i++) {
-        let p = i / segments;
-        let mx = -pylonX + (pylonX * 2) * p;
-        let my = startY;
-        // Add jagged randomness that persists for the duration of the step
-        mx += (pRand(stepSeed, i) - 0.5) * 20;
-        my += (pRand(stepSeed, i + 100) - 0.5) * 35; // Vertical jitter
-        ctx.lineTo(mx, my);
-    }
-    ctx.lineTo(pylonX, startY);
-    ctx.stroke();
-    
-    // Extra inner core for the arc
-    ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 + t8 * 0.2})`;
-    ctx.lineWidth = 1 + t8;
-    ctx.stroke();
-    
-    ctx.restore();
-    
-    ctx.restore();
-  }
-
-  // --- Tier 7: Cryogenic Coolant Silos (Inner A-Frame) ---
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-    
-    const drawSilo = (xSign) => {
-        ctx.save();
-        let tankX = xSign * 16;
-        ctx.translate(tankX, -180); // Hang from the crown block
-        
-        let width = 4;
-        let height = 50; // Hangs down 50px
-        
-        // Back half of silo/glass
-        ctx.fillStyle = `rgba(0, 50, 60, 0.4)`;
-        ctx.fillRect(-width, 0, width * 2, height);
-        
-        // Fluid Level
-        let fluidLevel = 0.7 - 0.1 * Math.sin(t * 2 + xSign);
-        if (t8 > 0) fluidLevel = 0.5 + 0.1 * Math.sin(t * 15 + xSign); 
-        
-        let fluidY = height * (1 - fluidLevel);
-        
-        // Liquid body
-        let grad = ctx.createLinearGradient(0, height, 0, 0);
-        grad.addColorStop(0, `rgba(0, 255, 255, 0.8)`);
-        grad.addColorStop(1, `rgba(0, 150, 200, 0.8)`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(-width + 1, fluidY, width * 2 - 2, height - fluidY);
-        
-        // Bubbles in the liquid
-        let numBubbles = 3 + (t8 * 10);
-        ctx.fillStyle = `rgba(255, 255, 255, 0.5)`;
-        for (let i = 0; i < numBubbles; i++) {
-            let bT = ((t * (1 + t8 * 2) + i * 0.23 + xSign) % 1 + 1) % 1;
-            let bx = Math.sin(i * 123) * (width - 2);
-            let by = height - bT * (height - fluidY);
-            
-            // Wobble
-            bx += Math.sin(t * 5 + i) * 1;
-            
-            ctx.beginPath();
-            ctx.arc(bx, by, Math.max(0, 1 + (i % 2)), 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        // Front glass reflection
-        ctx.fillStyle = `rgba(255, 255, 255, 0.1)`;
-        ctx.fillRect(-width + 1.5, 2, 2, height - 4);
-        
-        // Silo Frame / Caps
-        ctx.fillStyle = fillDarkDiamond;
-        ctx.fillRect(-width - 1, 0, width * 2 + 2, 4); // Top cap
-        ctx.fillRect(-width - 1, height - 4, width * 2 + 2, 4); // Bottom cap
-        
-        // Vertical struts
-        ctx.fillRect(-width, 0, 1.5, height);
-        ctx.fillRect(width - 1.5, 0, 1.5, height);
-        
-        // Coolant pipe to center
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(xSign > 0 ? -width : width, height - 2);
-        ctx.lineTo(xSign > 0 ? -width - 4 : width + 4, height + 10);
-        ctx.stroke();
-        
-        // Steam Venting (especially at Tier 8)
-        let steamStrength = 0.2 + t8 * 1.5;
-        for (let i = 0; i < 3; i++) {
-            let sT = ((t * steamStrength + i * 0.33) % 1 + 1) % 1;
-            let sy = 2 - sT * 30;
-            let sx = Math.sin(t * 3 + i) * 10 * sT;
-            let sAlpha = (1 - sT) * 0.5 * Math.min(1, steamStrength);
-            
-            ctx.fillStyle = `rgba(200, 240, 255, ${sAlpha})`;
-            ctx.beginPath();
-            ctx.arc(sx, sy, Math.max(0, 4 + sT * 10), 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        ctx.restore();
-    };
-    
-    drawSilo(-1);
-    drawSilo(1);
-    
-    ctx.restore();
-  }
-
-  // --- Tier 8: Mega Laser Meltdown ---
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-
-    // The top drive is physically drawn wider, but its *visible* width is bounded by the A-frame legs
-    // At this height, the inner space between the legs is exactly 47 pixels wide.
-    const hazeWidth = 47; // Haze reaches the visible edges of the top drive
-    const megaLaserWidth = 35; // Main beam is exactly 75% of the visible top drive width
-    
-    const megaStartY = -60 / scale;
-    const megaEndY = (cy + 88) / scale;
-    const megaBeamHeight = megaEndY - megaStartY;
-    
-    // Deep red outer glow/haze (reaches exactly to the edge of the top drive)
-    const outerGrad = ctx.createLinearGradient(-hazeWidth / 2, 0, hazeWidth / 2, 0);
-    outerGrad.addColorStop(0, `rgba(200, 0, 0, 0)`);
-    outerGrad.addColorStop(0.2, `rgba(255, 0, 0, ${0.4 * t8})`);
-    outerGrad.addColorStop(0.5, `rgba(255, 0, 0, ${0.8 * t8})`);
-    outerGrad.addColorStop(0.8, `rgba(255, 0, 0, ${0.4 * t8})`);
-    outerGrad.addColorStop(1, `rgba(200, 0, 0, 0)`);
-    
-    ctx.fillStyle = outerGrad;
-    ctx.fillRect(-hazeWidth / 2, megaStartY, hazeWidth, megaBeamHeight);
-
-    // Main intense beam (75% width)
-    const megaGrad = ctx.createLinearGradient(-megaLaserWidth / 2, 0, megaLaserWidth / 2, 0);
-    megaGrad.addColorStop(0, `rgba(255, 0, 0, 0)`);
-    megaGrad.addColorStop(0.15, `rgba(255, 50, 50, ${0.9 * t8})`);
-    megaGrad.addColorStop(0.3, `rgba(255, 200, 200, ${1.0 * t8})`);
-    megaGrad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * t8})`);
-    megaGrad.addColorStop(0.7, `rgba(255, 200, 200, ${1.0 * t8})`);
-    megaGrad.addColorStop(0.85, `rgba(255, 50, 50, ${0.9 * t8})`);
-    megaGrad.addColorStop(1, `rgba(255, 0, 0, 0)`);
-    
-    ctx.fillStyle = megaGrad;
-    ctx.fillRect(-megaLaserWidth / 2, megaStartY, megaLaserWidth, megaBeamHeight);
-
-    // Extreme white-hot core (flickering intensity and width, but perfectly straight)
-    const coreWidth = 14 + Math.random() * 6;
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.9 + 0.1 * Math.random()})`;
-    ctx.fillRect(-coreWidth / 2, megaStartY, coreWidth, megaBeamHeight);
-    
-    ctx.restore();
-  }
-
-  // Draw the front (bottom) half of the cavern rim OVER everything (lasers, derricks, particles)
-  // This provides perfect 3D occlusion, making the laser pass "over" the back rim but "behind" the front rim.
-  ctx.save();
-  if (scale) ctx.scale(1/scale, 1/scale);
-  ctx.beginPath();
-  // cy is 130. We clip to only draw the bottom half of the screen
-  ctx.rect(-w, 130, w * 2, h); 
-  ctx.clip();
-  
-  ctx.strokeStyle = "#38291f";
-  ctx.lineWidth = 12;
-  ctx.stroke(cavernPath);
-  ctx.restore();
-
-  ctx.restore();
-}
-
-function drawGreenhouse(ctx, t, tier) {
-  ctx.fillStyle = "rgba(35, 171, 27, 0.3)";
-  ctx.fillRect(-70, -60, 140, 60);
-  ctx.beginPath();
-  ctx.arc(0, -60, 70, Math.PI, 0);
-  ctx.fill();
-
-  ctx.fillStyle = "#47d13f";
-  ctx.beginPath();
-  ctx.moveTo(-30, 0);
-  ctx.lineTo(-20, -40);
-  ctx.lineTo(-10, 0);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(30, 0);
-  ctx.lineTo(20, -50 + Math.sin(t) * 10);
-  ctx.lineTo(10, 0);
-  ctx.fill();
-}
-
-function drawRadiator(ctx, t, tier) {
-  ctx.fillStyle = "#444";
-  ctx.fillRect(-40, -100, 80, 100);
-
-  const glow = Math.abs(Math.sin(t * 4));
-  ctx.fillStyle = `rgba(230, 69, 69, ${0.5 + glow * 0.5})`;
-
-  for (let i = 0; i < 5; i++) {
-    ctx.fillRect(-30, -90 + i * 18, 60, 10);
-  }
-}
-
-function drawCentrifuge(ctx, t, tier) {
-  ctx.fillStyle = "#555";
-  ctx.fillRect(-20, -80, 40, 80);
-
-  ctx.save();
-  ctx.translate(0, -40);
-  ctx.rotate(t * 5);
-
-  ctx.fillStyle = "#1c38d6";
-  ctx.fillRect(-60, -10, 120, 20);
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(-50, 0, 8, 0, Math.PI * 2);
-  ctx.arc(50, 0, 8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-function drawBeacon(ctx, t, tier) {
-  ctx.fillStyle = "#330d58";
-  ctx.beginPath();
-  ctx.moveTo(-30, 0);
-  ctx.lineTo(-10, -150);
-  ctx.lineTo(10, -150);
-  ctx.lineTo(30, 0);
-  ctx.fill();
-
-  ctx.save();
-  ctx.translate(0, -150);
-  ctx.rotate(t * 2);
-
-  const grad = ctx.createLinearGradient(0, 0, 200, 0);
-  grad.addColorStop(0, "rgba(147, 82, 216, 0.8)");
-  grad.addColorStop(1, "rgba(147, 82, 216, 0)");
-  ctx.fillStyle = grad;
-
-  ctx.beginPath();
-  ctx.moveTo(0, -10);
-  ctx.lineTo(200, -50);
-  ctx.lineTo(200, 30);
-  ctx.lineTo(0, 10);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-function drawTesseract(ctx, t, tier) {
-  const fly = Math.sin(t) * 20;
-  ctx.save();
-  ctx.translate(0, -100 + fly);
-
-  const r = 30 + tier * 2;
-  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-  grad.addColorStop(0, "#fff");
-  grad.addColorStop(0.2, "#00ffff");
-  grad.addColorStop(0.5, "#ff00ff");
-  grad.addColorStop(1, "#000");
-
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.save();
-  ctx.rotate(t);
-  ctx.scale(1, 0.3);
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.rotate(-t * 1.5);
-  ctx.scale(0.3, 1);
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.restore();
-
-  ctx.fillStyle = "#222";
-  ctx.fillRect(-50, -20, 100, 20);
-}
-
-
-function getMatchLength(str, target) {
-  for (let len = str.length; len > 0; len--) {
-    let suffix = str.slice(-len);
-    if (target.startsWith(suffix)) {
-      return len;
-    }
-  }
-  return 0;
-}
-
-function handleVaultCanvasPointerMove(e) {
-  if (!activeCanvas) return;
-  if (settingsManager.get('only_show_building')) return;
-  const rect = activeCanvas.getBoundingClientRect();
-  const clientX = e.clientX - rect.left;
-  const clientY = e.clientY - rect.top;
-  const scaleX = activeCanvas.width / rect.width;
-  const scaleY = activeCanvas.height / rect.height;
-  canvasMouseX = clientX * scaleX;
-  canvasMouseY = clientY * scaleY;
+const SHOP_ADAPTERS = {
+    standard: {
+        title: 'Shop',
+        delveButtonVisible: true,
+        getUiData: () => getShopUiData(getCurrentAreaKey()),
+        getUiModel: (id) => upgradeUiModel(getCurrentAreaKey(), id),
+        buyOne: (id) => buyOne(getCurrentAreaKey(), id),
+        buyMax: (id) => buyMax(getCurrentAreaKey(), id),
+        buyCheap: (id) => buyCheap(getCurrentAreaKey(), id),
+        buyNext: (id, amount) => buyTowards(getCurrentAreaKey(), id, amount),
+        getLockState: (id) => getUpgradeLockState(getCurrentAreaKey(), id),
+        evolve: (id) => evolveUpgrade(getCurrentAreaKey(), id),
+        events: ['ccc:upgrades:changed', 'currency:change', 'xp:change', 'xp:unlock', MERCHANT_MET_EVENT, MINER_MET_EVENT, 'forge:completed', 'unlock:change']
+    },
+    automation: {
+        title: 'Automation Shop',
+        delveButtonVisible: false,
+        getUiData: () => getShopUiData(AUTOMATION_AREA_KEY),
+        getUiModel: (id) => upgradeUiModel(AUTOMATION_AREA_KEY, id),
+        buyOne: (id) => buyOne(AUTOMATION_AREA_KEY, id),
+        buyMax: (id) => buyMax(AUTOMATION_AREA_KEY, id),
+        buyCheap: (id) => buyCheap(AUTOMATION_AREA_KEY, id),
+        buyNext: (id, amount) => buyTowards(AUTOMATION_AREA_KEY, id, amount),
+        getLockState: (id) => getUpgradeLockState(AUTOMATION_AREA_KEY, id),
+        evolve: () => ({ evolved: false }),
+        events: ['ccc:upgrades:changed', 'currency:change']
+    },
+    dna: {
+        title: 'DNA Upgrades',
+        delveButtonVisible: false,
+        getUiData: () => getShopUiData(DNA_AREA_KEY),
+        getUiModel: (id) => upgradeUiModel(DNA_AREA_KEY, id),
+        buyOne: (id) => buyOne(DNA_AREA_KEY, id),
+        buyMax: (id) => buyMax(DNA_AREA_KEY, id),
+        buyCheap: (id) => buyCheap(DNA_AREA_KEY, id),
+        buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
+        getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
+        evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
+        events: ['ccc:upgrades:changed', 'currency:change']
+    },
+    rainbow_gem_shop: {
+        title: 'Rainbow Gem Shop',
+        delveButtonVisible: false,
+        getUiData: () => getShopUiData('rainbow_gem_shop'),
+        getUiModel: (id) => upgradeUiModel('rainbow_gem_shop', id),
+        buyOne: (id) => buyOne('rainbow_gem_shop', id),
+        buyMax: (id) => buyMax('rainbow_gem_shop', id),
+        buyCheap: (id) => buyCheap('rainbow_gem_shop', id),
+        buyNext: (id, amount) => buyTowards('rainbow_gem_shop', id, amount),
+        getLockState: (id) => getUpgradeLockState('rainbow_gem_shop', id),
+        evolve: (id) => evolveUpgrade('rainbow_gem_shop', id),
+        events: ['ccc:upgrades:changed', 'currency:change']
+    }
+};
+
+function getAdapter(mode) {
+    return SHOP_ADAPTERS[mode] || SHOP_ADAPTERS.standard;
 }
 
 if (typeof window !== 'undefined') {
-  window.isMutedByVault = () => {
-    return isVaultOpening || isVaultOpen;
-  };
-  window.isVaultCoinCollected = () => {
-    return vaultCoinCollectedLocal;
-  };
+  window.addEventListener('debug:change', (e) => {
+    const activeSlot = typeof getActiveSlot === 'function' ? getActiveSlot() : null;
+    const targetSlot = e?.detail?.slot ?? activeSlot;
+    if (activeSlot != null && targetSlot != null && activeSlot !== targetSlot) return;
+    updateShopOverlay(true);
+  });
 }
 
-function handleVaultCanvasKeyDown(e) {
-  if (settingsManager.get('only_show_building')) return;
-  if (!keypadZoomedIn || isVaultOpening || isVaultOpen) return;
-  const key = e.key;
-  if (key >= '1' && key <= '9') {
-    const btnNum = parseInt(key, 10);
-    lastHotkeyNum = btnNum;
-    
-    // Simulate button click/press
-    const seq = getVaultSequence();
-    const newSeq = (seq + btnNum).slice(-16);
-    const target = "7887773346665553";
-    const oldLen = getMatchLength(seq, target);
-    const newLen = getMatchLength(newSeq, target);
+// --- Utils ---
+export function blockInteraction(ms = 140) {
+  if (!IS_MOBILE) return;
 
-    setVaultSequence(newSeq);
+  let shield = document.getElementById('ccc-tap-shield');
+  if (!shield) {
+    shield = document.createElement('div');
+    shield.id = 'ccc-tap-shield';
+    Object.assign(shield.style, {
+      position: 'fixed', inset: '0', zIndex: '2147483647',
+      pointerEvents: 'auto', background: 'transparent'
+    });
+    const eat = (e) => { e.stopPropagation(); e.preventDefault(); };
+    ['pointerdown','pointerup','click','touchstart','touchend','mousedown','mouseup']
+      .forEach(ev => shield.addEventListener(ev, eat, { capture: true, passive: false }));
+  }
+  document.body.appendChild(shield);
+  clearTimeout(shield.__t);
+  shield.__t = setTimeout(() => shield.remove(), ms);
+}
 
-    if (newSeq === target) {
-      playAudio("sounds/correct.ogg", { volume: 0.67 });
-      isVaultOpening = true;
-      vaultOpeningTime = 5.0;
-      keypadZoomedIn = false;
-      vaultCoinCollectedLocal = false;
-      setVaultCoinCollected(false);
-      playAudio("sounds/opening.ogg");
-      window.dispatchEvent(new CustomEvent('audio:stopMusic'));
-      
-      setVaultSequence("0000000000000000");
-      if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
-        window.resetSystem.updateBuildingsOverlayUi();
+function stripTags(html) {
+  return String(html ?? '').replace(/<[^>]*>/g, '');
+}
+
+export function getCurrencyLabel(type, amountBn) {
+  if (type === 'gold') return 'Gold';
+  if (type === 'magic') return 'Magic';
+  if (type === 'dna') return 'DNA';
+  
+  let isOne = false;
+  if (amountBn && typeof amountBn.cmp === 'function') {
+      isOne = !amountBn.isInfinite() && amountBn.cmp(1) === 0;
+  } else {
+      try {
+          const bn = BigNum.fromAny(amountBn);
+          isOne = !bn.isInfinite() && bn.cmp(1) === 0;
+      } catch {
+          isOne = (amountBn == 1 || amountBn === '1');
       }
+  }
 
-      const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
-      if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
-      const btnBuy = document.getElementById('building-btn-buy');
-      if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
-      const btnBuyMax = document.getElementById('building-btn-buy-max');
-      if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
-      const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-      if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
-    } else if (newLen === oldLen + 1) {
-      playAudio("sounds/correct.ogg", { volume: 0.67 });
+  if (type === 'coins') return isOne ? 'Coin' : 'Coins';
+  if (type === 'books') return isOne ? 'Book' : 'Books';
+  if (type === 'gears') return isOne ? 'Gear' : 'Gears';
+  if (type === 'rainbowGems') return isOne ? 'Rainbow Gem' : 'Rainbow Gems';
+  
+  return type ? (type.charAt(0).toUpperCase() + type.slice(1)) : '';
+}
+
+// --- Audio ---
+const PURCHASE_SFX_SRC = 'sounds/purchase_upg.ogg';
+const EVOLVE_SFX_SRC = 'sounds/evolve_upg.ogg';
+const MOBILE_PURCHASE_VOLUME = 0.12;
+const DESKTOP_PURCHASE_VOLUME = 0.3;
+
+export function playPurchaseSfx() { 
+    const vol = IS_MOBILE ? MOBILE_PURCHASE_VOLUME : DESKTOP_PURCHASE_VOLUME;
+    playAudio(PURCHASE_SFX_SRC, { volume: vol });
+}
+
+function playEvolveSfx() { 
+    const vol = IS_MOBILE ? (MOBILE_PURCHASE_VOLUME * 2) : (DESKTOP_PURCHASE_VOLUME * 2);
+    playAudio(EVOLVE_SFX_SRC, { volume: vol });
+}
+
+// Deprecated: createSfxPlayer is no longer used, but kept as a no-op if other modules import it (none currently).
+export function createSfxPlayer() { return { play() {} }; }
+
+function currencyIconHTML(type) {
+  const src = CURRENCY_ICON_SRC[type] || CURRENCY_ICON_SRC.coins;
+  const extraStyle = (IS_MOBILE && type === 'rainbowGems') ? ' style="transform: translateY(-0.5px);"' : '';
+  return `<img alt="" src="${src}" class="currency-ico"${extraStyle}>`;
+}
+
+// 1×1 transparent WebP
+const TRANSPARENT_PX = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4IBgAAAAwAQCdASoIAAIAAAAcJaQAA3AA";
+
+// --- Custom Scrollbar ---
+const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
+function injectScrollTimelineStyles() {
+  if (document.getElementById(SCROLL_TIMELINE_STYLES_ID)) return;
+  const style = document.createElement('style');
+  style.id = SCROLL_TIMELINE_STYLES_ID;
+  style.textContent = `
+    @keyframes scroll-thumb-move {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(var(--thumb-x, 0), var(--thumb-y, 0)); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.shop-scroller', options = {}) {
+  const { orientation = 'vertical' } = options;
+  const isVertical = orientation === 'vertical';
+
+  const scroller = overlayEl?.querySelector(scrollerSelector);
+  if (!scroller || scroller.__customScroll) return;
+
+  const bar = document.createElement('div');
+  bar.className = `shop-scrollbar${isVertical ? '' : ' is-horizontal'}`;
+  const thumb = document.createElement('div');
+  thumb.className = 'shop-scrollbar__thumb';
+  bar.appendChild(thumb);
+  sheetEl.appendChild(bar);
+
+  scroller.__customScroll = { bar, thumb };
+
+  const FADE_SCROLL_MS = 150;
+  const FADE_DRAG_MS = 120;
+  const supportsScrollEnd = 'onscrollend' in window;
+
+  // --- Scroll-Driven Animation Support Check ---
+  const supportsTimelineScope = CSS.supports('timeline-scope', 'none');
+  const useCssTimeline = supportsTimelineScope && CSS.supports('animation-timeline', 'scroll()');
+
+  if (useCssTimeline) {
+    injectScrollTimelineStyles();
+    const uniqueId = Math.random().toString(36).slice(2, 8);
+    const timelineName = `--custom-scroll-${uniqueId}`;
+    
+    sheetEl.style.timelineScope = timelineName;
+    scroller.style.scrollTimelineName = timelineName;
+    scroller.style.scrollTimelineAxis = isVertical ? 'block' : 'inline';
+    
+    thumb.style.animationName = 'scroll-thumb-move';
+    thumb.style.animationTimeline = timelineName;
+    thumb.style.animationDuration = '1ms'; // Required syntax, though driven by timeline
+    thumb.style.animationTimingFunction = 'linear';
+    thumb.style.animationFillMode = 'both';
+  }
+
+  // --- Cached Metrics to Avoid Layout Thrashing ---
+  let cachedMetrics = {
+    scrollSize: 0,
+    clientSize: 0,
+    barSize: 0,
+    thumbSize: 0,
+    maxScroll: 1,
+    range: 0,
+    visibleRatio: 1
+  };
+
+  let lastShadow = null;
+  
+  // rAF loop state
+  let scrollTimeout = null;
+
+  const updateBounds = () => {
+    if (!scroller.isConnected || !sheetEl.isConnected) return;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const sheetRect = sheetEl.getBoundingClientRect();
+    
+    if (isVertical) {
+      const top = Math.max(0, scrollerRect.top - sheetRect.top);
+      const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
+      bar.style.top = top + 'px';
+      bar.style.bottom = bottom + 'px';
+      bar.style.left = ''; bar.style.right = ''; 
     } else {
-      playAudio("sounds/incorrect.ogg", { volume: 0.33 });
-      setVaultSequence("0000000000000000");
+      const left = Math.max(0, scrollerRect.left - sheetRect.left);
+      const right = Math.max(0, sheetRect.right - scrollerRect.right);
+      bar.style.left = left + 'px';
+      bar.style.right = right + 'px';
+      bar.style.top = ''; bar.style.bottom = '';
+      bar.style.height = '';
+    }
+  };
+
+  const updateMetrics = () => {
+    const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
+    const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
+    // Use clientSize as barSize fallback, assuming bar matches scroller dim
+    const barSize = isVertical ? (bar.clientHeight || clientSize) : (bar.clientWidth || clientSize);
+    
+    const visibleRatio = clientSize / Math.max(1, scrollSize);
+    const thumbSize = Math.max(28, Math.round(barSize * visibleRatio));
+    const maxScroll = Math.max(1, scrollSize - clientSize);
+    const range = Math.max(0, barSize - thumbSize);
+
+    cachedMetrics = { scrollSize, clientSize, barSize, thumbSize, maxScroll, range, visibleRatio };
+    
+    if (isVertical) {
+      thumb.style.height = thumbSize + 'px';
+      thumb.style.width = '100%';
+    } else {
+      thumb.style.width = thumbSize + 'px';
+      thumb.style.height = '100%';
+    }
+
+    if (useCssTimeline) {
+      if (isVertical) {
+        thumb.style.setProperty('--thumb-y', `${range}px`);
+        thumb.style.setProperty('--thumb-x', '0px');
+      } else {
+        thumb.style.setProperty('--thumb-x', `${range}px`);
+        thumb.style.setProperty('--thumb-y', '0px');
+      }
+    }
+
+    const hasOverflow = (scrollSize > clientSize + 1);
+    bar.style.display = hasOverflow ? '' : 'none';
+    sheetEl?.classList.toggle('has-active-scrollbar', hasOverflow);
+    
+    // Force immediate visual update on metric change
+    performScrollUpdate(); 
+  };
+
+  const performScrollUpdate = () => {
+    const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+    
+    // 1. Shadow
+    const hasShadow = (scrollPos || 0) > 0;
+    if (lastShadow !== hasShadow) {
+      lastShadow = hasShadow;
+      sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+    }
+
+    // 2. Thumb Position (if not using CSS Timeline)
+    if (!useCssTimeline) {
+        const { maxScroll, range } = cachedMetrics;
+        const rawPos = (scrollPos / maxScroll) * range;
+        const pos = IS_MOBILE ? rawPos : Math.round(rawPos);
+        if (isVertical) {
+          thumb.style.transform = `translateY(${pos}px)`;
+        } else {
+          thumb.style.transform = `translateX(${pos}px)`;
+        }
+    }
+    
+    if (IS_MOBILE) showBar();
+  };
+
+  const updateAll = () => { updateBounds(); updateMetrics(); };
+  if (scroller.__customScroll) scroller.__customScroll.update = updateAll;
+
+  // Debounce for mutation observer to prevent layout thrashing on frequent updates
+  let debounceTimer;
+  const debouncedUpdateAll = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updateAll, 100);
+  };
+
+  if (typeof MutationObserver !== 'undefined') {
+      const obs = new MutationObserver(() => debouncedUpdateAll());
+      obs.observe(scroller, { childList: true, subtree: true, characterData: true });
+  }
+
+  const showBar = () => { if (!IS_MOBILE) return; sheetEl.classList.add('is-scrolling'); clearTimeout(scroller.__fadeTimer); };
+  const scheduleHide = (delay) => { if (!IS_MOBILE) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
+  
+  const onScroll = () => { 
+      if (!scrollingElements.has(scroller)) {
+          scrollingElements.add(scroller);
+      }
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+          if (scrollingElements.has(scroller)) {
+              scrollingElements.delete(scroller);
+              window.dispatchEvent(new CustomEvent('menu:scrollStop'));
+          }
+      }, 150);
+
+      performScrollUpdate();
+      scheduleHide(FADE_SCROLL_MS); 
+  };
+  const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
+
+  scroller.addEventListener('scroll', onScroll, { passive: true });
+  if (supportsScrollEnd) scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
+
+  const ro = new ResizeObserver(() => {
+     updateAll(); 
+  });
+  ro.observe(scroller);
+  window.addEventListener('resize', updateAll);
+  requestAnimationFrame(updateAll); // Initial kick
+
+  // Drag logic
+  let dragging = false;
+  let dragStartPos = 0;
+  let startScrollPos = 0;
+  
+  const startDrag = (e) => { 
+    dragging = true; 
+    dragStartPos = isVertical ? e.clientY : e.clientX; 
+    startScrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft; 
+    thumb.classList.add('dragging'); 
+    showBar(); 
+    try { thumb.setPointerCapture(e.pointerId); } catch {} 
+    e.preventDefault(); 
+  };
+  
+  const onDragMove = (e) => { 
+    if (!dragging) return; 
+    const { range, maxScroll } = cachedMetrics;
+    if (range <= 0) return;
+    
+    const currentPos = isVertical ? e.clientY : e.clientX;
+    const delta = currentPos - dragStartPos; 
+    
+    const newPos = startScrollPos + (delta / range) * maxScroll;
+    if (isVertical) scroller.scrollTop = newPos;
+    else scroller.scrollLeft = newPos;
+  };
+  
+  const endDrag = (e) => { 
+    if (!dragging) return; 
+    dragging = false; 
+    thumb.classList.remove('dragging'); 
+    scheduleHide(FADE_DRAG_MS); 
+    try { thumb.releasePointerCapture(e.pointerId); } catch {} 
+  };
+  
+  thumb.addEventListener('pointerdown', startDrag);
+  window.addEventListener('pointermove', onDragMove, { passive: true });
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  
+  bar.addEventListener('pointerdown', (e) => { 
+    if (e.target === thumb) return; 
+    const rect = bar.getBoundingClientRect(); 
+    const clickPos = isVertical ? (e.clientY - rect.top) : (e.clientX - rect.left); 
+    const { thumbSize, range, maxScroll } = cachedMetrics;
+    
+    const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range)); 
+    
+    const newScroll = (targetPos / Math.max(1, range)) * maxScroll;
+    if (isVertical) scroller.scrollTop = newScroll;
+    else scroller.scrollLeft = newScroll;
+    
+    showBar(); 
+    scheduleHide(FADE_SCROLL_MS); 
+  });
+
+  updateAll();
+}
+
+// --- Logic Helpers ---
+const affordableCache = new Map();
+
+function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
+  if (!upg) return BigNum.fromInt(0);
+  const capBn = upg.lvlCapBn?.clone?.() ?? (Number.isFinite(upg.lvlCap) ? BigNum.fromAny(upg.lvlCap) : null);
+  if (!capBn) return BigNum.fromInt(0);
+  if (capBn.isInfinite?.()) return BigNum.fromAny('Infinity');
+
+  let lvlBn;
+  try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumber ?? 0); } 
+  catch { const fallback = Math.max(0, Math.floor(Number(currentLevelNumber) || 0)); lvlBn = BigNum.fromInt(fallback); }
+  
+  if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
+  try {
+    const capPlain = capBn.inf || capBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : capBn.toPlainIntegerString?.();
+    const lvlPlain = lvlBn.inf || lvlBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : lvlBn.toPlainIntegerString?.();
+    if (capPlain === 'Infinity') return BigNum.fromAny('Infinity');
+    if (capPlain && lvlPlain && capPlain !== 'Infinity' && lvlPlain !== 'Infinity') {
+      const delta = Number(capPlain) - Number(lvlPlain);
+      if (delta > 0) return BigNum.fromAny(delta.toString());
+      return BigNum.fromInt(0);
+    }
+  } catch {}
+  
+  const capNumber = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap)) : Infinity;
+  if (!Number.isFinite(capNumber)) return BigNum.fromAny('Infinity');
+  const lvlNumber = Math.max(0, Math.floor(Number(currentLevelNumber) || 0));
+  const room = Math.max(0, capNumber - lvlNumber);
+  return BigNum.fromInt(room);
+}
+
+export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
+  let lvlBn;
+  try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumeric ?? 0); }
+  catch { const fallback = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0)); lvlBn = BigNum.fromInt(fallback); }
+  if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
+
+  const lvl = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0));
+  const cap = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap)) : Infinity;
+
+  const walletEntry = bank[upg.costType];
+  const walletValue = walletEntry?.value;
+  const walletBn = walletValue instanceof BigNum ? walletValue : BigNum.fromAny(walletValue ?? 0);
+  if (walletBn.isZero?.()) return BigNum.fromInt(0);
+
+  const cacheKey = upg.id;
+  const lvlStr = typeof lvlBn.toStorage === 'function' ? lvlBn.toStorage() : lvlBn.toString();
+  const walletStr = typeof walletBn.toStorage === 'function' ? walletBn.toStorage() : walletBn.toString();
+  const capStr = upg.lvlCap instanceof BigNum 
+    ? (typeof upg.lvlCap.toStorage === 'function' ? upg.lvlCap.toStorage() : upg.lvlCap.toString()) 
+    : (upg.lvlCap?.toString() ?? 'Infinity');
+
+  if (cacheKey !== undefined) {
+    const cached = affordableCache.get(cacheKey);
+    if (cached && cached.lvlStr === lvlStr && cached.walletStr === walletStr && cached.capStr === capStr) {
+      return cached.result;
     }
   }
+
+  let resultBn = BigNum.fromInt(0);
+
+  if (walletBn.isInfinite?.()) {
+    const isHmType = upg?.upgType === 'HM';
+    const maxed = Number.isFinite(cap) && lvl >= cap;
+    if ((isHmType && !maxed) || !Number.isFinite(cap)) {
+      resultBn = BigNum.fromAny('Infinity');
+    } else {
+      resultBn = levelsRemainingToCap(upg, lvlBn, currentLevelNumeric);
+    }
+  } else if (Number.isFinite(cap) && lvl >= cap) {
+    resultBn = BigNum.fromInt(0);
+  } else {
+    let computed = false;
+    try {
+      if (typeof upg.costAtLevel === 'function') {
+          const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
+          
+          if (walletBn.cmp(c0) < 0) {
+              resultBn = BigNum.fromInt(0);
+              computed = true;
+          } else {
+              const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
+              const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
+              const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
+              const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+
+              if (isTrulyFlat) {
+                const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
+                const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor((remainingBn.inf ? Infinity : (remainingBn.sig * Math.pow(10, remainingBn.e))))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
+                let lo = 0, hi = Math.max(0, room);
+                while (lo < hi) {
+                  const mid = Math.floor((lo + hi + 1) / 2);
+                  const midBn = BigNum.fromInt(mid);
+                  const total = typeof c0.mulBigNumInteger === 'function' ? c0.mulBigNumInteger(midBn) : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
+                  if (total.cmp(walletBn) <= 0) lo = mid; else hi = mid - 1;
+                }
+                resultBn = BigNum.fromInt(lo);
+                computed = true;
+              }
+          }
+      }
+    } catch {}
+    
+    if (!computed) {
+      const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
+      const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: false });
+      resultBn = count ?? BigNum.fromInt(0);
+    }
+  }
+
+  if (cacheKey !== undefined) {
+    affordableCache.set(cacheKey, { lvlStr, walletStr, capStr, result: resultBn });
+  }
+
+  return resultBn;
 }
 
-function handleVaultCanvasClick(e) {
-  if (!activeCanvas) return;
-  if (settingsManager.get('only_show_building')) return;
-  const rect = activeCanvas.getBoundingClientRect();
-  const clientX = e.clientX - rect.left;
-  const clientY = e.clientY - rect.top;
-  const scaleX = activeCanvas.width / rect.width;
-  const scaleY = activeCanvas.height / rect.height;
-  const cx = clientX * scaleX;
-  const cy = clientY * scaleY;
+// --- Shop Instance Class ---
 
-  const w = activeCanvas.width;
-  const h = activeCanvas.height;
-  const floorY = h - 260;
-  const centerX = w / 2;
-
-  if (isVaultOpen) return;
-  if (isVaultOpening) return;
-
-  if (keypadZoomedIn) {
-    const zoomFactor = 8;
-    const kx = (cx - w / 2) / zoomFactor;
-    const ky = (cy - h / 2) / zoomFactor;
-
-    if (kx < -12.5 || kx > 12.5 || ky < -18 || ky > 18) {
-      keypadZoomedIn = false;
-      activeCanvas.style.cursor = 'default';
-      return;
+class ShopInstance {
+    constructor(mode) {
+        this.mode = mode;
+        this.overlayEl = null;
+        this.sheetEl = null;
+        this.isOpen = false;
+        this.eventsBound = false;
+        this.closeTimer = null;
+        this.postOpenPointer = false;
+        this.upgrades = {};
+        this.delveBtnEl = null;
+        this.renderPending = false;
+        this.updateHandler = this.queueUpdate.bind(this);
+    }
+    
+    queueUpdate() {
+        if (this.renderPending) return;
+        this.renderPending = true;
+        requestAnimationFrame(() => {
+            this.renderPending = false;
+            if (this.isOpen) this.update();
+        });
     }
 
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        const bx = -9.5 + c * 7;
-        const by = -3 + r * 7;
-        if (kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5) {
-          const btnNum = r * 3 + c + 1;
-          const seq = getVaultSequence();
-          const newSeq = (seq + btnNum).slice(-16);
-          const target = "7887773346665553";
-          const oldLen = getMatchLength(seq, target);
-          const newLen = getMatchLength(newSeq, target);
+    get adapter() {
+        return getAdapter(this.mode);
+    }
+    
+    get delveButtonVisible() {
+        return this.adapter.delveButtonVisible;
+    }
+    
+    updateDelveGlow() {
+        if (!this.delveBtnEl || this.mode !== 'standard') return;
+                const met = getCurrentAreaKey() === AREA_KEYS.STARTER_COVE ? hasMetMerchant() : hasMetMiner();
+        let shouldGlow = !met;
+        
+        const slot = getActiveSlot();
+        if (slot != null && localStorage.getItem(`ccc:tsunami:labPending:${slot}`) === '1') {
+            shouldGlow = true;
+        }
+        
+        this.delveBtnEl.classList.toggle('is-new', shouldGlow);
+    }
 
-          setVaultSequence(newSeq);
-
-          if (newSeq === target) {
-            playAudio("sounds/correct.ogg", { volume: 0.67 });
-            isVaultOpening = true;
-            vaultOpeningTime = 5.0;
-            keypadZoomedIn = false;
-            vaultCoinCollectedLocal = false;
-            setVaultCoinCollected(false);
-            playAudio("sounds/opening.ogg");
-            window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+    buildUpgradesData() {
+        this.upgrades = this.adapter.getUiData();
+    }
+    
+    render() {
+        const grid = this.overlayEl?.querySelector('.shop-grid');
+        if (!grid) return;
+        
+        const seenIds = new Set();
+        
+        for (const key in this.upgrades) {
+            const upg = this.upgrades[key];
+            seenIds.add(String(upg.id));
             
-            setVaultSequence("0000000000000000");
-            if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
-              window.resetSystem.updateBuildingsOverlayUi();
+            let btn = grid.querySelector(`.shop-upgrade[data-upg-id="${upg.id}"]`);
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.className = 'shop-upgrade';
+                btn.setAttribute('data-upgid', upg.id);
+                btn.type = 'button';
+                btn.setAttribute('role', 'gridcell');
+                btn.dataset.upgId = String(upg.id);
+                
+                const tile = document.createElement('div');
+                tile.className = 'shop-tile';
+                const baseImg = document.createElement('img');
+                baseImg.className = 'base';
+                baseImg.alt = '';
+                const iconImg = document.createElement('img');
+                iconImg.className = 'icon';
+                iconImg.alt = '';
+                iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
+                
+                tile.appendChild(baseImg);
+                tile.appendChild(iconImg);
+                btn.appendChild(tile);
+                grid.appendChild(btn);
+                
+                // Listeners
+                btn.addEventListener('click', (event) => {
+                    const el = event.currentTarget;
+                    if (el.disabled || el.dataset.lockedPlain === '1') {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        return;
+                    }
+                    if (event.isTrusted && shouldSkipGhostTap(el)) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        return;
+                    }
+
+                    if (event.shiftKey || event.ctrlKey) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        if (!el.upgMeta) return;
+
+                        const id = el.upgMeta.id;
+                        const isHM = el.upgMeta.upgType === 'HM';
+                        const isExcludedCheap = isBuyCheapExcluded(el.upgMeta);
+
+                        // Shift + Click -> Buy Cheap
+                        if (event.shiftKey) {
+                            if (isHM || !isExcludedCheap) {
+                                if (this.adapter.buyCheap) {
+                                    const { bought } = this.adapter.buyCheap(id);
+                                    const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                                    if (!boughtBn.isZero?.()) {
+                                        playPurchaseSfx();
+                                        this.update();
+                                    }
+                                    return;
+                                }
+                            }
+                            // Fallback to Buy Max
+                            const { bought } = this.adapter.buyMax(id);
+                            const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                            if (!boughtBn.isZero?.()) {
+                                playPurchaseSfx();
+                                if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                                    try { unlockMerchantTabs(['reset']); } catch {}
+                                }
+                                this.update();
+                            }
+                            return;
+                        }
+
+                        // Ctrl + Click -> Buy Next (HM only)
+                        if (event.ctrlKey) {
+                            if (isHM) {
+                                const model = this.adapter.getUiModel(id);
+                                if (model) {
+                                    if (!model.hmReadyToEvolve) {
+                                        const target = model.hmNextMilestone;
+                                        if (target && model.lvlBn && target.cmp(model.lvlBn) > 0) {
+                                            let deltaNum = 0;
+                                            try {
+                                                const diffBn = target.sub(model.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.();
+                                                deltaNum = Math.max(0, Math.floor((diffPlain && diffPlain !== 'Infinity') ? Number(diffPlain) : (diffBn.inf ? Infinity : (diffBn.sig * Math.pow(10, diffBn.e)))));
+                                            } catch {}
+
+                                            const walletRaw = bank[model.upg.costType]?.value;
+                                            const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw ?? 0);
+                                            const evalResult = evaluateBulkPurchase(model.upg, model.lvlBn, walletBn, deltaNum);
+                                            const count = evalResult.count;
+
+                                            let reachable = false;
+                                            try { const plain = count?.inf || count?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain && plain !== 'Infinity') ? Number(plain) >= deltaNum : Number(count ?? 0) >= deltaNum; } catch {}
+
+                                            if (reachable) {
+                                                const purchase = this.adapter.buyNext(id, deltaNum);
+                                                const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought ?? 0);
+                                                if (!boughtBn.isZero?.()) {
+                                                    playPurchaseSfx();
+                                                    this.update();
+                                                }
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Fallback to Buy Max
+                            const { bought } = this.adapter.buyMax(id);
+                            const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                            if (!boughtBn.isZero?.()) {
+                                playPurchaseSfx();
+                                if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                                    try { unlockMerchantTabs(['reset']); } catch {}
+                                }
+                                this.update();
+                            }
+                            return;
+                        }
+                    }
+
+                    if (IS_MOBILE && settingsManager.get('upgrade_insta_max')) {
+                        if (el.upgMeta) {
+                            const model = this.adapter.getUiModel(el.upgMeta.id);
+                            const capReached = model?.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model?.upg?.lvlCap) ? model?.lvl >= model?.upg?.lvlCap : false);
+                            if (!model?.hmReadyToEvolve && !capReached) {
+                                const { bought } = this.adapter.buyMax(el.upgMeta.id);
+                                const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                                if (!boughtBn.isZero?.()) {
+                                    playPurchaseSfx();
+                                    if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                                        try { unlockMerchantTabs(['reset']); } catch {}
+                                    }
+                                    this.update();
+                                }
+                                return;
+                            }
+                        }
+                    }
+
+                    if (el.upgMeta) openUpgradeOverlay(el.upgMeta, this.mode);
+                });
+                
+                btn.addEventListener('contextmenu', (e) => {
+                    if (IS_MOBILE) return;
+                    const el = e.currentTarget;
+                    if (el.dataset.locked === '1') return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (!el.upgMeta) return;
+					
+                    const model = this.adapter.getUiModel(el.upgMeta.id);
+                    if (model?.hmReadyToEvolve) {
+                        const { evolved } = this.adapter.evolve(el.upgMeta.id);
+                        if (evolved) {
+                            playEvolveSfx();
+                            this.update();
+                        }
+                        return;
+                    }
+					
+                    const { bought } = this.adapter.buyMax(el.upgMeta.id);
+                    const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                    
+                    if (!boughtBn.isZero?.()) {
+                        playPurchaseSfx();
+                        if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                            try { unlockMerchantTabs(['reset']); } catch {}
+                        }
+                        this.update();
+                    }
+                });
+            }
+            
+            // Update Meta
+            btn.upgMeta = upg.meta;
+            
+            // Logic derived from original renderShopGrid...
+            const locked = !!upg.locked;
+            const lockIcon = upg.lockState?.iconOverride;
+            const hasMysteriousIcon = typeof lockIcon === 'string' && lockIcon.includes('mysterious');
+            const isMysterious = locked && (upg.lockState?.hidden || hasMysteriousIcon);
+            const isPlainLocked = locked && !isMysterious;
+
+            btn.classList.toggle('is-locked', locked);
+            btn.classList.toggle('is-locked-plain', isPlainLocked);
+            btn.disabled = isPlainLocked;
+            if (isPlainLocked) {
+              btn.setAttribute('aria-disabled', 'true');
+              btn.setAttribute('tabindex', '-1');
+            } else {
+              btn.removeAttribute('aria-disabled');
+              btn.removeAttribute('tabindex');
+            }
+            btn.dataset.locked = locked ? '1' : '0';
+            btn.dataset.lockedPlain = isPlainLocked ? '1' : '0';
+            btn.dataset.mysterious = isMysterious ? '1' : '0';
+
+            const isHM = upg.meta?.upgType === 'HM';
+            const evolveReady = isHM && upg.hmReady && !upg.level?.isInfinite?.();
+            btn.classList.toggle('hm-evolve-ready', evolveReady);
+            
+            const isAutomatedFlag = !locked && isUpgradeAutomated(upg.meta);
+            const canPlusBn = locked ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
+            const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
+            const levelHtml = formatNumber(upg.level);
+            const levelPlain = stripTags(levelHtml);
+            const plusHtml = formatNumber(plusBn);
+            const plusPlain = stripTags(plusHtml);
+            const hasPlus = !plusBn.isZero?.();
+            
+            const rawCap = Number.isFinite(upg.lvlCap) ? upg.lvlCap : (Number.isFinite(upg.meta?.lvlCap) ? upg.meta.lvlCap : Infinity);
+            const capNumber = Number.isFinite(rawCap) ? Math.max(0, Math.floor(rawCap)) : Infinity;
+            const levelNumber = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
+            const capReached = evolveReady ? false : (upg.level?.isInfinite?.() ? true : (Number.isFinite(capNumber) && Number.isFinite(levelNumber) ? levelNumber >= capNumber : false));
+            
+            const isSingleLevelCap = Number.isFinite(capNumber) && capNumber === 1;
+            const isUnlockUpgrade = !!upg.meta?.unlockUpgrade;
+            const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached;
+            const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
+
+            let badgeHtml, badgePlain, needsTwoLines = false, isTextBadge = false;
+
+            if (locked) {
+                badgeHtml = ''; badgePlain = '';
+                const reason = isMysterious ? (upg.lockState?.reason || '').trim() : '';
+                const ariaLabel = reason ? `${upg.title} (Locked, ${reason})` : `${upg.title} (Locked)`;
+                btn.setAttribute('aria-label', ariaLabel);
+            } else {
+                if (showUnlockableBadge || showUnlockedBadge) {
+                    badgeHtml = showUnlockableBadge ? 'Unlockable' : 'Unlocked';
+                    badgePlain = badgeHtml;
+                    isTextBadge = true;
+                } else if (!locked && isSingleLevelCap && !isUnlockUpgrade) {
+                    if (capReached) { badgeHtml = 'Owned'; badgePlain = 'Owned'; }
+                    else if (hasPlus) { badgeHtml = 'Purchasable'; badgePlain = 'Purchasable'; }
+                    else { badgeHtml = 'Not Owned'; badgePlain = 'Not Owned'; }
+                    isTextBadge = true;
+                } else {
+                    const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
+                    const plainDigits = String(levelPlain || '').replace(/,/g, '');
+                    const isInf = /∞|Infinity/i.test(plainDigits);
+                    const over999 = Number.isFinite(numericLevel) ? numericLevel >= 1000 : (isInf || /^\d{4,}$/.test(plainDigits));
+                    needsTwoLines = hasPlus && over999;
+                    if (needsTwoLines) {
+                        badgeHtml = `<span class="badge-lvl">${levelHtml}</span><span class="badge-plus">(+${plusHtml})</span>`;
+                        badgePlain = `${levelPlain} (+${plusPlain})`;
+                    } else {
+                        badgeHtml = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
+                        badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
+                    }
+                }
+                btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
+            }
+            
+            if (locked) btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
+            else if (upg.meta?.unlockUpgrade) btn.title = 'Left-click: Details • Right-click: Unlock';
+            else btn.title = 'Left-click: Details • Right-click: Buy Max';
+            
+            // DOM Structure Update
+            const tileEl = btn.firstElementChild;
+            const baseImgEl = tileEl.querySelector('.base');
+            const iconImgEl = tileEl.querySelector('.icon');
+            
+            const costType = upg.meta?.costType || 'coins';
+            const useLockedBase = upg.useLockedBase || locked;
+            let baseSrc = useLockedBase ? LOCKED_BASE_ICON_SRC : (upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
+            let rawIcon = upg.icon;
+            
+            if (rawIcon === 'img/misc/mysterious.webp' && baseSrc === LOCKED_BASE_ICON_SRC) {
+                baseSrc = 'img/misc/mysterious_plus_base.webp';
+                rawIcon = null; // Hide the separate icon since it's now in the base
+            } else if (rawIcon === 'img/misc/locked.webp' && baseSrc === LOCKED_BASE_ICON_SRC) {
+                baseSrc = 'img/misc/locked_plus_base.webp';
+                rawIcon = null; // Hide the separate icon since it's now in the base
             }
 
-            const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
-            if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
-            const btnBuy = document.getElementById('building-btn-buy');
-            if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
-            const btnBuyMax = document.getElementById('building-btn-buy-max');
-            if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
-            const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-            if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
-          } else if (newLen === oldLen + 1) {
-            playAudio("sounds/correct.ogg", { volume: 0.67 });
-          } else {
-            playAudio("sounds/incorrect.ogg", { volume: 0.33 });
-            setVaultSequence("0000000000000000");
-          }
-          return;
-        }
-      }
-    }
-  } else {
-    const scale = 1.0 + getTier() * 0.1;
-    const dy = 15;
-    const left = centerX - 48 * scale;
-    const right = centerX - 23 * scale;
-    const top = floorY - (88 + dy) * scale;
-    const bottom = floorY - (52 + dy) * scale;
+            if (baseImgEl.src !== baseSrc) baseImgEl.src = baseSrc;
+            if (!rawIcon) {
+                if (!iconImgEl.hidden) iconImgEl.hidden = true;
+            } else {
+                if (iconImgEl.hidden) iconImgEl.hidden = false;
+                const iconSrc = rawIcon;
+                if (iconImgEl._lastSrc !== iconSrc) { iconImgEl.src = iconSrc; iconImgEl._lastSrc = iconSrc; }
+            }
+            
+            let maxedOverlay = tileEl.querySelector('.maxed-overlay');
+            const isAutomated = isAutomatedFlag;
+            const showMaxed = !locked && capReached;
+            const showEvolveReady = !locked && evolveReady;
+            const showAutomated = !locked && !capReached && !evolveReady && isAutomated;
 
-    if (cx >= left && cx <= right && cy >= top && cy <= bottom) {
-      if (getTier() >= 2) {
-        keypadZoomedIn = true;
-      }
+            if (showEvolveReady || showMaxed || showAutomated) {
+                if (!maxedOverlay) {
+                    maxedOverlay = document.createElement('img');
+                    maxedOverlay.className = 'maxed-overlay';
+                    maxedOverlay.alt = '';
+                    tileEl.insertBefore(maxedOverlay, iconImgEl);
+                }
+				const targetSrc = showEvolveReady ? EVOLVE_READY_OVERLAY_SRC : (showMaxed ? MAXED_BASE_OVERLAY_SRC : AUTOMATED_OVERLAY_SRC);
+                if (maxedOverlay.src !== targetSrc) maxedOverlay.src = targetSrc;
+            } else if (maxedOverlay) maxedOverlay.remove();
+            
+            let badge = tileEl.querySelector('.level-badge');
+            if (!locked) {
+                if (!badge) { badge = document.createElement('span'); badge.className = 'level-badge'; tileEl.appendChild(badge); }
+                badge.className = 'level-badge';
+                if (isTextBadge) badge.classList.add('text-badge');
+                if (needsTwoLines) badge.classList.add('two-line');
+                if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
+                if (capReached) badge.classList.add('is-maxed');
+                if (badgeHtml === badgePlain) { if (badge.textContent !== badgeHtml) badge.textContent = badgeHtml; }
+                else { setHtmlOrText(badge, badgeHtml); }
+            } else if (badge) badge.remove();
+            
+            if (settingsManager.get('hide_maxed_upgrades') && capReached && !showEvolveReady) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = '';
+            }
+        }
+        
+        // Cleanup stale
+        Array.from(grid.children).forEach(child => {
+            if (child.dataset.upgId && !seenIds.has(child.dataset.upgId)) child.remove();
+        });
     }
+
+    ensureOverlay() {
+        if (this.overlayEl) return;
+        
+        this.overlayEl = document.createElement('div');
+        this.overlayEl.className = 'shop-overlay';
+        if (this.mode === 'automation') {
+            this.overlayEl.classList.add('automation-shop-overlay');
+            // Unique ID not strictly required by CSS but useful
+            this.overlayEl.id = 'automation-shop-overlay'; 
+        } else if (this.mode === 'dna') {
+            this.overlayEl.classList.add('dna-shop-overlay');
+            this.overlayEl.id = 'dna-shop-overlay';
+        } else {
+            this.overlayEl.id = 'shop-overlay';
+        }
+        
+        this.sheetEl = document.createElement('div');
+        this.sheetEl.className = 'shop-sheet';
+        this.sheetEl.setAttribute('role', 'dialog');
+        
+        const grabber = document.createElement('div');
+        grabber.className = 'shop-grabber';
+        grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
+        
+        const content = document.createElement('div');
+        content.className = 'shop-content';
+        
+        const header = document.createElement('header');
+        header.className = 'shop-header';
+        header.innerHTML = `<div class="shop-title">${this.adapter.title}</div><div class="shop-line" aria-hidden="true"></div>`;
+        
+        const grid = document.createElement('div');
+        grid.className = 'shop-grid';
+        if (this.mode === 'standard') grid.id = 'shop-grid'; // backwards compat for ID query
+        grid.setAttribute('role', 'grid');
+        
+        const scroller = document.createElement('div');
+        scroller.className = 'shop-scroller';
+        scroller.appendChild(grid);
+        
+        content.append(header, scroller);
+        ensureCustomScrollbar(this.overlayEl, this.sheetEl, '.shop-scroller');
+        
+        const actions = document.createElement('div');
+        actions.className = 'shop-actions';
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'shop-close';
+        closeBtn.textContent = 'Close';
+        
+        actions.appendChild(closeBtn);
+        
+        if (this.delveButtonVisible) {
+            const delveBtn = document.createElement('button');
+            delveBtn.type = 'button';
+            delveBtn.className = 'shop-delve';
+            delveBtn.textContent = 'Delve';
+                                    delveBtn.addEventListener('click', (e) => {
+                if (e && e.isTrusted && shouldSkipGhostTap(delveBtn)) return;
+                primeTypingSfx();
+                const area = getCurrentAreaKey();
+                if (area === AREA_KEYS.STARTER_COVE) {
+                    openMerchant();
+                } else if (area === AREA_KEYS.UNDERWATER_CAVERN) {
+                    openMiner();
+                } else {
+                    openMerchant();
+                }
+            });
+            this.delveBtnEl = delveBtn;
+            this.updateDelveGlow();
+            actions.append(delveBtn);
+        }
+        
+        this.sheetEl.append(grabber, content, actions);
+        this.overlayEl.appendChild(this.sheetEl);
+        document.body.appendChild(this.overlayEl);
+        
+        // Listeners
+        this.overlayEl.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse') return;
+            this.postOpenPointer = true;
+        }, { capture: true, passive: true });
+        
+        this.overlayEl.addEventListener('touchstart', (e) => {
+             this.postOpenPointer = true;
+        }, { capture: true, passive: true });
+        
+        this.overlayEl.addEventListener('click', (e) => {
+            if (!IS_MOBILE) return;
+            if (!this.postOpenPointer) {
+                e.preventDefault(); e.stopImmediatePropagation();
+                return;
+            }
+        }, { capture: true });
+        
+        closeBtn.addEventListener('click', () => {
+             if (IS_MOBILE) blockInteraction(80);
+             this.close();
+        }, { passive: true });
+        
+        setupDragToClose(grabber, this.sheetEl, () => this.isOpen, () => {
+             this.isOpen = false;
+             const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 150;
+             this.closeTimer = setTimeout(() => {
+                 this.closeTimer = null;
+                 this.close(true);
+             }, delay);
+        });
+        
+        this.update(true);
+    }
+    
+    open() {
+        this.ensureOverlay();
+        
+        if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
+        
+        // Bind events if needed
+        if (!this.eventsBound) {
+            this.adapter.events.forEach(evt => window.addEventListener(evt, this.updateHandler));
+            if (this.mode === 'standard') {
+                document.addEventListener('ccc:upgrades:changed', this.updateHandler);
+            }
+            this.eventsBound = true;
+        }
+        
+        this.update(true);
+        if (this.isOpen) return;
+        
+        this.isOpen = true;
+
+        if (this.mode === 'standard') {
+            const slot = getActiveSlot();
+            if (slot != null && localStorage.getItem(`ccc:tsunami:dialoguePending:${slot}`) === '1') {
+                runPostTsunamiShopDialogue(() => {
+                    try { localStorage.removeItem(`ccc:tsunami:dialoguePending:${slot}`); } catch {}
+                    try { localStorage.setItem(`ccc:tsunami:labPending:${slot}`, '1'); } catch {}
+                    this.update(true);
+                });
+            }
+        }
+
+        this.sheetEl.style.transition = 'none';
+        this.sheetEl.style.transform = 'translateY(100%)';
+        this.overlayEl.style.pointerEvents = 'auto';
+        
+        void this.sheetEl.offsetHeight;
+        
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                this.sheetEl.style.transition = '';
+                this.sheetEl.style.transform = '';
+                this.overlayEl.classList.add('is-open');
+                this.postOpenPointer = false;
+                
+                if (IS_MOBILE) {
+                    try { setTimeout(() => suppressNextGhostTap(240), 120); } catch {}
+                }
+                
+                blockInteraction(10);
+                ensureCustomScrollbar(this.overlayEl, this.sheetEl);
+                
+                const focusable = this.overlayEl.querySelector('.shop-upgrade') || this.overlayEl.querySelector('.shop-grid');
+                if (focusable) focusable.focus();
+            });
+        });
+    }
+    
+    close(force = false) {
+        const forceClose = force === true;
+        const overlayOpen = this.overlayEl?.classList?.contains('is-open');
+        
+        if (!forceClose && !this.isOpen && !overlayOpen) {
+            if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
+            return;
+        }
+        
+        if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
+        
+        this.isOpen = false;
+        if (this.sheetEl) {
+            this.sheetEl.style.transition = '';
+            this.sheetEl.style.transform = '';
+        }
+        if (this.overlayEl) {
+            this.overlayEl.classList.remove('is-open');
+            this.overlayEl.style.pointerEvents = 'none';
+        }
+        this.postOpenPointer = false;
+        
+        if (this.eventsBound) {
+             this.adapter.events.forEach(evt => window.removeEventListener(evt, this.updateHandler));
+             if (this.mode === 'standard') {
+                 document.removeEventListener('ccc:upgrades:changed', this.updateHandler);
+             }
+             this.eventsBound = false;
+        }
+    }
+    
+    update(force = false) {
+        if (!force && !this.isOpen) return;
+        if (!force && isAnyMenuScrolling()) return;
+        this.buildUpgradesData();
+        this.render();
+        this.updateDelveGlow();
+    }
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("menu:scrollStop", () => {
+        updateShopOverlay(true);
+    });
+}
+
+// --- Static Instances ---
+const shops = {
+    standard: new ShopInstance('standard'),
+    automation: new ShopInstance('automation'),
+    dna: new ShopInstance('dna')
+};
+
+export function openShop(mode = 'standard') {
+    const instance = shops[mode] || shops.standard;
+    instance.open();
+}
+
+export function closeShop(force = false) {
+    // Attempt to close all open shops
+    Object.values(shops).forEach(s => s.close(force));
+}
+
+export function closeDelveSpecificOverlays() {
+    Object.entries(shops).forEach(([key, shop]) => {
+        if (key !== 'standard') {
+            shop.close();
+        }
+    });
+
+    if (upgOpen && currentUpgradeMode !== 'standard') {
+        closeUpgradeMenu();
+        const existing = document.querySelector('.hm-milestones-overlay');
+        if (existing) existing.remove();
+    }
+
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ccc:close-delve-overlays'));
+    }
+}
+
+export function updateShopOverlay(force = false) {
+    // Update all open shops
+    Object.values(shops).forEach(s => s.update(force));
+}
+
+export function setUpgradeCount() { updateShopOverlay(true); }
+
+export function getUpgrades() { 
+    // Return standard upgrades for backward compat? 
+    // Or merge? getUpgrades was previously only returning current adapter data.
+    // If standard is open, return standard. If automation is open, return automation.
+    // If both, prioritizing automation makes sense? 
+    // Or standard is "main" upgrades.
+    // Let's assume this is mostly for standard shop.
+    return shops.standard.upgrades;
+}
+
+// --- Upgrade Overlay (Shared) ---
+let upgOverlayEl = null;
+let upgSheetEl = null;
+let upgOpen = false;
+let upgOverlayCleanup = null;
+let currentUpgradeMode = 'standard';
+
+function ensureUpgradeOverlay() {
+  if (upgOverlayEl) return;
+  upgOverlayEl = document.createElement('div');
+  upgOverlayEl.className = 'upg-overlay';
+
+  upgSheetEl = document.createElement('div');
+  upgSheetEl.className = 'upg-sheet';
+  upgSheetEl.setAttribute('role', 'dialog');
+  upgSheetEl.setAttribute('aria-modal', 'false');
+  upgSheetEl.setAttribute('aria-label', 'Upgrade');
+
+  const grab = document.createElement('div');
+  grab.className = 'upg-grabber';
+  grab.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
+
+  const header = document.createElement('header');
+  header.className = 'upg-header';
+
+  const content = document.createElement('div');
+  content.className = 'upg-content';
+
+  const milestones = document.createElement('div');
+  milestones.className = 'upg-milestones';
+
+  const actions = document.createElement('div');
+  actions.className = 'upg-actions';
+
+  upgSheetEl.append(grab, header, content, milestones, actions);
+  upgOverlayEl.appendChild(upgSheetEl);
+  document.body.appendChild(upgOverlayEl);
+
+  upgOverlayEl.addEventListener('pointerdown', (e) => {
+    if (!IS_MOBILE) return;
+    if (e.pointerType === 'mouse') return;
+    if (e.target === upgOverlayEl) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+  upgOverlayEl.addEventListener('click', (e) => {
+    if (!IS_MOBILE) return;
+    if (e.target === upgOverlayEl) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+
+  let drag = null;
+  function onDragStart(e) {
+    if (!upgOpen) return;
+    const y = typeof e.clientY === 'number' ? e.clientY : (e.touches?.[0]?.clientY || 0);
+    drag = { startY: y, lastY: y, moved: 0 };
+    upgSheetEl.style.transition = 'none';
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
   }
+  function onDragMove(e) {
+    if (!drag) return;
+    const y = e.clientY;
+    if (typeof y !== 'number') return;
+    const dy = Math.max(0, y - drag.startY);
+    drag.lastY = y;
+    drag.moved = dy;
+    upgSheetEl.style.transform = `translateY(${dy}px)`;
+  }
+  function onDragEnd(e) {
+    if (!drag) return;
+    const shouldClose = drag.moved > 140;
+    upgSheetEl.style.transition = 'transform 160ms ease';
+    upgSheetEl.style.transform = shouldClose ? 'translateY(100%)' : 'translateY(0)';
+    if (shouldClose) {
+      if (IS_MOBILE && (!e || e.pointerType !== 'mouse')) try { blockInteraction(120); } catch {}
+      const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 160;
+      setTimeout(closeUpgradeMenu, delay);
+    }
+    drag = null;
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+  }
+  grab.addEventListener('pointerdown', onDragStart, { passive: true });
+}
+
+function closeUpgradeMenu() {
+  if (IS_MOBILE) try { blockInteraction(160); } catch {}
+  if (typeof upgOverlayCleanup === 'function') { const fn = upgOverlayCleanup; upgOverlayCleanup = null; try { fn(); } catch {} }
+  upgOpen = false;
+  if (!upgOverlayEl || !upgSheetEl) return;
+  upgSheetEl.style.transition = '';
+  upgSheetEl.style.transform = '';
+  upgOverlayEl.classList.remove('is-open');
+  upgOverlayEl.style.pointerEvents = 'none';
+}
+
+function openHmMilestoneDialog(lines) {
+  // ... (Re-implement logic or use existing. I will copy existing logic for brevity)
+  const existing = document.querySelector('.hm-milestones-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'hm-milestones-overlay';
+  overlay.setAttribute('role', 'dialog');
+  const dialog = document.createElement('div');
+  dialog.className = 'hm-milestones-dialog';
+  const title = document.createElement('h3');
+  title.className = 'hm-milestones-title';
+  title.textContent = 'Milestones';
+  const list = document.createElement('ul');
+  list.className = 'hm-milestones-list';
+  for (const line of lines) {
+    const li = document.createElement('li');
+    const text = document.createElement('span');
+    text.className = 'hm-milestone-text';
+    if (line && typeof line === 'object') { setHtmlOrText(text, line.text ?? ''); if (line.achieved) li.classList.add('hm-milestone-achieved'); } 
+    else { setHtmlOrText(text, line); }
+    li.appendChild(text); list.appendChild(li);
+  }
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'hm-milestones-close';
+  closeBtn.textContent = 'Close';
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKeydown); };
+  const onKeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); close(); } };
+  overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', onKeydown);
+  dialog.append(title, list, closeBtn);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  if (typeof closeBtn.focus === 'function') closeBtn.focus({ preventScroll: true });
+}
+
+export function openUpgradeOverlay(upgDef, mode = 'standard') {
+  ensureUpgradeOverlay();
+  upgOpen = true;
+  currentUpgradeMode = mode;
+  let upgOpenLocal = true;
+
+  const adapter = getAdapter(mode);
+  
+  // Initial checks
+  const initialLockState = adapter.getLockState(upgDef.id) || {};
+  const initialLocked = !!initialLockState.locked;
+  const initialMysterious = initialLocked && (initialLockState.hidden || initialLockState.hideEffect || initialLockState.hideCost || (typeof initialLockState.iconOverride === 'string' && initialLockState.iconOverride.includes('mysterious')));
+  if (initialLocked && !initialMysterious) { upgOpen = false; return; }
+
+  const isHM = (upgDef.upgType === 'HM');
+  const isTM = (upgDef.upgType === 'TM');
+  const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
+  const isEndlessFp = (upgDef.tie === UPGRADE_TIES.ENDLESS_FP);
+  const isEndlessMaterials = (upgDef.tie === UPGRADE_TIES.ENDLESS_MATERIALS);
+  
+  function ensureChild(parent, className, tagName = 'div') {
+      const targetClasses = className.split(' ').filter(c => c.length > 0);
+      let el = null; const extras = [];
+      for (let i = 0; i < parent.children.length; i++) {
+          const child = parent.children[i];
+          if (tagName && child.tagName.toLowerCase() !== tagName.toLowerCase()) continue;
+          if (targetClasses.every(cls => child.classList.contains(cls))) { if (!el) el = child; else extras.push(child); }
+      }
+      extras.forEach(e => e.remove());
+      if (!el) { el = document.createElement(tagName); el.className = className; parent.appendChild(el); }
+      return el;
+  }
+  const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
+  
+  
+  let initialRender = true;
+  
+  const rerender = () => {
+      const model = adapter.getUiModel(upgDef.id);
+      if (!model) return;
+      
+      const lockState = model.lockState || adapter.getLockState(upgDef.id);
+      const locked = !!lockState?.locked;
+      const isHiddenUpgrade = locked && (lockState?.hidden || lockState?.hideEffect || lockState?.hideCost);
+      const isUnlockVisible = !!model.unlockUpgrade && !isHiddenUpgrade;
+      
+      upgSheetEl.classList.toggle('is-locked-hidden', isHiddenUpgrade);
+      
+      const header = upgSheetEl.querySelector('.upg-header');
+      const title = ensureChild(header, 'upg-title');
+      if (title.textContent !== (model.displayTitle || model.upg.title)) title.textContent = model.displayTitle || model.upg.title;
+      
+      const evolveReady = !!model.hmReadyToEvolve && !model.lvlBn?.isInfinite?.();
+      const capReached = evolveReady ? false : (model.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model.upg.lvlCap) ? model.lvl >= model.upg.lvlCap : false));
+      
+      const level = ensureChild(header, 'upg-level');
+      const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
+      const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
+      let levelHtml = evolveReady ? `Level ${model.lvlFmtHtml} / ${capHtml} (EVOLVE READY)` : (capReached ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)` : `Level ${model.lvlFmtHtml} / ${capHtml}`);
+      if (mode === 'rainbow_gem_shop') {
+          levelHtml = capReached ? 'Owned' : 'Not Owned';
+      }
+      const levelPlain = stripTags(levelHtml);
+      setHtmlOrText(level, levelHtml);
+      if (level.getAttribute('aria-label') !== levelPlain) level.setAttribute('aria-label', levelPlain);
+      level.hidden = isHiddenUpgrade;
+      if (!isHiddenUpgrade) level.removeAttribute('aria-hidden');
+      
+      upgSheetEl.classList.toggle('is-maxed', capReached);
+      upgSheetEl.classList.toggle('hm-evolve-ready', evolveReady);
+      upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
+      upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
+      upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
+	  upgSheetEl.classList.toggle('is-endless-fp', isEndlessFp);
+	  upgSheetEl.classList.toggle('is-endless-materials', isEndlessMaterials);
+      upgSheetEl.classList.toggle('is-magnet-upgrade', upgDef.tie === UPGRADE_TIES.MAGNET);
+      upgSheetEl.classList.toggle('is-coin-value-iv', upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
+      upgSheetEl.classList.toggle('is-xp-value-iv', upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
+	  upgSheetEl.classList.toggle('is-no-effect', !model.effect);
+
+            // --- Automation Toggle Logic ---
+      let autoToggleWrapper = header.querySelector('.auto-toggle-wrapper');
+
+      // Check for Master Upgrade logic in Automation Shop
+      const masterCostType = (mode === 'automation') ? MASTER_AUTOBUY_IDS[upgDef.id] : null;
+      // Also check for Workshop Level Master Switch (ID 6 in automation shop)
+      const isWorkshopMaster = (mode === 'automation' && upgDef.id === AUTOBUY_WORKSHOP_LEVELS_ID);
+      // Check for Auto-Evolve Upgrades Master Switch (ID 8 in automation shop)
+      const isEvolveMaster = (mode === 'automation' && upgDef.id === AUTOBUY_EVOLVE_UPGRADES_ID);
+
+      const isAutomationMaster = !!masterCostType;
+      
+      // Check for Standard Upgrade logic in Standard Shop
+      const standardAutobuyId = (mode === 'standard' || mode === 'dna' || mode === 'delve') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
+
+      let autobuyLevel = 0;
+      if (standardAutobuyId) {
+          autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, standardAutobuyId);
+      } else if (isAutomationMaster || isWorkshopMaster || isEvolveMaster) {
+          // If viewing the master upgrade itself, we check its own level
+          autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, upgDef.id);
+      }
+
+      const hasAutobuyer = autobuyLevel > 0;
+      const isOwnedTM = isTM && (getLevelNumber(upgDef.area, upgDef.id) > 0);
+      const showAutoToggle = (hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster || isEvolveMaster) && !isHiddenUpgrade) || (isOwnedTM && !isHiddenUpgrade);
+
+      if (!autoToggleWrapper) {
+          autoToggleWrapper = document.createElement('div');
+          autoToggleWrapper.className = 'auto-toggle-wrapper hm-view-milestones-row';
+          header.appendChild(autoToggleWrapper);
+      }
+      
+      let toggleBtn = autoToggleWrapper.querySelector('button');
+      if (!toggleBtn) {
+          toggleBtn = document.createElement('button');
+          toggleBtn.type = 'button';
+          toggleBtn.style.padding = '10px 14px';
+          toggleBtn.style.fontSize = '16px';
+          toggleBtn.style.width = 'auto';
+          toggleBtn.style.minWidth = '180px';
+          
+          toggleBtn.addEventListener('click', (e) => {
+              if (typeof toggleBtn._onClick === 'function') toggleBtn._onClick(e);
+          });
+          
+          autoToggleWrapper.appendChild(toggleBtn);
+      }
+      
+      if (showAutoToggle) {
+         toggleBtn.style.visibility = '';
+         toggleBtn.style.pointerEvents = 'auto';
+
+         const activeSlot = getActiveSlot();
+         const slotSuffix = activeSlot != null ? `:${activeSlot}` : '';
+
+         let isEnabled = true;
+         let collectiveState = null;
+         if (isAutomationMaster) {
+             collectiveState = getCollectiveAutobuyerState(masterCostType);
+             isEnabled = collectiveState > 0;
+         } else {
+             // Standard or Workshop Master
+             const val = getAutobuyerToggle(upgDef.area, upgDef.id);
+             isEnabled = val !== '0';
+         }
+
+         if (isOwnedTM) {
+             const activeModSettingKey = 'active_' + upgDef.modType + '_mod';
+             const isModActive = settingsManager.get(activeModSettingKey) === upgDef.id;
+
+             if (isModActive) {
+                 toggleBtn.className = 'shop-delve';
+                 toggleBtn.textContent = 'Toggle: ON';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
+             } else {
+                 toggleBtn.className = 'shop-close';
+                 toggleBtn.textContent = 'Toggle: OFF';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
+             }
+             
+             toggleBtn._onClick = (e) => {
+                 e.preventDefault(); e.stopPropagation();
+                 if (IS_MOBILE) blockInteraction(50);
+                 
+                 if (isModActive) {
+                     settingsManager.set(activeModSettingKey, 0); // Turn off
+                 } else {
+                     settingsManager.set(activeModSettingKey, upgDef.id); // Turn on
+                 }
+                 document.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+                 rerender();
+             };
+         } else {
+             if (isAutomationMaster && collectiveState === 0.5) {
+                 toggleBtn.className = 'shop-sort-of';
+                 toggleBtn.textContent = 'Automation: Sort of ON';
+                 toggleBtn.style.color = ''; 
+                 toggleBtn.style.backgroundColor = ''; 
+             } else if (isEnabled) {
+                 toggleBtn.className = 'shop-delve';
+                 toggleBtn.textContent = 'Automation: ON';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
+             } else {
+                 toggleBtn.className = 'shop-close';
+                 toggleBtn.textContent = 'Automation: OFF';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
+             }
+             
+             toggleBtn._onClick = (e) => {
+                 e.preventDefault(); e.stopPropagation();
+                 if (IS_MOBILE) blockInteraction(50);
+                 
+                 const newState = !isEnabled;
+                 const val = newState ? '1' : '0';
+                 
+                 if (isAutomationMaster) {
+                     settingsManager.set(`currency_${masterCostType}_automated`, newState);
+                     setAllAutobuyersForCostType(masterCostType, newState);
+                 } else {
+                     setAutobuyerToggle(upgDef.area, upgDef.id, val);
+                 }
+                 window.dispatchEvent(new CustomEvent('currency:change'));
+                 document.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+                 rerender();
+             };
+         }
+      } else {
+         toggleBtn.style.visibility = 'hidden';
+         toggleBtn.style.pointerEvents = 'none';
+         toggleBtn.className = 'shop-delve';
+         toggleBtn.textContent = 'Automation: ON'; // Dummy content for height
+         toggleBtn._onClick = null;
+      }
+      // -------------------------------
+      
+      const content = upgSheetEl.querySelector('.upg-content');
+      if (initialRender) { content.scrollTop = 0; initialRender = false; }
+      
+      const desc = ensureChild(content, 'upg-desc centered');
+      desc.classList.toggle('lock-desc', isHiddenUpgrade);
+      let rawBaseDesc = model.displayDesc || model.upg.desc || '';
+      if (typeof rawBaseDesc === 'function') rawBaseDesc = rawBaseDesc();
+      const baseDesc = String(rawBaseDesc).trim();
+      const descScale = Number(model.upg?.descScale);
+      const ignoreDescScaleAt = Number(model.upg?.ignoreDescScaleAt);
+      const viewportWidth = (typeof window !== 'undefined' && Number.isFinite(window.innerWidth))
+          ? window.innerWidth
+          : 0;
+      const shouldIgnoreDescScale = Number.isFinite(ignoreDescScaleAt)
+          && ignoreDescScaleAt > 0
+          && viewportWidth >= ignoreDescScaleAt;
+      if (evolveReady) {
+          desc.classList.add('hm-evolve-note');
+          desc.style.removeProperty('font-size');
+          if (desc.textContent !== 'Evolve this upgrade to multiply its effect by 1000x') desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
+      } else if (baseDesc) {
+          desc.classList.remove('hm-evolve-note');
+          if (!shouldIgnoreDescScale && Number.isFinite(descScale) && descScale > 0 && !isHiddenUpgrade) {
+              desc.style.fontSize = `calc((var(--upg-desc-size, clamp(32px, 4.6vw, 50px))) * ${descScale})`;
+          } else {
+              desc.style.removeProperty('font-size');
+          }
+          if (mode === 'rainbow_gem_shop' && model.upg.modType === 'font' && FONT_MAP[model.upg.id]) {
+              const fontClass = FONT_MAP[model.upg.id];
+              const fontName = model.displayTitle || model.upg.title;
+              const formattedDesc = baseDesc.replace(fontName, `<span class="${fontClass}">${fontName}</span>`);
+              if (desc.innerHTML !== formattedDesc) desc.innerHTML = formattedDesc;
+          } else {
+              if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
+          }
+          desc.hidden = false;
+      } else desc.hidden = true;
+      
+      const info = ensureChild(content, 'upg-info');
+      
+      let cursor = null;
+      const placeAfterCursor = (el) => {
+          if (!cursor) {
+              if (info.firstElementChild !== el) info.prepend(el);
+          } else {
+              if (cursor.nextElementSibling !== el) info.insertBefore(el, cursor.nextSibling);
+          }
+          cursor = el;
+      };
+
+      if (locked && lockState?.reason && !isHiddenUpgrade) {
+          let rawDescText = model.displayDesc || '';
+          if (typeof rawDescText === 'function') rawDescText = rawDescText();
+          const descText = String(rawDescText).trim();
+          const reasonText = String(lockState.reason ?? '').trim();
+          if (descText !== reasonText) {
+              let wrap = info.querySelector('.lock-wrapper');
+              if (!wrap) { 
+                 wrap = document.createElement('div'); wrap.className = 'lock-wrapper';
+                 const line = document.createElement('div'); line.className = 'upg-line lock-note';
+                 wrap.append(line);
+              }
+              const children = Array.from(wrap.children);
+              for (const c of children) {
+                  if (c.tagName === 'DIV' && !c.className && c.style.height === '12px') c.remove();
+              }
+              const line = wrap.querySelector('.lock-note');
+              if (line.textContent !== lockState.reason) line.textContent = lockState.reason;
+              placeAfterCursor(wrap);
+          } else {
+              const wrap = info.querySelector('.lock-wrapper');
+              if (wrap) wrap.remove();
+          }
+      } else {
+          const wrap = info.querySelector('.lock-wrapper');
+          if (wrap) wrap.remove();
+      }
+
+      if (model.effect && !(locked && lockState?.hideEffect)) {
+          let wrap = info.querySelector('.effect-wrapper');
+          if (!wrap) {
+               wrap = document.createElement('div'); wrap.className = 'effect-wrapper';
+               const line = document.createElement('div'); line.className = 'upg-line';
+               wrap.append(line);
+          }
+          const children = Array.from(wrap.children);
+          for (const c of children) {
+              if (c.tagName === 'DIV' && !c.className && c.style.height === '12px') c.remove();
+          }
+          const line = wrap.querySelector('.upg-line');
+          const html = `<span class="bonus-line">${model.effect}</span>`;
+          setHtmlOrText(line, html);
+          placeAfterCursor(wrap);
+      } else {
+          const wrap = info.querySelector('.effect-wrapper');
+          if (wrap) wrap.remove();
+      }
+      
+      const iconHTML = currencyIconHTML(model.upg.costType);
+      const nextPriceBn = model.nextPrice instanceof BigNum ? model.nextPrice : BigNum.fromAny(model.nextPrice || 0);
+      const stopBuying = capReached || evolveReady;
+      
+      if (!model.unlockUpgrade && !stopBuying && (!locked || !lockState?.hideCost)) {
+          const costs = ensureChild(info, 'upg-costs');
+          placeAfterCursor(costs);
+          
+          const costLabel = getCurrencyLabel(model.upg.costType, nextPriceBn);
+          let formattedCost = bank[model.upg.costType].fmt(nextPriceBn);
+          if (formattedCost.includes('infinity-symbol')) {
+              formattedCost = formattedCost.replace('class="infinity-symbol"', 'class="infinity-symbol" style="position:relative; top:-1px;"');
+          }
+          const costHtml = `Cost: ${iconHTML} ${formattedCost} ${costLabel}`;
+          
+          const lineCost = ensureChild(costs, 'cost-line', 'div');
+          if (!lineCost.className.includes('upg-line')) lineCost.className = 'upg-line cost-line';
+          setHtmlOrText(lineCost, costHtml);
+          
+          if (isHM) {
+             const lineMilestone = ensureChild(costs, 'milestone-line', 'div');
+             if (!lineMilestone.className.includes('upg-line')) lineMilestone.className = 'upg-line milestone-line';
+
+             let milestoneCost = '—';
+             let milestoneLabel = '';
+             const isAutomated = isUpgradeAutomated(model.upg);
+             try {
+                if (model.hmNextMilestone && model.hmNextMilestone.cmp(model.lvlBn) > 0) {
+                    if (isAutomated) {
+                        const targetLevelBn = model.hmNextMilestone.sub(BigNum.fromInt(1));
+                        let targetLevelNum = 0;
+                        try {
+                            const s = targetLevelBn.inf || targetLevelBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : targetLevelBn.toPlainIntegerString?.();
+                            if (s && s !== 'Infinity') targetLevelNum = Number(s);
+                            else targetLevelNum = (targetLevelBn.inf ? Infinity : (targetLevelBn.sig * Math.pow(10, targetLevelBn.e)));
+                        } catch { targetLevelNum = 0; }
+                        
+                        let costAt = BigNum.fromInt(0);
+                        try {
+                            costAt = BigNum.fromAny(model.upg.costAtLevel(targetLevelNum));
+                        } catch {}
+                        
+                        milestoneCost = bank[model.upg.costType].fmt(costAt);
+                        milestoneLabel = getCurrencyLabel(model.upg.costType, costAt);
+                    } else {
+                        const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
+                        const { spent } = evaluateBulkPurchase(model.upg, model.lvlBn, BigNum.fromAny('Infinity'), deltaBn);
+                        milestoneCost = bank[model.upg.costType].fmt(spent);
+                        milestoneLabel = getCurrencyLabel(model.upg.costType, spent);
+                    }
+                }
+             } catch {}
+             const prefix = isAutomated ? 'Cost at next milestone:' : 'Cost to next milestone:';
+             const milestoneHtml = `${prefix} ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
+             setHtmlOrText(lineMilestone, milestoneHtml);
+          } else {
+             const lineMilestone = costs.querySelector('.milestone-line');
+             if (lineMilestone) lineMilestone.remove();
+          }
+          
+          const haveLabel = getCurrencyLabel(model.upg.costType, model.have);
+          const haveHtml = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)} ${haveLabel}`;
+          
+          const lineHave = ensureChild(costs, 'have-line', 'div');
+          if (!lineHave.className.includes('upg-line')) lineHave.className = 'upg-line have-line';
+          setHtmlOrText(lineHave, haveHtml);
+      } else {
+          const costs = info.querySelector('.upg-costs');
+          if (costs) costs.remove();
+      }
+      
+      // Milestones Row
+      const milestonesContainer = upgSheetEl.querySelector('.upg-milestones');
+      let milestonesRow = milestonesContainer.querySelector('.hm-view-milestones-row');
+      
+      if (!milestonesRow) {
+          milestonesRow = document.createElement('div'); 
+          milestonesRow.className = 'hm-view-milestones-row';
+          const btn = document.createElement('button'); 
+          btn.type='button'; 
+          btn.className='shop-delve hm-view-milestones'; 
+          btn.textContent='View Milestones';
+          btn.addEventListener('click', (e) => {
+              // Use _onClick pattern
+              if (btn._onClick) btn._onClick(e);
+          });
+          milestonesRow.appendChild(btn); 
+          milestonesContainer.appendChild(milestonesRow);
+      }
+      
+      const milestoneBtn = milestonesRow.querySelector('button');
+
+      if (isHM && !isHiddenUpgrade) {
+          milestoneBtn.style.visibility = '';
+          milestoneBtn.style.pointerEvents = 'auto';
+          
+          milestoneBtn._onClick = () => {
+                 const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
+                 const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
+                 const evolutionOffset = (() => { try { return Number(HM_EVOLUTION_INTERVAL) * Number(evolutions); } catch { return 0; } })();
+                 const lines = milestones.sort((a,b)=>(Number(a?.level||0)-Number(b?.level||0))).map(m => {
+                     const lvl = Math.max(0, Math.floor(Number(m?.level||0)));
+                     const milestoneLevelBn = (() => {
+                         if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
+                         try { return BigNum.fromAny((Number(lvl) + evolutionOffset).toString()); } catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
+                     })();
+                     const levelText = milestoneLevelBn?.isInfinite?.() ? '<span class="infinity-symbol">∞</span>' : formatNumber(milestoneLevelBn);
+                     const mult = formatMultForUi(m?.multiplier??m?.mult??m?.value??1);
+                     const target = `${m?.target??m?.type??'self'}`.toLowerCase();
+                     const achieved = (() => {
+                        if (model.lvlBn?.isInfinite?.()) return true;
+                        try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; } catch {}
+                        return false; 
+                     })();
+                     let text = `Level\u00A0${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
+                     if (target === 'xp') text = `Level\u00A0${levelText}: Multiplies XP value by ${mult}x`;
+                     if (target === 'coin'||target==='coins') text = `Level\u00A0${levelText}: Multiplies Coin value by ${mult}x`;
+                     if (target === 'mp') text = `Level\u00A0${levelText}: Multiplies MP value by ${mult}x`;
+                     if (target === 'scrap') text = `Level\u00A0${levelText}: Multiplies Scrap value by ${mult}x`;
+                     if (target === 'dp') text = `Level\u00A0${levelText}: Multiplies DP value by ${mult}x`;
+                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level\u00A0${levelText}: Multiplies Material value by ${mult}x`;
+                     return { text, achieved };
+                 });
+                 openHmMilestoneDialog(lines);
+          };
+      } else {
+          milestoneBtn.style.visibility = 'hidden';
+          milestoneBtn.style.pointerEvents = 'none';
+          milestoneBtn._onClick = null;
+      }
+      
+      // Actions
+      const actions = upgSheetEl.querySelector('.upg-actions');
+      let closeBtn = actions.querySelector('.shop-close');
+      if (!closeBtn) {
+          closeBtn = document.createElement('button'); closeBtn.type='button'; closeBtn.className='shop-close'; closeBtn.textContent='Close';
+          closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
+          actions.appendChild(closeBtn);
+      }
+      
+      if (locked || capReached) {
+          actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
+          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement) && !document.activeElement.closest('.debug-panel')) closeBtn.focus();
+      } else {
+          const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
+          const ensureButton = (className, text, onClick, index, disabled=false) => {
+              let btn = actions.querySelector(`.${className.split(' ').join('.')}`);
+              if (!btn) {
+                  btn = document.createElement('button'); btn.type='button'; btn.className=className; btn.textContent=text;
+                  
+                  const invoke = () => { if (typeof btn._onClick === 'function') btn._onClick(); };
+                  if ('PointerEvent' in window) btn.addEventListener('pointerdown', (e) => { if(e.pointerType==='mouse'||(typeof e.button==='number'&&e.button!==0))return; invoke(); e.preventDefault(); }, {passive:false});
+                  else btn.addEventListener('touchstart', (e)=>{ invoke(); e.preventDefault(); }, {passive:false});
+                  btn.addEventListener('click', ()=>{ if(IS_MOBILE)return; invoke(); });
+                  
+                  const siblings = actions.children;
+                  if (index >= siblings.length) actions.appendChild(btn); else actions.insertBefore(btn, siblings[index]);
+              }
+              btn._onClick = onClick;
+              if(btn.textContent!==text) btn.textContent=text;
+              if(btn.disabled!==disabled) btn.disabled=disabled;
+              return btn;
+          };
+          
+          if (evolveReady) {
+              actions.querySelectorAll('button:not(.shop-close):not(.hm-evolve-btn)').forEach(b => b.remove());
+              ensureButton('shop-delve hm-evolve-btn', 'Evolve', () => {
+                  const { evolved } = adapter.evolve(upgDef.id);
+                  if (evolved) { playEvolveSfx(); updateShopOverlay(); rerender(); }
+              }, 1, false);
+              return;
+          }
+          
+          if (model.unlockUpgrade) {
+               actions.querySelectorAll('button:not(.shop-close):not(.btn-unlock)').forEach(b => b.remove());
+               ensureButton('shop-delve btn-unlock', 'Unlock', () => {
+                   const { bought } = adapter.buyOne(upgDef.id);
+                   const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                   if (!boughtBn.isZero?.()) {
+                       playPurchaseSfx();
+                       if (isForgeUnlockUpgrade(upgDef, mode)) try { unlockMerchantTabs(['reset']); } catch {}
+                       updateShopOverlay(); rerender();
+                   }
+               }, 1, !canAffordNext);
+               return;
+          }
+          
+          actions.querySelectorAll('.hm-evolve-btn, .btn-unlock').forEach(b => b.remove());
+          
+          const performBuy = () => {
+              const fresh = adapter.getUiModel(upgDef.id);
+              if (fresh.have.cmp(fresh.nextPrice instanceof BigNum ? fresh.nextPrice : BigNum.fromAny(fresh.nextPrice||0)) < 0) return;
+              const { bought } = adapter.buyOne(upgDef.id);
+              const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+              if (!boughtBn.isZero?.()) { 
+                  if (upgDef.upgType === 'TM') {
+                      settingsManager.set('active_' + upgDef.modType + '_mod', upgDef.id);
+                  }
+                  playPurchaseSfx(); 
+                  updateShopOverlay(); 
+                  rerender(); 
+              }
+          };
+          ensureButton('shop-delve btn-buy-one', 'Buy', performBuy, 1, !canAffordNext);
+          
+          const capNumber = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
+          const isSingleLevelCap = capNumber === 1;
+
+          if (!isSingleLevelCap) {
+              const performBuyMax = () => {
+                  const fresh = adapter.getUiModel(upgDef.id);
+                  if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
+                  const { bought } = adapter.buyMax(upgDef.id);
+                  const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                  if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
+              };
+              ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
+
+              const isExcluded = isBuyCheapExcluded(upgDef);
+              if (!isHM && !isExcluded) {
+                  const performBuyCheap = () => {
+                      const fresh = adapter.getUiModel(upgDef.id);
+                      if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
+                      const buyFn = adapter.buyCheap;
+                      if (!buyFn) return;
+                      const { bought } = buyFn(upgDef.id);
+                      const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                      if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
+                  };
+                  ensureButton('shop-delve btn-buy-cheap', 'Buy Cheap', performBuyCheap, 3, !canAffordNext);
+              } else {
+                  const stale = actions.querySelector('.btn-buy-cheap');
+                  if (stale) stale.remove();
+              }
+          } else {
+              const stale = actions.querySelector('.btn-buy-max');
+              if (stale) stale.remove();
+              const staleCheap = actions.querySelector('.btn-buy-cheap');
+              if (staleCheap) staleCheap.remove();
+          }
+          
+          if (isHM) {
+              const performBuyNext = () => {
+                  const fresh = adapter.getUiModel(upgDef.id);
+                  if (fresh.hmReadyToEvolve) return;
+                  const target = fresh.hmNextMilestone;
+                  if (!target || !fresh.lvlBn || target.cmp(fresh.lvlBn) <= 0) {
+                      const { bought } = adapter.buyMax(upgDef.id);
+                      if ((bought instanceof BigNum ? bought : BigNum.fromAny(bought??0)).isZero?.()) return;
+                      playPurchaseSfx(); updateShopOverlay(); rerender(); return;
+                  }
+                  let deltaNum = 0;
+                  try { const diffBn = target.sub(fresh.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.(); deltaNum = Math.max(0, Math.floor((diffPlain&&diffPlain!=='Infinity')?Number(diffPlain):(diffBn.inf ? Infinity : (diffBn.sig * Math.pow(10, diffBn.e))))); } catch {}
+                  const walletRaw = bank[fresh.upg.costType]?.value;
+                  const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw??0);
+                  const evalResult = evaluateBulkPurchase(fresh.upg, fresh.lvlBn, walletBn, deltaNum);
+                  const count = evalResult.count;
+                  let reachable = false;
+                  try { const plain = count?.inf || count?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain&&plain!=='Infinity') ? Number(plain)>=deltaNum : Number(count??0)>=deltaNum; } catch {}
+                  const purchase = reachable ? adapter.buyNext(upgDef.id, deltaNum) : adapter.buyMax(upgDef.id);
+                  const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought??0);
+                  if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
+              };
+              ensureButton('shop-delve btn-buy-next', 'Buy Next', performBuyNext, 3, model.have.cmp(BigNum.fromInt(1)) < 0);
+          } else {
+              const stale = actions.querySelector('.btn-buy-next'); if (stale) stale.remove();
+          }
+      }
+  };
+  
+  const onUpdate = () => { if (!upgOpenLocal) return; rerender(); };
+  adapter.events.forEach(evt => window.addEventListener(evt, onUpdate));
+  if (mode === 'standard') document.addEventListener('ccc:upgrades:changed', onUpdate);
+  
+  rerender();
+  upgOverlayEl.classList.add('is-open');
+  upgOverlayEl.classList.toggle('is-automation-upgrade', mode === 'automation');
+  upgOverlayEl.classList.toggle('is-effective-auto-collect', mode === 'automation' && upgDef.id === 1);
+  upgOverlayEl.classList.toggle('is-autobuy-coin-upgrades', mode === 'automation' && upgDef.id === 2);
+  upgOverlayEl.classList.toggle('is-underwater-cavern-eac', mode === 'automation' && upgDef.id === 10);
+  upgOverlayEl.classList.toggle('is-manual-material-value', mode === 'automation' && upgDef.id === 11);
+  upgOverlayEl.classList.toggle('is-effective-auto-sell', mode === 'automation' && upgDef.id === 12);
+  upgOverlayEl.style.pointerEvents = 'auto';
+  blockInteraction(140);
+  upgSheetEl.style.transition = 'none';
+  upgSheetEl.style.transform = 'translateY(100%)';
+  void upgSheetEl.offsetHeight;
+  requestAnimationFrame(() => { upgSheetEl.style.transition = ''; upgSheetEl.style.transform = ''; });
+  
+  upgOverlayCleanup = () => {
+     upgOpenLocal = false;
+     adapter.events.forEach(evt => window.removeEventListener(evt, onUpdate));
+     if (mode === 'standard') document.removeEventListener('ccc:upgrades:changed', onUpdate);
+  };
+}
+
+export function setupDragToClose(grabberEl, sheetEl, isOpenFn, performCloseFn) {
+  let drag = null;
+  function onDragStart(e) {
+    if (!isOpenFn()) return;
+    const clientY = typeof e.clientY === 'number' ? e.clientY : (e.touches?.[0]?.clientY || 0);
+    drag = { startY: clientY, lastY: clientY, startT: performance.now(), moved: 0, canceled: false };
+    sheetEl.style.transition = 'none';
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+  }
+  function onDragMove(e) {
+    if (!drag || drag.canceled) return;
+    const y = e.clientY;
+    if (typeof y !== 'number') return;
+    const dy = Math.max(0, y - drag.startY);
+    drag.lastY = y;
+    drag.moved = dy;
+    sheetEl.style.transform = `translateY(${dy}px)`;
+  }
+  function onDragEnd() {
+    if (!drag || drag.canceled) return cleanupDrag();
+    const dt = Math.max(1, performance.now() - drag.startT);
+    const dy = drag.moved;
+    const velocity = dy / dt;
+    const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
+    if (shouldClose) {
+      suppressNextGhostTap(100);
+      blockInteraction(80);
+      sheetEl.style.transition = 'transform 140ms ease-out';
+      sheetEl.style.transform = 'translateY(100%)';
+      performCloseFn();
+    } else {
+      sheetEl.style.transition = 'transform 180ms ease';
+      sheetEl.style.transform = 'translateY(0)';
+    }
+    cleanupDrag();
+  }
+  function onDragCancel() {
+    if (!drag) return;
+    drag.canceled = true;
+    sheetEl.style.transition = 'transform 180ms ease';
+    sheetEl.style.transform = 'translateY(0)';
+    cleanupDrag();
+  }
+  function cleanupDrag() {
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+    drag = null;
+  }
+  grabberEl.addEventListener('pointerdown', onDragStart);
+  grabberEl.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 }
