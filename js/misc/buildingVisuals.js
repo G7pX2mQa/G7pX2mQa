@@ -6530,15 +6530,27 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
       let redAlpha = 0;
       if (t4 > 0) {
-          let glowPulse = (Math.sin(t * Math.PI) + 1) / 2;
-          redAlpha = glowPulse * t4 * (1 - (t8 * 0.5));
+          let basePulse = (Math.sin(t * Math.PI) + 1) / 2;
+          // At 5x speed (Tier 8), human eyes average out the fast flicker. 
+          // We raise the minimum floor of the pulse so it stays intensely red on average.
+          let glowPulse = basePulse + (t8 * 0.5 * (1 - basePulse)); 
+          redAlpha = glowPulse * t4;
           
           if (redAlpha > 0) {
               ctx.save();
-              ctx.globalCompositeOperation = "color"; 
+              
+              // 1. Force the underlying gray texture to be purely red, eliminating any white/gray that causes pinkness
+              ctx.globalCompositeOperation = "color";
               ctx.fillStyle = `rgba(255, 0, 0, ${redAlpha})`;
               ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
               ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
+              
+              // 2. Add raw red luminosity to make it glow vibrantly (stays pure red because green/blue are gone)
+              ctx.globalCompositeOperation = "lighter";
+              ctx.fillStyle = `rgba(200, 0, 0, ${redAlpha})`;
+              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
+              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
+              
               ctx.restore();
           }
       }
