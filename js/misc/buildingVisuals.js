@@ -7698,13 +7698,13 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         let startX = -xSign * 116.5; // Local x for global x = 23.5
         let startY = 60; // Local y for global y = -150
         
-        // Bend horizontally further out (global 125)
-        let bendX = -xSign * 15; // Local x for global x = 125
+        // Bend horizontally all the way at the center of the capacitor (local 0)
+        let bendX = 0; 
         
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(bendX, startY); 
-        ctx.lineTo(0, height/2); // Connects exactly to the bottom center of the capacitor
+        ctx.lineTo(0, height/2); // Goes straight UP to connect to the bottom center of the capacitor
         ctx.stroke();
         
         // --- Electrical Arcs transferring power INWARDS to the Crown Block ---
