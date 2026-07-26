@@ -446,7 +446,7 @@ function showLoader(text = 'Loading assets...', onSkip) {
   root.appendChild(wrap);
 
   const stuckMsg = document.createElement('div');
-  stuckMsg.textContent = 'If progress bar is stuck, try reloading the page.';
+  stuckMsg.textContent = 'If progress bar is stuck, try reloading the tab.';
   Object.assign(stuckMsg.style, {
     marginTop: '16px',
     fontSize: '14px',
@@ -592,24 +592,58 @@ function preloadFonts(onEach) {
   fontPreloadDiv.style.pointerEvents = 'none';
   fontPreloadDiv.style.zIndex = '-9999';
   
+  const spans = [];
+  
+  // Weights that might be used across the app
+  const fontWeights = ['400', '500', '600', '700', '800', '900'];
+  
   ALL_FONT_CLASSES.forEach(function(fontClass) {
-      const span = document.createElement('span');
-      span.className = fontClass;
-      span.textContent = 'preload';
-      fontPreloadDiv.appendChild(span);
+      fontWeights.forEach(function(weight) {
+          const span = document.createElement('span');
+          span.className = fontClass;
+          // We must insert some text for the font engine to explicitly measure/load the glyphs
+          span.textContent = 'preload0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz';
+          span.style.fontWeight = weight;
+          fontPreloadDiv.appendChild(span);
+          spans.push(span);
+      });
   });
   document.body.appendChild(fontPreloadDiv);
+
+  // Force layout to ensure browser recognizes the elements
+  fontPreloadDiv.getBoundingClientRect();
+
+  if (document.fonts && document.fonts.ready && document.fonts.load) {
+    const loadPromises = spans.map((span, i) => {
+        let fontFamily = window.getComputedStyle(span).getPropertyValue('font-family');
+        let fontWeight = span.style.fontWeight;
+        
+        if (!fontFamily || fontFamily === window.getComputedStyle(document.body).getPropertyValue('font-family')) {
+            // Fallback parsing just in case getComputedStyle resolves incorrectly before paint
+            const classMatch = Array.from(span.classList).find(c => c.startsWith('font-'));
+            if (classMatch) {
+                const extracted = classMatch.replace('font-', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                fontFamily = `"${extracted}"`;
+            } else {
+                fontFamily = '"Arial"'; // fallback
+            }
+        }
+        return document.fonts.load(`${fontWeight} 12px ${fontFamily}`).catch(() => {});
+    });
+    
+    return [Promise.all(loadPromises).then(() => document.fonts.ready).then(function() { 
+        try { if (onEach) onEach('fonts'); } catch (e) {} 
+    })];
+  }
 
   if (document.fonts && document.fonts.ready) {
     return [document.fonts.ready.then(function() { 
         try { if (onEach) onEach('fonts'); } catch (e) {} 
-        setTimeout(function() { if (fontPreloadDiv.parentNode) fontPreloadDiv.remove(); }, 1000);
     })];
   }
   
   return [Promise.resolve().then(function() { 
       try { if (onEach) onEach('fonts'); } catch (e) {} 
-      setTimeout(function() { if (fontPreloadDiv.parentNode) fontPreloadDiv.remove(); }, 1000);
   })];
 }
 
