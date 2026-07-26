@@ -6488,7 +6488,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
               
               let mudDash = "#594940"; 
               let mudSlit = null; 
-              let flowSpeed = 25 / Math.PI; 
+              let flowSpeed = (12.5 / Math.PI) * s; 
               let timeOffset = t - (Math.PI / 2) / 20;
               
               drawFluidPipe(ctx, pts, 6 * s, mudDash, flowSpeed, timeOffset, t2, "butt", fillDiamond, mudSlit, [25 * s, 25 * s], true, false);
@@ -7588,8 +7588,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     let baseY = -175;
     let startY = baseY - (35 * pScale); // y = -231
     
-    // Determine how often the shape updates (Normal: 83.33ms, Tier 8: 16.67ms)
-    let stepInterval = 0.08333 - (t8 * 0.06666);
+    // Determine how often the shape updates. Time is already 5x faster in tier 8,
+    // so a constant interval here results in a 5x faster real-world update rate (83.33ms -> 16.67ms)
+    let stepInterval = 0.08333;
     let stepSeed = Math.floor(t / stepInterval);
     
     // Deterministic random function based on the time step
