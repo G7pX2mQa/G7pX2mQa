@@ -6488,8 +6488,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
               
               let mudDash = "#594940"; 
               let mudSlit = null; 
+              
               let flowSpeed = (12.5 / Math.PI) * s; 
-              let timeOffset = t - (Math.PI / 2) / 20;
+              let timeOffset = t + Math.PI / 20;
               
               drawFluidPipe(ctx, pts, 6 * s, mudDash, flowSpeed, timeOffset, t2, "butt", fillDiamond, mudSlit, [25 * s, 25 * s], true, false);
           };
@@ -7154,7 +7155,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         // Spinning external shaft/wheel for animation
         ctx.save();
         ctx.translate(-28, -16);
-        ctx.rotate(t * 20); // Synced with pressure cycle
+        ctx.rotate(t * 10); // Synced with pressure cycle
         ctx.fillStyle = brownDark; // Circle is brown
         ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = fillDiamond; // Rectangle is diamond
@@ -7186,7 +7187,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fillRect(-3, -40, 6, 2); // Top cap
         
         // High-pressure pulsing animation (Dampener swells slightly)
-        let pressure = (Math.sin(t * 20) + 1) / 2;
+        let pressure = (Math.sin(t * 10) + 1) / 2;
         // Inner mud is visible dirt brown
         ctx.fillStyle = `rgba(89, 73, 64, ${0.5 + pressure * 0.5})`; // #594940 is rgb(89, 73, 64)
         ctx.beginPath();
