@@ -7626,92 +7626,140 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
-  // --- Tier 7: Cryogenic Coolant Silos (Inner A-Frame) ---
+  // --- Tier 7: Overcharge Capacitor Banks (Leg Mounted) ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     
-    const drawSilo = (xSign) => {
+    const drawCapacitor = (xSign) => {
         ctx.save();
-        let tankX = xSign * 16;
-        ctx.translate(tankX, -180); // Hang from the crown block
+        // Positioned high up and further out, sitting ON the support beam
+        let capX = xSign * 125; 
+        let capY = -210;
+        ctx.translate(capX, capY);
         
-        let width = 4;
-        let height = 50; // Hangs down 50px
+        let width = 12;
+        let height = 60;
         
-        // Back half of silo/glass
-        ctx.fillStyle = `rgba(0, 50, 60, 0.4)`;
-        ctx.fillRect(-width, 0, width * 2, height);
-        
-        // Fluid Level
-        let fluidLevel = 0.7 - 0.1 * Math.sin(t * 2 + xSign);
-        if (t8 > 0) fluidLevel = 0.5 + 0.1 * Math.sin(t * 15 + xSign); 
-        
-        let fluidY = height * (1 - fluidLevel);
-        
-        // Liquid body
-        let grad = ctx.createLinearGradient(0, height, 0, 0);
-        grad.addColorStop(0, `rgba(0, 255, 255, 0.8)`);
-        grad.addColorStop(1, `rgba(0, 150, 200, 0.8)`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(-width + 1, fluidY, width * 2 - 2, height - fluidY);
-        
-        // Bubbles in the liquid
-        let numBubbles = 3 + (t8 * 10);
-        ctx.fillStyle = `rgba(255, 255, 255, 0.5)`;
-        for (let i = 0; i < numBubbles; i++) {
-            let bT = ((t * (1 + t8 * 2) + i * 0.23 + xSign) % 1 + 1) % 1;
-            let bx = Math.sin(i * 123) * (width - 2);
-            let by = height - bT * (height - fluidY);
-            
-            // Wobble
-            bx += Math.sin(t * 5 + i) * 1;
-            
-            ctx.beginPath();
-            ctx.arc(bx, by, Math.max(0, 1 + (i % 2)), 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        // Front glass reflection
-        ctx.fillStyle = `rgba(255, 255, 255, 0.1)`;
-        ctx.fillRect(-width + 1.5, 2, 2, height - 4);
-        
-        // Silo Frame / Caps
+        // Background/Back housing
         ctx.fillStyle = fillDarkDiamond;
-        ctx.fillRect(-width - 1, 0, width * 2 + 2, 4); // Top cap
-        ctx.fillRect(-width - 1, height - 4, width * 2 + 2, 4); // Bottom cap
+        ctx.fillRect(-width, -height/2, width * 2, height);
         
-        // Vertical struts
-        ctx.fillRect(-width, 0, 1.5, height);
-        ctx.fillRect(width - 1.5, 0, 1.5, height);
+        // Inner glowing core/coil
+        let coreY = -height/2 + 5;
+        let coreH = height - 10;
         
-        // Coolant pipe to center
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 2;
+        // The core spins/pulses
+        let pulse = (Math.sin(t * 5) + 1) / 2;
+        let glow = 0.4 + 0.4 * pulse + (t8 * 0.2); // Brighter in Tier 8
+        
+        let grad = ctx.createLinearGradient(0, coreY, 0, coreY + coreH);
+        grad.addColorStop(0, `rgba(0, 200, 255, ${glow})`);
+        grad.addColorStop(0.5, `rgba(255, 255, 255, ${glow + 0.2})`);
+        grad.addColorStop(1, `rgba(0, 150, 255, ${glow})`);
+        
+        ctx.fillStyle = grad;
+        ctx.fillRect(-width + 3, coreY, width * 2 - 6, coreH);
+        
+        // Coil rings (moving downwards to simulate energy flow)
+        ctx.fillStyle = `rgba(0, 0, 0, 0.5)`;
+        let numCoils = 6;
+        let coilSpacing = coreH / numCoils;
+        let coilOffset = coilSpacing - ((t * 15) % coilSpacing);
+        
+        ctx.save();
         ctx.beginPath();
-        ctx.moveTo(xSign > 0 ? -width : width, height - 2);
-        ctx.lineTo(xSign > 0 ? -width - 4 : width + 4, height + 10);
+        ctx.rect(-width + 3, coreY, width * 2 - 6, coreH);
+        ctx.clip();
+        for(let i = -1; i <= numCoils + 1; i++) {
+            ctx.fillRect(-width + 3, coreY + i * coilSpacing + coilOffset, width * 2 - 6, 2.5);
+        }
+        ctx.restore();
+        
+        // Front cage / struts
+        ctx.fillStyle = fillDiamond;
+        ctx.fillRect(-width, -height/2, 3, height);
+        ctx.fillRect(width - 3, -height/2, 3, height);
+        
+        // Top and bottom caps
+        ctx.fillRect(-width - 2, -height/2 - 4, width * 2 + 4, 6);
+        ctx.fillRect(-width - 2, height/2 - 2, width * 2 + 4, 6);
+        
+        // Warning stripes or accents on caps
+        ctx.fillStyle = fillDarkDiamond;
+        ctx.fillRect(-width + 1, -height/2 - 2, width * 2 - 2, 2);
+        
+        // Single heavy support beam connecting to A-frame
+        ctx.strokeStyle = fillDiamond;
+        ctx.lineWidth = 6;
+        ctx.lineJoin = "round";
+        
+        // Start exactly between Tier 6 platform's lowest point (-155) and Tier 2 pipe (-140) -> -148
+        let startX = -xSign * 101; // Local x for global x = 24
+        let startY = 62; // Local y for global y = -148
+        
+        // Bend horizontally further out (global 110)
+        let bendX = -xSign * 15; // Local x for global x = 110
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(bendX, startY); 
+        ctx.lineTo(0, height/2); // Connects exactly to the bottom center of the capacitor
         ctx.stroke();
         
-        // Steam Venting (especially at Tier 8)
-        let steamStrength = 0.2 + t8 * 1.5;
-        for (let i = 0; i < 3; i++) {
-            let sT = ((t * steamStrength + i * 0.33) % 1 + 1) % 1;
-            let sy = 2 - sT * 30;
-            let sx = Math.sin(t * 3 + i) * 10 * sT;
-            let sAlpha = (1 - sT) * 0.5 * Math.min(1, steamStrength);
+        // --- Electrical Arcs transferring power INWARDS to the Crown Block ---
+        // Crown block edge is at x = xSign * 25.
+        let targetX = -xSign * 100; // Local x for global x = 25
+        let targetY = 20; // Local y for global y = -190 (middle of crown block)
+        
+        let arcCount = 1 + Math.floor(t8 * 2);
+        
+        for (let a = 0; a < arcCount; a++) {
+            let arcSeed = Math.floor(t * 20) + a * 100;
+            let pRand = (seed, offset) => {
+                let x = Math.sin(seed * 99.99 + offset * 11.11) * 10000;
+                return x - Math.floor(x);
+            };
             
-            ctx.fillStyle = `rgba(200, 240, 255, ${sAlpha})`;
-            ctx.beginPath();
-            ctx.arc(sx, sy, Math.max(0, 4 + sT * 10), 0, Math.PI * 2);
-            ctx.fill();
+            if (pRand(arcSeed, 1) < 0.6 + t8 * 0.4) {
+                ctx.strokeStyle = `rgba(150, 255, 255, ${0.7 + t8 * 0.3})`;
+                ctx.lineWidth = 1.5 + t8 * 1.5;
+                
+                ctx.beginPath();
+                // Arc originates from the inner edge of the capacitor
+                let arcStartX = -xSign * width;
+                let arcStartY = 0; 
+                ctx.moveTo(arcStartX, arcStartY);
+                
+                let segments = 5 + Math.floor(pRand(arcSeed, 2) * 4);
+                for (let i = 1; i < segments; i++) {
+                    let p = i / segments;
+                    let mx = arcStartX + (targetX - arcStartX) * p;
+                    let my = arcStartY + (targetY - arcStartY) * p;
+                    
+                    // Add jagged randomness
+                    mx += (pRand(arcSeed, i * 3) - 0.5) * 15;
+                    my += (pRand(arcSeed, i * 4) - 0.5) * 20;
+                    
+                    ctx.lineTo(mx, my);
+                }
+                ctx.lineTo(targetX, targetY);
+                ctx.stroke();
+                
+                // Extra inner core for the arc in tier 8
+                if (t8 > 0) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${t8})`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
         }
         
         ctx.restore();
     };
     
-    drawSilo(-1);
-    drawSilo(1);
+    drawCapacitor(-1);
+    drawCapacitor(1);
     
     ctx.restore();
   }
