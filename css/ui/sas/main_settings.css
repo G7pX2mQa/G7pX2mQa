@@ -168,7 +168,9 @@
   font-size: 16px;
   text-shadow: none;
   -webkit-text-stroke: 1px #000;
+  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
   text-stroke: 1px #000;
+  text-stroke-width: calc(1px * var(--stroke-mult, 1));
   z-index: 1;
   position: relative;
   width: 50%;
@@ -405,7 +407,9 @@
   
   /* Desktop text stroke */
   -webkit-text-stroke: 1px #000;
+  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
   text-stroke: 1px #000;
+  text-stroke-width: calc(1px * var(--stroke-mult, 1));
   text-shadow: none;
 }
 
