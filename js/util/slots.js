@@ -62,13 +62,13 @@ function renderSlotCards() {
     }
 
     btn.dataset.slot = String(slot);
-    btn.classList.remove(...ALL_FONT_CLASSES);
+    btn.classList.remove(...ALL_FONT_CLASSES, 'custom-font-active');
     const fontModStr = localStorage.getItem(`ccc:setting:active_font_mod:${slot}`);
     if (fontModStr) {
       try {
         const fontMod = parseInt(JSON.parse(fontModStr), 10);
         if (FONT_MAP[fontMod]) {
-            btn.classList.add(FONT_MAP[fontMod]);
+            btn.classList.add(FONT_MAP[fontMod], 'custom-font-active');
         }
       } catch (e) {}
     }
