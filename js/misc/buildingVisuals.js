@@ -7633,8 +7633,8 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     
     const drawCapacitor = (xSign) => {
         ctx.save();
-        // Positioned high up and further out, sitting ON the support beam
-        let capX = xSign * 125; 
+        // Positioned perfectly aligned with the Tier 3 Pumpjacks (x = 140)
+        let capX = xSign * 140; 
         let capY = -210;
         ctx.translate(capX, capY);
         
@@ -7694,12 +7694,12 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.lineWidth = 6;
         ctx.lineJoin = "round";
         
-        // Start exactly between Tier 6 platform's lowest point (-155) and Tier 2 pipe (-140) -> -148
-        let startX = -xSign * 101; // Local x for global x = 24
-        let startY = 62; // Local y for global y = -148
+        // Start exactly at true midpoint (-150) between Tier 6 platform bottom (-155) and mud pipe upper edge (-145)
+        let startX = -xSign * 116.5; // Local x for global x = 23.5
+        let startY = 60; // Local y for global y = -150
         
-        // Bend horizontally further out (global 110)
-        let bendX = -xSign * 15; // Local x for global x = 110
+        // Bend horizontally further out (global 125)
+        let bendX = -xSign * 15; // Local x for global x = 125
         
         ctx.beginPath();
         ctx.moveTo(startX, startY);
@@ -7709,7 +7709,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         
         // --- Electrical Arcs transferring power INWARDS to the Crown Block ---
         // Crown block edge is at x = xSign * 25.
-        let targetX = -xSign * 100; // Local x for global x = 25
+        let targetX = -xSign * 115; // Local x for global x = 25
         let targetY = 20; // Local y for global y = -190 (middle of crown block)
         
         let arcCount = 1 + Math.floor(t8 * 2);
