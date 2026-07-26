@@ -17,6 +17,11 @@ body {
   overflow: hidden;
 }
 
+body.custom-font-active {
+  --stroke-mult: 2;
+  paint-order: stroke fill;
+}
+
 h1, h2, h3, p { margin: 0; }
 
 button {
