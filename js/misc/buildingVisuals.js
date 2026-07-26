@@ -7641,6 +7641,26 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         let width = 12;
         let height = 60;
         
+        // --- Single heavy support beam connecting to A-frame ---
+        // Drawn first so it tucks neatly behind the capacitor body
+        ctx.strokeStyle = fillDiamond;
+        ctx.lineWidth = 6;
+        ctx.lineJoin = "round";
+        
+        // Start exactly at true midpoint (-150) between Tier 6 platform bottom (-155) and mud pipe upper edge (-145)
+        let startX = -xSign * 116.5; // Local x for global x = 23.5
+        let startY = 60; // Local y for global y = -150
+        
+        // Bend horizontally further out (global 125)
+        let bendX = -xSign * 15; // Local x for global x = 125
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(bendX, startY); 
+        // Offset target X by 2.5 to perfectly counteract the visual shift of the thick angled stroke!
+        ctx.lineTo(xSign * 2.5, height/2); 
+        ctx.stroke();
+        
         // Background/Back housing
         ctx.fillStyle = fillDarkDiamond;
         ctx.fillRect(-width, -height/2, width * 2, height);
@@ -7688,24 +7708,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         // Warning stripes or accents on caps
         ctx.fillStyle = fillDarkDiamond;
         ctx.fillRect(-width + 1, -height/2 - 2, width * 2 - 2, 2);
-        
-        // Single heavy support beam connecting to A-frame
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 6;
-        ctx.lineJoin = "round";
-        
-        // Start exactly at true midpoint (-150) between Tier 6 platform bottom (-155) and mud pipe upper edge (-145)
-        let startX = -xSign * 116.5; // Local x for global x = 23.5
-        let startY = 60; // Local y for global y = -150
-        
-        // Bend horizontally all the way at the center of the capacitor (local 0)
-        let bendX = 0; 
-        
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(bendX, startY); 
-        ctx.lineTo(0, height/2); // Goes straight UP to connect to the bottom center of the capacitor
-        ctx.stroke();
         
         // --- Electrical Arcs transferring power INWARDS to the Crown Block ---
         // Crown block edge is at x = xSign * 25.
