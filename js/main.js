@@ -586,10 +586,31 @@ function preloadAudio(sources, onEach) {
 }
 
 function preloadFonts(onEach) {
+  const fontPreloadDiv = document.createElement('div');
+  fontPreloadDiv.style.position = 'absolute';
+  fontPreloadDiv.style.opacity = '0';
+  fontPreloadDiv.style.pointerEvents = 'none';
+  fontPreloadDiv.style.zIndex = '-9999';
+  
+  ALL_FONT_CLASSES.forEach(function(fontClass) {
+      const span = document.createElement('span');
+      span.className = fontClass;
+      span.textContent = 'preload';
+      fontPreloadDiv.appendChild(span);
+  });
+  document.body.appendChild(fontPreloadDiv);
+
   if (document.fonts && document.fonts.ready) {
-    return [document.fonts.ready.then(() => { try { onEach?.('fonts'); } catch {} })];
+    return [document.fonts.ready.then(function() { 
+        try { if (onEach) onEach('fonts'); } catch (e) {} 
+        setTimeout(function() { if (fontPreloadDiv.parentNode) fontPreloadDiv.remove(); }, 1000);
+    })];
   }
-  return [Promise.resolve().then(() => { try { onEach?.('fonts'); } catch {} })];
+  
+  return [Promise.resolve().then(function() { 
+      try { if (onEach) onEach('fonts'); } catch (e) {} 
+      setTimeout(function() { if (fontPreloadDiv.parentNode) fontPreloadDiv.remove(); }, 1000);
+  })];
 }
 
 async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true }, onProgress) {
