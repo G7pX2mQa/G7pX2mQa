@@ -129,7 +129,9 @@
     font-size: clamp(1rem, 2.5vw, 1.2rem);
     font-weight: 900;
     -webkit-text-stroke: 1px #000;
+  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
     text-stroke: 1px #000;
+  text-stroke-width: calc(1px * var(--stroke-mult, 1));
     line-height: 1.2;
     word-break: break-word;
 }
