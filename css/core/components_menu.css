@@ -108,6 +108,11 @@
   line-height: 1.1;
 }
 
+.slot-card.custom-font-active .slot-header {
+  --stroke-mult: 2;
+  paint-order: stroke fill;
+}
+
 /* Fake stroke on mobile */
 @media (pointer: coarse) {
   .slot-header {
