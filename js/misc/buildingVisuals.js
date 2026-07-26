@@ -7705,10 +7705,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fillRect(-width - 2, -height/2 - 4, width * 2 + 4, 6);
         ctx.fillRect(-width - 2, height/2 - 2, width * 2 + 4, 6);
         
-        // Warning stripes or accents on caps
-        ctx.fillStyle = fillDarkDiamond;
-        ctx.fillRect(-width + 1, -height/2 - 2, width * 2 - 2, 2);
-        
         // --- Electrical Arcs transferring power INWARDS to the Crown Block ---
         // Crown block edge is at x = xSign * 25.
         let targetX = -xSign * 115; // Local x for global x = 25
