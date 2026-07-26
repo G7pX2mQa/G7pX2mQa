@@ -446,7 +446,7 @@ function showLoader(text = 'Loading assets...', onSkip) {
   root.appendChild(wrap);
 
   const stuckMsg = document.createElement('div');
-  stuckMsg.textContent = 'If progress bar is stuck, try reloading the tab.';
+  stuckMsg.textContent = 'If progress bar is stuck, try refreshing the tab.';
   Object.assign(stuckMsg.style, {
     marginTop: '16px',
     fontSize: '14px',
@@ -602,7 +602,8 @@ function preloadFonts(onEach) {
           const span = document.createElement('span');
           span.className = fontClass;
           // We must insert some text for the font engine to explicitly measure/load the glyphs
-          span.textContent = 'preload0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz';
+          // Included the infinity symbol (∞) since the browser might lazily fetch unicode ranges
+          span.textContent = 'preload0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz∞';
           span.style.fontWeight = weight;
           fontPreloadDiv.appendChild(span);
           spans.push(span);
@@ -628,7 +629,8 @@ function preloadFonts(onEach) {
                 fontFamily = '"Arial"'; // fallback
             }
         }
-        return document.fonts.load(`${fontWeight} 12px ${fontFamily}`).catch(() => {});
+        // Force the browser to explicitly load the infinity glyph by passing it as the text parameter
+        return document.fonts.load(`${fontWeight} 12px ${fontFamily}`, '∞').catch(() => {});
     });
     
     return [Promise.all(loadPromises).then(() => document.fonts.ready).then(function() { 
