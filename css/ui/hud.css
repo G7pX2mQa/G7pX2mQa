@@ -111,8 +111,10 @@ transform: translateY(1px) scale(0.997);
 
 /* Desktop: crisp 1px stroke for text (where supported), plus light shadow */
 .game-btn {
--webkit-text-stroke: 1px #000; /* desktop outline */
+-webkit-text-stroke: 1px #000;
+  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1)); /* desktop outline */
 text-stroke: 1px #000;
+  text-stroke-width: calc(1px * var(--stroke-mult, 1));
 text-shadow: 0 1px 0 rgba(0,0,0,0.35); /* small helper shadow for browsers without stroke */
 }
 
@@ -433,7 +435,9 @@ white-space: nowrap;
 font-size: clamp(18px, 3.6vw, 32px);
 color: #fff;
 letter-spacing: .5px;
--webkit-text-stroke: 1px #000; text-stroke: 1px #000;
+-webkit-text-stroke: 1px #000;
+  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1)); text-stroke: 1px #000;
+  text-stroke-width: calc(1px * var(--stroke-mult, 1));
 text-shadow: 0 1px 0 rgba(0,0,0,.35);
 line-height: 1;
 font-variant-numeric: tabular-nums lining-nums;
