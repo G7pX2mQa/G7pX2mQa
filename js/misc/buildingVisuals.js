@@ -7666,8 +7666,8 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fillRect(-width, -height/2, width * 2, height);
         
         // Inner glowing core/coil
-        let coreY = -height/2 + 5;
-        let coreH = height - 10;
+        let coreY = -height/2;
+        let coreH = height;
         
         // The core spins/pulses
         let pulse = (Math.sin(t * 5) + 1) / 2;
