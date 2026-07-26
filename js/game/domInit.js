@@ -214,10 +214,10 @@ export function ensureGameDom(layerCount, startZ) {
 
   // Apply rainbow gem upgrades effects on load
   const applyFontSetting = () => {
-    document.body.classList.remove(...ALL_FONT_CLASSES);
+    document.body.classList.remove(...ALL_FONT_CLASSES, 'custom-font-active');
     const fontMod = settingsManager.get('active_font_mod');
     if (FONT_MAP[fontMod]) {
-      document.body.classList.add(FONT_MAP[fontMod]);
+      document.body.classList.add(FONT_MAP[fontMod], 'custom-font-active');
     }
   };
   
