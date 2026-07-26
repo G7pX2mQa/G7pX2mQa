@@ -88,7 +88,9 @@
   font-weight: 900;
   letter-spacing: .5px;
   -webkit-text-stroke: 1px #000;
+  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
   text-stroke: 1px #000;
+  text-stroke-width: calc(1px * var(--stroke-mult, 1));
   text-shadow: 0 1px 0 rgba(0,0,0,.35);
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: "tnum" 1, "lnum" 1;
