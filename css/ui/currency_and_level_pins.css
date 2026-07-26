@@ -85,9 +85,7 @@
   
   /* Desktop standard stroke */
   -webkit-text-stroke: 0.5px #000;
-  -webkit-text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
   text-stroke: 0.5px #000;
-  text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
   text-shadow: 0 0.5px 0 rgba(0,0,0,0.35);
   
   font-variant-numeric: tabular-nums lining-nums;
@@ -162,9 +160,7 @@
   white-space: nowrap;
   
   -webkit-text-stroke: 0.5px #000;
-  -webkit-text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
   text-stroke: 0.5px #000;
-  text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
   text-shadow: 0 0.5px 0 rgba(0,0,0,0.35);
   
   font-variant-numeric: tabular-nums lining-nums;
