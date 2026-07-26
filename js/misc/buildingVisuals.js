@@ -7685,7 +7685,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.fillStyle = `rgba(0, 0, 0, 0.5)`;
         let numCoils = 6;
         let coilSpacing = coreH / numCoils;
-        let coilOffset = coilSpacing - ((t * 15) % coilSpacing);
+        let coilOffset = (t * 15) % coilSpacing; // Positive offset moves them DOWN
         
         ctx.save();
         ctx.beginPath();
@@ -7704,54 +7704,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         // Top and bottom caps
         ctx.fillRect(-width - 2, -height/2 - 4, width * 2 + 4, 6);
         ctx.fillRect(-width - 2, height/2 - 2, width * 2 + 4, 6);
-        
-        // --- Electrical Arcs transferring power INWARDS to the Crown Block ---
-        // Crown block edge is at x = xSign * 25.
-        let targetX = -xSign * 115; // Local x for global x = 25
-        let targetY = 20; // Local y for global y = -190 (middle of crown block)
-        
-        let arcCount = 1 + Math.floor(t8 * 2);
-        
-        for (let a = 0; a < arcCount; a++) {
-            let arcSeed = Math.floor(t * 20) + a * 100;
-            let pRand = (seed, offset) => {
-                let x = Math.sin(seed * 99.99 + offset * 11.11) * 10000;
-                return x - Math.floor(x);
-            };
-            
-            if (pRand(arcSeed, 1) < 0.6 + t8 * 0.4) {
-                ctx.strokeStyle = `rgba(150, 255, 255, ${0.7 + t8 * 0.3})`;
-                ctx.lineWidth = 1.5 + t8 * 1.5;
-                
-                ctx.beginPath();
-                // Arc originates from the inner edge of the capacitor
-                let arcStartX = -xSign * width;
-                let arcStartY = 0; 
-                ctx.moveTo(arcStartX, arcStartY);
-                
-                let segments = 5 + Math.floor(pRand(arcSeed, 2) * 4);
-                for (let i = 1; i < segments; i++) {
-                    let p = i / segments;
-                    let mx = arcStartX + (targetX - arcStartX) * p;
-                    let my = arcStartY + (targetY - arcStartY) * p;
-                    
-                    // Add jagged randomness
-                    mx += (pRand(arcSeed, i * 3) - 0.5) * 15;
-                    my += (pRand(arcSeed, i * 4) - 0.5) * 20;
-                    
-                    ctx.lineTo(mx, my);
-                }
-                ctx.lineTo(targetX, targetY);
-                ctx.stroke();
-                
-                // Extra inner core for the arc in tier 8
-                if (t8 > 0) {
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${t8})`;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
-            }
-        }
         
         ctx.restore();
     };
