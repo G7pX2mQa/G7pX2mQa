@@ -1535,6 +1535,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const header = upgSheetEl.querySelector('.upg-header');
       const title = ensureChild(header, 'upg-title');
       if (title.textContent !== (model.displayTitle || model.upg.title)) title.textContent = model.displayTitle || model.upg.title;
+
       
       const evolveReady = !!model.hmReadyToEvolve && !model.lvlBn?.isInfinite?.();
       const capReached = evolveReady ? false : (model.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model.upg.lvlCap) ? model.lvl >= model.upg.lvlCap : false));
@@ -1734,7 +1735,8 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           if (mode === 'rainbow_gem_shop' && model.upg.modType === 'font' && FONT_MAP[model.upg.id]) {
               const fontClass = FONT_MAP[model.upg.id];
               const fontName = model.displayTitle || model.upg.title;
-              const formattedDesc = baseDesc.replace(fontName, `<span class="${fontClass}">${fontName}</span>`);
+              let formattedDesc = baseDesc.replace(fontName, `<span class="${fontClass}">${fontName}</span>`);
+              formattedDesc += `<div class="${fontClass}" style="margin-top: 8px; word-break: break-all; opacity: 0.8; font-size: clamp(0.6em, 2.2vw, 1em);">0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz</div>`;
               if (desc.innerHTML !== formattedDesc) desc.innerHTML = formattedDesc;
           } else {
               if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
