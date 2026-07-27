@@ -134,6 +134,7 @@ export function createUcSpawner(config = {}) {
     }
 	
     let activePickaxeSounds = [];
+    let volumeUpdateTimeout = null;
 
     function playSpawnSound() {
         const now = performance.now();
@@ -691,12 +692,18 @@ export function createUcSpawner(config = {}) {
         setRate: (n) => {
             currentRate = Math.max(0, Number(n) || 0);
             base.setRate(currentRate);
-            const newVol = getPickaxeSoundVolume();
-            for (const audioObj of activePickaxeSounds) {
-                if (audioObj && audioObj.setVolume) {
-                    audioObj.setVolume(newVol);
-                }
+            
+            if (volumeUpdateTimeout) {
+                clearTimeout(volumeUpdateTimeout);
             }
+            volumeUpdateTimeout = setTimeout(() => {
+                const newVol = getPickaxeSoundVolume();
+                for (const audioObj of activePickaxeSounds) {
+                    if (audioObj && audioObj.setVolume) {
+                        audioObj.setVolume(newVol);
+                    }
+                }
+            }, 50);
         },
         clearBacklog: base.clearBacklog,
         clearPlayfield: base.clearPlayfield,
