@@ -3271,6 +3271,9 @@ if (typeof window !== 'undefined') {
     if (typeof deferredWrites !== 'undefined' && deferredWrites.clear) deferredWrites.clear();
     if (typeof areaStateMemoryCache !== 'undefined' && areaStateMemoryCache.clear) areaStateMemoryCache.clear();
     if (typeof areaStatePayloadCache !== 'undefined' && areaStatePayloadCache.clear) areaStatePayloadCache.clear();
+    shopRevealStateCache.clear();
+    shopPermaUnlockStateCache.clear();
+    shopPermaMystStateCache.clear();
     bindUpgradeStorageWatchersForSlot(getActiveSlot());
     notifyChanged();
   });
