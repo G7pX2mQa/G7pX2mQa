@@ -213,6 +213,17 @@ export const SETTING_DEFINITIONS = {
       }
     },
   },
+  master_volume: {
+    id: 'master_volume',
+    type: 'slider',
+    label: 'Master Volume',
+    hasExtraInfo: false,
+    min: 0,
+    max: 100,
+    step: 1,
+    default: 100,
+    unlockCondition: () => true,
+  },
   music_volume: {
     id: 'music_volume',
     type: 'slider',
