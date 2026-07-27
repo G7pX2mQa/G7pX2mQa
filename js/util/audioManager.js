@@ -152,7 +152,9 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
     }
   }
  
+  let isSpawnVessel = false;
   if (type === 'spawn_vessel') {
+      isSpawnVessel = true;
       const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
       volume = volume * (spawnVesselVolumeSetting / 100);
       type = 'sfx';
@@ -223,6 +225,20 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
             },
             source,
             gainNode,
+            setVolume: (newVolumeBase) => {
+                let actualVolume = newVolumeBase;
+                if (isSpawnVessel) {
+                    const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
+                    actualVolume = actualVolume * (spawnVesselVolumeSetting / 100);
+                }
+                try {
+                    const now = ctx.currentTime;
+                    gainNode.gain.cancelScheduledValues(now);
+                    gainNode.gain.setValueAtTime(actualVolume, now);
+                } catch (e) {
+                    gainNode.gain.value = actualVolume;
+                }
+            },
             element: null // No HTML5 audio element
         };
     } else {
@@ -306,6 +322,27 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
                   return;
               }
               try { a.pause(); a.currentTime = 0; } catch {}
+          },
+          setVolume: (newVolumeBase) => {
+              let actualVolume = newVolumeBase;
+              if (isSpawnVessel) {
+                  const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
+                  actualVolume = actualVolume * (spawnVesselVolumeSetting / 100);
+              }
+              const mvs = settingsManager.get('master_volume');
+              let finalVol = mvs !== undefined && mvs !== null ? actualVolume * (mvs / 100) : actualVolume;
+              if (type === 'music') {
+                  const musv = settingsManager.get('music_volume');
+                  if (musv !== undefined && musv !== null) finalVol = finalVol * (musv / 100);
+              } else if (type === 'sfx') {
+                  const sfxv = settingsManager.get('sfx_volume');
+                  if (sfxv !== undefined && sfxv !== null) finalVol = finalVol * (sfxv / 100);
+              }
+              if (fadeInterval) {
+                  clearInterval(fadeInterval);
+                  fadeInterval = null;
+              }
+              try { a.volume = finalVol; } catch {}
           },
           element: a
       };
