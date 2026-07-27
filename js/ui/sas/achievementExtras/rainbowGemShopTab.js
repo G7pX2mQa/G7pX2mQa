@@ -29,6 +29,10 @@ const TABS_DEF = [
 
 const tabUnlockState = new Map();
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => tabUnlockState.clear());
+}
+
 let overlayEl = null;
 let sheetEl = null;
 let closeBtn = null;
