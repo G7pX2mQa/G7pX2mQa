@@ -611,7 +611,7 @@
 
 .upg-actions .shop-close,
 .upg-actions .shop-delve{
-  flex:0 1 24vw;
+  flex:0 1 24.2vw;
   height:clamp(76px,10vh,126px);
   font-size:clamp(24px,2.8vw,36px);
   border-radius:0;
