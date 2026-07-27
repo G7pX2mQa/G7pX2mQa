@@ -375,3 +375,7 @@
 .workshop-upgrade-btn.is-automated {
   border: 5px solid #1DF71D !important;
 }
+
+body.custom-font-active .workshop-gear-amount .infinity-symbol {
+  top: calc(-0.06em + 3px);
+}
