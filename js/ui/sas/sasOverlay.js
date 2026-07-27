@@ -15,6 +15,7 @@ import { getXpState } from '../../game/xpSystem.js';
 import { IS_MOBILE } from '../../util/platformChecker.js';
 import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
 import { clearActiveSlot } from '../../util/storage.js';
+import { refreshSlotsView } from '../../util/slots.js';
 import { enterArea, AREAS } from '../../main.js';
 import { closeDebugPanel } from '../../util/debugPanel.js';
 
@@ -133,6 +134,7 @@ function populateSasButtons(overlayEl) {
   backBtn.addEventListener("click", () => {
     // This now triggers saveSlot:change with null which clears most cache.
     clearActiveSlot();
+    refreshSlotsView();
 
     // Add the class temporarily to document body so overlays skip transition logic
     document.body.classList.add('no-overlay-transitions');
