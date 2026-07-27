@@ -1113,6 +1113,12 @@ export function createSpawner(config = {}) {
         setRate: (n) => {
             currentRate = Math.max(0, Number(n) || 0);
             base.setRate(currentRate);
+            const newVol = getWaveSoundVolume();
+            for (const audioObj of activeWaveSounds) {
+                if (audioObj && audioObj.setVolume) {
+                    audioObj.setVolume(newVol);
+                }
+            }
         },
         clearBacklog: base.clearBacklog,
         clearPlayfield: base.clearPlayfield,
