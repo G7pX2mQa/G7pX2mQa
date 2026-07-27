@@ -40,7 +40,7 @@ export function createCursorTrail(playfield, options = {}) {
   const CENTER = TEXTURE_SIZE / 2;
 
   // --- State ---
-  const STRIDE = 5;
+  const STRIDE = 6;
   const data = new Float32Array(CAPACITY * STRIDE);
   const renderOrder = new Int32Array(CAPACITY);
   
@@ -54,6 +54,7 @@ export function createCursorTrail(playfield, options = {}) {
   for (let i = 0; i < CAPACITY; i++) freeSlots[i] = CAPACITY - 1 - i;
 
   let maxActiveIndex = -1;
+  let currentSpawnId = 0;
 
   // --- DOM Setup ---
   const canvas = document.createElement('canvas');
@@ -144,6 +145,48 @@ export function createCursorTrail(playfield, options = {}) {
     } else {
       activeColors = ['#FFEB3B']; // Default
     }
+    if (activeColors.length > 1) {
+      const interpolateColor = (color1, color2, factor) => {
+        const hex1 = color1.replace('#', '');
+        const hex2 = color2.replace('#', '');
+        const r1 = parseInt(hex1.substring(0, 2), 16);
+        const g1 = parseInt(hex1.substring(2, 4), 16);
+        const b1 = parseInt(hex1.substring(4, 6), 16);
+        
+        const r2 = parseInt(hex2.substring(0, 2), 16);
+        const g2 = parseInt(hex2.substring(2, 4), 16);
+        const b2 = parseInt(hex2.substring(4, 6), 16);
+        
+        const r = Math.round(r1 + factor * (r2 - r1));
+        const g = Math.round(g1 + factor * (g2 - g1));
+        const b = Math.round(b1 + factor * (b2 - b1));
+        
+        const toHex = (c) => {
+            const hex = c.toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        
+        return '#' + toHex(r) + toHex(g) + toHex(b);
+      };
+
+      const generateGradient = (colors, stepsPerSegment = 10) => {
+        if (colors.length < 2) return colors;
+        
+        const gradient = [];
+        for (let i = 0; i < colors.length; i++) {
+            const c1 = colors[i];
+            const c2 = colors[(i + 1) % colors.length];
+            
+            for (let j = 0; j < stepsPerSegment; j++) {
+                const factor = j / stepsPerSegment;
+                gradient.push(interpolateColor(c1, c2, factor));
+            }
+        }
+        return gradient;
+      };
+
+      activeColors = generateGradient(activeColors, 15);
+    }
     generateTexture();
   };
 
@@ -178,6 +221,8 @@ export function createCursorTrail(playfield, options = {}) {
   let lastEmitX = null;
   let lastEmitY = null;
   let isNewTouch = false;
+  let leftoverDist = 0;
+  let lastMoveTime = 0;
   
   if (isBossFight && typeof window !== 'undefined') {
       pointerInside = true;
@@ -238,7 +283,7 @@ export function createCursorTrail(playfield, options = {}) {
     resizeObserver.observe(playfield);
   }
 
-  const spawn = (x, y) => {
+  const spawn = (x, y, isIdle = false) => {
     if (freeCount <= 0 || !settingsManager.get('cursor_trail')) return;
     const idx = freeSlots[--freeCount];
     if (idx > maxActiveIndex) maxActiveIndex = idx;
@@ -247,13 +292,18 @@ export function createCursorTrail(playfield, options = {}) {
     data[offset + 1] = y;
     data[offset + 2] = 0;
     data[offset + 3] = PARTICLE_LIFETIME;
-    data[offset + 4] = particleColorIndex++;
+    data[offset + 4] = particleColorIndex;
+    data[offset + 5] = currentSpawnId++;
+    
+    // Advance color index based on idle state to reduce eye strain
+    const colorSpeed = isIdle ? 0.2 : 1.0;
+    particleColorIndex += colorSpeed;
   };
 
   const processPoint = (localX, localY, budgetRef) => {
-      // Spawn at this point, interpolating from lastSpawnX if needed
       if (lastSpawnX === null || lastSpawnY === null || isNewTouch) {
           isNewTouch = false;
+          leftoverDist = 0;
           if (budgetRef.count < MAX_SPAWN_PER_FRAME) {
             spawn(localX, localY);
             budgetRef.count++;
@@ -263,21 +313,19 @@ export function createCursorTrail(playfield, options = {}) {
         const dy = localY - lastSpawnY;
         const dist = Math.hypot(dx, dy);
         
-        if (dist >= INTERPOLATION_STEP) {
-          const steps = Math.floor(dist / INTERPOLATION_STEP);
-          for (let i = 1; i <= steps; i++) {
-             if (budgetRef.count >= MAX_SPAWN_PER_FRAME) break;
-             const fraction = (i * INTERPOLATION_STEP) / dist;
-             spawn(lastSpawnX + dx * fraction, lastSpawnY + dy * fraction);
-             budgetRef.count++;
-          }
-        }
-        // Always spawn the point itself if we haven't blown budget drastically
-        // (Actually, we should prioritize the *end* points of the coalesced events, 
-        // but spawning intermediate interpolated points is fine too)
-        if (budgetRef.count < MAX_SPAWN_PER_FRAME) {
-            spawn(localX, localY);
-            budgetRef.count++;
+        const totalDist = leftoverDist + dist;
+        if (totalDist >= INTERPOLATION_STEP) {
+            let traveled = INTERPOLATION_STEP - leftoverDist;
+            while (traveled <= dist) {
+                if (budgetRef.count >= MAX_SPAWN_PER_FRAME) break;
+                const fraction = traveled / dist;
+                spawn(lastSpawnX + dx * fraction, lastSpawnY + dy * fraction);
+                budgetRef.count++;
+                traveled += INTERPOLATION_STEP;
+            }
+            leftoverDist = totalDist % INTERPOLATION_STEP;
+        } else {
+            leftoverDist += dist;
         }
       }
       lastSpawnX = localX;
@@ -286,6 +334,7 @@ export function createCursorTrail(playfield, options = {}) {
 
   const onPointerMove = (e) => {
     if (destroyed) return;
+    lastMoveTime = performance.now();
     if (!rafId) {
       lastTime = 0;
       rafId = requestAnimationFrame(loop);
@@ -328,6 +377,7 @@ export function createCursorTrail(playfield, options = {}) {
       pointerInside = false;
       lastSpawnX = null;
       lastSpawnY = null;
+      leftoverDist = 0;
       pointsQueue.length = 0; // Clear queue on leave
     }
   };
@@ -366,6 +416,7 @@ export function createCursorTrail(playfield, options = {}) {
                 pointerInside = false;
                 lastSpawnX = null;
                 lastSpawnY = null;
+                leftoverDist = 0;
             }
         }
         // Force the last point to be spawned exactly, to ensure tip connectivity
@@ -385,19 +436,9 @@ export function createCursorTrail(playfield, options = {}) {
             lastPtInside = true;
         }
 
-        if (lastPtInside) {
-             // If we haven't spawned at exact last location yet (due to budget), force it.
-             // (Simple check: compare lastSpawnX/Y with lastPt)
-             if (lastSpawnX !== lastPx || lastSpawnY !== lastPy) {
-                 spawn(lastPx, lastPy);
-                 lastSpawnX = lastPx;
-                 lastSpawnY = lastPy;
-             }
-        }
-        
         pointsQueue.length = 0; // Consumed
-    } else if (pointerInside && lastSpawnX !== null && lastSpawnY !== null) {
-        spawn(lastSpawnX, lastSpawnY);
+    } else if (pointerInside && lastSpawnX !== null && lastSpawnY !== null && (now - lastMoveTime > 50)) {
+        spawn(lastSpawnX, lastSpawnY, true);
     }
 
     // --- Render & Update ---
@@ -440,9 +481,9 @@ export function createCursorTrail(playfield, options = {}) {
         renderOrder[renderCount++] = i;
       }
 
-      // Sort indices so older particles (higher age) come first, newer (lower age) come last
+      // Sort indices so older particles (lower spawnId) come first, newer (higher spawnId) come last
       const activeSlice = renderOrder.subarray(0, renderCount);
-      activeSlice.sort((a, b) => data[b * STRIDE + 2] - data[a * STRIDE + 2]);
+      activeSlice.sort((a, b) => data[a * STRIDE + 5] - data[b * STRIDE + 5]);
 
       // Second pass: render sorted particles
       for (let i = 0; i < renderCount; i++) {
