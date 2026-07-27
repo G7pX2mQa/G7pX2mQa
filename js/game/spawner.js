@@ -134,6 +134,7 @@ export function createSpawner(config = {}) {
     const waveURL = new URL(waveSoundSrc, document.baseURI).href;
     let waveLastAt = 0;
     let activeWaveSounds = [];
+    let volumeUpdateTimeout = null;
 
     function playWaveOncePerBurst() {
       if (currentArea !== AREAS.STARTER_COVE) return;
@@ -1113,12 +1114,18 @@ export function createSpawner(config = {}) {
         setRate: (n) => {
             currentRate = Math.max(0, Number(n) || 0);
             base.setRate(currentRate);
-            const newVol = getWaveSoundVolume();
-            for (const audioObj of activeWaveSounds) {
-                if (audioObj && audioObj.setVolume) {
-                    audioObj.setVolume(newVol);
-                }
+            
+            if (volumeUpdateTimeout) {
+                clearTimeout(volumeUpdateTimeout);
             }
+            volumeUpdateTimeout = setTimeout(() => {
+                const newVol = getWaveSoundVolume();
+                for (const audioObj of activeWaveSounds) {
+                    if (audioObj && audioObj.setVolume) {
+                        audioObj.setVolume(newVol);
+                    }
+                }
+            }, 50);
         },
         clearBacklog: base.clearBacklog,
         clearPlayfield: base.clearPlayfield,
