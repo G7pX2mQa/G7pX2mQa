@@ -86,7 +86,6 @@ let ironPattern = null;
 let pureGoldPattern = null;
 let diamondPattern = null;
 let darkDiamondPattern = null;
-let emeraldPattern = null;
 
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
@@ -147,53 +146,6 @@ function initDiamondPattern(ctx) {
     }
   }
 }
-
-function initEmeraldPattern(ctx) {
-  if (emeraldPattern) return;
-
-  const patternCanvas = document.createElement("canvas");
-  patternCanvas.width = 128;
-  patternCanvas.height = 128;
-  const pCtx = patternCanvas.getContext("2d");
-
-  // Base emerald color
-  pCtx.fillStyle = "#34d733";
-  pCtx.fillRect(0, 0, 128, 128);
-
-  // Soft mottling (larger, very faint spots)
-  for (let i = 0; i < 600; i++) {
-    const x = Math.random() * 128;
-    const y = Math.random() * 128;
-    const r = Math.random() * 10 + 5;
-    
-    // Very faint dark/light greens
-    pCtx.fillStyle = Math.random() > 0.5 ? "rgba(20, 120, 20, 0.03)" : "rgba(100, 255, 100, 0.03)";
-    pCtx.beginPath();
-    pCtx.arc(x, y, r, 0, Math.PI * 2);
-    pCtx.fill();
-  }
-  
-  // Tiny speckles (grunge), more frequent
-  for (let i = 0; i < 1600; i++) {
-    const x = Math.random() * 128;
-    const y = Math.random() * 128;
-    const size = Math.random() * 1.5 + 0.5;
-    
-    pCtx.fillStyle = Math.random() > 0.8 ? "rgba(0, 30, 0, 0.12)" : "rgba(160, 220, 160, 0.06)";
-    pCtx.fillRect(x, y, size, size);
-  }
-
-  const targetCtx = activeCtx || ctx;
-  if (targetCtx) {
-    try {
-      emeraldPattern = targetCtx.createPattern(patternCanvas, "repeat");
-    } catch (e) {
-      console.error("Failed to create emerald pattern", e);
-    }
-  }
-}
-
-
 
 function initDarkDiamondPattern(ctx) {
   if (darkDiamondPattern) return;
@@ -7826,36 +7778,13 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
 }
 
 function drawGreenhouse(ctx, t, tier) {
-  if (!emeraldPattern && typeof activeCtx !== "undefined" && activeCtx) {
-    initEmeraldPattern(activeCtx);
-  } else if (!emeraldPattern) {
-    initEmeraldPattern(ctx);
-  }
-
-  // Draw an emerald base for the greenhouse to showcase the material
-  ctx.fillStyle = emeraldPattern ? emeraldPattern : "#34d733";
-  ctx.fillRect(-80, 0, 160, 10);
-
-  // The glass dome
   ctx.fillStyle = "rgba(35, 171, 27, 0.3)";
   ctx.fillRect(-70, -60, 140, 60);
   ctx.beginPath();
   ctx.arc(0, -60, 70, Math.PI, 0);
   ctx.fill();
 
-  // Dome structural outline made of emerald
-  ctx.strokeStyle = emeraldPattern ? emeraldPattern : "#34d733";
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.arc(0, -60, 70, Math.PI, 0);
-  ctx.moveTo(-70, -60);
-  ctx.lineTo(-70, 0);
-  ctx.moveTo(70, -60);
-  ctx.lineTo(70, 0);
-  ctx.stroke();
-
-  // Plants inside
-  ctx.fillStyle = emeraldPattern ? emeraldPattern : "#47d13f";
+  ctx.fillStyle = "#47d13f";
   ctx.beginPath();
   ctx.moveTo(-30, 0);
   ctx.lineTo(-20, -40);
