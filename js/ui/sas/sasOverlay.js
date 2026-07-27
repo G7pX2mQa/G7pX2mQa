@@ -16,7 +16,7 @@ import { IS_MOBILE } from '../../util/platformChecker.js';
 import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
 import { clearActiveSlot } from '../../util/storage.js';
 import { refreshSlotsView } from '../../util/slots.js';
-import { enterArea, AREAS } from '../../main.js';
+import { enterArea, AREAS, currentArea } from '../../main.js';
 import { closeDebugPanel } from '../../util/debugPanel.js';
 
 function populateSasButtons(overlayEl) {
@@ -132,6 +132,17 @@ function populateSasButtons(overlayEl) {
   backBtn.className = "sas-btn sas-btn-back-menu";
   backBtn.textContent = "Back to Menu";
   backBtn.addEventListener("click", () => {
+    if (currentArea === AREAS.STARTER_COVE) {
+      if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
+        const message = (typeof window.spawner.getBigCoinWarningMessage === 'function')
+          ? window.spawner.getBigCoinWarningMessage()
+          : "Are you sure you want to return to the menu right now? There is a large coin (size 4+) currently on the screen that will disappear when you leave.";
+        if (message && !window.confirm(message)) {
+          return;
+        }
+      }
+    }
+
     // This now triggers saveSlot:change with null which clears most cache.
     clearActiveSlot();
     refreshSlotsView();
