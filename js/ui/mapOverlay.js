@@ -281,6 +281,10 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 updatePinBtn(settingsManager.get(`area_pinned_${node.id}`));
             });
             
+            window.addEventListener('saveSlot:change', () => {
+                updatePinBtn(settingsManager.get(`area_pinned_${node.id}`));
+            });
+            
             pinBtn.onclick = (e) => {
                 e.stopPropagation();
                 const currentlyPinned = settingsManager.get(`area_pinned_${node.id}`);
