@@ -296,7 +296,13 @@ export function createCursorTrail(playfield, options = {}) {
     data[offset + 5] = currentSpawnId++;
     
     // Advance color index based on idle state to reduce eye strain
-    const colorSpeed = isIdle ? 0.2 : 1.0;
+    // Normalize speed based on the number of colors in the trail so they all cycle at a similar rate
+    let colorSpeed = isIdle ? (1.0 / 15.0) : 1.0;
+    // We generated 15 steps per color transition. A trail with 2 colors has 30 textures.
+    // A trail with 8 colors has 120 textures. We can normalize around 30 textures (2 colors).
+    const speedMultiplier = Math.max(1, textureCount / 30);
+    colorSpeed *= speedMultiplier;
+    
     particleColorIndex += colorSpeed;
   };
 
