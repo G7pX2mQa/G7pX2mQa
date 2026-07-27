@@ -331,4 +331,5 @@ if (typeof window !== 'undefined') {
     window.addEventListener('unlock:change', () => checkSecretAchievements());
     window.addEventListener('autobuyer:toggled', () => checkSecretAchievements());
     window.addEventListener("setting:changed", () => checkSecretAchievements());
+    window.addEventListener('saveSlot:change', () => { secretAchievementStateCache.clear(); checkSecretAchievements(); });
 }
