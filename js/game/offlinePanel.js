@@ -147,16 +147,13 @@ export const RESOURCE_REGISTRY_EXTRAS = {
     singular: "RP",
     plural: "RP",
     icon: "img/stats/rp/rp.webp",
-    bgGradient:
-      "linear-gradient(to bottom, #003264 0%, #004678 15%, #005688 50%, #004678 85%, #003264 100%)",
+    color: "#005688",
   },
   waterwheel_levels: {
     key: "waterwheel_levels",
     singular: "FP",
     plural: "FP",
     icon: "img/stats/fp/fp.webp",
-    bgGradient:
-      "linear-gradient(to bottom, #12B1B5 0%, #26C5C9 15%, #36D5D9 50%, #26C5C9 85%, #12B1B5 100%)",
   },
 };
 
