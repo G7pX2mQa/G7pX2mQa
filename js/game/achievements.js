@@ -205,6 +205,6 @@ export function showDelayedAchievementNotifications() {
 if (typeof window !== 'undefined') {
     window.addEventListener('forge:completed', () => checkAchievements());
     window.addEventListener('unlock:change', () => checkAchievements());
-    window.addEventListener('saveSlot:change', () => checkAchievements());
+    window.addEventListener('saveSlot:change', () => { achievementStateCache.clear(); checkAchievements(); });
     window.addEventListener('surge:level:change', () => checkAchievements());
 }
