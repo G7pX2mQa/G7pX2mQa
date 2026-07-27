@@ -1102,7 +1102,7 @@ function ensureMerchantOverlay() {
       if (key === 'flow' || !key) syncFlowTabUnlockState();
       };
       window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
-      window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
+      window.addEventListener('saveSlot:change', () => { merchantTabUnlockState.clear(); handleUnlockChange(); }, { passive: true });
       // Also update flow tab on surge level change
       window.addEventListener('surge:level:change', () => syncFlowTabUnlockState(), { passive: true });
       forgeUnlockListenerBound = true;
