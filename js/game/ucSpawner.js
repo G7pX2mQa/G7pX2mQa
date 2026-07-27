@@ -133,11 +133,19 @@ export function createUcSpawner(config = {}) {
         return cachedVolume;
     }
 	
+    let activePickaxeSounds = [];
+
     function playSpawnSound() {
         const now = performance.now();
         if (now - soundLastAt < soundMinIntervalMs) return;
         soundLastAt = now;
-        playAudio(soundURL, { volume: getPickaxeSoundVolume(), type: 'spawn_vessel' });
+        const audioObj = playAudio(soundURL, { volume: getPickaxeSoundVolume(), type: 'spawn_vessel' });
+        if (audioObj) {
+            activePickaxeSounds.push(audioObj);
+            if (activePickaxeSounds.length > 20) {
+                activePickaxeSounds.shift();
+            }
+        }
     }
 
     
@@ -683,6 +691,12 @@ export function createUcSpawner(config = {}) {
         setRate: (n) => {
             currentRate = Math.max(0, Number(n) || 0);
             base.setRate(currentRate);
+            const newVol = getPickaxeSoundVolume();
+            for (const audioObj of activePickaxeSounds) {
+                if (audioObj && audioObj.setVolume) {
+                    audioObj.setVolume(newVol);
+                }
+            }
         },
         clearBacklog: base.clearBacklog,
         clearPlayfield: base.clearPlayfield,
