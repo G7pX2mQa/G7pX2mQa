@@ -56,14 +56,30 @@ export function initAudio() {
     getAudioContext();
     
     // Set initial volume based on settings
-    const initialVolume = settingsManager.get('music_volume');
-    if (initialVolume !== false) {
-        setMusicVolume(initialVolume);
+    const initialMusicVolume = settingsManager.get('music_volume');
+    if (initialMusicVolume !== false) {
+        setMusicVolume(initialMusicVolume);
+    }
+    const initialMasterVolume = settingsManager.get('master_volume');
+    if (initialMasterVolume !== false) {
+        setMasterVolume(initialMasterVolume);
     }
     
+    // Set initial sfx volume
+    const initialSfxVolume = settingsManager.get('sfx_volume');
+    if (initialSfxVolume !== false && initialSfxVolume !== undefined) {
+        setSfxVolume(initialSfxVolume);
+    }
+
     // Subscribe to future volume changes
     settingsManager.subscribe('music_volume', (val) => {
         setMusicVolume(val);
+    });
+    settingsManager.subscribe('master_volume', (val) => {
+        setMasterVolume(val);
+    });
+    settingsManager.subscribe('sfx_volume', (val) => {
+        setSfxVolume(val);
     });
 }
 
@@ -138,17 +154,8 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
  
   if (type === 'spawn_vessel') {
       const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
-      if (spawnVesselVolumeSetting === 0) return null;
       volume = volume * (spawnVesselVolumeSetting / 100);
       type = 'sfx';
-  }
-
-  if (type !== 'music') {
-      const sfxVolumeSetting = settingsManager.get('sfx_volume');
-      if (sfxVolumeSetting === 0) return null;
-      if (sfxVolumeSetting !== undefined && sfxVolumeSetting !== null) {
-          volume = volume * (sfxVolumeSetting / 100);
-      }
   }
 
   const ctx = getAudioContext();
@@ -230,6 +237,24 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
   try {
       const a = new Audio(url);
       
+      const masterVolumeSetting = settingsManager.get('master_volume');
+      let finalVolume = masterVolumeSetting !== undefined && masterVolumeSetting !== null 
+          ? volume * (masterVolumeSetting / 100) 
+          : volume;
+
+      // HTML5 Audio fallback doesn't use the Web Audio global gains, so we need to multiply them here.
+      if (type === 'music') {
+          const musicVolumeSetting = settingsManager.get('music_volume');
+          if (musicVolumeSetting !== undefined && musicVolumeSetting !== null) {
+              finalVolume = finalVolume * (musicVolumeSetting / 100);
+          }
+      } else if (type === 'sfx') {
+          const sfxVolumeSetting = settingsManager.get('sfx_volume');
+          if (sfxVolumeSetting !== undefined && sfxVolumeSetting !== null) {
+              finalVolume = finalVolume * (sfxVolumeSetting / 100);
+          }
+      }
+
       let fadeInterval = null;
       let stopTimeout = null;
       
@@ -237,19 +262,19 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
           a.volume = 0;
           const steps = 20;
           const stepTime = (fadeDuration * 1000) / steps;
-          const volStep = volume / steps;
+          const volStep = finalVolume / steps;
           let currentVol = 0;
           
           fadeInterval = setInterval(() => {
               currentVol += volStep;
-              if (currentVol >= volume) {
-                  currentVol = volume;
+              if (currentVol >= finalVolume) {
+                  currentVol = finalVolume;
                   clearInterval(fadeInterval);
               }
               a.volume = currentVol;
           }, stepTime);
       } else {
-          a.volume = volume;
+          a.volume = finalVolume;
       }
       
       if (typeof a.playbackRate !== 'undefined') {
@@ -306,6 +331,21 @@ export function setAudioSuspended(suspended) {
   }
 }
 
+export function setMasterVolume(volumePercentage) {
+    if (!masterGain) return;
+    
+    // Map 0-100 to 0.0-1.0
+    const gainValue = Math.max(0, Math.min(100, volumePercentage)) / 100.0;
+    
+    try {
+        const now = audioContext.currentTime;
+        masterGain.gain.cancelScheduledValues(now);
+        masterGain.gain.setValueAtTime(gainValue, now);
+    } catch {
+        masterGain.gain.value = gainValue;
+    }
+}
+
 export function setMusicVolume(volumePercentage) {
     if (!musicGain) return;
     
@@ -318,6 +358,21 @@ export function setMusicVolume(volumePercentage) {
         musicGain.gain.setValueAtTime(gainValue, now);
     } catch {
         musicGain.gain.value = gainValue;
+    }
+}
+
+export function setSfxVolume(volumePercentage) {
+    if (!sfxGain) return;
+    
+    // Map 0-100 to 0.0-1.0
+    const gainValue = Math.max(0, Math.min(100, volumePercentage)) / 100.0;
+    
+    try {
+        const now = audioContext.currentTime;
+        sfxGain.gain.cancelScheduledValues(now);
+        sfxGain.gain.setValueAtTime(gainValue, now);
+    } catch {
+        sfxGain.gain.value = gainValue;
     }
 }
 
