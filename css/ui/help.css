@@ -146,7 +146,7 @@
     padding-bottom: 8px; /* space for scrollbar if any */
     position: sticky;
     top: -12px; /* slight offset */
-    background: hsla(215, 32%, 7%, 0.95); /* Opaque background to cover content behind sticky header */
+    background: transparent; /* Changed to transparent per user request */
     padding-top: 12px;
     margin-top: -12px; /* Pull back to edge */
     z-index: 10;
