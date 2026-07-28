@@ -69,6 +69,7 @@
     /* Hide scrollbar */
     scrollbar-width: none;
     overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 .offline-scroll-container::-webkit-scrollbar {
     width: 0;
