@@ -7844,26 +7844,36 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   }
   const fillEmerald = emeraldPattern || '#5ed65e';
 
-  // Tier progress helpers (smooth fading during tier-up animations)
+  // Tier progress helpers
   const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
   const t0 = getProg(0), t1 = getProg(1), t2 = getProg(2), t3 = getProg(3);
   const t4 = getProg(4), t5 = getProg(5), t6 = getProg(6), t7 = getProg(7), t8 = getProg(8);
 
-  // Core geometry constants (Scaled up significantly)
-  const bw = 280;       // planter width
-  const hw = bw / 2;    // planter half-width
-  const wallH = 100;     // glass wall height
-  const domeR = 140;     // dome arc radius
-  const domeCY = -wallH; // dome arc center Y (-100)
-  // Dome apex: (0, domeCY - domeR) = (0, -240)
+  // Core geometry constants (Elliptical dome to be much wider without adding height)
+  const bw = 560;       // planter width (+20% from 460)
+  const hw = bw / 2;    // planter half-width (280)
+  const wallH = 40;     // glass wall height
+  const domeH = 230;    // dome vertical radius (keeps height down)
+  const domeCY = -wallH; // dome arc center Y (-40)
+  // Dome apex: (0, -270)
 
   // Helper: dome envelope path
   const domePath = () => {
     ctx.beginPath();
-    ctx.moveTo(-domeR, 0);
-    ctx.lineTo(-domeR, domeCY);
-    ctx.arc(0, domeCY, domeR, Math.PI, 0);
-    ctx.lineTo(domeR, 0);
+    ctx.moveTo(-hw, 0);
+    ctx.lineTo(-hw, domeCY);
+    // Use ellipse for wide low-profile dome
+    if (ctx.ellipse) {
+      ctx.ellipse(0, domeCY, hw, domeH, 0, Math.PI, 0);
+    } else {
+      // Fallback for older canvas implementations just in case
+      ctx.save();
+      ctx.translate(0, domeCY);
+      ctx.scale(1, domeH / hw);
+      ctx.arc(0, 0, hw, Math.PI, 0);
+      ctx.restore();
+    }
+    ctx.lineTo(hw, 0);
     ctx.closePath();
   };
 
@@ -7888,10 +7898,11 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Dirt texture
     ctx.fillStyle = 'rgba(30, 15, 5, 0.3)';
     const dirtDots = [
-      [-105, -10], [-70, -6], [-45, -12], [-10, -5], [25, -11],
-      [50, -6], [85, -9], [120, -10], [-95, -4], [-25, -8],
-      [60, -12], [105, -5], [-60, -13], [15, -4], [95, -8],
-      [-120, -7], [-130, -12], [130, -9], [140, -5]
+      [-250, -10], [-210, -6], [-170, -12], [-130, -5], [-90, -11],
+      [-50, -6], [-10, -9], [30, -10], [70, -4], [110, -8],
+      [150, -12], [190, -5], [230, -13], [260, -8], [-230, -4],
+      [-190, -7], [-150, -12], [-110, -9], [-70, -5], [-30, -11],
+      [10, -7], [50, -13], [90, -5], [130, -9], [170, -11], [210, -6], [250, -10]
     ];
     for (const [dx, dy] of dirtDots) {
       ctx.fillRect(dx, dy, 3, 2.5);
@@ -7899,9 +7910,9 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     // Planter rim
     ctx.fillStyle = '#9B7530';
-    ctx.fillRect(-hw - 6, -18, bw + 12, 6);
+    ctx.fillRect(-hw - 8, -18, bw + 16, 6);
     ctx.fillStyle = '#8B6520';
-    ctx.fillRect(-hw - 6, -18, bw + 12, 2.5);
+    ctx.fillRect(-hw - 8, -18, bw + 16, 2.5);
 
     ctx.restore();
   }
@@ -7916,7 +7927,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     ctx.strokeStyle = 'rgba(30, 80, 40, 0.4)';
     ctx.lineWidth = 1.5;
-    for (let i = -hw + 15; i < hw; i += 25) {
+    for (let i = -hw + 15; i < hw; i += 30) {
       ctx.beginPath();
       ctx.moveTo(i, -15);
       ctx.lineTo(i + 8, 0);
@@ -7928,10 +7939,10 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
 
     ctx.fillStyle = fillEmerald;
-    ctx.fillRect(-hw - 6, -18, bw + 12, 6);
+    ctx.fillRect(-hw - 8, -18, bw + 16, 6);
     ctx.strokeStyle = 'rgba(20, 60, 30, 0.5)';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(-hw - 6, -18, bw + 12, 6);
+    ctx.strokeRect(-hw - 8, -18, bw + 16, 6);
 
     ctx.restore();
   }
@@ -7952,7 +7963,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = 'rgba(200, 255, 200, 0.6)';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(0, domeCY, domeR - 12, Math.PI * 1.25, Math.PI * 1.75);
+    if (ctx.ellipse) {
+      ctx.ellipse(0, domeCY, hw - 16, domeH - 16, 0, Math.PI * 1.25, Math.PI * 1.75);
+    } else {
+      ctx.translate(0, domeCY);
+      ctx.scale(1, (domeH - 16) / (hw - 16));
+      ctx.arc(0, 0, hw - 16, Math.PI * 1.25, Math.PI * 1.75);
+    }
     ctx.stroke();
     ctx.restore();
     ctx.restore();
@@ -8004,7 +8021,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     // Left Ferns
     ctx.save();
-    ctx.translate(-40, -15);
+    ctx.translate(-110, -15);
     ctx.rotate(swayAngle * 1.2);
     ctx.strokeStyle = '#2d8a24';
     ctx.lineWidth = 2;
@@ -8014,7 +8031,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     // Right Ferns
     ctx.save();
-    ctx.translate(45, -15);
+    ctx.translate(110, -15);
     ctx.rotate(-swayAngle * 0.8);
     ctx.strokeStyle = '#2d8a24';
     ctx.lineWidth = 2.5;
@@ -8034,22 +8051,22 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = '#7a8a9a';
     ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.moveTo(-100, pipeY);
-    ctx.lineTo(100, pipeY);
+    ctx.moveTo(-240, pipeY);
+    ctx.lineTo(240, pipeY);
     ctx.stroke();
 
     ctx.strokeStyle = 'rgba(160, 180, 200, 0.4)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-100, pipeY - 2);
-    ctx.lineTo(100, pipeY - 2);
+    ctx.moveTo(-240, pipeY - 2);
+    ctx.lineTo(240, pipeY - 2);
     ctx.stroke();
 
     ctx.fillStyle = '#6a7a8a';
-    ctx.fillRect(-104, pipeY - 6, 6, 12);
-    ctx.fillRect(98, pipeY - 6, 6, 12);
+    ctx.fillRect(-244, pipeY - 6, 6, 12);
+    ctx.fillRect(238, pipeY - 6, 6, 12);
 
-    const nozzleXs = [-75, -40, -5, 30, 65];
+    const nozzleXs = [-200, -133, -66, 0, 66, 133, 200];
     for (let i = 0; i < nozzleXs.length; i++) {
       const nx = nozzleXs[i];
       ctx.fillStyle = '#5a6a7a';
@@ -8059,7 +8076,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
       for (let d = 0; d < 2; d++) {
         const dropSpeed = 55;
-        const dropRange = 95;
+        const dropRange = 90;
         const phase = (i * 23.7 + d * 31.3);
         const dropProgress = ((t * dropSpeed + phase) % dropRange) / dropRange;
         const dropY = dropProgress * dropRange;
@@ -8081,19 +8098,20 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     const bushClusters = [
       // Central green bush
-      { x: -30, y: -38, r: 24, speed: 1.2, amp: 0.025, c: '#2a7a22' },
-      { x: 30, y: -42, r: 22, speed: 1.4, amp: 0.02, c: '#328a2a' },
-      { x: -10, y: -52, r: 28, speed: 0.9, amp: 0.03, c: '#3a9a32' },
-      { x: 18, y: -58, r: 25, speed: 1.1, amp: 0.022, c: '#40a838' },
-      { x: -22, y: -68, r: 21, speed: 1.5, amp: 0.018, c: '#48b840' },
-      { x: 12, y: -72, r: 20, speed: 1.3, amp: 0.028, c: '#3aad30' },
-      { x: 0, y: -80, r: 18, speed: 1.0, amp: 0.025, c: '#50c848' },
-      // Extra foliage left
-      { x: -60, y: -35, r: 16, speed: 1.6, amp: 0.03, c: '#1e6428' },
-      { x: -80, y: -25, r: 12, speed: 1.1, amp: 0.04, c: '#267f33' },
-      // Extra foliage right
-      { x: 65, y: -38, r: 18, speed: 1.4, amp: 0.03, c: '#21752b' },
-      { x: 90, y: -22, r: 14, speed: 1.7, amp: 0.035, c: '#288b35' },
+      { x: -65, y: -38, r: 28, speed: 1.2, amp: 0.025, c: '#2a7a22' },
+      { x: 65, y: -42, r: 26, speed: 1.4, amp: 0.02, c: '#328a2a' },
+      { x: -25, y: -55, r: 34, speed: 0.9, amp: 0.03, c: '#3a9a32' },
+      { x: 35, y: -62, r: 30, speed: 1.1, amp: 0.022, c: '#40a838' },
+      { x: -55, y: -72, r: 25, speed: 1.5, amp: 0.018, c: '#48b840' },
+      { x: 28, y: -78, r: 24, speed: 1.3, amp: 0.028, c: '#3aad30' },
+      { x: 0, y: -85, r: 22, speed: 1.0, amp: 0.025, c: '#50c848' },
+      // Extra foliage spread wider
+      { x: -110, y: -35, r: 20, speed: 1.6, amp: 0.03, c: '#1e6428' },
+      { x: -150, y: -25, r: 16, speed: 1.1, amp: 0.04, c: '#267f33' },
+      { x: -180, y: -20, r: 14, speed: 1.3, amp: 0.03, c: '#2a7a22' },
+      { x: 115, y: -38, r: 22, speed: 1.4, amp: 0.03, c: '#21752b' },
+      { x: 160, y: -22, r: 18, speed: 1.7, amp: 0.035, c: '#288b35' },
+      { x: 195, y: -18, r: 15, speed: 1.2, amp: 0.025, c: '#1e6428' },
     ];
 
     for (const cl of bushClusters) {
@@ -8110,16 +8128,16 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Broad leaves (tropical look)
     ctx.fillStyle = '#1c5e20';
     ctx.save();
-    ctx.translate(-70, -15);
+    ctx.translate(-230, -15);
     ctx.rotate(-0.3 + Math.sin(t*0.8)*0.05);
-    ctx.beginPath(); ctx.ellipse(-10, -20, 25, 8, -0.6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-10, -20, 30, 10, -0.6, 0, Math.PI*2); ctx.fill();
     ctx.restore();
 
     ctx.fillStyle = '#216c26';
     ctx.save();
-    ctx.translate(75, -15);
+    ctx.translate(240, -15);
     ctx.rotate(0.2 + Math.sin(t*0.9)*0.05);
-    ctx.beginPath(); ctx.ellipse(15, -25, 28, 10, 0.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(15, -25, 34, 12, 0.4, 0, Math.PI*2); ctx.fill();
     ctx.restore();
 
     ctx.restore();
@@ -8130,12 +8148,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t2;
     ctx.fillStyle = '#3a3a4a';
-    ctx.fillRect(-115, -75, 24, 34);
+    ctx.fillRect(-255, -75, 30, 42);
     ctx.strokeStyle = '#5a5a6a';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(-115, -75, 24, 34);
+    ctx.strokeRect(-255, -75, 30, 42);
     ctx.fillStyle = '#1a2a2a';
-    ctx.fillRect(-112, -72, 18, 12);
+    ctx.fillRect(-251, -71, 22, 14);
     
     const lightDefs = [
       { color: [220, 50, 50], phase: 0 },
@@ -8149,12 +8167,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
       ctx.fillStyle = "rgba(" + r + ", " + g + ", " + b + ", " + (brightness * 0.2) + ")";
       ctx.beginPath();
-      ctx.arc(-103, -54 + i * 8, 7, 0, Math.PI * 2);
+      ctx.arc(-240, -50 + i * 9, 8, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = "rgba(" + r + ", " + g + ", " + b + ", " + brightness + ")";
       ctx.beginPath();
-      ctx.arc(-103, -54 + i * 8, 3.5, 0, Math.PI * 2);
+      ctx.arc(-240, -50 + i * 9, 4, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -8167,27 +8185,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     ctx.globalAlpha = t3 * lampGlow * 0.12;
     ctx.strokeStyle = '#ffcc66';
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < 9; i++) {
-      const rx = -24 + i * 6;
-      const shimmer = Math.sin(t * 1.3 + i * 1.2) * 5;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 11; i++) {
+      const rx = -75 + i * 15;
+      const shimmer = Math.sin(t * 1.3 + i * 1.2) * 6;
       ctx.beginPath();
-      ctx.moveTo(rx, -225);
-      ctx.lineTo(rx + shimmer, -90);
+      ctx.moveTo(rx, -250);
+      ctx.lineTo(rx + shimmer, -110);
       ctx.stroke();
-    }
-
-    if (t7 > 0) {
-      ctx.globalAlpha = t7 * lampGlow * 0.12;
-      ctx.strokeStyle = '#66ff88';
-      for (let i = 0; i < 9; i++) {
-        const rx = -24 + i * 6;
-        const shimmer = Math.sin(t * 1.3 + i * 1.2) * 5;
-        ctx.beginPath();
-        ctx.moveTo(rx, -225);
-        ctx.lineTo(rx + shimmer, -90);
-        ctx.stroke();
-      }
     }
     ctx.restore();
   }
@@ -8199,17 +8204,17 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.04;
     const podCX = 0;
-    const podCY = -65;
+    const podCY = -70; // Sitting in the bush
 
     // Bioluminescent glow behind pod (Magenta/Violet)
     const glowInt = 0.35 + Math.sin(t * 1.8) * 0.15;
-    const podGlow = ctx.createRadialGradient(podCX, podCY, 5, podCX, podCY, 55);
+    const podGlow = ctx.createRadialGradient(podCX, podCY, 5, podCX, podCY, 75);
     podGlow.addColorStop(0, "rgba(255, 100, 200, " + glowInt + ")");
     podGlow.addColorStop(0.5, "rgba(180, 50, 180, " + (glowInt * 0.4) + ")");
     podGlow.addColorStop(1, 'rgba(100, 0, 150, 0)');
     ctx.fillStyle = podGlow;
     ctx.beginPath();
-    ctx.arc(podCX, podCY, 55, 0, Math.PI * 2);
+    ctx.arc(podCX, podCY, 75, 0, Math.PI * 2);
     ctx.fill();
 
     // Pod body (ovoid with gradient)
@@ -8217,29 +8222,29 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.translate(podCX, podCY);
     ctx.scale(breathe, breathe);
 
-    const podGrad = ctx.createRadialGradient(-2, -3, 3, 0, 0, 24);
+    const podGrad = ctx.createRadialGradient(-3, -4, 4, 0, 0, 32);
     podGrad.addColorStop(0, '#ffb0f0');
     podGrad.addColorStop(0.3, '#d860d0');
     podGrad.addColorStop(0.7, '#8a2be2');
     podGrad.addColorStop(1, '#4b0082');
     ctx.fillStyle = podGrad;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 20, 28, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 26, 36, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Surface veins (Magenta)
     ctx.strokeStyle = 'rgba(255, 105, 180, 0.45)';
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.5;
     for (let i = 0; i < 7; i++) {
       const angle = (i / 7) * Math.PI * 2;
       const wobble = Math.sin(t * 0.4 + i * 1.1) * 2;
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.quadraticCurveTo(
-        Math.cos(angle) * 12 + wobble,
-        Math.sin(angle) * 16,
-        Math.cos(angle) * 18,
-        Math.sin(angle) * 25
+        Math.cos(angle) * 16 + wobble,
+        Math.sin(angle) * 22,
+        Math.cos(angle) * 24,
+        Math.sin(angle) * 32
       );
       ctx.stroke();
     }
@@ -8248,7 +8253,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const spotAlpha = 0.5 + Math.sin(t * 1.8) * 0.35;
     ctx.fillStyle = "rgba(255, 200, 240, " + spotAlpha + ")";
     ctx.beginPath();
-    ctx.arc(-2, -5, 6, 0, Math.PI * 2);
+    ctx.arc(-3, -6, 8, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -8261,12 +8266,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t5;
 
     const vineDefs = [
-      { sx: -12, sy: -85, ex: -95, ey: -160, spd: 0.7, ph: 0, amp: 14, w: 6 },
-      { sx: 12, sy: -82, ex: 85, ey: -170, spd: 0.6, ph: 1.5, amp: 16, w: 5.5 },
-      { sx: -25, sy: -75, ex: -75, ey: -110, spd: 0.9, ph: 3.0, amp: 10, w: 4.5 },
-      { sx: 25, sy: -78, ex: 80, ey: -105, spd: 0.8, ph: 4.5, amp: 12, w: 4.5 },
-      { sx: -5, sy: -90, ex: -25, ey: -200, spd: 0.5, ph: 2.0, amp: 9, w: 5 },
-      { sx: 10, sy: -92, ex: 35, ey: -195, spd: 0.65, ph: 3.5, amp: 11, w: 4.5 },
+      { sx: -20, sy: -85, ex: -210, ey: -150, spd: 0.7, ph: 0, amp: 20, w: 7 },
+      { sx: 20, sy: -82, ex: 190, ey: -170, spd: 0.6, ph: 1.5, amp: 22, w: 6.5 },
+      { sx: -40, sy: -75, ex: -150, ey: -90, spd: 0.9, ph: 3.0, amp: 14, w: 5 },
+      { sx: 40, sy: -78, ex: 140, ey: -110, spd: 0.8, ph: 4.5, amp: 16, w: 5 },
+      { sx: -10, sy: -90, ex: -80, ey: -250, spd: 0.5, ph: 2.0, amp: 14, w: 6 },
+      { sx: 15, sy: -92, ex: 90, ey: -240, spd: 0.65, ph: 3.5, amp: 16, w: 5.5 },
     ];
 
     for (const v of vineDefs) {
@@ -8310,12 +8315,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         if (nodeGlow > 0.1) {
           ctx.fillStyle = "rgba(100, 255, 120, " + (nodeGlow * 0.4) + ")";
           ctx.beginPath();
-          ctx.arc(np.x, np.y, 9, 0, Math.PI * 2);
+          ctx.arc(np.x, np.y, 10, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.fillStyle = "rgba(180, 255, 200, " + nodeGlow + ")";
           ctx.beginPath();
-          ctx.arc(np.x, np.y, 4, 0, Math.PI * 2);
+          ctx.arc(np.x, np.y, 5, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -8329,18 +8334,18 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t6;
 
     const sporeDefs = [
-      { cx: 0, cy: -130, rx: 35, ry: 25, sx: 0.35, sy: 0.45, px: 0, py: 0, sz: 3.5 },
-      { cx: -45, cy: -150, rx: 25, ry: 30, sx: 0.28, sy: 0.4, px: 1, py: 0.6, sz: 3 },
-      { cx: 40, cy: -135, rx: 30, ry: 20, sx: 0.42, sy: 0.32, px: 2, py: 1.1, sz: 4.2 },
-      { cx: -65, cy: -115, rx: 18, ry: 28, sx: 0.32, sy: 0.5, px: 3, py: 1.7, sz: 2.8 },
-      { cx: 60, cy: -160, rx: 28, ry: 18, sx: 0.38, sy: 0.38, px: 4, py: 2.2, sz: 3.2 },
-      { cx: -20, cy: -185, rx: 15, ry: 25, sx: 0.48, sy: 0.28, px: 5, py: 2.8, sz: 2.5 },
-      { cx: 25, cy: -105, rx: 30, ry: 22, sx: 0.25, sy: 0.45, px: 0.5, py: 3.3, sz: 3 },
-      { cx: -55, cy: -165, rx: 20, ry: 26, sx: 0.36, sy: 0.42, px: 1.5, py: 0.9, sz: 3.5 },
-      { cx: 15, cy: -175, rx: 24, ry: 18, sx: 0.44, sy: 0.48, px: 2.5, py: 1.4, sz: 2.8 },
-      { cx: 75, cy: -125, rx: 15, ry: 32, sx: 0.3, sy: 0.36, px: 3.5, py: 2.0, sz: 2.5 },
-      { cx: -85, cy: -140, rx: 22, ry: 16, sx: 0.5, sy: 0.3, px: 4.5, py: 2.5, sz: 2.2 },
-      { cx: -5, cy: -210, rx: 20, ry: 15, sx: 0.33, sy: 0.55, px: 1.2, py: 3.1, sz: 2.9 },
+      { cx: 0, cy: -180, rx: 65, ry: 35, sx: 0.35, sy: 0.45, px: 0, py: 0, sz: 4.5 },
+      { cx: -150, cy: -200, rx: 55, ry: 40, sx: 0.28, sy: 0.4, px: 1, py: 0.6, sz: 4 },
+      { cx: 140, cy: -185, rx: 60, ry: 30, sx: 0.42, sy: 0.32, px: 2, py: 1.1, sz: 5.2 },
+      { cx: -200, cy: -155, rx: 48, ry: 38, sx: 0.32, sy: 0.5, px: 3, py: 1.7, sz: 3.8 },
+      { cx: 210, cy: -220, rx: 58, ry: 28, sx: 0.38, sy: 0.38, px: 4, py: 2.2, sz: 4.2 },
+      { cx: -70, cy: -245, rx: 45, ry: 35, sx: 0.48, sy: 0.28, px: 5, py: 2.8, sz: 3.5 },
+      { cx: 90, cy: -145, rx: 60, ry: 32, sx: 0.25, sy: 0.45, px: 0.5, py: 3.3, sz: 4 },
+      { cx: -175, cy: -235, rx: 50, ry: 36, sx: 0.36, sy: 0.42, px: 1.5, py: 0.9, sz: 4.5 },
+      { cx: 65, cy: -250, rx: 54, ry: 28, sx: 0.44, sy: 0.48, px: 2.5, py: 1.4, sz: 3.8 },
+      { cx: 230, cy: -165, rx: 45, ry: 42, sx: 0.3, sy: 0.36, px: 3.5, py: 2.0, sz: 3.5 },
+      { cx: -240, cy: -190, rx: 52, ry: 26, sx: 0.5, sy: 0.3, px: 4.5, py: 2.5, sz: 3.2 },
+      { cx: -20, cy: -280, rx: 50, ry: 25, sx: 0.33, sy: 0.55, px: 1.2, py: 3.1, sz: 3.9 },
     ];
 
     for (const sp of sporeDefs) {
@@ -8370,10 +8375,11 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t8;
 
     const coreBreathe = 1 + Math.sin(t * 2.5) * 0.08;
+    // Suspended high up in the dome
     const coreCX = 0;
-    const coreCY = -75;
+    const coreCY = -190;
 
-    const auraR = 80 + Math.sin(t * 2.5) * 12;
+    const auraR = 110 + Math.sin(t * 2.5) * 16;
     const auraA = 0.25 + Math.sin(t * 2.5) * 0.12;
     const auraGrad = ctx.createRadialGradient(coreCX, coreCY, 6, coreCX, coreCY, auraR);
     auraGrad.addColorStop(0, "rgba(120, 255, 180, " + auraA + ")");
@@ -8390,57 +8396,58 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     ctx.fillStyle = fillEmerald;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 28, 36, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 36, 46, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = 'rgba(15, 50, 25, 0.6)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
     ctx.strokeStyle = 'rgba(200, 255, 220, 0.4)';
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.5;
     for (let i = 0; i < 5; i++) {
       const angle = (i / 5) * Math.PI + Math.PI * 0.2;
       ctx.beginPath();
-      ctx.moveTo(Math.cos(angle) * 7, Math.sin(angle) * 9);
-      ctx.lineTo(Math.cos(angle) * 26, Math.sin(angle) * 34);
+      ctx.moveTo(Math.cos(angle) * 9, Math.sin(angle) * 11);
+      ctx.lineTo(Math.cos(angle) * 33, Math.sin(angle) * 43);
       ctx.stroke();
     }
 
     const coreFlash = 0.6 + Math.sin(t * 2.5) * 0.4;
-    const innerGrad = ctx.createRadialGradient(0, -3, 2, 0, -3, 16);
+    const innerGrad = ctx.createRadialGradient(0, -4, 2, 0, -4, 20);
     innerGrad.addColorStop(0, "rgba(240, 255, 245, " + coreFlash + ")");
     innerGrad.addColorStop(0.4, "rgba(120, 255, 160, " + (coreFlash * 0.6) + ")");
     innerGrad.addColorStop(1, 'rgba(60, 200, 100, 0)');
     ctx.fillStyle = innerGrad;
     ctx.beginPath();
-    ctx.arc(0, -3, 16, 0, Math.PI * 2);
+    ctx.arc(0, -4, 20, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
+    // Tendrils reach down and across the wide dome
     const tendrilEnds = [
-      { x: -100, y: -150 },
-      { x: 95, y: -160 },
-      { x: -45, y: -210 },
-      { x: 55, y: -200 },
-      { x: -125, y: -80 },
-      { x: 120, y: -90 },
+      { x: -240, y: -160 }, // left high
+      { x: 230, y: -170 },  // right high
+      { x: -160, y: -100 }, // left mid
+      { x: 150, y: -110 },  // right mid
+      { x: -40, y: -85 },   // down near pod
+      { x: 45, y: -75 },    // down near pod
     ];
 
     for (let i = 0; i < tendrilEnds.length; i++) {
       const end = tendrilEnds[i];
-      const midX = (coreCX + end.x) / 2 + Math.sin(t * 1.1 + i * 1.6) * 25;
-      const midY = (coreCY + end.y) / 2 + Math.cos(t * 0.8 + i * 2.1) * 15;
+      const midX = (coreCX + end.x) / 2 + Math.sin(t * 1.1 + i * 1.6) * 35;
+      const midY = (coreCY + end.y) / 2 + Math.cos(t * 0.8 + i * 2.1) * 25;
 
       ctx.strokeStyle = 'rgba(100, 255, 160, 0.2)';
-      ctx.lineWidth = 7;
+      ctx.lineWidth = 8;
       ctx.beginPath();
       ctx.moveTo(coreCX, coreCY);
       ctx.quadraticCurveTo(midX, midY, end.x, end.y);
       ctx.stroke();
 
       ctx.strokeStyle = 'rgba(140, 255, 180, 0.45)';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 3;
       ctx.stroke();
 
       const pointFrac = ((t * 0.4 + i * 0.6) % 1);
@@ -8450,12 +8457,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
       ctx.fillStyle = 'rgba(180, 255, 200, 0.35)';
       ctx.beginPath();
-      ctx.arc(bx, by, 9, 0, Math.PI * 2);
+      ctx.arc(bx, by, 11, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = 'rgba(230, 255, 240, 0.9)';
       ctx.beginPath();
-      ctx.arc(bx, by, 4, 0, Math.PI * 2);
+      ctx.arc(bx, by, 5, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -8470,17 +8477,16 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
-    
-    // Emerald structural framing for the dome
+    // Pure emerald structural framing for the dome
     ctx.strokeStyle = fillEmerald;
     ctx.lineWidth = 6;
     domePath();
     ctx.stroke();
-    
+    // Bottom support bar (thick line across the base)
+    ctx.fillStyle = fillEmerald;
+    ctx.fillRect(-hw, 0, bw, 8);
     ctx.restore();
   }
-
-
 
   // =============================================
   //  LAYER 5: EXTERNAL EFFECTS
@@ -8491,10 +8497,10 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t3;
     ctx.fillStyle = '#6a6a7a';
     ctx.beginPath();
-    ctx.moveTo(-16, domeCY - domeR + 7);
-    ctx.lineTo(16, domeCY - domeR + 7);
-    ctx.lineTo(11, domeCY - domeR + 21);
-    ctx.lineTo(-11, domeCY - domeR + 21);
+    ctx.moveTo(-18, domeCY - domeH + 7);
+    ctx.lineTo(18, domeCY - domeH + 7);
+    ctx.lineTo(12, domeCY - domeH + 24);
+    ctx.lineTo(-12, domeCY - domeH + 24);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = '#8a8a9a';
@@ -8502,13 +8508,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
 
     const lampPulse = 0.5 + Math.sin(t * 2) * 0.25;
-    const warmGrad = ctx.createRadialGradient(0, domeCY - domeR + 14, 3, 0, domeCY - domeR + 14, 48);
+    const warmGrad = ctx.createRadialGradient(0, domeCY - domeH + 15, 3, 0, domeCY - domeH + 15, 55);
     warmGrad.addColorStop(0, "rgba(255, 200, 80, " + (lampPulse * 0.5) + ")");
     warmGrad.addColorStop(0.4, "rgba(255, 160, 40, " + (lampPulse * 0.25) + ")");
     warmGrad.addColorStop(1, 'rgba(255, 140, 20, 0)');
     ctx.fillStyle = warmGrad;
     ctx.beginPath();
-    ctx.arc(0, domeCY - domeR + 14, 48, 0, Math.PI * 2);
+    ctx.arc(0, domeCY - domeH + 15, 55, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -8518,10 +8524,10 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t7;
     ctx.fillStyle = fillEmerald;
     ctx.beginPath();
-    ctx.moveTo(-16, domeCY - domeR + 7);
-    ctx.lineTo(16, domeCY - domeR + 7);
-    ctx.lineTo(11, domeCY - domeR + 21);
-    ctx.lineTo(-11, domeCY - domeR + 21);
+    ctx.moveTo(-18, domeCY - domeH + 7);
+    ctx.lineTo(18, domeCY - domeH + 7);
+    ctx.lineTo(12, domeCY - domeH + 24);
+    ctx.lineTo(-12, domeCY - domeH + 24);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = 'rgba(30, 80, 40, 0.5)';
@@ -8529,13 +8535,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
 
     const greenPulse = 0.5 + Math.sin(t * 2) * 0.25;
-    const greenGrad = ctx.createRadialGradient(0, domeCY - domeR + 14, 3, 0, domeCY - domeR + 14, 48);
+    const greenGrad = ctx.createRadialGradient(0, domeCY - domeH + 15, 3, 0, domeCY - domeH + 15, 55);
     greenGrad.addColorStop(0, "rgba(80, 255, 120, " + (greenPulse * 0.5) + ")");
     greenGrad.addColorStop(0.4, "rgba(40, 200, 80, " + (greenPulse * 0.25) + ")");
     greenGrad.addColorStop(1, 'rgba(30, 150, 60, 0)');
     ctx.fillStyle = greenGrad;
     ctx.beginPath();
-    ctx.arc(0, domeCY - domeR + 14, 48, 0, Math.PI * 2);
+    ctx.arc(0, domeCY - domeH + 15, 55, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -8544,11 +8550,11 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t7;
     const sparkles = [
-      { x: -134, y: -35 }, { x: 134, y: -45 },
-      { x: -95, y: -145 }, { x: 85, y: -155 },
-      { x: -35, y: -195 }, { x: 30, y: -190 },
-      { x: 0, y: -230 }, { x: -65, y: -55 },
-      { x: 75, y: -55 }, { x: -120, y: -85 },
+      { x: -260, y: -45 }, { x: 260, y: -55 },
+      { x: -210, y: -135 }, { x: 190, y: -145 },
+      { x: -110, y: -215 }, { x: 100, y: -210 },
+      { x: 0, y: -260 }, { x: -155, y: -65 },
+      { x: 165, y: -65 }, { x: -240, y: -95 },
     ];
 
     for (let i = 0; i < sparkles.length; i++) {
@@ -8558,14 +8564,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       if (twinkle > 0.65) {
         const alpha = (twinkle - 0.65) * 2.85;
         ctx.fillStyle = "rgba(180, 255, 200, " + (alpha * 0.3) + ")";
-        ctx.beginPath(); ctx.arc(sp.x, sp.y, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 9, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "rgba(230, 255, 240, " + alpha + ")";
-        ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 3, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = "rgba(220, 255, 235, " + (alpha * 0.5) + ")";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(sp.x - 7, sp.y); ctx.lineTo(sp.x + 7, sp.y);
-        ctx.moveTo(sp.x, sp.y - 7); ctx.lineTo(sp.x, sp.y + 7);
+        ctx.moveTo(sp.x - 8, sp.y); ctx.lineTo(sp.x + 8, sp.y);
+        ctx.moveTo(sp.x, sp.y - 8); ctx.lineTo(sp.x, sp.y + 8);
         ctx.stroke();
       }
     }
