@@ -86,6 +86,7 @@ let ironPattern = null;
 let pureGoldPattern = null;
 let diamondPattern = null;
 let darkDiamondPattern = null;
+let emeraldPattern = null;
 
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
@@ -319,6 +320,64 @@ function initIronPattern(ctx) {
       ironPattern = targetCtx.createPattern(patternCanvas, "repeat");
     } catch (e) {
       console.error("Failed to create iron pattern", e);
+    }
+  }
+}
+
+function initEmeraldPattern(ctx) {
+  if (emeraldPattern) return;
+
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const pCtx = canvas.getContext('2d');
+
+  // Base vibrant green matching the reference emerald image
+  pCtx.fillStyle = '#5ed65e';
+  pCtx.fillRect(0, 0, size, size);
+
+  // Cloudy dark mottling — larger irregular splotchy patches
+  for (let i = 0; i < 100; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const r = 4 + Math.random() * 14;
+    const alpha = 0.06 + Math.random() * 0.06;
+    pCtx.fillStyle = Math.random() > 0.5
+      ? `rgba(25, 85, 20, ${alpha})`
+      : `rgba(35, 100, 28, ${alpha})`;
+    pCtx.beginPath();
+    pCtx.arc(x, y, r, 0, Math.PI * 2);
+    pCtx.fill();
+  }
+
+  // Fine dark speckles for grain texture
+  for (let i = 0; i < 500; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const w = 1 + Math.random() * 2;
+    const h = 1 + Math.random() * 1.5;
+    pCtx.fillStyle = `rgba(20, 65, 12, ${0.06 + Math.random() * 0.06})`;
+    pCtx.fillRect(x, y, w, h);
+  }
+
+  // Subtle brighter highlight spots
+  for (let i = 0; i < 40; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const r = 3 + Math.random() * 8;
+    pCtx.fillStyle = `rgba(130, 255, 110, ${0.03 + Math.random() * 0.04})`;
+    pCtx.beginPath();
+    pCtx.arc(x, y, r, 0, Math.PI * 2);
+    pCtx.fill();
+  }
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      emeraldPattern = targetCtx.createPattern(canvas, 'repeat');
+    } catch (e) {
+      console.error('Failed to create emerald pattern', e);
     }
   }
 }
@@ -1129,7 +1188,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "iron") drawRefinery(ctx, { base: globalRefineryAnimTime, pipe: globalRefineryPipeTime, tank: globalRefineryTankTime }, tier, prevTier, animProgress);
   else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
   else if (id === "diamond") drawOilRig(ctx, globalOilRigAnimTime, tier, prevTier, animProgress, w, h, scale);
-  else if (id === "emerald") drawGreenhouse(ctx, t, tier);
+  else if (id === "emerald") drawGreenhouse(ctx, t, tier, prevTier, animProgress);
   else if (id === "ruby") drawRadiator(ctx, t, tier);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
   else if (id === "unobtainium") drawBeacon(ctx, t, tier);
@@ -7777,26 +7836,892 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   ctx.restore();
 }
 
-function drawGreenhouse(ctx, t, tier) {
-  ctx.fillStyle = "rgba(35, 171, 27, 0.3)";
-  ctx.fillRect(-70, -60, 140, 60);
-  ctx.beginPath();
-  ctx.arc(0, -60, 70, Math.PI, 0);
-  ctx.fill();
+function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
+  // Initialize emerald pattern
+  if (!emeraldPattern) {
+    if (activeCtx) initEmeraldPattern(activeCtx);
+    else initEmeraldPattern(ctx);
+  }
+  const fillEmerald = emeraldPattern || '#5ed65e';
 
-  ctx.fillStyle = "#47d13f";
-  ctx.beginPath();
-  ctx.moveTo(-30, 0);
-  ctx.lineTo(-20, -40);
-  ctx.lineTo(-10, 0);
-  ctx.fill();
+  // Tier progress helpers (smooth fading during tier-up animations)
+  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
+  const t0 = getProg(0), t1 = getProg(1), t2 = getProg(2), t3 = getProg(3);
+  const t4 = getProg(4), t5 = getProg(5), t6 = getProg(6), t7 = getProg(7), t8 = getProg(8);
 
-  ctx.beginPath();
-  ctx.moveTo(30, 0);
-  ctx.lineTo(20, -50 + Math.sin(t) * 10);
-  ctx.lineTo(10, 0);
-  ctx.fill();
+  // Core geometry constants
+  const bw = 150;       // planter width
+  const hw = bw / 2;    // planter half-width
+  const wallH = 60;     // glass wall height
+  const domeR = 70;     // dome arc radius
+  const domeCY = -wallH; // dome arc center Y (-60)
+  // Dome apex: (0, domeCY - domeR) = (0, -130)
+
+  // Helper: dome envelope path
+  const domePath = () => {
+    ctx.beginPath();
+    ctx.moveTo(-domeR, 0);
+    ctx.lineTo(-domeR, domeCY);
+    ctx.arc(0, domeCY, domeR, Math.PI, 0);
+    ctx.lineTo(domeR, 0);
+    ctx.closePath();
+  };
+
+  ctx.save();
+
+  // =============================================
+  //  LAYER 1: FOUNDATION (dirt bed, planter rim)
+  // =============================================
+
+  // --- Tier 0: Planter / dirt bed ---
+  if (t0 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
+
+    // Dirt fill with gradient
+    const dirtGrad = ctx.createLinearGradient(0, -10, 0, 0);
+    dirtGrad.addColorStop(0, '#6b4226');
+    dirtGrad.addColorStop(0.6, '#5a3520');
+    dirtGrad.addColorStop(1, '#4a2e14');
+    ctx.fillStyle = dirtGrad;
+    ctx.fillRect(-hw, -10, bw, 10);
+
+    // Dirt texture — small deterministic dark spots
+    ctx.fillStyle = 'rgba(30, 15, 5, 0.3)';
+    const dirtDots = [
+      [-55, -6], [-40, -4], [-25, -7], [-10, -3], [5, -8],
+      [20, -5], [35, -4], [50, -6], [-48, -2], [-15, -5],
+      [30, -7], [55, -3], [-30, -8], [10, -2], [45, -5],
+    ];
+    for (const [dx, dy] of dirtDots) {
+      ctx.fillRect(dx, dy, 2, 1.5);
+    }
+
+    // Planter rim (wooden edge)
+    ctx.fillStyle = '#9B7530';
+    ctx.fillRect(-hw - 3, -12, bw + 6, 4);
+    ctx.fillStyle = '#8B6520';
+    ctx.fillRect(-hw - 3, -12, bw + 6, 1.5);
+
+    ctx.restore();
+  }
+
+  // --- Tier 8: Emerald mosaic floor (overlays dirt) ---
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+
+    ctx.fillStyle = fillEmerald;
+    ctx.fillRect(-hw, -10, bw, 10);
+
+    // Faceted gem subdivision lines
+    ctx.strokeStyle = 'rgba(30, 80, 40, 0.4)';
+    ctx.lineWidth = 1;
+    for (let i = -hw + 12; i < hw; i += 15) {
+      ctx.beginPath();
+      ctx.moveTo(i, -10);
+      ctx.lineTo(i + 5, 0);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-hw, -5);
+    ctx.lineTo(hw, -5);
+    ctx.stroke();
+
+    // Emerald rim replaces wooden
+    ctx.fillStyle = fillEmerald;
+    ctx.fillRect(-hw - 3, -12, bw + 6, 4);
+    ctx.strokeStyle = 'rgba(20, 60, 30, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-hw - 3, -12, bw + 6, 4);
+
+    ctx.restore();
+  }
+
+  // =============================================
+  //  LAYER 2: DOME GLASS
+  // =============================================
+
+  if (t0 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
+
+    // Dome glass fill (translucent green)
+    ctx.fillStyle = 'rgba(100, 210, 90, 0.12)';
+    domePath();
+    ctx.fill();
+
+    // Glass highlight reflection arc near upper-left
+    ctx.save();
+    ctx.globalAlpha = t0 * 0.25;
+    ctx.strokeStyle = 'rgba(200, 255, 200, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, domeCY, domeR - 8, Math.PI * 1.25, Math.PI * 1.75);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // --- Tier 7: Deepened dome tint ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7 * 0.15;
+    ctx.fillStyle = 'rgba(40, 180, 60, 1)';
+    domePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // =============================================
+  //  LAYER 3: INTERIOR ELEMENTS (clipped to dome)
+  // =============================================
+
+  ctx.save();
+  domePath();
+  ctx.clip();
+
+  // --- Tier 0: Sprout ---
+  if (t0 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
+
+    const swayAngle = Math.sin(t * 1.5) * 0.06;
+    ctx.save();
+    ctx.translate(0, -10);
+    ctx.rotate(swayAngle);
+
+    // Stem
+    ctx.strokeStyle = '#3aad30';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -22);
+    ctx.stroke();
+
+    // Left leaf
+    ctx.fillStyle = '#4cc940';
+    ctx.beginPath();
+    ctx.ellipse(-6, -16, 7, 3.5, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Right leaf
+    ctx.fillStyle = '#55d048';
+    ctx.beginPath();
+    ctx.ellipse(6, -20, 7, 3.5, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+    ctx.restore();
+  }
+
+  // --- Tier 1: Watering system ---
+  if (t1 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t1;
+
+    const pipeY = -88;
+
+    // Water pipe (horizontal)
+    ctx.strokeStyle = '#7a8a9a';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-42, pipeY);
+    ctx.lineTo(42, pipeY);
+    ctx.stroke();
+
+    // Pipe highlight
+    ctx.strokeStyle = 'rgba(160, 180, 200, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-42, pipeY - 1.5);
+    ctx.lineTo(42, pipeY - 1.5);
+    ctx.stroke();
+
+    // Pipe end caps
+    ctx.fillStyle = '#6a7a8a';
+    ctx.fillRect(-44, pipeY - 4, 4, 8);
+    ctx.fillRect(40, pipeY - 4, 4, 8);
+
+    // Nozzles and animated water droplets
+    const nozzleXs = [-22, 0, 22];
+    for (let i = 0; i < nozzleXs.length; i++) {
+      const nx = nozzleXs[i];
+
+      // Nozzle body
+      ctx.fillStyle = '#5a6a7a';
+      ctx.fillRect(nx - 2, pipeY, 4, 5);
+      ctx.fillStyle = '#4a5a6a';
+      ctx.fillRect(nx - 3, pipeY + 4, 6, 2);
+
+      // Animated water droplets (2 per nozzle, staggered)
+      for (let d = 0; d < 2; d++) {
+        const dropSpeed = 45;
+        const dropRange = 55;
+        const phase = (i * 23.7 + d * 31.3);
+        const dropProgress = ((t * dropSpeed + phase) % dropRange) / dropRange;
+        const dropY = dropProgress * dropRange;
+        const dropAlpha = 1 - dropProgress * 0.6;
+
+        ctx.fillStyle = `rgba(100, 180, 255, ${dropAlpha * 0.7 * t1})`;
+        ctx.beginPath();
+        ctx.ellipse(nx + (d - 0.5) * 2, pipeY + 7 + dropY, 1.5 + (1 - dropProgress) * 0.5, 2.5 + dropProgress, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // --- Tier 2: Bush (grows from sprout) ---
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+
+    const bushClusters = [
+      { x: -15, y: -26, r: 13, speed: 1.2, amp: 0.025, c: '#2a7a22' },
+      { x: 15, y: -28, r: 12, speed: 1.4, amp: 0.02, c: '#328a2a' },
+      { x: -5, y: -34, r: 15, speed: 0.9, amp: 0.03, c: '#3a9a32' },
+      { x: 8, y: -36, r: 14, speed: 1.1, amp: 0.022, c: '#40a838' },
+      { x: -10, y: -42, r: 12, speed: 1.5, amp: 0.018, c: '#48b840' },
+      { x: 5, y: -44, r: 11, speed: 1.3, amp: 0.028, c: '#3aad30' },
+      { x: 0, y: -48, r: 10, speed: 1.0, amp: 0.025, c: '#50c848' },
+    ];
+
+    for (const cl of bushClusters) {
+      ctx.save();
+      ctx.translate(cl.x, cl.y);
+      ctx.rotate(Math.sin(t * cl.speed + cl.x * 0.1) * cl.amp);
+      ctx.fillStyle = cl.c;
+      ctx.beginPath();
+      ctx.arc(0, 0, cl.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // --- Tier 2: Control panel (on left wall) ---
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+
+    // Panel body
+    ctx.fillStyle = '#3a3a4a';
+    ctx.fillRect(-60, -48, 16, 22);
+    ctx.strokeStyle = '#5a5a6a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-60, -48, 16, 22);
+
+    // Screen area
+    ctx.fillStyle = '#1a2a2a';
+    ctx.fillRect(-58, -46, 12, 8);
+
+    // 3 indicator lights (pulsing in sequence)
+    const lightDefs = [
+      { color: [220, 50, 50], phase: 0 },
+      { color: [220, 200, 50], phase: 2.1 },
+      { color: [50, 220, 80], phase: 4.2 },
+    ];
+    for (let i = 0; i < lightDefs.length; i++) {
+      const ld = lightDefs[i];
+      const brightness = 0.4 + Math.sin(t * 2 + ld.phase) * 0.3;
+      const [r, g, b] = ld.color;
+
+      // Light glow
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${brightness * 0.2})`;
+      ctx.beginPath();
+      ctx.arc(-52, -34 + i * 6, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Light dot
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${brightness})`;
+      ctx.beginPath();
+      ctx.arc(-52, -34 + i * 6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // --- Tier 3: Heat shimmer rays (inside dome from lamp) ---
+  if (t3 > 0) {
+    ctx.save();
+    const lampGlow = 0.5 + Math.sin(t * 2) * 0.25;
+
+    // Orange shimmer (base tier 3)
+    ctx.globalAlpha = t3 * lampGlow * 0.12;
+    ctx.strokeStyle = '#ffcc66';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      const rx = -12 + i * 6;
+      const shimmer = Math.sin(t * 1.3 + i * 1.2) * 3;
+      ctx.beginPath();
+      ctx.moveTo(rx, -118);
+      ctx.lineTo(rx + shimmer, -55);
+      ctx.stroke();
+    }
+
+    // Green shimmer overlay (tier 7+)
+    if (t7 > 0) {
+      ctx.globalAlpha = t7 * lampGlow * 0.12;
+      ctx.strokeStyle = '#66ff88';
+      for (let i = 0; i < 5; i++) {
+        const rx = -12 + i * 6;
+        const shimmer = Math.sin(t * 1.3 + i * 1.2) * 3;
+        ctx.beginPath();
+        ctx.moveTo(rx, -118);
+        ctx.lineTo(rx + shimmer, -55);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // --- Tier 4: Alien Seed Pod (CORE THEME) ---
+  if (t4 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t4;
+
+    const breathe = 1 + Math.sin(t * 1.8) * 0.04;
+    const podCX = 0;
+    const podCY = -44;
+
+    // Bioluminescent glow behind pod
+    const glowInt = 0.25 + Math.sin(t * 1.8) * 0.12;
+    const podGlow = ctx.createRadialGradient(podCX, podCY, 3, podCX, podCY, 35);
+    podGlow.addColorStop(0, `rgba(80, 255, 160, ${glowInt})`);
+    podGlow.addColorStop(0.5, `rgba(40, 200, 100, ${glowInt * 0.4})`);
+    podGlow.addColorStop(1, 'rgba(30, 150, 80, 0)');
+    ctx.fillStyle = podGlow;
+    ctx.beginPath();
+    ctx.arc(podCX, podCY, 35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pod body (ovoid with gradient)
+    ctx.save();
+    ctx.translate(podCX, podCY);
+    ctx.scale(breathe, breathe);
+
+    const podGrad = ctx.createRadialGradient(-1, -2, 2, 0, 0, 13);
+    podGrad.addColorStop(0, '#b0ffc0');
+    podGrad.addColorStop(0.3, '#60d880');
+    podGrad.addColorStop(0.7, '#3aad55');
+    podGrad.addColorStop(1, '#257040');
+    ctx.fillStyle = podGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 11, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Surface veins
+    ctx.strokeStyle = 'rgba(20, 60, 30, 0.45)';
+    ctx.lineWidth = 0.7;
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const wobble = Math.sin(t * 0.4 + i * 1.1) * 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(
+        Math.cos(angle) * 7 + wobble,
+        Math.sin(angle) * 9,
+        Math.cos(angle) * 10,
+        Math.sin(angle) * 14
+      );
+      ctx.stroke();
+    }
+
+    // Inner bright spot (pulsing)
+    const spotAlpha = 0.4 + Math.sin(t * 1.8) * 0.3;
+    ctx.fillStyle = `rgba(200, 255, 220, ${spotAlpha})`;
+    ctx.beginPath();
+    ctx.arc(-1, -3, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // Emerald traces at dirt base edges
+    ctx.save();
+    ctx.globalAlpha = t4 * 0.35;
+    ctx.fillStyle = fillEmerald;
+    ctx.fillRect(-68, -10, 12, 3);
+    ctx.fillRect(56, -10, 12, 3);
+    ctx.fillRect(-38, -11, 8, 2.5);
+    ctx.fillRect(30, -11, 10, 2.5);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // --- Tier 5: Alien Vines ---
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5;
+
+    const vineDefs = [
+      { sx: -5, sy: -52, ex: -58, ey: -95, spd: 0.7, ph: 0, amp: 8, w: 3.5 },
+      { sx: 5, sy: -50, ex: 52, ey: -100, spd: 0.6, ph: 1.5, amp: 10, w: 3 },
+      { sx: -8, sy: -46, ex: -45, ey: -68, spd: 0.9, ph: 3.0, amp: 6, w: 2.5 },
+      { sx: 8, sy: -48, ex: 48, ey: -65, spd: 0.8, ph: 4.5, amp: 7, w: 2.5 },
+      { sx: 0, sy: -54, ex: -15, ey: -118, spd: 0.5, ph: 2.0, amp: 5, w: 3 },
+    ];
+
+    for (const v of vineDefs) {
+      // Build vine path with animated wobble
+      const points = [];
+      const segs = 10;
+      for (let s = 0; s <= segs; s++) {
+        const frac = s / segs;
+        const wobble = Math.sin(t * v.spd + v.ph + frac * 5) * v.amp * frac;
+        points.push({
+          x: v.sx + (v.ex - v.sx) * frac + wobble,
+          y: v.sy + (v.ey - v.sy) * frac,
+        });
+      }
+
+      // Draw vine body
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let s = 1; s < points.length; s++) {
+        const prev = points[s - 1];
+        const curr = points[s];
+        const cpx = (prev.x + curr.x) / 2;
+        const cpy = (prev.y + curr.y) / 2;
+        ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
+      }
+      ctx.strokeStyle = '#1e6428';
+      ctx.lineWidth = v.w;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Inner glow line
+      ctx.strokeStyle = 'rgba(60, 200, 90, 0.25)';
+      ctx.lineWidth = v.w * 0.5;
+      ctx.stroke();
+
+      // Bioluminescent nodes along vine
+      for (let n = 1; n <= 3; n++) {
+        const nIdx = Math.floor(n * segs / 4);
+        if (nIdx >= points.length) continue;
+        const np = points[nIdx];
+
+        const glowPhase = (t * 0.7 + v.ph + n * 2.3) % (Math.PI * 2);
+        const nodeGlow = Math.max(0, Math.sin(glowPhase)) * 0.6;
+
+        if (nodeGlow > 0.1) {
+          ctx.fillStyle = `rgba(80, 255, 140, ${nodeGlow * 0.3})`;
+          ctx.beginPath();
+          ctx.arc(np.x, np.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = `rgba(120, 255, 170, ${nodeGlow})`;
+          ctx.beginPath();
+          ctx.arc(np.x, np.y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // --- Tier 6: Floating Alien Spores ---
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+
+    const sporeDefs = [
+      { cx: 0, cy: -75, rx: 22, ry: 14, sx: 0.35, sy: 0.45, px: 0, py: 0, sz: 2.5 },
+      { cx: -25, cy: -85, rx: 14, ry: 18, sx: 0.28, sy: 0.4, px: 1, py: 0.6, sz: 2 },
+      { cx: 22, cy: -78, rx: 18, ry: 12, sx: 0.42, sy: 0.32, px: 2, py: 1.1, sz: 2.8 },
+      { cx: -38, cy: -68, rx: 10, ry: 16, sx: 0.32, sy: 0.5, px: 3, py: 1.7, sz: 1.8 },
+      { cx: 35, cy: -92, rx: 16, ry: 10, sx: 0.38, sy: 0.38, px: 4, py: 2.2, sz: 2.2 },
+      { cx: -12, cy: -105, rx: 8, ry: 14, sx: 0.48, sy: 0.28, px: 5, py: 2.8, sz: 1.5 },
+      { cx: 15, cy: -62, rx: 18, ry: 12, sx: 0.25, sy: 0.45, px: 0.5, py: 3.3, sz: 2 },
+      { cx: -30, cy: -90, rx: 12, ry: 15, sx: 0.36, sy: 0.42, px: 1.5, py: 0.9, sz: 2.3 },
+      { cx: 8, cy: -98, rx: 14, ry: 10, sx: 0.44, sy: 0.48, px: 2.5, py: 1.4, sz: 1.8 },
+      { cx: 42, cy: -72, rx: 8, ry: 18, sx: 0.3, sy: 0.36, px: 3.5, py: 2.0, sz: 1.6 },
+    ];
+
+    for (const sp of sporeDefs) {
+      const sx = sp.cx + Math.sin(t * sp.sx + sp.px) * sp.rx;
+      const sy = sp.cy + Math.cos(t * sp.sy + sp.py) * sp.ry;
+
+      // Spore halo
+      const sporeGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sp.sz * 3.5);
+      sporeGrad.addColorStop(0, 'rgba(100, 255, 160, 0.35)');
+      sporeGrad.addColorStop(0.6, 'rgba(60, 200, 120, 0.1)');
+      sporeGrad.addColorStop(1, 'rgba(40, 150, 80, 0)');
+      ctx.fillStyle = sporeGrad;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sp.sz * 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core dot
+      ctx.fillStyle = 'rgba(140, 255, 180, 0.75)';
+      ctx.beginPath();
+      ctx.arc(sx, sy, sp.sz, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // --- Tier 8: Evolved Alien Core + Energy Tendrils ---
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+
+    const coreBreathe = 1 + Math.sin(t * 2.5) * 0.06;
+    const coreCX = 0;
+    const coreCY = -50;
+
+    // Large emerald aura
+    const auraR = 48 + Math.sin(t * 2.5) * 8;
+    const auraA = 0.22 + Math.sin(t * 2.5) * 0.1;
+    const auraGrad = ctx.createRadialGradient(coreCX, coreCY, 4, coreCX, coreCY, auraR);
+    auraGrad.addColorStop(0, `rgba(140, 255, 180, ${auraA})`);
+    auraGrad.addColorStop(0.4, `rgba(60, 200, 100, ${auraA * 0.4})`);
+    auraGrad.addColorStop(1, 'rgba(30, 150, 60, 0)');
+    ctx.fillStyle = auraGrad;
+    ctx.beginPath();
+    ctx.arc(coreCX, coreCY, auraR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Evolved pod body with emerald texture
+    ctx.save();
+    ctx.translate(coreCX, coreCY);
+    ctx.scale(coreBreathe, coreBreathe);
+
+    ctx.fillStyle = fillEmerald;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 16, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dark outline
+    ctx.strokeStyle = 'rgba(15, 50, 25, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Crystalline facet lines on body
+    ctx.strokeStyle = 'rgba(200, 255, 220, 0.3)';
+    ctx.lineWidth = 0.7;
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI + Math.PI * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * 4, Math.sin(angle) * 5);
+      ctx.lineTo(Math.cos(angle) * 15, Math.sin(angle) * 19);
+      ctx.stroke();
+    }
+
+    // Inner white-green hot core
+    const coreFlash = 0.55 + Math.sin(t * 2.5) * 0.4;
+    const innerGrad = ctx.createRadialGradient(0, -2, 1, 0, -2, 9);
+    innerGrad.addColorStop(0, `rgba(240, 255, 245, ${coreFlash})`);
+    innerGrad.addColorStop(0.4, `rgba(120, 255, 160, ${coreFlash * 0.5})`);
+    innerGrad.addColorStop(1, 'rgba(60, 200, 100, 0)');
+    ctx.fillStyle = innerGrad;
+    ctx.beginPath();
+    ctx.arc(0, -2, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // Energy tendrils from core to dome edges
+    const tendrilEnds = [
+      { x: -58, y: -92 },
+      { x: 54, y: -98 },
+      { x: -25, y: -122 },
+      { x: 35, y: -116 },
+    ];
+
+    for (let i = 0; i < tendrilEnds.length; i++) {
+      const end = tendrilEnds[i];
+      const midX = (coreCX + end.x) / 2 + Math.sin(t * 1.1 + i * 1.6) * 14;
+      const midY = (coreCY + end.y) / 2 + Math.cos(t * 0.8 + i * 2.1) * 8;
+
+      // Tendril glow
+      ctx.strokeStyle = 'rgba(160, 255, 200, 0.15)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(coreCX, coreCY);
+      ctx.quadraticCurveTo(midX, midY, end.x, end.y);
+      ctx.stroke();
+
+      // Tendril line
+      ctx.strokeStyle = 'rgba(80, 255, 140, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Traveling bright point along quadratic bezier
+      const pointFrac = ((t * 0.4 + i * 0.6) % 1);
+      const omt = 1 - pointFrac;
+      const bx = omt * omt * coreCX + 2 * omt * pointFrac * midX + pointFrac * pointFrac * end.x;
+      const by = omt * omt * coreCY + 2 * omt * pointFrac * midY + pointFrac * pointFrac * end.y;
+
+      ctx.fillStyle = 'rgba(120, 255, 180, 0.25)';
+      ctx.beginPath();
+      ctx.arc(bx, by, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(200, 255, 220, 0.8)';
+      ctx.beginPath();
+      ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  ctx.restore(); // end interior clip
+
+  // =============================================
+  //  LAYER 4: DOME STRUCTURE (frame, outline)
+  // =============================================
+
+  // --- Tier 0: Dome outline ---
+  if (t0 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
+    ctx.strokeStyle = 'rgba(130, 210, 120, 0.5)';
+    ctx.lineWidth = 2;
+    domePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // --- Tier 3: Steel frame structure ---
+  if (t3 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+    ctx.strokeStyle = '#8a8e94';
+    ctx.lineCap = 'round';
+
+    // Vertical posts
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-68, 0);
+    ctx.lineTo(-68, domeCY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(68, 0);
+    ctx.lineTo(68, domeCY);
+    ctx.stroke();
+
+    // Horizontal cross bar
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-68, -32);
+    ctx.lineTo(68, -32);
+    ctx.stroke();
+
+    // Dome hoop arc
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, domeCY, domeR - 1, Math.PI, 0);
+    ctx.stroke();
+
+    // Diagonal ribs converging at apex
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(-68, domeCY);
+    ctx.quadraticCurveTo(-25, -120, 0, domeCY - domeR + 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(68, domeCY);
+    ctx.quadraticCurveTo(25, -120, 0, domeCY - domeR + 2);
+    ctx.stroke();
+
+    // Post metallic sheen highlights
+    ctx.strokeStyle = 'rgba(180, 195, 210, 0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-67, 0);
+    ctx.lineTo(-67, domeCY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(69, 0);
+    ctx.lineTo(69, domeCY);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // --- Tier 7: Crystallized frame (emerald pattern over steel) ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    ctx.strokeStyle = fillEmerald;
+    ctx.lineCap = 'round';
+
+    // Crystallized posts
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-68, 0);
+    ctx.lineTo(-68, domeCY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(68, 0);
+    ctx.lineTo(68, domeCY);
+    ctx.stroke();
+
+    // Crystallized cross bar
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-68, -32);
+    ctx.lineTo(68, -32);
+    ctx.stroke();
+
+    // Crystallized dome hoop
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, domeCY, domeR - 1, Math.PI, 0);
+    ctx.stroke();
+
+    // Crystallized diagonal ribs
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(-68, domeCY);
+    ctx.quadraticCurveTo(-25, -120, 0, domeCY - domeR + 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(68, domeCY);
+    ctx.quadraticCurveTo(25, -120, 0, domeCY - domeR + 2);
+    ctx.stroke();
+
+    // Crystal edge glow on dome hoop
+    ctx.strokeStyle = 'rgba(100, 255, 140, 0.15)';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(0, domeCY, domeR - 1, Math.PI, 0);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // =============================================
+  //  LAYER 5: EXTERNAL EFFECTS (lamp, sparkles)
+  // =============================================
+
+  // --- Tier 3: Heat lamp (grey, orange glow) ---
+  if (t3 > 0 && t7 <= 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+
+    // Lamp body
+    ctx.fillStyle = '#6a6a7a';
+    ctx.beginPath();
+    ctx.moveTo(-9, domeCY - domeR + 4);
+    ctx.lineTo(9, domeCY - domeR + 4);
+    ctx.lineTo(6, domeCY - domeR + 12);
+    ctx.lineTo(-6, domeCY - domeR + 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#8a8a9a';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Warm orange glow
+    const lampPulse = 0.5 + Math.sin(t * 2) * 0.25;
+    const warmGrad = ctx.createRadialGradient(0, domeCY - domeR + 8, 2, 0, domeCY - domeR + 8, 28);
+    warmGrad.addColorStop(0, `rgba(255, 200, 80, ${lampPulse * 0.5})`);
+    warmGrad.addColorStop(0.4, `rgba(255, 160, 40, ${lampPulse * 0.25})`);
+    warmGrad.addColorStop(1, 'rgba(255, 140, 20, 0)');
+    ctx.fillStyle = warmGrad;
+    ctx.beginPath();
+    ctx.arc(0, domeCY - domeR + 8, 28, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // --- Tier 7: Crystallized heat lamp (emerald, green glow) ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+
+    // Emerald lamp body
+    ctx.fillStyle = fillEmerald;
+    ctx.beginPath();
+    ctx.moveTo(-9, domeCY - domeR + 4);
+    ctx.lineTo(9, domeCY - domeR + 4);
+    ctx.lineTo(6, domeCY - domeR + 12);
+    ctx.lineTo(-6, domeCY - domeR + 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(30, 80, 40, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Green glow
+    const greenPulse = 0.5 + Math.sin(t * 2) * 0.25;
+    const greenGrad = ctx.createRadialGradient(0, domeCY - domeR + 8, 2, 0, domeCY - domeR + 8, 28);
+    greenGrad.addColorStop(0, `rgba(80, 255, 120, ${greenPulse * 0.5})`);
+    greenGrad.addColorStop(0.4, `rgba(40, 200, 80, ${greenPulse * 0.25})`);
+    greenGrad.addColorStop(1, 'rgba(30, 150, 60, 0)');
+    ctx.fillStyle = greenGrad;
+    ctx.beginPath();
+    ctx.arc(0, domeCY - domeR + 8, 28, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // --- Tier 3 (still visible): Heat lamp when T7+ is active ---
+  // Grey lamp body drawn UNDER the crystallized version during T3-T6
+  // Already handled by the t7 <= 0 check above. At T7+ the crystallized version replaces it.
+
+  // --- Tier 7: Emerald sparkles on crystallized surfaces ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+
+    const sparkles = [
+      { x: -66, y: -20 }, { x: 66, y: -25 },
+      { x: -50, y: -85 }, { x: 45, y: -90 },
+      { x: -20, y: -115 }, { x: 18, y: -112 },
+      { x: 0, y: -125 }, { x: -35, y: -32 },
+      { x: 40, y: -32 }, { x: -60, y: -50 },
+    ];
+
+    for (let i = 0; i < sparkles.length; i++) {
+      const sp = sparkles[i];
+      const twinkle = Math.sin(t * 3.5 + i * 1.9) * 0.5 + 0.5;
+
+      if (twinkle > 0.65) {
+        const alpha = (twinkle - 0.65) * 2.85;
+
+        // Sparkle glow
+        ctx.fillStyle = `rgba(180, 255, 200, ${alpha * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sparkle core
+        ctx.fillStyle = `rgba(230, 255, 240, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cross flare
+        ctx.strokeStyle = `rgba(220, 255, 235, ${alpha * 0.5})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(sp.x - 4, sp.y);
+        ctx.lineTo(sp.x + 4, sp.y);
+        ctx.moveTo(sp.x, sp.y - 4);
+        ctx.lineTo(sp.x, sp.y + 4);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  ctx.restore(); // main save
 }
+
 
 function drawRadiator(ctx, t, tier) {
   ctx.fillStyle = "#444";
