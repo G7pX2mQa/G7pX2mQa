@@ -4532,7 +4532,7 @@ function buildBuildingsDebug(container) {
     }
 
     BUILDING_IDS.forEach((id) => {
-        const title = BUILDING_NAMES[id] || id;
+        const title = (BUILDING_NAMES[id] || id) + ' Level';
         const levelKey = `ccc:buildingLevel:${id}:${slot}`;
         
         let currentLevel = getBuildingLevel(id);
