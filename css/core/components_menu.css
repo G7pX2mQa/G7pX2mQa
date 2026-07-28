@@ -303,6 +303,16 @@
   -webkit-backdrop-filter: saturate(1.05) blur(6px); /* iOS */
 }
 
+@supports not ( (-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px)) ) {
+  .menu-panel {
+    background: linear-gradient(
+      180deg,
+      rgba(14, 22, 34, 0.98),
+      rgba(10, 16, 26, 0.95)
+    );
+  }
+}
+
 /* (removed override to use new blue style) */
 
 /* iPad/tablet landscape: fixes some issue with some thing */
