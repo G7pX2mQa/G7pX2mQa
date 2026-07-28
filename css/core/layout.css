@@ -13,17 +13,26 @@
   z-index: 0;
   pointer-events: none;
 
+  /* Inline SVG coin ring pattern */
+  --coin-svg: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'>\
+  <g fill='none' stroke='%23ffffff' stroke-width='2'>\
+    <circle cx='32' cy='32' r='18'/>\
+    <circle cx='32' cy='32' r='14'/>\
+  </g>\
+</svg>");
+
+  background-image: var(--coin-svg);
   background-repeat: repeat;
   background-size: var(--coin-pattern-size) var(--coin-pattern-size);
-  opacity: var(--coin-opacity, 0.4);
-  filter: grayscale(100%) brightness(60%) opacity(var(--coin-opacity, 0.4));
-  -webkit-filter: grayscale(100%) brightness(60%) opacity(var(--coin-opacity, 0.4));
-  animation: coinDrift var(--coin-speed, 15s) linear infinite;
+  opacity: var(--coin-pattern-opacity);
+  filter: grayscale(100%) brightness(60%) opacity(var(--coin-pattern-opacity));
+  animation: coinDrift var(--coin-pattern-speed) linear infinite;
 }
 
 .no-canvas-filters .menu-bg::before {
-  filter: grayscale(100%) brightness(12.5%) opacity(var(--coin-opacity, 0.4));
-  -webkit-filter: grayscale(100%) brightness(12.5%) opacity(var(--coin-opacity, 0.4));
+  filter: grayscale(100%) brightness(12.5%) opacity(0.5);
+  -webkit-filter: grayscale(100%) brightness(12.5%) opacity(0.5);
 }
 
 @keyframes coinDrift {
@@ -97,7 +106,7 @@
 
 /* ===== Mobile / short screens ===== */
 @media (max-width: 900px), (max-height: 600px) {
-  html:has(body.menu-bg), body.menu-bg {
+  html, body {
     height: auto;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
@@ -117,15 +126,3 @@
 .menu-root,
 .menu-header,
 .menu-panel { position: relative; z-index: 1; }
-/* Overlay Transition Setting */
-body.no-overlay-transitions {
-  --shop-anim: 0s !important;
-  --sas-anim: 0s !important;
-  --merchant-anim: 0s !important;
-}
-body.no-overlay-transitions .shop-sheet,
-body.no-overlay-transitions .sas-sheet,
-body.no-overlay-transitions .merchant-sheet,
-body.no-overlay-transitions .upg-sheet {
-  transition: none !important;
-}
