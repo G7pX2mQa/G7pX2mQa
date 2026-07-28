@@ -87,6 +87,7 @@
         padding: 8px;
         margin: 6px;
         border-radius: 8px;
+        z-index: 2147483645;
     }
 
     .debug-panel-header {
