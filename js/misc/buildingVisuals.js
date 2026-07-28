@@ -7849,100 +7849,71 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   const t0 = getProg(0), t1 = getProg(1), t2 = getProg(2), t3 = getProg(3);
   const t4 = getProg(4), t5 = getProg(5), t6 = getProg(6), t7 = getProg(7), t8 = getProg(8);
 
-  // Core geometry constants (Elliptical dome to be much wider without adding height)
-  const bw = 560;       // planter width (+20% from 460)
+  // Core geometry constants (Pure ellipse dome!)
+  const bw = 560;       // planter width
   const hw = bw / 2;    // planter half-width (280)
-  const wallH = 40;     // glass wall height
-  const domeH = 230;    // dome vertical radius (keeps height down)
-  const domeCY = -wallH; // dome arc center Y (-40)
-  // Dome apex: (0, -270)
+  const domeH = 265;    // vertical radius
+  const domeCY = -3;    // center Y (so the dome springs perfectly from the floor)
 
-  // Helper: dome envelope path
+  // Helper: dome envelope path (Pure continuous curve, no straight walls)
   const domePath = () => {
     ctx.beginPath();
-    ctx.moveTo(-hw, 0);
-    ctx.lineTo(-hw, domeCY);
-    // Use ellipse for wide low-profile dome
+    ctx.moveTo(-hw, -3); 
     if (ctx.ellipse) {
       ctx.ellipse(0, domeCY, hw, domeH, 0, Math.PI, 0);
     } else {
-      // Fallback for older canvas implementations just in case
       ctx.save();
       ctx.translate(0, domeCY);
       ctx.scale(1, domeH / hw);
       ctx.arc(0, 0, hw, Math.PI, 0);
       ctx.restore();
     }
-    ctx.lineTo(hw, 0);
-    ctx.closePath();
+    ctx.closePath(); // Completes the continuous emerald loop across the bottom
   };
 
   ctx.save();
 
   // =============================================
-  //  LAYER 1: FOUNDATION (dirt bed, planter rim)
+  //  LAYER 1: FOUNDATION (planter box & dirt)
   // =============================================
 
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
 
-    // Dirt fill with gradient
-    const dirtGrad = ctx.createLinearGradient(0, -15, 0, 0);
+    // 1. Dirt fill (drawn first so the rim covers its lower edge)
+    const dirtGrad = ctx.createLinearGradient(0, -28, 0, -16);
     dirtGrad.addColorStop(0, '#6b4226');
-    dirtGrad.addColorStop(0.6, '#5a3520');
     dirtGrad.addColorStop(1, '#4a2e14');
     ctx.fillStyle = dirtGrad;
-    ctx.fillRect(-hw, -15, bw, 15);
+    ctx.fillRect(-hw + 6, -28, bw - 12, 12); 
 
-    // Dirt texture
+    // Dirt texture dots
     ctx.fillStyle = 'rgba(30, 15, 5, 0.3)';
     const dirtDots = [
-      [-250, -10], [-210, -6], [-170, -12], [-130, -5], [-90, -11],
-      [-50, -6], [-10, -9], [30, -10], [70, -4], [110, -8],
-      [150, -12], [190, -5], [230, -13], [260, -8], [-230, -4],
-      [-190, -7], [-150, -12], [-110, -9], [-70, -5], [-30, -11],
-      [10, -7], [50, -13], [90, -5], [130, -9], [170, -11], [210, -6], [250, -10]
+      [-250, -26], [-210, -24], [-170, -27], [-130, -23], [-90, -26],
+      [-50, -25], [-10, -27], [30, -24], [70, -26], [110, -23],
+      [150, -27], [190, -24], [230, -26], [260, -25], [-230, -23],
+      [-190, -27], [-150, -25], [-110, -26], [-70, -24], [-30, -27],
+      [10, -23], [50, -26], [90, -25], [130, -27], [170, -24], [210, -26], [250, -25]
     ];
     for (const [dx, dy] of dirtDots) {
       ctx.fillRect(dx, dy, 3, 2.5);
     }
 
-    // Planter rim
-    ctx.fillStyle = '#9B7530';
-    ctx.fillRect(-hw - 8, -18, bw + 16, 6);
-    ctx.fillStyle = '#8B6520';
-    ctx.fillRect(-hw - 8, -18, bw + 16, 2.5);
-
-    ctx.restore();
-  }
-
-  // --- Tier 8: Emerald mosaic floor ---
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-
-    ctx.fillStyle = fillEmerald;
-    ctx.fillRect(-hw, -15, bw, 15);
-
-    ctx.strokeStyle = 'rgba(30, 80, 40, 0.4)';
+    // 2. Planter Base Box (Wooden look, safely above the floor, inside the emerald frame)
+    ctx.fillStyle = '#653b1b'; // warm dark wood
+    ctx.fillRect(-hw + 3, -16, bw - 6, 10); 
+    ctx.strokeStyle = '#4a2a11'; 
     ctx.lineWidth = 1.5;
-    for (let i = -hw + 15; i < hw; i += 30) {
-      ctx.beginPath();
-      ctx.moveTo(i, -15);
-      ctx.lineTo(i + 8, 0);
-      ctx.stroke();
-    }
     ctx.beginPath();
-    ctx.moveTo(-hw, -7.5);
-    ctx.lineTo(hw, -7.5);
-    ctx.stroke();
+    ctx.moveTo(-hw + 3, -11);
+    ctx.lineTo(hw - 3, -11);
+    ctx.stroke(); 
 
-    ctx.fillStyle = fillEmerald;
-    ctx.fillRect(-hw - 8, -18, bw + 16, 6);
-    ctx.strokeStyle = 'rgba(20, 60, 30, 0.5)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(-hw - 8, -18, bw + 16, 6);
+    // 3. Planter Rim
+    ctx.fillStyle = '#8b5025'; // lighter warm wood
+    ctx.fillRect(-hw + 3, -22, bw - 6, 6); 
 
     ctx.restore();
   }
@@ -7990,7 +7961,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
   ctx.save();
   domePath();
-  ctx.clip();
+  ctx.clip(); 
 
   // --- Tier 0: Greenery Sprout + Ferns ---
   if (t0 > 0) {
@@ -8001,7 +7972,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     
     // Main center sprout
     ctx.save();
-    ctx.translate(0, -15);
+    ctx.translate(0, -22); // Anchored in the dirt at y=-22
     ctx.rotate(swayAngle);
     ctx.strokeStyle = '#3aad30';
     ctx.lineWidth = 3.5;
@@ -8021,7 +7992,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     // Left Ferns
     ctx.save();
-    ctx.translate(-110, -15);
+    ctx.translate(-110, -22);
     ctx.rotate(swayAngle * 1.2);
     ctx.strokeStyle = '#2d8a24';
     ctx.lineWidth = 2;
@@ -8031,7 +8002,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     // Right Ferns
     ctx.save();
-    ctx.translate(110, -15);
+    ctx.translate(110, -22);
     ctx.rotate(-swayAngle * 0.8);
     ctx.strokeStyle = '#2d8a24';
     ctx.lineWidth = 2.5;
@@ -8097,21 +8068,19 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t2;
 
     const bushClusters = [
-      // Central green bush
-      { x: -65, y: -38, r: 28, speed: 1.2, amp: 0.025, c: '#2a7a22' },
-      { x: 65, y: -42, r: 26, speed: 1.4, amp: 0.02, c: '#328a2a' },
-      { x: -25, y: -55, r: 34, speed: 0.9, amp: 0.03, c: '#3a9a32' },
-      { x: 35, y: -62, r: 30, speed: 1.1, amp: 0.022, c: '#40a838' },
-      { x: -55, y: -72, r: 25, speed: 1.5, amp: 0.018, c: '#48b840' },
-      { x: 28, y: -78, r: 24, speed: 1.3, amp: 0.028, c: '#3aad30' },
-      { x: 0, y: -85, r: 22, speed: 1.0, amp: 0.025, c: '#50c848' },
-      // Extra foliage spread wider
-      { x: -110, y: -35, r: 20, speed: 1.6, amp: 0.03, c: '#1e6428' },
-      { x: -150, y: -25, r: 16, speed: 1.1, amp: 0.04, c: '#267f33' },
-      { x: -180, y: -20, r: 14, speed: 1.3, amp: 0.03, c: '#2a7a22' },
-      { x: 115, y: -38, r: 22, speed: 1.4, amp: 0.03, c: '#21752b' },
-      { x: 160, y: -22, r: 18, speed: 1.7, amp: 0.035, c: '#288b35' },
-      { x: 195, y: -18, r: 15, speed: 1.2, amp: 0.025, c: '#1e6428' },
+      { x: -65, y: -45, r: 28, speed: 1.2, amp: 0.025, c: '#2a7a22' },
+      { x: 65, y: -49, r: 26, speed: 1.4, amp: 0.02, c: '#328a2a' },
+      { x: -25, y: -62, r: 34, speed: 0.9, amp: 0.03, c: '#3a9a32' },
+      { x: 35, y: -69, r: 30, speed: 1.1, amp: 0.022, c: '#40a838' },
+      { x: -55, y: -79, r: 25, speed: 1.5, amp: 0.018, c: '#48b840' },
+      { x: 28, y: -85, r: 24, speed: 1.3, amp: 0.028, c: '#3aad30' },
+      { x: 0, y: -92, r: 22, speed: 1.0, amp: 0.025, c: '#50c848' },
+      { x: -110, y: -42, r: 20, speed: 1.6, amp: 0.03, c: '#1e6428' },
+      { x: -150, y: -32, r: 16, speed: 1.1, amp: 0.04, c: '#267f33' },
+      { x: -180, y: -27, r: 14, speed: 1.3, amp: 0.03, c: '#2a7a22' },
+      { x: 115, y: -45, r: 22, speed: 1.4, amp: 0.03, c: '#21752b' },
+      { x: 160, y: -29, r: 18, speed: 1.7, amp: 0.035, c: '#288b35' },
+      { x: 195, y: -25, r: 15, speed: 1.2, amp: 0.025, c: '#1e6428' },
     ];
 
     for (const cl of bushClusters) {
@@ -8128,14 +8097,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Broad leaves (tropical look)
     ctx.fillStyle = '#1c5e20';
     ctx.save();
-    ctx.translate(-230, -15);
+    ctx.translate(-230, -22);
     ctx.rotate(-0.3 + Math.sin(t*0.8)*0.05);
     ctx.beginPath(); ctx.ellipse(-10, -20, 30, 10, -0.6, 0, Math.PI*2); ctx.fill();
     ctx.restore();
 
     ctx.fillStyle = '#216c26';
     ctx.save();
-    ctx.translate(240, -15);
+    ctx.translate(240, -22);
     ctx.rotate(0.2 + Math.sin(t*0.9)*0.05);
     ctx.beginPath(); ctx.ellipse(15, -25, 34, 12, 0.4, 0, Math.PI*2); ctx.fill();
     ctx.restore();
@@ -8204,7 +8173,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.04;
     const podCX = 0;
-    const podCY = -70; // Sitting in the bush
+    const podCY = -77; // Sitting nicely in the shifted bush
 
     // Bioluminescent glow behind pod (Magenta/Violet)
     const glowInt = 0.35 + Math.sin(t * 1.8) * 0.15;
@@ -8394,6 +8363,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.translate(coreCX, coreCY);
     ctx.scale(coreBreathe, coreBreathe);
 
+    // This is flora, so it can be emerald patterned to look cool
     ctx.fillStyle = fillEmerald;
     ctx.beginPath();
     ctx.ellipse(0, 0, 36, 46, 0, 0, Math.PI * 2);
@@ -8430,8 +8400,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       { x: 230, y: -170 },  // right high
       { x: -160, y: -100 }, // left mid
       { x: 150, y: -110 },  // right mid
-      { x: -40, y: -85 },   // down near pod
-      { x: 45, y: -75 },    // down near pod
+      { x: -40, y: -92 },   // down near pod
+      { x: 45, y: -82 },    // down near pod
     ];
 
     for (let i = 0; i < tendrilEnds.length; i++) {
@@ -8471,20 +8441,18 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   ctx.restore(); // end interior clip
 
   // =============================================
-  //  LAYER 4: DOME STRUCTURE
+  //  LAYER 4: DOME STRUCTURE (The Emerald U-Shape)
   // =============================================
 
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
     // Pure emerald structural framing for the dome
+    // This perfectly loops around the entire planter box, sitting exactly on y=0
     ctx.strokeStyle = fillEmerald;
     ctx.lineWidth = 6;
     domePath();
     ctx.stroke();
-    // Bottom support bar (thick line across the base)
-    ctx.fillStyle = fillEmerald;
-    ctx.fillRect(-hw, 0, bw, 8);
     ctx.restore();
   }
 
