@@ -7873,6 +7873,83 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
   ctx.save();
 
+  // Helper function to draw extremely detailed leaves with veins
+  const drawDetailedLeaf = (lx, ly, rot, length, width, colorA, colorB, veinColor) => {
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(rot);
+      
+      // Leaf body left half
+      ctx.fillStyle = colorA;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(-width, -length/2, 0, -length);
+      ctx.lineTo(0, 0);
+      ctx.fill();
+      
+      // Leaf body right half
+      ctx.fillStyle = colorB;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(width, -length/2, 0, -length);
+      ctx.lineTo(0, 0);
+      ctx.fill();
+
+      // Clip veins so they don't stick out of the leaf
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(-width, -length/2, 0, -length);
+      ctx.quadraticCurveTo(width, -length/2, 0, 0);
+      ctx.clip();
+
+      // Main Center Stem/Vein
+      ctx.strokeStyle = veinColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 2);
+      ctx.lineTo(0, -length + 2);
+      ctx.stroke();
+
+      // Side branching veins
+      ctx.lineWidth = 0.8;
+      for (let v=0.2; v<0.8; v+=0.15) {
+          let vy = -length * v;
+          ctx.beginPath(); ctx.moveTo(0, vy); ctx.quadraticCurveTo(-width*0.5, vy-2, -width*0.8, vy - length*0.1); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, vy); ctx.quadraticCurveTo(width*0.5, vy-2, width*0.8, vy - length*0.1); ctx.stroke();
+      }
+      ctx.restore();
+  };
+
+  // --- Tier 0: Realistic Sprout (Drawn before ground to hide base naturally) ---
+  if (t0 > 0 && t4 <= 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
+    const swayAngle = Math.sin(t * 1.5) * 0.08;
+    
+    // Main center sprout
+    ctx.save();
+    // Translate slightly below ground level (-28) so the stem gets buried naturally
+    ctx.translate(0, -20); 
+    ctx.rotate(swayAngle);
+    
+    // Organic Stem
+    ctx.strokeStyle = '#3aad30';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(3, -15, 0, -35); // smooth gentle curve
+    ctx.stroke();
+    
+    // Left leaf (attached directly to the stem)
+    drawDetailedLeaf(2, -22, -0.9, 22, 10, '#55d048', '#3aad30', '#2d8a24');
+    // Right leaf (attached directly to the stem)
+    drawDetailedLeaf(1.5, -24, 0.8, 20, 9, '#55d048', '#3aad30', '#2d8a24');
+
+    ctx.restore();
+    ctx.restore();
+  }
+
   // =============================================
   // LAYER 1: FOUNDATION (planter box & dirt)
   // =============================================
@@ -7880,59 +7957,37 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t0;
 
-    // Rich procedural-style dirt layer
-    // Base dark soil
+    // Stylized flat dirt bed extending all the way down
     ctx.fillStyle = '#4a2e18';
-    ctx.fillRect(-hw + 6, -28, bw - 12, 12); 
+    ctx.fillRect(-hw, -28, bw, 25);
     
-    // Add multiple layers of uneven soil divots and bumps using arcs/curves
+    // Slight dark top edge for simple stylized depth
+    ctx.fillStyle = '#3a2110';
+    ctx.fillRect(-hw, -28, bw, 4);
+    
+    // Very simple, subtle pebble texture (not overly detailed)
     ctx.save();
     ctx.beginPath();
-    ctx.rect(-hw + 6, -28, bw - 12, 12);
+    ctx.rect(-hw, -28, bw, 25);
     ctx.clip();
-    
-    // Darker soil patches
-    for(let i=0; i<30; i++) {
-        let sx = -hw + 10 + (i * 19.3) % (bw-20);
-        let sy = -28 + (i * 7.7) % 12;
-        let sr = 3 + (i * 3.1) % 5;
-        ctx.fillStyle = '#3a2110';
+    for (let i = 0; i < 10; i++) {
+        // Left side specks
+        let lx = -hw + 20 + (i * 37.3) % (hw - 40);
+        let ly = -21 + (i * 11.7) % 15;
+        ctx.fillStyle = (i % 2 === 0) ? '#3a2110' : '#5c3a1f';
         ctx.beginPath();
-        ctx.arc(sx, sy, sr, 0, Math.PI*2);
+        ctx.arc(lx, ly, 2 + (i%2), 0, Math.PI);
         ctx.fill();
-    }
-    // Lighter soil highlights
-    for(let i=0; i<25; i++) {
-        let sx = -hw + 15 + (i * 23.3) % (bw-30);
-        let sy = -27 + (i * 11.7) % 10;
-        let sr = 2 + (i * 2.1) % 4;
-        ctx.fillStyle = '#5c3a1f';
+        
+        // Right side specks (mirrored count, distinct positions)
+        let rx = 20 + (i * 29.3) % (hw - 40);
+        let ry = -21 + (i * 13.1) % 15;
+        ctx.fillStyle = (i % 2 === 1) ? '#3a2110' : '#5c3a1f';
         ctx.beginPath();
-        ctx.arc(sx, sy, sr, 0, Math.PI*2);
+        ctx.arc(rx, ry, 2 + ((i+1)%2), 0, Math.PI);
         ctx.fill();
-    }
-    // Tiny pebbles
-    for(let i=0; i<40; i++) {
-        let px = -hw + 12 + (i * 31.7) % (bw-24);
-        let py = -27 + (i * 13.9) % 10;
-        ctx.fillStyle = (i % 3 === 0) ? '#8a8a8a' : (i % 2 === 0 ? '#6a6a6a' : '#7a7065');
-        ctx.fillRect(px, py, 2 + (i%2), 1 + (i%3));
     }
     ctx.restore();
-
-    // Planter Base Box
-    ctx.fillStyle = '#653b1b'; 
-    ctx.fillRect(-hw + 3, -16, bw - 6, 10); 
-    ctx.strokeStyle = '#4a2a11'; 
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(-hw + 3, -11);
-    ctx.lineTo(hw - 3, -11);
-    ctx.stroke(); 
-
-    // Planter Rim
-    ctx.fillStyle = '#8b5025'; 
-    ctx.fillRect(-hw + 3, -22, bw - 6, 6); 
 
     ctx.restore();
   }
@@ -7944,26 +7999,11 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t0;
     
-    // Base dome tint is now green (Moved from T7 to T0 as requested)
+    // Base dome tint is now perfectly plain green
     ctx.fillStyle = 'rgba(40, 180, 60, 0.12)'; 
     domePath();
     ctx.fill();
 
-    // Dome reflection line
-    ctx.save();
-    ctx.globalAlpha = t0 * 0.25;
-    ctx.strokeStyle = 'rgba(200, 255, 200, 0.6)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    if (ctx.ellipse) {
-      ctx.ellipse(0, domeCY, hw - 16, domeH - 16, 0, Math.PI * 1.25, Math.PI * 1.75);
-    } else {
-      ctx.translate(0, domeCY);
-      ctx.scale(1, (domeH - 16) / (hw - 16));
-      ctx.arc(0, 0, hw - 16, Math.PI * 1.25, Math.PI * 1.75);
-    }
-    ctx.stroke();
-    ctx.restore();
     ctx.restore();
   }
 
@@ -7979,35 +8019,34 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t3;
     
-    // Origin of rays is top center of the dome
-    const rayOriginX = 0;
-    const rayOriginY = domeCY - domeH - 10;
-
-    const numRays = 8;
+    const numRays = 14;
     for (let i = 0; i < numRays; i++) {
-        // Offset each ray's angle slightly with sine waves over time
-        const raySway = Math.sin(t * 0.4 + i * 2.1) * 30;
-        const targetX = -hw + (hw * 2 / numRays) * (i + 0.5) + raySway;
-        const rayWidth = 45 + Math.sin(t * 0.7 + i * 1.3) * 20;
+        // Distribute origins across the ceiling curve
+        const theta = Math.PI * 0.15 + (Math.PI * 0.7) * (i / (numRays - 1)); 
+        const rayOriginX = hw * Math.cos(theta);
+        const rayOriginY = domeCY - domeH * Math.sin(theta);
+
+        const pseudoRand = Math.sin(i * 123.45);
+        const angleSway = Math.sin(t * 0.5 + i * 1.7) * 40;
+        const targetX = rayOriginX + pseudoRand * 200 + angleSway;
+        const rayWidth = 35 + Math.sin(t * 0.8 + i * 1.2) * 15;
         
-        // Dynamic opacity based on time and index
-        const rayAlpha = 0.15 + Math.sin(t * 1.2 + i * 1.8) * 0.08;
+        const rayAlpha = 0.12 + Math.sin(t * 1.1 + i * 2.3) * 0.06;
         
-        // Change ray color slightly if tier 8 is active for more magical feel
         const isMagic = t8 > 0;
         const rTop = isMagic ? '255, 200, 255' : '255, 240, 180';
         const rMid = isMagic ? '220, 150, 255' : '255, 220, 120';
         const rBot = isMagic ? '180, 100, 255' : '255, 200, 100';
 
         const rayGrad = ctx.createLinearGradient(rayOriginX, rayOriginY, targetX, domeCY);
-        rayGrad.addColorStop(0, `rgba(${rTop}, ${rayAlpha * 1.5})`);
-        rayGrad.addColorStop(0.5, `rgba(${rMid}, ${rayAlpha * 0.7})`);
+        rayGrad.addColorStop(0, `rgba(${rTop}, ${rayAlpha * 1.8})`);
+        rayGrad.addColorStop(0.5, `rgba(${rMid}, ${rayAlpha * 0.8})`);
         rayGrad.addColorStop(1, `rgba(${rBot}, 0)`);
         
         ctx.fillStyle = rayGrad;
         ctx.beginPath();
-        ctx.moveTo(rayOriginX - 10, rayOriginY);
-        ctx.lineTo(rayOriginX + 10, rayOriginY);
+        ctx.moveTo(rayOriginX - 5, rayOriginY);
+        ctx.lineTo(rayOriginX + 5, rayOriginY);
         ctx.lineTo(targetX + rayWidth, domeCY);
         ctx.lineTo(targetX - rayWidth, domeCY);
         ctx.fill();
@@ -8101,76 +8140,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Helper function to draw extremely detailed leaves with veins
-  const drawDetailedLeaf = (lx, ly, rot, length, width, colorA, colorB, veinColor) => {
-      ctx.save();
-      ctx.translate(lx, ly);
-      ctx.rotate(rot);
-      
-      // Leaf body left half
-      ctx.fillStyle = colorA;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(-width, -length/2, 0, -length);
-      ctx.lineTo(0, 0);
-      ctx.fill();
-      
-      // Leaf body right half
-      ctx.fillStyle = colorB;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(width, -length/2, 0, -length);
-      ctx.lineTo(0, 0);
-      ctx.fill();
 
-      // Main Center Stem/Vein
-      ctx.strokeStyle = veinColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, 2);
-      ctx.lineTo(0, -length + 2);
-      ctx.stroke();
-
-      // Side branching veins
-      ctx.lineWidth = 0.8;
-      for (let v=0.2; v<0.8; v+=0.15) {
-          let vy = -length * v;
-          ctx.beginPath(); ctx.moveTo(0, vy); ctx.quadraticCurveTo(-width*0.5, vy-2, -width*0.8, vy - length*0.1); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(0, vy); ctx.quadraticCurveTo(width*0.5, vy-2, width*0.8, vy - length*0.1); ctx.stroke();
-      }
-      ctx.restore();
-  };
-
-  // --- Tier 0: Realistic Sprout ---
-  // T0 Sprout hides once T4 flower is drawn to avoid overlapping the base stalk
-  if (t0 > 0 && t4 <= 0) {
-    ctx.save();
-    ctx.globalAlpha = t0;
-
-    const swayAngle = Math.sin(t * 1.5) * 0.08;
-    
-    // Main center sprout
-    ctx.save();
-    ctx.translate(0, -22); 
-    ctx.rotate(swayAngle);
-    
-    // Organic Stem
-    ctx.strokeStyle = '#3aad30';
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(5, -20, 0, -45);
-    ctx.stroke();
-    
-    // Detailed Leaves attached to sprout
-    drawDetailedLeaf(-2, -25, -0.8, 22, 10, '#55d048', '#3aad30', '#2d8a24');
-    drawDetailedLeaf(2, -35, 0.7, 26, 12, '#55d048', '#3aad30', '#2d8a24');
-    drawDetailedLeaf(0, -44, -0.2, 18, 8, '#66e055', '#4cc940', '#3aad30');
-
-    ctx.restore();
-    ctx.restore();
-  }
 
   // --- Tier 2: Lush Tropical Framing (Bush/Foliage) ---
   if (t2 > 0) {
@@ -8228,6 +8198,59 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t1;
     const pipeY = -140;
+    const nozzleXs = [-200, -133, -66, 0, 66, 133, 200];
+
+    // Draw Water Drops FIRST (behind the pipe)
+    if (t1 > 0.05) {
+      ctx.save();
+      ctx.globalAlpha = t1 * Math.min(1, (t1 - 0.05) * 2);
+      for (let i = 0; i < nozzleXs.length; i++) {
+        const nx = nozzleXs[i];
+        const fallDist = Math.abs(-22 - (pipeY + 4)); 
+        const dropSpeed = 140; 
+        const dropLifetime = fallDist / dropSpeed;
+        
+        for (let d = 0; d < 2; d++) {
+          const phase = (i * 0.37 + d * 0.5); 
+          const dropT = (t + phase) % (dropLifetime + 0.3); 
+          
+          if (dropT < dropLifetime) {
+              const dropY = (pipeY + 4) + dropT * dropSpeed;
+              ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
+              ctx.beginPath();
+              ctx.ellipse(nx, dropY, 2.5, 5.5, 0, 0, Math.PI*2);
+              ctx.fill();
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+              ctx.beginPath();
+              ctx.ellipse(nx - 0.8, dropY + 1, 1, 2, 0, 0, Math.PI*2);
+              ctx.fill();
+          } else {
+              const splashT = (dropT - dropLifetime) / 0.3; 
+              const splashAlpha = 1.0 - splashT;
+              
+              ctx.save();
+              ctx.globalAlpha = splashAlpha * ctx.globalAlpha;
+              
+              ctx.strokeStyle = 'rgba(120, 200, 255, 0.6)';
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.ellipse(nx, -22, 4 + splashT * 10, 1.5 + splashT * 4, 0, 0, Math.PI*2);
+              ctx.stroke();
+
+              ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
+              const pDist = splashT * 8; 
+              const pHeight = Math.sin(splashT * Math.PI) * 6; 
+              
+              ctx.beginPath(); ctx.arc(nx - pDist, -22 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx + pDist, -22 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx, -22 - pHeight * 1.2, 1.5, 0, Math.PI*2); ctx.fill();
+              
+              ctx.restore();
+          }
+        }
+      }
+      ctx.restore();
+    }
 
     // Main Pipe using emerald pattern
     ctx.fillStyle = fillEmerald;
@@ -8244,7 +8267,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.beginPath(); ctx.arc(-240, pipeY, 4, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(240, pipeY, 4, 0, Math.PI*2); ctx.fill();
 
-    const nozzleXs = [-200, -133, -66, 0, 66, 133, 200];
     for (let i = 0; i < nozzleXs.length; i++) {
       const nx = nozzleXs[i];
       
@@ -8265,58 +8287,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.lineTo(nx + 4, pipeY + 10);
       ctx.quadraticCurveTo(nx + 4, pipeY + 4, nx + 8, pipeY + 4);
       ctx.fill();
-
-      // Realistic Water Physics
-      // Drops fall straight down to dirt at y = -22
-      const fallDist = Math.abs(-22 - (pipeY + 10)); 
-      const dropSpeed = 140; // px per sec
-      const dropLifetime = fallDist / dropSpeed;
-      
-      // 2 drops per nozzle for visual density
-      for (let d = 0; d < 2; d++) {
-        const phase = (i * 0.37 + d * 0.5); // time offset
-        const dropT = (t + phase) % (dropLifetime + 0.3); // +0.3s allowed for splash animation phase
-        
-        if (dropT < dropLifetime) {
-            // Drop is Falling
-            const dropY = (pipeY + 10) + dropT * dropSpeed;
-            ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
-            ctx.beginPath();
-            // Elongate drop based on speed
-            ctx.ellipse(nx, dropY, 2.5, 5.5, 0, 0, Math.PI*2);
-            ctx.fill();
-            // Tiny white highlight on drop
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.beginPath();
-            ctx.ellipse(nx - 0.8, dropY + 1, 1, 2, 0, 0, Math.PI*2);
-            ctx.fill();
-        } else {
-            // Drop has hit the ground -> Splash Physics
-            const splashT = (dropT - dropLifetime) / 0.3; // normalize 0.0 to 1.0 over splash duration
-            const splashAlpha = 1.0 - splashT;
-            
-            ctx.save();
-            ctx.globalAlpha = splashAlpha * t1;
-            
-            // Ground Ripple expanding
-            ctx.strokeStyle = 'rgba(120, 200, 255, 0.6)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.ellipse(nx, -22, 4 + splashT * 10, 1.5 + splashT * 4, 0, 0, Math.PI*2);
-            ctx.stroke();
-
-            // Upward Splash particles
-            ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
-            const pDist = splashT * 8; // move outward
-            const pHeight = Math.sin(splashT * Math.PI) * 6; // parabolic arc upward
-            
-            ctx.beginPath(); ctx.arc(nx - pDist, -22 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(nx + pDist, -22 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(nx, -22 - pHeight * 1.2, 1.5, 0, Math.PI*2); ctx.fill();
-            
-            ctx.restore();
-        }
-      }
     }
     ctx.restore();
   }
@@ -8443,16 +8413,16 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Stalk (emerging from dirt)
     ctx.strokeStyle = '#285c18';
     ctx.lineWidth = 12;
-    ctx.lineCap = 'round';
+    ctx.lineCap = 'butt';
     ctx.beginPath();
-    ctx.moveTo(0, -22); 
+    ctx.moveTo(0, -28); 
     ctx.quadraticCurveTo(15 * Math.sin(t), -50, flowerCX, flowerCY + 15);
     ctx.stroke();
     // Stalk highlight
     ctx.strokeStyle = '#439928';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(0, -22);
+    ctx.moveTo(0, -28);
     ctx.quadraticCurveTo(15 * Math.sin(t) - 2, -50, flowerCX - 2, flowerCY + 15);
     ctx.stroke();
 
@@ -8486,7 +8456,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
             const wobble = Math.sin(t * 1.2 + pulsePhase + i) * 0.1;
             ctx.rotate(angle + wobble);
             
-            const pGrad = ctx.createRadialGradient(0, 0, 0, 0, radius);
+            const pGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
             pGrad.addColorStop(0, colA);
             pGrad.addColorStop(1, colB);
             
@@ -8546,15 +8516,15 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Massive glowing stalk
     ctx.strokeStyle = '#2b0040'; // Deep dark purple stalk
     ctx.lineWidth = 20;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(0, -22); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
+    ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
     // Inner energy flow running up the stalk
     ctx.strokeStyle = '#cc33ff';
     ctx.lineWidth = 8;
-    ctx.beginPath(); ctx.moveTo(0, -22); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
     ctx.strokeStyle = '#ffb3ff';
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, -22); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
 
     // Massive Bioluminescent aura
     const auraR = 180 + Math.sin(t * 2.0) * 20;
@@ -8736,11 +8706,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Pure emerald structural framing for the dome perfectly bounding everything
     ctx.strokeStyle = fillEmerald;
     ctx.lineWidth = 6;
-    domePath();
-    ctx.stroke();
-    // Inner bright highlight for the frame
-    ctx.strokeStyle = 'rgba(200, 255, 200, 0.5)';
-    ctx.lineWidth = 1.5;
     domePath();
     ctx.stroke();
     ctx.restore();
