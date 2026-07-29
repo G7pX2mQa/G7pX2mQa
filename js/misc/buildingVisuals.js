@@ -7957,37 +7957,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t0;
 
-    // Stylized flat dirt bed extending all the way down
-    ctx.fillStyle = '#4a2e18';
+    // Stylized flat dirt bed extending all the way down (now dark brown)
+    ctx.fillStyle = '#3a2110';
     ctx.fillRect(-hw, -28, bw, 25);
     
-    // Slight dark top edge for simple stylized depth
-    ctx.fillStyle = '#3a2110';
+    // Slight lighter top edge for simple stylized depth
+    ctx.fillStyle = '#4a2e18';
     ctx.fillRect(-hw, -28, bw, 4);
-    
-    // Very simple, subtle pebble texture (not overly detailed)
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(-hw, -28, bw, 25);
-    ctx.clip();
-    for (let i = 0; i < 10; i++) {
-        // Left side specks
-        let lx = -hw + 20 + (i * 37.3) % (hw - 40);
-        let ly = -21 + (i * 11.7) % 15;
-        ctx.fillStyle = (i % 2 === 0) ? '#3a2110' : '#5c3a1f';
-        ctx.beginPath();
-        ctx.arc(lx, ly, 2 + (i%2), 0, Math.PI);
-        ctx.fill();
-        
-        // Right side specks (mirrored count, distinct positions)
-        let rx = 20 + (i * 29.3) % (hw - 40);
-        let ry = -21 + (i * 13.1) % 15;
-        ctx.fillStyle = (i % 2 === 1) ? '#3a2110' : '#5c3a1f';
-        ctx.beginPath();
-        ctx.arc(rx, ry, 2 + ((i+1)%2), 0, Math.PI);
-        ctx.fill();
-    }
-    ctx.restore();
 
     ctx.restore();
   }
