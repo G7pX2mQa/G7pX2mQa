@@ -7858,7 +7858,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   // Helper: dome envelope path (Pure continuous curve, no straight walls)
   const domePath = () => {
     ctx.beginPath();
-    ctx.moveTo(-hw, -3);
+    ctx.moveTo(-hw, -3); 
     if (ctx.ellipse) {
       ctx.ellipse(0, domeCY, hw, domeH, 0, Math.PI, 0);
     } else {
@@ -7871,66 +7871,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.closePath(); // Completes the continuous emerald loop across the bottom
   };
 
-  // Helper: draw a botanical leaf shape at current transform origin
-  const drawLeaf = (len, wid, angle, color, veinColor) => {
-    ctx.save();
-    ctx.rotate(angle);
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.bezierCurveTo(wid, -len * 0.2, wid * 0.6, -len * 0.75, 0, -len);
-    ctx.bezierCurveTo(-wid * 0.6, -len * 0.75, -wid, -len * 0.2, 0, 0);
-    ctx.fill();
-    if (veinColor) {
-      ctx.strokeStyle = veinColor;
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(0, -1);
-      ctx.lineTo(0, -len * 0.88);
-      ctx.stroke();
-    }
-    ctx.restore();
-  };
-
-  // Helper: draw a fern frond with pinnae along a curved rachis
-  const drawFrond = (length, pinnaeCount, spread, color, dir) => {
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    // Rachis (central curved stem)
-    const tipX = dir * length * 0.3;
-    const tipY = -length;
-    const cpX = dir * length * 0.15;
-    const cpY = -length * 0.5;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(cpX, cpY, tipX, tipY);
-    ctx.stroke();
-    // Pinnae (small leaflets) along the rachis
-    for (let i = 1; i <= pinnaeCount; i++) {
-      const frac = i / (pinnaeCount + 1);
-      // Quadratic bezier interpolation for position on rachis
-      const omt = 1 - frac;
-      const px = 2 * omt * frac * cpX + frac * frac * tipX;
-      const py = 2 * omt * frac * cpY + frac * frac * tipY;
-      const pinnaSize = spread * (1 - frac * 0.6);
-      // Left pinna
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.quadraticCurveTo(px - pinnaSize * 0.7, py - pinnaSize * 0.5, px - pinnaSize, py + 1);
-      ctx.quadraticCurveTo(px - pinnaSize * 0.3, py + 2, px, py);
-      ctx.fill();
-      // Right pinna
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.quadraticCurveTo(px + pinnaSize * 0.7, py - pinnaSize * 0.5, px + pinnaSize, py + 1);
-      ctx.quadraticCurveTo(px + pinnaSize * 0.3, py + 2, px, py);
-      ctx.fill();
-    }
-    ctx.restore();
-  };
-
   ctx.save();
 
   // =============================================
@@ -7941,91 +7881,39 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t0;
 
-    // Realistic multi-layered soil
+    // 1. Dirt fill (drawn first so the rim covers its lower edge)
     const dirtGrad = ctx.createLinearGradient(0, -28, 0, -16);
-    dirtGrad.addColorStop(0, '#5a3a1a');    // dark rich topsoil
-    dirtGrad.addColorStop(0.25, '#6b4226');  // warm brown
-    dirtGrad.addColorStop(0.55, '#5c3318');  // deeper brown
-    dirtGrad.addColorStop(1, '#4a2814');     // dark earth
+    dirtGrad.addColorStop(0, '#6b4226');
+    dirtGrad.addColorStop(1, '#4a2e14');
     ctx.fillStyle = dirtGrad;
-    ctx.fillRect(-hw + 6, -28, bw - 12, 12);
+    ctx.fillRect(-hw + 6, -28, bw - 12, 12); 
 
-    // Moisture patches (subtle dark wet spots)
-    ctx.fillStyle = 'rgba(25, 12, 4, 0.2)';
-    const moisturePatches = [
-      [-200, -25, 18, 4], [-80, -24, 22, 5], [40, -26, 16, 4],
-      [160, -23, 20, 5], [-140, -27, 14, 3], [100, -25, 19, 4],
+    // Dirt texture dots
+    ctx.fillStyle = 'rgba(30, 15, 5, 0.3)';
+    const dirtDots = [
+      [-250, -26], [-210, -24], [-170, -27], [-130, -23], [-90, -26],
+      [-50, -25], [-10, -27], [30, -24], [70, -26], [110, -23],
+      [150, -27], [190, -24], [230, -26], [260, -25], [-230, -23],
+      [-190, -27], [-150, -25], [-110, -26], [-70, -24], [-30, -27],
+      [10, -23], [50, -26], [90, -25], [130, -27], [170, -24], [210, -26], [250, -25]
     ];
-    for (const [mx, my, mw, mh] of moisturePatches) {
-      ctx.beginPath();
-      ctx.ellipse(mx, my, mw, mh, 0, 0, Math.PI * 2);
-      ctx.fill();
+    for (const [dx, dy] of dirtDots) {
+      ctx.fillRect(dx, dy, 3, 2.5);
     }
 
-    // Pebbles (small irregular rounded stones with highlights)
-    const pebbles = [
-      { x: -230, y: -24, rx: 3.5, ry: 2.5, c: '#8a7a6a' },
-      { x: -160, y: -26, rx: 2.5, ry: 2, c: '#7a6a5a' },
-      { x: -90, y: -23, rx: 4, ry: 2.5, c: '#9a8a7a' },
-      { x: -20, y: -25, rx: 2, ry: 1.5, c: '#6a5a4a' },
-      { x: 50, y: -27, rx: 3, ry: 2, c: '#8a7a6a' },
-      { x: 130, y: -24, rx: 3.5, ry: 2.5, c: '#7a6a5a' },
-      { x: 200, y: -26, rx: 2.5, ry: 2, c: '#8a7a6a' },
-      { x: 240, y: -23, rx: 2, ry: 1.8, c: '#6a5a4a' },
-      { x: -250, y: -27, rx: 2.5, ry: 1.5, c: '#9a8a7a' },
-      { x: 85, y: -26, rx: 3, ry: 2.2, c: '#7a6a5a' },
-      { x: -50, y: -24, rx: 2, ry: 1.5, c: '#8a7a6a' },
-      { x: 170, y: -27, rx: 2.5, ry: 1.8, c: '#6a5a4a' },
-    ];
-    for (const p of pebbles) {
-      ctx.fillStyle = p.c;
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y, p.rx, p.ry, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(180, 170, 155, 0.25)';
-      ctx.beginPath();
-      ctx.ellipse(p.x - 0.5, p.y - 0.5, p.rx * 0.5, p.ry * 0.5, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Root fragments (tiny curved organic lines poking through soil)
-    ctx.strokeStyle = 'rgba(90, 60, 30, 0.4)';
-    ctx.lineWidth = 1.2;
-    const roots = [
-      [-180, -24, -175, -27, -168, -25],
-      [20, -26, 28, -28, 35, -26],
-      [110, -23, 116, -26, 122, -24],
-      [-120, -27, -115, -29, -108, -27],
-      [220, -25, 227, -28, 232, -25],
-    ];
-    for (const [x1, y1, cx, cy, x2, y2] of roots) {
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.quadraticCurveTo(cx, cy, x2, y2);
-      ctx.stroke();
-    }
-
-    // Mulch / organic debris at the top edge of dirt
-    ctx.fillStyle = 'rgba(60, 35, 15, 0.3)';
-    for (let mx = -hw + 10; mx < hw - 10; mx += 7 + Math.sin(mx * 0.3) * 3) {
-      const mw = 4 + Math.sin(mx * 0.5 + 1) * 2;
-      const mh = 1.5 + Math.sin(mx * 0.7) * 0.5;
-      ctx.fillRect(mx, -28.5, mw, mh);
-    }
-
-    // Planter Base Box (Wooden look)
-    ctx.fillStyle = '#653b1b';
-    ctx.fillRect(-hw + 3, -16, bw - 6, 10);
-    ctx.strokeStyle = '#4a2a11';
+    // 2. Planter Base Box (Wooden look, safely above the floor, inside the emerald frame)
+    ctx.fillStyle = '#653b1b'; // warm dark wood
+    ctx.fillRect(-hw + 3, -16, bw - 6, 10); 
+    ctx.strokeStyle = '#4a2a11'; 
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(-hw + 3, -11);
     ctx.lineTo(hw - 3, -11);
-    ctx.stroke();
+    ctx.stroke(); 
 
-    // Planter Rim
-    ctx.fillStyle = '#8b5025';
-    ctx.fillRect(-hw + 3, -22, bw - 6, 6);
+    // 3. Planter Rim
+    ctx.fillStyle = '#8b5025'; // lighter warm wood
+    ctx.fillRect(-hw + 3, -22, bw - 6, 6); 
 
     ctx.restore();
   }
@@ -8037,28 +7925,33 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
-    // Deep green greenhouse glass tint (crystallized look from the start)
-    ctx.fillStyle = 'rgba(35, 150, 50, 0.18)';
+    ctx.fillStyle = 'rgba(100, 210, 90, 0.12)';
     domePath();
     ctx.fill();
 
-    // Upper-left reflection highlight
     ctx.save();
-    ctx.globalAlpha = t0 * 0.3;
-    ctx.strokeStyle = 'rgba(200, 255, 200, 0.5)';
+    ctx.globalAlpha = t0 * 0.25;
+    ctx.strokeStyle = 'rgba(200, 255, 200, 0.6)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     if (ctx.ellipse) {
       ctx.ellipse(0, domeCY, hw - 16, domeH - 16, 0, Math.PI * 1.25, Math.PI * 1.75);
     } else {
-      ctx.save();
       ctx.translate(0, domeCY);
       ctx.scale(1, (domeH - 16) / (hw - 16));
       ctx.arc(0, 0, hw - 16, Math.PI * 1.25, Math.PI * 1.75);
-      ctx.restore();
     }
     ctx.stroke();
     ctx.restore();
+    ctx.restore();
+  }
+
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7 * 0.15;
+    ctx.fillStyle = 'rgba(40, 180, 60, 1)';
+    domePath();
+    ctx.fill();
     ctx.restore();
   }
 
@@ -8068,717 +7961,335 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
   ctx.save();
   domePath();
-  ctx.clip();
+  ctx.clip(); 
 
-  // --- Tier 0: Botanical Greenery ---
+  // --- Tier 0: Greenery Sprout + Ferns ---
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
 
-    const sway = (speed, amp) => Math.sin(t * speed) * amp;
-
-    // ---- Central bushy plant ----
+    const swayAngle = Math.sin(t * 1.5) * 0.06;
+    
+    // Main center sprout
     ctx.save();
-    ctx.translate(0, -22);
-    ctx.rotate(sway(1.2, 0.04));
-    // Main stem with subtle curve
-    ctx.strokeStyle = '#2a7a20';
-    ctx.lineWidth = 4;
+    ctx.translate(0, -22); // Anchored in the dirt at y=-22
+    ctx.rotate(swayAngle);
+    ctx.strokeStyle = '#3aad30';
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(1, -18, 0, -38);
+    ctx.lineTo(0, -35);
     ctx.stroke();
-    // Stem highlight
-    ctx.strokeStyle = 'rgba(80, 180, 60, 0.3)';
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = '#4cc940';
     ctx.beginPath();
-    ctx.moveTo(1, -2);
-    ctx.quadraticCurveTo(2, -18, 1, -36);
-    ctx.stroke();
-    // Leaf pairs branching off the stem at natural angles
-    const leafPairs = [
-      { y: -10, angle: -0.6, len: 14, wid: 7, c: '#3aa830' },
-      { y: -10, angle: 0.5, len: 12, wid: 6, c: '#44b838' },
-      { y: -20, angle: -0.7, len: 18, wid: 9, c: '#2d9a25' },
-      { y: -20, angle: 0.55, len: 16, wid: 8, c: '#38a82e' },
-      { y: -28, angle: -0.5, len: 15, wid: 8, c: '#45c238' },
-      { y: -28, angle: 0.65, len: 14, wid: 7, c: '#3db832' },
-      { y: -35, angle: -0.3, len: 10, wid: 5, c: '#55d048' },
-      { y: -35, angle: 0.35, len: 9, wid: 5, c: '#4cc840' },
-    ];
-    for (const lp of leafPairs) {
-      ctx.save();
-      ctx.translate(0, lp.y);
-      ctx.rotate(sway(1.5 + lp.y * 0.02, 0.03));
-      drawLeaf(lp.len, lp.wid, lp.angle, lp.c, 'rgba(20, 60, 15, 0.35)');
-      ctx.restore();
-    }
-    // Crown leaves at top
-    ctx.save();
-    ctx.translate(0, -36);
-    drawLeaf(12, 6, -0.15 + sway(1.6, 0.02), '#55d848', 'rgba(20, 60, 15, 0.3)');
-    drawLeaf(10, 5, 0.2 + sway(1.4, 0.02), '#4dd040', 'rgba(20, 60, 15, 0.3)');
+    ctx.ellipse(-9, -25, 12, 5.5, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#55d048';
+    ctx.beginPath();
+    ctx.ellipse(9, -31, 12, 5.5, 0.5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
-    ctx.restore(); // center plant
 
-    // ---- Small plant cluster left (x=-60) ----
+    // Left Ferns
     ctx.save();
-    ctx.translate(-60, -22);
-    ctx.rotate(sway(1.0, 0.035));
-    ctx.strokeStyle = '#2a7a20';
+    ctx.translate(-110, -22);
+    ctx.rotate(swayAngle * 1.2);
+    ctx.strokeStyle = '#2d8a24';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(-10, -15, -20, -25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(-5, -20, 0, -30); ctx.stroke();
+    ctx.restore();
+
+    // Right Ferns
+    ctx.save();
+    ctx.translate(110, -22);
+    ctx.rotate(-swayAngle * 0.8);
+    ctx.strokeStyle = '#2d8a24';
     ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-1, -20);
-    ctx.stroke();
-    ctx.save();
-    ctx.translate(-1, -5);
-    drawLeaf(10, 5, -0.5, '#3aa830', null);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(-1, -12);
-    drawLeaf(9, 5, -0.7, '#2d9a25', null);
-    drawLeaf(8, 4, 0.6, '#44b838', null);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(-1, -18);
-    drawLeaf(7, 4, -0.3, '#55d048', null);
-    drawLeaf(6, 3, 0.4, '#4cc840', null);
-    ctx.restore();
-    ctx.restore(); // left small plant
-
-    // ---- Small plant cluster right (x=60) ----
-    ctx.save();
-    ctx.translate(60, -22);
-    ctx.rotate(sway(1.3, -0.03));
-    ctx.strokeStyle = '#2a7a20';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(1, -18);
-    ctx.stroke();
-    ctx.save();
-    ctx.translate(1, -5);
-    drawLeaf(9, 5, 0.5, '#38a82e', null);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(1, -10);
-    drawLeaf(8, 4, 0.65, '#2d9a25', null);
-    drawLeaf(7, 4, -0.55, '#44b838', null);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(1, -16);
-    drawLeaf(6, 3, 0.35, '#55d048', null);
-    drawLeaf(5, 3, -0.4, '#4cc840', null);
-    ctx.restore();
-    ctx.restore(); // right small plant
-
-    // ---- Left fern cluster (x=-130) ----
-    ctx.save();
-    ctx.translate(-130, -22);
-    ctx.rotate(sway(0.9, 0.05));
-    drawFrond(35, 6, 8, '#2d8a24', 1);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(-145, -22);
-    ctx.rotate(sway(1.1, 0.04));
-    drawFrond(28, 5, 7, '#237a1c', 1);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(15, -10, 25, -20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(5, -15, 10, -28); ctx.stroke();
     ctx.restore();
 
-    // ---- Right fern cluster (x=130) ----
-    ctx.save();
-    ctx.translate(130, -22);
-    ctx.rotate(sway(1.0, -0.045));
-    drawFrond(32, 6, 8, '#2d8a24', -1);
     ctx.restore();
-    ctx.save();
-    ctx.translate(145, -22);
-    ctx.rotate(sway(0.85, -0.04));
-    drawFrond(25, 5, 6, '#237a1c', -1);
-    ctx.restore();
-
-    // ---- Edge grass shoots ----
-    const grassBlades = [
-      { x: -200, h: 15, a: -0.2, c: '#3a9a30' },
-      { x: -210, h: 12, a: -0.3, c: '#2d8a24' },
-      { x: -195, h: 10, a: 0.1, c: '#45b838' },
-      { x: 190, h: 14, a: 0.15, c: '#3a9a30' },
-      { x: 200, h: 11, a: 0.25, c: '#2d8a24' },
-      { x: 205, h: 13, a: 0.3, c: '#45b838' },
-    ];
-    for (const gb of grassBlades) {
-      ctx.save();
-      ctx.translate(gb.x, -22);
-      ctx.rotate(sway(1.4, 0.06) + gb.a * 0.3);
-      ctx.strokeStyle = gb.c;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(gb.a * 5, -gb.h * 0.5, gb.a * 8, -gb.h);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.restore(); // tier 0 greenery
   }
 
-  // --- Tier 1: Emerald Watering System ---
+  // --- Tier 1: Watering system ---
   if (t1 > 0) {
     ctx.save();
     ctx.globalAlpha = t1;
     const pipeY = -140;
 
-    // Emerald pipe body (filled rectangle with emerald texture)
-    ctx.fillStyle = fillEmerald;
+    ctx.strokeStyle = '#7a8a9a';
+    ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.moveTo(-240, pipeY - 5);
-    ctx.lineTo(240, pipeY - 5);
-    ctx.lineTo(240, pipeY + 5);
-    ctx.lineTo(-240, pipeY + 5);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(-240, pipeY);
+    ctx.lineTo(240, pipeY);
+    ctx.stroke();
 
-    // Pipe top highlight band
-    ctx.fillStyle = 'rgba(150, 255, 170, 0.2)';
-    ctx.fillRect(-240, pipeY - 5, 480, 2.5);
-    // Pipe bottom shadow band
-    ctx.fillStyle = 'rgba(10, 40, 10, 0.2)';
-    ctx.fillRect(-240, pipeY + 2.5, 480, 2.5);
+    ctx.strokeStyle = 'rgba(160, 180, 200, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-240, pipeY - 2);
+    ctx.lineTo(240, pipeY - 2);
+    ctx.stroke();
 
-    // Pipe end caps (emerald)
-    ctx.fillStyle = fillEmerald;
-    ctx.fillRect(-246, pipeY - 7, 8, 14);
-    ctx.fillRect(238, pipeY - 7, 8, 14);
-    ctx.fillStyle = 'rgba(10, 40, 10, 0.25)';
-    ctx.fillRect(-246, pipeY + 3, 8, 4);
-    ctx.fillRect(238, pipeY + 3, 8, 4);
+    ctx.fillStyle = '#6a7a8a';
+    ctx.fillRect(-244, pipeY - 6, 6, 12);
+    ctx.fillRect(238, pipeY - 6, 6, 12);
 
-    // Nozzle positions and where each drop lands (greenery Y or dirt Y)
     const nozzleXs = [-200, -133, -66, 0, 66, 133, 200];
-    const nozzleHitY = [-22, -48, -42, -55, -40, -45, -22];
-
     for (let i = 0; i < nozzleXs.length; i++) {
       const nx = nozzleXs[i];
-
-      // Integrated emerald nozzle (tapered, flush with pipe bottom)
-      ctx.fillStyle = fillEmerald;
-      ctx.beginPath();
-      ctx.moveTo(nx - 4, pipeY + 5);
-      ctx.lineTo(nx + 4, pipeY + 5);
-      ctx.lineTo(nx + 5.5, pipeY + 15);
-      ctx.lineTo(nx - 5.5, pipeY + 15);
-      ctx.closePath();
-      ctx.fill();
-
-      // Inner shadow for depth
-      ctx.fillStyle = 'rgba(10, 30, 10, 0.2)';
-      ctx.beginPath();
-      ctx.moveTo(nx - 2, pipeY + 5);
-      ctx.lineTo(nx + 2, pipeY + 5);
-      ctx.lineTo(nx + 3, pipeY + 14);
-      ctx.lineTo(nx - 3, pipeY + 14);
-      ctx.closePath();
-      ctx.fill();
-
-      // Dark opening at nozzle tip
-      ctx.fillStyle = 'rgba(5, 20, 5, 0.5)';
-      ctx.beginPath();
-      ctx.ellipse(nx, pipeY + 15, 4, 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Water drops with greenery collision detection and splash
-      const dropStart = pipeY + 17;
-      const hitY = nozzleHitY[i];
-      const totalFall = hitY - dropStart; // positive (falling toward y=0)
-      const fallDist = Math.abs(totalFall);
-      const splashDuration = 12;
-      const pauseDuration = 5;
-      const cycleLen = fallDist + splashDuration + pauseDuration;
-      const dropSpeed = 50;
-      const isOnPlant = hitY < -25;
+      ctx.fillStyle = '#5a6a7a';
+      ctx.fillRect(nx - 3, pipeY, 6, 8);
+      ctx.fillStyle = '#4a5a6a';
+      ctx.fillRect(nx - 4, pipeY + 7, 8, 3);
 
       for (let d = 0; d < 2; d++) {
-        const phase = (i * 23.7 + d * 41.3);
-        const rawPos = ((t * dropSpeed + phase) % cycleLen);
+        const dropSpeed = 55;
+        const dropRange = 90;
+        const phase = (i * 23.7 + d * 31.3);
+        const dropProgress = ((t * dropSpeed + phase) % dropRange) / dropRange;
+        const dropY = dropProgress * dropRange;
+        const dropAlpha = 1 - dropProgress * 0.6;
 
-        if (rawPos < fallDist) {
-          // Falling phase — draw water drop
-          const fallProg = rawPos / fallDist;
-          const dropY = dropStart + totalFall * fallProg;
-          const dropAlpha = 0.8 - fallProg * 0.15;
-
-          ctx.fillStyle = "rgba(100, 180, 255, " + (dropAlpha * t1) + ")";
-          ctx.beginPath();
-          ctx.ellipse(nx, dropY, 2, 3.5 + fallProg * 1.5, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Tiny trailing droplet
-          if (fallProg > 0.25) {
-            ctx.fillStyle = "rgba(130, 200, 255, " + (dropAlpha * 0.3 * t1) + ")";
-            ctx.beginPath();
-            ctx.arc(nx, dropY - 7, 1.2, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        } else if (rawPos < fallDist + splashDuration) {
-          // Splash phase — play splash animation at hit point
-          const splashProg = (rawPos - fallDist) / splashDuration;
-          const splashScale = isOnPlant ? 1.2 : 0.8;
-
-          // Splash droplets spraying outward in an arc
-          for (let s = 0; s < 5; s++) {
-            const angle = (s / 5) * Math.PI + Math.PI;
-            const dist = splashProg * 9 * splashScale;
-            const sx = nx + Math.cos(angle) * dist;
-            const sy = hitY + Math.sin(angle) * dist * 0.6 - splashProg * 3;
-            const sAlpha = (1 - splashProg) * 0.7;
-
-            ctx.fillStyle = "rgba(130, 200, 255, " + (sAlpha * t1) + ")";
-            ctx.beginPath();
-            ctx.arc(sx, sy, 1.5 * (1 - splashProg * 0.5), 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          // Central splash ring expanding outward
-          ctx.strokeStyle = "rgba(150, 210, 255, " + ((1 - splashProg) * 0.4 * t1) + ")";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.ellipse(nx, hitY, splashProg * 7 * splashScale, splashProg * 2.5 * splashScale, 0, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        // else: pause before next cycle — nothing drawn
-      }
-    }
-    ctx.restore();
-  }
-
-  // --- Tier 2: Lush Undergrowth ---
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2 * 0.85; // slightly transparent so tier 0/1 stay visible
-
-    // Moss patches (organic bezier-edged, semi-transparent)
-    const mossDefs = [
-      { x: -180, y: -23, w: 45, h: 6, c: 'rgba(40, 120, 35, 0.35)' },
-      { x: -80, y: -24, w: 55, h: 7, c: 'rgba(35, 110, 30, 0.3)' },
-      { x: 20, y: -23, w: 50, h: 6, c: 'rgba(45, 130, 40, 0.35)' },
-      { x: 130, y: -24, w: 40, h: 5, c: 'rgba(38, 115, 32, 0.3)' },
-      { x: -240, y: -22, w: 35, h: 5, c: 'rgba(32, 105, 28, 0.3)' },
-      { x: 210, y: -23, w: 38, h: 5, c: 'rgba(42, 125, 38, 0.3)' },
-    ];
-    for (const m of mossDefs) {
-      ctx.fillStyle = m.c;
-      ctx.beginPath();
-      ctx.moveTo(m.x - m.w / 2, m.y);
-      ctx.bezierCurveTo(
-        m.x - m.w * 0.3, m.y - m.h,
-        m.x + m.w * 0.3, m.y - m.h * 1.2,
-        m.x + m.w / 2, m.y
-      );
-      ctx.bezierCurveTo(
-        m.x + m.w * 0.3, m.y + m.h * 0.3,
-        m.x - m.w * 0.3, m.y + m.h * 0.3,
-        m.x - m.w / 2, m.y
-      );
-      ctx.fill();
-    }
-
-    // Tiny ground cover flowers
-    const flowers = [
-      { x: -170, y: -27, c: 'rgba(255, 255, 220, 0.8)', r: 2.5 },
-      { x: -155, y: -26, c: 'rgba(230, 200, 255, 0.7)', r: 2 },
-      { x: -60, y: -28, c: 'rgba(255, 240, 200, 0.8)', r: 2.5 },
-      { x: -40, y: -26, c: 'rgba(220, 220, 255, 0.7)', r: 2 },
-      { x: 45, y: -27, c: 'rgba(255, 230, 230, 0.8)', r: 2.5 },
-      { x: 80, y: -28, c: 'rgba(255, 255, 220, 0.7)', r: 2 },
-      { x: 150, y: -26, c: 'rgba(230, 200, 255, 0.75)', r: 2.5 },
-      { x: 180, y: -27, c: 'rgba(255, 240, 200, 0.7)', r: 2 },
-      { x: -210, y: -25, c: 'rgba(255, 255, 220, 0.75)', r: 2 },
-      { x: 230, y: -26, c: 'rgba(220, 220, 255, 0.7)', r: 2 },
-    ];
-    for (const f of flowers) {
-      ctx.fillStyle = f.c;
-      for (let p = 0; p < 4; p++) {
-        const angle = (p / 4) * Math.PI * 2 + t * 0.1;
+        ctx.fillStyle = "rgba(100, 180, 255, " + (dropAlpha * 0.7 * t1) + ")";
         ctx.beginPath();
-        ctx.ellipse(
-          f.x + Math.cos(angle) * f.r,
-          f.y + Math.sin(angle) * f.r,
-          f.r, f.r * 0.6,
-          angle, 0, Math.PI * 2
-        );
+        ctx.ellipse(nx + (d - 0.5) * 3, pipeY + 12 + dropY, 2 + (1 - dropProgress) * 0.8, 3.5 + dropProgress * 1.5, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.fillStyle = 'rgba(255, 220, 80, 0.9)';
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, 1, 0, Math.PI * 2);
-      ctx.fill();
     }
+    ctx.restore();
+  }
 
-    // Tall grass blade clusters
-    const grassClusters = [
-      { x: -235, seeds: [-3, 0, 3, 6], h: [22, 28, 25, 20] },
-      { x: -190, seeds: [-2, 1, 4], h: [18, 24, 20] },
-      { x: -100, seeds: [-3, 0, 3], h: [20, 26, 22] },
-      { x: 100, seeds: [-3, 0, 4], h: [22, 25, 19] },
-      { x: 185, seeds: [-2, 2, 5], h: [19, 24, 21] },
-      { x: 240, seeds: [-3, 0, 3, 5], h: [20, 26, 23, 18] },
-    ];
-    for (const gc of grassClusters) {
-      for (let g = 0; g < gc.seeds.length; g++) {
-        const gx = gc.x + gc.seeds[g];
-        const gh = gc.h[g];
-        const lean = Math.sin(t * (1.2 + g * 0.1) + gx * 0.05) * 0.08;
-        ctx.save();
-        ctx.translate(gx, -22);
-        ctx.rotate(lean);
-        ctx.strokeStyle = g % 2 === 0 ? '#3a9a30' : '#2d8a24';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(gc.seeds[g] * 0.5, -gh * 0.5, gc.seeds[g] * 0.8, -gh);
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
+  // --- Tier 2: Diverse Green Bush / Foliage ---
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
 
-    // Fiddlehead fern curls (unfurling spirals)
-    const fiddleheads = [
-      { x: -220, dir: -1, size: 0.9 },
-      { x: 215, dir: 1, size: 0.85 },
-      { x: -160, dir: -1, size: 0.7 },
+    const bushClusters = [
+      { x: -65, y: -45, r: 28, speed: 1.2, amp: 0.025, c: '#2a7a22' },
+      { x: 65, y: -49, r: 26, speed: 1.4, amp: 0.02, c: '#328a2a' },
+      { x: -25, y: -62, r: 34, speed: 0.9, amp: 0.03, c: '#3a9a32' },
+      { x: 35, y: -69, r: 30, speed: 1.1, amp: 0.022, c: '#40a838' },
+      { x: -55, y: -79, r: 25, speed: 1.5, amp: 0.018, c: '#48b840' },
+      { x: 28, y: -85, r: 24, speed: 1.3, amp: 0.028, c: '#3aad30' },
+      { x: 0, y: -92, r: 22, speed: 1.0, amp: 0.025, c: '#50c848' },
+      { x: -110, y: -42, r: 20, speed: 1.6, amp: 0.03, c: '#1e6428' },
+      { x: -150, y: -32, r: 16, speed: 1.1, amp: 0.04, c: '#267f33' },
+      { x: -180, y: -27, r: 14, speed: 1.3, amp: 0.03, c: '#2a7a22' },
+      { x: 115, y: -45, r: 22, speed: 1.4, amp: 0.03, c: '#21752b' },
+      { x: 160, y: -29, r: 18, speed: 1.7, amp: 0.035, c: '#288b35' },
+      { x: 195, y: -25, r: 15, speed: 1.2, amp: 0.025, c: '#1e6428' },
     ];
-    for (const fh of fiddleheads) {
+
+    for (const cl of bushClusters) {
       ctx.save();
-      ctx.translate(fh.x, -22);
-      ctx.rotate(Math.sin(t * 0.8 + fh.x * 0.1) * 0.05);
-      ctx.strokeStyle = '#2d8a24';
-      ctx.lineWidth = 2 * fh.size;
-      // Stem
+      ctx.translate(cl.x, cl.y);
+      ctx.rotate(Math.sin(t * cl.speed + cl.x * 0.1) * cl.amp);
+      ctx.fillStyle = cl.c;
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(fh.dir * 3, -15 * fh.size, fh.dir * 5, -22 * fh.size);
-      ctx.stroke();
-      // Curl at the tip (bezier spiral)
-      ctx.lineWidth = 1.5 * fh.size;
-      const tipX = fh.dir * 5;
-      const tipY = -22 * fh.size;
-      ctx.beginPath();
-      ctx.moveTo(tipX, tipY);
-      ctx.bezierCurveTo(
-        tipX + fh.dir * 8 * fh.size, tipY - 4 * fh.size,
-        tipX + fh.dir * 6 * fh.size, tipY + 5 * fh.size,
-        tipX + fh.dir * 2 * fh.size, tipY + 3 * fh.size
-      );
-      ctx.stroke();
+      ctx.arc(0, 0, cl.r, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
+
+    // Broad leaves (tropical look)
+    ctx.fillStyle = '#1c5e20';
+    ctx.save();
+    ctx.translate(-230, -22);
+    ctx.rotate(-0.3 + Math.sin(t*0.8)*0.05);
+    ctx.beginPath(); ctx.ellipse(-10, -20, 30, 10, -0.6, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#216c26';
+    ctx.save();
+    ctx.translate(240, -22);
+    ctx.rotate(0.2 + Math.sin(t*0.9)*0.05);
+    ctx.beginPath(); ctx.ellipse(15, -25, 34, 12, 0.4, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
 
     ctx.restore();
   }
 
-  // --- Tier 3: Grow Light Array ---
+  // --- Tier 2: Control panel ---
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    ctx.fillStyle = '#3a3a4a';
+    ctx.fillRect(-255, -75, 30, 42);
+    ctx.strokeStyle = '#5a5a6a';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-255, -75, 30, 42);
+    ctx.fillStyle = '#1a2a2a';
+    ctx.fillRect(-251, -71, 22, 14);
+    
+    const lightDefs = [
+      { color: [220, 50, 50], phase: 0 },
+      { color: [220, 200, 50], phase: 2.1 },
+      { color: [50, 220, 80], phase: 4.2 },
+    ];
+    for (let i = 0; i < lightDefs.length; i++) {
+      const ld = lightDefs[i];
+      const brightness = 0.4 + Math.sin(t * 2 + ld.phase) * 0.3;
+      const [r, g, b] = ld.color;
+
+      ctx.fillStyle = "rgba(" + r + ", " + g + ", " + b + ", " + (brightness * 0.2) + ")";
+      ctx.beginPath();
+      ctx.arc(-240, -50 + i * 9, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(" + r + ", " + g + ", " + b + ", " + brightness + ")";
+      ctx.beginPath();
+      ctx.arc(-240, -50 + i * 9, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // --- Tier 3: Heat shimmer rays ---
   if (t3 > 0) {
     ctx.save();
-    ctx.globalAlpha = t3;
+    const lampGlow = 0.5 + Math.sin(t * 2) * 0.25;
 
-    const lightPulse = 0.6 + Math.sin(t * 1.8) * 0.2;
-
-    // 3 grow light fixtures along the dome interior
-    const lights = [
-      { x: -120, y: -210, angle: 0.25 },
-      { x: 0, y: -248, angle: 0 },
-      { x: 120, y: -210, angle: -0.25 },
-    ];
-
-    for (const light of lights) {
-      ctx.save();
-      ctx.translate(light.x, light.y);
-      ctx.rotate(light.angle);
-
-      // Wide warm-white light cone
-      const coneGrad = ctx.createLinearGradient(0, 0, 0, 130);
-      coneGrad.addColorStop(0, "rgba(255, 240, 200, " + (lightPulse * 0.12) + ")");
-      coneGrad.addColorStop(0.5, "rgba(255, 220, 150, " + (lightPulse * 0.06) + ")");
-      coneGrad.addColorStop(1, 'rgba(255, 200, 100, 0)');
-      ctx.fillStyle = coneGrad;
+    ctx.globalAlpha = t3 * lampGlow * 0.12;
+    ctx.strokeStyle = '#ffcc66';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 11; i++) {
+      const rx = -75 + i * 15;
+      const shimmer = Math.sin(t * 1.3 + i * 1.2) * 6;
       ctx.beginPath();
-      ctx.moveTo(-8, 5);
-      ctx.lineTo(-55, 135);
-      ctx.lineTo(55, 135);
-      ctx.lineTo(8, 5);
-      ctx.closePath();
-      ctx.fill();
-
-      // Subtle UV-purple secondary cone
-      const uvGrad = ctx.createLinearGradient(0, 0, 0, 100);
-      uvGrad.addColorStop(0, "rgba(200, 180, 255, " + (lightPulse * 0.05) + ")");
-      uvGrad.addColorStop(1, 'rgba(180, 150, 255, 0)');
-      ctx.fillStyle = uvGrad;
-      ctx.beginPath();
-      ctx.moveTo(-10, 5);
-      ctx.lineTo(-65, 110);
-      ctx.lineTo(65, 110);
-      ctx.lineTo(10, 5);
-      ctx.closePath();
-      ctx.fill();
-
-      // Fixture housing
-      ctx.fillStyle = '#4a4a5a';
-      ctx.fillRect(-12, -4, 24, 9);
-      ctx.fillStyle = '#5a5a6a';
-      ctx.fillRect(-10, -2, 20, 5);
-
-      // LED strip glow
-      const ledGrad = ctx.createLinearGradient(-8, 5, 8, 5);
-      ledGrad.addColorStop(0, "rgba(255, 240, 200, " + lightPulse + ")");
-      ledGrad.addColorStop(0.5, "rgba(255, 220, 150, " + (lightPulse * 0.8) + ")");
-      ledGrad.addColorStop(1, "rgba(255, 240, 200, " + lightPulse + ")");
-      ctx.fillStyle = ledGrad;
-      ctx.fillRect(-8, 3, 16, 3);
-
-      ctx.restore();
+      ctx.moveTo(rx, -250);
+      ctx.lineTo(rx + shimmer, -110);
+      ctx.stroke();
     }
-
     ctx.restore();
   }
 
-  // --- Tier 4: Blossoming Alien Flower ---
-  // (Skipped when tier 8 is active — tier 8 draws the evolved version)
-  if (t4 > 0 && t8 <= 0) {
+  // --- Tier 4: Alien Seed Pod (The ONLY Purple Flora) ---
+  if (t4 > 0) {
     ctx.save();
     ctx.globalAlpha = t4;
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.04;
-    const flowerCX = 0;
-    const flowerCY = -80;
+    const podCX = 0;
+    const podCY = -77; // Sitting nicely in the shifted bush
 
-    // Stem growing up from the dirt
-    ctx.save();
-    ctx.strokeStyle = '#4a2868';
-    ctx.lineWidth = 5;
+    // Bioluminescent glow behind pod (Magenta/Violet)
+    const glowInt = 0.35 + Math.sin(t * 1.8) * 0.15;
+    const podGlow = ctx.createRadialGradient(podCX, podCY, 5, podCX, podCY, 75);
+    podGlow.addColorStop(0, "rgba(255, 100, 200, " + glowInt + ")");
+    podGlow.addColorStop(0.5, "rgba(180, 50, 180, " + (glowInt * 0.4) + ")");
+    podGlow.addColorStop(1, 'rgba(100, 0, 150, 0)');
+    ctx.fillStyle = podGlow;
     ctx.beginPath();
-    ctx.moveTo(0, -22);
-    ctx.quadraticCurveTo(-3, -50, flowerCX, flowerCY);
-    ctx.stroke();
-    // Stem inner highlight
-    ctx.strokeStyle = 'rgba(120, 60, 160, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(1, -24);
-    ctx.quadraticCurveTo(-2, -50, flowerCX + 1, flowerCY);
-    ctx.stroke();
-    // Small leaves on the stem
-    const stemLeaves = [
-      { y: -32, angle: -0.8, len: 10, c: '#3a6838' },
-      { y: -35, angle: 0.7, len: 8, c: '#3a7035' },
-      { y: -48, angle: -0.6, len: 9, c: '#357040' },
-      { y: -50, angle: 0.65, len: 7, c: '#3a6838' },
-    ];
-    for (const sl of stemLeaves) {
-      ctx.save();
-      const stemFrac = (sl.y + 22) / (flowerCY + 22);
-      const stemX = -3 * 2 * stemFrac * (1 - stemFrac);
-      ctx.translate(stemX, sl.y);
-      drawLeaf(sl.len, sl.len * 0.5, sl.angle, sl.c, 'rgba(20, 40, 15, 0.3)');
-      ctx.restore();
-    }
-    ctx.restore(); // stem
-
-    // Bioluminescent glow behind flower
-    const glowInt = 0.3 + Math.sin(t * 1.8) * 0.12;
-    const flowerGlow = ctx.createRadialGradient(flowerCX, flowerCY, 5, flowerCX, flowerCY, 80);
-    flowerGlow.addColorStop(0, "rgba(200, 80, 255, " + glowInt + ")");
-    flowerGlow.addColorStop(0.4, "rgba(150, 40, 200, " + (glowInt * 0.4) + ")");
-    flowerGlow.addColorStop(1, 'rgba(100, 20, 150, 0)');
-    ctx.fillStyle = flowerGlow;
-    ctx.beginPath();
-    ctx.arc(flowerCX, flowerCY, 80, 0, Math.PI * 2);
+    ctx.arc(podCX, podCY, 75, 0, Math.PI * 2);
     ctx.fill();
 
-    // 6 teardrop petals radiating outward
+    // Pod body (ovoid with gradient)
     ctx.save();
-    ctx.translate(flowerCX, flowerCY);
+    ctx.translate(podCX, podCY);
     ctx.scale(breathe, breathe);
 
-    const petalCount = 6;
-    for (let i = 0; i < petalCount; i++) {
-      const angle = (i / petalCount) * Math.PI * 2 + Math.sin(t * 0.3) * 0.05;
-      const petalLen = 28 + Math.sin(t * 1.2 + i * 1.5) * 2;
-
-      ctx.save();
-      ctx.rotate(angle);
-
-      const petalGrad = ctx.createLinearGradient(0, 0, 0, -petalLen);
-      petalGrad.addColorStop(0, '#6a1b9a');
-      petalGrad.addColorStop(0.4, '#9c27b0');
-      petalGrad.addColorStop(0.7, '#ce93d8');
-      petalGrad.addColorStop(1, '#f48fb1');
-      ctx.fillStyle = petalGrad;
-
-      ctx.beginPath();
-      ctx.moveTo(0, -3);
-      ctx.bezierCurveTo(-12, -petalLen * 0.4, -10, -petalLen * 0.8, 0, -petalLen);
-      ctx.bezierCurveTo(10, -petalLen * 0.8, 12, -petalLen * 0.4, 0, -3);
-      ctx.fill();
-
-      // Petal veins
-      ctx.strokeStyle = 'rgba(255, 150, 220, 0.35)';
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(0, -5);
-      ctx.lineTo(0, -petalLen * 0.85);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(255, 150, 220, 0.2)';
-      ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -petalLen * 0.3);
-      ctx.lineTo(-4, -petalLen * 0.5);
-      ctx.moveTo(0, -petalLen * 0.3);
-      ctx.lineTo(4, -petalLen * 0.5);
-      ctx.moveTo(0, -petalLen * 0.5);
-      ctx.lineTo(-5, -petalLen * 0.7);
-      ctx.moveTo(0, -petalLen * 0.5);
-      ctx.lineTo(5, -petalLen * 0.7);
-      ctx.stroke();
-
-      ctx.restore(); // petal rotation
-    }
-
-    // Central pistil / stigma
-    const coreGlow = 0.6 + Math.sin(t * 1.8) * 0.3;
-    const pistilGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 14);
-    pistilGrad.addColorStop(0, "rgba(255, 220, 255, " + coreGlow + ")");
-    pistilGrad.addColorStop(0.3, "rgba(230, 130, 255, " + (coreGlow * 0.8) + ")");
-    pistilGrad.addColorStop(0.7, "rgba(180, 60, 220, " + (coreGlow * 0.5) + ")");
-    pistilGrad.addColorStop(1, 'rgba(120, 30, 160, 0)');
-    ctx.fillStyle = pistilGrad;
+    const podGrad = ctx.createRadialGradient(-3, -4, 4, 0, 0, 32);
+    podGrad.addColorStop(0, '#ffb0f0');
+    podGrad.addColorStop(0.3, '#d860d0');
+    podGrad.addColorStop(0.7, '#8a2be2');
+    podGrad.addColorStop(1, '#4b0082');
+    ctx.fillStyle = podGrad;
     ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 26, 36, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bright pistil center dot
-    ctx.fillStyle = "rgba(255, 240, 255, " + (coreGlow * 0.9) + ")";
-    ctx.beginPath();
-    ctx.arc(0, 0, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Stamen dots around pistil
-    for (let i = 0; i < 6; i++) {
-      const sa = (i / 6) * Math.PI * 2 + t * 0.2;
-      ctx.fillStyle = "rgba(255, 200, 100, " + (0.5 + Math.sin(t * 2 + i) * 0.3) + ")";
+    // Surface veins (Magenta)
+    ctx.strokeStyle = 'rgba(255, 105, 180, 0.45)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 7; i++) {
+      const angle = (i / 7) * Math.PI * 2;
+      const wobble = Math.sin(t * 0.4 + i * 1.1) * 2;
       ctx.beginPath();
-      ctx.arc(Math.cos(sa) * 8, Math.sin(sa) * 8, 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(
+        Math.cos(angle) * 16 + wobble,
+        Math.sin(angle) * 22,
+        Math.cos(angle) * 24,
+        Math.sin(angle) * 32
+      );
+      ctx.stroke();
     }
 
-    ctx.restore(); // breathe scale
-    ctx.restore(); // tier 4
+    // Inner bright spot (pulsing pink)
+    const spotAlpha = 0.5 + Math.sin(t * 1.8) * 0.35;
+    ctx.fillStyle = "rgba(255, 200, 240, " + spotAlpha + ")";
+    ctx.beginPath();
+    ctx.arc(-3, -6, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+    ctx.restore();
   }
 
-  // --- Tier 5: Giant Vine Network ---
-  // (Skipped when tier 8 is active — tier 8 draws enhanced version)
-  if (t5 > 0 && t8 <= 0) {
+  // --- Tier 5: Giant Green Vines ---
+  if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
 
-    // Vines originate from the alien flora stem area
     const vineDefs = [
-      { sx: -5, sy: -65, ex: -220, ey: -130, spd: 0.5, ph: 0, amp: 25, baseW: 8, tipW: 2 },
-      { sx: 5, sy: -62, ex: 200, ey: -150, spd: 0.45, ph: 1.5, amp: 22, baseW: 7, tipW: 2 },
-      { sx: -8, sy: -55, ex: -170, ey: -75, spd: 0.6, ph: 3.0, amp: 15, baseW: 6, tipW: 1.5 },
-      { sx: 8, sy: -58, ex: 160, ey: -85, spd: 0.55, ph: 4.5, amp: 18, baseW: 6, tipW: 1.5 },
-      { sx: -3, sy: -70, ex: -100, ey: -230, spd: 0.4, ph: 2.0, amp: 20, baseW: 7, tipW: 2 },
-      { sx: 3, sy: -72, ex: 90, ey: -220, spd: 0.48, ph: 3.5, amp: 18, baseW: 6.5, tipW: 1.5 },
-      { sx: -10, sy: -50, ex: -250, ey: -50, spd: 0.55, ph: 5.0, amp: 12, baseW: 5, tipW: 1.5 },
-      { sx: 10, sy: -48, ex: 240, ey: -60, spd: 0.5, ph: 6.0, amp: 14, baseW: 5, tipW: 1.5 },
+      { sx: -20, sy: -85, ex: -210, ey: -150, spd: 0.7, ph: 0, amp: 20, w: 7 },
+      { sx: 20, sy: -82, ex: 190, ey: -170, spd: 0.6, ph: 1.5, amp: 22, w: 6.5 },
+      { sx: -40, sy: -75, ex: -150, ey: -90, spd: 0.9, ph: 3.0, amp: 14, w: 5 },
+      { sx: 40, sy: -78, ex: 140, ey: -110, spd: 0.8, ph: 4.5, amp: 16, w: 5 },
+      { sx: -10, sy: -90, ex: -80, ey: -250, spd: 0.5, ph: 2.0, amp: 14, w: 6 },
+      { sx: 15, sy: -92, ex: 90, ey: -240, spd: 0.65, ph: 3.5, amp: 16, w: 5.5 },
     ];
 
     for (const v of vineDefs) {
-      const segs = 16;
       const points = [];
+      const segs = 12;
       for (let s = 0; s <= segs; s++) {
         const frac = s / segs;
-        const wobble = Math.sin(t * v.spd + v.ph + frac * 6) * v.amp * frac * (1 - frac * 0.3);
+        const wobble = Math.sin(t * v.spd + v.ph + frac * 5) * v.amp * frac;
         points.push({
           x: v.sx + (v.ex - v.sx) * frac + wobble,
           y: v.sy + (v.ey - v.sy) * frac,
-          w: v.baseW + (v.tipW - v.baseW) * frac,
         });
       }
 
-      // Draw vine with variable thickness (filled quad segments)
-      for (let s = 0; s < points.length - 1; s++) {
-        const p0 = points[s];
-        const p1 = points[s + 1];
-        const w0 = p0.w / 2;
-        const w1 = p1.w / 2;
-        const dx = p1.x - p0.x;
-        const dy = p1.y - p0.y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        const nx = -dy / len;
-        const ny = dx / len;
-
-        ctx.fillStyle = '#1a5420';
-        ctx.beginPath();
-        ctx.moveTo(p0.x + nx * w0, p0.y + ny * w0);
-        ctx.lineTo(p1.x + nx * w1, p1.y + ny * w1);
-        ctx.lineTo(p1.x - nx * w1, p1.y - ny * w1);
-        ctx.lineTo(p0.x - nx * w0, p0.y - ny * w0);
-        ctx.closePath();
-        ctx.fill();
-
-        // Bark texture (darker lines at intervals)
-        if (s % 3 === 0 && w0 > 2) {
-          ctx.strokeStyle = 'rgba(10, 30, 10, 0.3)';
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.moveTo(p0.x + nx * w0 * 0.5, p0.y + ny * w0 * 0.5);
-          ctx.lineTo(p1.x + nx * w1 * 0.5, p1.y + ny * w1 * 0.5);
-          ctx.stroke();
-        }
-      }
-
-      // Inner glow along vine center
-      ctx.strokeStyle = 'rgba(60, 180, 80, 0.2)';
-      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(points[0].x, points[0].y);
       for (let s = 1; s < points.length; s++) {
         const prev = points[s - 1];
         const curr = points[s];
-        ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + curr.x) / 2, (prev.y + curr.y) / 2);
+        const cpx = (prev.x + curr.x) / 2;
+        const cpy = (prev.y + curr.y) / 2;
+        ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
       }
+      ctx.strokeStyle = '#1e6428'; // Deep green
+      ctx.lineWidth = v.w;
+      ctx.lineCap = 'round';
       ctx.stroke();
 
-      // Leaf clusters and flower buds at vine nodes
+      ctx.strokeStyle = 'rgba(60, 200, 90, 0.3)'; // Green inner glow
+      ctx.lineWidth = v.w * 0.5;
+      ctx.stroke();
+
       for (let n = 1; n <= 4; n++) {
         const nIdx = Math.floor(n * segs / 5);
         if (nIdx >= points.length) continue;
         const np = points[nIdx];
 
-        ctx.save();
-        ctx.translate(np.x, np.y);
-        const nextIdx = Math.min(nIdx + 1, points.length - 1);
-        const leafAngle = Math.atan2(
-          points[nextIdx].y - np.y,
-          points[nextIdx].x - np.x
-        );
-        ctx.rotate(leafAngle);
-        const nodeLeafSway = Math.sin(t * 1.2 + v.ph + n * 2) * 0.1;
-        drawLeaf(8, 4, -0.8 + nodeLeafSway, '#2d8a24', null);
-        drawLeaf(7, 3.5, 0.7 + nodeLeafSway, '#3a9a30', null);
-        ctx.restore();
+        const glowPhase = (t * 0.7 + v.ph + n * 2.3) % (Math.PI * 2);
+        const nodeGlow = Math.max(0, Math.sin(glowPhase)) * 0.6;
 
-        // Tiny purple flower bud at alternate nodes
-        if (n % 2 === 0) {
-          const budBreath = 1 + Math.sin(t * 1.5 + n * 1.7) * 0.1;
-          ctx.fillStyle = '#9c27b0';
+        if (nodeGlow > 0.1) {
+          ctx.fillStyle = "rgba(100, 255, 120, " + (nodeGlow * 0.4) + ")";
           ctx.beginPath();
-          ctx.ellipse(np.x, np.y, 3 * budBreath, 4 * budBreath, 0, 0, Math.PI * 2);
+          ctx.arc(np.x, np.y, 10, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = 'rgba(200, 100, 255, 0.5)';
+
+          ctx.fillStyle = "rgba(180, 255, 200, " + nodeGlow + ")";
           ctx.beginPath();
-          ctx.arc(np.x, np.y - 1, 1.5, 0, Math.PI * 2);
+          ctx.arc(np.x, np.y, 5, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -8786,512 +8297,158 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 6: Dense Spore Cloud ---
+  // --- Tier 6: Floating Pollen / Spores (Golden/Green) ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
 
-    // Ambient spore haze in lower dome
-    const hazeGrad = ctx.createLinearGradient(0, -50, 0, -200);
-    hazeGrad.addColorStop(0, 'rgba(100, 180, 60, 0)');
-    hazeGrad.addColorStop(0.5, 'rgba(120, 200, 80, 0.04)');
-    hazeGrad.addColorStop(1, 'rgba(100, 180, 60, 0)');
-    ctx.fillStyle = hazeGrad;
-    ctx.fillRect(-hw, -250, bw, 220);
-
-    // 24 spore particles with variety (type 0=golden-green, 1=dandelion puff, 2=purple-tinted)
     const sporeDefs = [
-      { cx: 0, cy: -180, rx: 65, ry: 35, sx: 0.35, sy: 0.45, px: 0, py: 0, sz: 4.5, type: 0 },
-      { cx: -150, cy: -200, rx: 55, ry: 40, sx: 0.28, sy: 0.4, px: 1, py: 0.6, sz: 4, type: 0 },
-      { cx: 140, cy: -185, rx: 60, ry: 30, sx: 0.42, sy: 0.32, px: 2, py: 1.1, sz: 5.2, type: 1 },
-      { cx: -200, cy: -155, rx: 48, ry: 38, sx: 0.32, sy: 0.5, px: 3, py: 1.7, sz: 3.8, type: 0 },
-      { cx: 210, cy: -220, rx: 58, ry: 28, sx: 0.38, sy: 0.38, px: 4, py: 2.2, sz: 4.2, type: 0 },
-      { cx: -70, cy: -245, rx: 45, ry: 35, sx: 0.48, sy: 0.28, px: 5, py: 2.8, sz: 3.5, type: 2 },
-      { cx: 90, cy: -145, rx: 60, ry: 32, sx: 0.25, sy: 0.45, px: 0.5, py: 3.3, sz: 4, type: 0 },
-      { cx: -175, cy: -235, rx: 50, ry: 36, sx: 0.36, sy: 0.42, px: 1.5, py: 0.9, sz: 4.5, type: 1 },
-      { cx: 65, cy: -250, rx: 54, ry: 28, sx: 0.44, sy: 0.48, px: 2.5, py: 1.4, sz: 3.8, type: 0 },
-      { cx: 230, cy: -165, rx: 45, ry: 42, sx: 0.3, sy: 0.36, px: 3.5, py: 2.0, sz: 3.5, type: 2 },
-      { cx: -240, cy: -190, rx: 52, ry: 26, sx: 0.5, sy: 0.3, px: 4.5, py: 2.5, sz: 3.2, type: 0 },
-      { cx: -20, cy: -280, rx: 50, ry: 25, sx: 0.33, sy: 0.55, px: 1.2, py: 3.1, sz: 3.9, type: 0 },
-      // Additional 12 spores for density
-      { cx: 50, cy: -120, rx: 40, ry: 30, sx: 0.4, sy: 0.35, px: 0.3, py: 0.5, sz: 3, type: 0 },
-      { cx: -100, cy: -170, rx: 45, ry: 25, sx: 0.3, sy: 0.5, px: 2.2, py: 1.3, sz: 5, type: 1 },
-      { cx: 180, cy: -130, rx: 50, ry: 35, sx: 0.45, sy: 0.4, px: 1.8, py: 2.5, sz: 3.5, type: 2 },
-      { cx: -220, cy: -250, rx: 35, ry: 30, sx: 0.38, sy: 0.3, px: 3.8, py: 0.8, sz: 4, type: 0 },
-      { cx: 250, cy: -200, rx: 40, ry: 35, sx: 0.32, sy: 0.45, px: 4.2, py: 1.9, sz: 3.8, type: 0 },
-      { cx: -30, cy: -130, rx: 55, ry: 25, sx: 0.42, sy: 0.38, px: 0.8, py: 3.5, sz: 4.5, type: 1 },
-      { cx: 120, cy: -260, rx: 45, ry: 28, sx: 0.28, sy: 0.5, px: 2.8, py: 0.4, sz: 3.2, type: 0 },
-      { cx: -160, cy: -110, rx: 38, ry: 32, sx: 0.5, sy: 0.35, px: 1.1, py: 2.8, sz: 4.2, type: 2 },
-      { cx: 30, cy: -210, rx: 50, ry: 30, sx: 0.35, sy: 0.42, px: 3.2, py: 1.6, sz: 3.5, type: 0 },
-      { cx: -250, cy: -140, rx: 35, ry: 28, sx: 0.45, sy: 0.3, px: 4.8, py: 3.0, sz: 3, type: 0 },
-      { cx: 200, cy: -240, rx: 42, ry: 32, sx: 0.3, sy: 0.48, px: 0.6, py: 2.2, sz: 4.8, type: 1 },
-      { cx: -80, cy: -90, rx: 45, ry: 25, sx: 0.38, sy: 0.42, px: 2.0, py: 3.8, sz: 3.5, type: 2 },
+      { cx: 0, cy: -180, rx: 65, ry: 35, sx: 0.35, sy: 0.45, px: 0, py: 0, sz: 4.5 },
+      { cx: -150, cy: -200, rx: 55, ry: 40, sx: 0.28, sy: 0.4, px: 1, py: 0.6, sz: 4 },
+      { cx: 140, cy: -185, rx: 60, ry: 30, sx: 0.42, sy: 0.32, px: 2, py: 1.1, sz: 5.2 },
+      { cx: -200, cy: -155, rx: 48, ry: 38, sx: 0.32, sy: 0.5, px: 3, py: 1.7, sz: 3.8 },
+      { cx: 210, cy: -220, rx: 58, ry: 28, sx: 0.38, sy: 0.38, px: 4, py: 2.2, sz: 4.2 },
+      { cx: -70, cy: -245, rx: 45, ry: 35, sx: 0.48, sy: 0.28, px: 5, py: 2.8, sz: 3.5 },
+      { cx: 90, cy: -145, rx: 60, ry: 32, sx: 0.25, sy: 0.45, px: 0.5, py: 3.3, sz: 4 },
+      { cx: -175, cy: -235, rx: 50, ry: 36, sx: 0.36, sy: 0.42, px: 1.5, py: 0.9, sz: 4.5 },
+      { cx: 65, cy: -250, rx: 54, ry: 28, sx: 0.44, sy: 0.48, px: 2.5, py: 1.4, sz: 3.8 },
+      { cx: 230, cy: -165, rx: 45, ry: 42, sx: 0.3, sy: 0.36, px: 3.5, py: 2.0, sz: 3.5 },
+      { cx: -240, cy: -190, rx: 52, ry: 26, sx: 0.5, sy: 0.3, px: 4.5, py: 2.5, sz: 3.2 },
+      { cx: -20, cy: -280, rx: 50, ry: 25, sx: 0.33, sy: 0.55, px: 1.2, py: 3.1, sz: 3.9 },
     ];
 
     for (const sp of sporeDefs) {
-      const spx = sp.cx + Math.sin(t * sp.sx + sp.px) * sp.rx;
-      const spy = sp.cy + Math.cos(t * sp.sy + sp.py) * sp.ry;
+      const sx = sp.cx + Math.sin(t * sp.sx + sp.px) * sp.rx;
+      const sy = sp.cy + Math.cos(t * sp.sy + sp.py) * sp.ry;
 
-      // Trailing wisp (faint line behind the spore)
-      const prevSpx = sp.cx + Math.sin(t * sp.sx + sp.px - 0.3) * sp.rx;
-      const prevSpy = sp.cy + Math.cos(t * sp.sy + sp.py - 0.3) * sp.ry;
-      ctx.strokeStyle = sp.type === 2
-        ? 'rgba(180, 140, 255, 0.12)'
-        : 'rgba(160, 230, 100, 0.1)';
-      ctx.lineWidth = sp.sz * 0.5;
-      ctx.beginPath();
-      ctx.moveTo(prevSpx, prevSpy);
-      ctx.lineTo(spx, spy);
-      ctx.stroke();
-
-      // Spore glow halo and core
-      let glowColor, coreColor;
-      if (sp.type === 0) {
-        glowColor = 'rgba(160, 255, 100, 0.3)';
-        coreColor = 'rgba(220, 255, 160, 0.85)';
-      } else if (sp.type === 1) {
-        glowColor = 'rgba(200, 255, 180, 0.25)';
-        coreColor = 'rgba(240, 255, 220, 0.9)';
-      } else {
-        glowColor = 'rgba(200, 150, 255, 0.25)';
-        coreColor = 'rgba(230, 200, 255, 0.85)';
-      }
-
-      const sporeGrad = ctx.createRadialGradient(spx, spy, 0, spx, spy, sp.sz * 3.5);
-      sporeGrad.addColorStop(0, glowColor);
-      sporeGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      const sporeGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sp.sz * 4);
+      sporeGrad.addColorStop(0, 'rgba(160, 255, 100, 0.35)');
+      sporeGrad.addColorStop(0.6, 'rgba(100, 200, 60, 0.1)');
+      sporeGrad.addColorStop(1, 'rgba(80, 150, 40, 0)');
       ctx.fillStyle = sporeGrad;
       ctx.beginPath();
-      ctx.arc(spx, spy, sp.sz * 3.5, 0, Math.PI * 2);
+      ctx.arc(sx, sy, sp.sz * 4, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = coreColor;
+      ctx.fillStyle = 'rgba(220, 255, 160, 0.85)';
       ctx.beginPath();
-      ctx.arc(spx, spy, sp.sz, 0, Math.PI * 2);
+      ctx.arc(sx, sy, sp.sz, 0, Math.PI * 2);
       ctx.fill();
-
-      // Dandelion puff detail for type 1 (radiating filaments)
-      if (sp.type === 1) {
-        ctx.strokeStyle = 'rgba(240, 255, 220, 0.4)';
-        ctx.lineWidth = 0.5;
-        for (let r = 0; r < 6; r++) {
-          const ra = (r / 6) * Math.PI * 2 + t * 0.15;
-          ctx.beginPath();
-          ctx.moveTo(spx, spy);
-          ctx.lineTo(spx + Math.cos(ra) * sp.sz * 2, spy + Math.sin(ra) * sp.sz * 2);
-          ctx.stroke();
-        }
-      }
     }
     ctx.restore();
   }
 
-  // --- Tier 7: Bioluminescent Ecosystem ---
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-
-    // Ambient interior glow
-    const ambGrad = ctx.createRadialGradient(0, -140, 20, 0, -140, 250);
-    ambGrad.addColorStop(0, 'rgba(60, 200, 80, 0.08)');
-    ambGrad.addColorStop(0.5, 'rgba(40, 150, 60, 0.04)');
-    ambGrad.addColorStop(1, 'rgba(30, 100, 40, 0)');
-    ctx.fillStyle = ambGrad;
-    ctx.beginPath();
-    ctx.arc(0, -140, 250, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Bioluminescent veins along the dome interior
-    const veinCount = 14;
-    for (let i = 0; i < veinCount; i++) {
-      const endAngle = Math.PI * 0.15 + (i / (veinCount - 1)) * Math.PI * 0.7;
-      const endX = Math.cos(endAngle + Math.PI) * (hw - 15);
-      const endY = domeCY - Math.sin(endAngle) * (domeH - 15);
-      const topX = (i - veinCount / 2) * 8;
-      const topY = domeCY - domeH + 25;
-
-      // Pulsing wave along veins
-      const pulsePhase = (t * 0.8 + i * 0.5) % (Math.PI * 2);
-      const veinGlow = 0.15 + Math.sin(pulsePhase) * 0.1;
-
-      ctx.strokeStyle = "rgba(80, 255, 120, " + veinGlow + ")";
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(topX, topY);
-      ctx.quadraticCurveTo(
-        (topX + endX) / 2 + Math.sin(i * 1.3) * 15,
-        (topY + endY) / 2,
-        endX, endY
-      );
-      ctx.stroke();
-
-      // Brighter node at the end of each vein
-      if (Math.sin(pulsePhase + 0.5) > 0.3) {
-        ctx.fillStyle = "rgba(120, 255, 160, " + (veinGlow * 2) + ")";
-        ctx.beginPath();
-        ctx.arc(endX, endY, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // Glowing moss patches on dome interior surface
-    const mossPatchesDome = [
-      { angle: Math.PI * 0.7, r: 0.92, w: 30, h: 12 },
-      { angle: Math.PI * 0.4, r: 0.9, w: 25, h: 10 },
-      { angle: Math.PI * 0.55, r: 0.88, w: 35, h: 14 },
-      { angle: Math.PI * 0.85, r: 0.91, w: 28, h: 11 },
-      { angle: Math.PI * 0.3, r: 0.93, w: 22, h: 9 },
-      { angle: Math.PI * 0.65, r: 0.87, w: 32, h: 13 },
-    ];
-    for (const mp of mossPatchesDome) {
-      const mx = Math.cos(mp.angle + Math.PI) * hw * mp.r;
-      const my = domeCY - Math.sin(mp.angle) * domeH * mp.r;
-      const mossGlow = 0.15 + Math.sin(t * 1.2 + mp.angle * 3) * 0.08;
-
-      const mossGrad = ctx.createRadialGradient(mx, my, 0, mx, my, mp.w);
-      mossGrad.addColorStop(0, "rgba(80, 255, 100, " + mossGlow + ")");
-      mossGrad.addColorStop(0.6, "rgba(50, 200, 70, " + (mossGlow * 0.4) + ")");
-      mossGrad.addColorStop(1, 'rgba(30, 150, 50, 0)');
-      ctx.fillStyle = mossGrad;
-      ctx.beginPath();
-      ctx.ellipse(mx, my, mp.w, mp.h, mp.angle - Math.PI / 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Firefly-like particles (organic floating dots, appear/fade naturally)
-    const fireflyCount = 15;
-    for (let i = 0; i < fireflyCount; i++) {
-      const ffPhase = t * (0.3 + i * 0.02) + i * 47.3;
-      const ffx = Math.sin(ffPhase * 0.7 + i * 2.3) * (hw * 0.7);
-      const ffy = domeCY - 50 - Math.abs(Math.sin(ffPhase * 0.5 + i * 1.7)) * (domeH - 80);
-      const ffLife = Math.sin(ffPhase * 0.3) * 0.5 + 0.5;
-
-      if (ffLife > 0.3) {
-        const ffAlpha = (ffLife - 0.3) * 1.43;
-        // Soft glow
-        ctx.fillStyle = "rgba(150, 255, 120, " + (ffAlpha * 0.15) + ")";
-        ctx.beginPath();
-        ctx.arc(ffx, ffy, 8, 0, Math.PI * 2);
-        ctx.fill();
-        // Bright center
-        ctx.fillStyle = "rgba(200, 255, 180, " + (ffAlpha * 0.7) + ")";
-        ctx.beginPath();
-        ctx.arc(ffx, ffy, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    ctx.restore();
-  }
-
-  // --- Tier 8: Magnificent Alien Flora Apex ---
+  // --- Tier 8: Emerald Evolved Core (Green) ---
   if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
 
-    const coreBreathe = 1 + Math.sin(t * 2) * 0.06;
-    const floraCX = 0;
-    const floraCY = -105;
+    const coreBreathe = 1 + Math.sin(t * 2.5) * 0.08;
+    // Suspended high up in the dome
+    const coreCX = 0;
+    const coreCY = -190;
 
-    // Enhanced main stem (thicker, more vibrant, bioluminescent veins)
-    ctx.save();
-    ctx.strokeStyle = '#5a2880';
-    ctx.lineWidth = 8;
+    const auraR = 110 + Math.sin(t * 2.5) * 16;
+    const auraA = 0.25 + Math.sin(t * 2.5) * 0.12;
+    const auraGrad = ctx.createRadialGradient(coreCX, coreCY, 6, coreCX, coreCY, auraR);
+    auraGrad.addColorStop(0, "rgba(120, 255, 180, " + auraA + ")");
+    auraGrad.addColorStop(0.4, "rgba(60, 200, 100, " + (auraA * 0.4) + ")");
+    auraGrad.addColorStop(1, 'rgba(30, 150, 60, 0)');
+    ctx.fillStyle = auraGrad;
     ctx.beginPath();
-    ctx.moveTo(0, -22);
-    ctx.bezierCurveTo(-5, -50, 3, -75, floraCX, floraCY);
-    ctx.stroke();
-    // Primary stem bioluminescent vein
-    ctx.strokeStyle = 'rgba(180, 100, 255, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(1, -24);
-    ctx.bezierCurveTo(-4, -50, 4, -75, floraCX + 1, floraCY);
-    ctx.stroke();
-    // Secondary stem vein
-    ctx.strokeStyle = 'rgba(180, 100, 255, 0.2)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(-2, -24);
-    ctx.bezierCurveTo(-6, -48, 1, -73, floraCX - 1, floraCY);
-    ctx.stroke();
-    ctx.restore();
-
-    // Secondary stems with smaller blooms
-    const secondaryBlooms = [
-      { branchY: -45, ex: -38, ey: -68, size: 0.5 },
-      { branchY: -55, ex: 33, ey: -75, size: 0.45 },
-      { branchY: -38, ex: -52, ey: -55, size: 0.35 },
-    ];
-    for (const sb of secondaryBlooms) {
-      const stemFrac = (sb.branchY + 22) / (floraCY + 22);
-      const branchStartX = -5 * 2 * stemFrac * (1 - stemFrac) + 3 * stemFrac * stemFrac;
-      // Branch stem
-      ctx.strokeStyle = '#4a2268';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(branchStartX, sb.branchY);
-      ctx.quadraticCurveTo(sb.ex * 0.6, (sb.branchY + sb.ey) / 2, sb.ex, sb.ey);
-      ctx.stroke();
-
-      // Mini flower
-      ctx.save();
-      ctx.translate(sb.ex, sb.ey);
-      ctx.scale(sb.size * coreBreathe, sb.size * coreBreathe);
-      // Mini glow
-      ctx.fillStyle = 'rgba(180, 80, 255, 0.15)';
-      ctx.beginPath();
-      ctx.arc(0, 0, 30, 0, Math.PI * 2);
-      ctx.fill();
-      // Mini petals
-      for (let p = 0; p < 5; p++) {
-        const pa = (p / 5) * Math.PI * 2 + t * 0.4 + sb.ex * 0.1;
-        ctx.save();
-        ctx.rotate(pa);
-        const miniGrad = ctx.createLinearGradient(0, 0, 0, -18);
-        miniGrad.addColorStop(0, '#7b1fa2');
-        miniGrad.addColorStop(1, '#e040fb');
-        ctx.fillStyle = miniGrad;
-        ctx.beginPath();
-        ctx.moveTo(0, -2);
-        ctx.bezierCurveTo(-7, -8, -6, -16, 0, -18);
-        ctx.bezierCurveTo(6, -16, 7, -8, 0, -2);
-        ctx.fill();
-        ctx.restore();
-      }
-      // Mini center
-      ctx.fillStyle = 'rgba(255, 200, 255, 0.8)';
-      ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Enhanced vine network reaching all corners of the dome
-    const t8Vines = [
-      { sx: -10, sy: -90, ex: -260, ey: -100, amp: 30, ph: 0 },
-      { sx: 10, sy: -88, ex: 250, ey: -110, amp: 28, ph: 1.2 },
-      { sx: -8, sy: -95, ex: -200, ey: -230, amp: 25, ph: 2.4 },
-      { sx: 8, sy: -93, ex: 190, ey: -240, amp: 22, ph: 3.6 },
-      { sx: -12, sy: -75, ex: -270, ey: -40, amp: 20, ph: 4.8 },
-      { sx: 12, sy: -73, ex: 260, ey: -50, amp: 18, ph: 6.0 },
-      { sx: -5, sy: -100, ex: -120, ey: -260, amp: 15, ph: 1.5 },
-      { sx: 5, sy: -98, ex: 130, ey: -255, amp: 16, ph: 3.0 },
-    ];
-    for (const v of t8Vines) {
-      const segs = 14;
-      const points = [];
-      for (let s = 0; s <= segs; s++) {
-        const frac = s / segs;
-        const wobble = Math.sin(t * 0.4 + v.ph + frac * 5) * v.amp * frac * (1 - frac * 0.2);
-        points.push({
-          x: v.sx + (v.ex - v.sx) * frac + wobble,
-          y: v.sy + (v.ey - v.sy) * frac,
-        });
-      }
-      // Vine body (filled quad segments with taper)
-      for (let s = 0; s < points.length - 1; s++) {
-        const p0 = points[s];
-        const p1 = points[s + 1];
-        const frac = s / segs;
-        const w = (5 - frac * 3.5) / 2;
-        const dx = p1.x - p0.x;
-        const dy = p1.y - p0.y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        const nx = -dy / len;
-        const ny = dx / len;
-
-        ctx.fillStyle = '#1a4828';
-        ctx.beginPath();
-        ctx.moveTo(p0.x + nx * w, p0.y + ny * w);
-        ctx.lineTo(p1.x + nx * w * 0.9, p1.y + ny * w * 0.9);
-        ctx.lineTo(p1.x - nx * w * 0.9, p1.y - ny * w * 0.9);
-        ctx.lineTo(p0.x - nx * w, p0.y - ny * w);
-        ctx.closePath();
-        ctx.fill();
-      }
-      // Small purple flowers and leaves along vines
-      for (let n = 2; n <= 4; n++) {
-        const nIdx = Math.floor(n * segs / 5);
-        if (nIdx >= points.length) continue;
-        const np = points[nIdx];
-        if (n % 2 === 0) {
-          // Purple flower
-          const fb = 1 + Math.sin(t * 1.3 + v.ph + n * 2.1) * 0.1;
-          for (let p = 0; p < 4; p++) {
-            const pa = (p / 4) * Math.PI * 2 + t * 0.3;
-            const px = np.x + Math.cos(pa) * 4 * fb;
-            const py = np.y + Math.sin(pa) * 4 * fb;
-            ctx.fillStyle = 'rgba(180, 80, 255, 0.6)';
-            ctx.beginPath();
-            ctx.ellipse(px, py, 3 * fb, 2 * fb, pa, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.fillStyle = 'rgba(255, 200, 100, 0.8)';
-          ctx.beginPath();
-          ctx.arc(np.x, np.y, 1.5, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          // Leaf pair
-          ctx.save();
-          ctx.translate(np.x, np.y);
-          drawLeaf(6, 3, -0.7, '#2d8a24', null);
-          drawLeaf(5, 2.5, 0.6, '#3a9a30', null);
-          ctx.restore();
-        }
-      }
-    }
-
-    // Spore emission from flower blooms (rising purple spores)
-    for (let i = 0; i < 8; i++) {
-      const emitPhase = t * 0.6 + i * 3.7;
-      const emitProg = (emitPhase % 4) / 4;
-      if (emitProg < 0.7) {
-        const emitX = floraCX + Math.sin(emitPhase * 0.8 + i * 2) * 18;
-        const emitY = floraCY - 30 - emitProg * 80;
-        const emitAlpha = (1 - emitProg / 0.7) * 0.6;
-
-        ctx.fillStyle = "rgba(200, 150, 255, " + (emitAlpha * 0.3) + ")";
-        ctx.beginPath();
-        ctx.arc(emitX, emitY, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "rgba(230, 200, 255, " + emitAlpha + ")";
-        ctx.beginPath();
-        ctx.arc(emitX, emitY, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // Grand bioluminescent glow from the main flower
-    const grandGlow = 0.35 + Math.sin(t * 1.5) * 0.15;
-    const grandGrad = ctx.createRadialGradient(floraCX, floraCY, 10, floraCX, floraCY, 150);
-    grandGrad.addColorStop(0, "rgba(180, 80, 255, " + (grandGlow * 0.5) + ")");
-    grandGrad.addColorStop(0.3, "rgba(140, 50, 200, " + (grandGlow * 0.25) + ")");
-    grandGrad.addColorStop(0.6, "rgba(100, 30, 180, " + (grandGlow * 0.1) + ")");
-    grandGrad.addColorStop(1, 'rgba(80, 20, 150, 0)');
-    ctx.fillStyle = grandGrad;
-    ctx.beginPath();
-    ctx.arc(floraCX, floraCY, 150, 0, Math.PI * 2);
+    ctx.arc(coreCX, coreCY, auraR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Main evolved flower (multi-tiered petals, magnificent)
     ctx.save();
-    ctx.translate(floraCX, floraCY);
+    ctx.translate(coreCX, coreCY);
     ctx.scale(coreBreathe, coreBreathe);
 
-    // Outer petal ring (8 large ruffled petals)
-    const outerPetalCount = 8;
-    for (let i = 0; i < outerPetalCount; i++) {
-      const angle = (i / outerPetalCount) * Math.PI * 2 + Math.sin(t * 0.2) * 0.04;
-      const pLen = 38 + Math.sin(t * 0.8 + i * 1.2) * 3;
+    // This is flora, so it can be emerald patterned to look cool
+    ctx.fillStyle = fillEmerald;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 36, 46, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-      ctx.save();
-      ctx.rotate(angle);
-      const opGrad = ctx.createLinearGradient(0, 0, 0, -pLen);
-      opGrad.addColorStop(0, '#4a148c');
-      opGrad.addColorStop(0.3, '#7b1fa2');
-      opGrad.addColorStop(0.6, '#ab47bc');
-      opGrad.addColorStop(0.85, '#ce93d8');
-      opGrad.addColorStop(1, '#f48fb1');
-      ctx.fillStyle = opGrad;
-      // Ruffled petal with dynamic wavy edges
+    ctx.strokeStyle = 'rgba(15, 50, 25, 0.6)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(200, 255, 220, 0.4)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI + Math.PI * 0.2;
       ctx.beginPath();
-      ctx.moveTo(0, -4);
-      ctx.bezierCurveTo(
-        -14 + Math.sin(t * 1.5 + i) * 2, -pLen * 0.35,
-        -12 + Math.sin(t * 1.2 + i + 1) * 2, -pLen * 0.75,
-        0, -pLen
-      );
-      ctx.bezierCurveTo(
-        12 + Math.sin(t * 1.2 + i + 2) * 2, -pLen * 0.75,
-        14 + Math.sin(t * 1.5 + i + 3) * 2, -pLen * 0.35,
-        0, -4
-      );
-      ctx.fill();
-      // Petal vein
-      ctx.strokeStyle = 'rgba(255, 180, 240, 0.25)';
-      ctx.lineWidth = 0.7;
-      ctx.beginPath();
-      ctx.moveTo(0, -6);
-      ctx.lineTo(0, -pLen * 0.85);
+      ctx.moveTo(Math.cos(angle) * 9, Math.sin(angle) * 11);
+      ctx.lineTo(Math.cos(angle) * 33, Math.sin(angle) * 43);
       ctx.stroke();
-      ctx.restore();
     }
 
-    // Inner petal ring (6 brighter petals, offset rotation)
-    const innerPetalCount = 6;
-    for (let i = 0; i < innerPetalCount; i++) {
-      const angle = (i / innerPetalCount) * Math.PI * 2 + Math.PI / innerPetalCount + t * 0.05;
-      const pLen = 22 + Math.sin(t * 1.2 + i * 1.8) * 2;
+    const coreFlash = 0.6 + Math.sin(t * 2.5) * 0.4;
+    const innerGrad = ctx.createRadialGradient(0, -4, 2, 0, -4, 20);
+    innerGrad.addColorStop(0, "rgba(240, 255, 245, " + coreFlash + ")");
+    innerGrad.addColorStop(0.4, "rgba(120, 255, 160, " + (coreFlash * 0.6) + ")");
+    innerGrad.addColorStop(1, 'rgba(60, 200, 100, 0)');
+    ctx.fillStyle = innerGrad;
+    ctx.beginPath();
+    ctx.arc(0, -4, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
-      ctx.save();
-      ctx.rotate(angle);
-      const ipGrad = ctx.createLinearGradient(0, 0, 0, -pLen);
-      ipGrad.addColorStop(0, '#7b1fa2');
-      ipGrad.addColorStop(0.5, '#ba68c8');
-      ipGrad.addColorStop(1, '#f8bbd0');
-      ctx.fillStyle = ipGrad;
+    // Tendrils reach down and across the wide dome
+    const tendrilEnds = [
+      { x: -240, y: -160 }, // left high
+      { x: 230, y: -170 },  // right high
+      { x: -160, y: -100 }, // left mid
+      { x: 150, y: -110 },  // right mid
+      { x: -40, y: -92 },   // down near pod
+      { x: 45, y: -82 },    // down near pod
+    ];
+
+    for (let i = 0; i < tendrilEnds.length; i++) {
+      const end = tendrilEnds[i];
+      const midX = (coreCX + end.x) / 2 + Math.sin(t * 1.1 + i * 1.6) * 35;
+      const midY = (coreCY + end.y) / 2 + Math.cos(t * 0.8 + i * 2.1) * 25;
+
+      ctx.strokeStyle = 'rgba(100, 255, 160, 0.2)';
+      ctx.lineWidth = 8;
       ctx.beginPath();
-      ctx.moveTo(0, -3);
-      ctx.bezierCurveTo(-9, -pLen * 0.4, -7, -pLen * 0.8, 0, -pLen);
-      ctx.bezierCurveTo(7, -pLen * 0.8, 9, -pLen * 0.4, 0, -3);
-      ctx.fill();
-      ctx.restore();
-    }
+      ctx.moveTo(coreCX, coreCY);
+      ctx.quadraticCurveTo(midX, midY, end.x, end.y);
+      ctx.stroke();
 
-    // Magnificent central core
-    const coreGlow = 0.7 + Math.sin(t * 2) * 0.3;
-    const coreGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 18);
-    coreGrad.addColorStop(0, "rgba(255, 240, 255, " + coreGlow + ")");
-    coreGrad.addColorStop(0.2, "rgba(240, 180, 255, " + (coreGlow * 0.9) + ")");
-    coreGrad.addColorStop(0.5, "rgba(200, 100, 255, " + (coreGlow * 0.6) + ")");
-    coreGrad.addColorStop(1, 'rgba(150, 50, 200, 0)');
-    ctx.fillStyle = coreGrad;
-    ctx.beginPath();
-    ctx.arc(0, 0, 18, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.strokeStyle = 'rgba(140, 255, 180, 0.45)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
 
-    // Core star burst
-    ctx.fillStyle = "rgba(255, 245, 255, " + (coreGlow * 0.95) + ")";
-    ctx.beginPath();
-    ctx.arc(0, 0, 5, 0, Math.PI * 2);
-    ctx.fill();
+      const pointFrac = ((t * 0.4 + i * 0.6) % 1);
+      const omt = 1 - pointFrac;
+      const bx = omt * omt * coreCX + 2 * omt * pointFrac * midX + pointFrac * pointFrac * end.x;
+      const by = omt * omt * coreCY + 2 * omt * pointFrac * midY + pointFrac * pointFrac * end.y;
 
-    // Radiating stamen with bioluminescent glow
-    for (let i = 0; i < 8; i++) {
-      const sa = (i / 8) * Math.PI * 2 + t * 0.15;
-      const sGlow = 0.5 + Math.sin(t * 2.5 + i * 1.1) * 0.3;
-      ctx.fillStyle = "rgba(255, 200, 100, " + sGlow + ")";
+      ctx.fillStyle = 'rgba(180, 255, 200, 0.35)';
       ctx.beginPath();
-      ctx.arc(Math.cos(sa) * 10, Math.sin(sa) * 10, 2.5, 0, Math.PI * 2);
+      ctx.arc(bx, by, 11, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(230, 255, 240, 0.9)';
+      ctx.beginPath();
+      ctx.arc(bx, by, 5, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    ctx.restore(); // coreBreathe scale
-
-    // Purple bioluminescence radiating across the dome interior
-    const bioGrad = ctx.createRadialGradient(floraCX, floraCY - 20, 5, floraCX, floraCY - 20, 200);
-    bioGrad.addColorStop(0, "rgba(160, 60, 220, " + (grandGlow * 0.15) + ")");
-    bioGrad.addColorStop(0.4, "rgba(120, 40, 180, " + (grandGlow * 0.06) + ")");
-    bioGrad.addColorStop(1, 'rgba(80, 20, 150, 0)');
-    ctx.fillStyle = bioGrad;
-    ctx.beginPath();
-    ctx.arc(floraCX, floraCY - 20, 200, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore(); // tier 8
+    ctx.restore();
   }
 
   ctx.restore(); // end interior clip
 
   // =============================================
-  //  LAYER 4: DOME STRUCTURE (The Emerald Frame)
+  //  LAYER 4: DOME STRUCTURE (The Emerald U-Shape)
   // =============================================
 
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
     // Pure emerald structural framing for the dome
+    // This perfectly loops around the entire planter box, sitting exactly on y=0
     ctx.strokeStyle = fillEmerald;
     ctx.lineWidth = 6;
     domePath();
@@ -9299,6 +8456,95 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+  // =============================================
+  //  LAYER 5: EXTERNAL EFFECTS
+  // =============================================
+
+  if (t3 > 0 && t7 <= 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+    ctx.fillStyle = '#6a6a7a';
+    ctx.beginPath();
+    ctx.moveTo(-18, domeCY - domeH + 7);
+    ctx.lineTo(18, domeCY - domeH + 7);
+    ctx.lineTo(12, domeCY - domeH + 24);
+    ctx.lineTo(-12, domeCY - domeH + 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#8a8a9a';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const lampPulse = 0.5 + Math.sin(t * 2) * 0.25;
+    const warmGrad = ctx.createRadialGradient(0, domeCY - domeH + 15, 3, 0, domeCY - domeH + 15, 55);
+    warmGrad.addColorStop(0, "rgba(255, 200, 80, " + (lampPulse * 0.5) + ")");
+    warmGrad.addColorStop(0.4, "rgba(255, 160, 40, " + (lampPulse * 0.25) + ")");
+    warmGrad.addColorStop(1, 'rgba(255, 140, 20, 0)');
+    ctx.fillStyle = warmGrad;
+    ctx.beginPath();
+    ctx.arc(0, domeCY - domeH + 15, 55, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    ctx.fillStyle = fillEmerald;
+    ctx.beginPath();
+    ctx.moveTo(-18, domeCY - domeH + 7);
+    ctx.lineTo(18, domeCY - domeH + 7);
+    ctx.lineTo(12, domeCY - domeH + 24);
+    ctx.lineTo(-12, domeCY - domeH + 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(30, 80, 40, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const greenPulse = 0.5 + Math.sin(t * 2) * 0.25;
+    const greenGrad = ctx.createRadialGradient(0, domeCY - domeH + 15, 3, 0, domeCY - domeH + 15, 55);
+    greenGrad.addColorStop(0, "rgba(80, 255, 120, " + (greenPulse * 0.5) + ")");
+    greenGrad.addColorStop(0.4, "rgba(40, 200, 80, " + (greenPulse * 0.25) + ")");
+    greenGrad.addColorStop(1, 'rgba(30, 150, 60, 0)');
+    ctx.fillStyle = greenGrad;
+    ctx.beginPath();
+    ctx.arc(0, domeCY - domeH + 15, 55, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    const sparkles = [
+      { x: -260, y: -45 }, { x: 260, y: -55 },
+      { x: -210, y: -135 }, { x: 190, y: -145 },
+      { x: -110, y: -215 }, { x: 100, y: -210 },
+      { x: 0, y: -260 }, { x: -155, y: -65 },
+      { x: 165, y: -65 }, { x: -240, y: -95 },
+    ];
+
+    for (let i = 0; i < sparkles.length; i++) {
+      const sp = sparkles[i];
+      const twinkle = Math.sin(t * 3.5 + i * 1.9) * 0.5 + 0.5;
+
+      if (twinkle > 0.65) {
+        const alpha = (twinkle - 0.65) * 2.85;
+        ctx.fillStyle = "rgba(180, 255, 200, " + (alpha * 0.3) + ")";
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(230, 255, 240, " + alpha + ")";
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(220, 255, 235, " + (alpha * 0.5) + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(sp.x - 8, sp.y); ctx.lineTo(sp.x + 8, sp.y);
+        ctx.moveTo(sp.x, sp.y - 8); ctx.lineTo(sp.x, sp.y + 8);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   ctx.restore();
 }
 
