@@ -365,7 +365,7 @@ export const MERCHANT_DIALOGUES = {
     m3c: { type: 'line', say: 'At least 3.', next: 'c3b' },
     m3d: { type: 'line', say: 'My Magic can do a few things.', next: 'c3c' },
     m3e: { type: 'line', say: 'They’re just built different.', next: 'c5a' },
-    m3f: { type: 'line', say: 'Don’t.', next: 'c5a' },
+    m3f: { type: 'line', say: 'You will regret it.', next: 'c5a' },
     m3g: { type: 'line', say: 'Common sense.', next: 'c5a' },
     m3h: { type: 'line', say: 'Wow, that’s kind of hurtful. Also no.', next: 'c5a' },
     m3i: { type: 'line', say: 'Yes.', next: 'c3d' },
