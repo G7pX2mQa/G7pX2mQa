@@ -26,9 +26,9 @@
   font-size: var(--h1);
   letter-spacing: 0.5px;
   color: #ffeb3b;
-  -webkit-text-stroke: 2px black;
+  -webkit-text-stroke: calc(2px * var(--stroke-mult, 1)) black;
   -webkit-text-stroke-width: calc(2px * var(--stroke-mult, 1));
-  text-stroke: 2px black;
+  text-stroke: calc(2px * var(--stroke-mult, 1)) black;
   text-stroke-width: calc(2px * var(--stroke-mult, 1));
   user-select: none;
 }
@@ -101,9 +101,9 @@
   font-weight: 700;
   color: #fff;
   margin-bottom: var(--space-2);
-  -webkit-text-stroke: 0.5px black;
+  -webkit-text-stroke: calc(0.5px * var(--stroke-mult, 1)) black;
   -webkit-text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
-  text-stroke: 0.5px black;
+  text-stroke: calc(0.5px * var(--stroke-mult, 1)) black;
   text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
   line-height: 1.1;
 }
