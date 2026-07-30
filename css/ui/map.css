@@ -215,7 +215,7 @@
     font-weight: bold;
     font-size: clamp(8px, 1.2vw, 18px);
     color: white;
-    -webkit-text-stroke: clamp(0.25px, calc(0.1px + 0.06vw), 0.5px) #000;
+    -webkit-text-stroke: calc(clamp(0.25px, calc(0.1px + 0.06vw), 0.5px) * var(--stroke-mult, 1)) #000;
     pointer-events: none;
 }
 
