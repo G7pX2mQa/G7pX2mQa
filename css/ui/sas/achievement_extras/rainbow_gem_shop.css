@@ -63,7 +63,7 @@
   color: white;
   pointer-events: none;
   text-align: center;
-  -webkit-text-stroke: 0.75px black;
+  -webkit-text-stroke: calc(0.75px * var(--stroke-mult, 1)) black;
   -webkit-text-stroke-width: calc(0.75px * var(--stroke-mult, 1));
   text-shadow: -0.75px -0.75px 0 #000, 0.75px -0.75px 0 #000, -0.75px 0.75px 0 #000, 0.75px 0.75px 0 #000, 0 1.5px 3px rgba(0,0,0,0.8);
 }
