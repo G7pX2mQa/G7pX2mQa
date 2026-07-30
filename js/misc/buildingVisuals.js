@@ -553,15 +553,9 @@ export function stopCanvasLoop() {
   }
 
   if (wasOpeningOrOpen) {
-    const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
-    if (closeBtn) closeBtn.style.removeProperty('display');
-    const btnBuy = document.getElementById('building-btn-buy');
-    if (btnBuy) btnBuy.style.removeProperty('display');
-    const btnBuyMax = document.getElementById('building-btn-buy-max');
-    if (btnBuyMax) btnBuyMax.style.removeProperty('display');
-    const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-    if (btnBuyCheap) btnBuyCheap.style.removeProperty('display');
-
+    if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
+      window.resetSystem.updateBuildingsOverlayUi();
+    }
     window.dispatchEvent(new CustomEvent('audio:restartMusic'));
   }
 }
@@ -8902,15 +8896,6 @@ function handleVaultCanvasKeyDown(e) {
       if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
         window.resetSystem.updateBuildingsOverlayUi();
       }
-
-      const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
-      if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
-      const btnBuy = document.getElementById('building-btn-buy');
-      if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
-      const btnBuyMax = document.getElementById('building-btn-buy-max');
-      if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
-      const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-      if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
     } else if (newLen === oldLen + 1) {
       playAudio("sounds/correct.ogg", { volume: 0.67 });
     } else {
@@ -8978,15 +8963,6 @@ function handleVaultCanvasClick(e) {
             if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
               window.resetSystem.updateBuildingsOverlayUi();
             }
-
-            const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
-            if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
-            const btnBuy = document.getElementById('building-btn-buy');
-            if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
-            const btnBuyMax = document.getElementById('building-btn-buy-max');
-            if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
-            const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-            if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
           } else if (newLen === oldLen + 1) {
             playAudio("sounds/correct.ogg", { volume: 0.67 });
           } else {
