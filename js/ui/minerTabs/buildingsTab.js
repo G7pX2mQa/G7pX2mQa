@@ -1574,16 +1574,16 @@ export function updateOverlayUi() {
         // EXCEPT if "Only show Building" mode is currently active.
         const isInfinite = levelBn && typeof levelBn.isInfinite === 'function' && levelBn.isInfinite();
 
-        if (levelText) levelText.style.visibility = isOnlyBuilding ? 'hidden' : '';
-        if (costsText) costsText.style.visibility = isOnlyBuilding ? 'hidden' : '';
-        if (bonusRow) bonusRow.style.visibility = isOnlyBuilding ? 'hidden' : '';
-        if (costRow) costRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : '';
-        if (walletRow) walletRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : '';
+        if (levelText) { levelText.style.removeProperty('display'); levelText.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
+        if (costsText) { costsText.style.removeProperty('display'); costsText.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
+        if (bonusRow) { bonusRow.style.removeProperty('display'); bonusRow.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
+        if (costRow) { costRow.style.removeProperty('display'); costRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : ''; }
+        if (walletRow) { walletRow.style.removeProperty('display'); walletRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : ''; }
 
         const upgHeader = document.querySelector('#building-detail-overlay .upg-header');
-        if (upgHeader) upgHeader.style.visibility = isOnlyBuilding ? 'hidden' : '';
+        if (upgHeader) { upgHeader.style.removeProperty('display'); upgHeader.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
         const onlyBuildingBtn = document.querySelector('#building-detail-overlay .only-building-btn');
-        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = isOnlyBuilding ? 'hidden' : '';
+        if (onlyBuildingBtn) { onlyBuildingBtn.style.removeProperty('display'); onlyBuildingBtn.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
 
         // Restore/hide grab handle based on "Only show Building" mode
         if (grabHandle) {
@@ -1611,9 +1611,9 @@ export function updateOverlayUi() {
             if (btnBuyMax) btnBuyMax.style.display = 'none';
             if (btnBuyCheap) btnBuyCheap.style.display = 'none';
         } else {
-            if (btnBuy) btnBuy.style.visibility = isOnlyBuilding ? 'hidden' : '';
-            if (btnBuyMax) btnBuyMax.style.visibility = isOnlyBuilding ? 'hidden' : '';
-            if (btnBuyCheap) btnBuyCheap.style.visibility = isOnlyBuilding ? 'hidden' : '';
+            if (btnBuy) { btnBuy.style.removeProperty('display'); btnBuy.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
+            if (btnBuyMax) { btnBuyMax.style.removeProperty('display'); btnBuyMax.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
+            if (btnBuyCheap) { btnBuyCheap.style.removeProperty('display'); btnBuyCheap.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
         }
 
         const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
