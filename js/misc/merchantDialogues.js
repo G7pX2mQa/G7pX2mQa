@@ -216,7 +216,7 @@ export const MERCHANT_DIALOGUES = {
       ]},
 
       c2b: { type: 'choice', options: [
-        { label: 'What does “increase” mean?', to: 'm3b' },
+        { label: 'Why do I need to do this in the first place?', to: 'm3b' },
         { label: 'Why does it work like that?', to: 'm3c' },
         { label: 'Okay.',                       to: 'm4a' },
       ]},
