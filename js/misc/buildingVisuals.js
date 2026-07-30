@@ -7924,7 +7924,9 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   if (t0 > 0 && t4 <= 0) {
     ctx.save();
     ctx.globalAlpha = t0;
-    const swayAngle = Math.sin(t * 1.5) * 0.08;
+    const swayAmount = Math.sin(t * 1.5);
+    const swayAngle = swayAmount * 0.08; 
+    const tipX = swayAmount * 0.3; // Barely any bend at all!
     
     // Main center sprout
     ctx.save();
@@ -7938,13 +7940,15 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(3, -15, 0, -35); // smooth gentle curve
+    // Base is stiff, top bends very gently. Perfectly straight resting state.
+    ctx.quadraticCurveTo(0, -17, tipX, -35);
     ctx.stroke();
     
-    // Left leaf (attached directly to the stem)
-    drawDetailedLeaf(2, -22, -0.9, 22, 10, '#55d048', '#3aad30', '#2d8a24');
-    // Right leaf (attached directly to the stem)
-    drawDetailedLeaf(1.5, -24, 0.8, 20, 9, '#55d048', '#3aad30', '#2d8a24');
+    // Leaves attach exactly where they originally were (y=-23).
+    // Math: Curve X(u) = u^2 * tipX. u = 23/35 = 0.657, so X shift is 0.43 * tipX
+    let leafOffsetX = tipX * 0.43;
+    drawDetailedLeaf(-1 + leafOffsetX, -23, -0.9, 21, 9.5, '#55d048', '#3aad30', '#2d8a24'); // Left leaf (Bright outside, Dark inside)
+    drawDetailedLeaf(1 + leafOffsetX, -23, 0.9, 21, 9.5, '#3aad30', '#55d048', '#2d8a24'); // Right leaf (Dark inside, Bright outside)
 
     ctx.restore();
     ctx.restore();
