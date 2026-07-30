@@ -115,6 +115,7 @@ export function createSASOverlay({ id, title, containerClass, zIndex = '4010', f
     if (isOpen) return;
     isOpen = true;
 
+    overlayEl.style.transition = 'none';
     sheetEl.style.transition = 'none';
     sheetEl.style.transform = 'translateY(100%)';
     overlayEl.style.pointerEvents = 'auto';
@@ -123,6 +124,7 @@ export function createSASOverlay({ id, title, containerClass, zIndex = '4010', f
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        overlayEl.style.transition = '';
         sheetEl.style.transition = '';
         sheetEl.style.transform = '';
         overlayEl.classList.add('is-open');
@@ -168,10 +170,19 @@ export function createSASOverlay({ id, title, containerClass, zIndex = '4010', f
 
     isOpen = false;
     if (sheetEl) {
-      sheetEl.style.transition = '';
+      if (forceClose) {
+        sheetEl.style.transition = 'none';
+      } else {
+        sheetEl.style.transition = '';
+      }
       sheetEl.style.transform = '';
     }
     if (overlayEl) {
+      if (forceClose) {
+        overlayEl.style.transition = 'none';
+      } else {
+        overlayEl.style.transition = '';
+      }
       overlayEl.classList.remove('is-open');
       overlayEl.style.pointerEvents = 'none';
     }
