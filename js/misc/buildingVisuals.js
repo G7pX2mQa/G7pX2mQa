@@ -856,7 +856,9 @@ function draw(ctx, keypadCtx, width, height, t) {
         : tierUpAnimTime / 2.5;
     const shake = Math.sin(t * 50) * (shakeAlpha * 10);
     const shakeY = Math.cos(t * 40) * (shakeAlpha * 5);
-    ctx.translate(shake, shakeY);
+    ctx.translate(width / 2, height / 2);
+    ctx.scale(1.05, 1.05);
+    ctx.translate(-width / 2 + shake, -height / 2 + shakeY);
   }
 
   drawCavern(ctx, width, height, t);
@@ -7914,19 +7916,21 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
   };
 
-  // --- Tier 0: Realistic Sprout (Drawn before ground to hide base naturally) ---
-  if (t0 > 0 && t4 <= 0) {
+  // --- Tier 0-3: Evolving Sprout (Drawn before ground to hide base naturally) ---
+  if (t0 > 0 && t4 < 1) {
     ctx.save();
-    ctx.globalAlpha = t0;
+    ctx.globalAlpha = t0 * (1 - t4);
     const swayAmount = Math.sin(t * 1.5);
     const swayAngle = swayAmount * 0.08; 
-    const tipX = swayAmount * 0.3; // Barely any bend at all!
+    const growth = t1 * 0.4 + t2 * 0.5 + t3 * 0.6 + t4 * 0.3; 
+    const sproutScale = 1.0 + growth;
+    const tipX = swayAmount * 3 * sproutScale;
     
     // Main center sprout
     ctx.save();
     // Translate slightly below ground level (-28) so the stem gets buried naturally
     ctx.translate(0, -20); 
-    ctx.rotate(swayAngle);
+    ctx.scale(sproutScale, sproutScale);
     
     // Organic Stem
     ctx.strokeStyle = '#3aad30';
@@ -7934,15 +7938,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    // Base is stiff, top bends very gently. Perfectly straight resting state.
-    ctx.quadraticCurveTo(0, -17, tipX, -35);
+    ctx.bezierCurveTo(0, -15, tipX * 0.5, -25, tipX, -35);
     ctx.stroke();
     
     // Leaves attach exactly where they originally were (y=-23).
-    // Math: Curve X(u) = u^2 * tipX. u = 23/35 = 0.657, so X shift is 0.43 * tipX
-    let leafOffsetX = tipX * 0.43;
-    drawDetailedLeaf(-1 + leafOffsetX, -23, -0.9, 21, 9.5, '#55d048', '#3aad30', '#2d8a24'); // Left leaf (Bright outside, Dark inside)
-    drawDetailedLeaf(1 + leafOffsetX, -23, 0.9, 21, 9.5, '#3aad30', '#55d048', '#2d8a24'); // Right leaf (Dark inside, Bright outside)
+    let leafOffsetX = tipX * 0.6;
+    drawDetailedLeaf(-1 + leafOffsetX, -23, -0.9 + swayAngle, 21, 9.5, '#55d048', '#3aad30', '#2d8a24'); // Left leaf (Bright outside, Dark inside)
+    drawDetailedLeaf(1 + leafOffsetX, -23, 0.9 + swayAngle, 21, 9.5, '#3aad30', '#55d048', '#2d8a24'); // Right leaf (Dark inside, Bright outside)
 
     ctx.restore();
     ctx.restore();
@@ -8000,9 +8002,21 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const rayOriginX = hw * Math.cos(theta);
         const rayOriginY = domeCY - domeH * Math.sin(theta);
 
-        const pseudoRand = Math.sin(i * 123.45);
-        const angleSway = Math.sin(t * 0.5 + i * 1.7) * 40;
-        const targetX = rayOriginX + pseudoRand * 200 + angleSway;
+        // Rays elegantly focus towards the center plant area
+        const sway = Math.sin(t * 0.5 + i * 1.7) * 40;
+        const targetX = 0 + sway;
+        const targetY = -22; 
+        
+        const dx = targetX - rayOriginX;
+        const dy = targetY - rayOriginY;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        const nx = dx/len;
+        const ny = dy/len;
+        
+        // Ray reaches floor level
+        const distanceToFloor = (domeCY - rayOriginY) / ny;
+        const floorX = rayOriginX + nx * distanceToFloor;
+        
         const rayWidth = 35 + Math.sin(t * 0.8 + i * 1.2) * 15;
         
         const rayAlpha = 0.12 + Math.sin(t * 1.1 + i * 2.3) * 0.06;
@@ -8012,103 +8026,86 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const rMid = isMagic ? '220, 150, 255' : '255, 220, 120';
         const rBot = isMagic ? '180, 100, 255' : '255, 200, 100';
 
-        const rayGrad = ctx.createLinearGradient(rayOriginX, rayOriginY, targetX, domeCY);
+        const rayGrad = ctx.createLinearGradient(rayOriginX, rayOriginY, floorX, domeCY);
         rayGrad.addColorStop(0, `rgba(${rTop}, ${rayAlpha * 1.8})`);
         rayGrad.addColorStop(0.5, `rgba(${rMid}, ${rayAlpha * 0.8})`);
         rayGrad.addColorStop(1, `rgba(${rBot}, 0)`);
         
         ctx.fillStyle = rayGrad;
         ctx.beginPath();
-        ctx.moveTo(rayOriginX - 5, rayOriginY);
-        ctx.lineTo(rayOriginX + 5, rayOriginY);
-        ctx.lineTo(targetX + rayWidth, domeCY);
-        ctx.lineTo(targetX - rayWidth, domeCY);
+        // Construct thick polygon for the ray
+        ctx.moveTo(rayOriginX - ny*5, rayOriginY + nx*5);
+        ctx.lineTo(rayOriginX + ny*5, rayOriginY - nx*5);
+        ctx.lineTo(floorX + rayWidth, domeCY);
+        ctx.lineTo(floorX - rayWidth, domeCY);
         ctx.fill();
     }
     ctx.restore();
   }
 
-  // --- Tier 7: Bioluminescent Undergrowth & Crystals (NEW) ---
+  // --- Tier 7: Blooming Lotus Ponds ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
 
-    // Glowing Moss Patches spreading on the dirt
-    for(let i=0; i<9; i++) {
-        const mx = -240 + i * 60 + Math.sin(i*9)*15;
-        const my = -24 + Math.cos(i*7)*3;
-        const mr = 15 + Math.sin(i*11)*5;
-        
-        const pulse = 0.6 + Math.sin(t * 1.5 + i * 2.2) * 0.4;
-        
-        // Moss aura
-        const mGrad = ctx.createRadialGradient(mx, my, 0, mx, my, mr * 2);
-        const isCyan = i % 2 === 0;
-        const rColor = isCyan ? '0, 255, 255' : '255, 50, 200';
-        
-        mGrad.addColorStop(0, `rgba(${rColor}, ${pulse * 0.5})`);
-        mGrad.addColorStop(1, `rgba(${rColor}, 0)`);
-        ctx.fillStyle = mGrad;
-        ctx.beginPath();
-        ctx.arc(mx, my, mr * 2, 0, Math.PI*2);
-        ctx.fill();
+    const pondSpots = [-160, 160];
+    for (let i = 0; i < pondSpots.length; i++) {
+        const px = pondSpots[i];
+        const py = -24;
+        const pondW = 60;
+        const pondH = 15;
 
-        // Moss solid body
-        ctx.fillStyle = isCyan ? `rgba(0, 200, 200, ${pulse})` : `rgba(200, 0, 200, ${pulse})`;
-        ctx.beginPath();
-        ctx.ellipse(mx, my, mr, mr*0.4, 0, 0, Math.PI*2);
-        ctx.fill();
-    }
+        // Water base
+        ctx.fillStyle = 'rgba(20, 80, 150, 0.7)';
+        ctx.beginPath(); ctx.ellipse(px, py, pondW, pondH, 0, 0, Math.PI*2); ctx.fill();
 
-    // Glowing Crystal Shards sprouting from the ground
-    const crystalSpots = [-180, -120, 120, 180];
-    for (let i=0; i<crystalSpots.length; i++) {
-        const cx = crystalSpots[i];
-        const cy = -26;
+        // Ripples
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        const rippleT = (t * 0.8 + i) % 2;
+        ctx.beginPath(); ctx.ellipse(px, py, pondW * rippleT, pondH * rippleT, 0, 0, Math.PI*2); ctx.stroke();
+
+        // Blooming Lotus
+        ctx.save();
+        ctx.translate(px, py - 2);
         
-        const cPulse = 0.5 + Math.sin(t * 2.1 + i * 1.7) * 0.5;
-        const isMagenta = i === 1 || i === 2; // inner crystals are magenta
-        const cColorBase = isMagenta ? '255, 50, 200' : '50, 255, 200';
-        const cColorDark = isMagenta ? '150, 20, 100' : '20, 150, 100';
-
-        // Crystal Aura
-        const cGrad = ctx.createRadialGradient(cx, cy-15, 0, cx, cy-15, 40);
-        cGrad.addColorStop(0, `rgba(${cColorBase}, ${cPulse * 0.4})`);
-        cGrad.addColorStop(1, `rgba(${cColorBase}, 0)`);
+        // Lotus glow
+        const lotusGlow = 0.5 + Math.sin(t * 2 + i)*0.3;
+        const cGrad = ctx.createRadialGradient(0, -5, 0, 0, -5, 25);
+        cGrad.addColorStop(0, `rgba(255, 100, 200, ${lotusGlow})`);
+        cGrad.addColorStop(1, 'rgba(255, 100, 200, 0)');
         ctx.fillStyle = cGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy-15, 40, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -5, 25, 0, Math.PI*2); ctx.fill();
 
-        // Main shard (Left face)
-        ctx.fillStyle = `rgba(${cColorBase}, ${0.8 + cPulse*0.2})`;
-        ctx.beginPath();
-        ctx.moveTo(cx - 5, cy);
-        ctx.lineTo(cx, cy - 35);
-        ctx.lineTo(cx + 5, cy);
-        ctx.fill();
-
-        // Main shard (Right face shading)
-        ctx.fillStyle = `rgba(${cColorDark}, 0.7)`;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx, cy - 35);
-        ctx.lineTo(cx + 5, cy);
-        ctx.fill();
-
-        // Secondary small side shard
-        ctx.fillStyle = `rgba(${cColorBase}, ${0.6 + cPulse*0.4})`;
-        ctx.beginPath();
-        ctx.moveTo(cx + 3, cy);
-        ctx.lineTo(cx + 12, cy - 20);
-        ctx.lineTo(cx + 8, cy);
-        ctx.fill();
-        ctx.fillStyle = `rgba(${cColorDark}, 0.7)`;
-        ctx.beginPath();
-        ctx.moveTo(cx + 7.5, cy);
-        ctx.lineTo(cx + 12, cy - 20);
-        ctx.lineTo(cx + 8, cy);
-        ctx.fill();
+        // Petals
+        const numPetals = 8;
+        for (let p = 0; p < numPetals; p++) {
+            ctx.save();
+            const angle = (p / numPetals) * Math.PI + Math.PI; // Top half
+            const openAmt = 0.3 + Math.sin(t * 1.5 + i)*0.1;
+            ctx.rotate(angle + (angle - Math.PI*1.5)*openAmt);
+            ctx.fillStyle = 'rgba(255, 150, 220, 0.9)';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(8, -8, 0, -18);
+            ctx.quadraticCurveTo(-8, -8, 0, 0);
+            ctx.fill();
+            // Vein
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-16); ctx.stroke();
+            ctx.restore();
+        }
+        
+        // Center pad
+        ctx.fillStyle = '#ffdf55';
+        ctx.beginPath(); ctx.ellipse(0, 0, 4, 2, 0, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+        
+        // Floating lily pads
+        ctx.fillStyle = '#2d8a24';
+        ctx.beginPath(); ctx.ellipse(px - 20, py + 5, 8, 3, 0.2, 0, Math.PI*2 - 0.5); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(px + 25, py - 3, 6, 2, -0.2, 0, Math.PI*2 - 0.5); ctx.fill();
     }
 
     ctx.restore();
@@ -8124,19 +8121,19 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Draw intricate clusters of ferns and monstera-like broad leaves framing the edges
     // Leaving the center clear for the main Tier 4/8 flower!
     const leafClusters = [
-        // Left Side Group
-        {x: -240, y: -22, r: -0.8, l: 60, w: 25, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0},
-        {x: -220, y: -22, r: -0.5, l: 80, w: 32, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.1},
-        {x: -180, y: -22, r: -0.3, l: 95, w: 38, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.2},
-        {x: -140, y: -22, r: -0.6, l: 70, w: 28, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.3, phase: 0.5},
-        {x: -90, y: -22, r: -0.4, l: 50, w: 22, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.1, phase: 1.5},
+        // Left Side Group (Scaled down and pushed in slightly)
+        {x: -220, y: -22, r: -0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0},
+        {x: -200, y: -22, r: -0.5, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.1},
+        {x: -160, y: -22, r: -0.3, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.2},
+        {x: -120, y: -22, r: -0.6, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.3, phase: 0.5},
+        {x: -80, y: -22, r: -0.4, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.1, phase: 1.5},
 
-        // Right Side Group
-        {x: 240, y: -22, r: 0.8, l: 65, w: 26, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0.5},
-        {x: 210, y: -22, r: 0.4, l: 85, w: 34, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.6},
-        {x: 170, y: -22, r: 0.25, l: 100, w: 40, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.7},
-        {x: 130, y: -22, r: 0.5, l: 75, w: 30, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.4, phase: 1.0},
-        {x: 80, y: -22, r: 0.35, l: 55, w: 24, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 2.0}
+        // Right Side Group (Perfectly mirrored coordinates)
+        {x: 220, y: -22, r: 0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0.5},
+        {x: 200, y: -22, r: 0.4, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.6},
+        {x: 160, y: -22, r: 0.25, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.7},
+        {x: 120, y: -22, r: 0.5, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.4, phase: 1.0},
+        {x: 80, y: -22, r: 0.35, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 2.0}
     ];
 
     for (let c of leafClusters) {
@@ -8180,7 +8177,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.globalAlpha = t1 * Math.min(1, (t1 - 0.05) * 2);
       for (let i = 0; i < nozzleXs.length; i++) {
         const nx = nozzleXs[i];
-        const fallDist = Math.abs(-22 - (pipeY + 4)); 
+        const fallDist = Math.abs(-26 - (pipeY + 4)); 
         const dropSpeed = 140; 
         const dropLifetime = fallDist / dropSpeed;
         
@@ -8208,16 +8205,16 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
               ctx.strokeStyle = 'rgba(120, 200, 255, 0.6)';
               ctx.lineWidth = 1.5;
               ctx.beginPath();
-              ctx.ellipse(nx, -22, 4 + splashT * 10, 1.5 + splashT * 4, 0, 0, Math.PI*2);
+              ctx.ellipse(nx, -26, 4 + splashT * 10, 1.5 + splashT * 4, 0, 0, Math.PI*2);
               ctx.stroke();
 
               ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
               const pDist = splashT * 8; 
               const pHeight = Math.sin(splashT * Math.PI) * 6; 
               
-              ctx.beginPath(); ctx.arc(nx - pDist, -22 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-              ctx.beginPath(); ctx.arc(nx + pDist, -22 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-              ctx.beginPath(); ctx.arc(nx, -22 - pHeight * 1.2, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx - pDist, -26 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx + pDist, -26 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx, -26 - pHeight * 1.2, 1.5, 0, Math.PI*2); ctx.fill();
               
               ctx.restore();
           }
@@ -8265,19 +8262,19 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 5: Integrated Giant Vines (Drawn behind the T4/T8 flower) ---
+  // --- Tier 5: Environmental Green Vines (Disconnected from main plant) ---
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
 
-    // Vines originate from the central flower base (x=0, y=-22) and snake outwards/upwards
+    // Vines originate from the left and right edges of the planter box and snake up the walls
     const vineDefs = [
-      { ex: -210, ey: -150, cx1: -50, cy1: -120, cx2: -150, cy2: -40, spd: 0.7, ph: 0, amp: 12, w: 8, col: '#4b0082' },
-      { ex: 190, ey: -170, cx1: 50, cy1: -120, cx2: 150, cy2: -40, spd: 0.6, ph: 1.5, amp: 14, w: 9, col: '#3a0066' },
-      { ex: -120, cy: -220, cx1: -30, cy1: -180, cx2: -100, cy2: -100, spd: 0.9, ph: 3.0, amp: 10, w: 6, col: '#5c0099' },
-      { ex: 130, ey: -210, cx1: 30, cy1: -180, cx2: 100, cy2: -100, spd: 0.8, ph: 4.5, amp: 11, w: 7, col: '#4b0082' },
-      { ex: -60, ey: -250, cx1: -10, cy1: -200, cx2: -50, cy2: -150, spd: 0.5, ph: 2.0, amp: 8, w: 7, col: '#3a0066' },
-      { ex: 70, ey: -240, cx1: 10, cy1: -200, cx2: 50, cy2: -150, spd: 0.65, ph: 3.5, amp: 9, w: 6, col: '#5c0099' },
+      { sx: -250, sy: -22, ex: -210, ey: -150, cx1: -260, cy1: -80, cx2: -180, cy2: -110, spd: 0.7, ph: 0, amp: 12, w: 8, col: '#2e8a2a' },
+      { sx: 250, sy: -22, ex: 190, ey: -170, cx1: 260, cy1: -90, cx2: 160, cy2: -120, spd: 0.6, ph: 1.5, amp: 14, w: 9, col: '#21731f' },
+      { sx: -220, sy: -22, ex: -120, ey: -220, cx1: -200, cy1: -120, cx2: -100, cy2: -170, spd: 0.9, ph: 3.0, amp: 10, w: 6, col: '#35a133' },
+      { sx: 220, sy: -22, ex: 130, ey: -210, cx1: 200, cy1: -120, cx2: 110, cy2: -160, spd: 0.8, ph: 4.5, amp: 11, w: 7, col: '#287522' },
+      { sx: -190, sy: -22, ex: -60, ey: -250, cx1: -160, cy1: -140, cx2: -50, cy2: -190, spd: 0.5, ph: 2.0, amp: 8, w: 7, col: '#1c5e20' },
+      { sx: 190, sy: -22, ex: 70, ey: -240, cx1: 160, cy1: -140, cx2: 60, cy2: -180, spd: 0.65, ph: 3.5, amp: 9, w: 6, col: '#35a133' },
     ];
 
     for (const v of vineDefs) {
@@ -8286,15 +8283,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       // Calculate smooth cubic bezier path for the vine
       for (let s = 0; s <= segs; s++) {
         const frac = s / segs;
-        // Wobble perpendicular to growth direction
         const wobble = Math.sin(t * v.spd + v.ph + frac * Math.PI * 2) * v.amp * Math.sin(frac * Math.PI);
         
-        // Cubic bezier interpolation formula
         const omt = 1 - frac;
-        const bx = omt*omt*omt*0 + 3*omt*omt*frac*v.cx1 + 3*omt*frac*frac*v.cx2 + frac*frac*frac*v.ex;
-        const by = omt*omt*omt*-22 + 3*omt*omt*frac*v.cy1 + 3*omt*frac*frac*v.cy2 + frac*frac*frac*v.ey;
+        const bx = omt*omt*omt*v.sx + 3*omt*omt*frac*v.cx1 + 3*omt*frac*frac*v.cx2 + frac*frac*frac*v.ex;
+        const by = omt*omt*omt*v.sy + 3*omt*omt*frac*v.cy1 + 3*omt*frac*frac*v.cy2 + frac*frac*frac*v.ey;
         
-        // Approximate normal for realistic wobble
         let nx = 1, ny = 0;
         if (s > 0 && points.length > 0) {
             const dx = bx - points[points.length-1].bx;
@@ -8307,6 +8301,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           bx: bx, by: by,
           x: bx + nx * wobble,
           y: by + ny * wobble,
+          nx: nx, ny: ny
         });
       }
 
@@ -8322,96 +8317,106 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       }
       ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
       
-      // Multi-pass stroke for 3D tubular effect
-      ctx.strokeStyle = '#1a0033'; 
-      ctx.lineWidth = v.w + 4;
+      // Shadow stroke
+      ctx.strokeStyle = '#0d2b0e'; 
+      ctx.lineWidth = v.w + 3;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.stroke();
 
+      // Main color
       ctx.strokeStyle = v.col; 
       ctx.lineWidth = v.w;
       ctx.stroke();
 
-      ctx.strokeStyle = '#9933ff'; // Magenta rim highlight
+      // Highlight
+      ctx.strokeStyle = '#4cc940'; 
       ctx.lineWidth = v.w * 0.3;
       ctx.stroke();
 
-      // Glowing bioluminescent nodes along the vines
-      for (let n = 1; n <= 4; n++) {
-        const nIdx = Math.floor(n * segs / 5);
-        if (nIdx >= points.length) continue;
-        const np = points[nIdx];
-
-        const glowPhase = (t * 1.5 + v.ph + n * 2.3) % (Math.PI * 2);
-        const nodeGlow = Math.max(0, Math.sin(glowPhase));
-
-        if (nodeGlow > 0.05) {
-          ctx.fillStyle = `rgba(255, 100, 255, ${nodeGlow * 0.5})`;
-          ctx.beginPath(); ctx.arc(np.x, np.y, 8, 0, Math.PI * 2); ctx.fill();
-          
-          ctx.fillStyle = `rgba(255, 200, 255, ${nodeGlow * 0.9})`;
-          ctx.beginPath(); ctx.arc(np.x, np.y, 3, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-      
-      // Add sharp thorns jutting out from vine
-      ctx.fillStyle = '#1a0033';
-      for(let s = 2; s < points.length - 2; s+=2) {
+      // Leaves along the vine
+      ctx.fillStyle = v.col;
+      for (let s = 2; s < points.length - 2; s += 3) {
           const p = points[s];
-          const prev = points[s-1];
-          const dx = p.x - prev.x; const dy = p.y - prev.y;
-          const len = Math.sqrt(dx*dx + dy*dy);
-          const nx = -dy/len; const ny = dx/len;
-          const dir = (s % 4 === 0) ? 1 : -1;
-          
+          const dir = (s % 2 === 0) ? 1 : -1;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          // Angle perpendicular to vine
+          ctx.rotate(Math.atan2(p.ny, p.nx) + dir * 1.5 + Math.sin(t*2+s)*0.2);
           ctx.beginPath();
-          ctx.moveTo(p.x + nx * v.w * 0.5 * dir, p.y + ny * v.w * 0.5 * dir);
-          ctx.lineTo(p.x + nx * v.w * 1.5 * dir - ny * 3, p.y + ny * v.w * 1.5 * dir + nx * 3);
-          ctx.lineTo(p.x + nx * v.w * 0.2 * dir + dy * 0.5, p.y + ny * v.w * 0.2 * dir - dx * 0.5);
+          ctx.ellipse(8, 0, 8, 4, 0, 0, Math.PI*2);
           ctx.fill();
+          ctx.restore();
       }
+
     }
     ctx.restore();
   }
 
-  // --- Tier 4: Rooted Purple Blossom ---
+  // --- Tier 4: Rooted Purple Blossom & Wildlife ---
   if (t4 > 0 && t8 <= 0) {
     ctx.save();
     ctx.globalAlpha = t4;
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.05;
+    // Scale up based on T5, T6, T7 progress
+    const blossomGrowth = t5 * 0.15 + t6 * 0.15 + t7 * 0.2; 
+    const blossomScale = breathe * (1.0 + blossomGrowth);
+    
     const flowerCX = 0;
     const flowerCY = -90; 
+    
+    // Add glowing bees/wildlife buzzing around the blossom
+    ctx.save();
+    for (let i = 0; i < 12; i++) {
+        const beeT = t * (0.8 + i*0.1) + i * 5;
+        const bx = flowerCX + Math.sin(beeT * 1.3) * (60 + Math.cos(beeT * 0.7)*30);
+        const by = flowerCY + Math.cos(beeT * 1.1) * (50 + Math.sin(beeT * 0.9)*20);
+        
+        ctx.translate(bx, by);
+        // Bee glow
+        ctx.fillStyle = `rgba(255, 255, 100, ${0.4 + Math.sin(beeT*10)*0.2})`;
+        ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+        // Bee body
+        ctx.fillStyle = '#ffff66';
+        ctx.beginPath(); ctx.ellipse(0, 0, 3, 2, Math.sin(beeT*3)*0.5, 0, Math.PI*2); ctx.fill();
+        // Tiny wings
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        const wingFlap = Math.sin(t * 50 + i) * 3;
+        ctx.beginPath(); ctx.ellipse(0, -2 - wingFlap, 2, 4, 0.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, -2 - wingFlap, 2, 4, -0.5, 0, Math.PI*2); ctx.fill();
+        ctx.translate(-bx, -by);
+    }
+    ctx.restore();
 
     // Stalk (emerging from dirt)
     ctx.strokeStyle = '#285c18';
-    ctx.lineWidth = 12;
+    ctx.lineWidth = 12 * blossomScale;
     ctx.lineCap = 'butt';
     ctx.beginPath();
     ctx.moveTo(0, -28); 
-    ctx.quadraticCurveTo(15 * Math.sin(t), -50, flowerCX, flowerCY + 15);
+    ctx.quadraticCurveTo(15 * Math.sin(t), -50, flowerCX, flowerCY + 15 * blossomScale);
     ctx.stroke();
     // Stalk highlight
     ctx.strokeStyle = '#439928';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 4 * blossomScale;
     ctx.beginPath();
     ctx.moveTo(0, -28);
-    ctx.quadraticCurveTo(15 * Math.sin(t) - 2, -50, flowerCX - 2, flowerCY + 15);
+    ctx.quadraticCurveTo(15 * Math.sin(t) - 2, -50, flowerCX - 2, flowerCY + 15 * blossomScale);
     ctx.stroke();
 
     // Bioluminescent glow behind the flower
     const glowInt = 0.35 + Math.sin(t * 1.8) * 0.15;
-    const podGlow = ctx.createRadialGradient(flowerCX, flowerCY, 5, flowerCX, flowerCY, 100);
+    const podGlow = ctx.createRadialGradient(flowerCX, flowerCY, 5, flowerCX, flowerCY, 100 * blossomScale);
     podGlow.addColorStop(0, `rgba(255, 100, 200, ${glowInt})`);
     podGlow.addColorStop(0.5, `rgba(180, 50, 180, ${glowInt * 0.4})`);
     podGlow.addColorStop(1, 'rgba(100, 0, 150, 0)');
     ctx.fillStyle = podGlow;
-    ctx.beginPath(); ctx.arc(flowerCX, flowerCY, 100, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(flowerCX, flowerCY, 100 * blossomScale, 0, Math.PI * 2); ctx.fill();
 
     ctx.save();
     ctx.translate(flowerCX, flowerCY);
-    ctx.scale(breathe, breathe);
+    ctx.scale(blossomScale, blossomScale);
 
     // Sepals (Green base leaves cupping the flower)
     ctx.fillStyle = '#1c4511';
@@ -8484,24 +8489,25 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t8;
 
     const coreBreathe = 1 + Math.sin(t * 2.0) * 0.08;
+    const apexScale = coreBreathe * 0.85; // 15% reduction in size
     const flowerCX = 0;
     const flowerCY = -110; // Taller, grander position in the dome
 
     // Massive glowing stalk
     ctx.strokeStyle = '#2b0040'; // Deep dark purple stalk
-    ctx.lineWidth = 20;
+    ctx.lineWidth = 20 * apexScale;
     ctx.lineCap = 'butt';
-    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25 * apexScale); ctx.stroke();
     // Inner energy flow running up the stalk
     ctx.strokeStyle = '#cc33ff';
-    ctx.lineWidth = 8;
-    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
+    ctx.lineWidth = 8 * apexScale;
+    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25 * apexScale); ctx.stroke();
     ctx.strokeStyle = '#ffb3ff';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25); ctx.stroke();
+    ctx.lineWidth = 2 * apexScale;
+    ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(25 * Math.sin(t*0.7), -60, flowerCX, flowerCY + 25 * apexScale); ctx.stroke();
 
     // Massive Bioluminescent aura
-    const auraR = 180 + Math.sin(t * 2.0) * 20;
+    const auraR = (180 + Math.sin(t * 2.0) * 20) * apexScale;
     const auraA = 0.4 + Math.sin(t * 2.0) * 0.15;
     const auraGrad = ctx.createRadialGradient(flowerCX, flowerCY, 10, flowerCX, flowerCY, auraR);
     auraGrad.addColorStop(0, `rgba(255, 150, 255, ${auraA})`);
@@ -8513,7 +8519,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     ctx.save();
     ctx.translate(flowerCX, flowerCY);
-    ctx.scale(coreBreathe, coreBreathe);
+    ctx.scale(apexScale, apexScale);
 
     // Fractal / Geometric Petal Generation for the Apex Flora
     const drawApexPetals = (numPetals, radius, widthMult, colorCenter, colorEdge, zRot, pulseSpeed) => {
@@ -8567,103 +8573,78 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.fillStyle = innerGrad;
     ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
     
-    // Core geometry (Floating rings rotating in 3D-ish manner)
-    ctx.strokeStyle = `rgba(255, 200, 255, ${coreFlash})`;
-    ctx.lineWidth = 2;
-    for(let r=1; r<=3; r++) {
-        ctx.save();
-        ctx.rotate(t * r + r);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 10 + r*5, 3 + r*2, 0, 0, Math.PI*2);
-        ctx.stroke();
-        ctx.restore();
-    }
-    
     ctx.restore();
 
-    // Floating Energy Tendrils feeding into the core
-    const numTendrils = 8;
-    for(let i=0; i<numTendrils; i++) {
-        const a = (i/numTendrils) * Math.PI*2 + t * 0.5;
-        const dist = 140 + Math.sin(t*2 + i)*20;
-        const ex = flowerCX + Math.cos(a) * dist;
-        const ey = flowerCY + Math.sin(a) * dist;
+    // Floating Energy Particles trailing from petal tips
+    const numParticles = 12;
+    for(let i=0; i<numParticles; i++) {
+        const a = (i/numParticles) * Math.PI*2 + t * 0.8;
+        const petalDist = 120 * apexScale;
+        const startX = flowerCX + Math.cos(a) * petalDist;
+        const startY = flowerCY + Math.sin(a) * petalDist;
         
-        ctx.strokeStyle = 'rgba(255, 100, 255, 0.3)';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(flowerCX, flowerCY);
-        ctx.quadraticCurveTo(flowerCX + Math.cos(a+1)*dist*0.5, flowerCY + Math.sin(a+1)*dist*0.5, ex, ey);
-        ctx.stroke();
+        const drift = 60 + Math.sin(t*3 + i)*20;
+        const ex = startX + Math.cos(a + Math.sin(t+i)*0.5) * drift;
+        const ey = startY + Math.sin(a + Math.cos(t+i)*0.5) * drift;
 
         const pT = (t * 1.5 + i * 0.5) % 1;
-        // Energy particles flow from ex,ey INWARD to flowerCX, flowerCY
-        const pX = ex * (1-pT) + flowerCX * pT;
-        const pY = ey * (1-pT) + flowerCY * pT;
+        // Energy particles flow from petal tips OUTWARDS
+        const pX = startX * (1-pT) + ex * pT;
+        const pY = startY * (1-pT) + ey * pT;
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillStyle = `rgba(255, 255, 255, ${1 - pT})`;
         ctx.beginPath(); ctx.arc(pX, pY, 3, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = 'rgba(255, 100, 255, 0.4)';
+        ctx.fillStyle = `rgba(255, 100, 255, ${(1 - pT) * 0.6})`;
         ctx.beginPath(); ctx.arc(pX, pY, 8, 0, Math.PI*2); ctx.fill();
     }
 
     ctx.restore();
   }
 
-  // --- Tier 6: Massive Spore Swarm ---
+  // --- Tier 6: Glowing Fireflies Swarm ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
 
-    // 50 Spores procedurally generated with seeded offsets
-    const numSpores = 50;
-    for(let i=0; i<numSpores; i++) {
-        // Pseudo-random deterministic parameters for each spore
+    // 40 gentle fireflies drifting around the dome
+    const numFireflies = 40;
+    for(let i=0; i<numFireflies; i++) {
         const seed1 = (i * 13.7) % 1;
         const seed2 = (i * 29.3) % 1;
-        const seed3 = (i * 41.1) % 1;
-        const seed4 = (i * 57.9) % 1;
         
-        const cx = -260 + seed1 * 520; // Spread across dome width
-        const cy = -50 - seed2 * 200;  // Spread across dome height
+        const cx = -260 + seed1 * 520; 
+        const cy = -20 - seed2 * 230;  
         
-        // Complex drift math simulating fluid dynamics
-        const driftX = Math.sin(t * (0.2 + seed3*0.3) + i) * (20 + seed1*40);
-        const driftY = Math.cos(t * (0.15 + seed4*0.4) + i*1.5) * (15 + seed2*30);
-        // Swirl offset based on global t and position
-        const swirlX = Math.sin(t * 0.5 + cy*0.01) * 15;
-        const swirlY = Math.cos(t * 0.4 + cx*0.01) * 10;
+        // Organic drifting
+        const driftX = Math.sin(t * (0.5 + seed1) + i) * 30;
+        const driftY = Math.cos(t * (0.4 + seed2) + i*1.5) * 20;
         
-        const sx = cx + driftX + swirlX;
-        const sy = cy + driftY + swirlY;
+        const sx = cx + driftX;
+        const sy = cy + driftY;
         
-        // Culling: Ensure spores stay within the dome visually (roughly)
+        // Culling bounds
         if (sx < -hw + 10 || sx > hw - 10 || sy > 0) continue; 
         
-        const sz = 1.5 + seed1 * 3; // Size variation
+        const sz = 1.0 + seed1 * 1.5; 
         
-        // Color mix (Gold, Green, Purple)
-        let colBase, colGlow;
-        if (seed2 < 0.4) {
-            colBase = '255, 220, 100'; colGlow = '200, 150, 40'; // Gold
-        } else if (seed2 < 0.7) {
-            colBase = '150, 255, 150'; colGlow = '80, 200, 80'; // Green
-        } else {
-            colBase = '255, 150, 255'; colGlow = '180, 50, 200'; // Purple
+        // Smooth fading based on sine wave
+        const alphaPulse = Math.max(0, Math.sin(t * (1.5 + seed2) + i * 2.1));
+        
+        // Glow
+        const colGlow = (seed1 < 0.5) ? '200, 255, 100' : '150, 255, 150';
+        const colBase = (seed1 < 0.5) ? '255, 255, 150' : '200, 255, 200';
+
+        if (alphaPulse > 0.01) {
+            const sporeGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sz * 6);
+            sporeGrad.addColorStop(0, `rgba(${colGlow}, ${alphaPulse * 0.6})`);
+            sporeGrad.addColorStop(1, `rgba(${colGlow}, 0)`);
+            ctx.fillStyle = sporeGrad;
+            ctx.beginPath(); ctx.arc(sx, sy, sz * 6, 0, Math.PI * 2); ctx.fill();
+
+            // Core
+            ctx.fillStyle = `rgba(${colBase}, ${alphaPulse})`;
+            ctx.beginPath(); ctx.arc(sx, sy, sz, 0, Math.PI * 2); ctx.fill();
         }
-
-        const alphaPulse = 0.4 + Math.sin(t * (1 + seed3*2) + i)*0.6;
-        
-        // Spore Aura
-        const sporeGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sz * 4);
-        sporeGrad.addColorStop(0, `rgba(${colGlow}, ${alphaPulse * 0.5})`);
-        sporeGrad.addColorStop(1, `rgba(${colGlow}, 0)`);
-        ctx.fillStyle = sporeGrad;
-        ctx.beginPath(); ctx.arc(sx, sy, sz * 4, 0, Math.PI * 2); ctx.fill();
-
-        // Spore Solid Core
-        ctx.fillStyle = `rgba(${colBase}, ${0.4 + alphaPulse * 0.6})`;
-        ctx.beginPath(); ctx.arc(sx, sy, sz, 0, Math.PI * 2); ctx.fill();
     }
 
     ctx.restore();
