@@ -2042,7 +2042,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             
             // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
             const eyeXOffset = currentBossWidth * (leftEye ? -0.124 : 0.143);
-            const eyeYOffset = currentBossHeight * -0.666;
+            const eyeYOffset = (currentBossHeight * -0.666) - 3;
             
             let currentEyeXOffset = eyeXOffset;
             let currentEyeYOffset = eyeYOffset;
