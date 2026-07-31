@@ -856,9 +856,7 @@ function draw(ctx, keypadCtx, width, height, t) {
         : tierUpAnimTime / 2.5;
     const shake = Math.sin(t * 50) * (shakeAlpha * 10);
     const shakeY = Math.cos(t * 40) * (shakeAlpha * 5);
-    ctx.translate(width / 2, height / 2);
-    ctx.scale(1.05, 1.05);
-    ctx.translate(-width / 2 + shake, -height / 2 + shakeY);
+    ctx.translate(shake, shakeY);
   }
 
   drawCavern(ctx, width, height, t);
@@ -7866,8 +7864,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.closePath(); 
   };
-
-  ctx.save();
 
   // Helper function to draw extremely detailed leaves with veins
   const drawDetailedLeaf = (lx, ly, rot, length, width, colorA, colorB, veinColor) => {
