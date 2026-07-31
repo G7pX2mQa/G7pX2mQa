@@ -465,7 +465,6 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
         }
     }
     
-    if (IS_MOBILE) showBar();
   };
 
   const updateAll = () => { updateBounds(); updateMetrics(); };
@@ -483,8 +482,13 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
       obs.observe(scroller, { childList: true, subtree: true, characterData: true });
   }
 
+  // Drag logic
+  let dragging = false;
+  let dragStartPos = 0;
+  let startScrollPos = 0;
+
   const showBar = () => { if (!IS_MOBILE) return; sheetEl.classList.add('is-scrolling'); clearTimeout(scroller.__fadeTimer); };
-  const scheduleHide = (delay) => { if (!IS_MOBILE) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
+  const scheduleHide = (delay) => { if (!IS_MOBILE || dragging) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
   
   const onScroll = () => { 
       if (!scrollingElements.has(scroller)) {
@@ -498,6 +502,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
           }
       }, 150);
 
+      if (IS_MOBILE) showBar();
       performScrollUpdate();
       scheduleHide(FADE_SCROLL_MS); 
   };
@@ -513,10 +518,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   window.addEventListener('resize', updateAll);
   requestAnimationFrame(updateAll); // Initial kick
 
-  // Drag logic
-  let dragging = false;
-  let dragStartPos = 0;
-  let startScrollPos = 0;
+  // Drag logic moved up
   
   const startDrag = (e) => { 
     dragging = true; 
