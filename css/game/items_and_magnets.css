@@ -203,8 +203,8 @@
   --conic-alpha: conic-gradient(from 0deg, rgba(196,228,247,0.25), rgba(82,137,173,0.25), rgba(196,228,247,0.25));
 }
 .magnet-indicator.magnet-earth {
-  --conic-solid: conic-gradient(from 0deg, #8B4513, #5C4033, #8B4513);
-  --conic-alpha: conic-gradient(from 0deg, rgba(139,69,19,0.25), rgba(92,64,51,0.25), rgba(139,69,19,0.25));
+  --conic-solid: conic-gradient(from 0deg, #8B4513, #2A1708, #A0522D, #2A1708, #8B4513);
+  --conic-alpha: conic-gradient(from 0deg, rgba(139,69,19,0.25), rgba(42,23,8,0.25), rgba(160,82,45,0.25), rgba(42,23,8,0.25), rgba(139,69,19,0.25));
 }
 .magnet-indicator.magnet-air {
   --conic-solid: conic-gradient(from 0deg, #F0FFFF, #87CEEB, #F0FFFF);
@@ -215,8 +215,8 @@
   --conic-alpha: conic-gradient(from 0deg, rgba(255,69,0,0.25), rgba(255,140,0,0.25), rgba(255,69,0,0.25));
 }
 .magnet-indicator.magnet-water {
-  --conic-solid: conic-gradient(from 0deg, #ADD8E6, #0000FF, #00008B, #ADD8E6);
-  --conic-alpha: conic-gradient(from 0deg, rgba(173,216,230,0.25), rgba(0,0,255,0.25), rgba(0,0,139,0.25), rgba(173,216,230,0.25));
+  --conic-solid: conic-gradient(from 0deg, #00BFFF, #0000FF, #00008B, #0000FF, #00BFFF);
+  --conic-alpha: conic-gradient(from 0deg, rgba(0,191,255,0.25), rgba(0,0,255,0.25), rgba(0,0,139,0.25), rgba(0,0,255,0.25), rgba(0,191,255,0.25));
 }
 .magnet-indicator.magnet-cookie {
   --conic-solid: conic-gradient(from 0deg, #6C3E1B, #A56E3B, #C99753, #6C3E1B);
@@ -239,8 +239,8 @@
   --conic-alpha: conic-gradient(from 0deg, rgba(111,48,5,0.25), rgba(255,165,0,0.25), rgba(255,255,0,0.25), rgba(255,165,0,0.25), rgba(111,48,5,0.25));
 }
 .magnet-indicator.magnet-donut {
-  --conic-solid: conic-gradient(from 0deg, #B37933, #FF3783, #FF4B4B, #FF872D, #FFE96B, #78E08F, #63C0FF, #FFFFFF, #B37933);
-  --conic-alpha: conic-gradient(from 0deg, rgba(179,121,51,0.25), rgba(255,55,131,0.25), rgba(255,75,75,0.25), rgba(255,135,45,0.25), rgba(255,233,107,0.25), rgba(120,224,143,0.25), rgba(99,192,255,0.25), rgba(255,255,255,0.25), rgba(179,121,51,0.25));
+  --conic-solid: conic-gradient(from 0deg, #8B4513, #FF3783, #FF4B4B, #8B4513, #FF3783, #FF872D, #8B4513, #FF3783, #FFE96B, #8B4513, #FF3783, #78E08F, #8B4513, #FF3783, #63C0FF, #8B4513, #FF3783, #FFFFFF, #8B4513);
+  --conic-alpha: conic-gradient(from 0deg, rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,75,75,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,135,45,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,233,107,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(120,224,143,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(99,192,255,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,255,255,0.25), rgba(139,69,19,0.25));
 }
 .magnet-indicator.magnet-glass {
   --conic-solid: conic-gradient(from 0deg, #1CB1E6, #0B6BAE, #EED48A, #1CB1E6);
