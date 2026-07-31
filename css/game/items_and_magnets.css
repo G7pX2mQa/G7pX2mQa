@@ -32,17 +32,6 @@
   opacity: 0.9;
 }
 
-.magnet-indicator.magnet-bronze {
-  background-color: #cd7f3226;
-  border: 2px solid rgb(205 127 50);
-  box-shadow: 0 0 20px 4px #cd7f32f2, inset 0 0 36px #cd7f32c7;
-}
-
-.magnet-indicator.magnet-silver {
-  background-color: #c0c0c026;
-  border: 2px solid rgb(192 192 192);
-  box-shadow: 0 0 20px 4px #c0c0c0f2, inset 0 0 36px #c0c0c0c7;
-}
 
 /* Surge 2 Coin Sizes & Effects */
 /* Layering: Active coins sit just above their settled counterparts (z=10,20,etc) but below larger coins */
@@ -75,81 +64,20 @@
   transition: opacity 1s;
 }
 
-.magnet-indicator.magnet-gold {
-  background-color: #ffd70026;
-  border: 2px solid rgb(255 215 0);
-  box-shadow: 0 0 20px 4px #ffd700f2, inset 0 0 36px #ffd700c7;
-}
-
-.magnet-indicator.magnet-sapphire {
-  background-color: #0f52ba26;
-  border: 2px solid rgb(15 82 186);
-  box-shadow: 0 0 20px 4px #0f52baf2, inset 0 0 36px #0f52bac7;
-}
-
-.magnet-indicator.magnet-emerald {
-  background-color: #50c87826;
-  border: 2px solid rgb(80 200 120);
-  box-shadow: 0 0 20px 4px #50c878f2, inset 0 0 36px #50c878c7;
-}
-
-.magnet-indicator.magnet-ruby {
-  background-color: #E0115F26;
-  border: 2px solid rgb(255 0 51);
-  box-shadow: 0 0 20px 4px #E0115Ff2, inset 0 0 36px #E0115Fc7;
-}
-
-.magnet-indicator.magnet-amethyst {
-  background-color: #9966CC26;
-  border: 2px solid rgb(153 102 204);
-  box-shadow: 0 0 20px 4px #9966CCf2, inset 0 0 36px #9966CCc7;
-}
 
 @keyframes magnet-conic-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-.magnet-indicator.magnet-sunset,
-.magnet-indicator.magnet-ethereal,
-.magnet-indicator.magnet-earth,
-.magnet-indicator.magnet-air,
-.magnet-indicator.magnet-fire,
-.magnet-indicator.magnet-water,
-.magnet-indicator.magnet-cookie,
-.magnet-indicator.magnet-pancake,
-.magnet-indicator.magnet-watermelon,
-.magnet-indicator.magnet-pepperoni,
-.magnet-indicator.magnet-pizza,
-.magnet-indicator.magnet-donut,
-.magnet-indicator.magnet-glass,
-.magnet-indicator.magnet-diamond,
-.magnet-indicator.magnet-opal,
-.magnet-indicator.magnet-cosmic,
-.magnet-indicator.magnet-prismatic {
+.magnet-indicator[data-conic="true"] {
   background-color: transparent !important;
   border-color: transparent !important;
   box-shadow: 0 0 20px 4px rgba(255,255,255,0.15), inset 0 0 36px rgba(255,255,255,0.1) !important;
   animation: none !important;
 }
 
-.magnet-indicator.magnet-sunset::before,
-.magnet-indicator.magnet-ethereal::before,
-.magnet-indicator.magnet-earth::before,
-.magnet-indicator.magnet-air::before,
-.magnet-indicator.magnet-fire::before,
-.magnet-indicator.magnet-water::before,
-.magnet-indicator.magnet-cookie::before,
-.magnet-indicator.magnet-pancake::before,
-.magnet-indicator.magnet-watermelon::before,
-.magnet-indicator.magnet-pepperoni::before,
-.magnet-indicator.magnet-pizza::before,
-.magnet-indicator.magnet-donut::before,
-.magnet-indicator.magnet-glass::before,
-.magnet-indicator.magnet-diamond::before,
-.magnet-indicator.magnet-opal::before,
-.magnet-indicator.magnet-cosmic::before,
-.magnet-indicator.magnet-prismatic::before {
+.magnet-indicator[data-conic="true"]::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -159,23 +87,7 @@
   background: var(--conic-alpha);
 }
 
-.magnet-indicator.magnet-sunset::after,
-.magnet-indicator.magnet-ethereal::after,
-.magnet-indicator.magnet-earth::after,
-.magnet-indicator.magnet-air::after,
-.magnet-indicator.magnet-fire::after,
-.magnet-indicator.magnet-water::after,
-.magnet-indicator.magnet-cookie::after,
-.magnet-indicator.magnet-pancake::after,
-.magnet-indicator.magnet-watermelon::after,
-.magnet-indicator.magnet-pepperoni::after,
-.magnet-indicator.magnet-pizza::after,
-.magnet-indicator.magnet-donut::after,
-.magnet-indicator.magnet-glass::after,
-.magnet-indicator.magnet-diamond::after,
-.magnet-indicator.magnet-opal::after,
-.magnet-indicator.magnet-cosmic::after,
-.magnet-indicator.magnet-prismatic::after {
+.magnet-indicator[data-conic="true"]::after {
   content: '';
   position: absolute;
   inset: -2px;
@@ -187,78 +99,4 @@
   animation: magnet-conic-spin 6s linear infinite;
   pointer-events: none;
   background: var(--conic-solid);
-}
-
-.magnet-indicator.magnet-sunset {
-  --conic-solid: conic-gradient(from 0deg, #FF6B6B, #6A1B9A, #FF6B6B);
-  --conic-alpha: conic-gradient(from 0deg, rgba(255,107,107,0.25), rgba(106,27,154,0.25), rgba(255,107,107,0.25));
-}
-.magnet-indicator.magnet-void {
-  background-color: #0a001026;
-  border: 2px solid rgb(10 0 16);
-  box-shadow: 0 0 20px 4px #0a0010f2, inset 0 0 36px #0a0010c7;
-}
-.magnet-indicator.magnet-ethereal {
-  --conic-solid: conic-gradient(from 0deg, #c4e4f7, #5289ad, #c4e4f7);
-  --conic-alpha: conic-gradient(from 0deg, rgba(196,228,247,0.25), rgba(82,137,173,0.25), rgba(196,228,247,0.25));
-}
-.magnet-indicator.magnet-earth {
-  --conic-solid: conic-gradient(from 0deg, #8B4513, #2A1708, #A0522D, #2A1708, #8B4513);
-  --conic-alpha: conic-gradient(from 0deg, rgba(139,69,19,0.25), rgba(42,23,8,0.25), rgba(160,82,45,0.25), rgba(42,23,8,0.25), rgba(139,69,19,0.25));
-}
-.magnet-indicator.magnet-air {
-  --conic-solid: conic-gradient(from 0deg, #F0FFFF, #87CEEB, #F0FFFF);
-  --conic-alpha: conic-gradient(from 0deg, rgba(240,255,255,0.25), rgba(135,206,235,0.25), rgba(240,255,255,0.25));
-}
-.magnet-indicator.magnet-fire {
-  --conic-solid: conic-gradient(from 0deg, #FF4500, #FF8C00, #FF4500);
-  --conic-alpha: conic-gradient(from 0deg, rgba(255,69,0,0.25), rgba(255,140,0,0.25), rgba(255,69,0,0.25));
-}
-.magnet-indicator.magnet-water {
-  --conic-solid: conic-gradient(from 0deg, #00BFFF, #0000FF, #00008B, #0000FF, #00BFFF, #0000FF, #00008B, #0000FF, #00BFFF);
-  --conic-alpha: conic-gradient(from 0deg, rgba(0,191,255,0.25), rgba(0,0,255,0.25), rgba(0,0,139,0.25), rgba(0,0,255,0.25), rgba(0,191,255,0.25), rgba(0,0,255,0.25), rgba(0,0,139,0.25), rgba(0,0,255,0.25), rgba(0,191,255,0.25));
-}
-.magnet-indicator.magnet-cookie {
-  --conic-solid: conic-gradient(from 0deg, #6C3E1B, #A56E3B, #C99753, #6C3E1B);
-  --conic-alpha: conic-gradient(from 0deg, rgba(108,62,27,0.25), rgba(165,110,59,0.25), rgba(201,151,83,0.25), rgba(108,62,27,0.25));
-}
-.magnet-indicator.magnet-pancake {
-  --conic-solid: conic-gradient(from 0deg, #C99853, #C46A1A, #F6BB00, #C99853);
-  --conic-alpha: conic-gradient(from 0deg, rgba(201,152,83,0.25), rgba(196,106,26,0.25), rgba(246,187,0,0.25), rgba(201,152,83,0.25));
-}
-.magnet-indicator.magnet-watermelon {
-  --conic-solid: conic-gradient(from 0deg, #8CE632, #1E9638, #126422, #8CE632);
-  --conic-alpha: conic-gradient(from 0deg, rgba(140,230,50,0.25), rgba(30,150,56,0.25), rgba(18,100,34,0.25), rgba(140,230,50,0.25));
-}
-.magnet-indicator.magnet-pepperoni {
-  --conic-solid: conic-gradient(from 0deg, #E44E30, #FFD69A, #F17A3C, #E44E30);
-  --conic-alpha: conic-gradient(from 0deg, rgba(228,78,48,0.25), rgba(255,214,154,0.25), rgba(241,122,60,0.25), rgba(228,78,48,0.25));
-}
-.magnet-indicator.magnet-pizza {
-  --conic-solid: conic-gradient(from 0deg, #FFA500, #FFFF00, #FF8C00, #FFFF00, #FFA500);
-  --conic-alpha: conic-gradient(from 0deg, rgba(255,165,0,0.25), rgba(255,255,0,0.25), rgba(255,140,0,0.25), rgba(255,255,0,0.25), rgba(255,165,0,0.25));
-}
-.magnet-indicator.magnet-donut {
-  --conic-solid: conic-gradient(from 0deg, #8B4513, #FF3783, #FF4B4B, #8B4513, #FF3783, #FF872D, #8B4513, #FF3783, #FFE96B, #8B4513, #FF3783, #78E08F, #8B4513, #FF3783, #63C0FF, #8B4513, #FF3783, #FFFFFF, #8B4513);
-  --conic-alpha: conic-gradient(from 0deg, rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,75,75,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,135,45,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,233,107,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(120,224,143,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(99,192,255,0.25), rgba(139,69,19,0.25), rgba(255,55,131,0.25), rgba(255,255,255,0.25), rgba(139,69,19,0.25));
-}
-.magnet-indicator.magnet-glass {
-  --conic-solid: conic-gradient(from 0deg, #1CB1E6, #0B6BAE, #EED48A, #1CB1E6);
-  --conic-alpha: conic-gradient(from 0deg, rgba(28,177,230,0.25), rgba(11,107,174,0.25), rgba(238,212,138,0.25), rgba(28,177,230,0.25));
-}
-.magnet-indicator.magnet-diamond {
-  --conic-solid: conic-gradient(from 0deg, #6EC9FF, #3477B8, #C3E5EA, #6EC9FF);
-  --conic-alpha: conic-gradient(from 0deg, rgba(110,201,255,0.25), rgba(52,119,184,0.25), rgba(195,229,234,0.25), rgba(110,201,255,0.25));
-}
-.magnet-indicator.magnet-opal {
-  --conic-solid: conic-gradient(from 0deg, #E6CFFF, #C8F5F0, #B0D3FF, #E6CFFF);
-  --conic-alpha: conic-gradient(from 0deg, rgba(230,207,255,0.25), rgba(200,245,240,0.25), rgba(176,211,255,0.25), rgba(230,207,255,0.25));
-}
-.magnet-indicator.magnet-cosmic {
-  --conic-solid: conic-gradient(from 0deg, #2EE4FF, #2088FF, #49FFCA, #C42BFF, #2EE4FF);
-  --conic-alpha: conic-gradient(from 0deg, rgba(46,228,255,0.25), rgba(32,136,255,0.25), rgba(73,255,202,0.25), rgba(196,43,255,0.25), rgba(46,228,255,0.25));
-}
-.magnet-indicator.magnet-prismatic {
-  --conic-solid: conic-gradient(from 0deg, #FF0044, #FF7C00, #FFF85C, #00FFAA, #00E6FF, #0044FF, #A020F0, #FF00FF, #FF0044);
-  --conic-alpha: conic-gradient(from 0deg, rgba(255,0,68,0.25), rgba(255,124,0,0.25), rgba(255,248,92,0.25), rgba(0,255,170,0.25), rgba(0,230,255,0.25), rgba(0,68,255,0.25), rgba(160,32,240,0.25), rgba(255,0,255,0.25), rgba(255,0,68,0.25));
 }
