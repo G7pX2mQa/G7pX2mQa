@@ -8173,7 +8173,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.globalAlpha = t1 * Math.min(1, (t1 - 0.05) * 2);
       for (let i = 0; i < nozzleXs.length; i++) {
         const nx = nozzleXs[i];
-        const fallDist = Math.abs(-26 - (pipeY + 4)); 
+        const fallDist = Math.abs(-30 - (pipeY + 4)); 
         const dropSpeed = 140; 
         const dropLifetime = fallDist / dropSpeed;
         
@@ -8201,16 +8201,16 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
               ctx.strokeStyle = 'rgba(120, 200, 255, 0.6)';
               ctx.lineWidth = 1.5;
               ctx.beginPath();
-              ctx.ellipse(nx, -26, 4 + splashT * 10, 1.5 + splashT * 4, 0, 0, Math.PI*2);
+              ctx.ellipse(nx, -30, 4 + splashT * 10, 1.5 + splashT * 4, 0, 0, Math.PI*2);
               ctx.stroke();
 
               ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
               const pDist = splashT * 8; 
               const pHeight = Math.sin(splashT * Math.PI) * 6; 
               
-              ctx.beginPath(); ctx.arc(nx - pDist, -26 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-              ctx.beginPath(); ctx.arc(nx + pDist, -26 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-              ctx.beginPath(); ctx.arc(nx, -26 - pHeight * 1.2, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx - pDist, -30 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx + pDist, -30 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
+              ctx.beginPath(); ctx.arc(nx, -30 - pHeight * 1.2, 1.5, 0, Math.PI*2); ctx.fill();
               
               ctx.restore();
           }
