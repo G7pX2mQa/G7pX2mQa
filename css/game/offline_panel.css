@@ -68,7 +68,7 @@
     align-items: center;
     /* Hide scrollbar */
     scrollbar-width: none;
-    overscroll-behavior: none;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
 }
 .offline-scroll-container::-webkit-scrollbar {
