@@ -1301,6 +1301,7 @@ function createLockToggle(storageKey, { onToggle } = {}) {
     });
 
     document.addEventListener('debugStorageLocksChanged', refresh);
+    addDebugPanelCleanup(() => document.removeEventListener('debugStorageLocksChanged', refresh));
 
     refresh();
     return { button, refresh };
