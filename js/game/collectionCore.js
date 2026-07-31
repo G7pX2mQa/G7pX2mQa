@@ -1,6 +1,7 @@
 // js/game/collectionCore.js
 
 import { settingsManager } from './settingsManager.js';
+import { MAGNET_MOD_TO_PALETTE, injectMagnetStyles, PALETTES } from './palettes.js';
 
 export const MAGNET_UNIT_RATIO = 0.05;
 export const MAGNET_COLLECTION_BUFFER = 8; // Small buffer for collection feel
@@ -22,6 +23,8 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return { destroy() {} };
   }
+
+  injectMagnetStyles();
 
   const indicator = document.createElement('div');
   indicator.className = 'magnet-indicator';
@@ -218,20 +221,15 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
     magnetLevel = nextLevel;
     radiusPx = magnetLevel * unitPx;
     
-    indicator.classList.remove('magnet-bronze', 'magnet-silver', 'magnet-gold', 'magnet-sapphire', 'magnet-emerald', 'magnet-ruby', 'magnet-amethyst', 'magnet-sunset', 'magnet-void', 'magnet-ethereal', 'magnet-earth', 'magnet-air', 'magnet-fire', 'magnet-water', 'magnet-cookie', 'magnet-pancake', 'magnet-watermelon', 'magnet-pepperoni', 'magnet-pizza', 'magnet-donut', 'magnet-glass', 'magnet-diamond', 'magnet-opal', 'magnet-cosmic', 'magnet-prismatic');
-    
-    const modMap = {
-        6: 'magnet-silver', 3: 'magnet-bronze', 9: 'magnet-gold', 12: 'magnet-sapphire', 15: 'magnet-emerald',
-        18: 'magnet-ruby', 21: 'magnet-amethyst', 24: 'magnet-sunset', 27: 'magnet-void', 30: 'magnet-ethereal',
-        33: 'magnet-earth', 36: 'magnet-air', 39: 'magnet-fire', 42: 'magnet-water', 45: 'magnet-cookie',
-        48: 'magnet-pancake', 51: 'magnet-watermelon', 54: 'magnet-pepperoni', 57: 'magnet-pizza',
-        60: 'magnet-donut', 63: 'magnet-glass', 66: 'magnet-diamond', 69: 'magnet-opal', 72: 'magnet-cosmic',
-        75: 'magnet-prismatic'
-    };
-    
     const mod = settingsManager.get('active_magnet_mod');
-    if (modMap[mod]) {
-        indicator.classList.add(modMap[mod]);
+    const paletteName = MAGNET_MOD_TO_PALETTE[mod];
+    
+    if (paletteName && PALETTES[paletteName]) {
+        indicator.dataset.palette = paletteName;
+        indicator.dataset.conic = PALETTES[paletteName].length > 1;
+    } else {
+        delete indicator.dataset.palette;
+        delete indicator.dataset.conic;
     }
 
     updateIndicator();
