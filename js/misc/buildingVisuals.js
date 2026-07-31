@@ -8187,10 +8187,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
               ctx.beginPath();
               ctx.ellipse(nx, dropY, 2.5, 5.5, 0, 0, Math.PI*2);
               ctx.fill();
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-              ctx.beginPath();
-              ctx.ellipse(nx - 0.8, dropY + 1, 1, 2, 0, 0, Math.PI*2);
-              ctx.fill();
           } else {
               const splashT = (dropT - dropLifetime) / 0.3; 
               const splashAlpha = 1.0 - splashT;
