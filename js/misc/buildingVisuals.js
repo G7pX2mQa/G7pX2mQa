@@ -8193,12 +8193,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
               
               ctx.save();
               ctx.globalAlpha = splashAlpha * ctx.globalAlpha;
-              
-              ctx.strokeStyle = 'rgba(120, 200, 255, 0.6)';
-              ctx.lineWidth = 1.5;
-              ctx.beginPath();
-              ctx.ellipse(nx, -30, 4 + splashT * 10, 1.5 + splashT * 4, 0, 0, Math.PI*2);
-              ctx.stroke();
 
               ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
               const pDist = splashT * 8; 
