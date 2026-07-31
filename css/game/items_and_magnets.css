@@ -215,8 +215,8 @@
   --conic-alpha: conic-gradient(from 0deg, rgba(255,69,0,0.25), rgba(255,140,0,0.25), rgba(255,69,0,0.25));
 }
 .magnet-indicator.magnet-water {
-  --conic-solid: conic-gradient(from 0deg, #00BFFF, #0000FF, #00008B, #0000FF, #00BFFF);
-  --conic-alpha: conic-gradient(from 0deg, rgba(0,191,255,0.25), rgba(0,0,255,0.25), rgba(0,0,139,0.25), rgba(0,0,255,0.25), rgba(0,191,255,0.25));
+  --conic-solid: conic-gradient(from 0deg, #00BFFF, #0000FF, #00008B, #0000FF, #00BFFF, #0000FF, #00008B, #0000FF, #00BFFF);
+  --conic-alpha: conic-gradient(from 0deg, rgba(0,191,255,0.25), rgba(0,0,255,0.25), rgba(0,0,139,0.25), rgba(0,0,255,0.25), rgba(0,191,255,0.25), rgba(0,0,255,0.25), rgba(0,0,139,0.25), rgba(0,0,255,0.25), rgba(0,191,255,0.25));
 }
 .magnet-indicator.magnet-cookie {
   --conic-solid: conic-gradient(from 0deg, #6C3E1B, #A56E3B, #C99753, #6C3E1B);
@@ -235,8 +235,8 @@
   --conic-alpha: conic-gradient(from 0deg, rgba(228,78,48,0.25), rgba(255,214,154,0.25), rgba(241,122,60,0.25), rgba(228,78,48,0.25));
 }
 .magnet-indicator.magnet-pizza {
-  --conic-solid: conic-gradient(from 0deg, #6F3005, #FFA500, #FFFF00, #FFA500, #6F3005);
-  --conic-alpha: conic-gradient(from 0deg, rgba(111,48,5,0.25), rgba(255,165,0,0.25), rgba(255,255,0,0.25), rgba(255,165,0,0.25), rgba(111,48,5,0.25));
+  --conic-solid: conic-gradient(from 0deg, #FFA500, #FFFF00, #FF8C00, #FFFF00, #FFA500);
+  --conic-alpha: conic-gradient(from 0deg, rgba(255,165,0,0.25), rgba(255,255,0,0.25), rgba(255,140,0,0.25), rgba(255,255,0,0.25), rgba(255,165,0,0.25));
 }
 .magnet-indicator.magnet-donut {
   --conic-solid: conic-gradient(from 0deg, #8B4513, #FF3783, #FF4B4B, #8B4513, #FF3783, #FF872D, #8B4513, #FF3783, #FFE96B, #8B4513, #FF3783, #78E08F, #8B4513, #FF3783, #63C0FF, #8B4513, #FF3783, #FFFFFF, #8B4513);
