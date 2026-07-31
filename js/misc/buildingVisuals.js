@@ -7946,6 +7946,57 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+  // --- Tier 2: Lush Tropical Framing (Bush/Foliage) ---
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    
+    // Draw intricate clusters of ferns and monstera-like broad leaves framing the edges
+    // Leaving the center clear for the main Tier 4/8 flower!
+    const leafClusters = [
+        // Left Side Group (Scaled down and pushed in slightly)
+        {x: -220, y: -26, r: -0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0},
+        {x: -200, y: -26, r: -0.5, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.1},
+        {x: -160, y: -26, r: -0.3, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.2},
+        {x: -120, y: -26, r: -0.6, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.3, phase: 0.5},
+        {x: -80, y: -26, r: -0.4, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.1, phase: 1.5},
+
+        // Right Side Group (Perfectly mirrored coordinates)
+        {x: 220, y: -26, r: 0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0.5},
+        {x: 200, y: -26, r: 0.4, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.6},
+        {x: 160, y: -26, r: 0.25, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.7},
+        {x: 120, y: -26, r: 0.5, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.4, phase: 1.0},
+        {x: 80, y: -26, r: 0.35, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 2.0}
+    ];
+
+    for (let c of leafClusters) {
+        let activeSway = Math.sin(t * c.sway + c.phase) * 0.1;
+        drawDetailedLeaf(c.x, c.y, c.r + activeSway, c.l, c.w, c.ca, c.cb, c.cv);
+        
+        // Add sweeping fern fronds overlapping the leaves
+        ctx.save();
+        ctx.translate(c.x + (c.x > 0 ? -15 : 15), c.y);
+        ctx.rotate(c.r * 1.5 + activeSway * 1.5);
+        ctx.strokeStyle = c.cb;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo((c.x > 0 ? -20 : 20), -c.l*0.6, (c.x > 0 ? -30 : 30), -c.l*0.9);
+        ctx.stroke();
+        // Tiny fern leaflets along the stalk
+        for(let f=0.1; f<0.9; f+=0.1) {
+            let fx = (c.x > 0 ? -20 : 20) * f;
+            let fy = -c.l * 0.9 * f;
+            ctx.fillStyle = c.ca;
+            ctx.beginPath(); ctx.ellipse(fx - 4, fy - 2, 6, 2, -0.4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(fx + 4, fy - 2, 6, 2, 0.4, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
   // =============================================
   // LAYER 1: FOUNDATION (planter box & dirt)
   // =============================================
@@ -8102,59 +8153,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         ctx.fillStyle = '#2d8a24';
         ctx.beginPath(); ctx.ellipse(px - 20, py + 5, 8, 3, 0.2, 0, Math.PI*2 - 0.5); ctx.fill();
         ctx.beginPath(); ctx.ellipse(px + 25, py - 3, 6, 2, -0.2, 0, Math.PI*2 - 0.5); ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-
-
-  // --- Tier 2: Lush Tropical Framing (Bush/Foliage) ---
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    
-    // Draw intricate clusters of ferns and monstera-like broad leaves framing the edges
-    // Leaving the center clear for the main Tier 4/8 flower!
-    const leafClusters = [
-        // Left Side Group (Scaled down and pushed in slightly)
-        {x: -220, y: -22, r: -0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0},
-        {x: -200, y: -22, r: -0.5, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.1},
-        {x: -160, y: -22, r: -0.3, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.2},
-        {x: -120, y: -22, r: -0.6, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.3, phase: 0.5},
-        {x: -80, y: -22, r: -0.4, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.1, phase: 1.5},
-
-        // Right Side Group (Perfectly mirrored coordinates)
-        {x: 220, y: -22, r: 0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0.5},
-        {x: 200, y: -22, r: 0.4, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.6},
-        {x: 160, y: -22, r: 0.25, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.7},
-        {x: 120, y: -22, r: 0.5, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.4, phase: 1.0},
-        {x: 80, y: -22, r: 0.35, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 2.0}
-    ];
-
-    for (let c of leafClusters) {
-        let activeSway = Math.sin(t * c.sway + c.phase) * 0.1;
-        drawDetailedLeaf(c.x, c.y, c.r + activeSway, c.l, c.w, c.ca, c.cb, c.cv);
-        
-        // Add sweeping fern fronds overlapping the leaves
-        ctx.save();
-        ctx.translate(c.x + (c.x > 0 ? -15 : 15), c.y);
-        ctx.rotate(c.r * 1.5 + activeSway * 1.5);
-        ctx.strokeStyle = c.cb;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo((c.x > 0 ? -20 : 20), -c.l*0.6, (c.x > 0 ? -30 : 30), -c.l*0.9);
-        ctx.stroke();
-        // Tiny fern leaflets along the stalk
-        for(let f=0.1; f<0.9; f+=0.1) {
-            let fx = (c.x > 0 ? -20 : 20) * f;
-            let fy = -c.l * 0.9 * f;
-            ctx.fillStyle = c.ca;
-            ctx.beginPath(); ctx.ellipse(fx - 4, fy - 2, 6, 2, -0.4, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(fx + 4, fy - 2, 6, 2, 0.4, 0, Math.PI*2); ctx.fill();
-        }
-        ctx.restore();
     }
 
     ctx.restore();
