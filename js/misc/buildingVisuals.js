@@ -7920,7 +7920,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const swayAngle = swayAmount * 0.08; 
     const growth = t1 * 0.4 + t2 * 0.5 + t3 * 0.6 + t4 * 0.3; 
     const sproutScale = 1.0 + growth;
-    const tipX = swayAmount * 3 * sproutScale;
+    const tipX = swayAmount * 2.0 * sproutScale;
     
     // Main center sprout
     ctx.save();
