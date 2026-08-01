@@ -15,6 +15,7 @@ import { getLevelNumber } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID } from './automationUpgrades.js';
 import { addPp, isPpSystemUnlocked } from './ppSystem.js';
 import { MAX_VISUALS } from "./spawnerCore.js";
+import { PICKUP_VOLUME } from './coinPickup.js';
 
 let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
@@ -112,7 +113,6 @@ export function initUcPickup({
 
   let magnetController = null;
   
-  const MATERIAL_VOLUME = IS_MOBILE ? 0.2 : 0.4;
   let lastAt = 0;
 
   function playSound() {
@@ -123,7 +123,7 @@ export function initUcPickup({
     const baseSrc = new URL('sounds/pickup.ogg', document.baseURI).href;
     
     playAudio(baseSrc, {
-        volume: MATERIAL_VOLUME,
+        volume: PICKUP_VOLUME,
         type: 'sfx'
     });
   }
