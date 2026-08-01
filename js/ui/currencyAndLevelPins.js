@@ -7,7 +7,7 @@ import { BigNum } from '../util/bigNum.js';
 import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 
-import { bank, UC_MATERIALS } from '../util/storage.js';
+import { bank, UC_MATERIALS, getActiveSlot } from '../util/storage.js';
 import { setHtmlOrText } from '../util/uiHelpers.js';
 
 let pinnedContainer = null;
@@ -344,7 +344,9 @@ let levelSubscriptions = {};
 const levelStateCache = {};
 window.addEventListener("level:change", (e) => {
     if (e.detail && e.detail.prefix) {
-        levelStateCache[e.detail.prefix] = e.detail;
+        const slot = getActiveSlot() || 'default';
+        if (!levelStateCache[slot]) levelStateCache[slot] = {};
+        levelStateCache[slot][e.detail.prefix] = e.detail;
     }
 });
 
@@ -362,8 +364,10 @@ window.addEventListener('surge:level:change', (e) => {
                 isUnlocked: state.isUnlocked,
                 ratio: state.ratio
             };
-            levelStateCache['waves'] = detail;
-            levelStateCache['waves_levels'] = detail;
+            const slot = getActiveSlot() || 'default';
+            if (!levelStateCache[slot]) levelStateCache[slot] = {};
+            levelStateCache[slot]['waves'] = detail;
+            levelStateCache[slot]['waves_levels'] = detail;
             refreshPinnedLevelsValues();
             window.dispatchEvent(new CustomEvent('level:change', { detail }));
         }
@@ -384,8 +388,10 @@ window.addEventListener('currency:change', (e) => {
                 isUnlocked: state.isUnlocked,
                 ratio: state.ratio
             };
-            levelStateCache['waves'] = detail;
-            levelStateCache['waves_levels'] = detail;
+            const slot = getActiveSlot() || 'default';
+            if (!levelStateCache[slot]) levelStateCache[slot] = {};
+            levelStateCache[slot]['waves'] = detail;
+            levelStateCache[slot]['waves_levels'] = detail;
             refreshPinnedLevelsValues();
             
             // Also notify the levels overlay to update
@@ -396,11 +402,13 @@ window.addEventListener('currency:change', (e) => {
 });
 
 function getLevelStatValue(prefix) {
-    return levelStateCache[prefix]?.level || 0;
+    const slot = getActiveSlot() || 'default';
+    return levelStateCache[slot]?.[prefix]?.level || 0;
 }
 
 function getLevelProgRatio(prefix) {
-    return levelStateCache[prefix]?.ratio || 0;
+    const slot = getActiveSlot() || 'default';
+    return levelStateCache[slot]?.[prefix]?.ratio || 0;
 }
 export function initPinnedLevels(parentEl) {
   if (pinnedLevelsContainer) return;
