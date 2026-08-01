@@ -1607,6 +1607,9 @@ export function startBossFightSequence() {
     // 0. Dispatch music stop
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
 
+    // Close overlays before the boss fight starts
+    forceCloseCoveOverlays();
+
     // 1. Black screen overlay
     const overlay = document.createElement('div');
     overlay.id = 'bossfight-sequence-overlay';
