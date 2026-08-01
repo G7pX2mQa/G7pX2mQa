@@ -7904,11 +7904,15 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
       // Side branching veins
       ctx.lineWidth = 0.8;
+      ctx.beginPath();
       for (let v=0.2; v<0.8; v+=0.15) {
           let vy = -length * v;
-          ctx.beginPath(); ctx.moveTo(0, vy); ctx.quadraticCurveTo(-width*0.5, vy-2, -width*0.8, vy - length*0.1); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(0, vy); ctx.quadraticCurveTo(width*0.5, vy-2, width*0.8, vy - length*0.1); ctx.stroke();
+          ctx.moveTo(0, vy);
+          ctx.quadraticCurveTo(-width*0.5, vy-2, -width*0.8, vy - length*0.1);
+          ctx.moveTo(0, vy);
+          ctx.quadraticCurveTo(width*0.5, vy-2, width*0.8, vy - length*0.1);
       }
+      ctx.stroke();
       ctx.restore();
   };
 
@@ -7984,13 +7988,17 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         ctx.quadraticCurveTo((c.x > 0 ? -20 : 20), -c.l*0.6, (c.x > 0 ? -30 : 30), -c.l*0.9);
         ctx.stroke();
         // Tiny fern leaflets along the stalk
+        ctx.fillStyle = c.ca;
+        ctx.beginPath();
         for(let f=0.1; f<0.9; f+=0.1) {
             let fx = (c.x > 0 ? -20 : 20) * f;
             let fy = -c.l * 0.9 * f;
-            ctx.fillStyle = c.ca;
-            ctx.beginPath(); ctx.ellipse(fx - 4, fy - 2, 6, 2, -0.4, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(fx + 4, fy - 2, 6, 2, 0.4, 0, Math.PI*2); ctx.fill();
+            ctx.moveTo(fx - 4, fy - 2);
+            ctx.ellipse(fx - 4, fy - 2, 6, 2, -0.4, 0, Math.PI*2);
+            ctx.moveTo(fx + 4, fy - 2);
+            ctx.ellipse(fx + 4, fy - 2, 6, 2, 0.4, 0, Math.PI*2);
         }
+        ctx.fill();
         ctx.restore();
     }
 
@@ -8028,9 +8036,10 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const flowerCX = 0;
     const flowerCY = -92 - blossomGrowth * 91;
 
-    // Stem body
+    // Stem body (thicker when t8 is active)
+    const stemThickness = (12 + t8 * 8) * displayScale;
     ctx.strokeStyle = stemColor;
-    ctx.lineWidth = 12 * displayScale;
+    ctx.lineWidth = stemThickness;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(0, -20);
@@ -8039,11 +8048,31 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     
     // Stem highlight
     ctx.strokeStyle = highlightColor;
-    ctx.lineWidth = 4 * displayScale;
+    ctx.lineWidth = (4 + t8 * 2) * displayScale;
     ctx.beginPath();
     ctx.moveTo(0, -20);
     ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
     ctx.stroke();
+
+    // Glowing pulsating veins for Tier 8
+    if (t8 > 0) {
+        ctx.save();
+        ctx.globalAlpha = t8 * (0.6 + Math.sin(t * 4) * 0.4);
+        ctx.strokeStyle = '#ff99ff';
+        ctx.lineWidth = 3 * displayScale;
+        ctx.setLineDash([15, 10]);
+        ctx.lineDashOffset = -t * 20;
+        ctx.beginPath();
+        ctx.moveTo(-5, -20);
+        ctx.bezierCurveTo(-20, -40, 10, flowerCY + 40, flowerCX - 3, flowerCY + 5 * displayScale);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(5, -20);
+        ctx.bezierCurveTo(-10, -40, 20, flowerCY + 40, flowerCX + 3, flowerCY + 5 * displayScale);
+        ctx.stroke();
+        ctx.restore();
+    }
 
     ctx.restore();
   }
@@ -8088,133 +8117,138 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   domePath();
   ctx.clip(); 
 
-  // --- Tier 3: Volumetric God Rays (Drawn behind flora for depth) ---
+  // --- Tier 3: Angled Grow Lights (Drawn behind flora for depth) ---
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
     
-    const nozzleXs = [-200, -133, -66, 0, 66, 133, 200];
-    const numRays = nozzleXs.length;
-    for (let i = 0; i < numRays; i++) {
-        const fixtureX = nozzleXs[i];
+    const numLights = 15;
+    for (let i = 0; i < numLights; i++) {
+        // Space them evenly across the dome
+        const xRatio = -0.9 + (i / (numLights - 1)) * 1.8; // from -0.9 to 0.9 of hw
+        const fixtureX = xRatio * hw;
         
         // Position on the dome ceiling
-        const xRatio = fixtureX / hw;
         const fixtureY = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
 
-        // Hemispherical light fixture
-        ctx.fillStyle = '#7a8a7a'; // metallic casing
-        ctx.beginPath();
-        ctx.arc(fixtureX, fixtureY, 14, 0, Math.PI);
-        ctx.fill();
+        // Pointing angle: angle from light towards the center plant area (0, -50)
+        const targetX = 0;
+        const targetY = -50;
+        const dx = targetX - fixtureX;
+        const dy = targetY - fixtureY;
+        const angle = Math.atan2(dy, dx);
+        
+        ctx.save();
+        ctx.translate(fixtureX, fixtureY);
+        ctx.rotate(angle - Math.PI/2); // so straight down is 0
+        
+        // Fixture casing (angled)
+        ctx.fillStyle = '#666';
+        ctx.fillRect(-10, 0, 20, 6);
         
         // Glowing bulb
         ctx.fillStyle = '#fffae6';
-        ctx.beginPath();
-        ctx.arc(fixtureX, fixtureY + 2, 8, 0, Math.PI);
-        ctx.fill();
-
-        const rayOriginX = fixtureX;
-        const rayOriginY = fixtureY + 4;
-
-        // Rays shine downwards with a slight elegant sway
-        const targetX = fixtureX + Math.sin(t * 0.5 + i * 1.7) * 20;
-        const targetY = -22; 
+        ctx.fillRect(-8, 6, 16, 4);
         
-        const dx = targetX - rayOriginX;
-        const dy = targetY - rayOriginY;
-        const len = Math.sqrt(dx*dx + dy*dy);
-        const nx = dx/len;
-        const ny = dy/len;
-        
-        // Ray reaches floor level
-        const distanceToFloor = (domeCY - rayOriginY) / ny;
-        const floorX = rayOriginX + nx * distanceToFloor;
-        
-        const rayWidth = 28 + Math.sin(t * 0.8 + i * 1.2) * 8;
-        const rayAlpha = 0.2 + Math.sin(t * 1.1 + i * 2.3) * 0.08;
+        // Short, angled light beam
+        const beamLength = 80; // short beam
+        const rayAlpha = 0.4 + Math.sin(t * 1.5 + i) * 0.1;
         
         const isMagic = t8 > 0;
         const rTop = isMagic ? '255, 200, 255' : '255, 250, 200';
-        const rMid = isMagic ? '220, 150, 255' : '255, 240, 150';
         const rBot = isMagic ? '180, 100, 255' : '255, 220, 100';
 
-        const rayGrad = ctx.createLinearGradient(rayOriginX, rayOriginY, floorX, domeCY);
-        rayGrad.addColorStop(0, `rgba(${rTop}, ${rayAlpha * 1.2})`);
-        rayGrad.addColorStop(0.5, `rgba(${rMid}, ${rayAlpha * 0.5})`);
+        const rayGrad = ctx.createLinearGradient(0, 10, 0, 10 + beamLength);
+        rayGrad.addColorStop(0, `rgba(${rTop}, ${rayAlpha})`);
         rayGrad.addColorStop(1, `rgba(${rBot}, 0)`);
         
         ctx.globalCompositeOperation = 'screen';
         ctx.fillStyle = rayGrad;
         ctx.beginPath();
-        ctx.moveTo(rayOriginX - 10, rayOriginY);
-        ctx.lineTo(rayOriginX + 10, rayOriginY);
-        ctx.lineTo(floorX + rayWidth, domeCY);
-        ctx.lineTo(floorX - rayWidth, domeCY);
+        ctx.moveTo(-8, 10);
+        ctx.lineTo(8, 10);
+        ctx.lineTo(25, 10 + beamLength);
+        ctx.lineTo(-25, 10 + beamLength);
         ctx.fill();
         ctx.globalCompositeOperation = 'source-over';
+        
+        ctx.restore();
     }
     ctx.restore();
   }
 
-  // --- Tier 7: Galactic Dome Projection ---
+  // --- Tier 7: Falling Blossom Petals & Canopy ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
 
     domePath();
-    ctx.clip(); // Ensure projection stays strictly within the dome
+    ctx.clip(); // Ensure petals stay inside dome
 
-    const projAlpha = 0.5 + Math.sin(t * 0.5) * 0.15;
+    // Draw blossom canopy branches stretching inward from the top edges
+    ctx.strokeStyle = '#3a2110';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
     
-    // Deep space gradient mapping the inner dome
-    const spaceGrad = ctx.createRadialGradient(0, domeCY, hw * 0.2, 0, domeCY, domeH);
-    spaceGrad.addColorStop(0, `rgba(10, 5, 30, ${projAlpha * 0.4})`);
-    spaceGrad.addColorStop(0.5, `rgba(40, 10, 70, ${projAlpha * 0.6})`);
-    spaceGrad.addColorStop(1, `rgba(10, 20, 50, ${projAlpha * 0.8})`);
-    
-    ctx.fillStyle = spaceGrad;
-    ctx.fillRect(-hw, -domeH*1.5, bw, domeH*1.5);
-    
-    ctx.globalCompositeOperation = 'screen';
-    // Nebula clouds
-    for(let n=0; n<3; n++) {
-        const nx = Math.sin(t * 0.1 + n*2) * hw * 0.5;
-        const ny = domeCY - domeH * 0.6 + Math.cos(t * 0.15 + n) * domeH * 0.3;
-        
-        const nebGrad = ctx.createRadialGradient(nx, ny, 10, nx, ny, hw * 0.6);
-        const r = n===0 ? 200 : n===1 ? 100 : 50;
-        const g = n===0 ? 50 : n===1 ? 150 : 200;
-        const b = 255;
-        nebGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${projAlpha * 0.5})`);
-        nebGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
-        
-        ctx.fillStyle = nebGrad;
-        ctx.beginPath(); ctx.arc(nx, ny, hw * 0.6, 0, Math.PI*2); ctx.fill();
-    }
-    
-    // Twinkling stars
-    const numStars = 60;
-    for(let s=0; s<numStars; s++) {
-        const sx = -hw + ((s * 73.1) % bw);
-        const sy = domeCY - domeH + ((s * 31.7) % domeH);
-        
-        const twinkle = Math.max(0, Math.sin(t * (1 + s%3) + s*4));
-        if (twinkle > 0) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * projAlpha})`;
-            const sz = 0.5 + (s%3) * 0.5;
-            ctx.beginPath(); ctx.arc(sx, sy, sz, 0, Math.PI*2); ctx.fill();
-            
-            if (s % 5 === 0) {
-                ctx.strokeStyle = `rgba(255, 255, 255, ${twinkle * projAlpha * 0.5})`;
-                ctx.lineWidth = 0.5;
-                ctx.beginPath(); ctx.moveTo(sx - sz*4, sy); ctx.lineTo(sx + sz*4, sy); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(sx, sy - sz*4); ctx.lineTo(sx, sy + sz*4); ctx.stroke();
-            }
-        }
-    }
-    ctx.globalCompositeOperation = 'source-over';
+    const drawBranch = (xBase, yBase, xDir, scale) => {
+      ctx.save();
+      ctx.translate(xBase, yBase);
+      ctx.scale(xDir, scale);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(50, 20, 120, 60);
+      ctx.stroke();
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(40, 15);
+      ctx.quadraticCurveTo(80, 40, 100, 20);
+      ctx.stroke();
+      
+      // Blossoms on branch
+      ctx.fillStyle = 'rgba(255, 180, 220, 0.9)';
+      ctx.beginPath();
+      for(let i=0; i<8; i++) {
+        const bx = 30 + i * 12;
+        const by = 10 + i * 5 + Math.sin(i) * 10;
+        ctx.moveTo(bx, by);
+        ctx.arc(bx, by, 6 + Math.sin(i)*2, 0, Math.PI*2);
+      }
+      ctx.fill();
+      
+      ctx.fillStyle = 'rgba(255, 140, 190, 0.9)';
+      ctx.beginPath();
+      for(let i=0; i<8; i++) {
+        const bx = 30 + i * 12;
+        const by = 10 + i * 5 + Math.sin(i) * 10;
+        ctx.moveTo(bx-2, by+2);
+        ctx.arc(bx-2, by+2, 4, 0, Math.PI*2);
+      }
+      ctx.fill();
+      ctx.restore();
+    };
 
+    drawBranch(-hw + 20, domeCY - domeH * 0.7, 1, 1.2);
+    drawBranch(hw - 20, domeCY - domeH * 0.7, -1, 1.2);
+    drawBranch(-hw + 60, domeCY - domeH * 0.9, 1, 0.9);
+    drawBranch(hw - 60, domeCY - domeH * 0.9, -1, 0.9);
+
+    // Falling petals
+    const numPetals = 60;
+    ctx.fillStyle = 'rgba(255, 180, 220, 0.7)'; // Use fixed alpha for better batching
+    ctx.beginPath();
+    for(let s=0; s<numPetals; s++) {
+        const speedMultiplier = 40;
+        const fallT = (t * speedMultiplier + s * 113.1) % (domeH + 100);
+        
+        const sx = -hw + ((s * 73.1) % bw) + Math.sin(t + s) * 20;
+        const sy = (domeCY - domeH - 20) + fallT;
+        const rot = t * 2 + s;
+        
+        ctx.moveTo(sx, sy);
+        ctx.ellipse(sx, sy, 4, 2, rot, 0, Math.PI*2);
+    }
+    ctx.fill();
+    
     ctx.restore();
   }
 
@@ -8229,38 +8263,45 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     if (t1 > 0.05) {
       ctx.save();
       ctx.globalAlpha = t1 * Math.min(1, (t1 - 0.05) * 2);
+      
+      const fallDist = Math.abs(-30 - (pipeY + 4)); 
+      const dropSpeed = 140; 
+      const dropLifetime = fallDist / dropSpeed;
+
+      // 1. Batch falling drops
+      ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
+      ctx.beginPath();
       for (let i = 0; i < nozzleXs.length; i++) {
         const nx = nozzleXs[i];
-        const fallDist = Math.abs(-30 - (pipeY + 4)); 
-        const dropSpeed = 140; 
-        const dropLifetime = fallDist / dropSpeed;
-        
         for (let d = 0; d < 2; d++) {
           const phase = (i * 0.37 + d * 0.5); 
           const dropT = (t + phase) % (dropLifetime + 0.3); 
-          
           if (dropT < dropLifetime) {
               const dropY = (pipeY + 4) + dropT * dropSpeed;
-              ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
-              ctx.beginPath();
+              ctx.moveTo(nx, dropY);
               ctx.ellipse(nx, dropY, 2.5, 5.5, 0, 0, Math.PI*2);
-              ctx.fill();
-          } else {
+          }
+        }
+      }
+      ctx.fill();
+
+      // 2. Individual splashes
+      for (let i = 0; i < nozzleXs.length; i++) {
+        const nx = nozzleXs[i];
+        for (let d = 0; d < 2; d++) {
+          const phase = (i * 0.37 + d * 0.5); 
+          const dropT = (t + phase) % (dropLifetime + 0.3); 
+          if (dropT >= dropLifetime) {
               const splashT = (dropT - dropLifetime) / 0.3; 
               const splashAlpha = 1.0 - splashT;
-              
-              ctx.save();
-              ctx.globalAlpha = splashAlpha * ctx.globalAlpha;
-
-              ctx.fillStyle = 'rgba(120, 200, 255, 0.8)';
+              ctx.fillStyle = `rgba(120, 200, 255, ${0.8 * splashAlpha})`;
               const pDist = splashT * 8; 
               const pHeight = Math.sin(splashT * Math.PI) * 6; 
-              
-              ctx.beginPath(); ctx.arc(nx - pDist, -30 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-              ctx.beginPath(); ctx.arc(nx + pDist, -30 - pHeight, 1.5, 0, Math.PI*2); ctx.fill();
-              ctx.beginPath(); ctx.arc(nx, -30 - pHeight * 1.2, 1.5, 0, Math.PI*2); ctx.fill();
-              
-              ctx.restore();
+              ctx.beginPath();
+              ctx.moveTo(nx - pDist, -30 - pHeight); ctx.arc(nx - pDist, -30 - pHeight, 1.5, 0, Math.PI*2);
+              ctx.moveTo(nx + pDist, -30 - pHeight); ctx.arc(nx + pDist, -30 - pHeight, 1.5, 0, Math.PI*2);
+              ctx.moveTo(nx, -30 - pHeight * 1.2); ctx.arc(nx, -30 - pHeight * 1.2, 1.5, 0, Math.PI*2);
+              ctx.fill();
           }
         }
       }
@@ -8306,75 +8347,116 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 5: Bioluminescent Flora/Fungi ---
+  // --- Tier 5: Hanging Vines & Ivy ---
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
 
-    // Glowing mushrooms and magical moss on the dirt edges
-    const numClusters = 14;
-    for (let i = 0; i < numClusters; i++) {
-        const mx = -hw + 15 + (i / (numClusters - 1)) * (bw - 30);
-        
-        // Skip center where main plant is
-        if (Math.abs(mx) < 60) continue;
-
-        const my = -24; // On top of the dirt
+    // Draw cascading vines from the ceiling
+    const numVines = 16;
+    
+    // 1. Draw Vine Stems
+    ctx.strokeStyle = '#2d6a24';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i < numVines; i++) {
+        const xRatio = -0.9 + (i / (numVines - 1)) * 1.8;
+        const vx = xRatio * hw;
+        const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         
         const seed = Math.sin(i * 123.45);
-        const clusterScale = 0.6 + Math.abs(seed) * 0.6;
+        const vineLength = 100 + Math.abs(seed) * 120;
+        const sway = Math.sin(t * 1.2 + i) * 15;
         
-        ctx.save();
-        ctx.translate(mx, my);
-        ctx.scale(clusterScale, clusterScale);
-
-        // Bioluminescent Moss base
-        const mossGlow = 0.4 + Math.sin(t * 1.5 + i) * 0.2;
-        ctx.fillStyle = `rgba(50, 255, 150, ${mossGlow * 0.3})`;
-        ctx.beginPath(); ctx.ellipse(0, 0, 15, 6, 0, 0, Math.PI*2); ctx.fill();
+        ctx.moveTo(vx, vyStart);
+        ctx.quadraticCurveTo(vx + sway, vyStart + vineLength/2, vx + sway*0.5, vyStart + vineLength);
+    }
+    ctx.stroke();
+    
+    // 2. Draw Light Leaves
+    ctx.fillStyle = '#4cc940';
+    ctx.beginPath();
+    for (let i = 0; i < numVines; i++) {
+        const xRatio = -0.9 + (i / (numVines - 1)) * 1.8;
+        const vx = xRatio * hw;
+        const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
+        const seed = Math.sin(i * 123.45);
+        const vineLength = 100 + Math.abs(seed) * 120;
+        const sway = Math.sin(t * 1.2 + i) * 15;
+        const numLeaves = Math.floor(vineLength / 12);
         
-        ctx.fillStyle = '#1e785c'; // Dark cyan/green moss
-        ctx.beginPath(); ctx.arc(-5, 0, 8, 0, Math.PI, true); ctx.fill();
-        ctx.beginPath(); ctx.arc(5, 2, 6, 0, Math.PI, true); ctx.fill();
-
-        // Shroom stalks
-        ctx.strokeStyle = '#a6ffcc';
-        ctx.lineWidth = 2;
-        
-        const numShrooms = 2 + Math.floor(Math.abs(seed * 3));
-        for(let s=0; s<numShrooms; s++) {
-            const sx = (s - numShrooms/2) * 5 + seed * 5;
-            const sh = 10 + Math.abs(Math.cos(i*7+s)) * 15;
-            const bend = Math.sin(i*3 + s)*5;
+        for(let l = 0; l < numLeaves; l++) {
+            const lT = l / numLeaves;
+            const lx = vx + sway * lT + (sway * 0.5 - sway) * lT * lT;
+            const ly = vyStart + vineLength * lT;
+            const isLeft = (l % 2 === 0);
             
-            ctx.beginPath(); ctx.moveTo(sx, 2); ctx.quadraticCurveTo(sx + bend/2, -sh/2, sx + bend, -sh); ctx.stroke();
+            const rot = isLeft ? 0.5 : -0.5;
+            const cx = isLeft ? -4 : 4;
+            const cy = 0;
+            const rCx = cx * Math.cos(rot) - cy * Math.sin(rot);
+            const rCy = cx * Math.sin(rot) + cy * Math.cos(rot);
             
-            // Shroom cap
-            const capW = 6 + Math.abs(seed)*4;
-            const capH = 4 + Math.abs(Math.sin(i))*3;
-            
-            // Glow aura
-            const pulse = 0.5 + Math.sin(t * 2 + i + s) * 0.5;
-            const cGrad = ctx.createRadialGradient(sx + bend, -sh, 0, sx + bend, -sh, capW*2.5);
-            cGrad.addColorStop(0, `rgba(100, 255, 200, ${pulse * 0.8})`);
-            cGrad.addColorStop(1, 'rgba(100, 255, 200, 0)');
-            ctx.fillStyle = cGrad;
-            ctx.beginPath(); ctx.arc(sx + bend, -sh, capW*2.5, 0, Math.PI*2); ctx.fill();
-
-            // Cap solid
-            ctx.fillStyle = '#4dffb8';
-            ctx.beginPath();
-            ctx.ellipse(sx + bend, -sh, capW, capH, 0, Math.PI, 0); // top dome
-            ctx.quadraticCurveTo(sx + bend, -sh + capH/2, sx + bend - capW, -sh); // bottom curve
-            ctx.fill();
-            
-            // Cap spots
-            ctx.fillStyle = '#e6ffff';
-            ctx.beginPath(); ctx.arc(sx + bend - capW/2, -sh - capH/2, 1.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(sx + bend + capW/3, -sh - capH/3, 1, 0, Math.PI*2); ctx.fill();
+            ctx.moveTo(lx + rCx, ly + rCy);
+            ctx.ellipse(lx + rCx, ly + rCy, 5, 2.5, rot + (isLeft ? -0.2 : 0.2), 0, Math.PI*2);
         }
+    }
+    ctx.fill();
+    
+    // 3. Draw Dark Leaves
+    ctx.fillStyle = '#2d8a24';
+    ctx.beginPath();
+    for (let i = 0; i < numVines; i++) {
+        const xRatio = -0.9 + (i / (numVines - 1)) * 1.8;
+        const vx = xRatio * hw;
+        const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
+        const seed = Math.sin(i * 123.45);
+        const vineLength = 100 + Math.abs(seed) * 120;
+        const sway = Math.sin(t * 1.2 + i) * 15;
+        const numLeaves = Math.floor(vineLength / 12);
+        
+        for(let l = 0; l < numLeaves; l++) {
+            const lT = l / numLeaves;
+            const lx = vx + sway * lT + (sway * 0.5 - sway) * lT * lT;
+            const ly = vyStart + vineLength * lT;
+            const isLeft = (l % 2 === 0);
+            
+            const rot = isLeft ? 0.5 : -0.5;
+            const cx = isLeft ? -4 : 4;
+            const cy2 = 1;
+            const rCx2 = cx * Math.cos(rot) - cy2 * Math.sin(rot);
+            const rCy2 = cx * Math.sin(rot) + cy2 * Math.cos(rot);
+            
+            ctx.moveTo(lx + rCx2, ly + rCy2);
+            ctx.ellipse(lx + rCx2, ly + rCy2, 4, 1.5, rot + (isLeft ? -0.2 : 0.2), 0, Math.PI*2);
+        }
+    }
+    ctx.fill();
 
-        ctx.restore();
+    // A small nature pond at the base
+    const pondW = 90;
+    const pondH = 18;
+    ctx.fillStyle = 'rgba(60, 150, 200, 0.7)';
+    ctx.beginPath();
+    ctx.ellipse(-hw/2, -15, pondW, pondH, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(100, 200, 255, 0.5)';
+    ctx.beginPath();
+    ctx.ellipse(-hw/2, -16, pondW*0.9, pondH*0.8, 0, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Lilypads
+    ctx.fillStyle = '#3aad30';
+    const pads = [
+        {x: -hw/2 - 40, y: -12, r: 12},
+        {x: -hw/2 + 30, y: -18, r: 15},
+        {x: -hw/2 + 10, y: -8, r: 10}
+    ];
+    for (let p of pads) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*1.8);
+        ctx.lineTo(p.x, p.y);
+        ctx.fill();
     }
 
     ctx.restore();
@@ -8399,9 +8481,9 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     for (let i = 0; i < 12; i++) {
         const beeT = t * (0.6 + (i%3)*0.1) + i * 7.3;
         
-        // Wide sweeping base position
-        let bx = Math.sin(beeT * 0.7) * hw * 0.85; 
-        let by = domeCY - domeH * 0.5 + Math.cos(beeT * 0.9) * domeH * 0.4;
+        // Sweeping base position (kept tighter to center)
+        let bx = Math.sin(beeT * 0.7) * hw * 0.6; 
+        let by = domeCY - domeH * 0.4 + Math.cos(beeT * 0.9) * domeH * 0.3;
         
         // Add local buzzing
         bx += Math.sin(beeT * 4.3) * 15;
@@ -8416,14 +8498,21 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
            bx += (bx > 0 ? 1 : -1) * pushOut;
         }
 
-        // Keep inside dome roughly
-        const rRatio = Math.abs(bx) / hw;
-        const domeLimitY = domeCY - domeH * Math.sqrt(Math.max(0, 1 - rRatio * rRatio));
-        if (by < domeLimitY + 20) by = domeLimitY + 20;
+        // Dome / Edge avoidance (keep away from edges)
+        const edgeLimit = hw * 0.8;
+        if (bx > edgeLimit) bx = edgeLimit - (bx - edgeLimit)*0.5;
+        if (bx < -edgeLimit) bx = -edgeLimit - (bx + edgeLimit)*0.5;
+
+        // Light avoidance (ceiling avoidance)
+        // Lights are approx at dome limit. Let's enforce a strict ceiling for bees.
+        const beeCeiling = -200;
+        if (by < beeCeiling) {
+           by = beeCeiling + (beeCeiling - by)*0.2;
+        }
         
         ctx.translate(bx, by);
         
-        const nextBx = Math.sin((beeT + 0.05) * 0.7) * hw * 0.85; 
+        const nextBx = Math.sin((beeT + 0.05) * 0.7) * hw * 0.6; 
         const isFacingRight = nextBx > bx;
         ctx.scale(isFacingRight ? 1 : -1, 1);
 
@@ -8450,9 +8539,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         ctx.beginPath(); ctx.ellipse(1, -3, 1.5, 3.5, -0.4, 0, Math.PI*2); ctx.fill();
         ctx.restore();
 
-        // Bee glow
-        ctx.fillStyle = `rgba(255, 255, 150, ${0.1 + Math.sin(beeT*10)*0.05})`;
-        ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
+        // Removed the glowing circle around the bee
 
         ctx.scale(isFacingRight ? 1 : -1, 1);
         ctx.translate(-bx, -by);
@@ -8633,8 +8720,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         
         const fireT = t * (0.3 + seed1 * 0.2) + i * 11;
         
-        // Sweeping path
-        let sx = Math.sin(fireT * 0.8) * hw * 0.9;
+        // Sweeping path (tighter around center)
+        let sx = Math.sin(fireT * 0.8) * hw * 0.75;
         let sy = domeCY - domeH * 0.4 + Math.cos(fireT * 1.1) * domeH * 0.3;
         
         // Add local drifting
@@ -8650,10 +8737,16 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
            sx += (sx > 0 ? 1 : -1) * pushOut;
         }
 
-        // Dome avoidance
-        const rRatio = Math.abs(sx) / hw;
-        const domeLimitY = domeCY - domeH * Math.sqrt(Math.max(0, 1 - rRatio * rRatio));
-        if (sy < domeLimitY + 15) sy = domeLimitY + 15;
+        // Edge avoidance
+        const edgeLimit = hw * 0.85;
+        if (sx > edgeLimit) sx = edgeLimit - (sx - edgeLimit)*0.5;
+        if (sx < -edgeLimit) sx = -edgeLimit - (sx + edgeLimit)*0.5;
+
+        // Light/Ceiling avoidance
+        const flyCeiling = -220;
+        if (sy < flyCeiling) {
+           sy = flyCeiling + (flyCeiling - sy)*0.2;
+        }
         
         const alphaPulse = Math.max(0, Math.sin(t * (1.5 + seed2) + i * 2.1));
         
@@ -8662,31 +8755,15 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
         if (alphaPulse > 0.01) {
             // Glow
-            const sporeGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 12);
-            sporeGrad.addColorStop(0, `rgba(${colGlow}, ${alphaPulse * 0.7})`);
-            sporeGrad.addColorStop(0.4, `rgba(${colGlow}, ${alphaPulse * 0.2})`);
+            const sporeGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 8);
+            sporeGrad.addColorStop(0, `rgba(${colGlow}, ${alphaPulse * 0.8})`);
             sporeGrad.addColorStop(1, `rgba(${colGlow}, 0)`);
             ctx.fillStyle = sporeGrad;
-            ctx.beginPath(); ctx.arc(sx, sy, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.fill();
 
-            // Firefly body
-            ctx.save();
-            ctx.translate(sx, sy);
-            const nx = Math.sin((fireT + 0.1) * 0.8) * hw * 0.9;
-            ctx.rotate(nx > sx ? 0.2 : -0.2); 
-            
+            // Simple blinking dot instead of realistic bug
             ctx.fillStyle = `rgba(${colBase}, ${alphaPulse + 0.2})`;
-            ctx.beginPath(); ctx.ellipse(-1, 0, 2.5, 1.5, 0, 0, Math.PI*2); ctx.fill();
-            
-            ctx.fillStyle = '#223322';
-            ctx.beginPath(); ctx.arc(2, 0, 1.2, 0, Math.PI*2); ctx.fill();
-            
-            const wingF = Math.sin(t * 70 + i);
-            ctx.fillStyle = 'rgba(200, 255, 200, 0.5)';
-            ctx.beginPath(); ctx.ellipse(0, -1 - Math.abs(wingF)*1.5, 1.5, 3, 0.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(0, 1 + Math.abs(wingF)*1.5, 1.5, 3, -0.5, 0, Math.PI*2); ctx.fill();
-
-            ctx.restore();
+            ctx.beginPath(); ctx.arc(sx, sy, 1.5, 0, Math.PI*2); ctx.fill();
         }
     }
 
