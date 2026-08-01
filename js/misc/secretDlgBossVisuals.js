@@ -7,8 +7,7 @@ import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { setLifetimeBossBeaten, getLifetimeBossBeaten, checkSecretAchievements } from '../game/secretAchievements.js';
 import { collectActiveBigCoins } from '../util/bigCoinManager.js';
-
-const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
+import { PICKUP_VOLUME } from '../game/coinPickup.js';
 
 // Reusing palette from tsunamiVisuals for consistency
 const PALETTE = {
@@ -1277,7 +1276,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let isPlayerDead = false;
     let playerDeathTime = 0;
     let playingBuildupSfx = false;
-    let buildupAudio = null;
     let landscapeSnapshot = null;
     let playingJawsSound = false;
     let jawsAudio = null;
@@ -1344,7 +1342,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const timeSinceDeath = performance.now() - playerDeathTime;
             if (timeSinceDeath >= 3000 && !playingBuildupSfx) {
                 playingBuildupSfx = true;
-                buildupAudio = playAudio('sounds/you_will_die_there_is_nowhere_to_run.ogg', { volume: 1.0 });
+                const buildupSfx = playAudio('sounds/you_will_die_there_is_nowhere_to_run.ogg', { volume: 1.0 });
 
                 const startDeathSequence = () => {
                     if (window.bossDeathSequenceTimeout) return;
@@ -1353,10 +1351,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     }, 0);
                 };
 
-                if (buildupAudio?.source) {
-                    buildupAudio.source.onended = startDeathSequence;
-                } else if (buildupAudio?.element) {
-                    buildupAudio.element.addEventListener('ended', startDeathSequence, { once: true });
+                if (buildupSfx?.source) {
+                    buildupSfx.source.onended = startDeathSequence;
+                } else if (buildupSfx?.element) {
+                    buildupSfx.element.addEventListener('ended', startDeathSequence, { once: true });
                 } else {
                     window.bossDeathSequenceTimeout = setTimeout(() => {
                         playPlayerDeathSequence();
@@ -2991,7 +2989,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             if (hit) {
                 if (prop.type === 'coin') {
-                    playAudio('sounds/pickup.ogg', { volume: COIN_VOLUME });
+                    playAudio('sounds/pickup.ogg', { volume: PICKUP_VOLUME });
                     // pass a property 'startTime' based on current game time for scaled animations
                     // we can just use the global variable 'lastFrameTime' which stores current timestamp
                     collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: lastFrameTime, type: 'coin' });
@@ -3000,7 +2998,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     updateBossHpUI();
                     updateMusicSpeed();
                 } else if (prop.type === 'life') {
-                    playAudio('sounds/life_restored.ogg', { volume: COIN_VOLUME });
+                    playAudio('sounds/life_restored.ogg', { volume: PICKUP_VOLUME });
                     collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: lastFrameTime, type: 'life' });
                     activeProjectiles.splice(i, 1);
                     playerLives++;
@@ -3034,7 +3032,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     totalRubyCoinHits += hitsToAdd;
                     rubyCoinLastSwipeTime = performance.now();
                     for (let h = 0; h < hitsToAdd; h++) {
-                        setTimeout(() => playAudio('sounds/ruby_coin_swipe.ogg', { volume: COIN_VOLUME }), h * 50);
+                        setTimeout(() => playAudio('sounds/ruby_coin_swipe.ogg', { volume: PICKUP_VOLUME }), h * 50);
                         
                         // Spawn 3 miniature ruby coins that shoot up and out
                         for (let mc = 0; mc < 3; mc++) {
@@ -3119,9 +3117,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             cancelAnimationFrame(window.bossDeathAnimFrame);
             window.bossDeathAnimFrame = null;
         }
-        
-        document.querySelectorAll('#boss-death-explosion-container').forEach(el => el.remove());
-
+        const expCont = document.getElementById('boss-death-explosion-container');
+        if (expCont) expCont.remove();
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
@@ -3140,16 +3137,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         
         if (bossMusic) bossMusic.stop();
         if (heartbeatAudio) heartbeatAudio.stop();
-        if (buildupAudio) {
-            if (buildupAudio.source) {
-                buildupAudio.source.onended = null;
-            } else if (buildupAudio.element) {
-                buildupAudio.element.onended = null;
-            }
-            buildupAudio.stop();
-        }
-        if (jawsAudio) jawsAudio.stop();
-        if (deathAudio) deathAudio.stop();
         if (cursorTrail) cursorTrail.destroy();
     }
 
