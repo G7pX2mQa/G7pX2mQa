@@ -924,8 +924,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         lostContainer.appendChild(title);
         lostContainer.appendChild(btnContainer);
 
-        // Append to the explosion container so it inherits the same coordinate system and can be underneath canvas
-        explosionContainer.insertBefore(lostContainer, explosionContainer.firstChild);
+        // Append to the explosion container on top of the canvas so it's instantly visible
+        explosionContainer.appendChild(lostContainer);
 
         requestAnimationFrame(() => {
             const attemptWidth = btnAttempt.getBoundingClientRect().width;
@@ -1426,7 +1426,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             victoryContainer.style.pointerEvents = 'auto';
                             victoryContainer.style.cursor = 'default';
                             victoryContainer.style.opacity = '0';
-                            victoryContainer.style.transition = 'opacity 3s ease';
+                            victoryContainer.style.transition = 'opacity 3s ease-in-out';
                             
                             const title = document.createElement('div');
                             title.textContent = 'You did it!!!';
@@ -1519,10 +1519,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             
                             document.body.appendChild(victoryContainer);
                             
-                            // Trigger reflow and set opacity to 1 for the transition to take effect
-                            setTimeout(() => {
-                                victoryContainer.style.opacity = '1';
-                            }, 50);
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    victoryContainer.style.opacity = '1';
+                                });
+                            });
                         }
                     }
                 }
