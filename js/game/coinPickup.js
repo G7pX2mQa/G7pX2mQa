@@ -25,6 +25,8 @@ import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } fro
 import { setHtmlOrText } from '../util/uiHelpers.js';
 import { MAX_VISUALS } from "./spawnerCore.js";
 
+export const PICKUP_VOLUME = IS_MOBILE ? 0.12 : 0.3;
+
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
 let mutationCurrentLevelStr = '0';
@@ -524,7 +526,6 @@ export function initCoinPickup({
   
   // ----- Audio Handling -----
   // Replaced with audioManager
-  const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
   let lastAt = 0;
 
   function playSound(src = resolvedSrc){
@@ -537,7 +538,7 @@ export function initCoinPickup({
     
     // Use shared audio manager
     playAudio(src, { 
-        volume: COIN_VOLUME
+        volume: PICKUP_VOLUME
     });
   }
 
