@@ -87,7 +87,10 @@ let pureGoldPattern = null;
 let diamondPattern = null;
 let darkDiamondPattern = null;
 let emeraldPattern = null;
-
+let cachedGrowLightNormal = null;
+let cachedGrowLightMagic = null;
+let cachedFireflyGlow1 = null;
+let cachedFireflyGlow2 = null;
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
   let actualKey = matKey;
@@ -8121,17 +8124,40 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
+
+    // Cache the light beams to avoid creating 15 linear gradients per frame
+    if (!cachedGrowLightNormal) {
+        const createLightCache = (rTop, rBot) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 50; canvas.height = 100; // Max bounds for the beam (25 width each side, 80 length + 10 offset)
+            const bCtx = canvas.getContext('2d');
+            
+            const rayGrad = bCtx.createLinearGradient(25, 10, 25, 90);
+            rayGrad.addColorStop(0, `rgba(${rTop}, 1)`); // Max alpha, we will modulate via globalAlpha
+            rayGrad.addColorStop(1, `rgba(${rBot}, 0)`);
+            
+            bCtx.fillStyle = rayGrad;
+            bCtx.beginPath();
+            bCtx.moveTo(25 - 8, 10);
+            bCtx.lineTo(25 + 8, 10);
+            bCtx.lineTo(25 + 25, 90);
+            bCtx.lineTo(25 - 25, 90);
+            bCtx.fill();
+            return canvas;
+        };
+        cachedGrowLightNormal = createLightCache('255, 250, 200', '255, 220, 100');
+        cachedGrowLightMagic = createLightCache('255, 200, 255', '180, 100, 255');
+    }
     
     const numLights = 15;
+    const isMagic = t8 > 0;
+    const activeCache = isMagic ? cachedGrowLightMagic : cachedGrowLightNormal;
+
     for (let i = 0; i < numLights; i++) {
-        // Space them evenly across the dome
-        const xRatio = -0.9 + (i / (numLights - 1)) * 1.8; // from -0.9 to 0.9 of hw
+        const xRatio = -0.9 + (i / (numLights - 1)) * 1.8;
         const fixtureX = xRatio * hw;
-        
-        // Position on the dome ceiling
         const fixtureY = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
 
-        // Pointing angle: angle from light towards the center plant area (0, -50)
         const targetX = 0;
         const targetY = -50;
         const dx = targetX - fixtureX;
@@ -8140,39 +8166,22 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         
         ctx.save();
         ctx.translate(fixtureX, fixtureY);
-        ctx.rotate(angle - Math.PI/2); // so straight down is 0
+        ctx.rotate(angle - Math.PI/2);
         
-        // Fixture casing (angled)
+        // Fixture casing
         ctx.fillStyle = '#666';
         ctx.fillRect(-10, 0, 20, 6);
-        
-        // Glowing bulb
         ctx.fillStyle = '#fffae6';
         ctx.fillRect(-8, 6, 16, 4);
         
-        // Short, angled light beam
-        const beamLength = 80; // short beam
+        // Beam
         const rayAlpha = 0.4 + Math.sin(t * 1.5 + i) * 0.1;
-        
-        const isMagic = t8 > 0;
-        const rTop = isMagic ? '255, 200, 255' : '255, 250, 200';
-        const rBot = isMagic ? '180, 100, 255' : '255, 220, 100';
-
-        const rayGrad = ctx.createLinearGradient(0, 10, 0, 10 + beamLength);
-        rayGrad.addColorStop(0, `rgba(${rTop}, ${rayAlpha})`);
-        rayGrad.addColorStop(1, `rgba(${rBot}, 0)`);
-        
         ctx.globalCompositeOperation = 'screen';
-        ctx.fillStyle = rayGrad;
-        ctx.beginPath();
-        ctx.moveTo(-8, 10);
-        ctx.lineTo(8, 10);
-        ctx.lineTo(25, 10 + beamLength);
-        ctx.lineTo(-25, 10 + beamLength);
-        ctx.fill();
-        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = rayAlpha * t3; 
+        // We draw the cached canvas which is 50x100. Center it at -25 on X.
+        ctx.drawImage(activeCache, -25, 0);
         
-        ctx.restore();
+        ctx.restore(); // Restores globalAlpha and CompositeOperation
     }
     ctx.restore();
   }
@@ -8750,20 +8759,32 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         
         const alphaPulse = Math.max(0, Math.sin(t * (1.5 + seed2) + i * 2.1));
         
-        const colGlow = (seed1 < 0.5) ? '200, 255, 100' : '150, 255, 150';
-        const colBase = (seed1 < 0.5) ? '255, 255, 150' : '200, 255, 200';
+        const isType1 = seed1 < 0.5;
+
+        // Initialize cache
+        if (!cachedFireflyGlow1) {
+            const createGlowCache = (rG, rB) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 16; canvas.height = 16;
+                const bCtx = canvas.getContext('2d');
+                const sporeGrad = bCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+                sporeGrad.addColorStop(0, `rgba(${rG}, 0.8)`);
+                sporeGrad.addColorStop(1, `rgba(${rG}, 0)`);
+                bCtx.fillStyle = sporeGrad;
+                bCtx.beginPath(); bCtx.arc(8, 8, 8, 0, Math.PI * 2); bCtx.fill();
+                bCtx.fillStyle = `rgba(${rB}, 1.0)`;
+                bCtx.beginPath(); bCtx.arc(8, 8, 1.5, 0, Math.PI * 2); bCtx.fill();
+                return canvas;
+            };
+            cachedFireflyGlow1 = createGlowCache('200, 255, 100', '255, 255, 150');
+            cachedFireflyGlow2 = createGlowCache('150, 255, 150', '200, 255, 200');
+        }
 
         if (alphaPulse > 0.01) {
-            // Glow
-            const sporeGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 8);
-            sporeGrad.addColorStop(0, `rgba(${colGlow}, ${alphaPulse * 0.8})`);
-            sporeGrad.addColorStop(1, `rgba(${colGlow}, 0)`);
-            ctx.fillStyle = sporeGrad;
-            ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.fill();
-
-            // Simple blinking dot instead of realistic bug
-            ctx.fillStyle = `rgba(${colBase}, ${alphaPulse + 0.2})`;
-            ctx.beginPath(); ctx.arc(sx, sy, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.save();
+            ctx.globalAlpha = t6 * alphaPulse;
+            ctx.drawImage(isType1 ? cachedFireflyGlow1 : cachedFireflyGlow2, sx - 8, sy - 8);
+            ctx.restore();
         }
     }
 
