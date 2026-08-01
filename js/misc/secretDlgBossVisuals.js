@@ -1277,6 +1277,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let isPlayerDead = false;
     let playerDeathTime = 0;
     let playingBuildupSfx = false;
+    let buildupAudio = null;
     let landscapeSnapshot = null;
     let playingJawsSound = false;
     let jawsAudio = null;
@@ -1343,7 +1344,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const timeSinceDeath = performance.now() - playerDeathTime;
             if (timeSinceDeath >= 3000 && !playingBuildupSfx) {
                 playingBuildupSfx = true;
-                const buildupSfx = playAudio('sounds/you_will_die_there_is_nowhere_to_run.ogg', { volume: 1.0 });
+                buildupAudio = playAudio('sounds/you_will_die_there_is_nowhere_to_run.ogg', { volume: 1.0 });
 
                 const startDeathSequence = () => {
                     if (window.bossDeathSequenceTimeout) return;
@@ -1352,10 +1353,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     }, 0);
                 };
 
-                if (buildupSfx?.source) {
-                    buildupSfx.source.onended = startDeathSequence;
-                } else if (buildupSfx?.element) {
-                    buildupSfx.element.addEventListener('ended', startDeathSequence, { once: true });
+                if (buildupAudio?.source) {
+                    buildupAudio.source.onended = startDeathSequence;
+                } else if (buildupAudio?.element) {
+                    buildupAudio.element.addEventListener('ended', startDeathSequence, { once: true });
                 } else {
                     window.bossDeathSequenceTimeout = setTimeout(() => {
                         playPlayerDeathSequence();
@@ -3118,8 +3119,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             cancelAnimationFrame(window.bossDeathAnimFrame);
             window.bossDeathAnimFrame = null;
         }
-        const expCont = document.getElementById('boss-death-explosion-container');
-        if (expCont) expCont.remove();
+        
+        document.querySelectorAll('#boss-death-explosion-container').forEach(el => el.remove());
+
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
@@ -3138,6 +3140,16 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         
         if (bossMusic) bossMusic.stop();
         if (heartbeatAudio) heartbeatAudio.stop();
+        if (buildupAudio) {
+            if (buildupAudio.source) {
+                buildupAudio.source.onended = null;
+            } else if (buildupAudio.element) {
+                buildupAudio.element.onended = null;
+            }
+            buildupAudio.stop();
+        }
+        if (jawsAudio) jawsAudio.stop();
+        if (deathAudio) deathAudio.stop();
         if (cursorTrail) cursorTrail.destroy();
     }
 
