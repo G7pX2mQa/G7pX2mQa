@@ -11,7 +11,7 @@ import { clearAllDebugOverrides } from './util/debugPanel.js';
 import { unmarkSaveSlotModified } from './util/storage.js';
 import { settingsManager } from "./game/settingsManager.js";
 import { flushBackupSnapshot as immediateFlushBackupSnapshot } from './util/suspensionSafeguard.js';
-import { IS_MOBILE } from './util/platformChecker.js';
+import { IS_MOBILE, IS_FIREFOX } from './util/platformChecker.js';
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -1186,6 +1186,7 @@ export function enterArea(areaID, fadeDuration = 0) {
    BOOT FLOW
 ----------------------------*/
 document.addEventListener('DOMContentLoaded', async () => {
+  if (IS_FIREFOX) document.documentElement.classList.add('is-firefox');
   let resolveSkip;
   const skipPromise = new Promise(resolve => { resolveSkip = resolve; });
 
