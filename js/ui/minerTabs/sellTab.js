@@ -1,3 +1,4 @@
+import { IS_FIREFOX } from '../../util/platformChecker.js';
 import { CURRENCIES, getActiveSlot, UC_MATERIALS, bank, getCurrencyMultiplierScaledBN } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
@@ -947,7 +948,7 @@ function generateBgChunk(layerConf, lastChunk) {
 
                     // Pre-render the crystal to an offscreen canvas
                     let cachedImage;
-                    if (typeof OffscreenCanvas !== 'undefined') {
+                    if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
                         cachedImage = new OffscreenCanvas(40, 40);
                     } else {
                         cachedImage = document.createElement('canvas');
