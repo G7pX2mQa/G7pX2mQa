@@ -840,6 +840,22 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         lostContainer.style.zIndex = '2147483646';
         lostContainer.id = 'boss-lost-container';
         lostContainer.style.pointerEvents = 'auto';
+        const styleEl = document.createElement('style');
+        styleEl.textContent = '#boss-lost-container, #boss-lost-container * { cursor: none !important; }';
+        lostContainer.appendChild(styleEl);
+
+        let cursorReady = false;
+        setTimeout(() => {
+            cursorReady = true;
+        }, 1500);
+
+        const showCursorLost = () => {
+            if (!cursorReady) return;
+            styleEl.remove();
+            lostContainer.style.cursor = 'default';
+            lostContainer.removeEventListener('mousemove', showCursorLost);
+        };
+        lostContainer.addEventListener('mousemove', showCursorLost);
         
         const title = document.createElement('div');
         title.textContent = 'You Lost';
@@ -924,7 +940,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         lostContainer.appendChild(title);
         lostContainer.appendChild(btnContainer);
 
-        // Append to the explosion container on top of the canvas so it's instantly visible
+        // Append to the explosion container on top of the canvas
         explosionContainer.appendChild(lostContainer);
 
         requestAnimationFrame(() => {
@@ -1424,9 +1440,18 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             victoryContainer.style.zIndex = '2147483648';
                             victoryContainer.id = 'boss-victory-container'; // Above fadeOverlay
                             victoryContainer.style.pointerEvents = 'auto';
-                            victoryContainer.style.cursor = 'default';
                             victoryContainer.style.opacity = '0';
                             victoryContainer.style.transition = 'opacity 3s ease-in-out';
+                            const styleEl = document.createElement('style');
+                            styleEl.textContent = '#boss-victory-container, #boss-victory-container * { cursor: none !important; }';
+                            victoryContainer.appendChild(styleEl);
+
+                            const showCursorVictory = () => {
+                                styleEl.remove();
+                                victoryContainer.style.cursor = 'default';
+                                victoryContainer.removeEventListener('mousemove', showCursorVictory);
+                            };
+                            victoryContainer.addEventListener('mousemove', showCursorVictory);
                             
                             const title = document.createElement('div');
                             title.textContent = 'You did it!!!';
