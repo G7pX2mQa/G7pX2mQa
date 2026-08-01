@@ -9,12 +9,15 @@ import { settingsManager } from "../../game/settingsManager.js";
 import { createDropdown } from "./dropdownUtils.js";
 import { createPaintbrush } from "./paintbrushUtils.js";
 import { setHtmlOrText } from '../../util/uiHelpers.js';
+import { getActiveSlot } from '../../util/storage.js';
 
 const levelStateCache = {};
 
 window.addEventListener("level:change", (e) => {
     if (e.detail && e.detail.prefix) {
-        levelStateCache[e.detail.prefix] = e.detail;
+        const slot = getActiveSlot() || 'default';
+        if (!levelStateCache[slot]) levelStateCache[slot] = {};
+        levelStateCache[slot][e.detail.prefix] = e.detail;
     }
 });
 
@@ -25,16 +28,19 @@ setInterval(() => {
 }, 100);
 
 function getStatIsUnlocked(prefix) {
+    const slot = getActiveSlot() || 'default';
+    if (!levelStateCache[slot]) levelStateCache[slot] = {};
+
     const progConfig = RESOURCE_REGISTRY.find(c => c.key === prefix);
     if (progConfig && typeof progConfig.getState === 'function') {
         const state = progConfig.getState();
         if (state && state.isUnlocked !== undefined) {
-            levelStateCache[prefix] = state; // update cache
+            levelStateCache[slot][prefix] = state; // update cache
             return state.isUnlocked;
         }
     }
-    if (levelStateCache[prefix]) {
-        return levelStateCache[prefix].isUnlocked;
+    if (levelStateCache[slot][prefix]) {
+        return levelStateCache[slot][prefix].isUnlocked;
     }
     return true;
 }
@@ -376,7 +382,8 @@ function handleStatChange(e) {
   levels.forEach(l => {
     const row = grid.querySelector(`.currency-row[data-level="${l.prefix}"]`);
     if (row) {
-      let state = levelStateCache[l.prefix];
+      const slot = getActiveSlot() || 'default';
+      let state = levelStateCache[slot]?.[l.prefix];
       if (!state && l.progConfig && typeof l.progConfig.getState === 'function') {
         state = l.progConfig.getState();
       }
