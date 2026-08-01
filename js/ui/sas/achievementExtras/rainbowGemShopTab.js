@@ -379,9 +379,14 @@ export function initRainbowGemShopTab(panel) {
 
 
 
+let _rgShopUpdateQueued = false;
 export function updateRainbowGemShopTab() {
-    const grid = document.getElementById('ae-rainbow-shop-grid');
-    if (!grid) return;
+    if (_rgShopUpdateQueued) return;
+    _rgShopUpdateQueued = true;
+    requestAnimationFrame(() => {
+        _rgShopUpdateQueued = false;
+        const grid = document.getElementById('ae-rainbow-shop-grid');
+        if (!grid) return;
 
     let counts = { font: 0, trail: 0, magnet: 0 };
     for (const upg of RAINBOW_GEM_UPGRADES) {
@@ -613,4 +618,5 @@ export function updateRainbowGemShopTab() {
             btn.classList.remove('is-locked');
         }
     }
+    });
 }
