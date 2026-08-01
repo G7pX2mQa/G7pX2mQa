@@ -1,3 +1,4 @@
+import { IS_FIREFOX } from '../util/platformChecker.js';
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
@@ -87,10 +88,13 @@ let pureGoldPattern = null;
 let diamondPattern = null;
 let darkDiamondPattern = null;
 let emeraldPattern = null;
+
+// for specifically the Greenhouse building:
 let cachedGrowLightNormal = null;
 let cachedGrowLightMagic = null;
 let cachedFireflyGlow1 = null;
 let cachedFireflyGlow2 = null;
+
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
   let actualKey = matKey;
@@ -1085,7 +1089,7 @@ function drawCavern(ctx, w, h, t) {
       }
 
       let cachedImage;
-      if (typeof OffscreenCanvas !== "undefined") {
+      if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
         cachedImage = new OffscreenCanvas(40, 40);
       } else {
         cachedImage = document.createElement("canvas");
@@ -5350,7 +5354,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     
     for (let f = 0; f < frames; f++) {
       let offCanvas;
-      if (typeof OffscreenCanvas !== "undefined") {
+      if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
         offCanvas = new OffscreenCanvas(width, height);
       } else {
         offCanvas = document.createElement("canvas");
@@ -5665,7 +5669,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     sideOnLinkHighlightPath.moveTo(-4.5, -1);
     sideOnLinkHighlightPath.lineTo(4.5, -1);
 
-    if (typeof OffscreenCanvas !== "undefined") {
+    if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
         cachedFaceOnLink = new OffscreenCanvas(20, 20);
         cachedSideOnLink = new OffscreenCanvas(20, 20);
     } else {
