@@ -52,6 +52,7 @@ import {
 import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
 import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
 import { setHtmlOrText } from '../util/uiHelpers.js';
+import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 // --- Shared State ---
 const scrollingElements = new Set();
@@ -260,10 +261,6 @@ function stripTags(html) {
 }
 
 export function getCurrencyLabel(type, amountBn) {
-  if (type === 'gold') return 'Gold';
-  if (type === 'magic') return 'Magic';
-  if (type === 'dna') return 'DNA';
-  
   let isOne = false;
   if (amountBn && typeof amountBn.cmp === 'function') {
       isOne = !amountBn.isInfinite() && amountBn.cmp(1) === 0;
@@ -276,10 +273,10 @@ export function getCurrencyLabel(type, amountBn) {
       }
   }
 
-  if (type === 'coins') return isOne ? 'Coin' : 'Coins';
-  if (type === 'books') return isOne ? 'Book' : 'Books';
-  if (type === 'gears') return isOne ? 'Gear' : 'Gears';
-  if (type === 'rainbowGems') return isOne ? 'Rainbow Gem' : 'Rainbow Gems';
+  const resource = RESOURCE_REGISTRY.find(r => r.key === type);
+  if (resource) {
+      return isOne ? resource.singular : resource.plural;
+  }
   
   return type ? (type.charAt(0).toUpperCase() + type.slice(1)) : '';
 }
