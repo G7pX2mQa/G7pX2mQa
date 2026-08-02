@@ -7968,7 +7968,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           
           const totalLife = 220 + ((s * 11.7) % 60);
           const age = (t * 30 + s * 113.1) % totalLife;
-          const progress = age / totalLife;
+          let progress = age / totalLife;
+          
+          // Make petals only start dropping once the tier 7 transition has begun
+          if (t7 < 1.0) {
+              progress *= t7;
+          }
           
           const swirlY = flowerCY + ((s * 7.9) % 60) - 30; 
           // Tier 7 flower radius is ~67.5px. Set radius to just clear it.
