@@ -8486,10 +8486,10 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   if (t4 > 0) {
     ctx.save();
     ctx.globalAlpha = t4;
-    // Base stem transitions from dark green to dark purple (#330066)
-    const r = Math.floor(58 * (1 - t8) + 51 * t8);
+    // Base stem transitions from dark green to very dark purple (#110022)
+    const r = Math.floor(58 * (1 - t8) + 17 * t8);
     const g = Math.floor(173 * (1 - t8) + 0 * t8);
-    const b = Math.floor(48 * (1 - t8) + 102 * t8);
+    const b = Math.floor(48 * (1 - t8) + 34 * t8);
     let stemColor = `rgb(${r}, ${g}, ${b})`;
     
     // Mid stem transitions from mid green to purple (#b300b3)
@@ -8505,7 +8505,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     let highlightColor = `rgb(${hr}, ${hg}, ${hb})`;
 
     if (t8 >= 1) {
-        stemColor = '#330066';
+        stemColor = '#110022';
         midColor = '#b300b3';
         highlightColor = '#ff00ff';
     }
