@@ -8232,77 +8232,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 7: Falling Blossom Petals & Canopy ---
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-
-    domePath();
-    ctx.clip(); // Ensure petals stay inside dome
-
-    // Draw blossom canopy branches stretching inward from the top edges
-    ctx.strokeStyle = '#3a2110';
-    ctx.lineWidth = 8;
-    ctx.lineCap = 'round';
-    
-    const drawBranch = (xBase, yBase, xDir, scale) => {
-      ctx.save();
-      ctx.translate(xBase, yBase);
-      ctx.scale(xDir, scale);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(50, 20, 120, 60);
-      ctx.stroke();
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(40, 15);
-      ctx.quadraticCurveTo(80, 40, 100, 20);
-      ctx.stroke();
-      
-      // Blossoms on branch
-      ctx.fillStyle = 'rgba(255, 180, 220, 0.9)';
-      ctx.beginPath();
-      for(let i=0; i<8; i++) {
-        const bx = 30 + i * 12;
-        const by = 10 + i * 5 + Math.sin(i) * 10;
-        ctx.moveTo(bx, by);
-        ctx.arc(bx, by, 6 + Math.sin(i)*2, 0, Math.PI*2);
-      }
-      ctx.fill();
-      
-      ctx.fillStyle = 'rgba(255, 140, 190, 0.9)';
-      ctx.beginPath();
-      for(let i=0; i<8; i++) {
-        const bx = 30 + i * 12;
-        const by = 10 + i * 5 + Math.sin(i) * 10;
-        ctx.moveTo(bx-2, by+2);
-        ctx.arc(bx-2, by+2, 4, 0, Math.PI*2);
-      }
-      ctx.fill();
-      ctx.restore();
-    };
-
-    const branchIndices = [1, 2, 11, 12];
-    for (let i of branchIndices) {
-        // Shift slightly towards the LOWER light to account for visual crowding 
-        // from the branch's own curve (which sweeps towards the upper light)
-        // and the geometric skew of the ellipse.
-        const offset = (i < 7) ? 0.4 : 0.6; 
-        const xRatio = -0.9 + ((i + offset) / 14) * 1.8;
-        
-        const bx = xRatio * hw;
-        const by = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
-        
-        const dir = bx < 0 ? 1 : -1;
-        const scale = 0.6 + 0.4 * (1 - Math.abs(xRatio));
-        drawBranch(bx, by, dir, scale);
-    }
-
-
-    
-    ctx.restore();
-  }
-
   // --- Tier 1: Seamless Emerald Irrigation & Splash Physics ---
   if (t1 > 0) {
     ctx.save();
@@ -8517,6 +8446,78 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.fill();
 
+    ctx.restore();
+  }
+
+  // --- Tier 7: Falling Blossom Petals & Canopy ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+
+    domePath();
+    ctx.clip(); // Ensure petals stay inside dome
+
+    // Draw blossom canopy branches stretching inward from the top edges
+    ctx.strokeStyle = '#3a2110';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    
+    const drawBranch = (xBase, yBase, xDir, scale) => {
+      ctx.save();
+      ctx.translate(xBase, yBase);
+      ctx.scale(xDir, scale);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(50, 20, 120, 60);
+      ctx.stroke();
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(40, 15);
+      ctx.quadraticCurveTo(80, 40, 100, 20);
+      ctx.stroke();
+      
+      // Blossoms on branch
+      ctx.fillStyle = 'rgba(255, 180, 220, 0.9)';
+      ctx.beginPath();
+      for(let i=0; i<8; i++) {
+        const bx = 30 + i * 12;
+        const by = 10 + i * 5 + Math.sin(i) * 10;
+        ctx.moveTo(bx, by);
+        ctx.arc(bx, by, 6 + Math.sin(i)*2, 0, Math.PI*2);
+      }
+      ctx.fill();
+      
+      ctx.fillStyle = 'rgba(255, 140, 190, 0.9)';
+      ctx.beginPath();
+      for(let i=0; i<8; i++) {
+        const bx = 30 + i * 12;
+        const by = 10 + i * 5 + Math.sin(i) * 10;
+        ctx.moveTo(bx-2, by+2);
+        ctx.arc(bx-2, by+2, 4, 0, Math.PI*2);
+      }
+      ctx.fill();
+      ctx.restore();
+    };
+
+    const branchIndices = [1, 2, 11, 12];
+    for (let i of branchIndices) {
+        // Shift slightly towards the LOWER light to account for visual crowding 
+        // from the branch's own curve (which sweeps towards the upper light)
+        // and the geometric skew of the ellipse.
+        const offset = (i < 7) ? 0.4 : 0.6; 
+        const xRatio = -0.9 + ((i + offset) / 14) * 1.8;
+        
+        const bx = xRatio * hw;
+        const by = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
+        
+        const dir = bx < 0 ? 1 : -1;
+        const scale = 0.6 + 0.4 * (1 - Math.abs(xRatio));
+        drawBranch(bx, by, dir, scale);
+    }
+
+
+
+    
     ctx.restore();
   }
 
