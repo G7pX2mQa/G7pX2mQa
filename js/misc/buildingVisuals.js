@@ -8017,14 +8017,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t4;
     // This stem transitions from green (t4) to purple (t8)
-    const r = Math.floor(58 * (1 - t8) + 153 * t8);
+    const r = Math.floor(58 * (1 - t8) + 51 * t8);
     const g = Math.floor(173 * (1 - t8) + 0 * t8);
-    const b = Math.floor(48 * (1 - t8) + 255 * t8);
+    const b = Math.floor(48 * (1 - t8) + 102 * t8);
     const stemColor = `rgb(${r}, ${g}, ${b})`;
     
-    const hr = Math.floor(85 * (1 - t8) + 255 * t8);
-    const hg = Math.floor(208 * (1 - t8) + 179 * t8);
-    const hb = Math.floor(72 * (1 - t8) + 255 * t8);
+    const hr = Math.floor(85 * (1 - t8) + 179 * t8);
+    const hg = Math.floor(208 * (1 - t8) + 0 * t8);
+    const hb = Math.floor(72 * (1 - t8) + 179 * t8);
     const highlightColor = `rgb(${hr}, ${hg}, ${hb})`;
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.05;
@@ -8065,7 +8065,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     if (t8 > 0) {
         ctx.save();
         ctx.globalAlpha = t8 * (0.6 + Math.sin(t * 4) * 0.4);
-        ctx.strokeStyle = '#ff99ff';
+        ctx.strokeStyle = '#ff66ff';
         ctx.lineWidth = 3 * displayScale;
         ctx.setLineDash([15, 10]);
         ctx.lineDashOffset = -t * 20;
@@ -8083,6 +8083,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
+
+
 
   // =============================================
   // LAYER 1: FOUNDATION (planter box & dirt)
@@ -8121,6 +8123,12 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   // LAYER 3: INTERIOR ELEMENTS
   // =============================================
   ctx.save();
+  
+  // Clip out the dirt region so interior elements (like light beams) don't bleed into it
+  ctx.beginPath();
+  ctx.rect(-hw - 10, -9999, bw + 20, 9999 - 28);
+  ctx.clip();
+
   domePath();
   ctx.clip(); 
 
@@ -8133,19 +8141,20 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     if (!cachedGrowLightNormal) {
         const createLightCache = (rTop, rBot) => {
             const canvas = document.createElement('canvas');
-            canvas.width = 50; canvas.height = 100; // Max bounds for the beam (25 width each side, 80 length + 10 offset)
+            canvas.width = 200; canvas.height = 300; 
             const bCtx = canvas.getContext('2d');
             
-            const rayGrad = bCtx.createLinearGradient(25, 10, 25, 90);
-            rayGrad.addColorStop(0, `rgba(${rTop}, 1)`); // Max alpha, we will modulate via globalAlpha
+            const rayGrad = bCtx.createLinearGradient(100, 10, 100, 200);
+            rayGrad.addColorStop(0, `rgba(${rTop}, 0.8)`);
+            rayGrad.addColorStop(0.3, `rgba(${rBot}, 0.2)`);
             rayGrad.addColorStop(1, `rgba(${rBot}, 0)`);
             
             bCtx.fillStyle = rayGrad;
             bCtx.beginPath();
-            bCtx.moveTo(25 - 8, 10);
-            bCtx.lineTo(25 + 8, 10);
-            bCtx.lineTo(25 + 25, 90);
-            bCtx.lineTo(25 - 25, 90);
+            bCtx.moveTo(100 - 8, 10);
+            bCtx.lineTo(100 + 8, 10);
+            bCtx.lineTo(100 + 45, 200);
+            bCtx.lineTo(100 - 45, 200);
             bCtx.fill();
             return canvas;
         };
@@ -8157,16 +8166,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const isMagic = t8 > 0;
     const activeCache = isMagic ? cachedGrowLightMagic : cachedGrowLightNormal;
 
-    for (let i = 0; i < numLights; i++) {
+    for (let i = 1; i < numLights - 1; i++) {
         const xRatio = -0.9 + (i / (numLights - 1)) * 1.8;
         const fixtureX = xRatio * hw;
         const fixtureY = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
 
-        const targetX = 0;
-        const targetY = -50;
-        const dx = targetX - fixtureX;
-        const dy = targetY - fixtureY;
-        const angle = Math.atan2(dy, dx);
+        const nx = -fixtureX / (hw * hw);
+        const ny = -(fixtureY - domeCY) / (domeH * domeH);
+        const angle = Math.atan2(ny, nx);
         
         ctx.save();
         ctx.translate(fixtureX, fixtureY);
@@ -8182,8 +8189,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const rayAlpha = 0.4 + Math.sin(t * 1.5 + i) * 0.1;
         ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = rayAlpha * t3; 
-        // We draw the cached canvas which is 50x100. Center it at -25 on X.
-        ctx.drawImage(activeCache, -25, 0);
+        // We draw the cached canvas which is 200x300. Center it at -100 on X.
+        ctx.drawImage(activeCache, -100, 0);
         
         ctx.restore(); // Restores globalAlpha and CompositeOperation
     }
@@ -8245,22 +8252,31 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     drawBranch(-hw + 60, domeCY - domeH * 0.9, 1, 0.9);
     drawBranch(hw - 60, domeCY - domeH * 0.9, -1, 0.9);
 
-    // Falling petals
-    const numPetals = 60;
-    ctx.fillStyle = 'rgba(255, 180, 220, 0.7)'; // Use fixed alpha for better batching
-    ctx.beginPath();
+    // Falling petals (Spiraling Vortex)
+    const numPetals = 80;
     for(let s=0; s<numPetals; s++) {
-        const speedMultiplier = 40;
-        const fallT = (t * speedMultiplier + s * 113.1) % (domeH + 100);
+        const fallT = (t * 40 + s * 113.1) % (domeH + 100);
+        const progress = fallT / (domeH + 100);
         
-        const sx = -hw + ((s * 73.1) % bw) + Math.sin(t + s) * 20;
-        const sy = (domeCY - domeH - 20) + fallT;
-        const rot = t * 2 + s;
+        const radius = 40 + (1 - progress) * 120;
+        const angle = progress * 15 + t * -2.5 + s * 7.3;
         
-        ctx.moveTo(sx, sy);
-        ctx.ellipse(sx, sy, 4, 2, rot, 0, Math.PI*2);
+        const sx = Math.cos(angle) * radius;
+        const sy = (domeCY - domeH - 20) + fallT + Math.sin(angle) * 15;
+        const rot = t * 2 + s + angle;
+        
+        const depth = Math.sin(angle); 
+        const scale = 0.7 + depth * 0.3;
+        
+        let alpha = 0.7;
+        if (depth < -0.5) alpha = 0.4;
+        if (progress > 0.9) alpha *= (1 - progress) * 10;
+        
+        ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
+        ctx.fill();
     }
-    ctx.fill();
     
     ctx.restore();
   }
@@ -8378,11 +8394,11 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         
         const seed = Math.sin(i * 123.45);
-        const vineLength = 100 + Math.abs(seed) * 120;
+        const vineLength = Math.min(100 + Math.abs(seed) * 120, -48 - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
         
         ctx.moveTo(vx, vyStart);
-        ctx.quadraticCurveTo(vx + sway, vyStart + vineLength/2, vx + sway*0.5, vyStart + vineLength);
+        ctx.quadraticCurveTo(vx + sway * 0.2, vyStart + vineLength * 0.5, vx + sway, vyStart + vineLength);
     }
     ctx.stroke();
     
@@ -8394,13 +8410,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const vx = xRatio * hw;
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         const seed = Math.sin(i * 123.45);
-        const vineLength = 100 + Math.abs(seed) * 120;
+        const vineLength = Math.min(100 + Math.abs(seed) * 120, -48 - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
         const numLeaves = Math.floor(vineLength / 12);
         
         for(let l = 0; l < numLeaves; l++) {
             const lT = l / numLeaves;
-            const lx = vx + sway * lT + (sway * 0.5 - sway) * lT * lT;
+            const lx = vx + sway * (0.4 * lT + 0.6 * lT * lT);
             const ly = vyStart + vineLength * lT;
             const isLeft = (l % 2 === 0);
             
@@ -8424,13 +8440,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const vx = xRatio * hw;
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         const seed = Math.sin(i * 123.45);
-        const vineLength = 100 + Math.abs(seed) * 120;
+        const vineLength = Math.min(100 + Math.abs(seed) * 120, -48 - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
         const numLeaves = Math.floor(vineLength / 12);
         
         for(let l = 0; l < numLeaves; l++) {
             const lT = l / numLeaves;
-            const lx = vx + sway * lT + (sway * 0.5 - sway) * lT * lT;
+            const lx = vx + sway * (0.4 * lT + 0.6 * lT * lT);
             const ly = vyStart + vineLength * lT;
             const isLeft = (l % 2 === 0);
             
@@ -8446,30 +8462,72 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.fill();
 
-    // A small nature pond at the base
-    const pondW = 90;
-    const pondH = 18;
-    ctx.fillStyle = 'rgba(60, 150, 200, 0.7)';
-    ctx.beginPath();
-    ctx.ellipse(-hw/2, -15, pondW, pondH, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(100, 200, 255, 0.5)';
-    ctx.beginPath();
-    ctx.ellipse(-hw/2, -16, pondW*0.9, pondH*0.8, 0, 0, Math.PI*2);
-    ctx.fill();
-    
-    // Lilypads
-    ctx.fillStyle = '#3aad30';
-    const pads = [
-        {x: -hw/2 - 40, y: -12, r: 12},
-        {x: -hw/2 + 30, y: -18, r: 15},
-        {x: -hw/2 + 10, y: -8, r: 10}
-    ];
-    for (let p of pads) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI*1.8);
-        ctx.lineTo(p.x, p.y);
-        ctx.fill();
+    ctx.restore();
+  }
+
+  // --- Tier 6: Glowing Fireflies Swarm ---
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+
+    const numFireflies = 80;
+    for(let i=0; i<numFireflies; i++) {
+        const seed1 = (i * 13.7) % 1;
+        const seed2 = (i * 29.3) % 1;
+        
+        const freqX = 0.5 + seed1 * 0.5;
+        const freqY = 0.8 + seed2 * 0.6;
+        const fireT = t * (0.3 + seed1 * 0.2) + i * 11;
+        
+        // Sweeping path (randomized per firefly)
+        let sx = Math.sin(fireT * freqX) * hw * 0.8;
+        let sy = domeCY - domeH * 0.45 + Math.cos(fireT * freqY) * domeH * 0.35;
+        
+        // Add local drifting
+        sx += Math.sin(fireT * 3.5) * 25;
+        sy += Math.cos(fireT * 4.2) * 25;
+        
+        // Ground avoidance
+        if (sy > -40) sy -= Math.pow(sy + 40, 2) * 0.08;
+
+        // Edge avoidance
+        const edgeLimit = hw * 0.85;
+        if (sx > edgeLimit) sx = edgeLimit - (sx - edgeLimit)*0.5;
+        if (sx < -edgeLimit) sx = -edgeLimit - (sx + edgeLimit)*0.5;
+
+        // Light/Ceiling avoidance
+        const flyCeiling = -220;
+        if (sy < flyCeiling) {
+           sy = flyCeiling + (flyCeiling - sy)*0.2;
+        }
+        
+        const alphaPulse = (Math.sin(t * (1.5 + seed2) + i * 2.1) + 1) / 2;
+        const isType1 = seed1 < 0.5;
+
+        if (!cachedFireflyGlow1) {
+            const createGlowCache = (rG, rB) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 16; canvas.height = 16;
+                const bCtx = canvas.getContext('2d');
+                const sporeGrad = bCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+                sporeGrad.addColorStop(0, `rgba(${rG}, 0.8)`);
+                sporeGrad.addColorStop(1, `rgba(${rG}, 0)`);
+                bCtx.fillStyle = sporeGrad;
+                bCtx.beginPath(); bCtx.arc(8, 8, 8, 0, Math.PI * 2); bCtx.fill();
+                bCtx.fillStyle = `rgba(${rB}, 1.0)`;
+                bCtx.beginPath(); bCtx.arc(8, 8, 1.5, 0, Math.PI * 2); bCtx.fill();
+                return canvas;
+            };
+            cachedFireflyGlow1 = createGlowCache('200, 255, 100', '255, 255, 150');
+            cachedFireflyGlow2 = createGlowCache('150, 255, 150', '200, 255, 200');
+        }
+
+        if (alphaPulse > 0.01) {
+            ctx.save();
+            ctx.globalAlpha = t6 * (0.2 + 0.8 * alphaPulse);
+            ctx.drawImage(isType1 ? cachedFireflyGlow1 : cachedFireflyGlow2, sx - 8, sy - 8);
+            ctx.restore();
+        }
     }
 
     ctx.restore();
@@ -8505,11 +8563,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         // Ground avoidance: push up if too close to ground
         if (by > -40) by -= Math.pow(by + 40, 2) * 0.1;
         
-        // Plant avoidance: push outward if too close to the center column
-        if (by > -150 && Math.abs(bx) < 70) {
-           const pushOut = 70 - Math.abs(bx);
-           bx += (bx > 0 ? 1 : -1) * pushOut;
-        }
+
 
         // Dome / Edge avoidance (keep away from edges)
         const edgeLimit = hw * 0.8;
@@ -8721,81 +8775,11 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 6: Glowing Fireflies Swarm ---
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
 
-    const numFireflies = 40;
-    for(let i=0; i<numFireflies; i++) {
-        const seed1 = (i * 13.7) % 1;
-        const seed2 = (i * 29.3) % 1;
-        
-        const fireT = t * (0.3 + seed1 * 0.2) + i * 11;
-        
-        // Sweeping path (tighter around center)
-        let sx = Math.sin(fireT * 0.8) * hw * 0.75;
-        let sy = domeCY - domeH * 0.4 + Math.cos(fireT * 1.1) * domeH * 0.3;
-        
-        // Add local drifting
-        sx += Math.sin(fireT * 3.5) * 25;
-        sy += Math.cos(fireT * 4.2) * 25;
-        
-        // Ground avoidance
-        if (sy > -40) sy -= Math.pow(sy + 40, 2) * 0.08;
-        
-        // Plant avoidance
-        if (sy > -160 && Math.abs(sx) < 80) {
-           const pushOut = 80 - Math.abs(sx);
-           sx += (sx > 0 ? 1 : -1) * pushOut;
-        }
-
-        // Edge avoidance
-        const edgeLimit = hw * 0.85;
-        if (sx > edgeLimit) sx = edgeLimit - (sx - edgeLimit)*0.5;
-        if (sx < -edgeLimit) sx = -edgeLimit - (sx + edgeLimit)*0.5;
-
-        // Light/Ceiling avoidance
-        const flyCeiling = -220;
-        if (sy < flyCeiling) {
-           sy = flyCeiling + (flyCeiling - sy)*0.2;
-        }
-        
-        const alphaPulse = Math.max(0, Math.sin(t * (1.5 + seed2) + i * 2.1));
-        
-        const isType1 = seed1 < 0.5;
-
-        // Initialize cache
-        if (!cachedFireflyGlow1) {
-            const createGlowCache = (rG, rB) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 16; canvas.height = 16;
-                const bCtx = canvas.getContext('2d');
-                const sporeGrad = bCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
-                sporeGrad.addColorStop(0, `rgba(${rG}, 0.8)`);
-                sporeGrad.addColorStop(1, `rgba(${rG}, 0)`);
-                bCtx.fillStyle = sporeGrad;
-                bCtx.beginPath(); bCtx.arc(8, 8, 8, 0, Math.PI * 2); bCtx.fill();
-                bCtx.fillStyle = `rgba(${rB}, 1.0)`;
-                bCtx.beginPath(); bCtx.arc(8, 8, 1.5, 0, Math.PI * 2); bCtx.fill();
-                return canvas;
-            };
-            cachedFireflyGlow1 = createGlowCache('200, 255, 100', '255, 255, 150');
-            cachedFireflyGlow2 = createGlowCache('150, 255, 150', '200, 255, 200');
-        }
-
-        if (alphaPulse > 0.01) {
-            ctx.save();
-            ctx.globalAlpha = t6 * alphaPulse;
-            ctx.drawImage(isType1 ? cachedFireflyGlow1 : cachedFireflyGlow2, sx - 8, sy - 8);
-            ctx.restore();
-        }
-    }
-
-    ctx.restore();
-  }
 
   ctx.restore(); // end interior clip
+
+
 
   // =============================================
   // LAYER 4: DOME STRUCTURE (The Emerald U-Shape)
@@ -8811,51 +8795,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // =============================================
-  // LAYER 5: EXTERNAL EFFECTS (Apex Lamp)
-  // =============================================
-  if (t3 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t3;
-    
-    // Lamp Fixture
-    ctx.fillStyle = '#6a6a7a';
-    ctx.beginPath();
-    ctx.moveTo(-18, domeCY - domeH + 7);
-    ctx.lineTo(18, domeCY - domeH + 7);
-    ctx.lineTo(12, domeCY - domeH + 24);
-    ctx.lineTo(-12, domeCY - domeH + 24);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#8a8a9a';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
 
-    // Determine lamp glow color based on highest active tier
-    let pulseAlpha = 0.5 + Math.sin(t * 2) * 0.25;
-    let lampGrad = ctx.createRadialGradient(0, domeCY - domeH + 15, 3, 0, domeCY - domeH + 15, 60);
-    
-    if (t8 > 0) { // Magenta/Purple for Apex Flora
-        lampGrad.addColorStop(0, `rgba(255, 100, 255, ${pulseAlpha * 0.6})`);
-        lampGrad.addColorStop(0.4, `rgba(200, 50, 255, ${pulseAlpha * 0.3})`);
-        lampGrad.addColorStop(1, 'rgba(150, 0, 255, 0)');
-    } else if (t7 > 0) { // Cyan/Green for Crystals & Moss
-        lampGrad.addColorStop(0, `rgba(100, 255, 200, ${pulseAlpha * 0.6})`);
-        lampGrad.addColorStop(0.4, `rgba(50, 200, 150, ${pulseAlpha * 0.3})`);
-        lampGrad.addColorStop(1, 'rgba(0, 150, 100, 0)');
-    } else { // Warm Sun-like Glow for early tiers
-        lampGrad.addColorStop(0, `rgba(255, 200, 80, ${pulseAlpha * 0.6})`);
-        lampGrad.addColorStop(0.4, `rgba(255, 160, 40, ${pulseAlpha * 0.3})`);
-        lampGrad.addColorStop(1, 'rgba(255, 140, 20, 0)');
-    }
-    
-    ctx.fillStyle = lampGrad;
-    ctx.beginPath();
-    ctx.arc(0, domeCY - domeH + 15, 60, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.restore();
-  }
 
   // =============================================
   // LAYER 6: UNBOUNDED EFFECTS (Tier 8 Particles)
