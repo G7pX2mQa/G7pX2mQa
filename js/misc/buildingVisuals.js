@@ -8695,8 +8695,9 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   // --- Tier 4: Rooted Purple Blossom & Wildlife ---
   if (t4 > 0) {
     ctx.save();
-    // Cross-fade out when T8 comes in
-    ctx.globalAlpha = t4 * (1 - t8);
+    
+    // Bees persist through Tier 8
+    ctx.globalAlpha = t4;
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.05;
     // Scale up based on T5, T6, T7 progress
@@ -8765,6 +8766,9 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         ctx.translate(-bx, -by);
     }
     ctx.restore();
+
+    // Cross-fade out the plant when T8 comes in
+    ctx.globalAlpha = t4 * (1 - t8);
 
     // Bioluminescent glow behind the flower
     const glowInt = 0.35 + Math.sin(t * 1.8) * 0.15;
