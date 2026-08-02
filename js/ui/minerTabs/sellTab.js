@@ -947,37 +947,33 @@ function generateBgChunk(layerConf, lastChunk) {
                     const baseXOffset = interpPct * xRatio;
 
                     // Pre-render the crystal to an offscreen canvas
-                    let cachedImage;
+                    let cachedImage = null;
                     if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
                         cachedImage = new OffscreenCanvas(40, 40);
-                    } else {
-                        cachedImage = document.createElement('canvas');
-                        cachedImage.width = 40;
-                        cachedImage.height = 40;
-                    }
-                    const octx = cachedImage.getContext('2d');
-                    octx.translate(20, 20); // Center drawing
+                        const octx = cachedImage.getContext('2d');
+                        octx.translate(20, 20); // Center drawing
 
-                    for (const cl of clusters) {
-                        const px = cl.ox;
-                        const py = cl.oy;
-                        if (cl.facets && cl.facets.length > 0) {
-                            for (let v = 0; v < cl.facets.length; v++) {
-                                const p1 = cl.facets[v];
-                                const p2 = cl.facets[(v + 1) % cl.facets.length];
-                                
-                                octx.beginPath();
-                                octx.moveTo(px, py); // center point
-                                octx.lineTo(px + p1.dx, py + p1.dy);
-                                octx.lineTo(px + p2.dx, py + p2.dy);
-                                octx.closePath();
-                                
-                                // Calculate shaded color for this facet
-                                const r = Math.min(255, sharedColor.r * p1.shade);
-                                const g = Math.min(255, sharedColor.g * p1.shade);
-                                const b = Math.min(255, sharedColor.b * p1.shade);
-                                octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                                octx.fill();
+                        for (const cl of clusters) {
+                            const px = cl.ox;
+                            const py = cl.oy;
+                            if (cl.facets && cl.facets.length > 0) {
+                                for (let v = 0; v < cl.facets.length; v++) {
+                                    const p1 = cl.facets[v];
+                                    const p2 = cl.facets[(v + 1) % cl.facets.length];
+                                    
+                                    octx.beginPath();
+                                    octx.moveTo(px, py); // center point
+                                    octx.lineTo(px + p1.dx, py + p1.dy);
+                                    octx.lineTo(px + p2.dx, py + p2.dy);
+                                    octx.closePath();
+                                    
+                                    // Calculate shaded color for this facet
+                                    const r = Math.min(255, sharedColor.r * p1.shade);
+                                    const g = Math.min(255, sharedColor.g * p1.shade);
+                                    const b = Math.min(255, sharedColor.b * p1.shade);
+                                    octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                                    octx.fill();
+                                }
                             }
                         }
                     }
@@ -986,7 +982,9 @@ function generateBgChunk(layerConf, lastChunk) {
                         side, 
                         y,
                         baseXOffset,
-                        cachedImage
+                        cachedImage,
+                        clusters,
+                        sharedColor
                     });
                 }
             }
@@ -1277,6 +1275,32 @@ registerFrame((time, dt) => {
                  
                  if (crystal.cachedImage) {
                      ctx.drawImage(crystal.cachedImage, cx - 20, cy - 20);
+                 } else if (crystal.clusters) {
+                     ctx.save();
+                     ctx.translate(cx, cy);
+                     for (const cl of crystal.clusters) {
+                         const px = cl.ox;
+                         const py = cl.oy;
+                         if (cl.facets && cl.facets.length > 0) {
+                             for (let v = 0; v < cl.facets.length; v++) {
+                                 const p1 = cl.facets[v];
+                                 const p2 = cl.facets[(v + 1) % cl.facets.length];
+                                 
+                                 ctx.beginPath();
+                                 ctx.moveTo(px, py);
+                                 ctx.lineTo(px + p1.dx, py + p1.dy);
+                                 ctx.lineTo(px + p2.dx, py + p2.dy);
+                                 ctx.closePath();
+                                 
+                                 const r = Math.min(255, crystal.sharedColor.r * p1.shade);
+                                 const g = Math.min(255, crystal.sharedColor.g * p1.shade);
+                                 const b = Math.min(255, crystal.sharedColor.b * p1.shade);
+                                 ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                                 ctx.fill();
+                             }
+                         }
+                     }
+                     ctx.restore();
                  }
             }
         }
