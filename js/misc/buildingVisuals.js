@@ -8978,9 +8978,9 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const flowerCX = 0;
     const flowerCY = -92 - blossomGrowth * 91;
 
-    // Each of the 16 magenta petals generates a particle every 0.3 seconds.
+    // Each of the 16 magenta petals generates a particle every second.
     const numPetals = 16;
-    const spawnInterval = 0.3; // seconds
+    const spawnInterval = 1.0; // seconds
     const particleLifetime = 6.0; 
     
     // Determine the current integer interval "k" based on time `t`.
