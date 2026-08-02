@@ -8020,8 +8020,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           }
           
           const swirlY = flowerCY + ((s * 7.9) % 60) - 30; 
-          // Tier 7 flower radius is ~67.5px. Set radius to just clear it.
-          const finalRadius = 75 + ((s * 15.3) % 40); 
+          // Tier 7 flower radius is ~67.5px. Set radius to clear it, expanding for Tier 8.
+          const finalRadius = 75 + (t8 * 55) + ((s * 15.3) % 40); 
           const groundY = -35 - ((s * 4.1) % 15); // Drop just a few pixels above the dirt layer (which starts at -28)
           
           let sy;
@@ -8897,19 +8897,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 7: Falling Blossom Petals (Frontside) ---
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
 
-    domePath();
-    ctx.clip(); // Ensure petals stay inside dome
-
-    // Falling petals (Drifting from branches) - FRONTSIDE
-    drawWhirlwindPetals(true);
-    
-    ctx.restore();
-  }
 
   // --- Tier 8: The Apex Flora ---
   if (t8 > 0) {
@@ -8992,6 +8980,20 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     
     ctx.restore();
 
+    ctx.restore();
+  }
+
+  // --- Tier 7: Falling Blossom Petals (Frontside) ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+
+    domePath();
+    ctx.clip(); // Ensure petals stay inside dome
+
+    // Falling petals (Drifting from branches) - FRONTSIDE
+    drawWhirlwindPetals(true);
+    
     ctx.restore();
   }
 
