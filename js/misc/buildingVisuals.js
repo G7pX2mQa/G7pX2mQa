@@ -8020,19 +8020,25 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const r = Math.floor(58 * (1 - t8) + 51 * t8);
     const g = Math.floor(173 * (1 - t8) + 0 * t8);
     const b = Math.floor(48 * (1 - t8) + 102 * t8);
-    const stemColor = `rgb(${r}, ${g}, ${b})`;
+    let stemColor = `rgb(${r}, ${g}, ${b})`;
     
     // Mid stem transitions from mid green to purple (#b300b3)
     const mr = Math.floor(65 * (1 - t8) + 179 * t8);
     const mg = Math.floor(190 * (1 - t8) + 0 * t8);
     const mb = Math.floor(55 * (1 - t8) + 179 * t8);
-    const midColor = `rgb(${mr}, ${mg}, ${mb})`;
+    let midColor = `rgb(${mr}, ${mg}, ${mb})`;
 
     // Highlight stem transitions from light green to pink (#ff66ff)
     const hr = Math.floor(85 * (1 - t8) + 255 * t8);
     const hg = Math.floor(208 * (1 - t8) + 102 * t8);
     const hb = Math.floor(72 * (1 - t8) + 255 * t8);
-    const highlightColor = `rgb(${hr}, ${hg}, ${hb})`;
+    let highlightColor = `rgb(${hr}, ${hg}, ${hb})`;
+
+    if (t8 >= 1) {
+        stemColor = '#330066';
+        midColor = '#b300b3';
+        highlightColor = '#ff66ff';
+    }
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.05;
     const blossomGrowth = t5 * 0.15 + t6 * 0.15 + t7 * 0.2; 
@@ -8076,25 +8082,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
     ctx.stroke();
 
-    // Glowing pulsating veins for Tier 8
-    if (t8 > 0) {
-        ctx.save();
-        ctx.globalAlpha = t8 * (0.6 + Math.sin(t * 4) * 0.4);
-        ctx.strokeStyle = '#ff66ff';
-        ctx.lineWidth = 3 * displayScale;
-        ctx.setLineDash([15, 10]);
-        ctx.lineDashOffset = -t * 20;
-        ctx.beginPath();
-        ctx.moveTo(-5, -20);
-        ctx.bezierCurveTo(-20, -40, 10, flowerCY + 40, flowerCX - 3, flowerCY + 5 * displayScale);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(5, -20);
-        ctx.bezierCurveTo(-10, -40, 20, flowerCY + 40, flowerCX + 3, flowerCY + 5 * displayScale);
-        ctx.stroke();
-        ctx.restore();
-    }
 
     ctx.restore();
   }
@@ -8261,7 +8248,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     };
 
-    for (let i = 1; i < 13; i++) {
+    const branchIndices = [2, 3, 10, 11];
+    for (let i of branchIndices) {
         // Gap between light i and light i+1
         const xRatio = -0.9 + ((i + 0.5) / 14) * 1.8;
         const bx = xRatio * hw;
