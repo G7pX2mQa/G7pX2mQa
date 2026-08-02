@@ -7960,17 +7960,17 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           const swirlY = flowerCY + ((s * 7.9) % 60) - 30; 
           // Tier 7 flower radius is ~67.5px. Set radius to just clear it.
           const finalRadius = 75 + ((s * 15.3) % 40); 
-          const groundY = -50 - ((s * 4.1) % 20); // Hover nicely above the dirt layer (which starts at -28)
+          const groundY = -35 - ((s * 4.1) % 15); // Drop just a few pixels above the dirt layer (which starts at -28)
           
           let sy;
-          if (progress < 0.4) {
+          if (progress < 0.25) {
               // Fall to the ground
-              const p = progress / 0.4;
+              const p = progress / 0.25;
               const ease = p * (2 - p); // ease-out
               sy = startY * (1 - ease) + groundY * ease;
-          } else if (progress < 0.6) {
+          } else if (progress < 0.45) {
               // Get swept up into the whirlwind
-              const p = (progress - 0.4) / 0.2;
+              const p = (progress - 0.25) / 0.2;
               const ease = p * p * (3 - 2 * p); // smoothstep
               sy = groundY * (1 - ease) + swirlY * ease;
           } else {
@@ -7979,7 +7979,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           }
           
           // Delay the swirl so they only spin once they start getting swept up
-          const swirlPhase = Math.min(1.0, Math.max(0.0, (progress - 0.4) / 0.3));
+          const swirlPhase = Math.min(1.0, Math.max(0.0, (progress - 0.25) / 0.3));
           const smoothSwirl = swirlPhase * swirlPhase * (3 - 2 * swirlPhase);
           
           const startRadius = Math.abs(startX);
@@ -7989,8 +7989,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           const swirlDir = startX >= 0 ? 1 : -1;
           
           let swirlAngleAdded = 0;
-          if (progress > 0.4) {
-              const swirlAge = (progress - 0.4) * totalLife;
+          if (progress > 0.25) {
+              const swirlAge = (progress - 0.25) * totalLife;
               const swirlSpeed = 0.06 + ((s * 2.3) % 0.04); // Consistent moderate rotation speed
               const rampTicks = 45; // Gradual speedup over 1.5 seconds
               
@@ -8298,8 +8298,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         drawBranch(bx, by, dir, scale);
     }
 
-    // Falling petals (Drifting from branches) - BACKSIDE
-    drawWhirlwindPetals(false);
+
     
     ctx.restore();
   }
@@ -8396,6 +8395,17 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.quadraticCurveTo(nx + 4, pipeY + 4, nx + 8, pipeY + 4);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  // --- Tier 7: Falling Blossom Petals (Backside) ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    domePath();
+    ctx.clip(); // Ensure petals stay inside dome
+    // Falling petals (Drifting from branches) - BACKSIDE
+    drawWhirlwindPetals(false);
     ctx.restore();
   }
 
