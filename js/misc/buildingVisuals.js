@@ -7969,7 +7969,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
   // Helper function to simulate falling and swirling whirlwind petals
   const drawWhirlwindPetals = (isFront) => {
-      const numPetals = 80;
+      const numPetals = Math.floor(80 + t8 * 160);
       const blossomGrowth = t5 * 0.15 + t6 * 0.15 + t7 * 0.2; 
       const flowerCY = -92 - blossomGrowth * 91; 
 
