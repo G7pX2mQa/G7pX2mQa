@@ -8973,6 +8973,96 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
 
 
+  // =============================================
+  // LAYER 6: UNBOUNDED EFFECTS (Tier 8 Particles)
+  // =============================================
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    
+    const breathe = 1 + Math.sin(t * 2.0) * 0.08;
+    const apexScale = breathe * 0.85;
+    
+    const blossomGrowth = t5 * 0.15 + t6 * 0.15 + t7 * 0.2; 
+    const flowerCX = 0;
+    const flowerCY = -92 - blossomGrowth * 91;
+
+    // Each of the 16 magenta petals generates a particle every second.
+    const numPetals = 16;
+    const spawnInterval = 1.0; // seconds
+    const particleLifetime = 6.0; 
+    
+    // Determine the current integer interval "k" based on time `t`.
+    const currentK = Math.floor(t / spawnInterval);
+    const lookback = Math.ceil(particleLifetime / spawnInterval);
+    
+    for (let k = currentK - lookback; k <= currentK; k++) {
+        for (let i = 0; i < numPetals; i++) {
+            const phase = (i / numPetals); 
+            const spawnTime = k * spawnInterval + phase * spawnInterval;
+            
+            if (t < spawnTime) continue;
+            
+            const age = t - spawnTime;
+            
+            // To make particles appear to "start spawning" only when Tier 8 activates,
+            // we kill particles that are older than the estimated time since T8 started.
+            // Transition is fast, so scaling by particleLifetime gives a nice outward wave as it fades in.
+            if (age > t8 * particleLifetime) continue;
+            if (age > particleLifetime) continue; // "Deleted" when offscreen/too old
+            
+            const traverseSpeed = 150; 
+            const dist = age * traverseSpeed;
+            
+            // Petal length is approx 120 * 0.85 = 102.
+            const detachDist = 102;
+            const detachAge = detachDist / traverseSpeed;
+            
+            let pX, pY;
+            
+            if (age < detachAge) {
+                // Attached to the moving petal
+                const currentZRot = -t * 0.15;
+                const baseAngle = (i / numPetals) * Math.PI * 2 + currentZRot;
+                const flutter = Math.sin(t * 1.5 + i * 1.5) * 0.15;
+                const currentAngle = baseAngle + flutter + Math.PI / 2;
+                
+                pX = flowerCX + Math.cos(currentAngle) * dist;
+                pY = flowerCY + Math.sin(currentAngle) * dist;
+            } else {
+                // Detached, calculate exact position at detachment time
+                const t_detach = spawnTime + detachAge;
+                const detachZRot = -t_detach * 0.15;
+                const detachBaseAngle = (i / numPetals) * Math.PI * 2 + detachZRot;
+                const detachFlutter = Math.sin(t_detach * 1.5 + i * 1.5) * 0.15;
+                const detachAngle = detachBaseAngle + detachFlutter + Math.PI / 2;
+                
+                const detachX = flowerCX + Math.cos(detachAngle) * detachDist;
+                const detachY = flowerCY + Math.sin(detachAngle) * detachDist;
+                
+                const extraDist = (age - detachAge) * traverseSpeed;
+                pX = detachX + Math.cos(detachAngle) * extraDist;
+                pY = detachY + Math.sin(detachAngle) * extraDist;
+            }
+            
+            const wX = pX;
+            const wY = pY;
+
+            const lifeAlpha = Math.min(1, (particleLifetime - age) * 2);
+            
+            ctx.save();
+            ctx.globalAlpha = t8 * lifeAlpha;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(wX, wY, 3, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 100, 255, 0.6)';
+            ctx.beginPath(); ctx.arc(wX, wY, 8, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+        }
+    }
+    
+    ctx.restore();
+  }
 }
 
 
