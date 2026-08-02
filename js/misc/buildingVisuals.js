@@ -8524,8 +8524,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const fireT = t * (0.3 + seed1 * 0.2) + i * 11;
         
         // Safe natural bounds without clamping jolts
-        const centerY = -120;
-        const ampY = 70;
+        const centerY = -140;
+        const ampY = 80;
         let sy = centerY + Math.cos(fireT * freqY) * ampY + Math.cos(fireT * 4.2) * 10;
 
         // Dynamic X amplitude based on Y position (Dome shape constraint)
@@ -8533,8 +8533,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         // Ensure we don't pass negative values to sqrt if sy somehow exceeds domeH
         const maxDomeX = hw * Math.sqrt(Math.max(0, 1 - Math.pow(yOffset / domeH, 2)));
         
-        // Keep 35 pixels away from the dome edge to avoid lights and glass
-        const ampX = Math.max(0, maxDomeX - 35);
+        // Keep 60 pixels away from the dome edge to avoid lights and glass
+        const ampX = Math.max(0, maxDomeX - 60);
         let sx = Math.sin(fireT * freqX) * ampX + Math.sin(fireT * 3.5) * 15;
         
         const alphaPulse = (Math.sin(t * (1.5 + seed2) + i * 2.1) + 1) / 2;
@@ -8588,32 +8588,20 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     for (let i = 0; i < 12; i++) {
         const beeT = t * (0.6 + (i%3)*0.1) + i * 7.3;
         
-        // Sweeping Y position (calculated first to determine safe X width)
-        let by = domeCY - domeH * 0.4 + Math.cos(beeT * 0.9) * domeH * 0.3;
-        by += Math.cos(beeT * 5.1) * 15;
+        // Safe natural bounds without clamping jolts
+        const beeCenterY = -140;
+        const beeAmpY = 80;
+        let by = beeCenterY + Math.cos(beeT * 0.9) * beeAmpY + Math.cos(beeT * 5.1) * 15;
         
-        // Ground avoidance: Smoothly compress lower bounds instead of bouncing quadratically
-        if (by > -40) by = -40 + (by + 40) * 0.2;
+        // Dynamic X amplitude based on Y position (Dome shape constraint)
+        const yOffset = Math.abs(by - domeCY);
+        const maxDomeX = hw * Math.sqrt(Math.max(0, 1 - Math.pow(yOffset / domeH, 2)));
         
-        // Light avoidance (ceiling avoidance)
-        // Lights are approx at dome limit. Let's enforce a strict ceiling for bees.
-        const beeCeiling = -200;
-        if (by < beeCeiling) {
-           by = beeCeiling + (beeCeiling - by)*0.2;
-        }
-
-        // Allow wider X movement when below the tier 1 pipe (y > -140)
-        const depthFactor = Math.max(0, Math.min(1, (by + 140) / 100)); 
-        const sweepRadius = hw * (0.4 + 0.35 * depthFactor); 
-        
+        // Keep 65 pixels away from the dome edge
+        const sweepRadius = Math.max(0, maxDomeX - 65);
         let bx = Math.sin(beeT * 0.7) * sweepRadius; 
         // Add local buzzing X
         bx += Math.sin(beeT * 4.3) * 15;
-
-        // Smoothly dampen extreme X bounds instead of bouncing (as a fallback)
-        const edgeLimit = hw * (0.55 + 0.3 * depthFactor);
-        if (bx > edgeLimit) bx = edgeLimit + (bx - edgeLimit) * 0.2;
-        if (bx < -edgeLimit) bx = -edgeLimit + (bx + edgeLimit) * 0.2;
         
         ctx.translate(bx, by);
         
@@ -8621,8 +8609,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const nextBeeT = beeT + 0.05;
         let nextBx = Math.sin(nextBeeT * 0.7) * sweepRadius; 
         nextBx += Math.sin(nextBeeT * 4.3) * 15;
-        if (nextBx > edgeLimit) nextBx = edgeLimit + (nextBx - edgeLimit) * 0.2;
-        if (nextBx < -edgeLimit) nextBx = -edgeLimit + (nextBx + edgeLimit) * 0.2;
         
         const isFacingRight = nextBx > bx;
         ctx.scale(isFacingRight ? 1 : -1, 1);
