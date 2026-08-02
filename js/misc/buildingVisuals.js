@@ -8022,10 +8022,10 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const b = Math.floor(48 * (1 - t8) + 102 * t8);
     const stemColor = `rgb(${r}, ${g}, ${b})`;
     
-    // Mid stem transitions from mid green to purple (#800080)
-    const mr = Math.floor(65 * (1 - t8) + 128 * t8);
+    // Mid stem transitions from mid green to purple (#b300b3)
+    const mr = Math.floor(65 * (1 - t8) + 179 * t8);
     const mg = Math.floor(190 * (1 - t8) + 0 * t8);
-    const mb = Math.floor(55 * (1 - t8) + 128 * t8);
+    const mb = Math.floor(55 * (1 - t8) + 179 * t8);
     const midColor = `rgb(${mr}, ${mg}, ${mb})`;
 
     // Highlight stem transitions from light green to pink (#ff66ff)
@@ -8178,8 +8178,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
     
     const numLights = 15;
-    const isMagic = t8 > 0;
-    const activeCache = isMagic ? cachedGrowLightMagic : cachedGrowLightNormal;
+    const activeCache = cachedGrowLightNormal;
 
     for (let i = 1; i < numLights - 1; i++) {
         const xRatio = -0.9 + (i / (numLights - 1)) * 1.8;
@@ -8262,32 +8261,37 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     };
 
-    drawBranch(-hw + 20, domeCY - domeH * 0.7, 1, 1.2);
-    drawBranch(hw - 20, domeCY - domeH * 0.7, -1, 1.2);
-    drawBranch(-hw + 60, domeCY - domeH * 0.9, 1, 0.9);
-    drawBranch(hw - 60, domeCY - domeH * 0.9, -1, 0.9);
+    for (let i = 1; i < 13; i++) {
+        // Gap between light i and light i+1
+        const xRatio = -0.9 + ((i + 0.5) / 14) * 1.8;
+        const bx = xRatio * hw;
+        const by = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
+        const dir = bx < 0 ? 1 : -1;
+        const scale = 0.6 + 0.4 * (1 - Math.abs(xRatio));
+        drawBranch(bx, by, dir, scale);
+    }
 
-    // Falling petals (Spiraling Vortex) - BACKSIDE
+    // Falling petals (Drifting from branches) - BACKSIDE
     const numPetals = 80;
     for(let s=0; s<numPetals; s++) {
-        const fallDistance = 240; // Avoid dirt layer
-        const fallT = (t * 40 + s * 113.1) % fallDistance;
-        const progress = fallT / fallDistance;
+        const seedX = ((s * 13.7) % (bw * 0.8)) - (bw * 0.4);
+        const startY = domeCY - domeH * Math.sqrt(1 - Math.pow(seedX / hw, 2)) + 15;
+        const endY = -35; 
+        const totalFall = Math.max(10, endY - startY);
         
-        const radius = 40 + (1 - progress) * 120;
-        const angle = progress * 15 + t * -2.5 + s * 7.3;
+        const fallT = (t * 30 + s * 113.1) % totalFall;
+        const progress = fallT / totalFall;
         
-        const depth = Math.sin(angle); 
+        const sy = startY + fallT;
+        const sx = seedX + Math.sin(t * 1.5 + sy * 0.02 + s) * 30;
+        
+        const depth = Math.sin(t * 2 + s * 5); 
         if (depth <= 0) {
-            const sx = Math.cos(angle) * radius;
-            const sy = (domeCY - domeH - 20) + fallT + depth * 15;
-            const rot = t * 2 + s + angle;
-            
+            const rot = t * 2 + s + sx * 0.05;
             const scale = 0.7 + depth * 0.3;
-            
             let alpha = 0.7;
             if (depth < -0.5) alpha = 0.4;
-            if (progress > 0.9) alpha *= (1 - progress) * 10;
+            if (progress > 0.8) alpha *= (1 - progress) * 5;
             
             ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
             ctx.beginPath();
@@ -8411,8 +8415,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const vx = xRatio * hw;
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         
-        const seed = Math.sin(i * 123.45);
-        const targetY = -35 + seed * 8; // End slightly above dirt layer
+        const targetY = -45; // End perfectly above dirt layer
         const vineLength = Math.max(10, targetY - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
         
@@ -8428,8 +8431,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const xRatio = -0.9 + (i / (numVines - 1)) * 1.8;
         const vx = xRatio * hw;
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
-        const seed = Math.sin(i * 123.45);
-        const targetY = -35 + seed * 8;
+        const targetY = -45;
         const vineLength = Math.max(10, targetY - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
         const swayVel = Math.cos(t * 1.2 + i) * 18;
@@ -8470,8 +8472,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const xRatio = -0.9 + (i / (numVines - 1)) * 1.8;
         const vx = xRatio * hw;
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
-        const seed = Math.sin(i * 123.45);
-        const targetY = -35 + seed * 8;
+        const targetY = -45;
         const vineLength = Math.max(10, targetY - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
         const swayVel = Math.cos(t * 1.2 + i) * 18;
@@ -8522,31 +8523,13 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const freqY = 0.8 + seed2 * 0.6;
         const fireT = t * (0.3 + seed1 * 0.2) + i * 11;
         
-        // Sweeping path Y base (calculate first to determine safe X width)
-        let sy = domeCY - domeH * 0.45 + Math.cos(fireT * freqY) * domeH * 0.35;
-        sy += Math.cos(fireT * 4.2) * 25;
-        
-        // Ground avoidance: Smoothly compress lower bounds instead of bouncing quadratically
-        if (sy > -40) sy = -40 + (sy + 40) * 0.2;
+        // Safe natural bounds without clamping jolts
+        const centerY = -130;
+        const ampY = 70;
+        let sy = centerY + Math.cos(fireT * freqY) * ampY + Math.cos(fireT * 4.2) * 10;
 
-        // Light/Ceiling avoidance
-        const flyCeiling = -220;
-        if (sy < flyCeiling) {
-           sy = flyCeiling + (flyCeiling - sy)*0.2;
-        }
-
-        // Allow wider X movement when below the tier 1 pipe (y > -140)
-        const depthFactor = Math.max(0, Math.min(1, (sy + 140) / 100)); 
-        const sweepRadius = hw * (0.55 + 0.3 * depthFactor);
-        
-        let sx = Math.sin(fireT * freqX) * sweepRadius;
-        // Add local drifting X
-        sx += Math.sin(fireT * 3.5) * 25;
-
-        // Smoothly dampen extreme X bounds instead of bouncing (as a fallback)
-        const edgeLimit = hw * (0.65 + 0.25 * depthFactor);
-        if (sx > edgeLimit) sx = edgeLimit + (sx - edgeLimit) * 0.2;
-        if (sx < -edgeLimit) sx = -edgeLimit + (sx + edgeLimit) * 0.2;
+        const ampX = 140;
+        let sx = Math.sin(fireT * freqX) * ampX + Math.sin(fireT * 3.5) * 15;
         
         const alphaPulse = (Math.sin(t * (1.5 + seed2) + i * 2.1) + 1) / 2;
         const isType1 = seed1 < 0.5;
@@ -8754,26 +8737,26 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     domePath();
     ctx.clip(); // Ensure petals stay inside dome
 
-    // Falling petals (Spiraling Vortex) - FRONTSIDE
+    // Falling petals (Drifting from branches) - FRONTSIDE
     const numPetals = 80;
     for(let s=0; s<numPetals; s++) {
-        const fallDistance = 240; // Avoid dirt layer
-        const fallT = (t * 40 + s * 113.1) % fallDistance;
-        const progress = fallT / fallDistance;
+        const seedX = ((s * 13.7) % (bw * 0.8)) - (bw * 0.4);
+        const startY = domeCY - domeH * Math.sqrt(1 - Math.pow(seedX / hw, 2)) + 15;
+        const endY = -35; 
+        const totalFall = Math.max(10, endY - startY);
         
-        const radius = 40 + (1 - progress) * 120;
-        const angle = progress * 15 + t * -2.5 + s * 7.3;
+        const fallT = (t * 30 + s * 113.1) % totalFall;
+        const progress = fallT / totalFall;
         
-        const depth = Math.sin(angle); 
+        const sy = startY + fallT;
+        const sx = seedX + Math.sin(t * 1.5 + sy * 0.02 + s) * 30;
+        
+        const depth = Math.sin(t * 2 + s * 5); 
         if (depth > 0) {
-            const sx = Math.cos(angle) * radius;
-            const sy = (domeCY - domeH - 20) + fallT + depth * 15;
-            const rot = t * 2 + s + angle;
-            
+            const rot = t * 2 + s + sx * 0.05;
             const scale = 0.7 + depth * 0.3;
-            
             let alpha = 0.7;
-            if (progress > 0.9) alpha *= (1 - progress) * 10;
+            if (progress > 0.8) alpha *= (1 - progress) * 5;
             
             ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
             ctx.beginPath();
