@@ -7941,8 +7941,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           const dir = branchX < 0 ? 1 : -1;
           const scale = 0.6 + 0.4 * (1 - Math.abs(xRatio));
           
-          // Match the exact geometry of the 8 blossom clusters on the branch
-          const simulatedI = (s * 7.3) % 8;
+          // Match the exact geometry of the 8 discrete blossom clusters on the branch
+          const simulatedI = Math.floor((s * 7.3) % 8);
           const localBx = 30 + simulatedI * 12;
           const localBy = 10 + simulatedI * 5 + Math.sin(simulatedI) * 10;
           
