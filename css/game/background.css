@@ -151,15 +151,3 @@
   background-repeat: repeat;
   opacity: 1;
 }
-
-
-/* ===== Firefox Overrides to Fix Lag ===== */
-.is-firefox .area-cove .playfield::before,
-.is-firefox .area-cove .playfield::after,
-.is-firefox .area-cavern .playfield::before,
-.is-firefox .area-cavern .playfield::after,
-.is-firefox .rubble-layer::after {
-  background-image: none !important;
-  opacity: 0.1 !important;
-  background-color: rgba(0, 0, 0, 0.3); /* Fallback shading */
-}
