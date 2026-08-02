@@ -88,6 +88,7 @@ let pureGoldPattern = null;
 let diamondPattern = null;
 let darkDiamondPattern = null;
 let emeraldPattern = null;
+let rubyPattern = null;
 
 // for specifically the Greenhouse building:
 let cachedGrowLightNormal = null;
@@ -389,6 +390,46 @@ function initEmeraldPattern(ctx) {
   }
 }
 
+function initRubyPattern(ctx) {
+  if (rubyPattern) return;
+
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const pCtx = canvas.getContext('2d');
+
+  // Vibrant ruby red base
+  pCtx.fillStyle = '#ff2020';
+  pCtx.fillRect(0, 0, size, size);
+
+  // Diagonal strokes to mimic the gem grain seen in ruby.webp
+  for (let i = 0; i < 800; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const len = 2 + Math.random() * 8;
+    
+    pCtx.strokeStyle = Math.random() > 0.5
+      ? `rgba(200, 10, 10, ${0.1 + Math.random() * 0.1})`  // darker red strokes
+      : `rgba(255, 60, 60, ${0.1 + Math.random() * 0.1})`; // lighter red strokes
+    
+    pCtx.lineWidth = 1 + Math.random() * 2;
+    pCtx.beginPath();
+    pCtx.moveTo(x, y);
+    pCtx.lineTo(x + len, y + len); // Diagonal bottom-right
+    pCtx.stroke();
+  }
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      rubyPattern = targetCtx.createPattern(canvas, 'repeat');
+    } catch (e) {
+      console.error('Failed to create ruby pattern', e);
+    }
+  }
+}
+
 export function startCanvasLoop(id, canvasEl) {
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   window.currentCavernLayout = null;
@@ -404,6 +445,9 @@ export function startCanvasLoop(id, canvasEl) {
   }
   if (!diamondPattern) {
     initDiamondPattern(activeCtx);
+  }
+  if (!rubyPattern) {
+    initRubyPattern(activeCtx);
   }
 
   if (canvasResizeObserver) {
@@ -1190,7 +1234,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
   else if (id === "diamond") drawOilRig(ctx, globalOilRigAnimTime, tier, prevTier, animProgress, w, h, scale);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier, prevTier, animProgress);
-  else if (id === "ruby") drawRadiator(ctx, t, tier);
+  else if (id === "ruby") drawRadiator(ctx, t, tier, prevTier, animProgress);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
   else if (id === "unobtainium") drawBeacon(ctx, t, tier);
   else if (id === "prismatium") drawTesseract(ctx, t, tier);
@@ -8976,17 +9020,418 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 }
 
 
-function drawRadiator(ctx, t, tier) {
-  ctx.fillStyle = "#444";
-  ctx.fillRect(-40, -100, 80, 100);
-
-  const glow = Math.abs(Math.sin(t * 4));
-  ctx.fillStyle = `rgba(230, 69, 69, ${0.5 + glow * 0.5})`;
-
-  for (let i = 0; i < 5; i++) {
-    ctx.fillRect(-30, -90 + i * 18, 60, 10);
+function drawRadiator(ctx, t, tier, prevTier, animProgress) {
+  if (!rubyPattern) {
+    if (activeCtx) initRubyPattern(activeCtx);
+    else initRubyPattern(ctx);
   }
+  const fillRuby = rubyPattern || '#ff2020';
+  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
+
+  const t0 = getProg(0), t1 = getProg(1), t2 = getProg(2), t3 = getProg(3);
+  const t4 = getProg(4), t5 = getProg(5), t6 = getProg(6), t7 = getProg(7), t8 = getProg(8);
+
+  const baseWidth = 140;
+  const baseHeight = 160;
+  const baseY = -baseHeight;
+
+  ctx.save();
+
+  // --- Tier 8 (Background Core Inferno) ---
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    const infernoGlow = ctx.createRadialGradient(0, baseY + baseHeight/2, 50, 0, baseY + baseHeight/2, 450);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 12);
+    infernoGlow.addColorStop(0, `rgba(255, 200, 50, ${0.8 + pulse * 0.2})`);
+    infernoGlow.addColorStop(0.3, `rgba(255, 50, 0, ${0.6 + pulse * 0.4})`);
+    infernoGlow.addColorStop(0.7, `rgba(150, 0, 0, ${0.4 + pulse * 0.2})`);
+    infernoGlow.addColorStop(1, 'rgba(50, 0, 0, 0)');
+    ctx.fillStyle = infernoGlow;
+    ctx.beginPath();
+    ctx.arc(0, baseY + baseHeight/2, 450, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // --- Tier 6 (Rotating Exhaust Fans at the Base/Sides) ---
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+    
+    const drawFan = (xOffset) => {
+      ctx.save();
+      ctx.translate(xOffset, baseY + baseHeight - 40);
+      
+      // Fan housing
+      ctx.fillStyle = '#222';
+      ctx.fillRect(-35, -35, 70, 70);
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill();
+      
+      // Rotating blades
+      ctx.save();
+      ctx.rotate(t * 15 * (xOffset > 0 ? 1 : -1)); // spin fast
+      ctx.fillStyle = '#555';
+      for(let i=0; i<4; i++) {
+        ctx.rotate(Math.PI/2);
+        ctx.beginPath();
+        ctx.moveTo(-5, 0); ctx.lineTo(-15, -28); ctx.lineTo(15, -28); ctx.lineTo(5, 0);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#777';
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      // Grille
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 2;
+      for(let i=-25; i<=25; i+=10) {
+        ctx.beginPath(); ctx.moveTo(-30, i); ctx.lineTo(30, i); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(i, -30); ctx.lineTo(i, 30); ctx.stroke();
+      }
+      ctx.restore();
+    };
+
+    drawFan(-baseWidth/2 - 50);
+    drawFan(baseWidth/2 + 50);
+
+    ctx.restore();
+  }
+
+  // --- Tier 5 (Large Side Radiators with glowing fins) ---
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5;
+
+    const drawSideRadiator = (xSign) => {
+      ctx.save();
+      const radW = 60;
+      const radH = 180;
+      const rx = xSign * (baseWidth/2 + radW/2 + 160); // Wide footprint
+      const ry = baseY - 20;
+
+      ctx.translate(rx, ry);
+
+      // Support brackets to main tank
+      ctx.fillStyle = '#333';
+      ctx.fillRect(-xSign * radW/2 - xSign * 160, 20, 160, 15);
+      ctx.fillRect(-xSign * radW/2 - xSign * 160, radH - 35, 160, 15);
+
+      // Radiator main body
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(-radW/2, 0, radW, radH);
+      
+      // Glowing fins
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3 + xSign);
+      // Brighten in Tier 8
+      const glowStr = t8 > 0 ? 0.8 + 0.2 * Math.sin(t * 15) : 0.4 + 0.6 * pulse;
+      
+      for(let i=10; i<radH-10; i+=12) {
+        ctx.fillStyle = `rgba(255, ${50 + glowStr * 100}, 0, ${glowStr})`;
+        ctx.fillRect(-radW/2 + 5, i, radW - 10, 6);
+        ctx.fillStyle = `rgba(255, 200, 100, ${glowStr * 0.5})`;
+        ctx.fillRect(-radW/2 + 10, i + 1, radW - 20, 4);
+      }
+
+      ctx.restore();
+    };
+
+    drawSideRadiator(-1);
+    drawSideRadiator(1);
+
+    ctx.restore();
+  }
+
+
+  // --- Tier 0 (Base Ruby Tank) ---
+  if (t0 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
+
+    // Main tank body
+    ctx.fillStyle = fillRuby;
+    ctx.fillRect(-baseWidth/2, baseY, baseWidth, baseHeight);
+    
+    // Tank shading / 3D effect
+    const tankGrad = ctx.createLinearGradient(-baseWidth/2, 0, baseWidth/2, 0);
+    tankGrad.addColorStop(0, 'rgba(0,0,0,0.6)');
+    tankGrad.addColorStop(0.2, 'rgba(0,0,0,0)');
+    tankGrad.addColorStop(0.8, 'rgba(0,0,0,0)');
+    tankGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = tankGrad;
+    ctx.fillRect(-baseWidth/2, baseY, baseWidth, baseHeight);
+
+    // Glowing heating elements (front grates)
+    const glow = Math.abs(Math.sin(t * 4));
+    let grateGlow = 0.5 + glow * 0.5;
+    if (t8 > 0) grateGlow = 1.0; // Max intensity in Tier 8
+    
+    ctx.fillStyle = `rgba(255, 80, 80, ${grateGlow})`;
+    for (let i = 0; i < 5; i++) {
+      ctx.fillRect(-baseWidth/2 + 20, baseY + 20 + i * 25, baseWidth - 40, 12);
+      // Bright core in the grate
+      ctx.fillStyle = `rgba(255, 200, 150, ${grateGlow * 0.8})`;
+      ctx.fillRect(-baseWidth/2 + 30, baseY + 22 + i * 25, baseWidth - 60, 8);
+      ctx.fillStyle = `rgba(255, 80, 80, ${grateGlow})`;
+    }
+
+    // Heavy metal trim (top/bottom)
+    ctx.fillStyle = '#222';
+    ctx.fillRect(-baseWidth/2 - 10, baseY - 10, baseWidth + 20, 15);
+    ctx.fillRect(-baseWidth/2 - 10, baseY + baseHeight - 5, baseWidth + 20, 15);
+
+    ctx.restore();
+  }
+
+  // --- Tier 2 (Coolant Pipes) ---
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    
+    // Animated flowing coolant (bright cyan)
+    ctx.strokeStyle = '#222'; // Pipe casing
+    ctx.lineWidth = 12;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const drawPipe = (xSign) => {
+      ctx.beginPath();
+      ctx.moveTo(xSign * (baseWidth/2 - 10), baseY + 10);
+      ctx.lineTo(xSign * (baseWidth/2 + 30), baseY + 10);
+      ctx.lineTo(xSign * (baseWidth/2 + 30), baseY + baseHeight - 20);
+      ctx.lineTo(xSign * (baseWidth/2), baseY + baseHeight - 20);
+      ctx.stroke();
+
+      // Flowing liquid inside
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 6;
+      ctx.setLineDash([15, 10]);
+      ctx.lineDashOffset = -t * 30 * xSign; // Flow direction
+      ctx.stroke();
+      ctx.setLineDash([]); // reset
+    };
+
+    drawPipe(-1);
+    drawPipe(1);
+
+    ctx.restore();
+  }
+
+  // --- Tier 1 (Steam/Exhaust Vents) ---
+  if (t1 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t1;
+    
+    const drawVent = (xSign, yOffset) => {
+      const vx = xSign * (baseWidth/2 + 10);
+      const vy = baseY + yOffset;
+      
+      // Vent nozzle
+      ctx.fillStyle = '#444';
+      ctx.fillRect(vx - (xSign>0?0:15), vy, 15, 10);
+
+      // Emitting steam
+      if (t1 > 0) {
+        for(let i=0; i<3; i++) {
+          const steamT = (t * 1.5 + i * 0.33) % 1;
+          const sx = vx + xSign * 10 + xSign * (steamT * 30) + Math.sin(t*5 + i) * 5;
+          const sy = vy - steamT * 40;
+          const size = 5 + steamT * 15;
+          const alpha = (1 - steamT) * 0.6;
+          
+          ctx.fillStyle = `rgba(200, 200, 200, ${alpha})`;
+          ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
+        }
+      }
+    };
+
+    drawVent(-1, 30);
+    drawVent(1, 30);
+    drawVent(-1, 90);
+    drawVent(1, 90);
+
+    ctx.restore();
+  }
+
+  // --- Tier 3 (Pressure Gauges and Roof Steam) ---
+  if (t3 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+
+    // Roof piping and gauges
+    ctx.fillStyle = '#333';
+    ctx.fillRect(-40, baseY - 30, 80, 20);
+    ctx.fillRect(-60, baseY - 20, 120, 10);
+
+    const drawGauge = (gx, gy) => {
+      ctx.fillStyle = '#b8860b'; // Brass
+      ctx.beginPath(); ctx.arc(gx, gy, 12, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(gx, gy, 9, 0, Math.PI*2); ctx.fill();
+      
+      // Jittery needle
+      const angle = -Math.PI/2 + Math.PI/4 * Math.sin(t * 20) + (t8>0 ? Math.PI/4 : 0);
+      ctx.strokeStyle = '#f00';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(gx, gy);
+      ctx.lineTo(gx + Math.cos(angle)*8, gy + Math.sin(angle)*8);
+      ctx.stroke();
+    };
+
+    drawGauge(-30, baseY - 20);
+    drawGauge(30, baseY - 20);
+
+    // Periodic roof steam burst
+    const burstCycle = (t * 0.5) % 1;
+    if (burstCycle < 0.2) {
+      const burstAlpha = 1 - (burstCycle / 0.2);
+      for(let i=0; i<5; i++) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${burstAlpha * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(0 + (Math.random()-0.5)*40, baseY - 30 - (burstCycle * 100) - Math.random()*20, 10 + burstCycle*30, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // --- Tier 4 (Central Heat Core) ---
+  // In Tier 8, this erupts completely.
+  if (t4 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t4;
+    
+    const coreY = baseY - 80; // Above the tank
+    const coreH = 70;
+    const coreW = 50;
+
+    // Heat distortion waves (background of core)
+    ctx.fillStyle = `rgba(255, 100, 0, 0.15)`;
+    for(let i=0; i<3; i++) {
+      const waveT = (t * 2 + i * 0.3) % 1;
+      ctx.beginPath();
+      ctx.ellipse(0, coreY + coreH/2 - waveT * 50, coreW + waveT*30, coreH/2 + waveT*20, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // The Pillar/Core itself
+    const pulse = Math.abs(Math.sin(t * 6));
+    const pillarGrad = ctx.createLinearGradient(-coreW/2, 0, coreW/2, 0);
+    
+    // Turns white-hot in Tier 8
+    if (t8 > 0) {
+      pillarGrad.addColorStop(0, '#ff5500');
+      pillarGrad.addColorStop(0.5, '#ffffff');
+      pillarGrad.addColorStop(1, '#ff5500');
+    } else {
+      pillarGrad.addColorStop(0, '#cc0000');
+      pillarGrad.addColorStop(0.5, `rgba(255, ${150 + pulse*100}, 0, 1)`);
+      pillarGrad.addColorStop(1, '#cc0000');
+    }
+
+    ctx.fillStyle = pillarGrad;
+    ctx.fillRect(-coreW/2, coreY, coreW, coreH);
+
+    // Containment caps
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-coreW/2 - 10, coreY - 10, coreW + 20, 10);
+    ctx.fillRect(-coreW/2 - 10, coreY + coreH, coreW + 20, 10);
+    
+    ctx.restore();
+  }
+
+  // --- Tier 7 (Energy Containment Rings) ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    
+    const coreY = baseY - 80;
+    const coreH = 70;
+    
+    // Rings bobbing up and down around the core
+    const drawRing = (yPhase) => {
+      const ry = coreY + coreH/2 + Math.sin(t * 3 + yPhase) * (coreH/2 - 5);
+      
+      // Back half of ring
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + 0.2*Math.sin(t*10)})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.ellipse(0, ry, 60, 15, 0, Math.PI, Math.PI*2); ctx.stroke();
+      
+      // Front half of ring
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.7 + 0.3*Math.sin(t*10)})`;
+      ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.ellipse(0, ry, 60, 15, 0, 0, Math.PI); ctx.stroke();
+      
+      // Energy nodes on front
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-60, ry, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(60, ry, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, ry + 15, 5, 0, Math.PI*2); ctx.fill();
+    };
+
+    drawRing(0);
+    drawRing(Math.PI); // opposite phase
+
+    ctx.restore();
+  }
+
+  // --- Tier 8 (Superheated Plasma Eruption) ---
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    ctx.globalCompositeOperation = 'lighter';
+    
+    const coreY = baseY - 90; // Top of the core
+    
+    // Massive upward beam
+    const beamW = 40 + Math.sin(t * 20) * 10;
+    const beamGrad = ctx.createLinearGradient(-beamW/2, 0, beamW/2, 0);
+    beamGrad.addColorStop(0, 'rgba(255, 50, 0, 0)');
+    beamGrad.addColorStop(0.2, 'rgba(255, 100, 0, 0.8)');
+    beamGrad.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+    beamGrad.addColorStop(0.8, 'rgba(255, 100, 0, 0.8)');
+    beamGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+    
+    ctx.fillStyle = beamGrad;
+    // Shoot straight up way past the top
+    ctx.fillRect(-beamW/2, coreY - 600, beamW, 600);
+    
+    // Searing core at the eruption point
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, coreY, 30, 0, Math.PI*2); ctx.fill();
+    const flash = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 120);
+    flash.addColorStop(0, 'rgba(255, 200, 100, 1)');
+    flash.addColorStop(1, 'rgba(255, 50, 0, 0)');
+    ctx.fillStyle = flash;
+    ctx.beginPath(); ctx.arc(0, coreY, 120, 0, Math.PI*2); ctx.fill();
+    
+    // Flying Embers/Sparks raining down
+    ctx.globalCompositeOperation = 'source-over';
+    for(let i=0; i<40; i++) {
+      const emberT = (t * 2 + i * 0.17) % 1;
+      // Start high in the beam, fall outward
+      const startY = coreY - 50 - (i * 10);
+      const endY = startY + 200;
+      const ey = startY + emberT * (endY - startY);
+      
+      const spread = 200 * (emberT);
+      const ex = Math.sin(i * 123) * spread + Math.sin(t*5 + i) * 20;
+      
+      const size = 2 + Math.random()*3;
+      const alpha = 1 - emberT;
+      
+      ctx.fillStyle = `rgba(255, ${150 + Math.random()*100}, 0, ${alpha})`;
+      ctx.beginPath(); ctx.arc(ex, ey, size, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  ctx.restore();
 }
+
 
 function drawCentrifuge(ctx, t, tier) {
   ctx.fillStyle = "#555";
