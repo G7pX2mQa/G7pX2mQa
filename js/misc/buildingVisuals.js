@@ -7941,10 +7941,23 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
           const dir = branchX < 0 ? 1 : -1;
           const scale = 0.6 + 0.4 * (1 - Math.abs(xRatio));
           
-          // Match the exact geometry of the 8 discrete blossom clusters on the branch
-          const simulatedI = Math.floor((s * 7.3) % 8);
-          const localBx = 30 + simulatedI * 12;
-          const localBy = 10 + simulatedI * 5 + Math.sin(simulatedI) * 10;
+          // Match the exact geometry of the 13 discrete blossom clusters on the branch
+          const simulatedI = Math.floor((s * 7.3) % 13);
+          const isOutward = (simulatedI >= 8);
+          let localBx, localBy;
+          
+          if (!isOutward) {
+              // 8 clusters on the main branch for dense coverage all the way down
+              const u = 0.2 + (simulatedI / 7) * 0.75; // u ranges 0.2 to 0.95
+              localBx = 2 * (1 - u) * u * 50 + u * u * 120;
+              localBy = 2 * (1 - u) * u * 20 + u * u * 60;
+          } else {
+              // 5 clusters on the outward branch
+              const subI = simulatedI - 8;
+              const u = 0.3 + (subI / 4) * 0.7; // u ranges 0.3 to 1.0 to avoid overlapping the fork
+              localBx = (1 - u) * (1 - u) * 40 + 2 * (1 - u) * u * 70 + u * u * 110;
+              localBy = (1 - u) * (1 - u) * 15 + 2 * (1 - u) * u * 0 + u * u * 20;
+          }
           
           // Tiny scatter so they spawn naturally around the cluster
           const scatterX = ((s * 11.3) % 10) - 5;
@@ -8473,27 +8486,51 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(40, 15);
-      ctx.quadraticCurveTo(80, 40, 100, 20);
+      ctx.quadraticCurveTo(70, 0, 110, 20); // Fixed unnatural U-shape sag to a natural upward arch
       ctx.stroke();
       
-      // Blossoms on branch
+      // Blossoms on branch - using the exact Bezier curve of the branch so they don't float
       ctx.fillStyle = 'rgba(255, 180, 220, 0.9)';
       ctx.beginPath();
-      for(let i=0; i<8; i++) {
-        const bx = 30 + i * 12;
-        const by = 10 + i * 5 + Math.sin(i) * 10;
+      for(let i=0; i<13; i++) {
+        const isOutward = (i >= 8);
+        let u, bx, by, rOuter;
+        if (!isOutward) {
+            u = 0.2 + (i / 7) * 0.75;
+            bx = 2 * (1 - u) * u * 50 + u * u * 120;
+            by = 2 * (1 - u) * u * 20 + u * u * 60;
+        } else {
+            const subI = i - 8;
+            u = 0.3 + (subI / 4) * 0.7;
+            bx = (1 - u) * (1 - u) * 40 + 2 * (1 - u) * u * 70 + u * u * 110;
+            by = (1 - u) * (1 - u) * 15 + 2 * (1 - u) * u * 0 + u * u * 20;
+        }
+        const outerRadii = [6.375, 4.125, 5.25];
+        rOuter = outerRadii[i % 3];
         ctx.moveTo(bx, by);
-        ctx.arc(bx, by, 6 + Math.sin(i)*2, 0, Math.PI*2);
+        ctx.arc(bx, by, rOuter, 0, Math.PI*2);
       }
       ctx.fill();
       
       ctx.fillStyle = 'rgba(255, 140, 190, 0.9)';
       ctx.beginPath();
-      for(let i=0; i<8; i++) {
-        const bx = 30 + i * 12;
-        const by = 10 + i * 5 + Math.sin(i) * 10;
+      for(let i=0; i<13; i++) {
+        const isOutward = (i >= 8);
+        let u, bx, by, rInner;
+        if (!isOutward) {
+            u = 0.2 + (i / 7) * 0.75;
+            bx = 2 * (1 - u) * u * 50 + u * u * 120;
+            by = 2 * (1 - u) * u * 20 + u * u * 60;
+        } else {
+            const subI = i - 8;
+            u = 0.3 + (subI / 4) * 0.7;
+            bx = (1 - u) * (1 - u) * 40 + 2 * (1 - u) * u * 70 + u * u * 110;
+            by = (1 - u) * (1 - u) * 15 + 2 * (1 - u) * u * 0 + u * u * 20;
+        }
+        const innerRadii = [3.75, 2.625, 3.375]; // Scaled down 25%
+        rInner = innerRadii[i % 3];
         ctx.moveTo(bx-2, by+2);
-        ctx.arc(bx-2, by+2, 4, 0, Math.PI*2);
+        ctx.arc(bx-2, by+2, rInner, 0, Math.PI*2);
       }
       ctx.fill();
       ctx.restore();
