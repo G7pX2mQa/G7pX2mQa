@@ -7923,6 +7923,115 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
   };
 
+  // Helper function to simulate falling and swirling whirlwind petals
+  const drawWhirlwindPetals = (isFront) => {
+      const numPetals = 80;
+      const blossomGrowth = t5 * 0.15 + t6 * 0.15 + t7 * 0.2; 
+      const flowerCY = -92 - blossomGrowth * 91; 
+
+      for(let s=0; s<numPetals; s++) {
+          const bList = [1, 2, 11, 12];
+          const bI = bList[s % 4];
+          const offset = (bI < 7) ? 0.4 : 0.6;
+          const xRatio = -0.9 + ((bI + offset) / 14) * 1.8;
+          
+          const branchX = xRatio * hw;
+          const branchY = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
+          
+          const dir = branchX < 0 ? 1 : -1;
+          const scale = 0.6 + 0.4 * (1 - Math.abs(xRatio));
+          
+          // Match the exact geometry of the 8 blossom clusters on the branch
+          const simulatedI = (s * 7.3) % 8;
+          const localBx = 30 + simulatedI * 12;
+          const localBy = 10 + simulatedI * 5 + Math.sin(simulatedI) * 10;
+          
+          // Tiny scatter so they spawn naturally around the cluster
+          const scatterX = ((s * 11.3) % 10) - 5;
+          const scatterY = ((s * 17.7) % 10) - 5;
+          
+          const startX = branchX + (localBx + scatterX) * dir * scale;
+          const startY = branchY + (localBy + scatterY) * scale + 5; // slightly under the flowers
+          
+          const totalLife = 220 + ((s * 11.7) % 60);
+          const age = (t * 30 + s * 113.1) % totalLife;
+          const progress = age / totalLife;
+          
+          const swirlY = flowerCY + ((s * 7.9) % 60) - 30; 
+          // Tier 7 flower radius is ~67.5px. Set radius to just clear it.
+          const finalRadius = 75 + ((s * 15.3) % 40); 
+          const groundY = -50 - ((s * 4.1) % 20); // Hover nicely above the dirt layer (which starts at -28)
+          
+          let sy;
+          if (progress < 0.4) {
+              // Fall to the ground
+              const p = progress / 0.4;
+              const ease = p * (2 - p); // ease-out
+              sy = startY * (1 - ease) + groundY * ease;
+          } else if (progress < 0.6) {
+              // Get swept up into the whirlwind
+              const p = (progress - 0.4) / 0.2;
+              const ease = p * p * (3 - 2 * p); // smoothstep
+              sy = groundY * (1 - ease) + swirlY * ease;
+          } else {
+              // Chilling in the whirlwind
+              sy = swirlY;
+          }
+          
+          // Delay the swirl so they only spin once they start getting swept up
+          const swirlPhase = Math.min(1.0, Math.max(0.0, (progress - 0.4) / 0.3));
+          const smoothSwirl = swirlPhase * swirlPhase * (3 - 2 * swirlPhase);
+          
+          const startRadius = Math.abs(startX);
+          const radius = startRadius * (1 - smoothSwirl) + finalRadius * smoothSwirl;
+          
+          const startAngle = startX >= 0 ? 0 : Math.PI;
+          const swirlDir = startX >= 0 ? 1 : -1;
+          
+          let swirlAngleAdded = 0;
+          if (progress > 0.4) {
+              const swirlAge = (progress - 0.4) * totalLife;
+              const swirlSpeed = 0.06 + ((s * 2.3) % 0.04); // Consistent moderate rotation speed
+              const rampTicks = 45; // Gradual speedup over 1.5 seconds
+              
+              if (swirlAge < rampTicks) {
+                  // Accelerate linearly: integral of v(t) = t^2 / (2*rampTicks)
+                  swirlAngleAdded = swirlSpeed * (swirlAge * swirlAge) / (2 * rampTicks);
+              } else {
+                  // Constant speed after ramp
+                  const angleAtRampEnd = swirlSpeed * rampTicks / 2;
+                  swirlAngleAdded = angleAtRampEnd + swirlSpeed * (swirlAge - rampTicks);
+              }
+          }
+          
+          const angle = startAngle + swirlAngleAdded * swirlDir;
+          
+          // Drift while falling, transitions out as swirl takes over
+          const driftX = Math.sin(t * 1.5 + s) * 12 * (1 - smoothSwirl);
+          const driftZ = Math.cos(t * 1.5 + s) * 0.5 * (1 - smoothSwirl);
+          
+          const sx = radius * Math.cos(angle) + driftX;
+          const normDepth = Math.sin(angle) + driftZ; 
+          
+          const isCurrentFront = normDepth > 0;
+          if (isCurrentFront === isFront) {
+              const rot = t * 2 + s + sx * 0.05;
+              const scale = 0.7 + normDepth * 0.3; 
+              let alpha = 0.8;
+              if (normDepth < -0.5) alpha = 0.5;
+              
+              // Fade in as it spawns on branch, fade out as it reaches the end of the whirlwind
+              if (progress < 0.1) alpha *= (progress / 0.1);
+              if (progress > 0.8) alpha *= (1 - progress) / 0.2;
+              
+              ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
+              ctx.beginPath();
+              ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
+              ctx.fill();
+          }
+      }
+  };
+
   // --- Tier 0-3: Evolving Sprout (Drawn before ground to hide base naturally) ---
   if (t0 > 0) {
     ctx.save();
@@ -8190,33 +8299,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
 
     // Falling petals (Drifting from branches) - BACKSIDE
-    const numPetals = 80;
-    for(let s=0; s<numPetals; s++) {
-        const seedX = ((s * 13.7) % (bw * 0.8)) - (bw * 0.4);
-        const startY = domeCY - domeH * Math.sqrt(1 - Math.pow(seedX / hw, 2)) + 15;
-        const endY = -35; 
-        const totalFall = Math.max(10, endY - startY);
-        
-        const fallT = (t * 30 + s * 113.1) % totalFall;
-        const progress = fallT / totalFall;
-        
-        const sy = startY + fallT;
-        const sx = seedX + Math.sin(t * 1.5 + sy * 0.02 + s) * 30;
-        
-        const depth = Math.sin(t * 2 + s * 5); 
-        if (depth <= 0) {
-            const rot = t * 2 + s + sx * 0.05;
-            const scale = 0.7 + depth * 0.3;
-            let alpha = 0.7;
-            if (depth < -0.5) alpha = 0.4;
-            if (progress > 0.8) alpha *= (1 - progress) * 5;
-            
-            ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
-            ctx.beginPath();
-            ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
-            ctx.fill();
-        }
-    }
+    drawWhirlwindPetals(false);
     
     ctx.restore();
   }
@@ -8722,32 +8805,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.clip(); // Ensure petals stay inside dome
 
     // Falling petals (Drifting from branches) - FRONTSIDE
-    const numPetals = 80;
-    for(let s=0; s<numPetals; s++) {
-        const seedX = ((s * 13.7) % (bw * 0.8)) - (bw * 0.4);
-        const startY = domeCY - domeH * Math.sqrt(1 - Math.pow(seedX / hw, 2)) + 15;
-        const endY = -35; 
-        const totalFall = Math.max(10, endY - startY);
-        
-        const fallT = (t * 30 + s * 113.1) % totalFall;
-        const progress = fallT / totalFall;
-        
-        const sy = startY + fallT;
-        const sx = seedX + Math.sin(t * 1.5 + sy * 0.02 + s) * 30;
-        
-        const depth = Math.sin(t * 2 + s * 5); 
-        if (depth > 0) {
-            const rot = t * 2 + s + sx * 0.05;
-            const scale = 0.7 + depth * 0.3;
-            let alpha = 0.7;
-            if (progress > 0.8) alpha *= (1 - progress) * 5;
-            
-            ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
-            ctx.beginPath();
-            ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
-            ctx.fill();
-        }
-    }
+    drawWhirlwindPetals(true);
     
     ctx.restore();
   }
