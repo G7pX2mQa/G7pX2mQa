@@ -8447,7 +8447,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
             // Exaggerate the angle to create the "rollercoaster" effect.
             // This ensures they physically bob up and down dramatically depending on their height,
             // while staying 100% perfectly synced with the vine's oscillation.
-            const vineTilt = stemAngle * 2.5;
+            const vineTilt = stemAngle * 2;
             
             const baseRot = isLeft ? 0.5 : -0.5;
             const actualRot = baseRot + vineTilt;
