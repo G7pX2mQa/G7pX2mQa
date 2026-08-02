@@ -8173,12 +8173,17 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     };
 
-    const branchIndices = [2, 3, 10, 11];
+    const branchIndices = [1, 2, 11, 12];
     for (let i of branchIndices) {
-        // Gap between light i and light i+1
-        const xRatio = -0.9 + ((i + 0.5) / 14) * 1.8;
+        // Shift slightly towards the LOWER light to account for visual crowding 
+        // from the branch's own curve (which sweeps towards the upper light)
+        // and the geometric skew of the ellipse.
+        const offset = (i < 7) ? 0.4 : 0.6; 
+        const xRatio = -0.9 + ((i + offset) / 14) * 1.8;
+        
         const bx = xRatio * hw;
         const by = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
+        
         const dir = bx < 0 ? 1 : -1;
         const scale = 0.6 + 0.4 * (1 - Math.abs(xRatio));
         drawBranch(bx, by, dir, scale);
