@@ -8016,15 +8016,22 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
   if (t4 > 0) {
     ctx.save();
     ctx.globalAlpha = t4;
-    // This stem transitions from green (t4) to purple (t8)
+    // Base stem transitions from dark green to dark purple (#330066)
     const r = Math.floor(58 * (1 - t8) + 51 * t8);
     const g = Math.floor(173 * (1 - t8) + 0 * t8);
     const b = Math.floor(48 * (1 - t8) + 102 * t8);
     const stemColor = `rgb(${r}, ${g}, ${b})`;
     
-    const hr = Math.floor(85 * (1 - t8) + 179 * t8);
-    const hg = Math.floor(208 * (1 - t8) + 0 * t8);
-    const hb = Math.floor(72 * (1 - t8) + 179 * t8);
+    // Mid stem transitions from mid green to purple (#800080)
+    const mr = Math.floor(65 * (1 - t8) + 128 * t8);
+    const mg = Math.floor(190 * (1 - t8) + 0 * t8);
+    const mb = Math.floor(55 * (1 - t8) + 128 * t8);
+    const midColor = `rgb(${mr}, ${mg}, ${mb})`;
+
+    // Highlight stem transitions from light green to pink (#ff66ff)
+    const hr = Math.floor(85 * (1 - t8) + 255 * t8);
+    const hg = Math.floor(208 * (1 - t8) + 102 * t8);
+    const hb = Math.floor(72 * (1 - t8) + 255 * t8);
     const highlightColor = `rgb(${hr}, ${hg}, ${hb})`;
 
     const breathe = 1 + Math.sin(t * 1.8) * 0.05;
@@ -8043,7 +8050,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     const flowerCX = 0;
     const flowerCY = -92 - blossomGrowth * 91;
 
-    // Stem body (thicker when t8 is active)
+    // Stem body (base)
     const stemThickness = (12 + t8 * 8) * displayScale;
     ctx.strokeStyle = stemColor;
     ctx.lineWidth = stemThickness;
@@ -8053,6 +8060,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
     ctx.stroke();
     
+    // Stem mid
+    ctx.strokeStyle = midColor;
+    ctx.lineWidth = (8 + t8 * 4) * displayScale;
+    ctx.beginPath();
+    ctx.moveTo(0, -20);
+    ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
+    ctx.stroke();
+
     // Stem highlight
     ctx.strokeStyle = highlightColor;
     ctx.lineWidth = (4 + t8 * 2) * displayScale;
@@ -8252,30 +8267,33 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     drawBranch(-hw + 60, domeCY - domeH * 0.9, 1, 0.9);
     drawBranch(hw - 60, domeCY - domeH * 0.9, -1, 0.9);
 
-    // Falling petals (Spiraling Vortex)
+    // Falling petals (Spiraling Vortex) - BACKSIDE
     const numPetals = 80;
     for(let s=0; s<numPetals; s++) {
-        const fallT = (t * 40 + s * 113.1) % (domeH + 100);
-        const progress = fallT / (domeH + 100);
+        const fallDistance = 240; // Avoid dirt layer
+        const fallT = (t * 40 + s * 113.1) % fallDistance;
+        const progress = fallT / fallDistance;
         
         const radius = 40 + (1 - progress) * 120;
         const angle = progress * 15 + t * -2.5 + s * 7.3;
         
-        const sx = Math.cos(angle) * radius;
-        const sy = (domeCY - domeH - 20) + fallT + Math.sin(angle) * 15;
-        const rot = t * 2 + s + angle;
-        
         const depth = Math.sin(angle); 
-        const scale = 0.7 + depth * 0.3;
-        
-        let alpha = 0.7;
-        if (depth < -0.5) alpha = 0.4;
-        if (progress > 0.9) alpha *= (1 - progress) * 10;
-        
-        ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
-        ctx.beginPath();
-        ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
-        ctx.fill();
+        if (depth <= 0) {
+            const sx = Math.cos(angle) * radius;
+            const sy = (domeCY - domeH - 20) + fallT + depth * 15;
+            const rot = t * 2 + s + angle;
+            
+            const scale = 0.7 + depth * 0.3;
+            
+            let alpha = 0.7;
+            if (depth < -0.5) alpha = 0.4;
+            if (progress > 0.9) alpha *= (1 - progress) * 10;
+            
+            ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
+            ctx.fill();
+        }
     }
     
     ctx.restore();
@@ -8394,7 +8412,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         
         const seed = Math.sin(i * 123.45);
-        const vineLength = Math.min(100 + Math.abs(seed) * 120, -48 - vyStart);
+        const targetY = -35 + seed * 8; // End slightly above dirt layer
+        const vineLength = Math.max(10, targetY - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
         
         ctx.moveTo(vx, vyStart);
@@ -8402,16 +8421,18 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.stroke();
     
-    // 2. Draw Light Leaves
-    ctx.fillStyle = '#4cc940';
+    // 2. Draw Light Leaves (Now same dark green color)
+    ctx.fillStyle = '#2d8a24';
     ctx.beginPath();
     for (let i = 0; i < numVines; i++) {
         const xRatio = -0.9 + (i / (numVines - 1)) * 1.8;
         const vx = xRatio * hw;
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         const seed = Math.sin(i * 123.45);
-        const vineLength = Math.min(100 + Math.abs(seed) * 120, -48 - vyStart);
+        const targetY = -35 + seed * 8;
+        const vineLength = Math.max(10, targetY - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
+        const swayVel = Math.cos(t * 1.2 + i) * 18;
         const numLeaves = Math.floor(vineLength / 12);
         
         for(let l = 0; l < numLeaves; l++) {
@@ -8420,14 +8441,24 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
             const ly = vyStart + vineLength * lT;
             const isLeft = (l % 2 === 0);
             
-            const rot = isLeft ? 0.5 : -0.5;
+            // Calculate the exact geometric slope of the vine at this specific height (the "track")
+            const stemAngle = -(sway / Math.max(10, vineLength)) * (0.4 + 1.2 * lT);
+            
+            // Exaggerate the angle to create the "rollercoaster" effect.
+            // This ensures they physically bob up and down dramatically depending on their height,
+            // while staying 100% perfectly synced with the vine's oscillation.
+            const vineTilt = stemAngle * 2.5;
+            
+            const baseRot = isLeft ? 0.5 : -0.5;
+            const actualRot = baseRot + vineTilt;
             const cx = isLeft ? -4 : 4;
             const cy = 0;
-            const rCx = cx * Math.cos(rot) - cy * Math.sin(rot);
-            const rCy = cx * Math.sin(rot) + cy * Math.cos(rot);
+            
+            const rCx = cx * Math.cos(actualRot) - cy * Math.sin(actualRot);
+            const rCy = cx * Math.sin(actualRot) + cy * Math.cos(actualRot);
             
             ctx.moveTo(lx + rCx, ly + rCy);
-            ctx.ellipse(lx + rCx, ly + rCy, 5, 2.5, rot + (isLeft ? -0.2 : 0.2), 0, Math.PI*2);
+            ctx.ellipse(lx + rCx, ly + rCy, 5, 2.5, actualRot + (isLeft ? -0.2 : 0.2), 0, Math.PI*2);
         }
     }
     ctx.fill();
@@ -8440,8 +8471,10 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const vx = xRatio * hw;
         const vyStart = domeCY - domeH * Math.sqrt(1 - xRatio * xRatio);
         const seed = Math.sin(i * 123.45);
-        const vineLength = Math.min(100 + Math.abs(seed) * 120, -48 - vyStart);
+        const targetY = -35 + seed * 8;
+        const vineLength = Math.max(10, targetY - vyStart);
         const sway = Math.sin(t * 1.2 + i) * 15;
+        const swayVel = Math.cos(t * 1.2 + i) * 18;
         const numLeaves = Math.floor(vineLength / 12);
         
         for(let l = 0; l < numLeaves; l++) {
@@ -8450,14 +8483,24 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
             const ly = vyStart + vineLength * lT;
             const isLeft = (l % 2 === 0);
             
-            const rot = isLeft ? 0.5 : -0.5;
+            // Calculate the exact geometric slope of the vine at this specific height (the "track")
+            const stemAngle = -(sway / Math.max(10, vineLength)) * (0.4 + 1.2 * lT);
+            
+            // Exaggerate the angle to create the "rollercoaster" effect.
+            // This ensures they physically bob up and down dramatically depending on their height,
+            // while staying 100% perfectly synced with the vine's oscillation.
+            const vineTilt = stemAngle * 2.5;
+            
+            const baseRot = isLeft ? 0.5 : -0.5;
+            const actualRot = baseRot + vineTilt;
             const cx = isLeft ? -4 : 4;
             const cy2 = 1;
-            const rCx2 = cx * Math.cos(rot) - cy2 * Math.sin(rot);
-            const rCy2 = cx * Math.sin(rot) + cy2 * Math.cos(rot);
+            
+            const rCx2 = cx * Math.cos(actualRot) - cy2 * Math.sin(actualRot);
+            const rCy2 = cx * Math.sin(actualRot) + cy2 * Math.cos(actualRot);
             
             ctx.moveTo(lx + rCx2, ly + rCy2);
-            ctx.ellipse(lx + rCx2, ly + rCy2, 4, 1.5, rot + (isLeft ? -0.2 : 0.2), 0, Math.PI*2);
+            ctx.ellipse(lx + rCx2, ly + rCy2, 4, 1.5, actualRot + (isLeft ? -0.2 : 0.2), 0, Math.PI*2);
         }
     }
     ctx.fill();
@@ -8479,27 +8522,31 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const freqY = 0.8 + seed2 * 0.6;
         const fireT = t * (0.3 + seed1 * 0.2) + i * 11;
         
-        // Sweeping path (randomized per firefly)
-        let sx = Math.sin(fireT * freqX) * hw * 0.8;
+        // Sweeping path Y base (calculate first to determine safe X width)
         let sy = domeCY - domeH * 0.45 + Math.cos(fireT * freqY) * domeH * 0.35;
-        
-        // Add local drifting
-        sx += Math.sin(fireT * 3.5) * 25;
         sy += Math.cos(fireT * 4.2) * 25;
         
-        // Ground avoidance
-        if (sy > -40) sy -= Math.pow(sy + 40, 2) * 0.08;
-
-        // Edge avoidance
-        const edgeLimit = hw * 0.85;
-        if (sx > edgeLimit) sx = edgeLimit - (sx - edgeLimit)*0.5;
-        if (sx < -edgeLimit) sx = -edgeLimit - (sx + edgeLimit)*0.5;
+        // Ground avoidance: Smoothly compress lower bounds instead of bouncing quadratically
+        if (sy > -40) sy = -40 + (sy + 40) * 0.2;
 
         // Light/Ceiling avoidance
         const flyCeiling = -220;
         if (sy < flyCeiling) {
            sy = flyCeiling + (flyCeiling - sy)*0.2;
         }
+
+        // Allow wider X movement when below the tier 1 pipe (y > -140)
+        const depthFactor = Math.max(0, Math.min(1, (sy + 140) / 100)); 
+        const sweepRadius = hw * (0.55 + 0.3 * depthFactor);
+        
+        let sx = Math.sin(fireT * freqX) * sweepRadius;
+        // Add local drifting X
+        sx += Math.sin(fireT * 3.5) * 25;
+
+        // Smoothly dampen extreme X bounds instead of bouncing (as a fallback)
+        const edgeLimit = hw * (0.65 + 0.25 * depthFactor);
+        if (sx > edgeLimit) sx = edgeLimit + (sx - edgeLimit) * 0.2;
+        if (sx < -edgeLimit) sx = -edgeLimit + (sx + edgeLimit) * 0.2;
         
         const alphaPulse = (Math.sin(t * (1.5 + seed2) + i * 2.1) + 1) / 2;
         const isType1 = seed1 < 0.5;
@@ -8552,34 +8599,42 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     for (let i = 0; i < 12; i++) {
         const beeT = t * (0.6 + (i%3)*0.1) + i * 7.3;
         
-        // Sweeping base position (kept tighter to center)
-        let bx = Math.sin(beeT * 0.7) * hw * 0.6; 
+        // Sweeping Y position (calculated first to determine safe X width)
         let by = domeCY - domeH * 0.4 + Math.cos(beeT * 0.9) * domeH * 0.3;
-        
-        // Add local buzzing
-        bx += Math.sin(beeT * 4.3) * 15;
         by += Math.cos(beeT * 5.1) * 15;
         
-        // Ground avoidance: push up if too close to ground
-        if (by > -40) by -= Math.pow(by + 40, 2) * 0.1;
+        // Ground avoidance: Smoothly compress lower bounds instead of bouncing quadratically
+        if (by > -40) by = -40 + (by + 40) * 0.2;
         
-
-
-        // Dome / Edge avoidance (keep away from edges)
-        const edgeLimit = hw * 0.8;
-        if (bx > edgeLimit) bx = edgeLimit - (bx - edgeLimit)*0.5;
-        if (bx < -edgeLimit) bx = -edgeLimit - (bx + edgeLimit)*0.5;
-
         // Light avoidance (ceiling avoidance)
         // Lights are approx at dome limit. Let's enforce a strict ceiling for bees.
         const beeCeiling = -200;
         if (by < beeCeiling) {
            by = beeCeiling + (beeCeiling - by)*0.2;
         }
+
+        // Allow wider X movement when below the tier 1 pipe (y > -140)
+        const depthFactor = Math.max(0, Math.min(1, (by + 140) / 100)); 
+        const sweepRadius = hw * (0.4 + 0.35 * depthFactor); 
+        
+        let bx = Math.sin(beeT * 0.7) * sweepRadius; 
+        // Add local buzzing X
+        bx += Math.sin(beeT * 4.3) * 15;
+
+        // Smoothly dampen extreme X bounds instead of bouncing (as a fallback)
+        const edgeLimit = hw * (0.55 + 0.3 * depthFactor);
+        if (bx > edgeLimit) bx = edgeLimit + (bx - edgeLimit) * 0.2;
+        if (bx < -edgeLimit) bx = -edgeLimit + (bx + edgeLimit) * 0.2;
         
         ctx.translate(bx, by);
         
-        const nextBx = Math.sin((beeT + 0.05) * 0.7) * hw * 0.6; 
+        // Calculate precise next position to determine true facing direction
+        const nextBeeT = beeT + 0.05;
+        let nextBx = Math.sin(nextBeeT * 0.7) * sweepRadius; 
+        nextBx += Math.sin(nextBeeT * 4.3) * 15;
+        if (nextBx > edgeLimit) nextBx = edgeLimit + (nextBx - edgeLimit) * 0.2;
+        if (nextBx < -edgeLimit) nextBx = -edgeLimit + (nextBx + edgeLimit) * 0.2;
+        
         const isFacingRight = nextBx > bx;
         ctx.scale(isFacingRight ? 1 : -1, 1);
 
@@ -8688,6 +8743,45 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
 
     ctx.restore();
+    ctx.restore();
+  }
+
+  // --- Tier 7: Falling Blossom Petals (Frontside) ---
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+
+    domePath();
+    ctx.clip(); // Ensure petals stay inside dome
+
+    // Falling petals (Spiraling Vortex) - FRONTSIDE
+    const numPetals = 80;
+    for(let s=0; s<numPetals; s++) {
+        const fallDistance = 240; // Avoid dirt layer
+        const fallT = (t * 40 + s * 113.1) % fallDistance;
+        const progress = fallT / fallDistance;
+        
+        const radius = 40 + (1 - progress) * 120;
+        const angle = progress * 15 + t * -2.5 + s * 7.3;
+        
+        const depth = Math.sin(angle); 
+        if (depth > 0) {
+            const sx = Math.cos(angle) * radius;
+            const sy = (domeCY - domeH - 20) + fallT + depth * 15;
+            const rot = t * 2 + s + angle;
+            
+            const scale = 0.7 + depth * 0.3;
+            
+            let alpha = 0.7;
+            if (progress > 0.9) alpha *= (1 - progress) * 10;
+            
+            ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+    
     ctx.restore();
   }
 
