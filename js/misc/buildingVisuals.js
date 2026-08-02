@@ -8524,11 +8524,17 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         const fireT = t * (0.3 + seed1 * 0.2) + i * 11;
         
         // Safe natural bounds without clamping jolts
-        const centerY = -130;
+        const centerY = -120;
         const ampY = 70;
         let sy = centerY + Math.cos(fireT * freqY) * ampY + Math.cos(fireT * 4.2) * 10;
 
-        const ampX = 140;
+        // Dynamic X amplitude based on Y position (Dome shape constraint)
+        const yOffset = Math.abs(sy - domeCY);
+        // Ensure we don't pass negative values to sqrt if sy somehow exceeds domeH
+        const maxDomeX = hw * Math.sqrt(Math.max(0, 1 - Math.pow(yOffset / domeH, 2)));
+        
+        // Keep 35 pixels away from the dome edge to avoid lights and glass
+        const ampX = Math.max(0, maxDomeX - 35);
         let sx = Math.sin(fireT * freqX) * ampX + Math.sin(fireT * 3.5) * 15;
         
         const alphaPulse = (Math.sin(t * (1.5 + seed2) + i * 2.1) + 1) / 2;
