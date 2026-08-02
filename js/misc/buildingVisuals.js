@@ -8012,81 +8012,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Majestic Static Stem for Tier 4-8 (Drawn before ground to hide base naturally) ---
-  if (t4 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t4;
-    // Base stem transitions from dark green to dark purple (#330066)
-    const r = Math.floor(58 * (1 - t8) + 51 * t8);
-    const g = Math.floor(173 * (1 - t8) + 0 * t8);
-    const b = Math.floor(48 * (1 - t8) + 102 * t8);
-    let stemColor = `rgb(${r}, ${g}, ${b})`;
-    
-    // Mid stem transitions from mid green to purple (#b300b3)
-    const mr = Math.floor(65 * (1 - t8) + 179 * t8);
-    const mg = Math.floor(190 * (1 - t8) + 0 * t8);
-    const mb = Math.floor(55 * (1 - t8) + 179 * t8);
-    let midColor = `rgb(${mr}, ${mg}, ${mb})`;
-
-    // Highlight stem transitions from light green to pink (#ff66ff)
-    const hr = Math.floor(85 * (1 - t8) + 255 * t8);
-    const hg = Math.floor(208 * (1 - t8) + 102 * t8);
-    const hb = Math.floor(72 * (1 - t8) + 255 * t8);
-    let highlightColor = `rgb(${hr}, ${hg}, ${hb})`;
-
-    if (t8 >= 1) {
-        stemColor = '#330066';
-        midColor = '#b300b3';
-        highlightColor = '#ff66ff';
-    }
-
-    const breathe = 1 + Math.sin(t * 1.8) * 0.05;
-    const blossomGrowth = t5 * 0.15 + t6 * 0.15 + t7 * 0.2; 
-    const staticBlossomScale = 1.0 + blossomGrowth;
-    // Base blossomScale from Tier 4
-    let displayScale = staticBlossomScale;
-    if (t8 > 0) {
-        const coreBreathe = 1 + Math.sin(t * 2.0) * 0.08;
-        const apexScale = coreBreathe * 0.85; 
-        displayScale = staticBlossomScale * (1 - t8) + apexScale * t8;
-    } else {
-        displayScale *= breathe;
-    }
-
-    const flowerCX = 0;
-    const flowerCY = -92 - blossomGrowth * 91;
-
-    // Stem body (base)
-    const stemThickness = (12 + t8 * 8) * displayScale;
-    ctx.strokeStyle = stemColor;
-    ctx.lineWidth = stemThickness;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, -20);
-    ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
-    ctx.stroke();
-    
-    // Stem mid
-    ctx.strokeStyle = midColor;
-    ctx.lineWidth = (8 + t8 * 4) * displayScale;
-    ctx.beginPath();
-    ctx.moveTo(0, -20);
-    ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
-    ctx.stroke();
-
-    // Stem highlight
-    ctx.strokeStyle = highlightColor;
-    ctx.lineWidth = (4 + t8 * 2) * displayScale;
-    ctx.beginPath();
-    ctx.moveTo(0, -20);
-    ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
-    ctx.stroke();
-
-
-    ctx.restore();
-  }
-
-
 
   // =============================================
   // LAYER 1: FOUNDATION (planter box & dirt)
@@ -8557,6 +8482,80 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+  // --- Majestic Static Stem for Tier 4-8 ---
+  if (t4 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t4;
+    // Base stem transitions from dark green to dark purple (#330066)
+    const r = Math.floor(58 * (1 - t8) + 51 * t8);
+    const g = Math.floor(173 * (1 - t8) + 0 * t8);
+    const b = Math.floor(48 * (1 - t8) + 102 * t8);
+    let stemColor = `rgb(${r}, ${g}, ${b})`;
+    
+    // Mid stem transitions from mid green to purple (#b300b3)
+    const mr = Math.floor(65 * (1 - t8) + 179 * t8);
+    const mg = Math.floor(190 * (1 - t8) + 0 * t8);
+    const mb = Math.floor(55 * (1 - t8) + 179 * t8);
+    let midColor = `rgb(${mr}, ${mg}, ${mb})`;
+
+    // Highlight stem transitions from light green to vibrant pink (#ff00ff)
+    const hr = Math.floor(85 * (1 - t8) + 255 * t8);
+    const hg = Math.floor(208 * (1 - t8) + 0 * t8);
+    const hb = Math.floor(72 * (1 - t8) + 255 * t8);
+    let highlightColor = `rgb(${hr}, ${hg}, ${hb})`;
+
+    if (t8 >= 1) {
+        stemColor = '#330066';
+        midColor = '#b300b3';
+        highlightColor = '#ff00ff';
+    }
+
+    const breathe = 1.05; // Max width permanently
+    const blossomGrowth = t5 * 0.15 + t6 * 0.15 + t7 * 0.2; 
+    const staticBlossomScale = 1.0 + blossomGrowth;
+    // Base blossomScale from Tier 4
+    let displayScale = staticBlossomScale;
+    if (t8 > 0) {
+        const coreBreathe = 1.08; // Max width permanently
+        const apexScale = coreBreathe * 0.85; 
+        displayScale = staticBlossomScale * (1 - t8) + apexScale * t8;
+    } else {
+        displayScale *= breathe;
+    }
+
+    const flowerCX = 0;
+    const flowerCY = -92 - blossomGrowth * 91;
+
+    // Stem body (base)
+    const stemThickness = (12 + t8 * 8) * displayScale;
+    ctx.strokeStyle = stemColor;
+    ctx.lineWidth = stemThickness;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, -20);
+    ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
+    ctx.stroke();
+    
+    // Stem mid
+    ctx.strokeStyle = midColor;
+    ctx.lineWidth = (8 + t8 * 4) * displayScale;
+    ctx.beginPath();
+    ctx.moveTo(0, -20);
+    ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
+    ctx.stroke();
+
+    // Stem highlight
+    ctx.strokeStyle = highlightColor;
+    ctx.lineWidth = (4 + t8 * 2) * displayScale;
+    ctx.beginPath();
+    ctx.moveTo(0, -20);
+    ctx.bezierCurveTo(-15, -40, 15, flowerCY + 40, flowerCX, flowerCY + 5 * displayScale);
+    ctx.stroke();
+
+
+    ctx.restore();
+  }
+
   // --- Tier 4: Rooted Purple Blossom & Wildlife ---
   if (t4 > 0) {
     ctx.save();
@@ -8888,8 +8887,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
             
             // To make particles appear to "start spawning" only when Tier 8 activates,
             // we kill particles that are older than the estimated time since T8 started.
-            // Transition is fast, so t8 * 3.0 gives a nice outward wave as it fades in.
-            if (age > t8 * 3.0) continue;
+            // Transition is fast, so scaling by particleLifetime gives a nice outward wave as it fades in.
+            if (age > t8 * particleLifetime) continue;
             if (age > particleLifetime) continue; // "Deleted" when offscreen/too old
             
             const traverseSpeed = 150; 
