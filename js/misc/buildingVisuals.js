@@ -1234,7 +1234,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "pure_gold") drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress);
   else if (id === "diamond") drawOilRig(ctx, globalOilRigAnimTime, tier, prevTier, animProgress, w, h, scale);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier, prevTier, animProgress);
-  else if (id === "ruby") drawRadiator(ctx, t, tier, prevTier, animProgress);
+  else if (id === "ruby") drawReactor(ctx, t, tier, prevTier, animProgress);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
   else if (id === "unobtainium") drawBeacon(ctx, t, tier);
   else if (id === "prismatium") drawTesseract(ctx, t, tier);
@@ -9022,7 +9022,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 }
 
 
-function drawRadiator(ctx, t, tier, prevTier, animProgress) {
+function drawReactor(ctx, t, tier, prevTier, animProgress) {
   if (!rubyPattern) {
     if (activeCtx) initRubyPattern(activeCtx);
     else initRubyPattern(ctx);
@@ -9101,12 +9101,12 @@ function drawRadiator(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- Tier 5 (Large Side Radiators with glowing fins) ---
+  // --- Tier 5 (Large Side Reactors with glowing fins) ---
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
 
-    const drawSideRadiator = (xSign) => {
+    const drawSideReactor = (xSign) => {
       ctx.save();
       const radW = 60;
       const radH = 180;
@@ -9120,7 +9120,7 @@ function drawRadiator(ctx, t, tier, prevTier, animProgress) {
       ctx.fillRect(-xSign * radW/2 - xSign * 160, 20, 160, 15);
       ctx.fillRect(-xSign * radW/2 - xSign * 160, radH - 35, 160, 15);
 
-      // Radiator main body
+      // Reactor main body
       ctx.fillStyle = '#1a1a1a';
       ctx.fillRect(-radW/2, 0, radW, radH);
       
@@ -9139,8 +9139,8 @@ function drawRadiator(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     };
 
-    drawSideRadiator(-1);
-    drawSideRadiator(1);
+    drawSideReactor(-1);
+    drawSideReactor(1);
 
     ctx.restore();
   }
