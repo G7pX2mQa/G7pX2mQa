@@ -461,11 +461,13 @@ export function createSpawner(config = {}) {
             }
 
             for (const { wave, coin, sizeIndex } of batch) {
-                if (wave && settingsManager.get('spawn_vessels')) {
+                if (wave) {
                     hasWaves = true;
-                    if (waterSystem) {
-                        const forceTop = sizeIndex >= 4;
-                        waterSystem.addWave(wave.x, wave.y, wave.width, wave.height, forceTop);
+                    if (settingsManager.get('spawn_vessels')) {
+                        if (waterSystem) {
+                            const forceTop = sizeIndex >= 4;
+                            waterSystem.addWave(wave.x, wave.y, wave.width, wave.height, forceTop);
+                        }
                     }
                 }
 
