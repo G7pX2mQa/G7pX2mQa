@@ -130,7 +130,7 @@ export const SETTING_DEFINITIONS = {
     type: 'toggle',
     label: 'Show Cursor',
     hasExtraInfo: true,
-	info: 'Specifically in areas where the cursor is normally hidden and replaced with the cursor trail.',
+	info: 'If turned ON, shows the cursor in areas where the cursor is normally hidden and replaced with the cursor trail.',
     default: false,
     unlockCondition: () => !IS_MOBILE,
   },
