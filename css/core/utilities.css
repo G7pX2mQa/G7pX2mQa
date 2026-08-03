@@ -9,3 +9,17 @@
   overflow: hidden !important;
   white-space: nowrap !important;
 }
+
+body.no-overlay-transitions {
+  --shop-anim: 0s !important;
+  --sas-anim: 0s !important;
+  --merchant-anim: 0s !important;
+}
+
+body.no-overlay-transitions .shop-sheet,
+body.no-overlay-transitions .sas-sheet,
+body.no-overlay-transitions .merchant-sheet,
+body.no-overlay-transitions .upg-sheet,
+body.no-overlay-transitions .map-sheet {
+  transition: none !important;
+}
