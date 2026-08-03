@@ -275,6 +275,22 @@ function syncSellLayout() {
 }
 
 export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl) {
+  if (minerOverlayEl && !minerOverlayEl.__animTracking) {
+      minerOverlayEl.__animTracking = true;
+      minerOverlayEl.addEventListener('transitionstart', (e) => {
+          if (e.target === minerOverlayEl || e.target === minerSheetEl) {
+              minerOverlayEl.classList.add('is-animating');
+          }
+      });
+      const endAnim = (e) => {
+          if (e.target === minerOverlayEl || e.target === minerSheetEl) {
+              minerOverlayEl.classList.remove('is-animating');
+          }
+      };
+      minerOverlayEl.addEventListener('transitionend', endAnim);
+      minerOverlayEl.addEventListener('transitioncancel', endAnim);
+  }
+
   const tabBtn = document.createElement('button');
   tabBtn.type = 'button';
   tabBtn.className = 'merchant-tab';
@@ -997,10 +1013,18 @@ function generateBgChunk(layerConf, lastChunk) {
 
                     const baseXOffset = interpPct * xRatio;
 
-                    // Pre-render the crystal to an offscreen canvas
+                    // Pre-render the crystal to a canvas
                     let cachedImage = null;
+                    let tempCanvas = null;
                     if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
-                        const tempCanvas = new OffscreenCanvas(40, 40);
+                        tempCanvas = new OffscreenCanvas(40, 40);
+                    } else if (typeof document !== 'undefined') {
+                        tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = 40;
+                        tempCanvas.height = 40;
+                    }
+
+                    if (tempCanvas) {
                         const octx = tempCanvas.getContext('2d');
                         octx.translate(20, 20); // Center drawing
 
@@ -1027,7 +1051,11 @@ function generateBgChunk(layerConf, lastChunk) {
                                 }
                             }
                         }
-                        cachedImage = tempCanvas.transferToImageBitmap();
+                        if (tempCanvas.transferToImageBitmap) {
+                            cachedImage = tempCanvas.transferToImageBitmap();
+                        } else {
+                            cachedImage = tempCanvas;
+                        }
                     }
 
                     crystals.push({
@@ -1165,14 +1193,20 @@ registerFrame((time, dt) => {
 
   if (!isViewed) return;
 
+  let didResize = false;
   ['left', 'right'].forEach(side => {
-    let { canvas, ctx, width, height } = sellCanvases[side];
+    let { canvas, width } = sellCanvases[side];
     let parentEl = canvas ? canvas.parentElement : null;
     if (parentEl && parentEl.clientWidth > 0 && width === 0) {
       syncSellLayout();
-      width = sellCanvases[side].width;
-      height = sellCanvases[side].height;
+      didResize = true;
     }
+  });
+
+  if (isAnimating && !didResize) return;
+
+  ['left', 'right'].forEach(side => {
+    let { ctx, width, height } = sellCanvases[side];
     if (!ctx || width === 0 || height === 0) return;
 
     ctx.clearRect(0, 0, width, height);
