@@ -323,7 +323,7 @@ export function createUcSpawner(config = {}) {
             refs.c.appendChild(frag);
 
             // Pickaxe Logic
-            if (newItems.length > 0 && settingsManager.get('spawn_vessels')) {
+            if (newItems.length > 0) {
                 if (!window._cachedUcRubbleRect) {
                     const rl = document.querySelector('.rubble-layer');
                     if (rl) window._cachedUcRubbleRect = rl.getBoundingClientRect();
@@ -399,6 +399,8 @@ export function createUcSpawner(config = {}) {
                     // We will not use pickaxe.animate(), but rather synchronize it explicitly with onItemUpdate
                     // Store logic variables onto the pickaxe so onItemUpdate can calculate rotations safely
                     pickaxe._cycleMs = cycleMs;
+                    if (!settingsManager.get('spawn_vessels')) pickaxe.style.display = 'none';
+                    else pickaxe.style.display = 'block';
                     pickaxe._chargeRotation = chargeRotation;
                     pickaxe._strikeRotation = strikeRotation;
                     pickaxe._elapsedTime = 0;
