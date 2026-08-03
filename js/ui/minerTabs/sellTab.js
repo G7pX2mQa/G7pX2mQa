@@ -16,11 +16,16 @@ import { setHtmlOrText } from '../../util/uiHelpers.js';
 const SELL_UNLOCKED_KEY_BASE = 'ccc:sellUnlocked';
 const SELL_VIEWED_KEY_BASE = 'ccc:sellViewed';
 
+let cachedViewedState = {};
+
 export function hasViewedSellTab() {
   const slotKey = String(getActiveSlot() ?? 'default');
+  if (cachedViewedState[slotKey] !== undefined) return cachedViewedState[slotKey];
   if (typeof localStorage === 'undefined') return false;
   try {
-    return localStorage.getItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`) === '1';
+    const val = localStorage.getItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`) === '1';
+    cachedViewedState[slotKey] = val;
+    return val;
   } catch {
     return false;
   }
@@ -28,6 +33,7 @@ export function hasViewedSellTab() {
 
 export function setSellTabViewed(value, slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
+  cachedViewedState[slotKey] = !!value;
   if (typeof localStorage !== 'undefined') {
     try {
       if (value) {
@@ -76,8 +82,14 @@ export function setSellUnlocked(value, slot = getActiveSlot()) {
   }
 }
 
+let cachedSeenMaterials = {};
+
 if (typeof window !== 'undefined') {
-  const invalidateSellCache = () => { cachedSellUnlockedStates = {}; };
+  const invalidateSellCache = () => { 
+      cachedSellUnlockedStates = {}; 
+      cachedViewedState = {};
+      cachedSeenMaterials = {};
+  };
   window.addEventListener('saveSlot:change', invalidateSellCache);
   window.addEventListener('unlock:change', invalidateSellCache);
 }
@@ -418,16 +430,22 @@ export function updateSellTab() {
    } catch {}
 
    // Track historical seen materials
-   let seenMaterials = [];
-   try {
-       const stored = localStorage.getItem(`ccc:sellSeenMaterials:${getActiveSlot()}`);
-       if (stored) {
-           seenMaterials = JSON.parse(stored);
-       }
-   } catch {}
+   const slotKey = String(getActiveSlot() ?? 'default');
+   let seenMaterials = cachedSeenMaterials[slotKey];
+   if (!seenMaterials) {
+       seenMaterials = [];
+       try {
+           const stored = localStorage.getItem(`ccc:sellSeenMaterials:${slotKey}`);
+           if (stored) {
+               seenMaterials = JSON.parse(stored);
+           }
+       } catch {}
+       cachedSeenMaterials[slotKey] = seenMaterials;
+   }
    
    let highestMatIdx = 0;
    let nextMatIdx = -1;
+   let seenChanged = false;
 
    for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
        const t = UC_MATERIAL_DATA[i];
@@ -435,13 +453,16 @@ export function updateSellTab() {
            highestMatIdx = i;
            if (!seenMaterials.includes(t.name)) {
                seenMaterials.push(t.name);
+               seenChanged = true;
            }
        }
    }
    
-   try {
-       localStorage.setItem(`ccc:sellSeenMaterials:${getActiveSlot()}`, JSON.stringify(seenMaterials));
-   } catch {}
+   if (seenChanged) {
+       try {
+           localStorage.setItem(`ccc:sellSeenMaterials:${slotKey}`, JSON.stringify(seenMaterials));
+       } catch {}
+   }
    
    for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
        const t = UC_MATERIAL_DATA[i];
