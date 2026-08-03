@@ -139,7 +139,7 @@ export const SETTING_DEFINITIONS = {
     type: 'toggle',
     label: 'Spawn Vessels',
     hasExtraInfo: true,
-    info: 'For example, the waves that spawn in The Cove; turning this setting OFF would hide these.',
+    info: 'For example, the waves that spawn in The Cove; turning this setting OFF would hide these (visual modification only).',
     default: true,
     unlockCondition: () => true,
   },
