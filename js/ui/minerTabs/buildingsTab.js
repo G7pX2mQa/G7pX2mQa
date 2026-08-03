@@ -1010,7 +1010,7 @@ let lastMysteriousOpenTime = 0;
 
 export const BUILDING_NAMES = {
     core: 'Black Hole', crystal: 'Prism', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
-    pure_gold: 'Vault', diamond: 'Oil Drilling Rig', emerald: 'Greenhouse', ruby: 'Radiator',
+    pure_gold: 'Vault', diamond: 'Oil Drilling Rig', emerald: 'Greenhouse', ruby: 'Reactor',
     sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Tesseract'
 };
 
