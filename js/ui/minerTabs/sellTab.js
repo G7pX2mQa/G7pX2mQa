@@ -318,6 +318,26 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
   const infoBox = document.createElement('div');
   infoBox.className = 'sell-explainer';
   
+  const infoBase = document.createElement('b');
+  infoBase.textContent = 'Sell materials for Scrap, use Scrap to buy upgrades';
+  infoBox.appendChild(infoBase);
+
+  const infoDp = document.createElement('div');
+  infoDp.style.display = 'none';
+  const infoDp1 = document.createElement('div');
+  const infoDp2 = document.createElement('div');
+  const infoDp3 = document.createElement('div');
+  infoDp.appendChild(infoDp1);
+  infoDp.appendChild(infoDp2);
+  infoDp.appendChild(infoDp3);
+  infoBox.appendChild(infoDp);
+
+  const infoAuto = document.createElement('div');
+  infoAuto.style.display = 'none';
+  infoAuto.style.color = '#02e815';
+  infoAuto.style.fontWeight = 'bold';
+  infoBox.appendChild(infoAuto);
+  
   const listContainer = document.createElement('div');
   listContainer.className = 'sell-list';
 
@@ -339,7 +359,7 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
   panel.appendChild(centerCol);
   panel.appendChild(sideRight);
 
-  sellPanelDomCache = { infoBox, listContainer, rows: {}, sideLeft, sideRight, canvasLeft, canvasRight };
+  sellPanelDomCache = { infoBox, infoDp, infoDp1, infoDp2, infoDp3, infoAuto, listContainer, rows: {}, sideLeft, sideRight, canvasLeft, canvasRight };
 
 
   tabBtn.addEventListener('click', () => {
@@ -372,7 +392,6 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
   if (typeof window !== 'undefined') window.addEventListener('resize', syncSellLayout);
 
   if (!sellPanelTickObj) {
-
      sellPanelTickObj = registerTick(() => {
          if (panel.classList.contains('is-active')) {
              updateSellTab();
@@ -447,9 +466,13 @@ export function updateSellTab() {
 
 
    const isDpUnlocked = isDpSystemUnlocked();
-   let baseHTML = `<b>Sell materials for Scrap, use Scrap to buy upgrades</b>`;
    if (isDpUnlocked) {
-       baseHTML += `<br>Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>${alwaysSpawnsStr}<br>${nextUnlockStr}`;
+       sellPanelDomCache.infoDp.style.display = '';
+       setHtmlOrText(sellPanelDomCache.infoDp1, `Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m`);
+       setHtmlOrText(sellPanelDomCache.infoDp2, alwaysSpawnsStr);
+       setHtmlOrText(sellPanelDomCache.infoDp3, nextUnlockStr);
+   } else {
+       sellPanelDomCache.infoDp.style.display = 'none';
    }
 
    const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
@@ -485,12 +508,15 @@ export function updateSellTab() {
 
        const scrapPerSec = totalScrapGain.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE));
        const formattedScrapPerSec = formatNumber(scrapPerSec);
-       baseHTML += `<br><span style="color:#02e815"><b>Current Scrap/sec: ${formattedScrapPerSec}</b></span>`;
+       sellPanelDomCache.infoAuto.style.display = '';
+       setHtmlOrText(sellPanelDomCache.infoAuto, `Current Scrap/sec: ${formattedScrapPerSec}`);
+   } else {
+       sellPanelDomCache.infoAuto.style.display = 'none';
    }
 
-   setHtmlOrText(sellPanelDomCache.infoBox, baseHTML);
-
    const accumulators = getUcMaterialAccumulators();
+
+   let layoutChanged = false;
 
    for (let i = 0; i < UC_MATERIALS.length; i++) {
        const matKey = UC_MATERIALS[i];
@@ -500,12 +526,14 @@ export function updateSellTab() {
            if (sellPanelDomCache.rows[matKey]) {
                sellPanelDomCache.rows[matKey].rowEl.remove();
                delete sellPanelDomCache.rows[matKey];
+               layoutChanged = true;
            }
            continue;
        }
 
        if (!sellPanelDomCache.rows[matKey]) {
            createSellRow(matKey, i);
+           layoutChanged = true;
        }
 
        const rowCache = sellPanelDomCache.rows[matKey];
@@ -546,7 +574,9 @@ export function updateSellTab() {
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
-   debouncedAlignSellColumns();
+   if (layoutChanged) {
+       debouncedAlignSellColumns();
+   }
 }
 function createSellRow(matKey, index) {
    const entry = RESOURCE_REGISTRY.find(r => r.key === matKey);
@@ -949,8 +979,8 @@ function generateBgChunk(layerConf, lastChunk) {
                     // Pre-render the crystal to an offscreen canvas
                     let cachedImage = null;
                     if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
-                        cachedImage = new OffscreenCanvas(40, 40);
-                        const octx = cachedImage.getContext('2d');
+                        const tempCanvas = new OffscreenCanvas(40, 40);
+                        const octx = tempCanvas.getContext('2d');
                         octx.translate(20, 20); // Center drawing
 
                         for (const cl of clusters) {
@@ -976,6 +1006,7 @@ function generateBgChunk(layerConf, lastChunk) {
                                 }
                             }
                         }
+                        cachedImage = tempCanvas.transferToImageBitmap();
                     }
 
                     crystals.push({
