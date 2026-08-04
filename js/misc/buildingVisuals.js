@@ -1416,8 +1416,8 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
     ctx.lineWidth = 6;
     ctx.strokeStyle = grad;
-    if (!IS_FIREFOX) ctx.shadowBlur = 15;
-    if (!IS_FIREFOX) ctx.shadowColor = "rgba(255, 100, 0, 0.8)";
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(255, 100, 0, 0.8)";
     ctx.stroke();
 
     ctx.restore();
@@ -1605,8 +1605,8 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.fill();
 
         if (heat > 0.5) {
-          if (!IS_FIREFOX) ctx.shadowBlur = heat * 10;
-          if (!IS_FIREFOX) ctx.shadowColor = `rgba(255, 100, 50, ${heat})`;
+          ctx.shadowBlur = heat * 10;
+          ctx.shadowColor = `rgba(255, 100, 50, ${heat})`;
           ctx.fill();
         }
       }
@@ -3855,8 +3855,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       const ringHeight = 30; // perspective squash
 
       // Add cyan glow applied on top of the rings synced with orb. Glow size/intensity pulses.
-      if (!IS_FIREFOX) ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
-      if (!IS_FIREFOX) ctx.shadowBlur = 10 + pulse * 30;
+      ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
+      ctx.shadowBlur = 10 + pulse * 30;
 
       // Draw back half of the ring with full brightness
       ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * tier4Prog})`;
@@ -3867,7 +3867,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       // Add a pure white core to the back part of the ring for intense electric look
       ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
       ctx.lineWidth = 2;
-      if (!IS_FIREFOX) ctx.shadowBlur = 0; // Turn off glow for the core so it doesn't double apply intensely
+      ctx.shadowBlur = 0; // Turn off glow for the core so it doesn't double apply intensely
       ctx.beginPath();
       ctx.ellipse(0, 0, ringWidth, ringHeight, 0, Math.PI, 0); // top half (back)
       ctx.stroke();
@@ -3947,8 +3947,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       const ringHeight = 30; // perspective squash
 
       // Add cyan glow applied on top of the rings synced with orb. Glow size/intensity pulses.
-      if (!IS_FIREFOX) ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
-      if (!IS_FIREFOX) ctx.shadowBlur = 10 + pulse * 30;
+      ctx.shadowColor = `rgba(0, 255, 255, ${(0.5 + pulse * 1.5) * tier4Prog})`;
+      ctx.shadowBlur = 10 + pulse * 30;
 
       // Draw front half of the ring
       ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * tier4Prog})`;
@@ -3959,7 +3959,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       // Add a pure white core to the front part of the ring for intense electric look
       ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
       ctx.lineWidth = 2;
-      if (!IS_FIREFOX) ctx.shadowBlur = 0; // Turn off glow for the core
+      ctx.shadowBlur = 0; // Turn off glow for the core
       ctx.beginPath();
       ctx.ellipse(0, 0, ringWidth, ringHeight, 0, 0, Math.PI); // bottom half (front)
       ctx.stroke();
@@ -4248,10 +4248,10 @@ function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset
       ctx.stroke();
 
       if (glow) {
-          if (!IS_FIREFOX) ctx.shadowColor = fluidColor;
-          if (!IS_FIREFOX) ctx.shadowBlur = width;
+          ctx.shadowColor = fluidColor;
+          ctx.shadowBlur = width;
           ctx.stroke();
-          if (!IS_FIREFOX) ctx.shadowBlur = 0;
+          ctx.shadowBlur = 0;
       }
       ctx.setLineDash([]);
     }
@@ -5254,8 +5254,8 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     // Draw thin glowing white strip in the middle
     ctx.lineWidth = 2;
     ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-    if (!IS_FIREFOX) ctx.shadowBlur = 10;
-    if (!IS_FIREFOX) ctx.shadowColor = "rgba(255, 255, 255, 1)";
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "rgba(255, 255, 255, 1)";
     drawFramePath();
     ctx.stroke();
     
@@ -5263,8 +5263,8 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     // Increased frequency: smaller gap
     ctx.lineWidth = 6;
     ctx.strokeStyle = "#FFFF00"; // Pure bright yellow
-    if (!IS_FIREFOX) ctx.shadowBlur = 25;
-    if (!IS_FIREFOX) ctx.shadowColor = "rgba(255, 255, 0, 1)";
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = "rgba(255, 255, 0, 1)";
     
     const pulseLength = 30;
     const gapLength = 100; // Much smaller gap for more frequent pulses
@@ -5507,7 +5507,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       
       octx.strokeStyle = "rgba(255, 70, 70, 0.6)";
       octx.lineWidth = 2.5;
-      if (!IS_FIREFOX) octx.shadowBlur = 0;
+      octx.shadowBlur = 0;
       octx.stroke();
       
       octx.restore();
@@ -5956,12 +5956,12 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         // Drone Core (Glowing Red Eye)
         const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
         ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
-        if (!IS_FIREFOX) ctx.shadowColor = "#ff0000";
-        if (!IS_FIREFOX) ctx.shadowBlur = 10;
+        ctx.shadowColor = "#ff0000";
+        ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.arc(0, 0, 4, 0, Math.PI * 2);
         ctx.fill();
-        if (!IS_FIREFOX) ctx.shadowBlur = 0;
+        ctx.shadowBlur = 0;
         
         // Scanning Laser Cone (Pointing Down)
         const sweepAngle = Math.sin(t * 3 + i * Math.PI) * 0.5;
@@ -6254,8 +6254,8 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       ctx.arc(0, -155, 4, 0, Math.PI * 2);
       ctx.fill();
-      if (!IS_FIREFOX) ctx.shadowColor = "#ff0000";
-      if (!IS_FIREFOX) ctx.shadowBlur = 10;
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 10;
       ctx.fill();
       
       ctx.restore();
