@@ -216,9 +216,3 @@
 }
 
 
-/* ===== Firefox Overrides for Sprite Scaling ===== */
-.is-firefox .pinned-currency-icon,
-.is-firefox .pinned-level-icon,
-.is-firefox .playfield canvas {
-  image-rendering: auto !important;
-}
