@@ -146,7 +146,8 @@ export function createCursorTrail(playfield, options = {}) {
     for (let i = 0; i < textureCount; i++) {
       const color = activeColors[i];
       const offsetX = i * TEXTURE_SIZE;
-
+      ctx.shadowColor = color;
+      ctx.shadowBlur = GLOW_RADIUS;
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(offsetX + CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
