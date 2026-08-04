@@ -4,7 +4,6 @@ import { settingsManager } from './settingsManager.js';
 import { getLevelNumber } from './upgrades.js';
 import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
 import { PALETTES, TRAIL_MOD_TO_PALETTE } from './magnetColorPalettes.js';
-import { IS_FIREFOX } from '../util/platformChecker.js';
 
 export function createCursorTrail(playfield, options = {}) {
   if (!playfield || typeof window === 'undefined') {
@@ -147,8 +146,7 @@ export function createCursorTrail(playfield, options = {}) {
     for (let i = 0; i < textureCount; i++) {
       const color = activeColors[i];
       const offsetX = i * TEXTURE_SIZE;
-      if (!IS_FIREFOX) ctx.shadowColor = color;
-      if (!IS_FIREFOX) ctx.shadowBlur = GLOW_RADIUS;
+
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(offsetX + CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
