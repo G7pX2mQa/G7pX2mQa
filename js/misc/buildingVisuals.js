@@ -1201,7 +1201,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "pure_gold") topY = -100; // Fixed vertical height for the glow
   else if (id === "diamond") topY = -120;
   else if (id === "emerald") topY = -130;
-  else if (id === "ruby") topY = -100;
+  else if (id === "ruby") topY = -200;
   else if (id === "sapphire") topY = -80;
   else if (id === "unobtainium") topY = -160;
   else if (id === "prismatium") topY = -150;
@@ -9039,395 +9039,797 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   const baseHeight = 160;
   const baseY = -baseHeight;
 
+  // Core position constants (used by Tier 4+ elements)
+  const coreBaseY = baseY - 100;
+  const coreBob = t4 > 0 ? Math.sin(t * 1.5) * 5 : 0;
+  const coreY = coreBaseY + coreBob;
+  const coreRadius = t8 > 0 ? (50 + 15 * Math.sin(t * 6)) : (35 + 8 * Math.sin(t * 4));
+
   ctx.save();
 
-  // --- Tier 8 (Background Core Inferno) ---
+  // =================================================================
+  // TIER 8 — BACKGROUND AURA (Screen-wide glow, behind everything)
+  // =================================================================
   if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
-    const infernoGlow = ctx.createRadialGradient(0, baseY + baseHeight/2, 50, 0, baseY + baseHeight/2, 450);
-    const pulse = 0.5 + 0.5 * Math.sin(t * 12);
-    infernoGlow.addColorStop(0, `rgba(255, 200, 50, ${0.8 + pulse * 0.2})`);
-    infernoGlow.addColorStop(0.3, `rgba(255, 50, 0, ${0.6 + pulse * 0.4})`);
-    infernoGlow.addColorStop(0.7, `rgba(150, 0, 0, ${0.4 + pulse * 0.2})`);
-    infernoGlow.addColorStop(1, 'rgba(50, 0, 0, 0)');
-    ctx.fillStyle = infernoGlow;
+    const auraPulse = 0.7 + 0.3 * Math.sin(t * 8);
+    const auraGrad = ctx.createRadialGradient(0, coreY, 30, 0, coreY, 500);
+    auraGrad.addColorStop(0, `rgba(255, 255, 220, ${auraPulse})`);
+    auraGrad.addColorStop(0.15, `rgba(255, 200, 50, ${auraPulse * 0.8})`);
+    auraGrad.addColorStop(0.35, `rgba(255, 80, 0, ${auraPulse * 0.5})`);
+    auraGrad.addColorStop(0.6, `rgba(180, 20, 0, ${auraPulse * 0.3})`);
+    auraGrad.addColorStop(1, 'rgba(80, 0, 0, 0)');
+    ctx.fillStyle = auraGrad;
     ctx.beginPath();
-    ctx.arc(0, baseY + baseHeight/2, 450, 0, Math.PI * 2);
+    ctx.arc(0, coreY, 500, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 
-  // --- Tier 6 (Rotating Exhaust Fans at the Base/Sides) ---
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-    
-    const drawFan = (xOffset) => {
-      ctx.save();
-      ctx.translate(xOffset, baseY + baseHeight - 40);
-      
-      // Fan housing
-      ctx.fillStyle = '#222';
-      ctx.fillRect(-35, -35, 70, 70);
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill();
-      
-      // Rotating blades
-      ctx.save();
-      ctx.rotate(t * 15 * (xOffset > 0 ? 1 : -1)); // spin fast
-      ctx.fillStyle = '#555';
-      for(let i=0; i<4; i++) {
-        ctx.rotate(Math.PI/2);
-        ctx.beginPath();
-        ctx.moveTo(-5, 0); ctx.lineTo(-15, -28); ctx.lineTo(15, -28); ctx.lineTo(5, 0);
-        ctx.fill();
-      }
-      ctx.fillStyle = '#777';
-      ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-
-      // Grille
-      ctx.strokeStyle = '#444';
-      ctx.lineWidth = 2;
-      for(let i=-25; i<=25; i+=10) {
-        ctx.beginPath(); ctx.moveTo(-30, i); ctx.lineTo(30, i); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(i, -30); ctx.lineTo(i, 30); ctx.stroke();
-      }
-      ctx.restore();
-    };
-
-    drawFan(-baseWidth/2 - 50);
-    drawFan(baseWidth/2 + 50);
-
-    ctx.restore();
-  }
-
-  // --- Tier 5 (Large Side Reactors with glowing fins) ---
-  if (t5 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t5;
-
-    const drawSideReactor = (xSign) => {
-      ctx.save();
-      const radW = 60;
-      const radH = 180;
-      const rx = xSign * (baseWidth/2 + radW/2 + 160); // Wide footprint
-      const ry = baseY - 20;
-
-      ctx.translate(rx, ry);
-
-      // Support brackets to main tank
-      ctx.fillStyle = '#333';
-      ctx.fillRect(-xSign * radW/2 - xSign * 160, 20, 160, 15);
-      ctx.fillRect(-xSign * radW/2 - xSign * 160, radH - 35, 160, 15);
-
-      // Reactor main body
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(-radW/2, 0, radW, radH);
-      
-      // Glowing fins
-      const pulse = 0.5 + 0.5 * Math.sin(t * 3 + xSign);
-      // Brighten in Tier 8
-      const glowStr = t8 > 0 ? 0.8 + 0.2 * Math.sin(t * 15) : 0.4 + 0.6 * pulse;
-      
-      for(let i=10; i<radH-10; i+=12) {
-        ctx.fillStyle = `rgba(255, ${50 + glowStr * 100}, 0, ${glowStr})`;
-        ctx.fillRect(-radW/2 + 5, i, radW - 10, 6);
-        ctx.fillStyle = `rgba(255, 200, 100, ${glowStr * 0.5})`;
-        ctx.fillRect(-radW/2 + 10, i + 1, radW - 20, 4);
-      }
-
-      ctx.restore();
-    };
-
-    drawSideReactor(-1);
-    drawSideReactor(1);
-
-    ctx.restore();
-  }
-
-
-  // --- Tier 0 (Base Ruby Tank) ---
+  // =================================================================
+  // TIER 0 — FOUNDATION (Heavy industrial ruby-plated reactor base)
+  // =================================================================
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
 
-    // Main tank body
-    ctx.fillStyle = fillRuby;
-    ctx.fillRect(-baseWidth/2, baseY, baseWidth, baseHeight);
-    
-    // Tank shading / 3D effect
-    const tankGrad = ctx.createLinearGradient(-baseWidth/2, 0, baseWidth/2, 0);
-    tankGrad.addColorStop(0, 'rgba(0,0,0,0.6)');
-    tankGrad.addColorStop(0.2, 'rgba(0,0,0,0)');
-    tankGrad.addColorStop(0.8, 'rgba(0,0,0,0)');
-    tankGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
-    ctx.fillStyle = tankGrad;
-    ctx.fillRect(-baseWidth/2, baseY, baseWidth, baseHeight);
+    // --- Corner structural pillars (dark metal) ---
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-baseWidth / 2 - 8, baseY, 16, baseHeight);
+    ctx.fillRect(baseWidth / 2 - 8, baseY, 16, baseHeight);
 
-    // Glowing heating elements (front grates)
-    const glow = Math.abs(Math.sin(t * 4));
-    let grateGlow = 0.5 + glow * 0.5;
-    if (t8 > 0) grateGlow = 1.0; // Max intensity in Tier 8
-    
-    ctx.fillStyle = `rgba(255, 80, 80, ${grateGlow})`;
-    for (let i = 0; i < 5; i++) {
-      ctx.fillRect(-baseWidth/2 + 20, baseY + 20 + i * 25, baseWidth - 40, 12);
-      // Bright core in the grate
-      ctx.fillStyle = `rgba(255, 200, 150, ${grateGlow * 0.8})`;
-      ctx.fillRect(-baseWidth/2 + 30, baseY + 22 + i * 25, baseWidth - 60, 8);
-      ctx.fillStyle = `rgba(255, 80, 80, ${grateGlow})`;
+    // --- Main reactor body (ruby textured) ---
+    ctx.fillStyle = fillRuby;
+    ctx.fillRect(-baseWidth / 2 + 8, baseY, baseWidth - 16, baseHeight);
+
+    // 3D shading overlay for depth
+    const tankGrad = ctx.createLinearGradient(-baseWidth / 2, 0, baseWidth / 2, 0);
+    tankGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
+    tankGrad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+    tankGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+    tankGrad.addColorStop(0.85, 'rgba(0,0,0,0.1)');
+    tankGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = tankGrad;
+    ctx.fillRect(-baseWidth / 2 + 8, baseY, baseWidth - 16, baseHeight);
+
+    // --- Heavy metal trim bands (top, bottom, mid) ---
+    ctx.fillStyle = '#222';
+    ctx.fillRect(-baseWidth / 2 - 12, baseY - 8, baseWidth + 24, 12);
+    ctx.fillRect(-baseWidth / 2 - 12, -4, baseWidth + 24, 12);
+    ctx.fillRect(-baseWidth / 2 - 4, baseY + baseHeight / 2 - 4, baseWidth + 8, 8);
+
+    // --- Ruby-plated top plate ---
+    ctx.fillStyle = fillRuby;
+    ctx.fillRect(-baseWidth / 2 + 12, baseY - 6, baseWidth - 24, 8);
+
+    // --- Warning stripe band at base ---
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-baseWidth / 2 + 8, -12, baseWidth - 16, 8);
+    ctx.clip();
+    for (let sx = -baseWidth / 2 - 20; sx < baseWidth / 2 + 20; sx += 20) {
+      ctx.fillStyle = '#f0c020';
+      ctx.beginPath();
+      ctx.moveTo(sx, -12);
+      ctx.lineTo(sx + 10, -12);
+      ctx.lineTo(sx + 18, -4);
+      ctx.lineTo(sx + 8, -4);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // --- Dark metal vent slots on front face ---
+    const ventSlotY = [baseY + 12, baseY + baseHeight - 18];
+    for (const vy of ventSlotY) {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(-baseWidth / 2 + 18, vy, baseWidth - 36, 6);
+      for (let vx = -baseWidth / 2 + 22; vx < baseWidth / 2 - 22; vx += 12) {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(vx, vy, 2, 6);
+      }
     }
 
-    // Heavy metal trim (top/bottom)
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-baseWidth/2 - 10, baseY - 10, baseWidth + 20, 15);
-    ctx.fillRect(-baseWidth/2 - 10, baseY + baseHeight - 5, baseWidth + 20, 15);
+    // --- Internal glowing grates (deep pulsing heat) ---
+    const grateGlow = t8 > 0 ? 1.0 : (0.5 + 0.5 * Math.abs(Math.sin(t * 3)));
+    for (let i = 0; i < 4; i++) {
+      const gy = baseY + 30 + i * 30;
+      // Dark inset housing
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(-baseWidth / 2 + 18, gy, baseWidth - 36, 16);
+      // Glowing interior gradient
+      const grateGrad = ctx.createLinearGradient(0, gy, 0, gy + 16);
+      grateGrad.addColorStop(0, `rgba(255, 60, 20, ${grateGlow})`);
+      grateGrad.addColorStop(0.5, `rgba(255, 200, 80, ${grateGlow})`);
+      grateGrad.addColorStop(1, `rgba(255, 60, 20, ${grateGlow})`);
+      ctx.fillStyle = grateGrad;
+      ctx.fillRect(-baseWidth / 2 + 22, gy + 2, baseWidth - 44, 12);
+      // White-hot center line
+      ctx.fillStyle = `rgba(255, 255, 200, ${grateGlow * 0.6})`;
+      ctx.fillRect(-baseWidth / 2 + 30, gy + 6, baseWidth - 60, 4);
+      // Grate slats
+      ctx.fillStyle = '#0a0a0a';
+      for (let gx = -baseWidth / 2 + 28; gx < baseWidth / 2 - 28; gx += 10) {
+        ctx.fillRect(gx, gy + 2, 2, 12);
+      }
+    }
+
+    // --- Pillar rivets/bolts ---
+    ctx.fillStyle = '#444';
+    for (let by = baseY + 15; by < -10; by += 25) {
+      ctx.fillRect(-baseWidth / 2 - 5, by, 5, 5);
+      ctx.fillRect(baseWidth / 2, by, 5, 5);
+    }
 
     ctx.restore();
   }
 
-  // --- Tier 2 (Coolant Pipes) ---
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    
-    // Animated flowing coolant (bright cyan)
-    ctx.strokeStyle = '#222'; // Pipe casing
-    ctx.lineWidth = 12;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    const drawPipe = (xSign) => {
-      ctx.beginPath();
-      ctx.moveTo(xSign * (baseWidth/2 - 10), baseY + 10);
-      ctx.lineTo(xSign * (baseWidth/2 + 30), baseY + 10);
-      ctx.lineTo(xSign * (baseWidth/2 + 30), baseY + baseHeight - 20);
-      ctx.lineTo(xSign * (baseWidth/2), baseY + baseHeight - 20);
-      ctx.stroke();
-
-      // Flowing liquid inside
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 6;
-      ctx.setLineDash([15, 10]);
-      ctx.lineDashOffset = -t * 30 * xSign; // Flow direction
-      ctx.stroke();
-      ctx.setLineDash([]); // reset
-    };
-
-    drawPipe(-1);
-    drawPipe(1);
-
-    ctx.restore();
-  }
-
-  // --- Tier 1 (Steam/Exhaust Vents) ---
+  // =================================================================
+  // TIER 1 — COOLANT LINES & COOLING TOWERS
+  // =================================================================
   if (t1 > 0) {
     ctx.save();
     ctx.globalAlpha = t1;
-    
-    const drawVent = (xSign, yOffset) => {
-      const vx = xSign * (baseWidth/2 + 10);
-      const vy = baseY + yOffset;
-      
-      // Vent nozzle
-      ctx.fillStyle = '#444';
-      ctx.fillRect(vx - (xSign>0?0:15), vy, 15, 10);
 
-      // Emitting steam
-      if (t1 > 0) {
-        for(let i=0; i<3; i++) {
-          const steamT = (t * 1.5 + i * 0.33) % 1;
-          const sx = vx + xSign * 10 + xSign * (steamT * 30) + Math.sin(t*5 + i) * 5;
-          const sy = vy - steamT * 40;
-          const size = 5 + steamT * 15;
-          const alpha = (1 - steamT) * 0.6;
-          
-          ctx.fillStyle = `rgba(200, 200, 200, ${alpha})`;
-          ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
+    const drawCoolingTower = (xSign) => {
+      const towerX = xSign * (baseWidth / 2 + 38);
+      const towerW = 44;
+      const towerH = 130;
+      const towerBottom = 0;
+      const towerTop = towerBottom - towerH;
+
+      // Tower body (trapezoidal — narrower at top)
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.moveTo(towerX - towerW / 2, towerBottom);
+      ctx.lineTo(towerX - towerW / 2 + 6, towerTop);
+      ctx.lineTo(towerX + towerW / 2 - 6, towerTop);
+      ctx.lineTo(towerX + towerW / 2, towerBottom);
+      ctx.fill();
+
+      // Ruby accent bands on tower
+      ctx.fillStyle = fillRuby;
+      ctx.fillRect(towerX - towerW / 2 + 5, towerTop + 18, towerW - 10, 10);
+      ctx.fillRect(towerX - towerW / 2 + 4, towerTop + 55, towerW - 8, 10);
+      ctx.fillRect(towerX - towerW / 2 + 3, towerTop + 92, towerW - 6, 10);
+
+      // Dark vent slits on tower face
+      ctx.fillStyle = '#333';
+      ctx.fillRect(towerX - towerW / 2 + 6, towerTop + 32, towerW - 12, 4);
+      ctx.fillRect(towerX - towerW / 2 + 5, towerTop + 70, towerW - 10, 4);
+
+      // Tower top rim (heavy metal cap)
+      ctx.fillStyle = '#333';
+      ctx.fillRect(towerX - towerW / 2 + 4, towerTop - 4, towerW - 8, 7);
+      ctx.fillStyle = '#444';
+      ctx.fillRect(towerX - towerW / 2 + 6, towerTop - 6, towerW - 12, 4);
+
+      // --- Horizontal pipes connecting tower → main body ---
+      const drawPipe = (pipeY, dashOffset) => {
+        // Pipe outer casing
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 12;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(towerX - xSign * (towerW / 2 - 2), pipeY);
+        ctx.lineTo(xSign * (baseWidth / 2 + 2), pipeY);
+        ctx.stroke();
+
+        // Pipe inner highlight
+        ctx.strokeStyle = '#2a2a2a';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(towerX - xSign * (towerW / 2 - 2), pipeY);
+        ctx.lineTo(xSign * (baseWidth / 2 + 2), pipeY);
+        ctx.stroke();
+
+        // Flowing liquid heat
+        ctx.strokeStyle = 'rgba(255, 180, 50, 0.85)';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([12, 8]);
+        ctx.lineDashOffset = dashOffset;
+        ctx.beginPath();
+        ctx.moveTo(towerX - xSign * (towerW / 2 - 2), pipeY);
+        ctx.lineTo(xSign * (baseWidth / 2 + 2), pipeY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      };
+
+      drawPipe(towerTop + 40, -t * 40 * xSign);
+      drawPipe(towerTop + 85, t * 35 * xSign);
+
+      // --- Thick steam venting from tower top ---
+      for (let i = 0; i < 6; i++) {
+        const steamT = (t * 1.2 + i * 0.5) % 3;
+        const sx = towerX + Math.sin(t * 2 + i * 1.5) * (8 + steamT * 6);
+        const sy = towerTop - 8 - steamT * 40;
+        const size = 7 + steamT * 14;
+        const alpha = (1 - steamT / 3) * 0.5;
+        ctx.fillStyle = `rgba(255, 220, 180, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(sx, sy, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    drawCoolingTower(-1);
+    drawCoolingTower(1);
+
+    ctx.restore();
+  }
+
+  // =================================================================
+  // TIER 2 — PISTON & HYDRAULIC ACTION
+  // =================================================================
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+
+    const drawPiston = (xSign, yOffset, phase) => {
+      const px = xSign * (baseWidth / 2 + 6);
+      const py = baseY + yOffset;
+      const pistonTravel = 18;
+      const pistonPos = Math.sin(t * 4 + phase) * pistonTravel;
+
+      // Piston cylinder housing (dark metal)
+      ctx.fillStyle = '#1a1a1a';
+      const hx = xSign > 0 ? px - 3 : px - 13;
+      ctx.fillRect(hx, py - 5, 16, 50);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(hx, py - 5, 16, 50);
+
+      // Piston shaft (metallic)
+      ctx.fillStyle = '#555';
+      ctx.fillRect(px - 3, py + pistonPos - 18, 6, 28);
+      // Shaft highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fillRect(px - 1, py + pistonPos - 18, 2, 28);
+
+      // Piston head (ruby plated)
+      ctx.fillStyle = fillRuby;
+      ctx.fillRect(px - 7, py + pistonPos - 20, 14, 7);
+      // Metal cap on head
+      ctx.fillStyle = '#333';
+      ctx.fillRect(px - 8, py + pistonPos - 22, 16, 4);
+
+      // Emergency light at top of housing
+      const lightOn = Math.sin(t * 8 + phase) > 0;
+      ctx.fillStyle = lightOn ? '#ff2020' : '#440808';
+      ctx.beginPath();
+      ctx.arc(px, py - 10, 4, 0, Math.PI * 2);
+      ctx.fill();
+      if (lightOn) {
+        ctx.fillStyle = 'rgba(255, 30, 30, 0.25)';
+        ctx.beginPath();
+        ctx.arc(px, py - 10, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Heat sparks ejecting on downstroke
+      if (pistonPos > 8) {
+        const sparkIntensity = (pistonPos - 8) / pistonTravel;
+        for (let s = 0; s < 4; s++) {
+          const sparkLife = (t * 8 + s * 0.25 + phase) % 1;
+          const sparkX = px + xSign * (4 + sparkLife * 18) + Math.sin(t * 15 + s * 2) * 3;
+          const sparkY = py + 42 - sparkLife * 25;
+          const sparkAlpha = (1 - sparkLife) * sparkIntensity;
+          ctx.fillStyle = `rgba(255, ${160 + s * 25}, 0, ${sparkAlpha})`;
+          ctx.beginPath();
+          ctx.arc(sparkX, sparkY, 1.5 + (s % 2), 0, Math.PI * 2);
+          ctx.fill();
         }
       }
     };
 
-    drawVent(-1, 30);
-    drawVent(1, 30);
-    drawVent(-1, 90);
-    drawVent(1, 90);
+    // Four pistons — two per side at different heights/phases
+    drawPiston(-1, 30, 0);
+    drawPiston(-1, 95, Math.PI * 0.7);
+    drawPiston(1, 30, Math.PI * 0.3);
+    drawPiston(1, 95, Math.PI);
 
     ctx.restore();
   }
 
-  // --- Tier 3 (Pressure Gauges and Roof Steam) ---
+  // =================================================================
+  // TIER 3 — CONTAINMENT RINGS (3D spinning magnetic stabilizers)
+  // =================================================================
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
 
-    // Roof piping and gauges
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-40, baseY - 30, 80, 20);
-    ctx.fillRect(-60, baseY - 20, 120, 10);
+    const ringCenterY = baseY + baseHeight / 2;
+    const ringRadiusX = 95;
+    const ringRadiusY = 22;
+    const ringSpeedMult = t8 > 0 ? 1.6 : 1.0;
 
-    const drawGauge = (gx, gy) => {
-      ctx.fillStyle = '#b8860b'; // Brass
-      ctx.beginPath(); ctx.arc(gx, gy, 12, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(gx, gy, 9, 0, Math.PI*2); ctx.fill();
-      
-      // Jittery needle
-      const angle = -Math.PI/2 + Math.PI/4 * Math.sin(t * 20) + (t8>0 ? Math.PI/4 : 0);
-      ctx.strokeStyle = '#f00';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(gx, gy);
-      ctx.lineTo(gx + Math.cos(angle)*8, gy + Math.sin(angle)*8);
+    const drawContainmentRing = (vertOffset, speed, ringPhase) => {
+      const ry = ringCenterY + vertOffset;
+      const angle = t * speed * ringSpeedMult + ringPhase;
+      const cosA = Math.cos(angle);
+      const yRadius = Math.abs(ringRadiusY * cosA) + 3;
+      const pulse = 0.6 + 0.4 * Math.sin(t * 5 + ringPhase);
+
+      // Back half of ring (dimmer — behind the structure)
+      ctx.strokeStyle = `rgba(200, 40, 20, ${0.3 * pulse})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(0, ry, ringRadiusX, yRadius, 0, Math.PI, Math.PI * 2);
       ctx.stroke();
+
+      // Front half of ring (brighter — in front)
+      const frontGlow = t8 > 0 ? 0.95 : 0.8;
+      ctx.strokeStyle = `rgba(255, 100, 30, ${frontGlow * pulse})`;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.ellipse(0, ry, ringRadiusX, yRadius, 0, 0, Math.PI);
+      ctx.stroke();
+
+      // Glowing energy nodes at cardinal points
+      const nodeGlow = 0.7 + 0.3 * Math.sin(t * 10 + ringPhase);
+      ctx.fillStyle = `rgba(255, 200, 100, ${nodeGlow})`;
+      ctx.beginPath(); ctx.arc(-ringRadiusX, ry, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ringRadiusX, ry, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(255, 255, 200, ${nodeGlow})`;
+      ctx.beginPath(); ctx.arc(0, ry + yRadius, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, ry - yRadius, 3, 0, Math.PI * 2); ctx.fill();
     };
 
-    drawGauge(-30, baseY - 20);
-    drawGauge(30, baseY - 20);
-
-    // Periodic roof steam burst
-    const burstCycle = (t * 0.5) % 1;
-    if (burstCycle < 0.2) {
-      const burstAlpha = 1 - (burstCycle / 0.2);
-      for(let i=0; i<5; i++) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${burstAlpha * 0.5})`;
-        ctx.beginPath();
-        ctx.arc(0 + (Math.random()-0.5)*40, baseY - 30 - (burstCycle * 100) - Math.random()*20, 10 + burstCycle*30, 0, Math.PI*2);
-        ctx.fill();
-      }
-    }
+    drawContainmentRing(-35, 2.0, 0);
+    drawContainmentRing(0, 2.5, Math.PI * 0.66);
+    drawContainmentRing(35, 3.0, Math.PI * 1.33);
 
     ctx.restore();
   }
 
-  // --- Tier 4 (Central Heat Core) ---
-  // In Tier 8, this erupts completely.
-  if (t4 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t4;
-    
-    const coreY = baseY - 80; // Above the tank
-    const coreH = 70;
-    const coreW = 50;
-
-    // Heat distortion waves (background of core)
-    ctx.fillStyle = `rgba(255, 100, 0, 0.15)`;
-    for(let i=0; i<3; i++) {
-      const waveT = (t * 2 + i * 0.3) % 1;
-      ctx.beginPath();
-      ctx.ellipse(0, coreY + coreH/2 - waveT * 50, coreW + waveT*30, coreH/2 + waveT*20, 0, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // The Pillar/Core itself
-    const pulse = Math.abs(Math.sin(t * 6));
-    const pillarGrad = ctx.createLinearGradient(-coreW/2, 0, coreW/2, 0);
-    
-    // Turns white-hot in Tier 8
-    if (t8 > 0) {
-      pillarGrad.addColorStop(0, '#ff5500');
-      pillarGrad.addColorStop(0.5, '#ffffff');
-      pillarGrad.addColorStop(1, '#ff5500');
-    } else {
-      pillarGrad.addColorStop(0, '#cc0000');
-      pillarGrad.addColorStop(0.5, `rgba(255, ${150 + pulse*100}, 0, 1)`);
-      pillarGrad.addColorStop(1, '#cc0000');
-    }
-
-    ctx.fillStyle = pillarGrad;
-    ctx.fillRect(-coreW/2, coreY, coreW, coreH);
-
-    // Containment caps
-    ctx.fillStyle = '#111';
-    ctx.fillRect(-coreW/2 - 10, coreY - 10, coreW + 20, 10);
-    ctx.fillRect(-coreW/2 - 10, coreY + coreH, coreW + 20, 10);
-    
-    ctx.restore();
-  }
-
-  // --- Tier 7 (Energy Containment Rings) ---
+  // =================================================================
+  // TIER 7 — MELTDOWN PROTOCOL (Exhaust flames + laser beams)
+  // =================================================================
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
-    
-    const coreY = baseY - 80;
-    const coreH = 70;
-    
-    // Rings bobbing up and down around the core
-    const drawRing = (yPhase) => {
-      const ry = coreY + coreH/2 + Math.sin(t * 3 + yPhase) * (coreH/2 - 5);
-      
-      // Back half of ring
-      ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + 0.2*Math.sin(t*10)})`;
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.ellipse(0, ry, 60, 15, 0, Math.PI, Math.PI*2); ctx.stroke();
-      
-      // Front half of ring
-      ctx.strokeStyle = `rgba(0, 255, 255, ${0.7 + 0.3*Math.sin(t*10)})`;
-      ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.ellipse(0, ry, 60, 15, 0, 0, Math.PI); ctx.stroke();
-      
-      // Energy nodes on front
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(-60, ry, 4, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(60, ry, 4, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(0, ry + 15, 5, 0, Math.PI*2); ctx.fill();
+
+    const flameLenMult = t8 > 0 ? 1.6 : 1.0;
+
+    // --- Plasma flame exhaust jets ---
+    const drawExhaustFlame = (xSign, yPos) => {
+      const fx = xSign * (baseWidth / 2 + 5);
+      const fy = baseY + yPos;
+
+      // Exhaust port housing (ruby plated)
+      ctx.fillStyle = '#1a1a1a';
+      const portX = xSign > 0 ? fx : fx - 18;
+      ctx.fillRect(portX, fy - 9, 18, 18);
+      ctx.fillStyle = fillRuby;
+      ctx.fillRect(portX + 2, fy - 7, 14, 14);
+
+      // Inner nozzle glow
+      const nozzleGlow = 0.6 + 0.4 * Math.sin(t * 10 + yPos);
+      ctx.fillStyle = `rgba(255, 200, 100, ${nozzleGlow})`;
+      ctx.fillRect(portX + 4, fy - 4, 10, 8);
+
+      // Flame jet shape
+      const flameLen = (55 + Math.sin(t * 12 + yPos) * 18 + Math.sin(t * 7.3 + xSign) * 12) * flameLenMult;
+      const flameGrad = ctx.createLinearGradient(fx, 0, fx + xSign * flameLen, 0);
+      flameGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      flameGrad.addColorStop(0.12, 'rgba(255, 230, 100, 0.9)');
+      flameGrad.addColorStop(0.35, 'rgba(255, 100, 0, 0.7)');
+      flameGrad.addColorStop(0.65, 'rgba(200, 30, 0, 0.4)');
+      flameGrad.addColorStop(1, 'rgba(100, 0, 0, 0)');
+
+      ctx.fillStyle = flameGrad;
+      ctx.beginPath();
+      ctx.moveTo(fx + xSign * 2, fy - 8);
+      ctx.lineTo(fx + xSign * flameLen * 0.3, fy - 5 + Math.sin(t * 18 + yPos) * 2);
+      ctx.lineTo(fx + xSign * flameLen, fy + Math.sin(t * 14 + yPos) * 3);
+      ctx.lineTo(fx + xSign * flameLen * 0.3, fy + 5 + Math.sin(t * 16 + yPos) * 2);
+      ctx.lineTo(fx + xSign * 2, fy + 8);
+      ctx.fill();
     };
 
-    drawRing(0);
-    drawRing(Math.PI); // opposite phase
+    drawExhaustFlame(-1, 40);
+    drawExhaustFlame(-1, 110);
+    drawExhaustFlame(1, 40);
+    drawExhaustFlame(1, 110);
+
+    // --- Sweeping red laser beams frantically scanning ---
+    for (let li = 0; li < 2; li++) {
+      const laserAngle = t * 3.5 + li * Math.PI;
+      const laserReach = 150;
+      const laserX = Math.cos(laserAngle) * laserReach;
+      const laserEndY = baseY - 30 + Math.sin(laserAngle * 1.3) * 50 - 100;
+      const laserAlpha = 0.5 + 0.3 * Math.sin(t * 6 + li);
+
+      // Laser beam glow (wide, soft)
+      ctx.strokeStyle = `rgba(255, 50, 50, ${laserAlpha * 0.3})`;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(0, baseY - 5);
+      ctx.lineTo(laserX, laserEndY);
+      ctx.stroke();
+
+      // Laser beam core (thin, bright)
+      ctx.strokeStyle = `rgba(255, 0, 0, ${laserAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, baseY - 5);
+      ctx.lineTo(laserX, laserEndY);
+      ctx.stroke();
+
+      // Laser emitter glow at base
+      ctx.fillStyle = `rgba(255, 0, 0, ${laserAlpha * 0.4})`;
+      ctx.beginPath();
+      ctx.arc(0, baseY - 5, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.restore();
   }
 
-  // --- Tier 8 (Superheated Plasma Eruption) ---
+  // =================================================================
+  // TIER 4 — THE UNCONTAINED CORE (Centerpiece)
+  // =================================================================
+  if (t4 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t4;
+
+    // --- Structural support pylons from body top to near core ---
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(-35, baseY);
+    ctx.lineTo(-12, coreY + coreRadius + 25);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(35, baseY);
+    ctx.lineTo(12, coreY + coreRadius + 25);
+    ctx.stroke();
+
+    // Pylon base mounts
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-42, baseY - 5, 14, 10);
+    ctx.fillRect(28, baseY - 5, 14, 10);
+    // Pylon ruby accent
+    ctx.fillStyle = fillRuby;
+    ctx.fillRect(-40, baseY - 3, 10, 6);
+    ctx.fillRect(30, baseY - 3, 10, 6);
+
+    // Sparking pylon tips
+    const sparkCycle = (t * 5) % 1;
+    if (sparkCycle < 0.35) {
+      const sa = sparkCycle / 0.35;
+      ctx.fillStyle = `rgba(255, 255, 200, ${(1 - sa) * 0.8})`;
+      ctx.beginPath(); ctx.arc(-12, coreY + coreRadius + 25, 3 + sa * 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(12, coreY + coreRadius + 25, 3 + sa * 6, 0, Math.PI * 2); ctx.fill();
+    }
+    const sparkCycle2 = (t * 5 + 0.5) % 1;
+    if (sparkCycle2 < 0.35) {
+      const sa2 = sparkCycle2 / 0.35;
+      ctx.fillStyle = `rgba(255, 200, 100, ${(1 - sa2) * 0.6})`;
+      ctx.beginPath(); ctx.arc(-12, coreY + coreRadius + 25, 2 + sa2 * 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(12, coreY + coreRadius + 25, 2 + sa2 * 8, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // --- Heat distortion waves expanding below core ---
+    for (let i = 0; i < 3; i++) {
+      const waveT = (t * 1.5 + i * 0.4) % 1;
+      ctx.strokeStyle = `rgba(255, 120, 20, ${0.2 * (1 - waveT)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, coreY + 15, 25 + waveT * 55, 6 + waveT * 14, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // --- The Plasma Core sphere (main glow) ---
+    const coreGrad = ctx.createRadialGradient(0, coreY, 0, 0, coreY, coreRadius * 1.6);
+    if (t8 > 0) {
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.15, '#ffffcc');
+      coreGrad.addColorStop(0.4, '#ffaa00');
+      coreGrad.addColorStop(0.7, '#ff4400');
+      coreGrad.addColorStop(1, 'rgba(255, 30, 0, 0)');
+    } else {
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.12, '#ffee55');
+      coreGrad.addColorStop(0.35, '#ff7700');
+      coreGrad.addColorStop(0.65, '#cc2200');
+      coreGrad.addColorStop(1, 'rgba(180, 10, 0, 0)');
+    }
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(0, coreY, coreRadius * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Secondary hot ring around core
+    const ringPulse = 0.5 + 0.5 * Math.sin(t * 7);
+    ctx.strokeStyle = `rgba(255, 180, 60, ${0.3 + ringPulse * 0.2})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, coreY, coreRadius * 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Bright white-hot inner core
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + 0.3 * Math.sin(t * 9)})`;
+    ctx.beginPath();
+    ctx.arc(0, coreY, coreRadius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Solar flares whipping erratically ---
+    const flareCount = t8 > 0 ? 8 : 5;
+    const flareMult = t8 > 0 ? 1.8 : 1.0;
+    for (let i = 0; i < flareCount; i++) {
+      const flareAngle = (i / flareCount) * Math.PI * 2 + t * 0.5;
+      const flareLen = (35 + 28 * Math.sin(t * 3.2 + i * 2.1)) * flareMult;
+      const startR = coreRadius * 0.7;
+      const fx1 = Math.cos(flareAngle) * startR;
+      const fy1 = Math.sin(flareAngle) * startR + coreY;
+
+      // Control point oscillates erratically
+      const cpAngle = flareAngle + Math.sin(t * 5.5 + i * 1.3) * 0.6;
+      const cpR = startR + flareLen * 0.55;
+      const cpx = Math.cos(cpAngle) * cpR;
+      const cpy = Math.sin(cpAngle) * cpR + coreY;
+
+      // End point
+      const endAngle = flareAngle + Math.sin(t * 4.2 + i * 1.8) * 0.35;
+      const endR = startR + flareLen;
+      const ex = Math.cos(endAngle) * endR;
+      const ey = Math.sin(endAngle) * endR + coreY;
+
+      const flareAlpha = 0.35 + 0.35 * Math.sin(t * 6 + i * 1.4);
+
+      // Flare outer glow
+      ctx.strokeStyle = `rgba(255, ${100 + Math.floor(Math.abs(Math.sin(t * 4 + i)) * 80)}, 0, ${flareAlpha * 0.5})`;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(fx1, fy1);
+      ctx.quadraticCurveTo(cpx, cpy, ex, ey);
+      ctx.stroke();
+
+      // Flare core
+      ctx.strokeStyle = `rgba(255, ${180 + Math.floor(Math.abs(Math.sin(t * 3 + i)) * 60)}, 50, ${flareAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(fx1, fy1);
+      ctx.quadraticCurveTo(cpx, cpy, ex, ey);
+      ctx.stroke();
+
+      // Glowing tip
+      ctx.fillStyle = `rgba(255, 220, 80, ${flareAlpha * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2.5 + Math.sin(t * 8 + i) * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // =================================================================
+  // TIER 5 — SECONDARY ACCELERATORS (Floating pods + plasma arcs)
+  // =================================================================
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5;
+
+    const accelCount = 4;
+    for (let i = 0; i < accelCount; i++) {
+      const baseAngle = (i / accelCount) * Math.PI * 2 + Math.PI / 4;
+      const orbitR = 125;
+      // Gentle floating oscillation
+      const podX = Math.cos(baseAngle) * orbitR + Math.sin(t * 0.8 + i * 1.7) * 10;
+      const podY = coreY + Math.sin(baseAngle) * 45 + Math.sin(t * 1.2 + i * 1.5) * 8;
+
+      // Pod outer housing (dark metal)
+      ctx.fillStyle = '#111';
+      ctx.fillRect(podX - 16, podY - 12, 32, 24);
+      // Ruby plated interior
+      ctx.fillStyle = fillRuby;
+      ctx.fillRect(podX - 13, podY - 9, 26, 18);
+      // Metal frame lines
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(podX - 16, podY - 12, 32, 24);
+      // Center detail
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(podX - 2, podY - 12, 4, 24);
+
+      // Glowing emitter on inward-facing side
+      const emitGlow = 0.5 + 0.5 * Math.sin(t * 8 + i * 1.5);
+      const emitX = podX > 0 ? podX - 16 : podX + 12;
+      ctx.fillStyle = `rgba(180, 220, 255, ${emitGlow})`;
+      ctx.fillRect(emitX, podY - 6, 4, 12);
+      // Emitter glow halo
+      ctx.fillStyle = `rgba(150, 200, 255, ${emitGlow * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(emitX + 2, podY, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- Jagged plasma arc from pod to core ---
+      const arcSegs = 10;
+      const arcInt = t8 > 0 ? 1.0 : (0.6 + 0.4 * Math.sin(t * 6 + i * 2));
+
+      // Outer glow arc
+      ctx.beginPath();
+      ctx.moveTo(podX, podY);
+      for (let s = 1; s <= arcSegs; s++) {
+        const frac = s / arcSegs;
+        const jitter = (1 - frac) * 14;
+        const ax = podX + (0 - podX) * frac + Math.sin(t * 22 + i * 5.3 + s * 3.1) * jitter;
+        const ay = podY + (coreY - podY) * frac + Math.cos(t * 19 + i * 4.7 + s * 2.3) * jitter * 0.7;
+        ctx.lineTo(ax, ay);
+      }
+      ctx.strokeStyle = `rgba(100, 180, 255, ${arcInt * 0.4})`;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Core bright arc
+      ctx.beginPath();
+      ctx.moveTo(podX, podY);
+      for (let s = 1; s <= arcSegs; s++) {
+        const frac = s / arcSegs;
+        const jitter = (1 - frac) * 7;
+        const ax = podX + (0 - podX) * frac + Math.sin(t * 22 + i * 5.3 + s * 3.1) * jitter;
+        const ay = podY + (coreY - podY) * frac + Math.cos(t * 19 + i * 4.7 + s * 2.3) * jitter * 0.7;
+        ctx.lineTo(ax, ay);
+      }
+      ctx.strokeStyle = `rgba(220, 240, 255, ${arcInt * 0.8})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // =================================================================
+  // TIER 6 — STABILIZER SHARDS (Orbiting ruby-metal fragments)
+  // =================================================================
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+
+    const shardCount = 6;
+    const shardOrbitR = 75;
+
+    for (let i = 0; i < shardCount; i++) {
+      const shardAngle = t * 1.2 + i * (Math.PI * 2 / shardCount);
+      const sx = Math.cos(shardAngle) * shardOrbitR;
+      const sy = coreY + Math.sin(shardAngle) * 28 + Math.sin(t * 2.3 + i * 1.1) * 10;
+
+      // Draw shard shape (angular crystal fragment)
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(shardAngle + t * 0.6);
+
+      // Ruby fill
+      ctx.fillStyle = fillRuby;
+      ctx.beginPath();
+      ctx.moveTo(0, -12);
+      ctx.lineTo(9, -5);
+      ctx.lineTo(7, 8);
+      ctx.lineTo(-7, 8);
+      ctx.lineTo(-9, -5);
+      ctx.closePath();
+      ctx.fill();
+
+      // Dark metal border/frame
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Metal spine through center
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -12);
+      ctx.lineTo(0, 8);
+      ctx.stroke();
+
+      // Glowing energy center point
+      const shardGlow = 0.4 + 0.6 * Math.sin(t * 4 + i * 1.1);
+      ctx.fillStyle = `rgba(255, 200, 100, ${shardGlow})`;
+      ctx.beginPath();
+      ctx.arc(0, -1, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Glow halo
+      ctx.fillStyle = `rgba(255, 150, 50, ${shardGlow * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(0, -1, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // Energy tether line from shard to core
+      const tetherPulse = 0.25 + 0.35 * Math.sin(t * 6 + i * 0.9);
+      ctx.strokeStyle = `rgba(255, 150, 50, ${tetherPulse})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.lineDashOffset = -t * 20;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(0, coreY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.restore();
+  }
+
+  // =================================================================
+  // TIER 8 — SUPER-CRITICAL ERUPTION (Beam + flash + embers)
+  // =================================================================
   if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
+
+    // --- Blinding vertical plasma beam ---
+    ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    
-    const coreY = baseY - 90; // Top of the core
-    
-    // Massive upward beam
-    const beamW = 40 + Math.sin(t * 20) * 10;
-    const beamGrad = ctx.createLinearGradient(-beamW/2, 0, beamW/2, 0);
+
+    const beamW = 50 + Math.sin(t * 15) * 15;
+    const beamGrad = ctx.createLinearGradient(-beamW / 2, 0, beamW / 2, 0);
     beamGrad.addColorStop(0, 'rgba(255, 50, 0, 0)');
-    beamGrad.addColorStop(0.2, 'rgba(255, 100, 0, 0.8)');
+    beamGrad.addColorStop(0.12, 'rgba(255, 100, 0, 0.6)');
+    beamGrad.addColorStop(0.3, 'rgba(255, 200, 50, 0.9)');
     beamGrad.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
-    beamGrad.addColorStop(0.8, 'rgba(255, 100, 0, 0.8)');
+    beamGrad.addColorStop(0.7, 'rgba(255, 200, 50, 0.9)');
+    beamGrad.addColorStop(0.88, 'rgba(255, 100, 0, 0.6)');
     beamGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-    
     ctx.fillStyle = beamGrad;
-    // Shoot straight up way past the top
-    ctx.fillRect(-beamW/2, coreY - 600, beamW, 600);
-    
-    // Searing core at the eruption point
+    ctx.fillRect(-beamW / 2, coreY - 1200, beamW, 1200);
+
+    // Wider faint outer beam
+    const outerBeamW = beamW * 2.5;
+    const outerBeamGrad = ctx.createLinearGradient(-outerBeamW / 2, 0, outerBeamW / 2, 0);
+    outerBeamGrad.addColorStop(0, 'rgba(255, 50, 0, 0)');
+    outerBeamGrad.addColorStop(0.3, 'rgba(255, 80, 0, 0.15)');
+    outerBeamGrad.addColorStop(0.5, 'rgba(255, 150, 50, 0.25)');
+    outerBeamGrad.addColorStop(0.7, 'rgba(255, 80, 0, 0.15)');
+    outerBeamGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+    ctx.fillStyle = outerBeamGrad;
+    ctx.fillRect(-outerBeamW / 2, coreY - 1200, outerBeamW, 1200);
+
+    // Eruption flash at core emission point
     ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(0, coreY, 30, 0, Math.PI*2); ctx.fill();
-    const flash = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 120);
-    flash.addColorStop(0, 'rgba(255, 200, 100, 1)');
-    flash.addColorStop(1, 'rgba(255, 50, 0, 0)');
+    ctx.beginPath();
+    ctx.arc(0, coreY, 35, 0, Math.PI * 2);
+    ctx.fill();
+    const flash = ctx.createRadialGradient(0, coreY, 8, 0, coreY, 120);
+    flash.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    flash.addColorStop(0.2, 'rgba(255, 240, 180, 0.9)');
+    flash.addColorStop(0.5, 'rgba(255, 150, 50, 0.5)');
+    flash.addColorStop(1, 'rgba(255, 60, 0, 0)');
     ctx.fillStyle = flash;
-    ctx.beginPath(); ctx.arc(0, coreY, 120, 0, Math.PI*2); ctx.fill();
-    
-    // Flying Embers/Sparks raining down
-    ctx.globalCompositeOperation = 'source-over';
-    for(let i=0; i<40; i++) {
-      const emberT = (t * 2 + i * 0.17) % 1;
-      // Start high in the beam, fall outward
-      const startY = coreY - 50 - (i * 10);
-      const endY = startY + 200;
-      const ey = startY + emberT * (endY - startY);
-      
-      const spread = 200 * (emberT);
-      const ex = Math.sin(i * 123) * spread + Math.sin(t*5 + i) * 20;
-      
-      const size = 2 + Math.random()*3;
-      const alpha = 1 - emberT;
-      
-      ctx.fillStyle = `rgba(255, ${150 + Math.random()*100}, 0, ${alpha})`;
-      ctx.beginPath(); ctx.arc(ex, ey, size, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, coreY, 120, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore(); // End lighter compositing
+
+    // --- Burning nuclear ember rain ---
+    for (let i = 0; i < 50; i++) {
+      const emberSpeed = 1.5 + (i % 5) * 0.1;
+      const emberT = (t * emberSpeed + i * 0.13) % 1;
+      const startY = coreY - 60 - (i % 12) * 18;
+      const fallDist = 300 + (i % 7) * 20;
+      const ey = startY + emberT * fallDist;
+      const spread = 260 * emberT;
+      const drift = Math.sin(i * 97.3) * spread + Math.sin(t * 3 + i * 0.7) * 18;
+      const alpha = (1 - emberT) * 0.85;
+      const size = 1.5 + (i % 4) * 0.7;
+
+      // Ember body
+      ctx.fillStyle = `rgba(255, ${110 + (i % 90)}, ${10 + (i % 30)}, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(drift, ey, size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Trailing glow
+      if (emberT > 0.05) {
+        ctx.fillStyle = `rgba(255, ${70 + (i % 60)}, 0, ${alpha * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(drift - Math.sin(i * 97.3) * 4, ey - 6, size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     ctx.restore();
@@ -9435,6 +9837,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
   ctx.restore();
 }
+
 
 
 function drawCentrifuge(ctx, t, tier) {
