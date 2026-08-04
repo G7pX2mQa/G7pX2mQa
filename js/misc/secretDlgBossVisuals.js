@@ -1,3 +1,4 @@
+import { IS_FIREFOX } from '../util/platformChecker.js';
 import { playAudio } from '../util/audioManager.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
 import { getActiveSlot } from '../util/storage.js';
@@ -1722,14 +1723,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 ctx.beginPath();
                 ctx.arc(leftEyeX, eyeY, bossWidth * 0.05, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowColor = 'black';
-                ctx.shadowBlur = 10;
+                if (!IS_FIREFOX) ctx.shadowColor = 'black';
+                if (!IS_FIREFOX) ctx.shadowBlur = 10;
                 ctx.fill();
 
                 if (currentBossLightningLeft) {
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
-                    ctx.shadowBlur = 0; // Turn off shadow for crisp lightning lines
+                    if (!IS_FIREFOX) ctx.shadowBlur = 0; // Turn off shadow for crisp lightning lines
                     drawBolts(currentBossLightningLeft);
                 }
             } else {
@@ -1740,14 +1741,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 ctx.beginPath();
                 ctx.arc(rightEyeX, eyeY, bossWidth * 0.05, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowColor = 'black';
-                ctx.shadowBlur = 10;
+                if (!IS_FIREFOX) ctx.shadowColor = 'black';
+                if (!IS_FIREFOX) ctx.shadowBlur = 10;
                 ctx.fill();
 
                 if (currentBossLightningRight) {
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
-                    ctx.shadowBlur = 0; // Turn off shadow for crisp lightning lines
+                    if (!IS_FIREFOX) ctx.shadowBlur = 0; // Turn off shadow for crisp lightning lines
                     drawBolts(currentBossLightningRight);
                 }
             } else {
@@ -2564,8 +2565,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     ctx.font = "bold 64px sans-serif";
                     ctx.textAlign = "center";
                     ctx.fillStyle = "red";
-                    ctx.shadowColor = "black";
-                    ctx.shadowBlur = 10;
+                    if (!IS_FIREFOX) ctx.shadowColor = "black";
+                    if (!IS_FIREFOX) ctx.shadowBlur = 10;
                     ctx.shadowOffsetX = 3;
                     ctx.shadowOffsetY = 3;
                     ctx.fillText(`${rubyCoinSwipes} Hit${rubyCoinSwipes === 1 ? '' : 's'}`, curX, curY);
@@ -2619,8 +2620,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     ctx.font = "bold 64px sans-serif"; // Large bold text
                     ctx.textAlign = "center";
                     ctx.fillStyle = "red";
-                    ctx.shadowColor = "black";
-                    ctx.shadowBlur = 10;
+                    if (!IS_FIREFOX) ctx.shadowColor = "black";
+                    if (!IS_FIREFOX) ctx.shadowBlur = 10;
                     ctx.shadowOffsetX = 3;
                     ctx.shadowOffsetY = 3;
                     
