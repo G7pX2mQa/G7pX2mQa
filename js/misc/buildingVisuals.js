@@ -612,7 +612,7 @@ export function stopCanvasLoop() {
 }
 
 export function triggerLevelUpAnimation(id) {
-  levelUpAnimTimes[id] = 1.0;
+  levelUpAnimTimes[id] = performance.now();
 }
 
 export function checkTierUp(id, oldLevelBn, newLevelBn) {
@@ -672,11 +672,6 @@ function loop(currentTime) {
   lastTime = currentTime;
   time += dt;
 
-  for (const id in levelUpAnimTimes) {
-    if (levelUpAnimTimes[id] > 0) {
-      levelUpAnimTimes[id] -= dt;
-    }
-  }
   if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
 
   // Smoothly integrate global disk angle
@@ -935,7 +930,14 @@ function draw(ctx, keypadCtx, width, height, t) {
     );
   }
   ctx.restore();
-  const currentBuildingFlashAlpha = levelUpAnimTimes[currentBuildingId] || 0;
+  const triggerTime = levelUpAnimTimes[currentBuildingId] || 0;
+  let currentBuildingFlashAlpha = 0;
+  if (triggerTime > 0) {
+    const elapsed = (performance.now() - triggerTime) / 1000;
+    if (elapsed < 1.0) {
+      currentBuildingFlashAlpha = 1.0 - elapsed;
+    }
+  }
   if (currentBuildingFlashAlpha > 0) {
     const alpha = Math.max(0, currentBuildingFlashAlpha);
     const grad = ctx.createLinearGradient(0, 0, 0, height);
