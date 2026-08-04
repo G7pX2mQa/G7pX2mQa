@@ -248,17 +248,14 @@ export function initVoidGemAltarTab(panel) {
         
         applyAudioDrownEffect(9.5);
 
-        let overlay = null;
-        if (settingsManager.get('warp_vfx') !== false) {
-            overlay = document.createElement('div');
-            overlay.className = 'void-overlay';
-            
-            const vortex = document.createElement('div');
-            vortex.className = 'void-vortex';
-            overlay.appendChild(vortex);
+        let overlay = document.createElement('div');
+        overlay.className = 'void-overlay';
+        
+        const vortex = document.createElement('div');
+        vortex.className = 'void-vortex';
+        overlay.appendChild(vortex);
 
-            document.body.appendChild(overlay);
-        }
+        document.body.appendChild(overlay);
 
         let isExploded = false;
         let isStage2 = false;
