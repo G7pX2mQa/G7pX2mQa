@@ -1,4 +1,3 @@
-import { IS_FIREFOX } from '../../util/platformChecker.js';
 import { getActiveSlot, bank } from '../../util/storage.js';
 import { IS_MOBILE } from '../../util/platformChecker.js';
 import { BigNum } from '../../util/bigNum.js';
@@ -987,8 +986,8 @@ class LabSystem {
                 }
             }
             
-            if (!IS_FIREFOX) ctx.shadowBlur = 8;
-            if (!IS_FIREFOX) ctx.shadowColor = '#ffff00';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#ffff00';
             for(const p of b.particles) {
                 if (b.time < p.life) {
                     const pAlpha = 1 - (b.time / p.life);
@@ -1001,7 +1000,7 @@ class LabSystem {
                     ctx.fill();
                 }
             }
-            if (!IS_FIREFOX) ctx.shadowBlur = 0;
+            ctx.shadowBlur = 0;
         }
     }
     
