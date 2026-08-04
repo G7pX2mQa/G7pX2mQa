@@ -1,4 +1,3 @@
-import { IS_FIREFOX } from '../util/platformChecker.js';
 import { playAudio } from '../util/audioManager.js';
 
 export function playTsunamiSequence(container, durationMs, onComplete, options = {}) {
@@ -705,11 +704,11 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             bgCtx.arc(width * 0.7, sunY, 40, 0, Math.PI * 2);
             bgCtx.fillStyle = currentPalette.sun;
             bgCtx.globalAlpha = 1 - stormFactor; // Fade out
-            if (!IS_FIREFOX) bgCtx.shadowColor = currentPalette.sun;
-            if (!IS_FIREFOX) bgCtx.shadowBlur = 20;
+            bgCtx.shadowColor = currentPalette.sun;
+            bgCtx.shadowBlur = 20;
             bgCtx.fill();
             bgCtx.globalAlpha = 1.0;
-            if (!IS_FIREFOX) bgCtx.shadowBlur = 0;
+            bgCtx.shadowBlur = 0;
         }
 
 
