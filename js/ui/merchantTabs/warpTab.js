@@ -197,7 +197,6 @@ export function initWarpTab(panel) {
             <h3 class="warp-title">Warp</h3>
             <div class="warp-desc">
                 <p>Click the Warp button below to gain <span class="text-cyan">2m 30s</span> of immediate offline progress when you want to speed something up</p>
-                <p>Warp length will never be increased because it's intended to be a small boost</p>
                 <p>Use your Warps wisely as they only recharge once every hour</p>
             </div>
             <div class="warp-warning-container" style="display: none; text-align: center; margin-top: 0rem;">
