@@ -524,9 +524,15 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   for (const m of SURGE_MILESTONES) {
     let milestone = m;
 
+    if (m.id === 1 && localStorage.getItem(`ccc:debug:toggleTheW:${slot}`) !== '1') {
+      milestone = { ...m, description: m.description.filter(d => !d.includes('Unlocks the Warp tab')) };
+    }
+
     if (isSurge8) {
       // Clone milestone to avoid mutating the original
-      milestone = { ...m, description: [...m.description] };
+      if (milestone === m) {
+        milestone = { ...m, description: [...m.description] };
+      }
 
       const baseNerf = getBaseTsunamiExponent();
       const bonus = getTsunamiResearchBonus();
