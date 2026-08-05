@@ -169,7 +169,7 @@ export function getComboUiString() {
   if (baseEffective > 1) baseEffective = 1;
   const gap = 1.0 - baseEffective;
 
-  if (added >= gap - 0.000001 && gap > 0) {
+  if (added >= gap - 0.0005 && gap > 0) {
     finalStr = `<span style="color: #02e815">${finalStr}</span>`;
   }
 
