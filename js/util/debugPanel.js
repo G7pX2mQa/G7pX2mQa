@@ -5018,7 +5018,9 @@ function buildMiscContent(content) {
                         window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge_completed', slot } }));
                         window.resetSystem?.updateResetPanel?.();
                         flagDebugUsage();
-                        logAction('Toggled Warp tab visibility.');
+                        const prevText = current ? 'True' : 'False';
+                        const nextText = next === '1' ? 'True' : 'False';
+                        logAction(`Toggled Warp tab visibility [GOLD]${prevText}[/GOLD] → [GOLD]${nextText}[/GOLD]`);
                     } catch {}
                 }
             },
