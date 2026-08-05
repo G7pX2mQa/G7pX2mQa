@@ -1923,7 +1923,7 @@ function buildPanel(panelEl) {
                   Increase pending Wave amount by increasing Coins, XP Level, Gold, cumulative MP, and Magic<br>
 				  Waves cannot be spent on upgrades, rather they are only useful for filling a bar<br>
                   Each time you fill this bar below, obtain powerful bonuses from Surge Milestones<br>
-                  Multiple milestones may be obtained in one reset, but Wave requirement scales a lot each fill
+                  Multiple milestones may be obtained in one reset, but Wave requirement scales <span data-surge-scale-text>a lot</span> each fill
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="surge"></div>
@@ -2014,6 +2014,7 @@ function buildPanel(panelEl) {
   resetState.elements.surge.milestones = panelEl.querySelector('[data-reset-milestones="surge"]');
   resetState.elements.surge.headerVal = panelEl.querySelector('[data-surge-level]');
   resetState.elements.surge.header = panelEl.querySelector('.surge-header');
+  resetState.elements.surge.descText = panelEl.querySelector('[data-surge-scale-text]');
 
   // Bind Experiment Elements
   resetState.elements.experiment.card = panelEl.querySelector('#reset-card-experiment');
@@ -2361,6 +2362,14 @@ function updateSurgeCard() {
   
   if (el.barFill) {
     el.barFill.style.width = `${pct}%`;
+  }
+  
+  if (el.descText) {
+    if (barLevel < 1e12) {
+      if (el.descText.textContent !== "10x") el.descText.textContent = "10x";
+    } else {
+      if (el.descText.textContent !== "a lot") el.descText.textContent = "a lot";
+    }
   }
 
   if (el.header) {
