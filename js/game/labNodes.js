@@ -24,7 +24,7 @@ export const RESEARCH_NODES = [
     {
         id: 1,
         title: "Node 1: Tsunami Exponent",
-        desc: "Increases the Tsunami Exponent by +0.01 per level",
+        desc: "Increases the Tsunami Exponent by +0.01 per level\nWatch your Surge Milestones as you level this.",
         baseRpReq: 10,
         scale: 2.0,
         maxLevel: 10,
