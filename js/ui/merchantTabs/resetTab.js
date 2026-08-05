@@ -2538,14 +2538,20 @@ function updateSurgeCard() {
       if (resetState.hasDoneSurgeReset) {
         if (el.status.innerHTML !== '') el.status.innerHTML = '';
       } else {
-         const expected = `
+         const isWarpVisible = localStorage.getItem(`ccc:debug:toggleTheW:${ensureResetSlot()}`) === '1';
+         const expected = isWarpVisible ? `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
             Surging for the first time will unlock a new Merchant dialogue and a new tab: <span style="color:#00e5ff"><strong>Warp</strong></span><br>
             Warps may speed up gameplay a bit, so definitely check them out<br>
 			You can only get 10 Waves on your first Surge, so you should do it immediately
           </span>
+         `.trim() : `
+          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+            Surging for the first time will unlock a new Merchant dialogue<br>
+			You can only get 10 Waves on your first Surge, so you should do it immediately
+          </span>
          `.trim();
-         if (!el.status.innerHTML.includes('Warp')) el.status.innerHTML = expected;
+         if (el.status.innerHTML !== expected) el.status.innerHTML = expected;
       }
   }
 
