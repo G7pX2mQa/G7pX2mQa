@@ -5018,7 +5018,7 @@ function buildMiscContent(content) {
                         window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge_completed', slot } }));
                         window.resetSystem?.updateResetPanel?.();
                         flagDebugUsage();
-                        logAction('Toggled The W to ' + (next === '1'));
+                        logAction('Toggled Warp tab visibility.');
                     } catch {}
                 }
             },
@@ -5032,7 +5032,7 @@ function buildMiscContent(content) {
                         localStorage.setItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
                         updateWarpTab(true);
                         flagDebugUsage();
-                        logAction('Restocked The W to full.');
+                        logAction('Restocked Warps.');
                     } catch {}
                 }
             },
