@@ -197,6 +197,12 @@ function setMerchantTabUnlocked(key, unlocked) {
     if (hasLockedClass !== nextDisabled) {
       btn.classList.toggle('is-locked', nextDisabled);
     }
+    if (key === 'warp') {
+      const nextDisplay = normalized ? '' : 'none';
+      if (btn.style.display !== nextDisplay) {
+        btn.style.display = nextDisplay;
+      }
+    }
   }
 
   if (!normalized && merchantTabs.buttons[key]?.classList.contains('is-active')) {
@@ -221,8 +227,9 @@ function syncWorkshopTabUnlockState() {
 function syncWarpTabUnlockState() {
   let unlocked = false;
   try {
-    if (typeof hasDoneSurgeReset === 'function') {
-      unlocked = hasDoneSurgeReset();
+    const slot = getActiveSlot();
+    if (slot != null && localStorage.getItem(`ccc:debug:toggleTheW:${slot}`) === '1') {
+      unlocked = true;
     }
   } catch {}
   setMerchantTabUnlocked('warp', unlocked);
@@ -1056,8 +1063,10 @@ function ensureMerchantOverlay() {
         btn.classList.add('is-locked');
         btn.disabled = true;
         btn.title = '???';
+        if (def.key === 'warp') btn.style.display = 'none';
       } else {
-      btn.title = def.label || 'Tab';
+        btn.title = def.label || 'Tab';
+        if (def.key === 'warp') btn.style.display = '';
       }
       def.unlocked = unlocked;
       merchantTabUnlockState.set(def.key, unlocked);
