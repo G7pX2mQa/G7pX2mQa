@@ -4848,7 +4848,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { completed } = completeAllDialoguesForDebug();
                 flagDebugUsage();
-                logAction(`Completed all dialogues (${completed} newly claimed).`);
+                logAction(`Completed all dialogues (${completed} newly claimed)`);
             },
         },
         {
@@ -4857,7 +4857,7 @@ function buildMiscContent(content) {
                 const { restored } = restoreAllDialoguesForDebug();
                 flagDebugUsage();
                 const entryLabel = restored === 1 ? 'entry' : 'entries';
-                logAction(`Restored dialogues to unclaimed state (${restored} ${entryLabel} reset).`);
+                logAction(`Restored dialogues to unclaimed state (${restored} ${entryLabel} reset)`);
             },
         },
         {
@@ -4865,7 +4865,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const touched = setAllCurrenciesToInfinity();
                 flagDebugUsage();
-                logAction(`Set all currencies to Infinity (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
+                logAction(`Set all currencies to Infinity (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated)`);
             },
         },
         {
@@ -4873,7 +4873,7 @@ function buildMiscContent(content) {
             onClick: () => {
                                 const touched = setAllStatsToInfinity();
                 flagDebugUsage();
-                logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
+                logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? 'stat' : 'stats'} updated)`);
             },
         },
 		{
@@ -4881,7 +4881,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const touched = setAllCurrenciesToZero();
                 flagDebugUsage();
-                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
+                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated)`);
             },
         },
         {
@@ -4889,7 +4889,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const touched = setAllStatsToZero();
                 flagDebugUsage();
-                logAction(`Set all unlocked stats to 0 (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
+                logAction(`Set all unlocked stats to 0 (${touched} ${touched === 1 ? 'stat' : 'stats'} updated)`);
             },
         },
         {
@@ -4897,7 +4897,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const count = setAllUpgradesMaxed(false);
                 flagDebugUsage();
-                logAction(`Maxed all ${count} upgrades.`);
+                logAction(`Maxed all ${count} upgrades`);
             },
         },
         {
@@ -4905,7 +4905,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const count = setAllUpgradesZero(false);
                 flagDebugUsage();
-                logAction(`Reset all ${count} upgrades to 0.`);
+                logAction(`Reset all ${count} upgrades to 0`);
             },
         },
         {
@@ -4913,7 +4913,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const count = setAllAutomationToggles(true);
                 flagDebugUsage();
-                logAction(`Enabled automation for ${count} upgrades.`);
+                logAction(`Enabled automation for ${count} upgrades`);
             },
         },
         {
@@ -4921,7 +4921,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const count = setAllAutomationToggles(false);
                 flagDebugUsage();
-                logAction(`Disabled automation for ${count} upgrades.`);
+                logAction(`Disabled automation for ${count} upgrades`);
             },
         },
         {
@@ -4929,7 +4929,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { unlocks, toggles } = unlockAllUnlocks();
                 flagDebugUsage();
-                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled).`);
+                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled)`);
             },
         },
         {
@@ -4937,7 +4937,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { locks, toggles } = lockAllUnlockUpgrades();
                 flagDebugUsage();
-                logAction(`Locked all unlock-type upgrades (${locks} entries) and unlock flags (${toggles} toggled).`);
+                logAction(`Locked all unlock-type upgrades (${locks} entries) and unlock flags (${toggles} toggled)`);
             },
         },
         {
@@ -4952,7 +4952,7 @@ function buildMiscContent(content) {
                 });
                 window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
                 flagDebugUsage();
-                logAction(`Maxed ${count} Lab Nodes.`);
+                logAction(`Maxed ${count} Lab Nodes`);
             },
         },
         {
@@ -4971,7 +4971,7 @@ function buildMiscContent(content) {
                 window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { suppressNotify: false } }));
                 window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { suppressNotify: false } }));
                 flagDebugUsage();
-                logAction(`Reset ${count} Lab Nodes to 0 (Level & RP).`);
+                logAction(`Reset ${count} Lab Nodes to 0 (Level & RP)`);
             },
         },
         {
@@ -4994,7 +4994,7 @@ function buildMiscContent(content) {
                 });
                 window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
                 flagDebugUsage();
-                logAction(`Maxed ${count} Lab Nodes up to node ${limit}.`);
+                logAction(`Maxed ${count} Lab Nodes up to node ${limit}`);
             },
         },
         {
@@ -5002,7 +5002,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 persistActionLog([], slot);
                 updateActionLogDisplay();
-                logAction('Action log wiped.');
+                logAction('Action log wiped');
             },
         },
         {
@@ -5034,7 +5034,7 @@ function buildMiscContent(content) {
                         localStorage.setItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
                         updateWarpTab(true);
                         flagDebugUsage();
-                        logAction('Restocked Warps.');
+                        logAction('Restocked Warps');
                     } catch {}
                 }
             },
@@ -5062,14 +5062,14 @@ function buildMiscContent(content) {
                 showOfflinePanel(rewards, ms, isPreAutomation);
 
                 flagDebugUsage();
-                logAction(`Performed OP Time Warp for ${formatNumber(seconds)} seconds.`);
+                logAction(`Performed OP Time Warp for ${formatNumber(seconds)} seconds`);
             }
         },
         {
             label: 'Toggle Hitboxes',
             onClick: () => {
                 window.__showHitboxes = !window.__showHitboxes;
-                logAction(`Toggled hitboxes ${window.__showHitboxes ? 'on' : 'off'}.`);
+                logAction(`Toggled hitboxes ${window.__showHitboxes ? 'on' : 'off'}`);
             }
         },
     ];
@@ -5192,7 +5192,7 @@ function buildMiscContent(content) {
             if (logEntry) {
                 const { label, count } = result;
                 const nounPhrase = count === 1 ? 'value and multiplier' : 'values and multipliers';
-                logAction(`Reset ${nounPhrase} for ${label} to defaults.`);
+                logAction(`Reset ${nounPhrase} for ${label} to defaults`);
             }
         };
 
