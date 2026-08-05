@@ -3519,8 +3519,8 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
 		{
-            labelText: 'Unlock Warp',
-            description: 'If true, unlocks the Warp tab',
+            labelText: 'Unlock Wave Scaling',
+            description: 'If true, Wave amount from Surge is uncapped',
             isUnlocked: () => {
                 try { return window.resetSystem?.hasDoneSurgeReset?.() ?? false; }
                 catch { return false; }
@@ -5006,7 +5006,25 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'Restock Warps',
+            label: 'Toggle The W',
+            onClick: () => {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    try {
+                        const key = `ccc:debug:toggleTheW:${slot}`;
+                        const current = localStorage.getItem(key) === '1';
+                        const next = current ? '0' : '1';
+                        localStorage.setItem(key, next);
+                        window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge_completed', slot } }));
+                        window.resetSystem?.updateResetPanel?.();
+                        flagDebugUsage();
+                        logAction('Toggled The W to ' + (next === '1'));
+                    } catch {}
+                }
+            },
+        },
+        {
+            label: 'Restock The W',
             onClick: () => {
                 const slot = getActiveSlot();
                 if (slot != null) {
@@ -5014,7 +5032,7 @@ function buildMiscContent(content) {
                         localStorage.setItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
                         updateWarpTab(true);
                         flagDebugUsage();
-                        logAction('Restocked Warps to full.');
+                        logAction('Restocked The W to full.');
                     } catch {}
                 }
             },
