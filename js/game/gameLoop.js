@@ -121,9 +121,12 @@ function loop(timestamp) {
           const realDelta = realNow - lastRuntimeCheckReal;
           
           // Check 1: Backward Jump
-          // If real time went backwards by more than 1 second (buffer), catch it.
-          if (realDelta < -1000) {
+          // If real time went backwards by more than 10 seconds (buffer for NTP syncs), catch it.
+          // This prevents players from bypassing the offline progress punishment by reverting 
+          // their clock while the game is running to silently overwrite lastSaveTime.
+          if (realDelta < -10000) {
                markSaveSlotModified();
+               console.warn("Time skip (backward) detected! Save slot marked.");
           }
           // Check 2: Forward Speed Hack / Skip
           // If real time advanced significantly more than monotonic time.
@@ -131,7 +134,7 @@ function loop(timestamp) {
           // Buffer: allow up to 2x variance or +5s to be safe against drift/lag, but skipping minutes is obvious.
           // Let's be lenient: if realDelta is > perfDelta + 10000ms (10s)
           else if (realDelta > perfDelta + 10000) {
-              markSaveSlotModified();
+               console.warn("Time skip (forward) detected, but ignoring to prevent false positives.");
           }
           
           lastRuntimeCheckReal = realNow;
