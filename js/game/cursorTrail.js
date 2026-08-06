@@ -3,7 +3,7 @@
 import { settingsManager } from './settingsManager.js';
 import { getLevelNumber } from './upgrades.js';
 import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
-import { PALETTES, TRAIL_MOD_TO_PALETTE } from './magnetColorPalettes.js';
+import { PALETTES, TRAIL_MOD_TO_PALETTE } from './mutationColorPalettes.js';
 
 export function createCursorTrail(playfield, options = {}) {
   if (!playfield || typeof window === 'undefined') {
