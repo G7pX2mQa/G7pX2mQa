@@ -189,6 +189,10 @@ function onTick(dt) {
   updateAutobuyers(dt);
 }
 
+export function simulateAutomationTick(dt) {
+  onTick(dt);
+}
+
 let _groupedUpgradesCache = null;
 let _hmUpgradesCache = null;
 
