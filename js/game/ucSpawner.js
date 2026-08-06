@@ -165,6 +165,13 @@ export function createUcSpawner(config = {}) {
         base.forceCanvasRedraw();
     });
 
+    settingsManager.subscribe('spawn_vessels', (val) => {
+        const pickaxe = window._ucPickaxeElement || document.getElementById('uc-pickaxe');
+        if (pickaxe) {
+            pickaxe.style.display = val ? 'block' : 'none';
+        }
+    });
+
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     let currentRate = materialsPerSecond;
@@ -406,13 +413,6 @@ export function createUcSpawner(config = {}) {
                     pickaxe._elapsedTime = 0;
                     pickaxe._playedSound = false;
                 }
-            } else if (!settingsManager.get('spawn_vessels')) {
-                // If spawn_vessels is OFF, no pickaxe, no sound.
-                const pickaxe = window._ucPickaxeElement || document.getElementById('uc-pickaxe');
-                if (pickaxe && pickaxe.parentNode) {
-                    pickaxe.parentNode.removeChild(pickaxe);
-                }
-                window._ucPickaxeElement = null;
             }
         },
 
