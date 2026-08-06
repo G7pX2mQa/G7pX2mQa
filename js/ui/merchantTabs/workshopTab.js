@@ -272,10 +272,10 @@ function buyGenerationUpgrade() {
   }
 }
 
-function onTick() {
+function onTick(dt = FIXED_STEP) {
   if (!hasDoneInfuseReset()) return;
   const rateBn = getGearsProductionRate();
-  const perTick = rateBn.mulDecimal(String(FIXED_STEP));
+  const perTick = rateBn.mulDecimal(String(dt));
   const whole = perTick.floorToInteger();
   const hasWhole = !whole.isZero();
   if (hasWhole) {
@@ -290,7 +290,7 @@ function onTick() {
       const mult = bank.gears && typeof bank.gears.mult?.get === 'function' ? bank.gears.mult.get() : 1;
       let multNum = 1;
       try { multNum = (mult.inf ? Infinity : (mult.sig * Math.pow(10, mult.e))); } catch {}
-      const perTickNum = (rateNum * multNum) / TICK_RATE;
+      const perTickNum = (rateNum * multNum) * dt;
       const wholeNum = Math.floor(perTickNum);
       const frac = perTickNum - wholeNum;
       accumulatorBuffer += frac;
@@ -303,6 +303,8 @@ function onTick() {
       accumulatorBuffer = 0;
   }
 }
+
+export function simulateWorkshopTick(dt) { onTick(dt); }
 
 function resetWorkshopState() {
     if (bank.gears) bank.gears.set(0);
