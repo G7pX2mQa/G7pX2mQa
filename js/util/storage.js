@@ -2,6 +2,9 @@
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 
+export let bankAddInterceptor = null;
+export function setBankAddInterceptor(fn) { bankAddInterceptor = fn; }
+
 const MULT_SCALE = BigNum.DEFAULT_PRECISION;
 const MULT_SCALE_TAG = 'XM:';
 
@@ -829,6 +832,7 @@ function makeCurrencyHandle(key) {
 
   // amount mutations
   fn.add = function add(x) {
+    if (bankAddInterceptor) bankAddInterceptor(key, x);
     const amt  = BigNum.fromAny(x);
     const next = this.value.add(amt);
     const effective = setCurrency(key, next, { delta: amt, previous: this.value });
