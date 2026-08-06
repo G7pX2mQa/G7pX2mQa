@@ -203,9 +203,9 @@
   color: #fff;
   transition: transform 120ms ease, filter 120ms ease;
   user-select: none;
-  -webkit-text-stroke: 1px #000;
+  -webkit-text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
   -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
-  text-stroke: 1px #000;
+  text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
   text-stroke-width: calc(1px * var(--stroke-mult, 1));
   text-shadow: 0 1px 0 rgba(0,0,0,0.35);
 }
