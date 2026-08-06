@@ -1111,6 +1111,54 @@ export function createSpawner(config = {}) {
         deps = { ...deps, ...d };
     }
 
+    settingsManager.subscribe('spawn_vessels', (val) => {
+        if (val && waterSystem) {
+            const activeItems = base.getActiveItems();
+            const now = performance.now();
+            let hasWaves = false;
+            
+            const refs = base.getRefs();
+            const pf = refs.pf;
+            if (!pf) return;
+            const wNode = document.querySelector(waterSelector);
+            if (!wNode) return;
+            
+            const pfRect = pf.getBoundingClientRect();
+            const wRect = wNode.getBoundingClientRect();
+            if (wRect.height <= 0) return; 
+            
+            const waterToPfLeft = pfRect.left - wRect.left;
+            const waterToPfTop = wRect.top - pfRect.top;
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+
+            for (let i = 0; i < activeItems.length; i++) {
+                const c = activeItems[i];
+                if (c && !c.settled && !c.isRemoved) {
+                    const elapsed = now - c.startTime;
+                    if (elapsed < 0) continue;
+                    
+                    const state = base.getItemState(c, now);
+                    
+                    const sizeIndex = c.sizeIndex || 0;
+                    const def = WAVE_DEFS[sizeIndex] || WAVE_DEFS[0];
+                    const randScale = 0.85 + Math.random() * 0.3;
+                    const waveW = vw * (def.w / 100) * randScale;
+                    const waveH = vw * (def.h / 100) * randScale;
+                    
+                    const waveCenterX = (state.x + c.size / 2) + waterToPfLeft;
+                    const waveCenterY = state.y - waterToPfTop;
+                    
+                    const forceTop = sizeIndex >= 4;
+                    waterSystem.addWave(waveCenterX, waveCenterY, waveW, waveH, forceTop);
+                    hasWaves = true;
+                }
+            }
+            if (hasWaves) {
+                playWaveOncePerBurst();
+            }
+        }
+    });
+
     return {
         start: base.start,
         stop: base.stop,
