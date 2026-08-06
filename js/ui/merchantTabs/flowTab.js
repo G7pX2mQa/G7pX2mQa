@@ -872,6 +872,7 @@ export function applyWaterwheelOffline(offlineData) {
    GAME LOOP
    ========================================= */
 
+export function simulateFlowTick(dt) { onTick(dt); }
 function onTick(dt) {
     if (!isFlowUnlocked()) return;
 
