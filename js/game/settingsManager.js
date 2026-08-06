@@ -86,11 +86,19 @@ export const SETTING_DEFINITIONS = {
     default: true,
     unlockCondition: () => true,
   },
+  show_offline_diff: {
+    type: 'toggle',
+    label: 'Show Offline Differences',
+    hasExtraInfo: true,
+    info: 'Each entry in the Offline Panel will show in parentheses its old amount (when you went offline) compared to its new amount (what you got from the offline time).',
+    default: false,
+    unlockCondition: () => true,
+  },
   simulate_offline_ticks: {
     type: 'toggle',
     label: 'Realistic Offline Simulation',
     hasExtraInfo: true,
-    info: 'While this setting is ON, offline progress will be realistically simulated using a granular tick-based system. If for whatever reason you want to disable this system and always have the offline rewards yield instantly (which is highly inaccurate), then you can turn this setting OFF.',
+    info: 'Offline progress will be realistically simulated using a granular tick-based system. If for whatever reason you want to disable this system and have the offline rewards always yield instantly (which is highly inaccurate), then you can turn this setting OFF.',
     default: true,
     unlockCondition: () => {
       try {
@@ -133,7 +141,7 @@ export const SETTING_DEFINITIONS = {
     type: 'toggle',
     label: 'Show Cursor',
     hasExtraInfo: true,
-	info: 'If turned ON, shows the cursor in areas where the cursor is normally hidden and replaced with the cursor trail.',
+	info: 'Shows the cursor in areas where the cursor is normally hidden and replaced with the cursor trail.',
     default: false,
     unlockCondition: () => !IS_MOBILE,
   },
