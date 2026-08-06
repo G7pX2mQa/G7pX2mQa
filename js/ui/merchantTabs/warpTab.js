@@ -3,6 +3,7 @@ import { formatTimeCompact, calculateOfflineRewards, grantOfflineRewards, showOf
 import { playAudio, applyAudioDrownEffect, removeAudioDrownEffect } from '../../util/audioManager.js';
 import { settingsManager } from "../../game/settingsManager.js";
 import { registerTick } from "../../game/gameLoop.js";
+import { startSimulatedOffline, isSimulatedOfflineEnabled } from "../../game/simulatedOffline.js";
 
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
 const WARP_LAST_CHARGE_KEY = (slot) => `ccc:warp:lastCharge:${slot}`;
@@ -132,9 +133,14 @@ function performWarp() {
                 if (overlay) overlay.remove();
                 
                 removeAudioDrownEffect();
-                const rewards = calculateOfflineRewards(WARP_DURATION_SEC);
-                grantOfflineRewards(rewards);
-                showOfflinePanel(rewards, WARP_DURATION_SEC * 1000);
+
+                if (isSimulatedOfflineEnabled()) {
+                    startSimulatedOffline(0, { isWarp: true, overrideSeconds: WARP_DURATION_SEC });
+                } else {
+                    const rewards = calculateOfflineRewards(WARP_DURATION_SEC);
+                    grantOfflineRewards(rewards);
+                    showOfflinePanel(rewards, WARP_DURATION_SEC * 1000);
+                }
             }
         }
     });
