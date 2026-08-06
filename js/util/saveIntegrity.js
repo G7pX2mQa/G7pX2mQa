@@ -10,43 +10,9 @@ import {
   setSlotSignature,
   markSaveSlotModified,
   getSlotSignatureKey,
+  getSlotModifiedFlagKey,
   hasModifiedSave,
 } from './storage.js';
-
-const SIGNATURE_POLL_INTERVAL_MS = 1000;
-const TRUSTED_MUTATION_GRACE_MS = 750;
-const TRUSTED_SWEEP_DELAY_MS = 50;
-let watcherId = null;
-let trustedSweepTimer = null;
-
-const trustedSlotsUntil = new Map();
-
-function nowMs() {
-  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-    return performance.now();
-  }
-  return Date.now();
-}
-
-function noteTrustedSlot(slot, ttl = TRUSTED_MUTATION_GRACE_MS) {
-  if (!slot || slot <= 0) return;
-  trustedSlotsUntil.set(slot, nowMs() + ttl);
-}
-
-function slotRecentlyTrusted(slot) {
-  if (!slot || slot <= 0) return false;
-  const expiry = trustedSlotsUntil.get(slot);
-  if (expiry == null) return false;
-  if (expiry <= nowMs()) {
-    trustedSlotsUntil.delete(slot);
-    return false;
-  }
-  return true;
-}
-
-function resetTrustedSlots() {
-  trustedSlotsUntil.clear();
-}
 
 function hasLocalStorage() {
   try {
@@ -76,16 +42,31 @@ function rebuildExpectedStateForSlot(slot) {
     return snapshot;
   }
   try {
-    for (const key of activeStorageKeys) {
+    const allKeys = new Set();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) allKeys.add(key);
+    }
+    if (window.__activeStorageKeys) {
+      for (const key of window.__activeStorageKeys) {
+        allKeys.add(key);
+      }
+    }
+
+    for (const key of allKeys) {
       if (!key || !key.startsWith('ccc:')) continue;
       if (key.startsWith('ccc:debug:')) continue;
+      if (key === getSlotModifiedFlagKey(slot)) continue;
       const keySlot = parseSlotFromKey(key);
       if (keySlot == null || keySlot !== slot) continue;
+      
       let value = '';
       try {
-        value = localStorage.getItem(key) ?? '';
+        const raw = localStorage.getItem(key);
+        if (raw == null) continue;
+        value = String(raw);
       } catch {
-        value = '';
+        continue;
       }
       snapshot.set(key, value);
     }
@@ -96,6 +77,7 @@ function rebuildExpectedStateForSlot(slot) {
 
 function ensureExpectedStateForSlot(slot) {
   if (!Number.isFinite(slot) || slot <= 0) return null;
+  if (hasModifiedSave(slot)) return null;
   if (expectedStateBySlot.has(slot)) return expectedStateBySlot.get(slot);
   return rebuildExpectedStateForSlot(slot);
 }
@@ -154,49 +136,100 @@ export function afterSlotWrite(key, value) {
   expectedStateBySlot.set(slot, snapshot);
 }
 
-function computeSignature(entries = []) {
-  let hash = 0;
-  for (const entry of entries) {
-    for (let i = 0; i < entry.length; i += 1) {
-      hash = ((hash << 5) - hash + entry.charCodeAt(i)) >>> 0;
-    }
-    hash = (hash + 0x9e3779b1) >>> 0;
+export function afterSlotRemove(key) {
+  const strKey = String(key);
+  if (!strKey.startsWith('ccc:')) return;
+  if (strKey.startsWith('ccc:debug:')) return;
+
+  const slot = parseSlotFromKey(strKey);
+  if (slot == null) return;
+
+  const snapshot = expectedStateBySlot.get(slot);
+  if (snapshot) {
+    snapshot.delete(strKey);
   }
-  return `${entries.length}|${hash.toString(16)}`;
 }
 
-function collectEntriesBySlot() {
-  const map = new Map();
-  if (!hasLocalStorage()) return map;
+function verifySlotIntegrity(slot) {
+  if (!slot || slot <= 0) return;
+  if (hasModifiedSave(slot)) return;
+  
+  let slotKeyCount = 0;
   try {
-    for (const key of activeStorageKeys) {
-      if (!key || !key.startsWith('ccc:')) continue;
-      if (key.startsWith('ccc:debug:')) continue;
-      const slotMatch = key.match(/:(\d+)$/);
-      if (!slotMatch) continue;
-      const slot = parseInt(slotMatch[1], 10);
-      if (!Number.isFinite(slot) || slot <= 0) continue;
-      const sigKey = getSlotSignatureKey(slot);
-      if (key === sigKey) {
-        if (!map.has(slot)) map.set(slot, []);
-        continue;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ccc:') && key.endsWith(`:${slot}`)) {
+        slotKeyCount++;
       }
-      let value = '';
-      try { value = localStorage.getItem(key) ?? ''; }
-      catch {}
-      if (!map.has(slot)) map.set(slot, []);
-      map.get(slot).push(`${key}=${value}`);
     }
   } catch {}
-  map.forEach((entries) => entries.sort());
-  return map;
+
+  if (slotKeyCount === 0) {
+    rebuildExpectedStateForSlot(slot);
+    return;
+  }
+
+  const snapshot = expectedStateBySlot.get(slot);
+  
+  if (snapshot) {
+    let hasMismatch = false;
+
+    // Check if any expected key has been modified in native storage
+    for (const [key, expectedVal] of snapshot.entries()) {
+      let actualVal = '';
+      try {
+        const raw = localStorage.getItem(key);
+        actualVal = raw == null ? '' : String(raw);
+      } catch {}
+      if (actualVal !== expectedVal) {
+        hasMismatch = true;
+        break;
+      }
+    }
+
+    // Check if native storage has keys not in our snapshot
+    if (!hasMismatch) {
+      const allKeys = new Set();
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) allKeys.add(key);
+        }
+        if (window.__activeStorageKeys) {
+          for (const key of window.__activeStorageKeys) {
+            allKeys.add(key);
+          }
+        }
+      } catch {}
+
+      for (const key of allKeys) {
+        if (!key || !key.startsWith('ccc:')) continue;
+        if (key.startsWith('ccc:debug:')) continue;
+        if (key === getSlotModifiedFlagKey(slot)) continue;
+        
+        const slotMatch = key.match(/:(\d+)$/);
+        if (!slotMatch || parseInt(slotMatch[1], 10) !== slot) continue;
+        
+        let value = null;
+        try { value = localStorage.getItem(key); } catch {}
+        if (value === null) continue; // Removed in buffer
+        
+        if (!snapshot.has(key)) {
+          hasMismatch = true;
+          break;
+        }
+      }
+    }
+
+    if (hasMismatch) {
+      markSaveSlotModified(slot);
+      rebuildExpectedStateForSlot(slot);
+    }
+  }
 }
 
-function getCandidateSlots(entriesBySlot) {
+function getCandidateSlots() {
   const slots = new Set();
-  if (entriesBySlot) {
-    entriesBySlot.forEach((_, slot) => slots.add(slot));
-  }
   const active = getActiveSlot();
   if (Number.isFinite(active) && active > 0) slots.add(active);
   if (typeof document !== 'undefined') {
@@ -205,70 +238,16 @@ function getCandidateSlots(entriesBySlot) {
   return [...slots].filter((slot) => Number.isFinite(slot) && slot > 0);
 }
 
-function verifySlotIntegrity(slot, entries) {
-  if (!slot || slot <= 0) return;
-  const list = Array.isArray(entries) ? entries : [];
-  const stored = getSlotSignature(slot);
-  if (list.length === 0) {
-    if (stored) {
-      if (!slotRecentlyTrusted(slot)) {
-        markSaveSlotModified(slot);
-      }
-      setSlotSignature(slot, null);
-      rebuildExpectedStateForSlot(slot);
-    }
-    return;
-  }
-  const signature = computeSignature(list);
-  const mismatch = signature !== stored;
-  if (stored && mismatch && !slotRecentlyTrusted(slot)) {
-    markSaveSlotModified(slot);
-  }
-  if (signature !== stored) {
-    setSlotSignature(slot, signature);
-    rebuildExpectedStateForSlot(slot);
-  }
-}
-
 function runIntegrityCheck() {
   if (!hasLocalStorage()) return;
-  const entriesBySlot = collectEntriesBySlot();
-  const slots = getCandidateSlots(entriesBySlot);
+  const slots = getCandidateSlots();
   slots.forEach((slot) => {
-    const entries = entriesBySlot.get(slot) ?? [];
-    verifySlotIntegrity(slot, entries);
+    ensureExpectedStateForSlot(slot);
+    verifySlotIntegrity(slot);
   });
 }
 
-function scheduleTrustedMutationSweep() {
-  if (trustedSweepTimer != null) return;
-  const root = typeof window !== 'undefined' ? window : globalThis;
-  trustedSweepTimer = root.setTimeout(() => {
-    trustedSweepTimer = null;
-    runIntegrityCheck();
-  }, TRUSTED_SWEEP_DELAY_MS);
-}
-
-function handleStorageMutationEvent(event) {
-  const detail = event?.detail;
-  if (!detail) return;
-  const rawSlot = typeof detail.slot === 'number' ? detail.slot : Number.parseInt(detail.slot, 10);
-  const slot = Number.isFinite(rawSlot) ? rawSlot : null;
-  if (!Number.isFinite(slot) || slot <= 0) return;
-  if (detail.trusted) {
-    noteTrustedSlot(slot);
-    scheduleTrustedMutationSweep();
-    return;
-  }
-  trustedSlotsUntil.delete(slot);
-  runIntegrityCheck();
-}
-
-function ensureWatcher() {
-  if (typeof window === 'undefined') return;
-  if (watcherId != null) return;
-  watcherId = window.setInterval(runIntegrityCheck, SIGNATURE_POLL_INTERVAL_MS);
-}
+// Interval polling removed in favor of instant 'storage' event listener
 
 const POOP_SHOP_BG  = 'linear-gradient(180deg,#a9793d,#7b5534)';
 const POOP_SHOP_FLAG = '1';
@@ -325,15 +304,15 @@ function startPoopShopEnforcer() {
 function init() {
   if (typeof window === 'undefined') return;
   runIntegrityCheck();
-  ensureWatcher();
   startPoopShopEnforcer();
+  window.addEventListener('storage', () => runIntegrityCheck());
   window.addEventListener('saveSlot:change', () => runIntegrityCheck());
-  window.addEventListener('saveIntegrity:storageMutation', handleStorageMutationEvent, { passive: true });
   window.addEventListener('saveIntegrity:rebuildSnapshot', (e) => rebuildExpectedStateForSlot(e.detail.slot));
+  window.addEventListener('saveIntegrity:slotRemove', (e) => afterSlotRemove(e.detail.key));
+  window.addEventListener('saveIntegrity:slotWrite', (e) => afterSlotWrite(e.detail.key, e.detail.value));
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        resetTrustedSlots();
         runIntegrityCheck();
         enforcePoopShopStyle();
       }
