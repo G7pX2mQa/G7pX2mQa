@@ -247,7 +247,7 @@
 
 .sim-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #00f0ff 0%, #00ffff 50%, #00d9ff 100%);
+    background: linear-gradient(90deg, #00ffff, #00d9ff);
 }
 
 .sim-progress-text {
