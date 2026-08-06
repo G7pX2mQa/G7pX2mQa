@@ -147,7 +147,7 @@ localStorage.setItem = function(key, value) {
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
-    const strVal = String(value);
+    let finalValue = String(value);
     
     // Anti-cheat stack trace checking
     const strKey = String(key);
@@ -156,9 +156,12 @@ localStorage.setItem = function(key, value) {
         if (slotMatch) {
             const slot = parseInt(slotMatch[1], 10);
             if (Number.isFinite(slot) && slot > 0) {
-                if (strKey !== `ccc:slotMod:${slot}`) {
-                    const stack = captureStackTrace();
-                    if (!isTrustedStorageStack(stack)) {
+                const stack = captureStackTrace();
+                if (!isTrustedStorageStack(stack)) {
+                    if (strKey === `ccc:slotMod:${slot}`) {
+                        // Thwart tampering of the flag itself and prevent infinite recursion
+                        finalValue = '1';
+                    } else {
                         markSaveSlotModified(slot);
                     }
                 }
@@ -166,15 +169,37 @@ localStorage.setItem = function(key, value) {
         }
     }
 
-    localStorageBuffer.set(key, strVal);
+    localStorageBuffer.set(key, finalValue);
     activeStorageKeys.add(key);
-    try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotWrite', { detail: { key, value: strVal } })); } catch {}
+    try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotWrite', { detail: { key, value: finalValue } })); } catch {}
 };
 
 localStorage.removeItem = function(key) {
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
+
+    // Anti-cheat stack trace checking
+    const strKey = String(key);
+    if (strKey.startsWith('ccc:') && !strKey.startsWith('ccc:debug:')) {
+        const slotMatch = strKey.match(/:(\d+)$/);
+        if (slotMatch) {
+            const slot = parseInt(slotMatch[1], 10);
+            if (Number.isFinite(slot) && slot > 0) {
+                const stack = captureStackTrace();
+                if (!isTrustedStorageStack(stack)) {
+                    if (strKey === `ccc:slotMod:${slot}`) {
+                        // They tried to delete the mod flag! Ignore the deletion, and mark the save
+                        markSaveSlotModified(slot);
+                        return; 
+                    } else {
+                        markSaveSlotModified(slot);
+                    }
+                }
+            }
+        }
+    }
+
     localStorageBuffer.set(key, REMOVED_SYMBOL);
     activeStorageKeys.delete(key);
     try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotRemove', { detail: { key } })); } catch {}
