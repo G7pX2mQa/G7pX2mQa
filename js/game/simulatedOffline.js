@@ -383,7 +383,7 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
   // Header
   const header = document.createElement('div');
   header.className = 'offline-header';
-  header.textContent = 'Simulating Offline...';
+  header.textContent = 'Simulating Offline Progress...';
 
   // Subheader
   const subHeader = document.createElement('div');
