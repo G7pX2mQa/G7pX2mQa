@@ -1,4 +1,4 @@
-// js/game/palettes.js
+// js/game/mutationColorPalettes.js
 
 export const PALETTES = {
   default: ['#FFEB3B'],
