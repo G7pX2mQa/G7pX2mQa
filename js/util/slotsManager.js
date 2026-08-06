@@ -1,6 +1,6 @@
 // js/util/slotsManager.js
 import { activeStorageKeys, flushLocalStorageBuffer } from '../main.js';
-import { KEYS, getActiveSlot } from './storage.js';
+import { KEYS, getActiveSlot, markSaveSlotModified } from './storage.js';
 import { refreshSlotsView } from './slots.js';
 
 let currentMode = null; // null, 'menu', 'export-json', 'import-json', 'export-b64', 'import-b64'
@@ -257,22 +257,27 @@ async function handleExport(slot, asBase64) {
 }
 
 async function verifyAndImport(slot, data) {
-  if (!data.__ccc_signature) {
-    alert('Import failed: Save data is missing a valid signature (Not an official CCC save file).');
-    setManageMode(null);
-    return;
-  }
+  let isTampered = false;
   
-  const expectedSig = await generateSignature(data);
-  if (data.__ccc_signature !== expectedSig) {
-    alert('Import failed: Save data signature is invalid. The file may have been tampered with or corrupted.');
-    setManageMode(null);
-    return;
+  if (!data.__ccc_signature) {
+    isTampered = true;
+  } else {
+    const expectedSig = await generateSignature(data);
+    if (data.__ccc_signature !== expectedSig) {
+      isTampered = true;
+    }
   }
   
   delete data.__ccc_signature;
   applySaveDataToSlot(slot, data);
-  alert(`Save data successfully imported to Slot ${slot}!`);
+  
+  if (isTampered) {
+    markSaveSlotModified(slot);
+    alert(`Save data imported to Slot ${slot}, but it has been tampered with, so the hammer of justice strikes once again.`);
+  } else {
+    alert(`Save data successfully imported to Slot ${slot}!`);
+  }
+  
   refreshSlotsView();
   setManageMode(null);
 }
