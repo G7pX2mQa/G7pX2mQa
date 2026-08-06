@@ -224,7 +224,7 @@ async function generateSignature(dataObj) {
 async function handleExport(slot, asBase64) {
   const data = getSaveDataForSlot(slot);
   if (Object.keys(data).length === 0) {
-    alert(`Slot ${slot} has no save data to export.`);
+    alert(`Save slot ${slot} has no save data to export.`);
     setManageMode(null);
     return;
   }
