@@ -720,6 +720,8 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
 
   // Animation frame processing loop
   return new Promise((resolve) => {
+    let lastFrameTime = performance.now();
+    
     function frameLoop() {
       if (!runner.running) {
         window.removeEventListener('keydown', blockEsc, true);
@@ -727,14 +729,21 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
         return;
       }
 
+      const now = performance.now();
+      let dt = (now - lastFrameTime) / 1000;
+      // Cap at 0.1s to prevent huge jumps if the thread stutters
+      if (dt > 0.1) dt = 0.1;
+      if (dt <= 0) dt = 0.016;
+      lastFrameTime = now;
+
       const done = runner.processBatch();
       uiHandle.updateUI();
 
       // Tick the water system visually if it's available so waves don't freeze!
       if (typeof waterSystem !== 'undefined' && waterSystem && typeof waterSystem.update === 'function') {
-        waterSystem.update(0.016);
+        waterSystem.update(dt);
         if (typeof waterSystem.render === 'function') {
-           waterSystem.render(performance.now() / 1000, 0.016);
+           waterSystem.render(now / 1000, dt);
         }
       }
 
