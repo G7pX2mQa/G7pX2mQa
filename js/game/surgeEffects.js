@@ -837,6 +837,7 @@ export function getBookProductionRate() {
   return baseRate;
 }
 
+export function simulateSurgeTick(dt) { onTick(dt); }
 function onTick(dt) {
   if (isSurgeActive(14)) {
     updateCombo(dt);
