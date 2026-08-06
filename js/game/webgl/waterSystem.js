@@ -202,6 +202,14 @@ export class WaterSystem {
         if (!this._qualityUnsub) {
             this._qualityUnsub = settingsManager.subscribe('graphics_quality', () => this._applyQualitySettings());
         }
+
+        if (!this._spawnVesselsUnsub) {
+            this._spawnVesselsUnsub = settingsManager.subscribe('spawn_vessels', (val) => {
+                if (!val) {
+                    this.clearSimulations();
+                }
+            });
+        }
     }
 
     initBgShaders() {
