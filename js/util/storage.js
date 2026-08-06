@@ -554,6 +554,7 @@ export function markSaveSlotModified(slot = getActiveSlot()) {
   if (!key) return;
   try {
     localStorage.setItem(key, '1');
+    console.warn(`[Integrity] Save Slot ${normalized} has been permanently marked as modified due to debug panel usage or manual data tampering.`);
   } catch { return; }
   try {
     window.dispatchEvent(new CustomEvent('saveSlot:modified', { detail: { slot: normalized } }));
