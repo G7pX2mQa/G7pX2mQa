@@ -69,6 +69,7 @@ import {
   applyWaterwheelOffline,
   WATERWHEEL_DEFS,
 } from "../ui/merchantTabs/flowTab.js";
+import { startSimulatedOffline, isSimulatedOfflineEnabled } from "./simulatedOffline.js";
 
 let initialized = false;
 
@@ -1374,7 +1375,7 @@ export function calculatePreAutomationRewards(seconds) {
   return rewards;
 }
 
-export function processOfflineProgress() {
+export async function processOfflineProgress() {
   if (
     window.__tsunamiActive ||
     window.__bossFightSequenceActive ||
@@ -1407,6 +1408,11 @@ export function processOfflineProgress() {
   const diff = now - lastSave;
   if (diff < 1000) return; // Ignore gaps < 1s
 
+  if (isSimulatedOfflineEnabled()) {
+    const started = await startSimulatedOffline(diff);
+    if (started) return true;
+  }
+
   const seconds = diff / 1000;
 
   if (!hasDoneInfuseReset()) {
@@ -1434,7 +1440,7 @@ export function initOfflineTracker(checkActiveState, onReward) {
   if (initialized) return;
   initialized = true;
 
-  document.addEventListener("visibilitychange", () => {
+  document.addEventListener("visibilitychange", async () => {
     const slot = getActiveSlot();
     if (slot == null) return; // Ignore visibility changes on main menu
 
@@ -1445,7 +1451,7 @@ export function initOfflineTracker(checkActiveState, onReward) {
     } else {
       // Resume first, then process logic
       resumeGameLoop();
-      const rewarded = processOfflineProgress();
+      const rewarded = await processOfflineProgress();
       if (rewarded && typeof onReward === "function") {
         onReward();
       }
