@@ -6,10 +6,14 @@
     z-index: 4005; /* High enough to be over HUD and shop */
     pointer-events: none;
     user-select: none;
+    visibility: hidden;
+    transition: visibility 0s linear 220ms;
 }
 
 .map-overlay.is-open {
     pointer-events: auto;
+    visibility: visible;
+    transition: visibility 0s linear 0s;
 }
 
 .map-sheet {
