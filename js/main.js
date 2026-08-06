@@ -8,7 +8,7 @@ import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";
 import { RESOURCE_REGISTRY } from './game/offlinePanel.js';
 import { setHtmlOrText } from './util/uiHelpers.js';
 import { clearAllDebugOverrides } from './util/debugPanel.js';
-import { unmarkSaveSlotModified } from './util/storage.js';
+import { unmarkSaveSlotModified, markSaveSlotModified } from './util/storage.js';
 import { settingsManager } from "./game/settingsManager.js";
 import { flushBackupSnapshot as immediateFlushBackupSnapshot } from './util/suspensionSafeguard.js';
 import { IS_MOBILE, IS_FIREFOX } from './util/platformChecker.js';
@@ -127,26 +127,48 @@ localStorage.getItem = function(key) {
     return originalGetItem(key);
 };
 
+const DEVTOOLS_CONSOLE_FRAME_RE = /\bat <anonymous>:\d+:\d+\b/;
+
+function captureStackTrace() {
+  try {
+    throw new Error('ccc-storage-write');
+  } catch (err) {
+    return err?.stack || '';
+  }
+}
+
+function isTrustedStorageStack(stack) {
+  if (typeof stack !== 'string' || stack.length === 0) return false;
+  if (DEVTOOLS_CONSOLE_FRAME_RE.test(stack)) return false;
+  return true;
+}
+
 localStorage.setItem = function(key, value) {
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
     const strVal = String(value);
-    localStorageBuffer.set(key, strVal);
-    activeStorageKeys.add(key);
     
-    // Dispatch trusted storage mutation event synchronously for anti-cheat
-    if (typeof window !== 'undefined' && String(key).startsWith('ccc:') && !String(key).startsWith('ccc:slotSig') && !String(key).startsWith('ccc:slotMod') && !String(key).startsWith('ccc:debug:')) {
-        const slotMatch = String(key).match(/:(\d+)$/);
+    // Anti-cheat stack trace checking
+    const strKey = String(key);
+    if (strKey.startsWith('ccc:') && !strKey.startsWith('ccc:debug:')) {
+        const slotMatch = strKey.match(/:(\d+)$/);
         if (slotMatch) {
             const slot = parseInt(slotMatch[1], 10);
             if (Number.isFinite(slot) && slot > 0) {
-                try {
-                    window.dispatchEvent(new CustomEvent('saveIntegrity:storageMutation', { detail: { key, slot, trusted: true } }));
-                } catch {}
+                if (strKey !== `ccc:slotMod:${slot}`) {
+                    const stack = captureStackTrace();
+                    if (!isTrustedStorageStack(stack)) {
+                        markSaveSlotModified(slot);
+                    }
+                }
             }
         }
     }
+
+    localStorageBuffer.set(key, strVal);
+    activeStorageKeys.add(key);
+    try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotWrite', { detail: { key, value: strVal } })); } catch {}
 };
 
 localStorage.removeItem = function(key) {
@@ -155,6 +177,7 @@ localStorage.removeItem = function(key) {
     }
     localStorageBuffer.set(key, REMOVED_SYMBOL);
     activeStorageKeys.delete(key);
+    try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotRemove', { detail: { key } })); } catch {}
 };
 
 if (IS_MOBILE) {
