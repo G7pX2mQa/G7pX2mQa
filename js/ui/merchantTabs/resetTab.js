@@ -2715,6 +2715,24 @@ function bindGlobalEvents() {
         let level = e.detail.level;
         let is125 = level === Infinity || (typeof level === 'number' && level >= 125);
         setNodeLocked('cavern', !is125);
+
+        let is20 = level === Infinity || (typeof level === 'number' && level >= 20);
+        let is8 = level === Infinity || (typeof level === 'number' && level >= 8);
+        const slot = getActiveSlot();
+        if (!is20 && slot != null) {
+            try { localStorage.removeItem(`ccc:unlock:flow:${slot}`); } catch {}
+            window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'flow', state: false, slot } }));
+        }
+        if (!is8 && slot != null) {
+            try { 
+                localStorage.removeItem(`ccc:unlock:lab:${slot}`);
+                localStorage.removeItem(`ccc:unlock:tsunami:${slot}`);
+                localStorage.removeItem(`ccc:tsunami:labPending:${slot}`);
+            } catch {}
+            window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'lab', state: false, slot } }));
+            window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'tsunami', state: false, slot } }));
+        }
+
         refreshNodesState();
         window.dispatchEvent(new Event('pinnedAreas:changed'));
     }
