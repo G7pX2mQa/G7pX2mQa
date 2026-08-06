@@ -327,8 +327,14 @@ function initHeartbeat() {
 
   // Ensure we save immediately before unloading
   window.addEventListener('beforeunload', () => {
-      // Force update regardless of visibility state on unload
       if (!hasEnteredGameSession) return;
+      
+      // If the document is hidden, the game loop is paused and lastSaveTime
+      // is intentionally frozen in the past. Overwriting it with Date.now()
+      // here would discard the time they spent with the tab in the background,
+      // losing their offline time.
+      if (document.hidden) return;
+      
       const slot = getActiveSlot();
       if (slot != null) {
           try { localStorage.setItem(getLastSaveTimeKey(slot), String(Date.now())); } catch {}
@@ -434,7 +440,10 @@ export function setActiveSlot(n) {
 
 export function clearActiveSlot() {
   const currentSlot = getActiveSlot();
-  if (currentSlot != null) {
+  // Only update lastSaveTime if we've actually been in a game session.
+  // Otherwise, on page load, this will instantly overwrite the frozen
+  // lastSaveTime from the previous session with the current time, erasing offline progress.
+  if (currentSlot != null && hasEnteredGameSession) {
     try {
       localStorage.setItem(getLastSaveTimeKey(currentSlot), String(Date.now()));
     } catch (e) {
