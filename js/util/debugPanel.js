@@ -71,6 +71,7 @@ import {
     NODE_RP_KEY
 } from '../game/labNodes.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
+import { startSimulatedOffline, isSimulatedOfflineEnabled } from '../game/simulatedOffline.js';
 import { nukeNotifications } from '../ui/notifications.js';
 import { unlockDpSystem, resetDpProgress, isDpSystemUnlocked, getDpMultiplier } from '../game/dpSystem.js';
 import { 
@@ -5047,14 +5048,30 @@ function buildMiscContent(content) {
                 const seconds = parseBigNumInput(raw);
                 if (!seconds || (typeof seconds.isZero === 'function' && seconds.isZero()) || (typeof seconds.isNegative === 'function' && seconds.isNegative())) return;
 
+                let secondsNum = 0;
+                if (typeof seconds.toScientific === 'function') {
+                     secondsNum = parseFloat(seconds.toScientific());
+                } else if (typeof seconds === 'number') {
+                     secondsNum = seconds;
+                } else {
+                     secondsNum = Number(seconds);
+                }
+
+                if (isSimulatedOfflineEnabled()) {
+                     startSimulatedOffline(0, { isDebug: true, overrideSeconds: secondsNum });
+                     flagDebugUsage();
+                     logAction(`Performed OP Time Warp (Simulated) for ${formatNumber(seconds)} seconds`);
+                     return;
+                }
+
                 let rewards;
                 let isPreAutomation = false;
 
                 if (!hasDoneInfuseReset()) {
-                    rewards = calculatePreAutomationRewards(seconds);
+                    rewards = calculatePreAutomationRewards(secondsNum);
                     isPreAutomation = true;
                 } else {
-                    rewards = calculateOfflineRewards(seconds);
+                    rewards = calculateOfflineRewards(secondsNum);
                 }
 
                 grantOfflineRewards(rewards);
