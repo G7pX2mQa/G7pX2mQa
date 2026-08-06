@@ -263,14 +263,14 @@ export function showWelcomePopup(isMobile) {
     }, 9000); // 1s enter + 8s wait = 9000ms
 }
 
-export function showWeeklyReminderPopup() {
+export function showWideNotification(text, duration = 9000) {
     const parent = document.createElement('div');
     parent.className = 'welcome-popup-container';
     
     const el = document.createElement('div');
     el.className = 'welcome-popup notification-text';
     
-    el.innerHTML = `Weekly reminder: Remember to export your save data (Main menu → Manage save slots) in case you lose it!`;
+    el.innerHTML = text;
     
     parent.appendChild(el);
     document.body.appendChild(parent);
@@ -308,7 +308,11 @@ export function showWeeklyReminderPopup() {
             }
             activeWelcomePopups.delete(popupTracker);
         }, 1200);
-    }, 18000); // 1s enter + 17s wait = 18000ms (Double the time of first-time notification)
+    }, duration);
+}
+
+export function showWeeklyReminderPopup() {
+    showWideNotification(`Weekly reminder: Remember to export your save data (Main menu → Manage save slots) in case you lose it!`, 18000);
 }
 
 export function showLandscapeWarningPopup() {
