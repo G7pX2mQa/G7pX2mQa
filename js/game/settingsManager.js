@@ -92,6 +92,14 @@ export const SETTING_DEFINITIONS = {
     default: true,
     unlockCondition: () => true,
   },
+  simulate_offline_ticks: {
+    id: 'simulate_offline_ticks',
+    type: 'toggle',
+    label: 'Simulated Offline Progress',
+    hasExtraInfo: false,
+    default: true,
+    unlockCondition: () => true,
+  },
   only_show_building: {
     id: 'only_show_building',
     type: 'toggle',
