@@ -27,6 +27,7 @@ import {
   calculateOfflineRewards,
   calculatePreAutomationRewards,
   RESOURCE_REGISTRY,
+  captureTotals,
 } from './offlinePanel.js';
 
 // Lazy imports to avoid circular dependencies — resolved on first use
@@ -36,6 +37,8 @@ let _simulateLabUpdate = null;
 let _simulateLabResearch = null;
 let _simulateFlowTick = null;
 let _simulateWorkshopTick = null;
+let _RESEARCH_NODES = null;
+let _WATERWHEEL_DEFS = null;
 
 async function ensureTickImports() {
   if (_simulateAutomationTick) return;
@@ -51,7 +54,9 @@ async function ensureTickImports() {
   _simulateSurgeTick = surgeMod.simulateSurgeTick;
   _simulateLabUpdate = labTabMod.updateLabLevel;
   _simulateLabResearch = labNodesMod.tickResearch;
+  _RESEARCH_NODES = labNodesMod.RESEARCH_NODES;
   _simulateFlowTick = flowMod.simulateFlowTick;
+  _WATERWHEEL_DEFS = flowMod.WATERWHEEL_DEFS;
   _simulateWorkshopTick = workshopMod.simulateWorkshopTick;
 }
 
@@ -93,57 +98,82 @@ function getSimTickGranularity(totalSeconds) {
 // Bank Snapshot: capture currency values before simulation to compute deltas
 // ---------------------------------------------------------------------------
 let simulationRewardsTracker = {};
+let simulationLevelTracker = {};
+let _levelGainHandlers = {};
 
-function trackAddition(key, val) {
-  try {
-    const bn = BigNum.fromAny(val);
+function trackLevelGained(key, amt) {
+    if (!amt) return;
+    const bn = BigNum.fromAny(amt);
     if (bn.cmp(0) <= 0) return;
-    if (!simulationRewardsTracker[key]) {
-      simulationRewardsTracker[key] = BigNum.fromInt(0);
+    const fullKey = `${key}_levels`;
+    if (!simulationLevelTracker[fullKey]) {
+        simulationLevelTracker[fullKey] = BigNum.fromInt(0);
     }
-    simulationRewardsTracker[key] = simulationRewardsTracker[key].add(bn);
-  } catch {}
+    simulationLevelTracker[fullKey] = simulationLevelTracker[fullKey].add(bn);
 }
 
 function startRewardTracking() {
   simulationRewardsTracker = {};
+  simulationLevelTracker = {};
   
-  // Intercept currency additions globally through storage hook
-  setBankAddInterceptor(trackAddition);
+  _levelGainHandlers = {};
   
-  // Intercept XP additions
-  if (window.xpSystem && typeof window.xpSystem.addXp === 'function') {
-    window.xpSystem._simOriginalAddXp = window.xpSystem.addXp;
-    window.xpSystem.addXp = function(val) {
-      trackAddition('xp', val);
-      return this._simOriginalAddXp(val);
-    };
-  }
-  
-  // Intercept MP additions
-  if (window.mutationSystem && typeof window.mutationSystem.addMp === 'function') {
-    window.mutationSystem._simOriginalAddMp = window.mutationSystem.addMp;
-    window.mutationSystem.addMp = function(val) {
-      trackAddition('mp', val);
-      return this._simOriginalAddMp(val);
-    };
-  }
+  RESOURCE_REGISTRY.forEach(config => {
+      if (config.type === 'levelProg' && config.simEventName) {
+          const handler = (e) => {
+              const ext = config.simEventExtract ? config.simEventExtract(e) : {};
+              trackLevelGained(config.key, ext.levels);
+              if (ext.progress) {
+                  if (!simulationRewardsTracker[config.key]) simulationRewardsTracker[config.key] = BigNum.fromInt(0);
+                  simulationRewardsTracker[config.key] = simulationRewardsTracker[config.key].add(BigNum.fromAny(ext.progress));
+              }
+          };
+          _levelGainHandlers[config.key] = { eventName: config.simEventName, handler };
+          window.addEventListener(config.simEventName, handler);
+      }
+  });
+
+  const _wwGainHandler = (e) => {
+      const id = e.detail?.id;
+      const levels = e.detail?.levelsGained;
+      if (id && levels) {
+          if (!simulationLevelTracker.waterwheel_levels) simulationLevelTracker.waterwheel_levels = {};
+          if (!simulationLevelTracker.waterwheel_levels[id]) simulationLevelTracker.waterwheel_levels[id] = BigNum.fromInt(0);
+          simulationLevelTracker.waterwheel_levels[id] = simulationLevelTracker.waterwheel_levels[id].add(levels);
+      }
+  };
+  _levelGainHandlers['waterwheel_levels'] = { eventName: 'waterwheel:change', handler: _wwGainHandler };
+  window.addEventListener('waterwheel:change', _wwGainHandler);
+
+  setBankAddInterceptor((key, amt) => {
+    if (!simulationRewardsTracker[key]) {
+      simulationRewardsTracker[key] = BigNum.fromInt(0);
+    }
+    simulationRewardsTracker[key] = simulationRewardsTracker[key].add(amt);
+  });
 }
 
 function stopRewardTracking() {
   setBankAddInterceptor(null);
-  
-  if (window.xpSystem && window.xpSystem._simOriginalAddXp) {
-    window.xpSystem.addXp = window.xpSystem._simOriginalAddXp;
-    delete window.xpSystem._simOriginalAddXp;
+  for (const key in _levelGainHandlers) {
+      const { eventName, handler } = _levelGainHandlers[key];
+      window.removeEventListener(eventName, handler);
   }
   
-  if (window.mutationSystem && window.mutationSystem._simOriginalAddMp) {
-    window.mutationSystem.addMp = window.mutationSystem._simOriginalAddMp;
-    delete window.mutationSystem._simOriginalAddMp;
+  // Format waterwheels as array for UI
+  if (simulationLevelTracker.waterwheel_levels && _WATERWHEEL_DEFS) {
+      const wwArr = [];
+      for (const id in simulationLevelTracker.waterwheel_levels) {
+          wwArr.push({
+              id: id,
+              name: _WATERWHEEL_DEFS[id]?.name,
+              levels: simulationLevelTracker.waterwheel_levels[id]
+          });
+      }
+      simulationLevelTracker.waterwheel_levels = wwArr;
   }
   
-  return simulationRewardsTracker;
+  return { ...simulationRewardsTracker, ...simulationLevelTracker };
 }
 
 // Snapshot level-based systems
@@ -172,40 +202,31 @@ function snapshotLevels() {
   return snap;
 }
 
-function computeLevelDeltas(before) {
+function computeLevelDeltas(beforeTotals, afterTotals) {
   const rewards = {};
-  try {
-    const xpState = window.xpSystem?.getXpState?.() || window.getXpState?.();
-    if (xpState && before.xpLevel) {
-      const afterLevel = xpState.xpLevel instanceof BigNum ? xpState.xpLevel : BigNum.fromAny(xpState.xpLevel || 0);
-      const delta = afterLevel.sub(before.xpLevel);
-      if (delta.cmp(BigNum.fromInt(0)) > 0) rewards.xp_levels = delta;
-    }
-  } catch {}
-  try {
-    const mState = window.mutationSystem?.getMutationState?.() || window.getMutationState?.();
-    if (mState && before.mpLevel) {
-      const afterLevel = mState.level instanceof BigNum ? mState.level : BigNum.fromAny(mState.level || 0);
-      const delta = afterLevel.sub(before.mpLevel);
-      if (delta.cmp(BigNum.fromInt(0)) > 0) rewards.mp_levels = delta;
-    }
-  } catch {}
-  try {
-    if (window.dpSystem?.getDpState && before.dpLevel) {
-      const dpState = window.dpSystem.getDpState();
-      const afterLevel = dpState.dpLevel instanceof BigNum ? dpState.dpLevel : BigNum.fromAny(dpState.dpLevel || 0);
-      const delta = afterLevel.sub(before.dpLevel);
-      if (delta.cmp(BigNum.fromInt(0)) > 0) rewards.dp_levels = delta;
-    }
-  } catch {}
-  try {
-    if (window.ppSystem?.getPpState && before.ppLevel) {
-      const ppState = window.ppSystem.getPpState();
-      const afterLevel = ppState.ppLevel instanceof BigNum ? ppState.ppLevel : BigNum.fromAny(ppState.ppLevel || 0);
-      const delta = afterLevel.sub(before.ppLevel);
-      if (delta.cmp(BigNum.fromInt(0)) > 0) rewards.pp_levels = delta;
-    }
-  } catch {}
+  
+  if (beforeTotals?.research_levels && afterTotals?.research_levels && _RESEARCH_NODES) {
+      const researchArr = [];
+      for (const id in afterTotals.research_levels) {
+          const beforeLvl = beforeTotals.research_levels[id] || 0;
+          const afterLvl = afterTotals.research_levels[id] || 0;
+          if (afterLvl > beforeLvl) {
+              const node = _RESEARCH_NODES.find(n => n.id == id);
+              if (node) {
+                  researchArr.push({
+                      id: id,
+                      name: node.title,
+                      levels: afterLvl - beforeLvl
+                  });
+              }
+          }
+      }
+      if (researchArr.length > 0) rewards.research_levels = researchArr;
+  }
+
+  // Waterwheel deltas are natively captured inside simulationLevelTracker.waterwheel_levels by the event hook!
+  // No precision loss occurs because it accumulates exactly how many levels were gained.
+  
   return rewards;
 }
 
@@ -624,7 +645,12 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
   pauseGameLoop();
 
   // Snapshot levels for progression tracking
-  const levelsBefore = snapshotLevels();
+  const beforeTotals = captureTotals();
+
+  let oldTotals = null;
+  if (settingsManager.get('show_offline_diff')) {
+    oldTotals = beforeTotals;
+  }
 
   // Start intercepting reward additions
   startRewardTracking();
@@ -661,7 +687,8 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
 
     // Stop intercepting rewards and compute final combined deltas
     const currencyDeltas = stopRewardTracking();
-    const levelDeltas = computeLevelDeltas(levelsBefore);
+    const afterTotals = captureTotals();
+    const levelDeltas = computeLevelDeltas(beforeTotals, afterTotals);
     const combinedRewards = { ...currencyDeltas, ...levelDeltas };
 
     // Cleanup UI
@@ -673,7 +700,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
     // Show standard offline panel with computed rewards
     const hasRewards = Object.keys(combinedRewards).length > 0;
     if (hasRewards) {
-      showOfflinePanel(combinedRewards, displayMs, isPreAutomation);
+      showOfflinePanel(combinedRewards, displayMs, isPreAutomation, oldTotals);
     }
   }
 
