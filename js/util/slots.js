@@ -94,6 +94,19 @@ export function initSlots(onSelect) {
 
       let creationTime = localStorage.getItem(`ccc:creationTime:${slotNum}`);
       if (!creationTime) {
+        // Clean slate: Wipe any leftover keys from a poorly deleted old save
+        const suffix = `:${slotNum}`;
+        const toRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('ccc:') && key.endsWith(suffix)) {
+            toRemove.push(key);
+          }
+        }
+        toRemove.forEach(k => {
+          try { localStorage.removeItem(k); } catch {}
+        });
+
         localStorage.setItem(`ccc:creationTime:${slotNum}`, Date.now().toString());
       }
 
