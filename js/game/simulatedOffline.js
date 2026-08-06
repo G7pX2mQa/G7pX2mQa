@@ -474,7 +474,7 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
   const speedBtn = document.createElement('button');
   speedBtn.type = 'button';
   speedBtn.className = 'sim-speed-btn';
-  speedBtn.textContent = 'Speed up';
+  speedBtn.textContent = 'Speed Up';
   speedBtn.addEventListener('click', () => {
     runner.cycleSpeed();
     updateGranInfo();
