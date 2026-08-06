@@ -1,6 +1,6 @@
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
-import { isDeleteMode } from './slotsManager.js';
+import { isManageMode } from './slotsManager.js';
 import { FONT_MAP, ALL_FONT_CLASSES } from '../main.js';
 import {
   setHasOpenedSaveSlot,
@@ -121,7 +121,7 @@ export function initSlots(onSelect) {
     };
 
     btn.addEventListener('click', (ev) => {
-      if (isDeleteMode()) return;
+      if (isManageMode()) return;
       ev.preventDefault();
       activate(ev);
     });
