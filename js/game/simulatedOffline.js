@@ -1,5 +1,5 @@
 /**
- * simulatedOffline.js
+ * js/game/simulatedOffline.js
  * 
  * Antimatter Dimensions-inspired simulated tick-based offline progress.
  * Instead of calculating offline rewards via flat rate multiplication,
