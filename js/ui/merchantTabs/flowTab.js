@@ -1019,6 +1019,7 @@ function onTick(dt) {
                     if (!levelLocked) {
                         ch.level = ch.level.add(levels);
                         currentFpBn = currentFpBn.sub(levels.mulSmall(req));
+                        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: levels } }));
                     } else {
                         // Max out the FP visually if the level is locked
                         currentFpBn = BigNum.fromInt(req);
@@ -1056,6 +1057,7 @@ function onTick(dt) {
                     if (!levels.isZero()) {
                         if (!levelLocked) {
                             ch.level = ch.level.add(levels);
+                            if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: levels } }));
                         }
                         ch.fp = ch.fp.sub(levels.mulSmall(req));
                         changes = true;
@@ -1076,6 +1078,7 @@ function onTick(dt) {
                         if (levels > 0) {
                             if (!levelLocked) {
                                 ch.level = ch.level.add(BigNum.fromInt(levels));
+                                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromInt(levels) } }));
                             }
                             ch.fp -= levels * req;
                             changes = true;
