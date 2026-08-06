@@ -728,7 +728,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
  * Check if simulated offline mode is enabled in settings.
  */
 export function isSimulatedOfflineEnabled() {
-  return settingsManager.get('simulate_offline_ticks') === true;
+  return settingsManager.get('simulate_offline_ticks') === true && hasDoneInfuseReset();
 }
 
 // ---------------------------------------------------------------------------
