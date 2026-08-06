@@ -15,7 +15,8 @@ import {
   isInfuseUnlocked,
   isSurgeUnlocked,
   isExperimentUnlocked,
-  hasDoneSurgeReset
+  hasDoneSurgeReset,
+  hasDoneInfuseReset
 } from '../ui/merchantTabs/resetTab.js';
 import { isCombineUnlocked, isCompressUnlocked } from '../ui/minerTabs/resetTab.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
@@ -95,10 +96,17 @@ export const SETTING_DEFINITIONS = {
   simulate_offline_ticks: {
     id: 'simulate_offline_ticks',
     type: 'toggle',
-    label: 'Simulated Offline Progress',
-    hasExtraInfo: false,
+    label: 'Realistic Offline Simulation',
+    hasExtraInfo: true,
+    info: 'While this setting is ON, offline progress will be realistically simulated using a granular tick-based system. If for whatever reason you want to disable this system and always have the offline rewards yield instantly (which is highly inaccurate), then you can turn this setting OFF.',
     default: true,
-    unlockCondition: () => true,
+    unlockCondition: () => {
+      try {
+        return hasDoneInfuseReset();
+      } catch {
+        return false;
+      }
+    },
   },
   only_show_building: {
     id: 'only_show_building',
