@@ -1,7 +1,7 @@
 // js/game/collectionCore.js
 
 import { settingsManager } from './settingsManager.js';
-import { MAGNET_MOD_TO_PALETTE, injectMagnetStyles, PALETTES } from './magnetColorPalettes.js';
+import { MAGNET_MOD_TO_PALETTE, injectMagnetStyles, PALETTES } from './mutationColorPalettes.js';
 
 export const MAGNET_UNIT_RATIO = 0.05;
 export const MAGNET_COLLECTION_BUFFER = 8; // Small buffer for collection feel
