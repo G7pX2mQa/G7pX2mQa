@@ -13,6 +13,7 @@ import {
   getSlotModifiedFlagKey,
   hasModifiedSave,
 } from './storage.js';
+import { showWideNotification } from '../ui/notifications.js';
 
 function hasLocalStorage() {
   try {
@@ -252,41 +253,81 @@ function runIntegrityCheck() {
 const POOP_SHOP_BG  = 'linear-gradient(180deg,#a9793d,#7b5534)';
 const POOP_SHOP_FLAG = '1';
 
-let poopShopTimer = null;
+let enforcerStarted = false;
+let shopBtnObserver = null;
+let domObserver = null;
 
 function getShopButtonElement() {
   if (typeof document === 'undefined') return null;
   return document.querySelector('.hud-bottom .game-btn[data-btn="shop"]');
 }
 
-function enforcePoopShopStyle() {
+function enforcePoopShopStyle(fromObserver = false) {
   const btn = getShopButtonElement();
-  if (!btn) return;
+  if (!btn) {
+    hookShopObserver();
+    return;
+  }
+  if (shopBtnObserver && shopBtnObserver._btn !== btn) {
+    hookShopObserver();
+  }
 
   const isModded = hasModifiedSave();
 
   if (!isModded) {
     if (btn.dataset.poopShopApplied === POOP_SHOP_FLAG || btn.style.backgroundImage || btn.style.background) {
+      if (shopBtnObserver) shopBtnObserver.disconnect();
       btn.style.backgroundImage = '';
       btn.style.background = '';
       delete btn.dataset.poopShopApplied;
+      if (shopBtnObserver) shopBtnObserver.observe(btn, { attributes: true, attributeFilter: ['style', 'class', 'data-poop-shop-applied'] });
     }
     return;
   }
 
   const current = btn.style.backgroundImage || btn.style.background;
-  if (current !== POOP_SHOP_BG || btn.dataset.poopShopApplied !== POOP_SHOP_FLAG) {
+  const isApplied = current && (current.includes('rgb(169, 121, 61)') || current.includes('#a9793d'));
+  
+  if (!isApplied || btn.dataset.poopShopApplied !== POOP_SHOP_FLAG) {
+    if (shopBtnObserver) shopBtnObserver.disconnect();
     btn.style.backgroundImage = POOP_SHOP_BG;
     btn.dataset.poopShopApplied = POOP_SHOP_FLAG;
+    if (shopBtnObserver) shopBtnObserver.observe(btn, { attributes: true, attributeFilter: ['style', 'class', 'data-poop-shop-applied'] });
+    
+    if (fromObserver) {
+      showWideNotification("No! Embrace the poop-shop of shame!");
+    }
+  }
+}
+
+function hookShopObserver() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const btn = getShopButtonElement();
+  
+  if (btn) {
+    if (domObserver) {
+      domObserver.disconnect();
+      domObserver = null;
+    }
+    if (!shopBtnObserver || shopBtnObserver._btn !== btn) {
+      if (shopBtnObserver) shopBtnObserver.disconnect();
+      shopBtnObserver = new MutationObserver(() => enforcePoopShopStyle(true));
+      shopBtnObserver._btn = btn;
+      shopBtnObserver.observe(btn, { attributes: true, attributeFilter: ['style', 'class', 'data-poop-shop-applied'] });
+      enforcePoopShopStyle();
+    }
+  } else if (!domObserver) {
+    domObserver = new MutationObserver(() => hookShopObserver());
+    domObserver.observe(document.body, { childList: true, subtree: true });
   }
 }
 
 function startPoopShopEnforcer() {
   if (typeof window === 'undefined') return;
-  if (poopShopTimer != null) return;
+  if (enforcerStarted) return;
+  enforcerStarted = true;
 
-  enforcePoopShopStyle();
-  poopShopTimer = window.setInterval(enforcePoopShopStyle, 50);
+  hookShopObserver();
 
   window.addEventListener('saveSlot:change', enforcePoopShopStyle);
   window.addEventListener('saveSlot:modified', (ev) => {
