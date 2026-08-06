@@ -36,25 +36,21 @@ export const MAX_MUTATION_VISUAL = MUTATION_NAMES.length - 1;
 // Define the available settings and their defaults
 export const SETTING_DEFINITIONS = {
   active_font_mod: {
-    id: 'active_font_mod',
     type: 'internal',
     default: 0,
     unlockCondition: () => true,
   },
   active_trail_mod: {
-    id: 'active_trail_mod',
     type: 'internal',
     default: 0,
     unlockCondition: () => true,
   },
   active_magnet_mod: {
-    id: 'active_magnet_mod',
     type: 'internal',
     default: 0,
     unlockCondition: () => true,
   },
   number_notation: {
-    id: 'number_notation',
     type: 'dropdown',
     label: 'Number Notation',
     hasExtraInfo: false,
@@ -70,7 +66,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true
   },
   hide_maxed_upgrades: {
-    id: 'hide_maxed_upgrades',
     type: 'toggle',
     label: 'Hide Maxed Upgrades',
     hasExtraInfo: false,
@@ -78,7 +73,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   game_progress_bar: {
-    id: 'game_progress_bar',
     type: 'toggle',
     label: 'Game Progress Bar',
     hasExtraInfo: false,
@@ -86,7 +80,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   offline_progress: {
-    id: 'offline_progress',
     type: 'toggle',
     label: 'Offline Progress',
     hasExtraInfo: false,
@@ -94,7 +87,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   simulate_offline_ticks: {
-    id: 'simulate_offline_ticks',
     type: 'toggle',
     label: 'Realistic Offline Simulation',
     hasExtraInfo: true,
@@ -109,7 +101,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   only_show_building: {
-    id: 'only_show_building',
     type: 'toggle',
     label: 'Only show Building',
     hasExtraInfo: false,
@@ -117,7 +108,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => false, // Hide from the main menu
   },
   user_interface: {
-    id: 'user_interface',
     type: 'toggle',
     label: 'User Interface',
     hasExtraInfo: false,
@@ -125,7 +115,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   cursor_trail: {
-    id: 'cursor_trail',
     type: 'toggle',
     label: () => IS_MOBILE ? 'Finger Trail' : 'Cursor Trail',
     hasExtraInfo: false,
@@ -133,7 +122,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   nerd_mode: {
-    id: 'nerd_mode',
     type: 'toggle',
     label: 'Nerd Mode',
     hasExtraInfo: true,
@@ -142,7 +130,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   show_cursor: {
-    id: 'show_cursor',
     type: 'toggle',
     label: 'Show Cursor',
     hasExtraInfo: true,
@@ -151,7 +138,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => !IS_MOBILE,
   },
   spawn_vessels: {
-    id: 'spawn_vessels',
     type: 'toggle',
     label: 'Spawn Vessels',
     hasExtraInfo: true,
@@ -160,7 +146,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   overlay_transition: {
-    id: 'overlay_transition',
     type: 'toggle',
     label: 'Overlay Transitions',
     hasExtraInfo: true,
@@ -169,7 +154,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   warp_vfx: {
-    id: 'warp_vfx',
     type: 'toggle',
     label: 'Warp VFX',
     hasExtraInfo: false,
@@ -183,7 +167,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   upgrade_insta_max: {
-    id: 'upgrade_insta_max',
     type: 'toggle',
     label: 'Upgrade Insta-Max',
     hasExtraInfo: true,
@@ -192,7 +175,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => IS_MOBILE,
   },
   lab_node_insta_toggle: {
-    id: 'lab_node_insta_toggle',
     type: 'toggle',
     label: 'Lab Node Insta-Toggle',
     hasExtraInfo: true,
@@ -215,7 +197,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   building_insta_max: {
-    id: 'building_insta_max',
     type: 'toggle',
     label: 'Building Insta-Max',
     hasExtraInfo: true,
@@ -230,7 +211,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   master_volume: {
-    id: 'master_volume',
     type: 'slider',
     label: 'Master Volume',
     hasExtraInfo: false,
@@ -241,7 +221,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   music_volume: {
-    id: 'music_volume',
     type: 'slider',
     label: 'Music Volume',
     hasExtraInfo: false,
@@ -252,7 +231,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   sfx_volume: {
-    id: 'sfx_volume',
     type: 'slider',
     label: 'SFX Volume',
     hasExtraInfo: false,
@@ -263,7 +241,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   spawn_vessel_volume: {
-    id: 'spawn_vessel_volume',
     type: 'slider',
     label: 'Spawn Vessel Volume',
     hasExtraInfo: true,
@@ -275,7 +252,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   magnet_radius: {
-    id: 'magnet_radius',
     type: 'slider',
     label: 'Magnet Radius',
     hasExtraInfo: true,
@@ -287,7 +263,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => getMagnetLevel() >= 1,
   },
   eac_efficiency: {
-    id: 'eac_efficiency',
     type: 'slider',
     label: 'EAC Efficiency',
     hasExtraInfo: true,
@@ -299,7 +274,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) >= 1 || getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID) >= 1,
   },
   auto_sell_efficiency: {
-    id: 'auto_sell_efficiency',
     type: 'slider',
     label: 'EAS Efficiency',
     hasExtraInfo: true,
@@ -311,7 +285,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID) >= 1,
   },
   coin_mutation_visual: {
-    id: 'coin_mutation_visual',
     type: 'dropdown',
     label: 'Coin Mutation',
     overlay: 'visuals',
@@ -343,7 +316,6 @@ export const SETTING_DEFINITIONS = {
     }
   },
   show_fps: {
-    id: 'show_fps',
     type: 'toggle',
     label: 'Show FPS',
     overlay: 'performance',
@@ -353,7 +325,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   performance_graph: {
-    id: 'performance_graph',
     type: 'toggle',
     label: 'Show Graph',
     overlay: 'performance',
@@ -363,7 +334,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   pickup_animation: {
-    id: 'pickup_animation',
     type: 'toggle',
     label: 'Pickup Animation',
     overlay: 'performance',
@@ -373,7 +343,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => !IS_MOBILE,
   },
   insta_teleport: {
-    id: 'insta_teleport',
     type: 'toggle',
     label: 'Collectible Insta-Teleport',
     overlay: 'performance',
@@ -383,7 +352,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   disable_webgl: {
-    id: 'disable_webgl',
     type: 'toggle',
     label: 'Reduced GPU Usage Mode',
     overlay: 'performance',
@@ -393,7 +361,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   graphics_quality: {
-    id: 'graphics_quality',
     type: 'slider',
     label: 'Graphics Quality',
     overlay: 'performance',
@@ -405,7 +372,6 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
   forge_confirmation: {
-    id: 'forge_confirmation',
     type: 'toggle',
     label: 'Forge Confirmation',
     overlay: 'confirmations',
@@ -416,7 +382,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   infuse_confirmation: {
-    id: 'infuse_confirmation',
     type: 'toggle',
     label: 'Infuse Confirmation',
     overlay: 'confirmations',
@@ -427,7 +392,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   surge_confirmation: {
-    id: 'surge_confirmation',
     type: 'toggle',
     label: 'Surge Confirmation',
     overlay: 'confirmations',
@@ -438,7 +402,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   insufficient_waves_confirmation: {
-    id: 'insufficient_waves_confirmation',
     type: 'toggle',
     label: 'Insufficient Waves Confirmation',
     overlay: 'confirmations',
@@ -450,7 +413,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   experiment_confirmation: {
-    id: 'experiment_confirmation',
     type: 'toggle',
     label: 'Experiment Confirmation',
     overlay: 'confirmations',
@@ -461,7 +423,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   combine_confirmation: {
-    id: 'combine_confirmation',
     type: 'toggle',
     label: 'Combine Confirmation',
     overlay: 'confirmations',
@@ -472,7 +433,6 @@ export const SETTING_DEFINITIONS = {
     },
   },
   compress_confirmation: {
-    id: 'compress_confirmation',
     type: 'toggle',
     label: 'Compress Confirmation',
     overlay: 'confirmations',
