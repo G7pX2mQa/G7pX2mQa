@@ -68,6 +68,7 @@ import {
   calculateWaterwheelOffline,
   applyWaterwheelOffline,
   WATERWHEEL_DEFS,
+  getWaterwheelLevel,
 } from "../ui/merchantTabs/flowTab.js";
 import { startSimulatedOffline, isSimulatedOfflineEnabled } from "./simulatedOffline.js";
 
@@ -196,6 +197,11 @@ export const RESOURCE_REGISTRY = [
     singular: "XP",
     plural: "XP",
     type: "levelProg",
+    simEventName: "xp:change",
+    simEventExtract: (e) => ({
+      levels: e.detail?.xpLevelsGained,
+      progress: e.detail?.xpAdded
+    }),
     pinBgGradient:
       "linear-gradient(180deg, rgba(12,26,46,1), rgba(16,32,58,1))",
     bgGradient:
@@ -255,6 +261,11 @@ export const RESOURCE_REGISTRY = [
     singular: "MP",
     plural: "MP",
     type: "levelProg",
+    simEventName: "mutation:change",
+    simEventExtract: (e) => ({
+      levels: e.detail?.levelsGained,
+      progress: e.detail?.delta
+    }),
     pinBgGradient: "linear-gradient(180deg, rgba(60,24,0,1), rgba(45,18,0,1))",
     bgGradient:
       "linear-gradient(to bottom, #b35900 0%, #e67300 15%, #ff9933 50%, #e67300 85%, #b35900 100%)",
@@ -515,6 +526,11 @@ export const RESOURCE_REGISTRY = [
     singular: "DP",
     plural: "DP",
     type: "levelProg",
+    simEventName: "dp:change",
+    simEventExtract: (e) => ({
+      levels: e.detail?.dpLevelsGained || e.detail?.levelsGained,
+      progress: e.detail?.dpAdded || e.detail?.delta
+    }),
     pinBgGradient:
       "linear-gradient(180deg, rgba(35,24,18,1), rgba(25,18,13,1))",
     bgGradient:
@@ -582,6 +598,11 @@ export const RESOURCE_REGISTRY = [
     singular: "PP",
     plural: "PP",
     type: "levelProg",
+    simEventName: "pp:change",
+    simEventExtract: (e) => ({
+      levels: e.detail?.ppLevelsGained || e.detail?.levelsGained,
+      progress: e.detail?.ppAdded || e.detail?.delta
+    }),
     pinBgGradient: "linear-gradient(180deg, rgba(50,8,25,1), rgba(35,6,18,1))",
     bgGradient:
       "linear-gradient(to bottom, #ef75b2 0%, #ee6aac 15%, #eb529f 50%, #e93a91 85%, #e8308c 100%)",
@@ -675,7 +696,58 @@ function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
   }
 }
 
-export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
+function getCurrentVal(key, id) {
+  if (bank[key] && bank[key].value !== undefined) {
+    return bank[key].value;
+  }
+  
+  const config = RESOURCE_REGISTRY.find(r => r.key === key || r.key === key.replace('_levels', ''));
+  if (config && typeof config.getState === 'function') {
+      const state = config.getState();
+      if (state) {
+          if (key.endsWith('_levels')) return state.level;
+          return state.progress;
+      }
+  }
+
+  if (key === 'research_levels' && id !== undefined) {
+    return getResearchNodeLevel(id);
+  }
+  if (key === 'waterwheel_levels' && id !== undefined) {
+    return getWaterwheelLevel(id);
+  }
+  return undefined;
+}
+
+export function captureTotals() {
+  const totals = {};
+  for (const config of RESOURCE_REGISTRY) {
+    const key = config.key;
+    const val = getCurrentVal(key);
+    if (val !== undefined) {
+      totals[key] = val instanceof BigNum ? val.clone() : val;
+    }
+  }
+  
+  totals.research_levels = {};
+  if (typeof RESEARCH_NODES !== 'undefined' && typeof getResearchNodeLevel === 'function') {
+      for (const node of RESEARCH_NODES) {
+          totals.research_levels[node.id] = getResearchNodeLevel(node.id);
+      }
+  }
+
+  totals.waterwheel_levels = {};
+  if (typeof WATERWHEEL_DEFS !== 'undefined' && typeof getWaterwheelLevel === 'function') {
+      for (const id of Object.keys(WATERWHEEL_DEFS)) {
+          const val = getWaterwheelLevel(id);
+          totals.waterwheel_levels[id] = val instanceof BigNum ? val.clone() : val;
+      }
+  }
+  
+  return totals;
+}
+
+export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, oldTotals = null) {
   if (
     window.__tsunamiActive ||
     window.__bossFightSequenceActive ||
@@ -733,83 +805,66 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
       return;
     }
 
-    if (key === "research_levels") {
-      if (Array.isArray(val)) {
-        val.forEach((item) => {
-          const row = document.createElement("div");
-          row.className = "offline-row";
+    if (Array.isArray(val)) {
+      val.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "offline-row";
 
-          const plus = document.createElement("span");
-          plus.className = "offline-plus";
-          plus.style.color = "#004F96";
-          plus.textContent = "+";
+        const plus = document.createElement("span");
+        plus.className = "offline-plus";
+        plus.textContent = "+";
 
-          const icon = document.createElement("img");
-          icon.className = "offline-icon";
-          icon.src = config.icon;
-          icon.alt = "RP";
+        const icon = document.createElement("img");
+        icon.className = "offline-icon";
+        
+        let itemIcon = item.icon || item.image || config.icon;
+        if (key === "waterwheel_levels" && WATERWHEEL_DEFS[item.id]) {
+            itemIcon = WATERWHEEL_DEFS[item.id].image;
+        }
+        icon.src = itemIcon;
+        icon.alt = config.singular;
 
-          const text = document.createElement("span");
-          text.className = "offline-text";
-          text.style.color = "#004F96";
+        const text = document.createElement("span");
+        text.className = "offline-text";
 
-          const levelCount = BigNum.fromInt(item.levels);
-          const label =
-            levelCount.cmp(BigNum.fromInt(1)) === 0 ? "Level" : "Levels";
-          setHtmlOrText(
-            text,
-            `${formatNumber(levelCount)} ${label} of ${item.name}`,
-          );
+        let styleKey = item.styleKey || config.key;
+        if (key === "research_levels") {
+            plus.style.color = "#004F96";
+            text.style.color = "#004F96";
+        } else {
+            if (key === "waterwheel_levels" && WATERWHEEL_DEFS[item.id]) {
+                styleKey = WATERWHEEL_DEFS[item.id].styleKey || "coins";
+            }
+            const matchedConfig = RESOURCE_REGISTRY.find((r) => r.key === styleKey);
+            applyAutoColor(plus, text, styleKey, matchedConfig);
+        }
 
-          row.appendChild(plus);
-          row.appendChild(icon);
-          row.appendChild(text);
-          list.appendChild(row);
-        });
-      }
-      return;
-    }
+        const levelCount = BigNum.fromAny(item.levels);
+        const label = levelCount.cmp(BigNum.fromInt(1)) === 0 ? "Level" : "Levels";
 
-    if (key === "waterwheel_levels") {
-      if (Array.isArray(val)) {
-        val.forEach((item) => {
-          const row = document.createElement("div");
-          row.className = "offline-row";
+        let diffText = "";
+        if (settingsManager.get("show_offline_diff") && oldTotals && oldTotals[key]) {
+          let newAmt = getCurrentVal(key, item.id);
+          let oldAmt = oldTotals[key][item.id];
+          if (newAmt !== undefined && oldAmt !== undefined) {
+            let oldStr = formatNumber(oldAmt);
+            let newStr = formatNumber(newAmt);
+            if (oldStr === "Infinity" || oldStr === "NaN") oldStr = "∞";
+            if (newStr === "Infinity" || newStr === "NaN") newStr = "∞";
+            diffText = ` <span style="font-size: 0.85em; opacity: 0.8;">(${oldStr} &rarr; ${newStr})</span>`;
+          }
+        }
 
-          const def = WATERWHEEL_DEFS[item.id];
+        setHtmlOrText(
+          text,
+          `${formatNumber(levelCount)} ${label} of ${item.name}${diffText}`
+        );
 
-          const plus = document.createElement("span");
-          plus.className = "offline-plus";
-          plus.textContent = "+";
-
-          const icon = document.createElement("img");
-          icon.className = "offline-icon";
-          icon.src = def?.image;
-          icon.alt = "WW";
-
-          const text = document.createElement("span");
-          text.className = "offline-text";
-
-          const styleKey = def?.styleKey || "coins";
-          const matchedConfig = RESOURCE_REGISTRY.find(
-            (r) => r.key === styleKey,
-          );
-          applyAutoColor(plus, text, styleKey, matchedConfig);
-
-          const levelCount = BigNum.fromAny(item.levels);
-          const label =
-            levelCount.cmp(BigNum.fromInt(1)) === 0 ? "Level" : "Levels";
-          setHtmlOrText(
-            text,
-            `${formatNumber(levelCount)} ${label} of ${item.name}`,
-          );
-
-          row.appendChild(plus);
-          row.appendChild(icon);
-          row.appendChild(text);
-          list.appendChild(row);
-        });
-      }
+        row.appendChild(plus);
+        row.appendChild(icon);
+        row.appendChild(text);
+        list.appendChild(row);
+      });
       return;
     }
 
@@ -857,7 +912,20 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
       hasInfinity = true;
     }
 
-    text.innerHTML = hasInfinity ? displayName : `${amountText} ${displayName}`;
+    let diffText = "";
+    if (settingsManager.get("show_offline_diff") && oldTotals && oldTotals[key] !== undefined) {
+      let newAmt = getCurrentVal(key);
+      let oldAmt = oldTotals[key];
+      if (newAmt !== undefined && oldAmt !== undefined) {
+        let oldStr = formatNumber(oldAmt);
+        let newStr = formatNumber(newAmt);
+        if (oldStr === "Infinity" || oldStr === "NaN") oldStr = "∞";
+        if (newStr === "Infinity" || newStr === "NaN") newStr = "∞";
+        diffText = ` <span style="font-size: 0.85em; opacity: 0.8;">(${oldStr} &rarr; ${newStr})</span>`;
+      }
+    }
+
+    text.innerHTML = hasInfinity ? displayName : `${amountText} ${displayName}${diffText}`;
 
     row.appendChild(plus);
     row.appendChild(icon);
@@ -1033,7 +1101,7 @@ export function calculateOfflineRewards(seconds) {
       }
 
       if (levelsGained > 0) {
-        researchLevels.push({ name: node.title, levels: levelsGained });
+        researchLevels.push({ id: node.id, name: node.title, levels: levelsGained });
       }
       // Always store progress (RP update) even if no levels gained
       researchProgress[node.id] = { level: tempLevel, rp: tempRp };
@@ -1420,8 +1488,12 @@ export async function processOfflineProgress() {
     const hasRewards = Object.keys(rewards).length > 0;
 
     if (hasRewards) {
+      let oldTotals = null;
+      if (settingsManager.get("show_offline_diff")) {
+        oldTotals = captureTotals();
+      }
       grantOfflineRewards(rewards);
-      showOfflinePanel(rewards, diff, true);
+      showOfflinePanel(rewards, diff, true, oldTotals);
     }
     return hasRewards;
   }
@@ -1430,8 +1502,12 @@ export async function processOfflineProgress() {
   const hasRewards = Object.keys(rewards).length > 0;
 
   if (hasRewards) {
+    let oldTotals = null;
+    if (settingsManager.get("show_offline_diff")) {
+      oldTotals = captureTotals();
+    }
     grantOfflineRewards(rewards);
-    showOfflinePanel(rewards, diff);
+    showOfflinePanel(rewards, diff, false, oldTotals);
   }
   return hasRewards;
 }
