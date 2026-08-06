@@ -16,6 +16,7 @@ import { TICK_RATE, FIXED_STEP, pauseGameLoop, resumeGameLoop } from './gameLoop
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { bank, getActiveSlot, setBankAddInterceptor } from '../util/storage.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 import { settingsManager } from './settingsManager.js';
 import { waterSystem } from './webgl/waterSystem.js'; // Water system to keep ticking visually
 import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
@@ -440,21 +441,21 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
   const granValueSpan = granInfo.querySelector('.sim-gran-value');
   
   function updateGranInfo() {
+    let granStr = '';
     if (runner.simDt >= 1) {
-      const secPerTick = runner.simDt;
-      granValueSpan.textContent = `${formatNumber(BigNum.fromAny(secPerTick))}s per tick`;
+      granStr = `${formatNumber(BigNum.fromAny(runner.simDt))}s per tick`;
     } else {
-      const msPerTick = Math.round(runner.simDt * 1000);
-      granValueSpan.textContent = `${msPerTick}ms per tick`;
+      granStr = `${Math.round(runner.simDt * 1000)}ms per tick`;
     }
+    setHtmlOrText(granValueSpan, granStr);
     
     // Update speed multiplier string
     const multiplier = runner.simDt / runner.baseDt;
+    let speedStr = '1x';
     if (multiplier > 1) {
-      speedValueSpan.textContent = `${multiplier === 2.5 ? '2.5' : Math.round(multiplier)}x`;
-    } else {
-      speedValueSpan.textContent = '1x';
+      speedStr = `${multiplier === 2.5 ? '2.5' : Math.round(multiplier)}x`;
     }
+    setHtmlOrText(speedValueSpan, speedStr);
   }
   updateGranInfo();
 
@@ -546,17 +547,20 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
   // Update function called each animation frame
   function updateUI() {
     const pct = runner.percent;
-    progressFill.style.width = `${pct}%`;
-    progressText.textContent = `${pct.toFixed(1)}%`;
-    tickCurrentSpan.textContent = formatNumber(BigNum.fromAny(runner.ticksProcessed));
-    tickTotalSpan.textContent = formatNumber(BigNum.fromAny(runner.totalTicks));
+    const pctStr = `${pct}%`;
+    if (progressFill.style.width !== pctStr) {
+      progressFill.style.width = pctStr;
+    }
+    setHtmlOrText(progressText, `${pct.toFixed(1)}%`);
+    setHtmlOrText(tickCurrentSpan, formatNumber(BigNum.fromAny(runner.ticksProcessed)));
+    setHtmlOrText(tickTotalSpan, formatNumber(BigNum.fromAny(runner.totalTicks)));
     
     const etaMs = runner.getEstimatedTimeMs();
-    if (etaMs === null) {
-      etaValueSpan.textContent = 'Calculating...';
-    } else {
-      etaValueSpan.textContent = etaMs < 1000 ? '< 1s' : formatTimeCompact(etaMs);
+    let etaStr = 'Calculating...';
+    if (etaMs !== null) {
+      etaStr = etaMs < 1000 ? '< 1s' : formatTimeCompact(etaMs);
     }
+    setHtmlOrText(etaValueSpan, etaStr);
     
     updateGranInfo();
   }
