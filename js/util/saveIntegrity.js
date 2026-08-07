@@ -294,7 +294,7 @@ function enforcePoopShopStyle(fromObserver = false) {
     btn.dataset.poopShopApplied = POOP_SHOP_FLAG;
     if (shopBtnObserver) shopBtnObserver.observe(btn, { attributes: true, attributeFilter: ['style', 'class', 'data-poop-shop-applied'] });
     
-    if (fromObserver) {
+    if (fromObserver === true) {
       showWideNotification("No! Embrace the poop-shop of shame!");
     }
   }
@@ -329,7 +329,7 @@ function startPoopShopEnforcer() {
 
   hookShopObserver();
 
-  window.addEventListener('saveSlot:change', enforcePoopShopStyle);
+  window.addEventListener('saveSlot:change', () => enforcePoopShopStyle());
   window.addEventListener('saveSlot:modified', (ev) => {
     try {
       const active = getActiveSlot();
