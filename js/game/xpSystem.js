@@ -1083,7 +1083,7 @@ export function addXp(amount, { silent = false } = {}) {
       try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'xp', delta: inc, progress: xpState.progress } })); } catch {}
     }
 
-    return {
+    const detail = {
       unlocked: true,
       xpLevelsGained: bnZero(),
       xpAdded: inc, // we won't even parse `amount` or run multipliers
@@ -1092,6 +1092,10 @@ export function addXp(amount, { silent = false } = {}) {
       requirement: requirementBn,
       slot
     };
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } })); } catch {}
+    }
+    return detail;
   }
 
   // 3. Apply Multipliers
