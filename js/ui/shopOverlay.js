@@ -1338,6 +1338,17 @@ export function closeDelveSpecificOverlays() {
 }
 
 export function updateShopOverlay(force = false) {
+    // If the merchant or miner overlay is open, they completely cover the shop.
+    // Skip updating the shop upgrades DOM to prevent massive garbage collection lag 
+    // spikes exactly every 10 seconds caused by building upgrade UI data 20x a second.
+    if (!force) {
+        const mOverlay = document.getElementById('merchant-overlay');
+        if (mOverlay && mOverlay.classList.contains('is-open')) return;
+        
+        const minerOverlay = document.getElementById('miner-overlay');
+        if (minerOverlay && minerOverlay.classList.contains('is-open')) return;
+    }
+
     // Update all open shops
     Object.values(shops).forEach(s => s.update(force));
 }
