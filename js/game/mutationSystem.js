@@ -804,7 +804,7 @@ export function addMutationPower(amount) {
       try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'mp', delta: inc, progress: mutationState.progress } })); } catch {}
     }
 
-    return {
+    const detail = {
       delta: inc,
       levelsGained: bnZero(),
       level: mutationState.level.clone?.() ?? mutationState.level,
@@ -813,6 +813,10 @@ export function addMutationPower(amount) {
       previousLevel: mutationState.level.clone?.() ?? mutationState.level,
       previousProgress: mutationState.progress.clone?.() ?? mutationState.progress,
     };
+    if (typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'mp', level: detail.level, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked ?? true, ratio: getMutationProgressRatio() } })); } catch {}
+    }
+    return detail;
   }
 
   let inc;
