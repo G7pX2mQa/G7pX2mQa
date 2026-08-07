@@ -740,7 +740,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
       uiHandle.updateUI();
 
       // Tick the water system visually if it's available so waves don't freeze!
-      // But only if we are actually viewing the playfield (e.g. no overlays are open).
+      // But only if we are actually viewing the playfield (e.g. no playfield-view-blocking overlays are open).
       const isAnyOverlayOpen = document.querySelector('.merchant-overlay.is-open') !== null || document.querySelector('.map-overlay.is-open') !== null;
       if (!isAnyOverlayOpen) {
           if (typeof waterSystem !== 'undefined' && waterSystem && typeof waterSystem.update === 'function') {
