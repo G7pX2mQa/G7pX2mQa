@@ -6,7 +6,7 @@ import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from '../../game/ucSpawne
 import { getDpState, isDpSystemUnlocked } from '../../game/dpSystem.js';
 import { createDropdown } from '../sas/dropdownUtils.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
-import { registerTick, registerFrame, TICK_RATE } from '../../game/gameLoop.js';
+import { registerTick, registerUiFrame, TICK_RATE } from '../../game/gameLoop.js';
 import { BigNum } from '../../util/bigNum.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID } from '../../game/automationUpgrades.js';
 import { getLevelNumber } from '../../game/upgrades.js';
@@ -1100,7 +1100,7 @@ function getMaterialImage(matKey) {
 }
 
 
-registerFrame((time, dt) => {
+registerUiFrame((time, dt) => {
   const panel = document.getElementById('miner-panel-sell');
   const isViewed = panel && panel.classList.contains('is-active') && 
                    (panel.closest('.merchant-overlay.is-open') || document.querySelector('.miner-sheet.is-sell-active'));
