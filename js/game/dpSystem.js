@@ -634,41 +634,6 @@ export function addDp(amount, { silent = false } = {}) {
     };
   }
 
-  const wasLevelInf = !!(dpState.dpLevel?.isInfinite?.() || (typeof dpState.dpLevel?.isInfinite === 'function' && dpState.dpLevel.isInfinite()));
-  const wasProgInf = !!(dpState.progress?.isInfinite?.() || (typeof dpState.progress?.isInfinite === 'function' && dpState.progress.isInfinite()));
-
-  if (wasLevelInf && wasProgInf) {
-    let inc;
-    try {
-      if (amount instanceof BigNum) {
-        inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
-      } else {
-        inc = BigNum.fromAny(amount ?? 0);
-      }
-    } catch {
-      inc = bnZero();
-    }
-    
-    if (!inc.isZero?.()) {
-      try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: inc, progress: dpState.progress } })); } catch {}
-    }
-
-    updateHud();
-    const detail = {
-      unlocked: true,
-      dpLevelsGained: bnZero(),
-      dpAdded: inc,
-      dpLevel: dpState.dpLevel,
-      progress: dpState.progress,
-      requirement: requirementBn,
-      slot
-    };
-    if (!silent && typeof window !== 'undefined') {
-      try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
-    }
-    return detail;
-  }
-
   if (!dpState.unlocked) {
     return {
       unlocked: false,
@@ -697,6 +662,31 @@ export function addDp(amount, { silent = false } = {}) {
   }
 
   inc = applyStatMultiplierOverride('dp', inc);
+
+  const wasLevelInf = !!(dpState.dpLevel?.isInfinite?.() || (typeof dpState.dpLevel?.isInfinite === 'function' && dpState.dpLevel.isInfinite()));
+  const wasProgInf = !!(dpState.progress?.isInfinite?.() || (typeof dpState.progress?.isInfinite === 'function' && dpState.progress.isInfinite()));
+
+  if (wasLevelInf && wasProgInf) {
+    
+    if (!inc.isZero?.()) {
+      try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: inc, progress: dpState.progress } })); } catch {}
+    }
+
+    updateHud();
+    const detail = {
+      unlocked: true,
+      dpLevelsGained: bnZero(),
+      dpAdded: inc,
+      dpLevel: dpState.dpLevel,
+      progress: dpState.progress,
+      requirement: requirementBn,
+      slot
+    };
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
+    }
+    return detail;
+  }
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
     updateHud();
