@@ -7,6 +7,7 @@ export const FIXED_STEP = 1 / TICK_RATE; // 0.05s
 
 const tickListeners = new Set();
 const frameListeners = new Set();
+const uiFrameListeners = new Set();
 let rafId = null;
 let paused = false;
 let lastTime = 0;
@@ -191,6 +192,26 @@ export function registerFrame(callback) {
   return () => {
     frameListeners.delete(callback);
   };
+}
+
+export function registerUiFrame(callback) {
+  if (typeof callback !== 'function') return () => {};
+  uiFrameListeners.add(callback);
+  frameListeners.add(callback);
+  return () => {
+    uiFrameListeners.delete(callback);
+    frameListeners.delete(callback);
+  };
+}
+
+export function triggerUiFrameListeners(time, dt) {
+  uiFrameListeners.forEach(listener => {
+    try {
+      listener(time, dt);
+    } catch (e) {
+      console.error('Error in UI frame listener:', e);
+    }
+  });
 }
 
 export class RateAccumulator {
