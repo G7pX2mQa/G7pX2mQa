@@ -94,7 +94,9 @@ export function getLabLevel() {
   const slot = getActiveSlot();
   if (slot == null) return BigNum.fromInt(0);
   
-  if (bank.coins.value.isInfinite()) {
+  const isLocked = typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(LAB_LEVEL_KEY(slot));
+  
+  if (bank.coins.value.isInfinite() && !isLocked) {
       return BigNum.fromAny('Infinity');
   }
   
