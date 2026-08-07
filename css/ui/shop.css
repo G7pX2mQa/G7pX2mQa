@@ -1130,7 +1130,7 @@
     }
 }
 
-/* Reduce spacing for viewports between 750px and 800px */
+/* Reduce spacing for viewports between 751px and 800px */
 @media (min-height: 751px) and (max-height: 800px) {
     .upg-content,
     .upg-info {
