@@ -347,7 +347,7 @@ export function addPp(amount, { silent = false } = {}) {
       try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'pp', delta: inc, progress: ppState.progress } })); } catch {}
     }
 
-    return {
+    const detail = {
       unlocked: true,
       ppLevelsGained: bnZero(),
       ppAdded: inc,
@@ -356,6 +356,10 @@ export function addPp(amount, { silent = false } = {}) {
       requirement: requirementBn,
       slot
     };
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('pp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } })); } catch {}
+    }
+    return detail;
   }
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
