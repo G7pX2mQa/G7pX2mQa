@@ -1129,3 +1129,11 @@
         gap: calc(var(--upg-spacing) * 0) !important;
     }
 }
+
+/* Reduce spacing for viewports between 750px and 800px */
+@media (min-height: 751px) and (max-height: 800px) {
+    .upg-content,
+    .upg-info {
+        gap: calc(var(--upg-spacing) * 0.5) !important;
+    }
+}
