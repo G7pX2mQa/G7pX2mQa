@@ -12,7 +12,7 @@
  * periods finish in a reasonable wall-clock time.
  */
 
-import { TICK_RATE, FIXED_STEP, pauseGameLoop, resumeGameLoop } from './gameLoop.js';
+import { TICK_RATE, FIXED_STEP, pauseGameLoop, resumeGameLoop, triggerUiFrameListeners } from './gameLoop.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { bank, getActiveSlot, setBankAddInterceptor } from '../util/storage.js';
@@ -740,11 +740,20 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
       uiHandle.updateUI();
 
       // Tick the water system visually if it's available so waves don't freeze!
-      if (typeof waterSystem !== 'undefined' && waterSystem && typeof waterSystem.update === 'function') {
-        waterSystem.update(dt);
-        if (typeof waterSystem.render === 'function') {
-           waterSystem.render(now / 1000, dt);
-        }
+      // But only if we are actually viewing the playfield (e.g. no overlays are open).
+      const isAnyOverlayOpen = document.querySelector('.merchant-overlay.is-open') !== null || document.querySelector('.map-overlay.is-open') !== null;
+      if (!isAnyOverlayOpen) {
+          if (typeof waterSystem !== 'undefined' && waterSystem && typeof waterSystem.update === 'function') {
+            waterSystem.update(dt);
+            if (typeof waterSystem.render === 'function') {
+               waterSystem.render(now / 1000, dt);
+            }
+          }
+      }
+
+      // Tick active UI frames (like Flow and Sell tabs)
+      if (typeof triggerUiFrameListeners === 'function') {
+          triggerUiFrameListeners(now / 1000, dt);
       }
 
       if (done) {
