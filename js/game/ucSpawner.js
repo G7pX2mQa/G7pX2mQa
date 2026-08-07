@@ -32,6 +32,13 @@ export function resetUcEacMaterialAccumulators() {
     } catch {}
 }
 
+if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', () => {
+        window._ucMaterialAccumulators = null;
+        window._ucEacMaterialAccumulators = null;
+    });
+}
+
 export function getUcMaterialAccumulators() {
     if (!window._ucMaterialAccumulators) {
         try {
