@@ -2,7 +2,7 @@ import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
-import { registerTick, registerFrame, FIXED_STEP } from '../../game/gameLoop.js';
+import { registerTick, registerUiFrame, FIXED_STEP } from '../../game/gameLoop.js';
 import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { trackBinaryFlowSequence } from '../../game/secretAchievements.js';
@@ -273,9 +273,9 @@ function syncWaterwheelDecorations(container) {
             if (lvl.cmp(BigNum.fromAny('1e30')) > 0) numLvl = 1e30; 
             else numLvl = lvl.inf || lvl.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(lvl.toPlainIntegerString());
             
-            // Formula: Log10(Level * 10), max 30 per type
+            // Formula: Log10(Level * 10), max 10 per type
             const logVal = Math.floor(Math.log10(numLvl * 10));
-            count = Math.max(0, Math.min(logVal, 30));
+            count = Math.max(0, Math.min(logVal, 10));
         }
         targetCounts[key] = count;
         totalWheels += count;
@@ -1116,6 +1116,7 @@ function onFrame(time, dt) {
     waterwheelRenderer.render(dt);
 
     // Render Side Column Waterwheels
+    const dpr = window.devicePixelRatio || 1;
     for (const [container, data] of animatedWaterwheels) {
         if (!container.isConnected) continue;
         const { wheels, width, height, ctx } = data;
@@ -1144,14 +1145,17 @@ function onFrame(time, dt) {
             const cos = Math.cos(rad); 
             const sin = Math.sin(rad); 
          
-            // Set the transform matrix directly centered on the wheel, respecting devicePixelRatio
-            const dpr = window.devicePixelRatio || 1;
-            ctx.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, cx * dpr, cy * dpr); 
-            ctx.drawImage(img, -w.size / 2, -w.size / 2, w.size, w.size); 
+            // Integer math for faster drawImage and avoiding matrix scaling
+            const dx = Math.round(cx * dpr);
+            const dy = Math.round(cy * dpr);
+            const sw = Math.round(w.size * dpr);
+            const hsw = Math.round(-sw / 2);
+            
+            ctx.setTransform(cos, sin, -sin, cos, dx, dy); 
+            ctx.drawImage(img, hsw, hsw, sw, sw); 
         }
         
         // Reset global transform back to devicePixelRatio scale
-        const dpr = window.devicePixelRatio || 1;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0); 
     }
 
@@ -1770,7 +1774,7 @@ export function initFlowSystem() {
     refreshMysteriousWatcher();
 
     registerTick((dt) => onTick(dt));
-    registerFrame((time, dt) => onFrame(time, dt));
+    registerUiFrame((time, dt) => onFrame(time, dt));
 
     addExternalCoinMultiplierProvider((params) => getWaterwheelCoinMultiplier(params));
     addExternalXpGainMultiplierProvider((params) => getWaterwheelXpMultiplier(params));
