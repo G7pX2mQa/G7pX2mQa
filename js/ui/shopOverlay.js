@@ -1338,17 +1338,6 @@ export function closeDelveSpecificOverlays() {
 }
 
 export function updateShopOverlay(force = false) {
-    // If the merchant or miner overlay is open, they completely cover the shop.
-    // Skip updating the shop upgrades DOM to prevent massive garbage collection lag 
-    // spikes exactly every 10 seconds caused by building upgrade UI data 20x a second.
-    if (!force) {
-        const mOverlay = document.getElementById('merchant-overlay');
-        if (mOverlay && mOverlay.classList.contains('is-open')) return;
-        
-        const minerOverlay = document.getElementById('miner-overlay');
-        if (minerOverlay && minerOverlay.classList.contains('is-open')) return;
-    }
-
     // Update all open shops
     Object.values(shops).forEach(s => s.update(force));
 }
@@ -1356,12 +1345,6 @@ export function updateShopOverlay(force = false) {
 export function setUpgradeCount() { updateShopOverlay(true); }
 
 export function getUpgrades() { 
-    // Return standard upgrades for backward compat? 
-    // Or merge? getUpgrades was previously only returning current adapter data.
-    // If standard is open, return standard. If automation is open, return automation.
-    // If both, prioritizing automation makes sense? 
-    // Or standard is "main" upgrades.
-    // Let's assume this is mostly for standard shop.
     return shops.standard.upgrades;
 }
 
