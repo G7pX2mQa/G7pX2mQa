@@ -1082,7 +1082,15 @@
 
 @media (max-width: 1500px) and (hover: hover) and (pointer: fine) {
   .upg-sheet.is-magnet-upgrade .upg-desc.centered,
-  .upg-sheet.is-magnet-upgrade .upg-line {
+  .upg-sheet.is-magnet-upgrade .upg-line,
+  .upg-sheet.is-hm-upgrade.is-endless-mp .upg-desc.centered,
+  .upg-sheet.is-hm-upgrade.is-endless-mp .upg-line,
+  .upg-sheet.is-hm-upgrade.is-endless-coins .upg-desc.centered,
+  .upg-sheet.is-hm-upgrade.is-endless-coins .upg-line,
+  .upg-sheet.is-hm-upgrade.is-endless-coins-2 .upg-desc.centered,
+  .upg-sheet.is-hm-upgrade.is-endless-coins-2 .upg-line,
+  .upg-sheet.is-hm-upgrade.is-endless-coins-3 .upg-desc.centered,
+  .upg-sheet.is-hm-upgrade.is-endless-coins-3 .upg-line {
     font-size: clamp(26px, 3.6vw, 40px);
   }
 }
@@ -1104,4 +1112,20 @@
 
 .shop-sort-of:hover {
     background: hsla(45, 80%, 40%, 0.22);
+}
+
+/* Shrink upgrade text and lab node overlay text slightly for shorter viewports */
+@media (max-height: 750px) {
+    .upg-title,
+    .upg-level,
+    .upg-desc.centered,
+    .upg-line {
+        transform: scale(0.92);
+        transform-origin: center center;
+    }
+    
+    .upg-content,
+    .upg-info {
+        gap: calc(var(--upg-spacing) * 0) !important;
+    }
 }
