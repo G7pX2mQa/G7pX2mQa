@@ -124,6 +124,12 @@ export function setLabUnlocked(value) {
 
 let currentMultiplier = BigNum.fromInt(1);
 let cachedSurgeLevel = 0;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => {
+    cachedSurgeLevel = 0;
+  });
+}
 let bookRateAccumulator = null;
 let baseTsunamiExponent = 0.0; // declared as mutable because the base tsunami exponent can change over time depending on lab nodes
 
