@@ -143,6 +143,14 @@ export function formatTimeCompact(ms) {
 }
 
 // Make sure to update the resource registry extras with levelStats that don't have a real levelProg
+// RESOURCE_REGISTRY_EXTRAS is used for level stats that are array-based (e.g., multiple research nodes or waterwheels).
+// These stats exist in the main RESOURCE_REGISTRY so core systems can track them, but since they don't have
+// a single, unified progress bar, they are excluded from the main Levels overlay.
+// This extras registry provides overrides (like names, icons, and gradients) specifically for displaying them
+// in places like the Offline Panel and the Multipliers Overlay.
+// Basically RESOURCE_REGISTRY_EXTRAS is a way to tie array-based levels to their respective levelProg stat like RP or FP without having them appear in the Levels overlay.
+// But we define a "color" for research_levels for example, and then we don't define a color for waterwheel_levels because
+// the colors for waterwheel_levels in the offline panel is determined dynamically. But we still need a bgGradient for the Multipliers overlay (their effective levelProg counterpart).
 export const RESOURCE_REGISTRY_EXTRAS = {
   research_levels: {
     key: "research_levels",
@@ -150,12 +158,16 @@ export const RESOURCE_REGISTRY_EXTRAS = {
     plural: "RP",
     icon: "img/stats/rp/rp.webp",
     color: "#005688",
+    bgGradient: "linear-gradient(to bottom, #001f3f 0%, #00244a 25%, #002e5c 50%, #00244a 75%, #001f3f 100%)",
+    showInMultipliers: true,
   },
   waterwheel_levels: {
     key: "waterwheel_levels",
     singular: "FP",
     plural: "FP",
     icon: "img/stats/fp/fp.webp",
+    bgGradient: "linear-gradient(to bottom, #00b0b0 0%, #00d9d9 25%, #00ffff 50%, #00d9d9 75%, #00b0b0 100%)",
+    showInMultipliers: true,
   },
 };
 
@@ -500,7 +512,7 @@ export const RESOURCE_REGISTRY = [
   {
     key: "unobtainium",
     bgGradient:
-      "linear-gradient(to bottom, #330d58 0%, #7633b5 15%, #9352d8 50%, #7633b5 85%, #330d58 100%)",
+      "linear-gradient(to bottom, #330d58 0%, #7633b5 25%, #9352d8 50%, #7633b5 75%, #330d58 100%)",
     icon: "img/materials/unobtainium.webp",
     baseIcon: "img/currencies/scrap/scrap_base.webp",
     noPlusBase: true,
