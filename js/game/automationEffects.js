@@ -383,7 +383,7 @@ export function initAutomationEffects() {
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', (e) => {
         const newSlot = e.detail?.slot;
-        if (newSlot !== undefined && newSlot !== cacheSlot) {
+        if (newSlot !== undefined) {
             autobuyerCache.clear();
             loadUcEacAccumulator();
             scrapAutoSellAccumulator = BigNum.fromInt(0);
