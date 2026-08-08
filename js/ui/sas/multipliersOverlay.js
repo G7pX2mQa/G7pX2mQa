@@ -19,6 +19,12 @@ function isMultiplierGreaterThanOne(multiplier) {
 }
 
 const _unlockedCache = new Set();
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => {
+    _unlockedCache.clear();
+    _lastSlot = null;
+  });
+}
 let _lastSlot = null;
 
 function isMultiplierEverUnlocked(key) {
