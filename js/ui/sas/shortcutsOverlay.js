@@ -9,6 +9,10 @@ import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 const SHORTCUTS_PERMA_UNLOCK_KEY_BASE = 'ccc:shortcuts:permaUnlocks';
 const shortcutsPermaUnlockStateCache = new Map();
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => shortcutsPermaUnlockStateCache.clear());
+}
+
 function ensureShortcutsPermaUnlockState(slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
   if (shortcutsPermaUnlockStateCache.has(slotKey)) {
