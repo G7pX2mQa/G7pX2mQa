@@ -124,7 +124,7 @@ function quantizeRequirement(value) {
   return value.clone?.() ?? value;
 }
 
-function levelToNumber(level) {
+export function levelToNumber(level) {
   if (!level || typeof level !== 'object') return 0;
   if (level.isInfinite?.()) return Number.POSITIVE_INFINITY;
   try {
@@ -976,12 +976,12 @@ export function getRandomMutationCoinId() {
     cachedHighestLevelRef = hLevel;
     let highest = 0;
     try {
-      if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-        const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= BigNum.DEFAULT_PRECISION || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
-        if (s !== 'Infinity') {
-          highest = parseInt(s, 10);
-        } else {
+      if (hLevel) {
+        const levelNum = levelToNumber(hLevel);
+        if (!Number.isFinite(levelNum)) {
           highest = MAX_MUTATION_VISUAL;
+        } else {
+          highest = Math.floor(levelNum);
         }
       }
     } catch (e) {}
