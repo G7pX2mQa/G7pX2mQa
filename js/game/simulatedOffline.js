@@ -210,13 +210,15 @@ function computeLevelDeltas(beforeTotals, afterTotals) {
       for (const id in afterTotals.research_levels) {
           const beforeLvl = beforeTotals.research_levels[id] || 0;
           const afterLvl = afterTotals.research_levels[id] || 0;
-          if (afterLvl > beforeLvl) {
+          const afterBn = BigNum.fromAny(afterLvl);
+          const beforeBn = BigNum.fromAny(beforeLvl);
+          if (afterBn.isInfinite() || afterBn.cmp(beforeBn) > 0) {
               const node = _RESEARCH_NODES.find(n => n.id == id);
               if (node) {
                   researchArr.push({
                       id: id,
                       name: node.title,
-                      levels: afterLvl - beforeLvl
+                      levels: (afterBn.isInfinite() ? afterBn : afterBn.sub(beforeBn))
                   });
               }
           }
