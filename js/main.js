@@ -361,6 +361,7 @@ function applyPendingSlotWipe() {
 
     if (typeof window !== 'undefined') {
       window._ucMaterialAccumulators = null;
+      window._ucEacMaterialAccumulators = null;
     }
 
     // Remove the flag so it only executes once
