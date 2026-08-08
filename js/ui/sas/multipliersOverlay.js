@@ -145,7 +145,7 @@ function processResourceRow(config, grid, initialized) {
     }
   } else {
     let keyToUse = config.key;
-    if (config.type === 'levelStat' && config.key !== 'research_levels' && config.key !== 'waterwheel_levels') {
+    if (config.type === 'levelStat' && !RESOURCE_REGISTRY_EXTRAS[config.key]?.showInMultipliers) {
         return;
     }
     
@@ -189,8 +189,7 @@ function processResourceRow(config, grid, initialized) {
     }
     
     let overrides = { ...config };
-    if (config.key === 'research_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['research_levels'] };
-    if (config.key === 'waterwheel_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['waterwheel_levels'] };
+    if (RESOURCE_REGISTRY_EXTRAS[config.key]) overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS[config.key] };
     
     // Update icon and base icon if changed by overrides
     if (overrides.icon) {
