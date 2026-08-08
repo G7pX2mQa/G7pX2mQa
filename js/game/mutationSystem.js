@@ -963,6 +963,13 @@ export function getMutationGainMultiplier() {
 let cachedHighestLevelRef = null;
 let cachedHighestVisual = 0;
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => {
+    cachedHighestLevelRef = null;
+    cachedHighestVisual = 0;
+  });
+}
+
 export function getRandomMutationCoinId() {
   const hLevel = getHighestMutationLevel();
   if (hLevel !== cachedHighestLevelRef) {
