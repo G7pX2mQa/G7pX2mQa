@@ -386,6 +386,7 @@ export function initAutomationEffects() {
         if (newSlot !== undefined && newSlot !== cacheSlot) {
             autobuyerCache.clear();
             loadUcEacAccumulator();
+            scrapAutoSellAccumulator = BigNum.fromInt(0);
             cacheSlot = newSlot;
         }
     });
