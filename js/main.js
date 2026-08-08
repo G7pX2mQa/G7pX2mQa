@@ -5,7 +5,7 @@ import { createCursorTrail } from './game/cursorTrail.js';
 import { syncXpMpHudLayout } from './ui/hudLayout.js';
 import { initUcPickup } from './game/materialPickup.js';
 import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";
-import { RESOURCE_REGISTRY } from './game/offlinePanel.js';
+import { RESOURCE_REGISTRY, RESOURCE_REGISTRY_EXTRAS } from './game/offlinePanel.js';
 import { setHtmlOrText } from './util/uiHelpers.js';
 import { clearAllDebugOverrides } from './util/debugPanel.js';
 import { unmarkSaveSlotModified, markSaveSlotModified } from './util/storage.js';
@@ -1939,7 +1939,7 @@ function validateMultiplierMethods() {
     if (config.key === 'voidGems' || config.type === 'currency') return;
     
     let keyToUse = config.key;
-    if (config.type === 'levelStat' && config.key !== 'research_levels' && config.key !== 'waterwheel_levels') {
+    if (config.type === 'levelStat' && !RESOURCE_REGISTRY_EXTRAS[config.key]?.showInMultipliers) {
         return;
     }
     
