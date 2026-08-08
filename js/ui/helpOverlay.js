@@ -11,6 +11,10 @@ import { isNodeLocked } from './mapOverlay.js';
 const HELP_PERMA_UNLOCK_KEY_BASE = 'ccc:help:permaUnlocks';
 const helpPermaUnlockStateCache = new Map();
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => helpPermaUnlockStateCache.clear());
+}
+
 function ensureHelpPermaUnlockState(slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
   if (helpPermaUnlockStateCache.has(slotKey)) {
