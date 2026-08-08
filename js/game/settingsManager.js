@@ -5,7 +5,7 @@ import { isLabUnlocked } from './surgeEffects.js';
 import { RESOURCE_REGISTRY } from './offlinePanel.js';
 import { AREA_KEYS } from './upgrades.js';
 import { MAP_NODES } from './mapNodesData.js';
-import { getHighestMutationLevel } from './mutationSystem.js';
+import { getHighestMutationLevel, levelToNumber } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
 import { getMagnetLevel, getLevelNumber } from './upgrades.js';
@@ -302,12 +302,12 @@ export const SETTING_DEFINITIONS = {
       let highest = 0;
       try {
         const hLevel = getHighestMutationLevel();
-        if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-          const s = hLevel.inf || hLevel.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : hLevel.toPlainIntegerString();
-          if (s !== 'Infinity') {
-            highest = parseInt(s, 10);
-          } else {
+        if (hLevel) {
+          const levelNum = levelToNumber(hLevel);
+          if (!Number.isFinite(levelNum)) {
             highest = MAX_MUTATION_VISUAL;
+          } else {
+            highest = Math.floor(levelNum);
           }
         }
       } catch (e) {}
