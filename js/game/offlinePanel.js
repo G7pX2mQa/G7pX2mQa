@@ -799,7 +799,14 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
     if (!val) return;
     if (typeof val.isZero === "function" && val.isZero()) return;
 
-    if (val instanceof BigNum) {
+    if (Array.isArray(val)) {
+      let keep = false;
+      val.forEach(item => {
+        let levelCount = BigNum.fromAny(item.levels);
+        if (levelCount.isInfinite() || levelCount.cmp(BigNum.fromInt(1)) >= 0) keep = true;
+      });
+      if (!keep) return;
+    } else if (val instanceof BigNum) {
       if (!val.isInfinite() && val.cmp(BigNum.fromInt(1)) < 0) return;
     } else if (Number(val) < 1) {
       return;
@@ -840,7 +847,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
         }
 
         const levelCount = BigNum.fromAny(item.levels);
-        const label = levelCount.cmp(BigNum.fromInt(1)) === 0 ? "Level" : "Levels";
+        const label = !levelCount.isInfinite() && levelCount.cmp(BigNum.fromInt(1)) === 0 ? "Level" : "Levels";
 
         let diffText = "";
         if (settingsManager.get("show_offline_diff") && oldTotals && oldTotals[key]) {
