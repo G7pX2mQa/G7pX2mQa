@@ -1028,6 +1028,7 @@ function onTick(dt) {
                 }
             } else if (!levelLocked) {
                 ch.level = BigNum.fromAny('Infinity');
+                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromAny('Infinity') } }));
                 changes = true;
             }
             
@@ -1048,6 +1049,7 @@ function onTick(dt) {
                 if (ch.fp.isInfinite()) {
                     if (!levelLocked) {
                         ch.level = BigNum.fromAny('Infinity');
+                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromAny('Infinity') } }));
                         changes = true;
                     }
                 } else {
@@ -1070,6 +1072,7 @@ function onTick(dt) {
                      ch.fp = BigNum.fromAny(ch.fp);
                      if (!levelLocked) {
                          ch.level = BigNum.fromAny('Infinity');
+                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromAny('Infinity') } }));
                          changes = true;
                      }
                 } else {
