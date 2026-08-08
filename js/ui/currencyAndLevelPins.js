@@ -342,6 +342,10 @@ let pinnedLevelsContainer = null;
 let levelSubscriptions = {};
 
 const levelStateCache = {};
+window.addEventListener('saveSlot:change', () => {
+    for (const key in levelStateCache) delete levelStateCache[key];
+});
+
 window.addEventListener("level:change", (e) => {
     if (e.detail && e.detail.prefix) {
         const slot = getActiveSlot() || 'default';
