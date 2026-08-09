@@ -21,14 +21,16 @@ export const UC_MATERIAL_DATA = [
 export function resetUcMaterialAccumulators() {
     window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
     try {
-        localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
+        const slot = getActiveSlot();
+        if (slot != null) localStorage.setItem(`ccc:ucMaterialAccumulators:${slot}`, JSON.stringify(window._ucMaterialAccumulators));
     } catch {}
 }
 
 export function resetUcEacMaterialAccumulators() {
     window._ucEacMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
     try {
-        localStorage.setItem(`ccc:ucEacMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucEacMaterialAccumulators));
+        const slot = getActiveSlot();
+        if (slot != null) localStorage.setItem(`ccc:ucEacMaterialAccumulators:${slot}`, JSON.stringify(window._ucEacMaterialAccumulators));
     } catch {}
 }
 
@@ -42,7 +44,8 @@ if (typeof window !== 'undefined') {
 export function getUcMaterialAccumulators() {
     if (!window._ucMaterialAccumulators) {
         try {
-            const stored = localStorage.getItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`);
+            const slot = getActiveSlot();
+            const stored = slot != null ? localStorage.getItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
             if (stored) {
                 window._ucMaterialAccumulators = JSON.parse(stored);
             } else {
@@ -59,7 +62,8 @@ export function getUcMaterialAccumulators() {
 export function getUcEacMaterialAccumulators() {
     if (!window._ucEacMaterialAccumulators) {
         try {
-            const stored = localStorage.getItem(`ccc:ucEacMaterialAccumulators:${getActiveSlot()}`);
+            const slot = getActiveSlot();
+            const stored = slot != null ? localStorage.getItem(`ccc:ucEacMaterialAccumulators:${slot}`) : null;
             if (stored) {
                 window._ucEacMaterialAccumulators = JSON.parse(stored);
             } else {
@@ -76,7 +80,8 @@ export function getUcEacMaterialAccumulators() {
 export function saveUcEacMaterialAccumulators() {
     try {
         if (window._ucEacMaterialAccumulators) {
-            localStorage.setItem(`ccc:ucEacMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucEacMaterialAccumulators));
+            const slot = getActiveSlot();
+            if (slot != null) localStorage.setItem(`ccc:ucEacMaterialAccumulators:${slot}`, JSON.stringify(window._ucEacMaterialAccumulators));
         }
     } catch {}
 }
@@ -474,7 +479,8 @@ export function createUcSpawner(config = {}) {
                         // Execute DP Checks and Spawn Logic right at strike
                         if (!window._ucMaterialAccumulators) {
                             try {
-                                const stored = localStorage.getItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`);
+                                const slot = getActiveSlot();
+                                const stored = slot != null ? localStorage.getItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
                                 if (stored) {
                                     window._ucMaterialAccumulators = JSON.parse(stored);
                                 } else {
@@ -584,7 +590,8 @@ export function createUcSpawner(config = {}) {
                         
                         try {
                             if (!window._lastUcStorageSaveTime || now - window._lastUcStorageSaveTime > 2000) {
-                                localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
+                                const slot = getActiveSlot();
+                                if (slot != null) localStorage.setItem(`ccc:ucMaterialAccumulators:${slot}`, JSON.stringify(window._ucMaterialAccumulators));
                                 window._lastUcStorageSaveTime = now;
                             }
                         } catch {}
