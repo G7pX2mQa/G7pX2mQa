@@ -62,7 +62,7 @@ const MERCHANT_MET_KEY_BASE  = 'ccc:merchantMet';
 const MERCHANT_TAB_KEY_BASE  = 'ccc:merchantTab';
 export const MERCHANT_DLG_STATE_KEY_BASE = 'ccc:merchant:dlgState';
 export const MERCHANT_MET_EVENT = 'ccc:merchant:met';
-const sk = (base) => `${base}:${getActiveSlot()}`;
+const sk = (base) => `${base}:${getActiveSlot() ?? 'default'}`;
 
 export function hasMetMerchant() {
   try {
@@ -916,12 +916,13 @@ const engine = new DialogueEngine({
 
     let initialChoice = 3;
     try {
-      const stored = localStorage.getItem(`ccc:merchant:initialChoice:${getActiveSlot()}`);
+      const slot = getActiveSlot();
+      const stored = slot != null ? localStorage.getItem(`ccc:merchant:initialChoice:${slot}`) : null;
       if (stored) {
         initialChoice = parseInt(stored, 10);
       } else {
       if (getActiveSlot() != null) {
-        localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot()}`, '3');
+        localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot() ?? 'default'}`, '3');
       }
       }
     } catch {}
@@ -1746,7 +1747,7 @@ function runFirstMeet() {
           else if (opt.to === 'r_where') choice = 2;
           try {
           if (getActiveSlot() != null) {
-            localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot()}`, choice.toString());
+            localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot() ?? 'default'}`, choice.toString());
           }
           } catch {}
         }
