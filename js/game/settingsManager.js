@@ -168,6 +168,10 @@ export const SETTING_DEFINITIONS = {
     default: true,
     unlockCondition: () => {
       try {
+        const slot = getActiveSlot();
+        if (slot != null && localStorage.getItem(`ccc:debug:toggleTheW:${slot}`) !== '1') {
+          return false;
+        }
         return hasDoneSurgeReset();
       } catch {
         return false;
