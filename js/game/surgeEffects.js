@@ -268,7 +268,7 @@ function updateMultiplier() {
 export function getSurge21BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+  return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge21Multiplier() {
@@ -299,7 +299,7 @@ export function getSurge21Multiplier() {
 export function getSurge23BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+  return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge23Multiplier() {
@@ -330,7 +330,7 @@ export function getSurge23Multiplier() {
 export function getSurge25BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+  return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge25Multiplier() {
@@ -361,7 +361,7 @@ export function getSurge25Multiplier() {
 export function getSurge27BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+  return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge27Multiplier() {
@@ -392,7 +392,7 @@ export function getSurge27Multiplier() {
 export function getSurge29BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+  return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge29Multiplier() {
@@ -423,7 +423,7 @@ export function getSurge29Multiplier() {
 export function getSurge31BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+  return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge31Multiplier() {
@@ -454,7 +454,7 @@ export function getSurge31Multiplier() {
 export function getSurge33BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+  return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge33Multiplier() {
@@ -485,7 +485,7 @@ export function getSurge33Multiplier() {
 export function getSurge35BonusPercentage() {
   const effective = getTsunamiExponent();
   if (effective === 0) return 0;
-  return Math.floor(Math.pow(1e10, effective) / 4 + 1e-6);
+  return Math.pow(1e10, effective) / 4 + 1e-6;
 }
 
 export function getSurge35Multiplier() {
