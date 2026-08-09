@@ -1,6 +1,7 @@
 import { playAudio } from '../util/audioManager.js';
 
 export function playTsunamiSequence(container, durationMs, onComplete, options = {}) {
+    window.isTsunamiSequencePlaying = true;
     // Hide cursor initially
     container.style.cursor = 'none';
 
@@ -987,6 +988,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     }
 
     function cleanup() {
+        window.isTsunamiSequencePlaying = false;
         isRunning = false;
         container.style.cursor = '';
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
