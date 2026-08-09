@@ -352,13 +352,15 @@ export function saveUcEacAccumulator() {
         let acc = 0;
         const sys = passiveRegistry.find(s => s.id === 'uc_eac');
         if (sys) acc = sys.accumulator;
-        localStorage.setItem(`ccc:ucEacAccumulator:${getActiveSlot()}`, String(acc));
+        const slot = getActiveSlot();
+        if (slot != null) localStorage.setItem(`ccc:ucEacAccumulator:${slot}`, String(acc));
     } catch {}
 }
 
 export function loadUcEacAccumulator() {
     try {
-        const stored = localStorage.getItem(`ccc:ucEacAccumulator:${getActiveSlot()}`);
+        const slot = getActiveSlot();
+        const stored = slot != null ? localStorage.getItem(`ccc:ucEacAccumulator:${slot}`) : null;
         let acc = stored ? Number(stored) : 0;
         if (!Number.isFinite(acc)) acc = 0;
         const sys = passiveRegistry.find(s => s.id === 'uc_eac');
