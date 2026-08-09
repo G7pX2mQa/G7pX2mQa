@@ -1711,7 +1711,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.body.classList.remove('is-hidden');
     }
 
-    setAudioSuspended(hidden);
+    if (window.isTsunamiSequencePlaying && hidden) {
+        import('./util/audioManager.js').then(module => {
+            module.setMasterVolume(0);
+        });
+        window.wasMutedByTsunami = true;
+    } else if (!hidden && window.wasMutedByTsunami) {
+        import('./util/audioManager.js').then(module => {
+            module.setMasterVolume(settingsManager.get('master_volume'));
+        });
+        window.wasMutedByTsunami = false;
+        setAudioSuspended(hidden);
+    } else {
+        setAudioSuspended(hidden);
+    }
     if (currentMusic && currentMusic.element) {
       if (hidden) {
         currentMusic.element.pause();
