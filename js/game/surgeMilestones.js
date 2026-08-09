@@ -68,7 +68,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 4,
     affectedByTsunami: true,
     description: [
-      `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(4.444e12))}x</span>`,
+      `Multiplies MP value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromInt(4.444e12))}x</span>`,
     ],
   },
   {
@@ -140,7 +140,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 14,
     affectedByTsunami: true,
     description: [
-      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny(14.14e6))}x</span>`,
+      `Multiplies DNA value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromAny(14.14e6))}x</span>`,
       "Unlocks Combo: Collecting Coins increases a Combo which alleviates the exponent effect on larger Coins (beware, Combo decays)",
       "Combo effect is shown in the Coin Bar HUD",
     ],
@@ -166,9 +166,9 @@ export const SURGE_MILESTONES = [
     surgeLevel: 17,
     affectedByTsunami: true,
     description: [
-      `Multiplies Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e15))}x</span>`,
-      `Divides Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
-      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
+      `Multiplies Magic value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromInt(1e15))}x</span>`,
+      `Divides Coin value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromInt(1e5))}x</span>`,
+      `Divides DNA value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromInt(1e5))}x</span>`,
       "Halves Wave value (immune to exponent)",
     ],
   },
@@ -177,9 +177,9 @@ export const SURGE_MILESTONES = [
     surgeLevel: 18,
     affectedByTsunami: true,
     description: [
-      `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e15))}x</span>`,
-      `Divides Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
-      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
+      `Multiplies Coin value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromInt(1e15))}x</span>`,
+      `Divides Magic value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromInt(1e5))}x</span>`,
+      `Divides DNA value by <span style="color:#00e5ff">${formatMultForUi(BigNum.fromInt(1e5))}x</span>`,
       "Halves Wave value (immune to exponent)",
     ],
   },
@@ -558,7 +558,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       } else if (m.id === 4) {
         const log10 = Math.log10(4.444e12);
         const newVal = bigNumFromLog10(log10 * nerf);
-        const valStr = formatNumber(newVal);
+        const valStr = formatMultForUi(newVal);
 
         milestone.description[0] = milestone.description[0].replace(
           /<span style="color:#00e5ff">.*?x<\/span>/,
@@ -567,7 +567,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       } else if (m.id === 14) {
         const log10 = Math.log10(14.14e6);
         const newVal = bigNumFromLog10(log10 * nerf);
-        const valStr = formatNumber(newVal);
+        const valStr = formatMultForUi(newVal);
 
         milestone.description[0] = milestone.description[0].replace(
           /<span style="color:#00e5ff">.*?x<\/span>/,
@@ -580,8 +580,8 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const newMult = bigNumFromLog10(logMult * nerf);
         const newDiv = bigNumFromLog10(logDiv * nerf);
 
-        const multStr = formatNumber(newMult);
-        const divStr = formatNumber(newDiv);
+        const multStr = formatMultForUi(newMult);
+        const divStr = formatMultForUi(newDiv);
 
         milestone.description[0] = milestone.description[0].replace(
           /<span style="color:#00e5ff">.*?<\/span>/,
@@ -602,8 +602,8 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         const newMult = bigNumFromLog10(logMult * nerf);
         const newDiv = bigNumFromLog10(logDiv * nerf);
 
-        const multStr = formatNumber(newMult);
-        const divStr = formatNumber(newDiv);
+        const multStr = formatMultForUi(newMult);
+        const divStr = formatMultForUi(newDiv);
 
         milestone.description[0] = milestone.description[0].replace(
           /<span style="color:#00e5ff">.*?<\/span>/,
@@ -894,21 +894,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge21BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases Coin value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 20`;
 
       if (currentLevel >= 21) {
         const mult = getSurge21Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(20));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -958,21 +958,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge35BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 34`;
 
       if (currentLevel >= 35) {
         const mult = getSurge35Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(34));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -984,21 +984,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge33BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases FP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 32`;
 
       if (currentLevel >= 33) {
         const mult = getSurge33Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(32));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -1010,21 +1010,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge27BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases Magic value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 26`;
 
       if (currentLevel >= 27) {
         const mult = getSurge27Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(26));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -1036,21 +1036,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge23BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases XP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 22`;
 
       if (currentLevel >= 23) {
         const mult = getSurge23Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(22));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -1062,21 +1062,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge25BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases Gold value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 24`;
 
       if (currentLevel >= 25) {
         const mult = getSurge25Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(24));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -1088,21 +1088,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge29BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases Wave value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 28`;
 
       if (currentLevel >= 29) {
         const mult = getSurge29Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(28));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -1114,21 +1114,21 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge31BonusPercentage();
-      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      const formattedBaseBonus = formatMultForUi(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases DNA value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge after 30`;
 
       if (currentLevel >= 31) {
         const mult = getSurge31Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
-          formattedBonus = formatNumber(BigNum.fromAny("Infinity"));
+          formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
         } else {
           const diffBN = currentLevelBN.sub(BigNum.fromInt(30));
           const totalBonusPct =
             diffBN.cmp(0) > 0
               ? diffBN.mulDecimal(baseBonusPct)
               : BigNum.fromInt(0);
-          formattedBonus = formatNumber(totalBonusPct);
+          formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
