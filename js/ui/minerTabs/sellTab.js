@@ -660,7 +660,8 @@ function createSellRow(matKey, index) {
    const colSell = document.createElement('div');
    colSell.className = 'sell-col-sell';
    
-   const initVal = localStorage.getItem(`ccc:sellAmount:${getActiveSlot()}:${matKey}`) || '1';
+   const slot = getActiveSlot() ?? 'default';
+   const initVal = localStorage.getItem(`ccc:sellAmount:${slot}:${matKey}`) || '1';
    const dropdownObj = createDropdown({
        getOptions: () => DROPDOWN_OPTIONS,
        getValue: () => {
@@ -678,7 +679,8 @@ function createSellRow(matKey, index) {
                      newAmount = parsed.display || res.trim();
                      if (rowCache) {
                            rowCache.localSellAmount = newAmount;
-                           localStorage.setItem(`ccc:sellAmount:${getActiveSlot()}:${matKey}`, newAmount);
+                           const slot = getActiveSlot() ?? 'default';
+                           localStorage.setItem(`ccc:sellAmount:${slot}:${matKey}`, newAmount);
                        }
                  }
              }
@@ -686,7 +688,8 @@ function createSellRow(matKey, index) {
                newAmount = val;
                if (rowCache) {
                            rowCache.localSellAmount = newAmount;
-                           localStorage.setItem(`ccc:sellAmount:${getActiveSlot()}:${matKey}`, newAmount);
+                           const slot = getActiveSlot() ?? 'default';
+                           localStorage.setItem(`ccc:sellAmount:${slot}:${matKey}`, newAmount);
                        }
            }
            dropdownObj.updateDisplay();
@@ -759,7 +762,7 @@ function createSellRow(matKey, index) {
        ownedEl: colOwned,
        valEl: colVal,
        dropdownWrapper: dropdownWrap,
-       localSellAmount: localStorage.getItem(`ccc:sellAmount:${getActiveSlot()}:${matKey}`) || '1'
+       localSellAmount: localStorage.getItem(`ccc:sellAmount:${getActiveSlot() ?? 'default'}:${matKey}`) || '1'
    };
 }
 
