@@ -364,7 +364,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
     let desktopArrows = null;
     let mobileButtons = null;
-    const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${getActiveSlot()}`;
+    const slot = getActiveSlot() ?? 'default';
+    const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${slot}`;
 
     if (!IS_MOBILE) {
         // Desktop arrows logic
