@@ -43,7 +43,7 @@ let eventsBound = false;
 let tabsState = { buttons: {}, panels: {}, tablist: null };
 
 function sk(base) {
-    return `${base}:${getActiveSlot()}`;
+    return `${base}:${getActiveSlot() ?? 'default'}`;
 }
 
 function setTabUnlocked(key, unlocked) {
