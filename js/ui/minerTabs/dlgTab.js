@@ -13,7 +13,7 @@ const MINER_ICON_SRC = 'img/misc/miner.webp';
 const MINER_MET_KEY_BASE = 'ccc:minerMet';
 export const MINER_MET_EVENT = 'ccc:miner:met';
 
-const sk = (base) => base + ':' + getActiveSlot();
+const sk = (base) => base + ':' + (getActiveSlot() ?? 'default');
 
 export function hasMetMiner() {
   try {
