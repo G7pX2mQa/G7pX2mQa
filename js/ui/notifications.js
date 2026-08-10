@@ -73,8 +73,58 @@ function ensureContainer() {
     return container;
 }
 
+export function pauseNotifications() {
+    isPaused = true;
+    const now = Date.now();
+
+    for (const notif of activeNotifications) {
+        if (notif.timeoutId) {
+            clearTimeout(notif.timeoutId);
+            notif.timeoutId = null;
+            notif.remainingDuration = Math.max(0, notif.duration - (now - notif.startTime));
+        }
+    }
+
+    for (const popup of activeWelcomePopups) {
+        if (popup.timeoutId) {
+            clearTimeout(popup.timeoutId);
+            popup.timeoutId = null;
+            popup.remainingDuration = Math.max(0, popup.duration - (now - popup.startTime));
+        }
+    }
+
+    if (landscapeWarningTracker && landscapeWarningTracker.timeoutId) {
+        clearTimeout(landscapeWarningTracker.timeoutId);
+        landscapeWarningTracker.timeoutId = null;
+        landscapeWarningTracker.remainingDuration = Math.max(0, landscapeWarningTracker.duration - (now - landscapeWarningTracker.startTime));
+    }
+}
+
 export function unpauseNotifications() {
     isPaused = false;
+    const now = Date.now();
+
+    for (const notif of activeNotifications) {
+        if (!notif.timeoutId && notif.remainingDuration != null) {
+            notif.startTime = now;
+            notif.duration = notif.remainingDuration;
+            notif.timeoutId = setTimeout(notif.triggerLeaving, notif.remainingDuration);
+        }
+    }
+
+    for (const popup of activeWelcomePopups) {
+        if (!popup.timeoutId && popup.remainingDuration != null) {
+            popup.startTime = now;
+            popup.duration = popup.remainingDuration;
+            popup.timeoutId = setTimeout(popup.triggerLeaving, popup.remainingDuration);
+        }
+    }
+
+    if (landscapeWarningTracker && !landscapeWarningTracker.timeoutId && landscapeWarningTracker.remainingDuration != null) {
+        landscapeWarningTracker.startTime = now;
+        landscapeWarningTracker.duration = landscapeWarningTracker.remainingDuration;
+        landscapeWarningTracker.timeoutId = setTimeout(landscapeWarningTracker.triggerLeaving, landscapeWarningTracker.remainingDuration);
+    }
     processQueue();
 }
 
@@ -122,7 +172,10 @@ function displayNotification(text, iconSrc, duration) {
             audio,
             resolve: null,
             timeoutId: null,
-            fallbackTimeoutId: null
+            fallbackTimeoutId: null,
+            startTime: Date.now(),
+            duration,
+            triggerLeaving: null
         };
         activeNotifications.add(notifTracker);
         
@@ -140,8 +193,7 @@ function displayNotification(text, iconSrc, duration) {
             });
         });
         
-        // Wait for duration
-        notifTracker.timeoutId = setTimeout(() => {
+        notifTracker.triggerLeaving = () => {
             el.classList.remove('is-visible');
             el.classList.add('is-leaving');
             
@@ -159,7 +211,10 @@ function displayNotification(text, iconSrc, duration) {
                     wrappedResolve();
                 }
             }, 600);
-        }, duration);
+        };
+        
+        // Wait for duration
+        notifTracker.timeoutId = setTimeout(notifTracker.triggerLeaving, duration);
     });
 }
 
@@ -233,7 +288,10 @@ export function showWelcomePopup(isMobile) {
         element: parent,
         audio,
         timeoutId: null,
-        fallbackTimeoutId: null
+        fallbackTimeoutId: null,
+        startTime: Date.now(),
+        duration: 9000,
+        triggerLeaving: null
     };
     activeWelcomePopups.add(popupTracker);
     
@@ -243,7 +301,7 @@ export function showWelcomePopup(isMobile) {
         });
     });
     
-    popupTracker.timeoutId = setTimeout(() => {
+    popupTracker.triggerLeaving = () => {
         el.classList.remove('is-visible');
         el.classList.add('is-leaving');
         
@@ -260,7 +318,9 @@ export function showWelcomePopup(isMobile) {
             }
             activeWelcomePopups.delete(popupTracker);
         }, 1200);
-    }, 9000); // 1s enter + 8s wait = 9000ms
+    };
+    
+    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000); // 1s enter + 8s wait = 9000ms
 }
 
 export function showWideNotification(text, duration = 9000) {
@@ -281,7 +341,10 @@ export function showWideNotification(text, duration = 9000) {
         element: parent,
         audio,
         timeoutId: null,
-        fallbackTimeoutId: null
+        fallbackTimeoutId: null,
+        startTime: Date.now(),
+        duration,
+        triggerLeaving: null
     };
     activeWelcomePopups.add(popupTracker);
     
@@ -291,7 +354,7 @@ export function showWideNotification(text, duration = 9000) {
         });
     });
     
-    popupTracker.timeoutId = setTimeout(() => {
+    popupTracker.triggerLeaving = () => {
         el.classList.remove('is-visible');
         el.classList.add('is-leaving');
         
@@ -308,7 +371,9 @@ export function showWideNotification(text, duration = 9000) {
             }
             activeWelcomePopups.delete(popupTracker);
         }, 1200);
-    }, duration);
+    };
+    
+    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, duration);
 }
 
 export function showWeeklyReminderPopup() {
@@ -336,7 +401,10 @@ export function showLandscapeWarningPopup() {
         el,
         audio,
         timeoutId: null,
-        fallbackTimeoutId: null
+        fallbackTimeoutId: null,
+        startTime: Date.now(),
+        duration: 18000,
+        triggerLeaving: null
     };
     
     requestAnimationFrame(() => {
@@ -345,9 +413,11 @@ export function showLandscapeWarningPopup() {
         });
     });
     
-    landscapeWarningTracker.timeoutId = setTimeout(() => {
+    landscapeWarningTracker.triggerLeaving = () => {
         hideLandscapeWarningPopup();
-    }, 18000); // 18000ms
+    };
+    
+    landscapeWarningTracker.timeoutId = setTimeout(landscapeWarningTracker.triggerLeaving, 18000); // 18000ms
 }
 
 export function hideLandscapeWarningPopup() {
