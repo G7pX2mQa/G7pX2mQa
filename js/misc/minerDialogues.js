@@ -15,7 +15,7 @@ export const MINER_DIALOGUES = {
 
       m1a: {
         type: 'line',
-        say: 'It has been so long... I never thought I would see another <span style="color:#00e5ff">Player</span> again...',
+        say: 'It\'s been so long... I never thought I\'d see another <span style="color:#00e5ff">Player</span> again...',
         next: 'c1a'
       },
       m1b: {
@@ -33,8 +33,8 @@ export const MINER_DIALOGUES = {
         type: 'choice',
         options: [
           { label: 'What do you mean?', to: 'end' },
-          { label: 'Why?', to: 'end' },
-          { label: 'What?', to: 'end' }
+          { label: 'What?', to: 'end' },
+          { label: 'Why?', to: 'end' }
         ]
       },
       c1b: {
@@ -49,8 +49,8 @@ export const MINER_DIALOGUES = {
         type: 'choice',
         options: [
           { label: 'What do you mean?', to: 'end' },
-          { label: 'See what?', to: 'end' },
-          { label: 'What?', to: 'end' }
+          { label: 'What?', to: 'end' },
+          { label: 'See what?', to: 'end' }
         ]
       }
     }
