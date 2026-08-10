@@ -340,7 +340,7 @@ export function createSpawner(config = {}) {
             const pfW = M.pfW;
             const wRect = M.wRect && M.wRect.height > 0 ? M.wRect : { top: M.pfRect.top, left: M.pfRect.left, height: M.pfRect.height * 0.35 };
             const waterToPfTop = wRect.top - M.pfRect.top;
-            const spawnY = Math.max(0, waterToPfTop);
+            const spawnY = 0;
 
             let sizeIndex = 0;
             if (isSurgeActive(2)) {
@@ -398,7 +398,7 @@ export function createSpawner(config = {}) {
             const waveH = vw * (def.h / 100) * randScale;
             
             const waveCenterX = (spawnX + size / 2) + waterToPfLeft;
-            const waveCenterY = spawnY - waterToPfTop;
+            const waveCenterY = 0;
 
             const itemsToAdd = 1 + batchLength;
             if (maxActiveCoins !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveCoins) {
@@ -572,9 +572,10 @@ export function createSpawner(config = {}) {
             }
 
             if (hasWaves) {
-                requestAnimationFrame(() => {
-                   playWaveOncePerBurst();
-                });
+                playWaveOncePerBurst();
+                if (typeof waterSystem !== "undefined" && waterSystem && typeof waterSystem.render === "function") {
+                    waterSystem.render(performance.now() / 1000, 0);
+                }
             }
         },
 
@@ -1146,7 +1147,7 @@ export function createSpawner(config = {}) {
                     const waveH = vw * (def.h / 100) * randScale;
                     
                     const waveCenterX = (state.x + c.size / 2) + waterToPfLeft;
-                    const waveCenterY = state.y - waterToPfTop;
+                    const waveCenterY = 0;
                     
                     const forceTop = sizeIndex >= 4;
                     waterSystem.addWave(waveCenterX, waveCenterY, waveW, waveH, forceTop);
@@ -1155,6 +1156,9 @@ export function createSpawner(config = {}) {
             }
             if (hasWaves) {
                 playWaveOncePerBurst();
+                if (typeof waterSystem !== "undefined" && waterSystem && typeof waterSystem.render === "function") {
+                    waterSystem.render(performance.now() / 1000, 0);
+                }
             }
         }
     });
