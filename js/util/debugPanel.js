@@ -4978,7 +4978,7 @@ function buildMiscContent(content) {
         {
             label: 'Max Nodes Until X',
             onClick: () => {
-                const raw = window.prompt("Input the Lab node number you want to max until (inclusive)");
+                const raw = window.prompt("Input the Lab Node number you want to max until (inclusive)");
                 if (raw == null) return;
                 const limit = parseInt(raw, 10);
                 if (isNaN(limit) || limit <= 0) return;
