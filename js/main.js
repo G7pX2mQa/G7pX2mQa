@@ -1583,6 +1583,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { initPerformanceGraph } = performanceGraphModule;
   const { initNotifications, unpauseNotifications: _unpause, pauseNotifications: _pause, showNotification, showWelcomePopup, showWeeklyReminderPopup, triggerInitialLandscapeCheck } = notificationModule;
 
+  unpauseNotifications = _unpause;
+  pauseNotifications = _pause;
+
   window.checkSaveSlotNotifications = () => {
     const slot = getActiveSlot();
     if (slot != null) {
@@ -1617,8 +1620,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
   const { initFlowSystem } = flowTabModule;
-  unpauseNotifications = _unpause;
-  pauseNotifications = _pause;
 
   window.bank = bank;
   window.unpauseNotifications = unpauseNotifications;
@@ -1707,24 +1708,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (hidden) {
       document.body.classList.add('is-hidden');
+      pauseNotifications();
     } else {
       document.body.classList.remove('is-hidden');
+      if (currentArea !== AREAS.MENU) unpauseNotifications();
     }
 
-    if (window.isTsunamiSequencePlaying && hidden) {
-        import('./util/audioManager.js').then(module => {
-            module.setMasterVolume(0);
-        });
-        window.wasMutedByTsunami = true;
-    } else if (!hidden && window.wasMutedByTsunami) {
-        import('./util/audioManager.js').then(module => {
-            module.setMasterVolume(settingsManager.get('master_volume'));
-        });
-        window.wasMutedByTsunami = false;
-        setAudioSuspended(hidden);
-    } else {
-        setAudioSuspended(hidden);
-    }
+    setAudioSuspended(hidden);
     if (currentMusic && currentMusic.element) {
       if (hidden) {
         currentMusic.element.pause();
