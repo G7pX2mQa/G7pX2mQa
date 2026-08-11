@@ -23,6 +23,21 @@
   margin-left: 24px;
 }
 
+/* Currencies overlay: reduce vertical padding so the scrap row (which has two
+   lines of text) doesn't become disproportionately tall */
+#currencies-overlay .currency-row.scrap-row--has-subtext {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+/* Multipliers overlay: increase min-height so the scrap row matches the taller
+   height of the currencies overlay version */
+#multipliers-overlay .currency-row.scrap-row--has-subtext {
+  min-height: 76px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 .currency-row.universal-row {
   background: linear-gradient(to bottom, 
     #1a1a1c 0%, 
