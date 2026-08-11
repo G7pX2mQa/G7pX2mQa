@@ -9,6 +9,9 @@ import { isBuildingUnlocked } from '../minerTabs/buildingsTab.js';
 import { UC_MATERIALS } from '../../util/storage.js';
 import { IS_MOBILE } from '../../util/platformChecker.js';
 import { settingsManager } from '../../game/settingsManager.js';
+import { getGameStatMultiplier, getDebugStatMultiplierOverride } from '../../util/debugPanel.js';
+import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
+import { bigNumIsInfinite } from '../../util/bigNum.js';
 
 function isMultiplierGreaterThanOne(multiplier) {
   if (multiplier == null) return false;
@@ -39,35 +42,53 @@ function isMultiplierEverUnlocked(key) {
   if (_unlockedCache.has(key)) {
     return true;
   }
-  const k = `ccc:multiplier_unlocked:${key}:${slot}`;
-  const val = localStorage.getItem(k) === 'true';
-  if (val) {
+  const storageKey = UC_MATERIALS.includes(key) ? `ccc:multiplier_unlocked_v2:${key}:${slot}` : `ccc:multiplier_unlocked:${key}:${slot}`;
+  if (localStorage.getItem(storageKey) === 'true') {
     _unlockedCache.add(key);
+    return true;
   }
-  return val;
+  return false;
 }
 
 function setMultiplierEverUnlocked(key) {
   const slot = getActiveSlot();
   if (slot == null) return;
-  const k = `ccc:multiplier_unlocked:${key}:${slot}`;
-  localStorage.setItem(k, 'true');
-  if (_lastSlot === slot) {
-    _unlockedCache.add(key);
-  }
+  const storageKey = UC_MATERIALS.includes(key) ? `ccc:multiplier_unlocked_v2:${key}:${slot}` : `ccc:multiplier_unlocked:${key}:${slot}`;
+  localStorage.setItem(storageKey, 'true');
+  _unlockedCache.add(key);
 }
 
 
 function hasUnlockedUcMaterialMultiplier() {
+  let dpLevelNum = 0;
+  if (window.dpSystem && typeof window.dpSystem.getDpState === 'function') {
+      const dpState = window.dpSystem.getDpState();
+      if (dpState && dpState.dpLevel) {
+          try {
+              dpLevelNum = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
+          } catch {}
+      }
+  }
+
   return UC_MATERIALS.some(mat => {
-    if (!isCurrencyUnlocked(mat)) return false;
+    let unlocked = isCurrencyUnlocked(mat);
+    let everUnlocked = isMultiplierEverUnlocked(mat);
+
+    let depthUnlocked = false;
+    const matData = UC_MATERIAL_DATA.find(d => d.name === mat);
+    if (matData && dpLevelNum >= matData.start) {
+        depthUnlocked = true;
+    }
+
+    if (!unlocked && !depthUnlocked) return false;
+
     // Use the sticky ever-unlocked flag — once a material has qualified it stays shown
-    if (isMultiplierEverUnlocked(mat)) return true;
+    if (everUnlocked) return true;
+    
     // Not yet stamped — check the current live value and stamp if qualifying
     if (!bank[mat]?.mult) return false;
     try {
       if (isMultiplierGreaterThanOne(bank[mat].mult.get())) {
-        setMultiplierEverUnlocked(mat);
         return true;
       }
     } catch {}
@@ -198,31 +219,49 @@ function processResourceRow(config, grid, initialized) {
         return;
     }
     
-    if (keyToUse === 'waves' || keyToUse === 'waves_levels') {
-        keyToUse = 'surge_wave'; // Maps to surgeWaveSystem.getSurgeWaveMultiplier()
-    }
+    let statKey = keyToUse;
+    if (statKey === 'mp') statKey = 'mutation';
+    if (statKey === 'research_levels') statKey = 'rp';
+    if (statKey === 'waterwheel_levels') statKey = 'fp';
 
-    const camelKey = keyToUse.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-    const sysName = camelKey + 'System';
-    const methodName = 'get' + camelKey.charAt(0).toUpperCase() + camelKey.slice(1) + 'Multiplier';
-    
-    if (window[sysName] && typeof window[sysName][methodName] === 'function') {
-      multiplier = window[sysName][methodName]();
+    if (keyToUse === 'waves' || keyToUse === 'waves_levels') {
+        if (window.surgeWaveSystem && typeof window.surgeWaveSystem.getSurgeWaveMultiplier === 'function') {
+            multiplier = window.surgeWaveSystem.getSurgeWaveMultiplier();
+        } else {
+            multiplier = 1;
+        }
     } else {
-      multiplier = 1;
+        const authenticMult = getGameStatMultiplier(statKey);
+        const debugOverride = getDebugStatMultiplierOverride(statKey);
+        multiplier = debugOverride || authenticMult || 1;
     }
   }
 
   let unlocked = isMultiplierEverUnlocked(config.key);
-  if (!unlocked && isMultiplierGreaterThanOne(multiplier)) {
-    setMultiplierEverUnlocked(config.key);
-    unlocked = true;
+  
+  if (!UC_MATERIALS.includes(config.key)) {
+    if (!unlocked && isMultiplierGreaterThanOne(multiplier)) {
+      setMultiplierEverUnlocked(config.key);
+      unlocked = true;
+    }
   }
 
   // UC materials are always shown only inside the collapsible dropdown under the scrap row,
   // never in the main grid — so always treat them as hidden here.
   if (UC_MATERIALS.includes(config.key)) {
     unlocked = false;
+  }
+
+  const isScrap = config.key === 'scrap';
+  const showScrapDropdown = isScrap && hasUnlockedUcMaterialMultiplier();
+
+  if (initialized && isScrap && showScrapDropdown) {
+    const rowData = grid._rows[config.key];
+    if (rowData && !rowData.row.classList.contains('scrap-row--has-subtext')) {
+      rowData.row.remove();
+      delete grid._rows[config.key];
+      initialized = false;
+    }
   }
 
   if (!initialized) {
@@ -253,8 +292,6 @@ function processResourceRow(config, grid, initialized) {
     }
 
     const rowText = formatMultForUi(multiplier);
-    const isScrap = config.key === 'scrap';
-    const showScrapDropdown = isScrap && hasUnlockedUcMaterialMultiplier();
 
     let scrapRowOpts = {};
     if (showScrapDropdown) {
@@ -344,18 +381,39 @@ function syncUcMaterialsDropdown(grid) {
   // Render each UC material that has been permanently unlocked (currency-unlocked
   // AND has ever had a multiplier > 1). Show current live value even if it has
   // since dropped back to 1x — the row stays visible permanently once qualified.
-  UC_MATERIALS.forEach(mat => {
-    if (!isCurrencyUnlocked(mat)) return;
+  
+  let dpLevelNum = 0;
+  if (window.dpSystem && typeof window.dpSystem.getDpState === 'function') {
+      const dpState = window.dpSystem.getDpState();
+      if (dpState && dpState.dpLevel) {
+          try {
+              dpLevelNum = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
+          } catch {}
+      }
+  }
 
-    // Sticky gate: stamp on first qualifying check, never un-show after that
+  UC_MATERIALS.forEach(mat => {
+    let unlocked = isCurrencyUnlocked(mat);
     let everUnlocked = isMultiplierEverUnlocked(mat);
+
+    let depthUnlocked = false;
+    const matData = UC_MATERIAL_DATA.find(d => d.name === mat);
+    if (matData && dpLevelNum >= matData.start) {
+        depthUnlocked = true;
+    }
+
+    if (!unlocked && !depthUnlocked) return;
+
     if (!everUnlocked) {
       if (!bank[mat]?.mult) return;
       let currentMult = 1;
       try { currentMult = bank[mat].mult.get(); } catch { return; }
-      if (!isMultiplierGreaterThanOne(currentMult)) return;
-      setMultiplierEverUnlocked(mat);
-      everUnlocked = true;
+      if (isMultiplierGreaterThanOne(currentMult)) {
+        setMultiplierEverUnlocked(mat);
+        everUnlocked = true;
+      } else {
+        return;
+      }
     }
 
     // Read current live value for display (may be 1x if allMaterials dropped)
