@@ -99,8 +99,8 @@ export function createCurrencyRow(container, isUniversal, currencyId, iconSrc, b
     const isMobileStr = IS_MOBILE ? "Tap" : "Click";
     const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
     scrapTextDiv.textContent = isOpen
-      ? `${isMobileStr} this row to stop viewing Underwater Cavern materials`
-      : `${isMobileStr} this row to view Underwater Cavern materials`;
+      ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials`
+      : `${isMobileStr} this row to view Underwater Cavern Materials`;
     scrapTextDiv.style.fontSize = '0.7em';
     scrapTextDiv.style.webkitTextStroke = '0.7px #000';
     scrapTextDiv.style.color = '#cccccc';
@@ -127,8 +127,8 @@ export function createCurrencyRow(container, isUniversal, currencyId, iconSrc, b
       if (scrapTextDiv) {
         const isMobileStr = IS_MOBILE ? "Tap" : "Click";
         scrapTextDiv.textContent = isOpen
-          ? `${isMobileStr} this row to stop viewing Underwater Cavern materials`
-          : `${isMobileStr} this row to view Underwater Cavern materials`;
+          ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials`
+          : `${isMobileStr} this row to view Underwater Cavern Materials`;
       }
 
       const overlayEl = container.closest('.sas-overlay');
@@ -564,7 +564,7 @@ function handleCurrencyChange(e) {
                  const scrapTextDiv = document.createElement('div');
                  const isMobileStr = IS_MOBILE ? "Tap" : "Click";
                  const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
-                 scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
+                 scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials` : `${isMobileStr} this row to view Underwater Cavern Materials`;
                  scrapTextDiv.style.fontSize = '0.7em';
                  scrapTextDiv.style.webkitTextStroke = '0.7px #000';
                  scrapTextDiv.style.color = '#cccccc';
