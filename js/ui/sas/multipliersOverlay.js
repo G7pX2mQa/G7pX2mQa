@@ -7,6 +7,8 @@ import { createDropdown } from "./dropdownUtils.js";
 import { getActiveSlot } from '../../util/storage.js';
 import { isBuildingUnlocked } from '../minerTabs/buildingsTab.js';
 import { UC_MATERIALS } from '../../util/storage.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
+import { settingsManager } from '../../game/settingsManager.js';
 
 function isMultiplierGreaterThanOne(multiplier) {
   if (multiplier == null) return false;
@@ -56,11 +58,28 @@ function setMultiplierEverUnlocked(key) {
 }
 
 
-function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, config) {
+function hasUnlockedUcMaterialMultiplier() {
+  return UC_MATERIALS.some(mat => {
+    if (!isCurrencyUnlocked(mat)) return false;
+    // Use the sticky ever-unlocked flag — once a material has qualified it stays shown
+    if (isMultiplierEverUnlocked(mat)) return true;
+    // Not yet stamped — check the current live value and stamp if qualifying
+    if (!bank[mat]?.mult) return false;
+    try {
+      if (isMultiplierGreaterThanOne(bank[mat].mult.get())) {
+        setMultiplierEverUnlocked(mat);
+        return true;
+      }
+    } catch {}
+    return false;
+  });
+}
+
+function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, config, opts = {}) {
   const row = document.createElement('div');
   row.className = 'currency-row';
   row.dataset.key = key;
-  
+
   if (config && config.bgGradient) {
     row.style.setProperty('background', config.bgGradient, 'important');
   }
@@ -72,12 +91,11 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
 
   const iconWrapper = document.createElement('div');
   iconWrapper.className = 'currency-icon-wrapper';
-  // Since we aren't displaying the name, maybe add some margin or layout adjustments.
 
   const iconImg = document.createElement('img');
   iconImg.className = 'currency-base';
   iconImg.src = baseSrc || iconSrc;
-  
+
   iconWrapper.appendChild(iconImg);
 
   if (config?.noPlusBase && iconSrc && baseSrc && iconSrc !== baseSrc) {
@@ -95,10 +113,40 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
   amountDiv.classList.add('currency-amount');
   amountDiv.style.flex = 'none';
   amountDiv.style.marginLeft = '10px';
-  setHtmlOrText(amountDiv, `${config?.plural || config?.singular || key}: ${multiplierText}x`);
+
+  if (opts.subText) {
+    // Two-line layout: multiplier value on top, sub-text below
+    amountDiv.style.display = 'flex';
+    amountDiv.style.flexDirection = 'column';
+    amountDiv.style.alignItems = 'center';
+    amountDiv.style.justifyContent = 'center';
+
+    const mainTextDiv = document.createElement('div');
+    setHtmlOrText(mainTextDiv, `${config?.plural || config?.singular || key}: ${multiplierText}x`);
+    amountDiv.appendChild(mainTextDiv);
+
+    const subTextEl = document.createElement('div');
+    subTextEl.style.fontSize = '0.7em';
+    subTextEl.style.webkitTextStroke = '0.7px #000';
+    subTextEl.style.color = '#cccccc';
+    subTextEl.style.marginTop = '2px';
+    subTextEl.style.pointerEvents = 'none';
+    setHtmlOrText(subTextEl, opts.subText);
+    amountDiv.appendChild(subTextEl);
+
+    row.classList.add('scrap-row--has-subtext');
+    row._subTextEl = subTextEl;
+  } else {
+    setHtmlOrText(amountDiv, `${config?.plural || config?.singular || key}: ${multiplierText}x`);
+  }
 
   info.appendChild(iconWrapper);
   info.appendChild(amountDiv);
+
+  if (opts.onClick) {
+    info.style.cursor = 'pointer';
+    info.addEventListener('click', opts.onClick);
+  }
 
   row.appendChild(info);
 
@@ -120,6 +168,7 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
   row._cleanupDropdown = cleanup;
 
   container.appendChild(row);
+  return row;
 }
 
 function getUnlockedCurrencies() {
@@ -170,10 +219,10 @@ function processResourceRow(config, grid, initialized) {
     unlocked = true;
   }
 
-  if (unlocked && UC_MATERIALS.includes(config.key)) {
-    if (!isBuildingUnlocked(config.key)) {
-      unlocked = false;
-    }
+  // UC materials are always shown only inside the collapsible dropdown under the scrap row,
+  // never in the main grid — so always treat them as hidden here.
+  if (UC_MATERIALS.includes(config.key)) {
+    unlocked = false;
   }
 
   if (!initialized) {
@@ -204,7 +253,35 @@ function processResourceRow(config, grid, initialized) {
     }
 
     const rowText = formatMultForUi(multiplier);
-    createMultiplierRow(grid, config.key, iconSrc, baseSrc, rowText, overrides);
+    const isScrap = config.key === 'scrap';
+    const showScrapDropdown = isScrap && hasUnlockedUcMaterialMultiplier();
+
+    let scrapRowOpts = {};
+    if (showScrapDropdown) {
+      const isMobileStr = IS_MOBILE ? 'Tap' : 'Click';
+      const isOpen = settingsManager.get('multipliers_scrap_materials_dropdown_open');
+      scrapRowOpts = {
+        subText: isOpen
+          ? `${isMobileStr} this row to stop viewing Underwater Cavern material multipliers`
+          : `${isMobileStr} this row to view Underwater Cavern material multipliers`,
+        onClick: () => {
+          const nowOpen = !settingsManager.get('multipliers_scrap_materials_dropdown_open');
+          settingsManager.set('multipliers_scrap_materials_dropdown_open', nowOpen);
+          // Update sub-text label
+          const rowData = grid._rows['scrap'];
+          if (rowData && rowData.row._subTextEl) {
+            const str = IS_MOBILE ? 'Tap' : 'Click';
+            rowData.row._subTextEl.textContent = nowOpen
+              ? `${str} this row to stop viewing Underwater Cavern material multipliers`
+              : `${str} this row to view Underwater Cavern material multipliers`;
+          }
+          // Rebuild the UC dropdown container
+          syncUcMaterialsDropdown(grid);
+        },
+      };
+    }
+
+    createMultiplierRow(grid, config.key, iconSrc, baseSrc, rowText, overrides, scrapRowOpts);
     const newRow = grid.lastElementChild;
     
     // Initially set innerHTML (as createMultiplierRow relies on it)
@@ -229,7 +306,13 @@ function processResourceRow(config, grid, initialized) {
         const newText = `${rowData.plural}: ${formatMultForUi(multiplier)}x`;
         if (rowData.lastText !== newText) {
           rowData.lastText = newText;
-          setHtmlOrText(rowData.amountDiv, newText);
+          // Update the main text; if the row has sub-text, only update the main text node
+          if (rowData.row._subTextEl) {
+            const mainTextEl = rowData.amountDiv.firstChild;
+            if (mainTextEl) setHtmlOrText(mainTextEl, newText);
+          } else {
+            setHtmlOrText(rowData.amountDiv, newText);
+          }
         }
       } else {
         rowData.row.style.display = 'none';
@@ -238,10 +321,71 @@ function processResourceRow(config, grid, initialized) {
   }
 }
 
+function syncUcMaterialsDropdown(grid) {
+  // Remove existing UC materials dropdown container if present
+  const existing = grid.querySelector('.uc-materials-multiplier-dropdown');
+  if (existing) existing.remove();
+
+  const isOpen = settingsManager.get('multipliers_scrap_materials_dropdown_open');
+  if (!isOpen) return;
+
+  const scrapRowData = grid._rows['scrap'];
+  if (!scrapRowData || scrapRowData.row.style.display === 'none') return;
+
+  // Build the dropdown container positioned right after the scrap row
+  const container = document.createElement('div');
+  container.className = 'uc-materials-multiplier-dropdown materials-dropdown-container';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '10px';
+  container.style.paddingLeft = '20px';
+  container.style.borderLeft = '2px solid #555';
+
+  // Render each UC material that has been permanently unlocked (currency-unlocked
+  // AND has ever had a multiplier > 1). Show current live value even if it has
+  // since dropped back to 1x — the row stays visible permanently once qualified.
+  UC_MATERIALS.forEach(mat => {
+    if (!isCurrencyUnlocked(mat)) return;
+
+    // Sticky gate: stamp on first qualifying check, never un-show after that
+    let everUnlocked = isMultiplierEverUnlocked(mat);
+    if (!everUnlocked) {
+      if (!bank[mat]?.mult) return;
+      let currentMult = 1;
+      try { currentMult = bank[mat].mult.get(); } catch { return; }
+      if (!isMultiplierGreaterThanOne(currentMult)) return;
+      setMultiplierEverUnlocked(mat);
+      everUnlocked = true;
+    }
+
+    // Read current live value for display (may be 1x if allMaterials dropped)
+    let multiplier = 1;
+    if (bank[mat]?.mult) {
+      try { multiplier = bank[mat].mult.get(); } catch { multiplier = 1; }
+    }
+
+    const config = RESOURCE_REGISTRY.find(c => c.key === mat);
+    const overrides = config
+      ? (RESOURCE_REGISTRY_EXTRAS[mat] ? { ...config, ...RESOURCE_REGISTRY_EXTRAS[mat] } : { ...config })
+      : { key: mat, singular: mat, plural: mat };
+
+    let iconSrc = overrides.icon || 'img/misc/mysterious.webp';
+    let baseSrc = overrides.baseIcon || 'img/misc/locked.webp';
+
+    createMultiplierRow(container, mat, iconSrc, baseSrc, formatMultForUi(multiplier), overrides);
+  });
+
+  if (container.children.length === 0) return;
+
+  // Insert after the scrap row
+  const scrapRow = scrapRowData.row;
+  scrapRow.after(container);
+}
+
 function populateMultipliersOverlay(overlayEl, keysToUpdate = null) {
   const grid = overlayEl.querySelector('.currencies-grid');
   if (!grid) return;
-  
+
   let noteEl = overlayEl.querySelector('.multipliers-note');
   if (!noteEl) {
     noteEl = document.createElement('div');
@@ -252,7 +396,7 @@ function populateMultipliersOverlay(overlayEl, keysToUpdate = null) {
     noteEl.textContent = 'Note: Currency or stat multipliers will only appear here if they have changed from their default value of 1x';
     grid.parentElement.insertBefore(noteEl, grid);
   }
-  
+
   grid.setAttribute('role', 'grid');
 
   const initialized = grid.hasAttribute('data-initialized');
@@ -268,12 +412,15 @@ function populateMultipliersOverlay(overlayEl, keysToUpdate = null) {
         processResourceRow(config, grid, true);
       }
     });
+    // Re-sync the UC dropdown in case a material multiplier changed
+    syncUcMaterialsDropdown(grid);
   } else {
     RESOURCE_REGISTRY.forEach(config => {
       processResourceRow(config, grid, initialized);
     });
+    syncUcMaterialsDropdown(grid);
   }
-  
+
   if (!initialized) {
     grid.setAttribute('data-initialized', 'true');
   }
@@ -318,7 +465,9 @@ const multipliersOverlay = createSASOverlay({
     window.addEventListener('currency:unlock', handleMultiplierChange);
     window.addEventListener('xp:unlock', handleMultiplierChange);
     window.addEventListener('unlock:change', handleMultiplierChange);
-    // Might want more events if level multipliers change differently
+    window.addEventListener('debug:change', handleMultiplierChange);
+    window.addEventListener('surge:level:change', handleMultiplierChange);
+    window.addEventListener('ccc:buildings:changed', handleMultiplierChange);
   },
   onClose: () => {
     window.removeEventListener('currency:multiplier', handleMultiplierChange);
@@ -326,6 +475,9 @@ const multipliersOverlay = createSASOverlay({
     window.removeEventListener('currency:unlock', handleMultiplierChange);
     window.removeEventListener('xp:unlock', handleMultiplierChange);
     window.removeEventListener('unlock:change', handleMultiplierChange);
+    window.removeEventListener('debug:change', handleMultiplierChange);
+    window.removeEventListener('surge:level:change', handleMultiplierChange);
+    window.removeEventListener('ccc:buildings:changed', handleMultiplierChange);
     if (multipliersOverlay.overlayEl) {
       const rows = multipliersOverlay.overlayEl.querySelectorAll('.currency-row');
       rows.forEach(row => {
