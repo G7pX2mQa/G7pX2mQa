@@ -542,7 +542,7 @@ class SettingsManager {
 
     // Clear old dynamic currency and level settings from memory to prevent bleed between slots
     for (const k in this.settings) {
-      if (k.startsWith("currency_") || k.startsWith("level_") || k.startsWith("area_pinned_")) {
+      if (k.startsWith("currency_") || k.startsWith("level_") || k.startsWith("area_pinned_") || k.startsWith("multipliers_")) {
         delete this.settings[k];
         delete this._isDefault[k];
       }
@@ -562,6 +562,7 @@ class SettingsManager {
         dynamicKeysToCheck.push(`currency_${cKey}_pinned`);
         dynamicKeysToCheck.push(`currency_${cKey}_materials_dropdown_open`);
     });
+    dynamicKeysToCheck.push(`multipliers_scrap_materials_dropdown_open`);
 
     // Check resource levels
     RESOURCE_REGISTRY.forEach(config => {
@@ -601,10 +602,10 @@ class SettingsManager {
   }
 
   get(key) {
-    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_"))) return false;
+    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_") || key.startsWith("multipliers_"))) return false;
     
     // Support dynamic currency toggles
-    if (key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_")) {
+    if (key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_") || key.startsWith("multipliers_")) {
       return this.settings[key];
     }
 
@@ -626,7 +627,7 @@ class SettingsManager {
   }
 
   set(key, value) {
-    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_"))) return;
+    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_") || key.startsWith("multipliers_"))) return;
     this.settings[key] = value;
     this._isDefault[key] = false;
     const storageKey = this._getKey(key);
