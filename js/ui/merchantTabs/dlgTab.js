@@ -1,853 +1,2370 @@
-export const MERCHANT_DIALOGUES = {
-  0: {
-    start: 'n0',
-    nodes: {
-      n0: { type: 'line', say: 'So you want to delve deeper within my Shop, do you?', next: 'c1' },
+// js/ui/merchantTabs/dlgTab.js
 
-      r_who: { type: 'line', say: 'I am the Merchant.', next: 'c2' },
-      r_where: { type: 'line', say: 'The Cove.',          next: 'c2' },
-      r_confused: { type: 'line', say: 'Okay.',                next: 'c3' },
+import { __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio, openDelveOverlay } from '../delveCore.js';
+import { 
+  bank,
+  getActiveSlot,
+  watchStorageKey,
+  primeStorageWatcherSnapshot,
+} from '../../util/storage.js';
+import { BigNum } from '../../util/bigNum.js';
+import { MERCHANT_DIALOGUES } from '../../misc/merchantDialogues.js';
+import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset, isSurgeUnlocked, getCurrentSurgeLevel } from './resetTab.js';
+import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
+import { initWarpTab, updateWarpTab } from './warpTab.js';
+import { initLabTab, updateLabTab, hasSeenLabIntro, setLabIntroSeen } from './labTab.js';
+import { initFlowTab, updateFlowTab, getFlowUnlockState, setFlowUnlockChecker } from './flowTab.js';
+import { isLabUnlocked, getTsunamiSequencePlayed } from '../../game/surgeEffects.js';
+import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
+import {
+  shouldSkipGhostTap,
+  suppressNextGhostTap,
+} from '../../util/ghostTapGuard.js';
+import { IS_MOBILE } from '../../util/platformChecker.js';
+import { playAudio, setAudioUnderwater } from '../../util/audioManager.js';
+import { playSecretDlgBossFightSequence } from '../../misc/secretDlgBossVisuals.js';
+import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
+import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
+import {
+  MYSTERIOUS_ICON_SRC,
+  HIDDEN_DIALOGUE_TITLE,
+  LOCKED_DIALOGUE_TITLE,
+  DEFAULT_MYSTERIOUS_BLURB,
+  DEFAULT_LOCKED_BLURB,
+  DEFAULT_LOCK_MESSAGE,
+  DIALOGUE_STATUS_ORDER,
+  HAS_POINTER_EVENTS,
+  HAS_TOUCH_EVENTS,
+  DialogueEngine,
+  typeText,
+  primeTypingSfx,
+  startTypingSfx,
+  stopTypingSfx,
+  injectScrollTimelineStyles,
+  ensureMerchantScrollbar,
+  bindRapidActivation,
+  openDialogueLockInfo,
+} from '../delveCore.js';
 
-      c1: { type: 'choice', options: [
-        { label: 'Who are you?', to: 'r_who' },
-        { label: 'Where am I?', to: 'r_where' },
-        { label: 'I just clicked on this green button and now I’m confused.', to: 'r_confused' },
-      ]},
+let merchantOverlayEl = null;
+let merchantSheetEl = null;
 
-      c2: { type: 'choice', options: [
-        { label: 'What?', to: 'r2_what' }, 
-        { label: 'That’s not helpful.', to: 'r2_okay' }, 
-        { label: 'Okay.', to: 'r2_okay' }, 
-      ]},
+function nowMs() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
+}
 
-      r2_what: { type: 'line', say: 'What?', next: 'c3' },
-      r2_okay:   { type: 'line', say: 'Okay.',   next: 'c3' },
+const MERCHANT_ICON_SRC = 'img/misc/merchant.webp';
+const MERCHANT_MET_KEY_BASE  = 'ccc:merchantMet';
+const MERCHANT_TAB_KEY_BASE  = 'ccc:merchantTab';
+export const MERCHANT_DLG_STATE_KEY_BASE = 'ccc:merchant:dlgState';
+export const MERCHANT_MET_EVENT = 'ccc:merchant:met';
+const sk = (base) => `${base}:${getActiveSlot() ?? 'default'}`;
 
-      c3: { type: 'choice', options: [
-        { label: 'What?', to: 'r2_what' },
-        { label: 'That’s not helpful.', to: 'r2_okay' },
-        { label: 'Goodbye.', to: 'end' },
-      ]},
+export function hasMetMerchant() {
+  try {
+    return localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+
+const JEFF_UNLOCK_KEY_BASE = 'ccc:unlock:jeff';
+
+export function isJeffUnlocked() {
+  try {
+    return localStorage.getItem(sk(JEFF_UNLOCK_KEY_BASE)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setJeffUnlocked(value) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const key = `${JEFF_UNLOCK_KEY_BASE}:${slot}`;
+  const normalized = !!value;
+  try {
+    localStorage.setItem(key, normalized ? '1' : '0');
+    updateMerchantNameInUI();
+  } catch {}
+}
+
+function getMerchantName() {
+  return isJeffUnlocked() ? 'Jeff' : 'Merchant';
+}
+
+function updateMerchantNameInUI() {
+  const name = getMerchantName();
+  
+  if (merchantOverlayEl) {
+    const modalNames = merchantOverlayEl.querySelectorAll('.merchant-firstchat:not(.merchant-firstchat--initial) .merchant-firstchat__header .name');
+    modalNames.forEach((modalName) => {
+      if (modalName && (modalName.textContent === 'Merchant' || modalName.textContent === 'Jeff')) {
+        modalName.textContent = name;
+      }
+    });
+  }
+}
+
+
+const MERCHANT_TABS_DEF = [
+  { key: 'dialogue',  label: 'Dialogue', unlocked: true },
+  { key: 'reset',     label: 'Reset',    unlocked: false, lockedLabel: '???' },
+  { key: 'workshop',  label: 'Workshop', unlocked: false, lockedLabel: '???' },
+  { key: 'warp',     label: 'Warp',    unlocked: false, lockedLabel: '???' },
+  { key: 'lab',      label: 'Lab',     unlocked: false, lockedLabel: '???' },
+  { key: 'flow',     label: 'Flow',    unlocked: false, lockedLabel: '???' },
+];
+
+const merchantTabUnlockState = new Map([
+  ['dialogue', true],
+  ['reset', false],
+  ['workshop', false],
+  ['warp', false],
+  ['lab', false],
+  ['flow', false],
+]);
+
+const FORGE_COMPLETED_KEY_BASE = 'ccc:reset:forge:completed';
+
+
+
+
+function dialogueStatusRank(status) {
+  return DIALOGUE_STATUS_ORDER[status] ?? 0;
+}
+
+function snapshotLockDisplay(info) {
+  if (!info || typeof info !== 'object') return null;
+  return {
+    title: info.title ?? null,
+    blurb: info.blurb ?? null,
+    tooltip: info.tooltip ?? null,
+    message: info.message ?? null,
+    icon: info.icon ?? null,
+    headerTitle: info.headerTitle ?? null,
+    ariaLabel: info.ariaLabel ?? null,
+  };
+}
+
+function buildUnlockedDialogueInfo(meta) {
+  return {
+    status: 'unlocked',
+    unlocked: true,
+    title: meta.title,
+    blurb: meta.blurb,
+    tooltip: '',
+    message: '',
+    icon: null,
+    headerTitle: null,
+    ariaLabel: meta.title || 'Merchant dialogue',
+  };
+}
+
+let progressEventsBound = false;
+let merchantDlgWatcherInitialized = false;
+let forgeUnlockListenerBound = false;
+
+function setMerchantTabUnlocked(key, unlocked) {
+  const def = MERCHANT_TABS_DEF.find(t => t.key === key);
+  if (!def) return;
+
+  const lockedLabel = def.lockedLabel || '???';
+  const normalized = !!unlocked;
+  merchantTabUnlockState.set(key, normalized);
+  def.unlocked = normalized;
+
+  const btn = merchantTabs.buttons[key];
+  if (btn) {
+    const nextDisabled = !normalized;
+    if (btn.disabled !== nextDisabled) {
+      btn.disabled = nextDisabled;
     }
-  },
-  1: {
-    start: 'n0',
-    nodes: {
-      n0: { type: 'line', say: 'Hello again.', next: 'c0' },
-
-      c0: { type: 'choice', options: [
-        { label: 'Hello.', to: 'm1b' },
-        { label: 'placeholder text', to: 'm1a' },
-        { label: 'I\'m still very confused.', to: 'm1c' },
-      ]},
-
-      m1a: { type: 'line', say: 'placeholder text', next: 'indeterminate' },
-      m1b: { type: 'line', say: 'Hello.',    next: 'c1b' },
-      m1c: { type: 'line', say: 'Okay.',       next: 'c1e' },
-	  m1d: { type: 'line', say: 'Fine.',       next: 'c1d' },
-
-      c1a: { type: 'choice', options: [
-        { label: 'No you didn’t.', to: 'm1a' },
-        { label: 'Incorrect.',          to: 'm2a' },
-        { label: 'Okay I guess you’re right.', to: 'm2b' },
-      ]},
-
-      c1b: { type: 'choice', options: [
-        { label: 'placeholder text', to: 'm1a' },
-        { label: 'How are you?',              to: 'm1d' },
-        { label: 'Okay.',                              to: 'm2b' },
-      ]},
-
-      c1c: { type: 'choice', options: [
-        { label: 'Yes.',  to: 'm2a' },
-        { label: 'Hmm...',  to: 'm1c' },
-        { label: 'Okay.',   to: 'm2b' },
-      ]},
-	  
-	  c1d: { type: 'choice', options: [
-        { label: 'That\'s nice.',  to: 'm2b' },
-        { label: 'Good.',  to: 'm2b' },
-        { label: 'Okay.',   to: 'm2b' },
-      ]},
-	  c1e: { type: 'choice', options: [
-        { label: 'What?',  to: 'm2b' },
-        { label: 'This isn\'t helpful.',  to: 'm2b' },
-        { label: '...',   to: 'm2b' },
-      ]},
-
-      m2a: { type: 'line', say: 'No.', next: 'c1c' },
-      m2b: { type: 'line', say: 'Would you like some Coins? Free of charge. You look like you could use some right now.', next: 'c2a' },
-
-      c2a: { type: 'choice', options: [
-        { label: 'What?',                to: 'm3a' },
-        { label: 'No.',        to: 'm3b' },
-        { label: 'Give me the coins now.', to: 'end' },
-      ]},
-
-      m3a: { type: 'line', say: 'What?', next: 'c2a' },
-      m3b: { type: 'line', say: 'Okay, no Coins for you then.', next: 'c2b' },
-
-      c2b: { type: 'choice', options: [
-        { label: 'No wait, actually I want the coins. Give them to me now.', to: 'end' },
-        { label: 'On second thought, maybe I do want the coins. Give them to me now.', to: 'end' },
-        { label: 'Okay, bye, I don’t need your filthy coins anyway.', to: 'end_nr' },
-      ]},
+    const nextText = normalized ? def.label : lockedLabel;
+    if (btn.textContent !== nextText) {
+      btn.textContent = nextText;
     }
-  },
-  2: {
-    start: 'n0',
-    nodes: {
-      n0: { type: 'line', say: 'I see you’ve unlocked the XP system.', next: 'c0' },
-
-      c0: { type: 'choice', options: [
-        { label: 'What does it do?',      to: 'm1a' },
-        { label: 'What does that mean?',  to: 'm1b' },
-        { label: 'Yes I did that.',       to: 'm1c' },
-      ]},
-
-      m1a: { type: 'line', say: 'Good things.', next: 'c1a' },
-      m1b: { type: 'line', say: 'It means something.', next: 'c1b' },
-      m1c: { type: 'line', say: 'And do you know how the XP system works?', next: 'c1c' },
-	  m1d: { type: 'line', say: 'You\'ll be fine, you don\'t really need to know how it works anyway.', next: 'c1d' },
-	  m1e: { type: 'line', say: 'No.', next: 'c1d' },
-
-      c1a: { type: 'choice', options: [
-        { label: 'Why does this thing even exist?', to: 'm2b' },
-        { label: 'What does that mean?',                               to: 'm1b' },
-        { label: 'Okay.',                                              to: 'm3a' },
-      ]},
-      c1b: { type: 'choice', options: [
-        { label: 'Can you explain in more detail?', to: 'm1e' },
-        { label: 'What?',                           to: 'm2g' },
-        { label: 'Okay.',                          to: 'm3a' },
-      ]},
-      c1c: { type: 'choice', options: [
-        { label: 'I have no idea.',              to: 'm1d' },
-        { label: 'I don’t know the full details.', to: 'm1d' },
-        { label: 'Yes.',                         to: 'm3a' },
-      ]},
-	   c1d: { type: 'choice', options: [
-        { label: '...',              to: 'm3a' },
-        { label: '...', to: 'm3a' },
-        { label: '...',                         to: 'm3a' },
-      ]},
-	  
-      m2b: { type: 'line', say: 'I dunno.', next: 'c2b' },
-      m2c: { type: 'line', say: 'Because I dunno.', next: 'c2c' },
-      m2d: { type: 'line', say: 'What?',    next: 'c2c' },
-      m2e: { type: 'line', say: 'So you can increase your Coin output.', next: 'c2d' },
-      m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
-	  m2g: { type: 'line', say: 'What?', next: 'c2c' },
-
-      c2a: { type: 'choice', options: [
-	    { label: 'No.',                               to: 'm2f' },
-		{ label: 'Why are you giving me all this free stuff?', to: 'm2e' },
-		{ label: 'Yeah, sure.',                       to: 'end' },
-      ]},
-      c2b: { type: 'choice', options: [
-        { label: 'What?', to: 'm2d' },
-        { label: 'Why not?',  to: 'm2c' },
-        { label: '...',     to: 'm3a' },
-      ]},
-      c2c: { type: 'choice', options: [
-        { label: '...', to: 'm3a' },
-        { label: '...', to: 'm3a' },
-        { label: '...', to: 'm3a' },
-      ]},
-	  c2d: { type: 'choice', options: [
-        { label: '...', to: 'm3b' },
-        { label: '...', to: 'm3b' },
-        { label: '...', to: 'm3b' },
-      ]},
-
-      m3a: { type: 'line', say: 'Would you like some Books? Free of charge. They will help you accelerate your Coin output.', next: 'c2a' },
-      m3b: { type: 'line', say: 'Let me ask again, do you want free Books?', next: 'c3b' },
-
-      c3a: { type: 'choice', options: [
-        { label: 'Okay, actually give me the free stuff.',        to: 'end' },
-        { label: 'Okay fine, I’ll take those books off your hands.', to: 'end' },
-        { label: 'I don’t need your charity.',                    to: 'end_nr' },
-      ]},
-	  c3b: { type: 'choice', options: [
-        { label: 'Yes please.',        to: 'end' },
-        { label: 'Sure.',                 to: 'end' },
-        { label: 'No.',                    to: 'end_nr' },
-      ]},
+    const nextTitle = normalized ? (def.label || 'Tab') : '???';
+    if (btn.title !== nextTitle) {
+      btn.title = nextTitle;
     }
-  },
-  3: {
-    start: 'n0',
-    nodes: {
-      n0:  { type: 'line', say: 'What would you like to discuss now?', next: 'c0' },
-
-      c0:  { type: 'choice', options: [
-        { label: 'I’d like to ask some questions about how the forge works.',     to: 'm1a' },
-        { label: 'I’d like to ask some questions about how mutations work.',      to: 'm1b' },
-        { label: 'Oh, um, I forgot.',                                             to: 'm1c' },
-      ]},
-
-      m1a: { type: 'line', say: 'Sure, ask me anything about the Forge and I will answer.',     next: 'c1a' },
-      m1b: { type: 'line', say: 'Sure, ask me anything about Mutations and I will answer.',     next: 'c1b' },
-      m1c: { type: 'line', say: 'What do you mean you forgot??',                                                            next: 'c3b' },
-
-      c1a: { type: 'choice', options: [
-        { label: 'Where did it come from?',                       to: 'm2a' },
-        { label: 'How do I get more gold from it?',              to: 'm2b' },
-        { label: 'What is the benefit of forging my coins?',     to: 'm2c' },
-      ]},
-
-      c1b: { type: 'choice', options: [
-        { label: 'Why do they exist?',              to: 'm2d' },
-        { label: 'What do mutations do for me?',    to: 'm2e' },
-        { label: 'Why are they important at all?',  to: 'm2f' },
-      ]},
-
-      m2a: { type: 'line', say: 'I made it.', next: 'c2a' },
-      m2b: { type: 'line', say: 'Increase your Coins and XP Level to boost the output of the Forge.', next: 'c2b' },
-      m2c: { type: 'line', say: 'Trust me, it’ll pay off in the future.', next: 'c2c' },
-      m2d: { type: 'line', say: 'They just do.', next: 'c3a' },
-      m2e: { type: 'line', say: 'Something.', next: 'c2d' },
-      m2f: { type: 'line', say: 'They just are.', next: 'c3a' },
-
-      c2a: { type: 'choice', options: [
-        { label: 'Really?', to: 'm3a' },
-        { label: 'Wow.',    to: 'm4a' },
-        { label: 'Okay.',   to: 'm4a' },
-      ]},
-
-      c2b: { type: 'choice', options: [
-        { label: 'Why do I need to do this in the first place?', to: 'm3b' },
-        { label: 'Why does it work like that?', to: 'm3c' },
-        { label: 'Okay.',                       to: 'm4a' },
-      ]},
-
-      c2c: { type: 'choice', options: [
-        { label: 'That didn’t really answer my question.', to: 'm3d' },
-        { label: 'But how can you prove that?',            to: 'm3e' },
-        { label: 'Okay.',                                  to: 'm4a' },
-      ]},
-
-      c2d: { type: 'choice', options: [
-        { label: 'How will I know if a coin is mutated?', to: 'm3f' },
-        { label: 'Not helpful but alright.',                     to: 'm4a' },
-        { label: 'Okay.',                                 to: 'm4a' },
-      ]},
-
-      m3a: { type: 'line', say: 'Nope. I lied.', next: 'c3a' },
-      m3b: { type: 'line', say: 'Number goes up. You know how this works.', next: 'c3a' },
-      m3c: { type: 'line', say: 'It just does.', next: 'c3a' },
-      m3d: { type: 'line', say: 'Yes it did.', next: 'c3a' },
-      m3e: { type: 'line', say: 'Trust in the process.', next: 'c3a' },
-      m3f: { type: 'line', say: 'Just look at it.', next: 'c3a' },
-
-      c3a: { type: 'choice', options: [
-        { label: '...', to: 'm4a' },
-        { label: '...', to: 'm4a' },
-        { label: '...', to: 'm4a' },
-      ]},
-	  
-	  c3b: { type: 'choice', options: [
-        { label: '...', to: 'm4b' },
-        { label: '...', to: 'm4b' },
-        { label: '...', to: 'm4b' },
-      ]},
-
-      m4a: { type: 'line', say: 'Any more questions?', next: 'c4a' },
-      m4b: { type: 'line', say: 'Well you have to ask me something while you\'re here.', next: 'c4a' },
-
-      c4a: { type: 'choice', options: [
-        { label: 'I’d like to learn more about the forge.',     to: 'm1a' },
-        { label: 'I’d like to learn more about mutations.',     to: 'm1b' },
-        { label: 'I think I’m good.',                           to: 'm5a' },
-      ]},
-
-      m5a: { type: 'line', say: 'Here, have some Gold. I’m not even going to let you decline my gift.', next: 'c5a' },
-
-      c5a: { type: 'choice', options: [
-        { label: 'Oh, cool, thanks for the free stuff.',      to: 'end' },
-        { label: 'Okay, I’ll put this gold to good use.',     to: 'end' },
-        { label: '...',                                         to: 'end' },
-      ]},
+    const hasLockedClass = btn.classList.contains('is-locked');
+    if (hasLockedClass !== nextDisabled) {
+      btn.classList.toggle('is-locked', nextDisabled);
     }
-  },
-  4: {
-  start: 'n0',
-  nodes: {
-    n0: { type: 'line', say: 'I’m sure you came to me to learn a few things about how my Magic works, is that correct?', next: 'c0' },
-
-    c0: { type: 'choice', options: [
-      { label: 'Yes, I’d like to know more about your magic.', to: 'm1a' },
-      { label: 'Actually, I’m more interested in how automation works.', to: 'm1b' },
-      { label: 'Nah just give me free stuff.', to: 'm1c' },
-    ]},
-
-    m1a: { type: 'line', say: 'What would you like to know?', next: 'c1a' },
-    m1b: { type: 'line', say: 'What would you like to know?', next: 'c1b' },
-    m1c: { type: 'line', say: 'Wow. Just wow.', next: 'c1c' },
-
-    c1a: { type: 'choice', options: [
-      { label: 'Why do you have magic powers?', to: 'm2a' },
-      { label: 'Where did you get magic powers from?', to: 'm2b' },
-      { label: 'If you have magic powers, why can’t you just summon all the coins in the world?', to: 'm2c' },
-    ]},
-
-    c1b: { type: 'choice', options: [
-      { label: 'Why does it exist?',                    to: 'm2d' },
-      { label: 'What kinds of things can be automated?', to: 'm2e' },
-      { label: 'How is automation different from doing things manually?', to: 'm2f' },
-    ]},
-
-    c1c: { type: 'choice', options: [
-      { label: 'What?', to: 'm2g' },
-      { label: 'Come on, where’s the reward at?', to: 'm2g' },
-      { label: 'Was it something I said?', to: 'm2h' },
-    ]},
-
-    m2a: { type: 'line', say: 'I just do.', next: 'c2a' },
-    m2b: { type: 'line', say: 'I\'ve always had them.', next: 'c2b' },
-    m2c: { type: 'line', say: 'Because Coins are just built different like that.', next: 'c2c' },
-    m2d: { type: 'line', say: 'Because it’s necessary to speed up Coin collection.', next: 'c2d' },
-    m2e: { type: 'line', say: 'Everything.', next: 'c2e' },
-    m2f: { type: 'line', say: 'It’s just better. I don’t have to explain why.', next: 'c2f' },
-    m2g: { type: 'line', say: 'Don’t you want to chat with me for a bit? Don’t you have some questions you want to ask me?', next: 'c2g' },
-    m2h: { type: 'line', say: 'Yes.', next: 'c2h' },
-
-    c2a: { type: 'choice', options: [
-      { label: 'What?', to: 'm3a' },
-      { label: 'Can you actually answer my question?', to: 'm3b' },
-      { label: '...', to: 'm6a' },
-    ]},
-
-    c2b: { type: 'choice', options: [
-      { label: 'How long have you had them?', to: 'm3c' },
-      { label: 'What can your magic powers do?', to: 'm3d' },
-      { label: 'Okay.', to: 'm6a' },
-    ]},
-
-    c2c: { type: 'choice', options: [
-      { label: 'How so?', to: 'm3e' },
-      { label: 'Your powers must be super weak then.', to: 'm5a' },
-      { label: 'Understandable.', to: 'm6a' },
-    ]},
-
-    c2d: { type: 'choice', options: [
-      { label: 'What if I just don’t buy any automation?', to: 'm3f' },
-      { label: 'How?',                                     to: 'm3g' },
-      { label: 'Okay.',                                    to: 'm6a' },
-    ]},
-
-    c2e: { type: 'choice', options: [
-      { label: 'Could I even automate talking to you?', to: 'm3h' },
-      { label: 'So like, eventually everything would be progressing on its own?', to: 'm3i' },
-      { label: 'Okay.', to: 'm6a' },
-    ]},
-
-    c2f: { type: 'choice', options: [
-      { label: 'Why should I buy automation if you can’t even explain why it’s better than doing things manually?', to: 'm3j' },
-      { label: 'But I wanted an explanation.', to: 'm5a' },
-      { label: 'Okay.', to: 'm6a' },
-    ]},
-
-    c2g: { type: 'choice', options: [
-      { label: 'No.', to: 'm7b' },
-      { label: 'Not really.', to: 'm7b' },
-      { label: 'My bad.', to: 'm8a' },
-    ]},
-
-    c2h: { type: 'choice', options: [
-      { label: '...', to: 'm6a' },
-      { label: '...', to: 'm6a' },
-      { label: 'Sorry, I just was in a hurry to get free stuff so I could get back to collecting coins.', to: 'm7a' },
-    ]},
-
-    m3a: { type: 'line', say: 'What?', next: 'c2a' },
-    m3b: { type: 'line', say: 'I just did answer your question.', next: 'c3a' },
-    m3c: { type: 'line', say: 'At least 3.', next: 'c3b' },
-    m3d: { type: 'line', say: 'My Magic can do a few things.', next: 'c3c' },
-    m3e: { type: 'line', say: 'They’re just built different.', next: 'c5a' },
-    m3f: { type: 'line', say: 'You will regret it.', next: 'c5a' },
-    m3g: { type: 'line', say: 'Common sense.', next: 'c5a' },
-    m3h: { type: 'line', say: 'Wow, that’s kind of hurtful. Also no.', next: 'c5a' },
-    m3i: { type: 'line', say: 'Yes.', next: 'c3d' },
-    m3j: { type: 'line', say: 'Because I said so, and I am always right.', next: 'c5a' },
-
-    c3a: { type: 'choice', options: [
-      { label: 'No you didn’t.', to: 'm4a' },
-      { label: 'Why are you like this?', to: 'm4b' },
-      { label: '...', to: 'm6a' },
-    ]},
-
-    c3b: { type: 'choice', options: [
-      { label: '3... what?', to: 'm4c' },
-      { label: 'Ah, I completely understand.', to: 'm6a' },
-      { label: 'Okay.', to: 'm6a' },
-    ]},
-
-    c3c: { type: 'choice', options: [
-      { label: 'Like...?', to: 'm4d' },
-      { label: 'Understandable.', to: 'm6a' },
-      { label: '...', to: 'm6a' },
-    ]},
-
-    c3d: { type: 'choice', options: [
-      { label: 'Wouldn’t that get boring?', to: 'm4e' },
-      { label: 'That sounds nice.', to: 'm6a' },
-      { label: 'Okay.', to: 'm6a' },
-    ]},
-
-    m4a: { type: 'line', say: 'Yes I did.', next: 'c3a' },
-    m4b: { type: 'line', say: 'Like what?', next: 'c4a' },
-    m4c: { type: 'line', say: '3.', next: 'c5a' },
-    m4d: { type: 'line', say: 'Okay you caught me, I\’m actually a fraud, my Magic is fake, nothing is real, the Coins are made of plastic, my name\’s not even Merchant it’s Jeff.', next: 'c4b' },
-    m4e: { type: 'line', say: 'No.', next: 'c5a' },
-
-    c4a: { type: 'choice', options: [
-      { label: 'Are you trying to be annoying on purpose?', to: 'm5b' },
-      { label: 'You’re not being helpful.', to: 'm5a' },
-      { label: 'Nothing, nevermind...', to: 'm6a' },
-    ]},
-
-    c4b: { type: 'choice', options: [
-      { label: '???', to: 'm6a' },
-      { label: '???', to: 'm6a' },
-      { label: '???', to: 'm6a' },
-    ]},
-
-    m5a: { type: 'line', say: 'Okay.', next: 'c5a' },
-	m5b: { type: 'line', say: 'No.', next: 'c5a' },
-
-    c5a: { type: 'choice', options: [
-      { label: '...', to: 'm6a' },
-      { label: '...', to: 'm6a' },
-      { label: '...', to: 'm6a' },
-    ]},
-
-    m6a: { type: 'line', say: 'Anything else you’d like to know?', next: 'c6a' },
-
-    c6a: { type: 'choice', options: [
-      { label: 'Tell me some more stuff about how your magic works.', to: 'm1a' },
-      { label: 'Tell me some more stuff about how automation works.', to: 'm1b' },
-      { label: 'Do you have any goodies for me?', to: 'm7a' },
-    ]},
-
-    m7a: { type: 'line', say: '10 Magic, take it or leave it.', next: 'c7a' },
-    m7b: { type: 'line', say: 'Okay, now you’re just being rude. Don’t expect to get anything for free if you’re rude.', next: 'c7b' },
-
-    c7a: { type: 'choice', options: [
-      { label: 'Hmm, a bit too low for my taste.', to: 'm7b' },
-      { label: 'I would’ve liked more, but I’ll take it.', to: 'end' },
-      { label: 'I’ll take it.', to: 'end' },
-    ]},
-
-    c7b: { type: 'choice', options: [
-      { label: '...', to: 'end_nr' },
-      { label: '...', to: 'end_nr' },
-      { label: '...', to: 'end_nr' },
-    ]},
-    m8a: { type: 'line', say: 'Okay.', next: 'c8a' },
-    c8a: { type: 'choice', options: [
-      { label: '...', to: 'm9a' },
-      { label: '...', to: 'm9a' },
-      { label: '...', to: 'm9a' },
-    ]},
-    m9a: { type: 'line', say: 'Any questions you’d like to ask me?', next: 'c9a' },
-    c9a: { type: 'choice', options: [
-      { label: 'Tell me about how your magic works.', to: 'm1a' },
-      { label: 'Tell me about how automation works.', to: 'm1b' },
-      { label: 'Do you have any goodies for me?', to: 'm7a' },
-    ]},
-    }
-  },
-  5: {
-    start: 'n0',
-    nodes: {
-      n0: { type: 'line', say: 'Hey.', next: 'c0' },
-
-      c0: { type: 'choice', options: [
-        { label: 'Hey.', to: 'm1a' },
-        { label: 'Hello.', to: 'm1a' },
-        { label: 'Salutations.', to: 'm1b' },
-      ]},
-
-      m1a: { type: 'line', say: 'Hey.', next: 'c1a' },
-      m1b: { type: 'line', say: "What's with the fancy greeting?", next: 'c1b' },
-
-      c1a: { type: 'choice', options: [
-        { label: 'Hey.', to: 'm2a' },
-        { label: 'This surge reset seems pretty strong.', to: 'm2b' },
-        { label: 'This surge reset is a bit underwhelming.', to: 'm2c' },
-      ]},
-
-      c1b: { type: 'choice', options: [
-        { label: "Nothing. I'm interested in this surge reset stuff.", to: 'm2d' },
-        { label: "I'm just trying to be formal.", to: 'm2e' },
-        { label: 'Nothing much.', to: 'm2f' },
-      ]},
-
-      m2a: { type: 'line', say: 'Hey.', next: 'c2a' },
-      m2b: { type: 'line', say: 'It is.', next: 'c2b' },
-      m2c: { type: 'line', say: 'Wrong.', next: 'c2c' },
-      m2d: { type: 'line', say: 'Okay. What do you want to know?', next: 'c3b' },
-      m2e: { type: 'line', say: "Don't.", next: 'c2d' },
-      m2f: { type: 'line', say: 'Okay.', next: 'c2e' },
-
-      c2a: { type: 'choice', options: [
-        { label: 'Hey.', to: 'm3a' },
-        { label: 'So, about that surge reset...', to: 'm3b' },
-        { label: 'Nevermind, I forgot what I was going to say.', to: 'end_nr' },
-      ]},
-
-      c2b: { type: 'choice', options: [
-        { label: 'And tell me more about this "warp" thing that it unlocked.', to: 'm4d' },
-        { label: 'And tell me more about what these surge milestones can do.', to: 'm4e' },
-        { label: 'Cool.', to: 'm6a' },
-      ]},
-
-      c2c: { type: 'choice', options: [
-        { label: "Nope, you're wrong.", to: 'm6b' },
-        { label: 'Prove it then.', to: 'm3c' },
-        { label: 'Really?', to: 'm6a' },
-      ]},
-
-      c2d: { type: 'choice', options: [
-        { label: "Alright then. I'd like to learn more about the surge reset stuff, can you help me with that?", to: 'm2d' },
-        { label: 'Understood.', to: 'm6a' },
-        { label: 'Okay.', to: 'm6a' },
-      ]},
-
-      c2e: { type: 'choice', options: [
-        { label: 'Okay.', to: 'm6a' },
-        { label: 'Okay.', to: 'm6a' },
-        { label: 'Okay.', to: 'm6a' },
-      ]},
-
-      m3a: { type: 'line', say: 'Hey.', next: 'c3a' },
-      m3b: { type: 'line', say: 'What about it?', next: 'c3b' },
-      m3c: { type: 'line', say: 'Just the first milestone alone is already super powerful.', next: 'c3c' },
-
-      c3a: { type: 'choice', options: [
-        { label: 'Hey.', to: 'm4a' },
-        { label: 'Um...', to: 'm6a' },
-        { label: '...', to: 'm6a' },
-      ]},
-
-      c3b: { type: 'choice', options: [
-        { label: 'Tell me more about this "warp" thing that it unlocked.', to: 'm4d' },
-        { label: 'Tell me more about what these surge milestones can do.', to: 'm4e' },
-        { label: 'Was it really necessary for it to wipe all of my progress?', to: 'm4c' },
-      ]},
-
-      c3c: { type: 'choice', options: [
-        { label: "Yeah but that's not enough.", to: 'm6b' },
-        { label: 'I was expecting more.', to: 'm4b' },
-        { label: 'I suppose so.', to: 'm6a' },
-      ]},
-
-      m4a: { type: 'line', say: 'Hey.', next: 'c4a' },
-      m4b: { type: 'line', say: "Don't make me explode you.", next: 'c4c' },
-      m4c: { type: 'line', say: "Yes. And also, you didn't lose all of your progress. The Workshop wasn't reset at all.", next: 'c4b' },
-      m4d: { type: 'line', say: 'It warps you forward in space time, a brilliant thing.', next: 'c4d' },
-      m4e: { type: 'line', say: "Surge Milestones are very powerful things. You'll unlock new mechanics, new Coin abilities, new upgrades within my Shop, it's all very glorious.", next: 'c4e' },
-
-      c4a: { type: 'choice', options: [
-        { label: 'Hey.', to: 'm5a' },
-        { label: '...', to: 'm6a' },
-        { label: '...', to: 'm6a' },
-      ]},
-
-      c4b: { type: 'choice', options: [
-        { label: 'I mean I guess so.', to: 'm6a' },
-        { label: "Yeah but still, that's a lot of progress that it just wiped.", to: 'm5b' },
-        { label: 'True.', to: 'm6a' },
-      ]},
-
-      c4c: { type: 'choice', options: [
-        { label: 'Do it, I dare you.', to: 'm6b' },
-        { label: 'Okay.', to: 'm6a' },
-        { label: 'Understood.', to: 'm6a' },
-      ]},
-
-      c4d: { type: 'choice', options: [
-        { label: 'I thought time travel was impossible.', to: 'm5c' },
-        { label: 'Okay.', to: 'm6a' },
-        { label: 'Understood.', to: 'm6a' },
-      ]},
-
-      c4e: { type: 'choice', options: [
-        { label: 'Like what? Give me one example of a future surge milestone that is very strong.', to: 'm5d' },
-        { label: 'Okay.', to: 'm6a' },
-        { label: 'Understood.', to: 'm6a' },
-      ]},
-
-      m5a: { type: 'line', say: 'If you say "Hey." one more time, I am going to explode you.', next: 'c5a' },
-      m5b: { type: 'line', say: "No it's not.", next: 'c5b' },
-      m5c: { type: 'line', say: 'Nothing is impossible here on The Cove.', next: 'c5c' },
-      m5d: { type: 'line', say: "Err, well, I don't know off the top of my head what they are.", next: 'c5d' },
-
-      c5a: { type: 'choice', options: [
-        { label: 'Hey.', to: 'end_explosion' }, 
-        { label: 'Hey.', to: 'end_explosion' }, 
-        { label: 'Hey.', to: 'end_explosion' }, 
-      ]},
-
-      c5b: { type: 'choice', options: [
-        { label: 'Yes it is.', to: 'm6b' },
-        { label: 'Fine, if you say so.', to: 'm6a' },
-        { label: 'Alright.', to: 'm6a' },
-      ]},
-
-      c5c: { type: 'choice', options: [
-        { label: 'Why?', to: 'm6c' },
-        { label: 'If you say so.', to: 'm6a' },
-        { label: 'True.', to: 'm6a' },
-      ]},
-
-      c5d: { type: 'choice', options: [
-        { label: 'Why not?', to: 'm6d' },
-        { label: "Well that's not helpful.", to: 'm6a' },
-        { label: 'Oh, okay.', to: 'm6a' },
-      ]},
-
-      m6a: { type: 'line', say: "Here, I'll give you 5 extra Waves just because I can.", next: 'c6a' },
-      m6b: { type: 'line', say: 'I am going to explode you.', next: 'c6b' },
-      m6c: { type: 'line', say: 'Why not?', next: 'c6c' },
-      m6d: { type: 'line', say: 'Just know that the future milestones are powerful.', next: 'c6d' },
-
-      c6a: { type: 'choice', options: [
-        { label: "Wait.. 5 waves? That's like nothing.", to: 'm6b' },
-        { label: 'I appreciate that.', to: 'end' },
-        { label: 'Thank you.', to: 'end' },
-      ]},
-
-      c6b: { type: 'choice', options: [
-        { label: '*Click here to be exploded*', to: 'end_explosion' },
-        { label: '*Click here to be exploded*', to: 'end_explosion' },
-        { label: '*Click here to be exploded*', to: 'end_explosion' },
-      ]},
-
-      c6c: { type: 'choice', options: [
-        { label: 'Entropy, causality, energy, paradoxes, spacetime, you know.', to: 'm7a' },
-        { label: "I guess I won't question it.", to: 'm6a' },
-        { label: 'Fair enough.', to: 'm6a' },
-      ]},
-
-      c6d: { type: 'choice', options: [
-        { label: 'Fine.', to: 'm6a' },
-        { label: 'Okay.', to: 'm6a' },
-        { label: 'Sounds good.', to: 'm6a' },
-      ]},
-
-      m7a: { type: 'line', say: 'Boring. Not how we do things here on The Cove.', next: 'c7a' },
-
-      c7a: { type: 'choice', options: [
-        { label: '...', to: 'm6a' },
-        { label: '...', to: 'm6a' },
-        { label: '...', to: 'm6a' },
-      ]},
-    }
-  },
-   1000: {
-    start: 'n0',
-    nodes: {
-      n0: { type: 'line', say: 'What are you doing?? Come to the Lab, quickly.', next: 'c0' },
-
-      c0: { type: 'choice', options: [
-        { label: '...', to: 'end_nr' },
-        { label: '...', to: 'end_nr' },
-        { label: '...', to: 'end_nr' },
-      ]},
-    }
-  },
-  6: {
-    start: 'n0',
-    nodes: {
-      n0: { type: 'line', say: 'Hi.', next: 'c0' },
-
-      c0: { type: 'choice', options: [
-        { label: 'You\'re not nonchalant like that.', to: 'm1a' }, // [cite: 2]
-        { label: 'What is the lab?', to: 'm1b' }, // [cite: 3]
-        { label: 'What even happened?', to: 'm1c' }, // [cite: 3]
-      ]},
-
-      m1a: { type: 'line', say: 'Yes I am.', next: 'c1a' }, // [cite: 4]
-      m1b: { type: 'line', say: 'placeholder', next: 'c1b' }, // [cite: 4]
-      m1c: { type: 'line', say: 'placeholder', next: 'c1c' }, 
-
-      c1a: { type: 'choice', options: [
-        { label: 'No you\'re not.', to: 'm2a' }, // [cite: 5]
-        { label: 'placeholder', to: 'm2b' }, // [cite: 5]
-        { label: 'placeholder', to: 'm2c' }, // [cite: 5]
-      ]},
-
-      c1b: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm2d' }, // [cite: 6]
-        { label: 'placeholder.', to: 'm2e' }, // [cite: 6]
-        { label: 'placeholder', to: 'm2f' }, // [cite: 6]
-      ]},
-
-      c1c: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-      ]},
-
-      m2a: { type: 'line', say: 'You are very defiant.', next: 'c2a' }, // [cite: 6]
-      m2b: { type: 'line', say: 'placeholder', next: 'c2b' }, // [cite: 6]
-      m2c: { type: 'line', say: 'placeholder', next: 'c2c' }, // [cite: 6]
-      m2d: { type: 'line', say: 'placeholder', next: 'c2d' }, // [cite: 6]
-      m2e: { type: 'line', say: 'placeholder', next: 'c2e' }, // [cite: 6]
-      m2f: { type: 'line', say: 'placeholder', next: 'c2f' }, // [cite: 6]
-
-      c2a: { type: 'choice', options: [
-        { label: 'Yeah? It\'s because you\'re wrong.', to: 'm3a' }, // [cite: 7]
-        { label: 'placeholder', to: 'm3b' }, // [cite: 7]
-        { label: 'placeholder', to: 'm3c' }, // [cite: 7]
-      ]},
-
-      c2b: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm3d' }, // [cite: 8]
-        { label: 'placeholder', to: 'm3e' }, // [cite: 8]
-        { label: 'placeholder', to: 'm3f' }, // [cite: 8]
-      ]},
-
-      c2c: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 9]
-        { label: 'placeholder', to: 'end' },
-      ]},
-
-      c2d: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 10]
-      ]},
-
-      c2e: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 11]
-      ]},
-
-      m3a: { type: 'line', say: 'I am never wrong. I am never wrong. I am never wrong. I am never wrong. I am never wr<span style="overflow-wrap: anywhere; word-break: break-all;">ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿ⨦Š௉౿♯⨍ᤒ⫚⟢⣹╼ⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᛝфᤌৄưཎ៣ᙴঢ়ଫઢǉϵཅᎽड़⋻ᓕᤛᙖዶ⡓໗⽵ཉӗɸ᳋ᙆဤᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭</span>', next: 'start_boss_fight' }, // [cite: 11]
-      m3b: { type: 'line', say: 'placeholder', next: 'c3b' }, // [cite: 11]
-      m3c: { type: 'line', say: 'placeholder', next: 'c3c' }, // [cite: 11]
-      m3d: { type: 'line', say: 'placeholder', next: 'c3d' }, // [cite: 11]
-      m3e: { type: 'line', say: 'placeholder', next: 'c3e' }, // [cite: 11]
-      m3f: { type: 'line', say: 'placeholder', next: 'c3f' }, // [cite: 11]
-
-      c3a: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm4a' }, // [cite: 12]
-        { label: 'placeholder', to: 'm4b' }, // [cite: 12]
-        { label: 'placeholder', to: 'm4c' }, // [cite: 12]
-      ]},
-
-      c3b: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm4d' },
-        { label: 'placeholder', to: 'm4e' }, // [cite: 13]
-        { label: 'placeholder', to: 'end' },
-      ]},
-
-      c3c: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 14]
-      ]},
-
-      m4a: { type: 'line', say: 'placeholder', next: 'c4a' }, // [cite: 14]
-      m4b: { type: 'line', say: 'placeholder', next: 'c4b' }, // [cite: 14]
-      m4c: { type: 'line', say: 'placeholder', next: 'c4c' }, // [cite: 14]
-      m4d: { type: 'line', say: 'placeholder', next: 'c4d' }, // [cite: 14]
-      m4e: { type: 'line', say: 'placeholder', next: 'c4e' }, // [cite: 14]
-
-      c4a: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm5a' }, // [cite: 15]
-        { label: 'placeholder', to: 'm5b' }, // [cite: 15]
-        { label: 'placeholder', to: 'm5c' }, // [cite: 15]
-      ]},
-
-      c4b: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm5d' },
-        { label: 'placeholder', to: 'end' }, // [cite: 16]
-        { label: 'placeholder', to: 'end' },
-      ]},
-
-      c4c: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 17]
-      ]},
-
-      c4e: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' }, // [cite: 18]
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 19]
-      ]},
-
-      m5a: { type: 'line', say: 'placeholder', next: 'c5a' }, // [cite: 19]
-      m5b: { type: 'line', say: 'placeholder', next: 'c5b' }, // [cite: 19]
-      m5c: { type: 'line', say: 'placeholder', next: 'c5c' }, // [cite: 19]
-      m5d: { type: 'line', say: 'placeholder', next: 'c5d' }, // [cite: 19]
-
-      c5a: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm6a' }, // [cite: 20]
-        { label: 'placeholder', to: 'm6b' }, // [cite: 20]
-        { label: 'placeholder', to: 'm6c' }, // [cite: 20]
-      ]},
-
-      c5b: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm6d' }, // [cite: 21]
-        { label: 'placeholder', to: 'end' }, // [cite: 21]
-        { label: 'placeholder', to: 'end' }, // [cite: 21]
-      ]},
-
-      c5c: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 22]
-        { label: 'placeholder', to: 'end' },
-      ]},
-
-      c5d: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 23]
-      ]},
-
-      m6a: { type: 'line', say: 'placeholder', next: 'c6a' }, // [cite: 23]
-      m6b: { type: 'line', say: 'placeholder', next: 'c6b' }, // [cite: 23]
-      m6c: { type: 'line', say: 'placeholder', next: 'c6c' }, // [cite: 23]
-      m6d: { type: 'line', say: 'placeholder', next: 'c6d' }, // [cite: 23]
-
-      c6a: { type: 'choice', options: [
-        { label: 'placeholder', to: 'm7a' }, // [cite: 24]
-        { label: 'placeholder', to: 'end' }, // [cite: 24]
-        { label: 'placeholder', to: 'end' }, // [cite: 24]
-      ]},
-
-      c6b: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' }, // [cite: 25]
-        { label: 'placeholder', to: 'end' }, // [cite: 25]
-        { label: 'placeholder', to: 'end' }, // [cite: 25]
-      ]},
-
-      c6c: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 26]
-        { label: 'placeholder', to: 'end' },
-      ]},
-
-      c6d: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 27]
-      ]},
-
-      m7a: { type: 'line', say: 'placeholder', next: 'c7a' }, // [cite: 27]
-
-      c7a: { type: 'choice', options: [
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' },
-        { label: 'placeholder', to: 'end' }, // [cite: 28]
-      ]}
+    if (key === 'warp') {
+      const nextDisplay = normalized ? '' : 'none';
+      if (btn.style.display !== nextDisplay) {
+        btn.style.display = nextDisplay;
+      }
     }
   }
+
+  if (!normalized && merchantTabs.buttons[key]?.classList.contains('is-active')) {
+    selectMerchantTab('dialogue');
+  }
+}
+
+function syncForgeTabUnlockState() {
+  let unlocked = false;
+  try { unlocked = !!isForgeUnlocked?.(); }
+  catch {}
+  setMerchantTabUnlocked('reset', unlocked);
+}
+
+function syncWorkshopTabUnlockState() {
+  let unlocked = false;
+  try { unlocked = !!hasDoneInfuseReset?.(); }
+  catch {}
+  setMerchantTabUnlocked('workshop', unlocked);
+}
+
+function syncWarpTabUnlockState() {
+  let unlocked = false;
+  try {
+    const slot = getActiveSlot();
+    if (slot != null && localStorage.getItem(`ccc:debug:toggleTheW:${slot}`) === '1') {
+      unlocked = true;
+    }
+  } catch {}
+  setMerchantTabUnlocked('warp', unlocked);
+}
+
+const LAB_UNLOCK_KEY = (slot) => `ccc:unlock:lab:${slot}`;
+
+let cachedLabUnlockedLocalStates = {};
+
+export function isLabUnlockedLocal() {
+  const slot = getActiveSlot();
+  if (slot == null) return false;
+  if (cachedLabUnlockedLocalStates[slot] !== undefined && cachedLabUnlockedLocalStates[slot] !== null) return cachedLabUnlockedLocalStates[slot];
+  try {
+    if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
+      cachedLabUnlockedLocalStates[slot] = true;
+      return true;
+    }
+    const result = localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1';
+    cachedLabUnlockedLocalStates[slot] = result;
+    return result;
+  } catch {
+    return false;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('saveSlot:change', () => { cachedLabUnlockedLocalStates = {}; });
+  window.addEventListener('unlock:change', () => { cachedLabUnlockedLocalStates = {}; });
+}
+
+function syncLabTabUnlockState() {
+  setMerchantTabUnlocked('lab', isLabUnlockedLocal());
+}
+
+// Inject surge level check into flowTab
+setFlowUnlockChecker((level) => {
+    // We assume surge level is available via isSurgeUnlocked or similar, 
+    // but the most reliable is directly checking current level
+    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
+    if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) return true;
+    if (surgeLevel === Number.POSITIVE_INFINITY) return true;
+
+    if (typeof surgeLevel === 'number') {
+        return surgeLevel >= level;
+    }
+    return false;
+});
+
+function syncFlowTabUnlockState() {
+    setMerchantTabUnlocked('flow', getFlowUnlockState());
+}
+
+let merchantDlgWatcherSlot = null;
+let merchantDlgWatcherCleanup = null;
+
+function bigNumToSafeInteger(value) {
+  if (value && typeof value === 'object') {
+    if (typeof value.toPlainIntegerString === 'function') {
+      try {
+        const plain = value.inf || value.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : value.toPlainIntegerString();
+        if (plain != null) {
+          const parsed = Number.parseInt(plain, 10);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    if (typeof value.toString === 'function') {
+      try {
+        const str = value.toString();
+        if (str != null) {
+          const parsed = Number.parseInt(str, 10);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+      } catch {}
+    }
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  if (numeric <= 0) return 0;
+  return Math.floor(numeric);
+}
+
+function getPlayerProgress() {
+  const progress = {
+    xpUnlocked: false,
+    xpLevel: 0,
+    hasForgeReset: false,
+  };
+
+  try {
+    progress.xpUnlocked = typeof isXpSystemUnlocked === 'function' && isXpSystemUnlocked();
+  } catch {
+    progress.xpUnlocked = false;
+  }
+
+  if (progress.xpUnlocked) {
+    try {
+      const state = typeof getXpState === 'function' ? getXpState() : null;
+      if (state && typeof state === 'object') {
+        progress.xpLevel = bigNumToSafeInteger(state.xpLevel);
+      }
+    } catch {
+      progress.xpLevel = 0;
+    }
+  }
+  
+  try {
+    progress.hasForgeReset = typeof hasDoneForgeReset === 'function' && hasDoneForgeReset();
+  } catch {
+    progress.hasForgeReset = false;
+  }
+
+  try {
+    progress.hasInfuseReset = typeof hasDoneInfuseReset === 'function' && hasDoneInfuseReset();
+  } catch {
+    progress.hasInfuseReset = false;
+  }
+  
+  return progress;
+}
+
+function resolveDialogueLock(meta, progress) {
+  let rawState;
+  try {
+    rawState = typeof meta.unlock === 'function' ? meta.unlock(progress) : true;
+  } catch {
+    rawState = false;
+  }
+
+  const rawObj = (rawState && typeof rawState === 'object') ? rawState : null;
+  let status = 'locked';
+
+  if (rawState === true) {
+    status = 'unlocked';
+  } else if (rawObj) {
+    const normalized = String(rawObj.status ?? '').toLowerCase();
+    if (normalized === 'unlocked' || rawObj.unlocked === true) {
+      status = 'unlocked';
+    } else if (normalized === 'mysterious') {
+      status = 'mysterious';
+    } else {
+      status = 'locked';
+    }
+  } else if (rawState === false || rawState == null) {
+    status = 'locked';
+  }
+
+  const info = {
+    status,
+    unlocked: status === 'unlocked',
+    title: status === 'unlocked' ? meta.title : '???',
+    blurb: status === 'unlocked'
+      ? meta.blurb
+      : (status === 'mysterious' ? DEFAULT_MYSTERIOUS_BLURB : DEFAULT_LOCKED_BLURB),
+    tooltip: '',
+    message: '',
+    icon: null,
+    headerTitle: null,
+    ariaLabel: '',
+  };
+
+  if (status === 'unlocked') {
+    info.ariaLabel = meta.title || 'Merchant dialogue';
+    return info;
+  }
+
+info.title = rawObj?.title ?? '???'
+info.blurb = rawObj?.requirement
+  ?? rawObj?.message
+  ?? rawObj?.tooltip
+  ?? (status === 'mysterious' ? DEFAULT_MYSTERIOUS_BLURB : DEFAULT_LOCKED_BLURB)
+info.tooltip = rawObj?.tooltip
+  ?? (status === 'locked' ? 'Locked Dialogue' : 'Hidden Dialogue');
+
+info.message = rawObj?.message ?? (status === 'mysterious' ? DEFAULT_LOCK_MESSAGE : '');
+info.icon = rawObj?.icon ?? (status === 'mysterious' ? MYSTERIOUS_ICON_SRC : null);
+info.headerTitle = rawObj?.headerTitle ?? (status === 'mysterious' ? HIDDEN_DIALOGUE_TITLE : LOCKED_DIALOGUE_TITLE);
+info.ariaLabel = rawObj?.ariaLabel ?? (status === 'mysterious'
+  ? 'Hidden merchant dialogue'
+  : 'Locked merchant dialogue');
+
+
+  return info;
+}
+
+function ensureProgressEvents() {
+  if (progressEventsBound) return;
+  progressEventsBound = true;
+
+  const handler = onProgressChanged;
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('xp:change', handler);
+    window.addEventListener('xp:unlock', handler);
+    window.addEventListener('forge:completed', (event) => {
+      const detailSlot = event?.detail?.slot;
+      if (detailSlot != null && detailSlot !== getActiveSlot()) return;
+      handler();
+    });
+    window.addEventListener('unlock:change', handler);
+    window.addEventListener('debug:change', handler);
+    window.addEventListener('surge:level:change', handler);
+  }
+
+  document.addEventListener('ccc:upgrades:changed', handler);
+
+  const slot = getActiveSlot();
+  if (slot != null) {
+    const key = `${FORGE_COMPLETED_KEY_BASE}:${slot}`;
+    watchStorageKey(key, { onChange: handler });
+  }
+}
+
+function onProgressChanged() {
+  renderDialogueList();
+}
+
+function completeDialogueOnce(id, meta) {
+  const state = loadDlgState();
+  const k = String(id);
+  const prev = state[k] || {};
+
+  if (meta.once && prev.claimed) return false;
+
+  prev.claimed = true;
+  state[k] = prev;
+  saveDlgState(state);
+
+  grantReward(meta.reward);
+  return true;
+}
+
+
+function grantReward(reward) {
+  if (!reward) return;
+
+  if (reward.type === 'coins') {
+    try {
+      bank.coins.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant coin reward:', reward, e);
+    }
+    return;
+  }
+
+  if (reward.type === 'books') {
+    try {
+      bank.books.addWithMultiplier?.(reward.amount) ?? bank.books.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant book reward:', reward, e);
+    }
+    return;
+  }
+
+  if (reward.type === 'gold') {
+    try {
+      bank.gold.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant gold reward:', reward, e);
+    }
+    return;
+  }
+
+  if (reward.type === 'magic') {
+    try {
+      bank.magic.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant magic reward:', reward, e);
+    }
+    return;
+  }
+
+  if (reward.type === 'waves') {
+    try {
+      bank.waves.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant waves reward:', reward, e);
+    }
+    return;
+  }
+
+  try {
+    window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward }));
+  } catch {}
+}
+
+function rewardLabel(reward) {
+  if (!reward) return '';
+  const config = RESOURCE_REGISTRY.find(r => r.key === reward.type);
+  if (config) {
+    const isOne = (Number(reward.amount) === 1);
+    const displayName = isOne ? config.singular : config.plural;
+    return `Reward: ${reward.amount} ${displayName}`;
+  }
+  return 'Reward available';
+}
+
+export const DLG_CATALOG = {
+  1: {
+    title: 'A Generous Gift',
+    blurb: 'The Merchant is feeling extra nice today',
+    scriptId: 1,
+    reward: { type: 'coins', amount: 100 }, rewardNode: 'm2b',
+    unlock: (progress) => true,
+    once: true,
+  },
+  2: {
+    title: 'A New Experience',
+    blurb: 'Discuss the XP system with the Merchant',
+    scriptId: 2,
+    reward: { type: 'books', amount: 5 }, rewardNode: 'm3a',
+    once: true,
+    unlock: (progress) => {
+      if (!progress?.xpUnlocked) {
+        return {
+          status: 'mysterious',
+          requirement: 'Unlock the XP system to reveal this dialogue',
+          message: 'Unlock the XP system to reveal this dialogue',
+          icon: MYSTERIOUS_ICON_SRC,
+          headerTitle: HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: 'Hidden merchant dialogue, unlock the XP system to reveal this dialogue',
+        };
+      }
+      return true;
+    },
+  },
+  3: {
+    title: 'A Golden Opportunity',
+    blurb: 'Ask the Merchant a few questions about the Forge',
+    scriptId: 3,
+    reward: { type: 'gold', amount: 10 }, rewardNode: 'm5a',
+    once: true,
+    unlock: (progress) => {
+      if (progress?.hasForgeReset) {
+        return true;
+      }
+
+      if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 31) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: DEFAULT_LOCKED_BLURB,
+          tooltip: 'Locked Dialogue',
+          ariaLabel: 'Locked Dialogue',
+        };
+      }
+
+      return {
+        status: 'mysterious',
+        requirement: 'Do a Forge reset to reveal this dialogue',
+        message: 'Do a Forge reset to reveal this dialogue',
+        icon: MYSTERIOUS_ICON_SRC,
+        headerTitle: HIDDEN_DIALOGUE_TITLE,
+        ariaLabel: 'Hidden merchant dialogue, do a Forge reset to reveal this dialogue',
+      };
+    },
+  },
+  5: {
+    title: 'A Powerful Surge',
+    blurb: 'Converse with the Merchant about the Surge reset',
+    scriptId: 5,
+    reward: { type: 'waves', amount: 5 }, rewardNode: 'm6a',
+    once: true,
+    unlock: (progress) => {
+      if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
+        return true;
+      }
+      if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 201) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: 'Locked',
+          tooltip: 'Locked Dialogue',
+          ariaLabel: 'Locked Dialogue',
+        };
+      }
+      return {
+        status: 'mysterious',
+        requirement: 'Do a Surge reset to reveal this dialogue',
+        message: 'Do a Surge reset to reveal this dialogue',
+        icon: MYSTERIOUS_ICON_SRC,
+        headerTitle: HIDDEN_DIALOGUE_TITLE,
+        ariaLabel: 'Hidden merchant dialogue, do a Surge reset to reveal this dialogue',
+      };
+    },
+  },
+  6: {
+    title: 'A Terrible Tsunami',
+    blurb: 'Discuss the aftermath of invoking the Tsunami with the Merchant',
+    scriptId: 6,
+    reward: { type: 'coins', amount: 2 }, rewardNode: 'n0',
+    once: true,
+    unlock: (progress) => {
+      if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
+        return true;
+      }
+
+      const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
+      let isSurge8 = false;
+      if (surgeLevel === Infinity) isSurge8 = true;
+      else if (typeof surgeLevel === 'number') isSurge8 = surgeLevel >= 8;
+
+      if (isSurge8) {
+        return true;
+      }
+
+      if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
+        return {
+          status: 'mysterious',
+          requirement: 'Reach Surge 8 to reveal this dialogue',
+          message: 'Reach Surge 8 to reveal this dialogue',
+          icon: MYSTERIOUS_ICON_SRC,
+          headerTitle: HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: 'Hidden merchant dialogue, reach Surge 8 to reveal this dialogue',
+        };
+      }
+      
+      return {
+        status: 'locked',
+        title: '???',
+        blurb: 'Locked',
+        tooltip: 'Locked Dialogue',
+        ariaLabel: 'Locked Dialogue',
+      };
+    },
+  },
+  4: {
+    title: 'A Magic Touch',
+    blurb: 'Learn about the Merchant’s magical powers',
+    scriptId: 4,
+    reward: { type: 'magic', amount: 10 }, rewardNode: 'm7a',
+    once: true,
+    unlock: (progress) => {
+      if (progress?.hasInfuseReset) return true;
+      if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 101) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: 'Locked',
+          tooltip: 'Locked Dialogue',
+          ariaLabel: 'Locked Dialogue',
+        };
+      }
+      return {
+        status: 'mysterious',
+        requirement: 'Do an Infuse reset to reveal this dialogue',
+        message: 'Do an Infuse reset to reveal this dialogue',
+        icon: MYSTERIOUS_ICON_SRC,
+        headerTitle: HIDDEN_DIALOGUE_TITLE,
+        ariaLabel: 'Hidden merchant dialogue, do an Infuse reset to reveal this dialogue',
+      };
+    },
+  },
 };
+
+export function loadDlgState() {
+  try { return JSON.parse(localStorage.getItem(sk(MERCHANT_DLG_STATE_KEY_BASE)) || '{}'); } catch { return {}; }
+}
+
+export function saveDlgState(s) {
+  if (getActiveSlot() == null) return;
+  const key = sk(MERCHANT_DLG_STATE_KEY_BASE);
+  try {
+    const payload = JSON.stringify(s);
+    localStorage.setItem(key, payload);
+    try { primeStorageWatcherSnapshot(key, payload); } catch {}
+  } catch {}
+}
+
+function parseDlgStateRaw(raw) {
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function cleanupMerchantDlgStateWatcher() {
+  const stop = merchantDlgWatcherCleanup;
+  merchantDlgWatcherCleanup = null;
+  if (typeof stop === 'function') {
+    try { stop(); } catch {}
+  }
+}
+
+function handleMerchantDlgStateChange(_, meta = {}) {
+  if (!meta?.rawChanged) return;
+  renderDialogueList();
+}
+
+function bindMerchantDlgStateWatcherForSlot(slot) {
+  if (slot === merchantDlgWatcherSlot) return;
+  cleanupMerchantDlgStateWatcher();
+  merchantDlgWatcherSlot = slot ?? null;
+  if (slot == null) {
+    renderDialogueList();
+    return;
+  }
+  const storageKey = `${MERCHANT_DLG_STATE_KEY_BASE}:${slot}`;
+  merchantDlgWatcherCleanup = watchStorageKey(storageKey, {
+    parse: parseDlgStateRaw,
+    onChange: handleMerchantDlgStateChange,
+  });
+  try { primeStorageWatcherSnapshot(storageKey); } catch {}
+  renderDialogueList();
+}
+
+function ensureMerchantDlgStateWatcher() {
+  if (merchantDlgWatcherInitialized) {
+    bindMerchantDlgStateWatcherForSlot(getActiveSlot());
+    return;
+  }
+  merchantDlgWatcherInitialized = true;
+  bindMerchantDlgStateWatcherForSlot(getActiveSlot());
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', () => {
+      bindMerchantDlgStateWatcherForSlot(getActiveSlot());
+    });
+  }
+}
+
+ensureMerchantDlgStateWatcher();
+
+// ----- Module state -----
+
+
+let merchantCloseBtn  = null;
+let merchantOpen      = false;
+let merchantDrag      = null;
+let merchantLastFocus = null;
+let merchantEventsBound = false;
+let merchantTabs = { buttons: {}, panels: {}, tablist: null };
+
+// ========================= Typing SFX =========================
+
+
+
+
+let _isLabDialogueOpen = false;
+export function isLabDialogueOpen() {
+    return _isLabDialogueOpen;
+}
+
+
+
+
+
+
+
+// ========================= Typewriter =========================
+
+
+// ========================= DialogueEngine =========================
+
+
+
+
+function openDialogueModal(id, meta) {
+  primeTypingSfx();
+
+  let scriptId = meta.scriptId;
+  if (meta.scriptId === 6) {
+      _isLabDialogueOpen = true;
+  }
+  if (isLabUnlockedLocal() && typeof hasSeenLabIntro === 'function' && !hasSeenLabIntro() && getTsunamiSequencePlayed()) {
+      scriptId = 1000;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'merchant-firstchat';
+  overlay.setAttribute('data-dismissible', '1');
+  overlay.innerHTML = `
+      <div class="merchant-firstchat__card" role="dialog" aria-label="${meta.title}">
+      <div class="merchant-firstchat__header">
+        <div class="name">${getMerchantName()}</div>
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+      <div class="merchant-firstchat__row">
+        <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+        <div class="merchant-firstchat__text">...</div>
+      </div>
+      <div class="merchant-firstchat__choices"></div>
+      </div>
+  `;
+  merchantOverlayEl.appendChild(overlay);
+const onEscToCancel = (e) => {
+  if (e.key !== 'Escape') return;
+  if (!overlay.isConnected) return;
+  cancelWithoutReward();
+};
+
+document.addEventListener('keydown', onEscToCancel, { capture: true });
+
+
+  // fade/blur in (same behavior as first meet)
+  requestAnimationFrame(() => overlay.classList.add('is-visible'));
+  merchantOverlayEl.classList.add('firstchat-active');
+
+  // local refs
+  const textEl    = overlay.querySelector('.merchant-firstchat__text');
+  const rowEl     = overlay.querySelector('.merchant-firstchat__row');
+  const cardEl    = overlay.querySelector('.merchant-firstchat__card');
+  const choicesEl = overlay.querySelector('.merchant-firstchat__choices');
+
+  let ended = false;
+
+  // Close helpers — end (with reward) vs cancel (no reward)
+  const closeModal = () => {
+      if (meta.scriptId === 6) {
+          _isLabDialogueOpen = false;
+      }
+	document.removeEventListener('keydown', onEscToCancel, { capture: true });
+      overlay.classList.remove('is-visible');
+      merchantOverlayEl.classList.remove('firstchat-active');
+      stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+      overlay.remove();
+  };
+
+  const cancelWithoutReward = () => {
+      if (ended) return;
+      ended = true;
+      closeModal();               // no reward
+      stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+      renderDialogueList();       // refresh UI state
+  };
+
+overlay.addEventListener('pointerdown', (e) => {
+  if (!cardEl.contains(e.target)) {
+      e.preventDefault();
+      if (e.pointerType !== 'mouse') blockInteraction(160);
+      cancelWithoutReward();
+  }
+});
+
+const engine = new DialogueEngine({
+  textEl,
+  choicesEl,
+  skipTargets: [textEl, rowEl, cardEl],
+      onChoice: (nodeId, opt) => {
+      if (meta.scriptId === 4 && nodeId === 'c4b') {
+        setJeffUnlocked(true);
+      }
+      },
+  onEnd: (info) => {
+      if (ended) return;
+      ended = true;
+
+      if (info && info.exploded) {
+        renderDialogueList();
+        closeModal();
+        playDialogueExplosion();
+        return;
+      }
+      if (info && info.noReward) {
+        renderDialogueList();
+        closeModal();
+        return;
+      }
+      if (info && info.startBossFight) {
+        renderDialogueList();
+        closeModal();
+        startBossFightSequence();
+        return;
+      }
+
+      completeDialogueOnce(id, meta);
+      renderDialogueList();
+      closeModal();
+  }
+});
+
+  const state = loadDlgState();
+  const claimed = !!state[id]?.claimed;
+
+  const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
+
+  if (meta.scriptId === 1) {
+    if (script.nodes.c1b && script.nodes.c1b.options[0] && script.nodes.c0 && script.nodes.c0.options[2]) {
+      script.nodes.c1b.options[0] = { ...script.nodes.c0.options[2] };
+    }
+
+    let initialChoice = 3;
+    try {
+      const slot = getActiveSlot();
+      const stored = slot != null ? localStorage.getItem(`ccc:merchant:initialChoice:${slot}`) : null;
+      if (stored) {
+        initialChoice = parseInt(stored, 10);
+      } else {
+      if (getActiveSlot() != null) {
+        localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot() ?? 'default'}`, '3');
+      }
+      }
+    } catch {}
+
+    if (initialChoice === 1) {
+      if (script.nodes.c0 && script.nodes.c0.options[1]) {
+        script.nodes.c0.options[1].label = 'You didn\'t answer my <i>"Who are you?"</i> question like I\'d hoped.';
+      }
+      if (script.nodes.m1a) {
+        script.nodes.m1a.say = 'Yes I did.';
+        script.nodes.m1a.next = 'c1a';
+      }
+    } else if (initialChoice === 2) {
+      if (script.nodes.c0 && script.nodes.c0.options[1]) {
+        script.nodes.c0.options[1].label = 'You didn\'t answer my <i>"Where am I?"</i> question like I\'d hoped.';
+      }
+      if (script.nodes.m1a) {
+        script.nodes.m1a.say = 'Yes I did.';
+        script.nodes.m1a.next = 'c1a';
+      }
+    } else if (initialChoice === 3) {
+      if (script.nodes.c0 && script.nodes.c0.options[1]) {
+        script.nodes.c0.options[1].label = 'Saying <i>"Okay"</i> to my confusion doesn\'t help.';
+        script.nodes.c0.options[1].to = 'm1c';
+      }
+    }
+  }
+
+  if (meta.scriptId === 6 && script?.nodes?.m3a && getLifetimeBossBeaten()) {
+      script.nodes.m3a.say = 'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battl<span style="overflow-wrap: anywhere; word-break: break-all;">ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓≽ணၷᘑർ࿷᭭⋚ᬭᠴ</span>';
+  }
+
+  if (meta.reward && !meta.rewardNode) {
+      throw new Error(`Dialogue ${id} has a reward but no rewardNode declared.`);
+  }
+
+  if (claimed && meta.reward && meta.rewardNode) {
+      const rNode = script.nodes[meta.rewardNode];
+      if (rNode) {
+          const capText = String(meta.reward.type || '').charAt(0).toUpperCase() + String(meta.reward.type || '').slice(1);
+          rNode.say = `I've already given you ${capText}, goodbye.`;
+          const nextNode = script.nodes[rNode.next];
+          if (nextNode && nextNode.type === 'choice') {
+              nextNode.options = [
+                  { label: 'Goodbye.', to: 'end_nr' },
+                  { label: 'Goodbye.', to: 'end_nr' },
+                  { label: 'Goodbye.', to: 'end_nr' },
+              ];
+          }
+      }
+  }
+
+  engine.load(script);
+  engine.start();
+}
+
+// ========================= Delve Menu =========================
+const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
+
+
+
+
+function ensureMerchantOverlay() {
+  if (merchantOverlayEl) return;
+  merchantOverlayEl = document.createElement("div");
+  merchantSheetEl = document.createElement("div");
+
+  merchantOverlayEl.className = 'merchant-overlay';
+  merchantOverlayEl.id = 'merchant-overlay';
+  merchantOverlayEl.setAttribute('inert', '');
+
+  merchantSheetEl.className = 'merchant-sheet';
+  merchantSheetEl.setAttribute('role', 'dialog');
+  merchantSheetEl.setAttribute('aria-modal', 'false');
+  merchantSheetEl.setAttribute('aria-label', 'Merchant');
+
+  const grabber = document.createElement('div');
+  grabber.className = 'merchant-grabber';
+  grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
+
+  const header = document.createElement('header');
+  header.className = 'merchant-header';
+  header.innerHTML = `
+      <div class="merchant-title">Merchant</div>
+      <div class="merchant-line" aria-hidden="true"></div>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'merchant-content';
+
+  const tabs = document.createElement('div');
+  tabs.className = 'merchant-tabs';
+  tabs.setAttribute('role', 'tablist');
+
+  const panelsWrap = document.createElement('div');
+  panelsWrap.className = 'merchant-panels';
+
+  const panelDialogue = document.createElement('section');
+  panelDialogue.className = 'merchant-panel is-active';
+  panelDialogue.id = 'merchant-panel-dialogue';
+
+  const panelReset = document.createElement('section');
+  panelReset.className = 'merchant-panel';
+  panelReset.id = 'merchant-panel-reset';
+
+  const panelWorkshop = document.createElement('section');
+  panelWorkshop.className = 'merchant-panel';
+  panelWorkshop.id = 'merchant-panel-workshop';
+
+  const panelWarp = document.createElement('section');
+  panelWarp.className = 'merchant-panel';
+  panelWarp.id = 'merchant-panel-warp';
+
+  const panelLab = document.createElement('section');
+  panelLab.className = 'merchant-panel';
+  panelLab.id = 'merchant-panel-lab';
+
+  const panelFlow = document.createElement('section');
+  panelFlow.className = 'merchant-panel';
+  panelFlow.id = 'merchant-panel-flow';
+
+  syncForgeTabUnlockState();
+  syncWorkshopTabUnlockState();
+  syncWarpTabUnlockState();
+  syncLabTabUnlockState();
+  syncFlowTabUnlockState();
+
+  MERCHANT_TABS_DEF.forEach(def => {
+      if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
+      const stored = merchantTabUnlockState.get(def.key);
+      const unlocked = stored != null ? stored : !!def.unlocked;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'merchant-tab';
+      btn.dataset.tab = def.key;
+      const lockedLabel = def.lockedLabel || '???';
+      btn.textContent = unlocked ? def.label : lockedLabel;
+      if (!unlocked) {
+        btn.classList.add('is-locked');
+        btn.disabled = true;
+        btn.title = '???';
+        if (def.key === 'warp') btn.style.display = 'none';
+      } else {
+        btn.title = def.label || 'Tab';
+        if (def.key === 'warp') btn.style.display = '';
+      }
+      def.unlocked = unlocked;
+      merchantTabUnlockState.set(def.key, unlocked);
+      bindRapidActivation(btn, (event) => {
+      if (btn.disabled) {
+        event?.preventDefault?.();
+        return;
+      }
+      selectMerchantTab(def.key);
+      });
+
+      tabs.appendChild(btn);
+      merchantTabs.buttons[def.key] = btn;
+  });
+
+  merchantTabs.panels['dialogue']  = panelDialogue;
+  merchantTabs.panels['reset']     = panelReset;
+  merchantTabs.panels['workshop']  = panelWorkshop;
+  merchantTabs.panels['warp']      = panelWarp;
+  merchantTabs.panels['lab']       = panelLab;
+  merchantTabs.panels['flow']   = panelFlow;
+  merchantTabs.tablist = tabs;
+
+  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelWarp, panelLab, panelFlow);
+  content.append(tabs, panelsWrap);
+
+  syncForgeTabUnlockState();
+  syncWorkshopTabUnlockState();
+
+  try { initResetSystem(); } catch {}
+  try { initFlowTab(panelFlow); } catch {}
+
+  if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
+      const handleUnlockChange = (event) => {
+      const { key, slot } = event?.detail ?? {};
+      if (slot != null && slot !== getActiveSlot()) return;
+      
+      if (key === 'forge' || !key) syncForgeTabUnlockState();
+      if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
+      if (key === 'surge_completed' || !key) syncWarpTabUnlockState();
+      if (key === 'lab' || key === 'tsunami' || !key) syncLabTabUnlockState();
+      if (key === 'flow' || !key) syncFlowTabUnlockState();
+      };
+      window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
+      window.addEventListener('saveSlot:change', () => { merchantTabUnlockState.clear(); handleUnlockChange(); }, { passive: true });
+      // Also update flow tab on surge level change
+      window.addEventListener('surge:level:change', () => syncFlowTabUnlockState(), { passive: true });
+      forgeUnlockListenerBound = true;
+  }
+
+      const actions = document.createElement('div');
+      actions.className = 'merchant-actions';
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'merchant-close';
+      closeBtn.textContent = 'Close';
+      merchantCloseBtn = closeBtn;
+      actions.appendChild(closeBtn);
+
+  // First-time chat overlay
+  const firstChat = document.createElement('div');
+  firstChat.className = 'merchant-firstchat merchant-firstchat--initial';
+  firstChat.innerHTML = `
+      <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
+      <div class="merchant-firstchat__header">
+        <div class="name">Merchant</div>
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+      <div class="merchant-firstchat__row">
+        <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+        <div class="merchant-firstchat__text" id="merchant-first-line">...</div>
+      </div>
+      <div class="merchant-firstchat__choices" id="merchant-first-choices"></div>
+      </div>
+  `;
+
+  merchantSheetEl.append(grabber, header, content, actions, firstChat);
+  merchantOverlayEl.appendChild(merchantSheetEl);
+  document.body.appendChild(merchantOverlayEl);
+  initDialogueTab();
+  ensureMerchantScrollbar(merchantOverlayEl, merchantSheetEl);
+
+  if (!merchantEventsBound) {
+      merchantEventsBound = true;
+
+      const onCloseClick = () => { closeMerchant(); };
+
+      bindRapidActivation(closeBtn, onCloseClick, { once: false });
+      // document.addEventListener('keydown', onKeydownForMerchant);
+      grabber.addEventListener('pointerdown', onMerchantDragStart);
+      grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+
+      // Allow priming via any pointer in the overlay (mobile-safe)
+      merchantOverlayEl.addEventListener('pointerdown', primeTypingSfx, { once: true });
+  }
+}
+
+// Called once when Merchant overlay is created
+function initDialogueTab() {
+  const panel = document.getElementById('merchant-panel-dialogue');
+  if (!panel || panel.__dlgInit) return;
+  panel.__dlgInit = true;
+
+  const list = document.createElement('div');
+  list.className = 'merchant-dialogue-list';
+  panel.appendChild(list);
+
+  panel.__dlgList = list;
+  ensureProgressEvents();
+  renderDialogueList();
+}
+
+function handleDialogueCardClick(event) {
+  const card = event.currentTarget;
+  if (!card) return;
+  const ctx = card._dlgCtx;
+  if (!ctx) return;
+
+  if (card.classList.contains('is-locked') && !ctx.isMysterious) {
+      event?.preventDefault?.();
+      return;
+  }
+  if (ctx.unlocked) {
+      openDialogueModal(ctx.id, ctx.meta);
+  } else if (ctx.isMysterious) {
+      openDialogueLockInfo(ctx.lockInfo);
+  }
+}
+
+function renderDialogueList() {
+  const panel = document.getElementById('merchant-panel-dialogue');
+  if (!panel) return;
+
+  const list = panel.__dlgList;
+  if (!list) return;
+
+  const progress = getPlayerProgress();
+  const state = loadDlgState();
+  let stateDirty = false;
+
+  const seenIds = new Set();
+
+  Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
+      seenIds.add(String(id));
+      const entryState = state[id] || {};
+      const storedStatus = entryState.status || 'locked';
+      const storedRank = dialogueStatusRank(storedStatus);
+
+      let lockInfo = resolveDialogueLock(meta, progress);
+      let status = lockInfo.status;
+      let rank = dialogueStatusRank(status);
+
+      if (rank > storedRank) {
+      entryState.status = status;
+      if (status === 'mysterious') {
+        entryState.lockSnapshot = snapshotLockDisplay(lockInfo);
+      } else if (status === 'unlocked') {
+        delete entryState.lockSnapshot;
+      }
+      state[id] = entryState;
+      stateDirty = true;
+      } else if (rank < storedRank) {
+      if (storedStatus === 'unlocked') {
+        lockInfo = buildUnlockedDialogueInfo(meta);
+        status = 'unlocked';
+        rank = dialogueStatusRank(status);
+      } else if (storedStatus === 'mysterious') {
+        const snapshot = entryState.lockSnapshot || snapshotLockDisplay(lockInfo) || {};
+        lockInfo = {
+          status: 'mysterious',
+          unlocked: false,
+          title: snapshot.title ?? lockInfo.title ?? '???',
+          blurb: snapshot.blurb ?? lockInfo.blurb ?? DEFAULT_MYSTERIOUS_BLURB,
+          tooltip: snapshot.tooltip ?? lockInfo.tooltip ?? 'Hidden Dialogue',
+          message: snapshot.message ?? lockInfo.message ?? DEFAULT_LOCK_MESSAGE,
+          icon: snapshot.icon ?? lockInfo.icon ?? MYSTERIOUS_ICON_SRC,
+          headerTitle: snapshot.headerTitle ?? lockInfo.headerTitle ?? HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: snapshot.ariaLabel ?? lockInfo.ariaLabel ?? 'Hidden merchant dialogue',
+        };
+        status = 'mysterious';
+        rank = dialogueStatusRank(status);
+      }
+      }
+
+      const unlocked = status === 'unlocked';
+      const isMysterious = status === 'mysterious';
+      const locked = status === 'locked';
+      const claimed = !!entryState.claimed;
+      const showComplete = unlocked && !!(meta.once && claimed);
+
+      let card = list.querySelector(`.dlg-card[data-dlg-id="${id}"]`);
+      if (!card) {
+      card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'dlg-card';
+      card.dataset.dlgId = String(id);
+      
+      const titleEl = document.createElement('div');
+      titleEl.className = 'dlg-title';
+      
+      const blurbEl = document.createElement('div');
+      blurbEl.className = 'dlg-blurb';
+      
+      const rewardEl = document.createElement('div');
+      rewardEl.className = 'dlg-reward';
+      
+      card.append(titleEl, blurbEl, rewardEl);
+      list.appendChild(card);
+      
+      // Bind once; handler uses element context
+      bindRapidActivation(card, handleDialogueCardClick);
+      }
+
+      // Update Context
+      card._dlgCtx = { id, meta, lockInfo, unlocked, isMysterious };
+
+      // Update Classes
+      card.dataset.dlgStatus = status;
+      if (card.disabled !== !!locked) card.disabled = !!locked;
+      card.classList.toggle('is-locked', locked);
+      card.classList.toggle('is-mysterious', isMysterious);
+      card.classList.toggle('is-complete', !!showComplete);
+      card.classList.toggle('has-again', !!showComplete);
+
+      if (locked) {
+      if (card.getAttribute('aria-disabled') !== 'true') card.setAttribute('aria-disabled', 'true');
+      if (card.getAttribute('tabindex') !== '-1') card.setAttribute('tabindex', '-1');
+      } else {
+      if (card.hasAttribute('aria-disabled')) card.removeAttribute('aria-disabled');
+      if (card.hasAttribute('tabindex')) card.removeAttribute('tabindex');
+      }
+
+      // Update Content
+      const titleEl = card.querySelector('.dlg-title');
+      const titleText = unlocked ? meta.title : (lockInfo.title ?? '???');
+      if (titleEl.textContent !== titleText) titleEl.textContent = titleText;
+
+      const blurbEl = card.querySelector('.dlg-blurb');
+      const blurbText = unlocked ? meta.blurb : (lockInfo.blurb ?? '');
+      if (blurbEl.textContent !== blurbText) blurbEl.textContent = blurbText;
+
+      const rewardEl = card.querySelector('.dlg-reward');
+      if (unlocked && meta.reward) {
+      const config = RESOURCE_REGISTRY.find(r => r.key === meta.reward.type);
+      const iconSrc = config ? config.icon : null;
+      if (iconSrc) {
+        // Reuse inner structure if it matches, to avoid flicker
+        if (!rewardEl.classList.contains('has-reward')) {
+           rewardEl.classList.add('has-reward');
+           rewardEl.innerHTML = `
+            <span class="reward-label">Reward:</span>
+            <span class="reward-chunk">
+                <span class="reward-icon" aria-hidden="true"></span>
+                <span class="amt"></span>
+                <span class="currency-name"></span>
+            </span>
+           `;
+        }
+        
+        // Update reward visual data
+        if (rewardEl.style.getPropertyValue('--reward-icon') !== `url('${iconSrc}')`) {
+            rewardEl.style.setProperty('--reward-icon', `url('${iconSrc}')`);
+        }
+        const amtEl = rewardEl.querySelector('.amt');
+        const amtText = String(meta.reward.amount);
+        if (amtEl && amtEl.textContent !== amtText) amtEl.textContent = amtText;
+
+        const nameEl = rewardEl.querySelector('.currency-name');
+        if (nameEl) {
+          const typeStr = String(meta.reward.type || '');
+          const capText = typeStr.charAt(0).toUpperCase() + typeStr.slice(1);
+          if (nameEl.textContent !== capText) nameEl.textContent = capText;
+        }
+        
+        const rewardLabelText = `Reward: ${meta.reward.amount} ${meta.reward.type}`;
+        if (rewardEl.getAttribute('aria-label') !== rewardLabelText) {
+            rewardEl.setAttribute('aria-label', rewardLabelText);
+        }
+      } else {
+        rewardEl.classList.remove('has-reward');
+        const text = rewardLabel(meta.reward);
+        if (rewardEl.textContent !== text) rewardEl.textContent = text;
+        if (rewardEl.style.display !== '') rewardEl.style.display = '';
+        rewardEl.removeAttribute('aria-label');
+      }
+      if (rewardEl.style.display === 'none') rewardEl.style.display = '';
+      } else {
+      if (rewardEl.textContent !== '') rewardEl.textContent = '';
+      if (rewardEl.style.display !== 'none') rewardEl.style.display = 'none';
+      }
+
+      const ariaLabel = unlocked
+      ? `${meta.title}${showComplete ? ' (completed)' : ''}`
+      : (lockInfo.ariaLabel || (isMysterious ? 'Hidden merchant dialogue' : 'Locked merchant dialogue'));
+      if (card.getAttribute('aria-label') !== ariaLabel) card.setAttribute('aria-label', ariaLabel);
+
+      if (lockInfo.tooltip) {
+      if (card.title !== lockInfo.tooltip) card.title = lockInfo.tooltip;
+      } else if (unlocked) {
+      const hint = 'Left-click: Start Dialogue';
+      if (card.title !== hint) card.title = hint;
+      } else {
+      if (card.hasAttribute('title')) card.removeAttribute('title');
+      }
+
+      // "Ask Again" footer
+      let againEl = card.querySelector('.dlg-again');
+      if (showComplete) {
+      if (!againEl) {
+        againEl = document.createElement('div');
+        againEl.className = 'dlg-again';
+        againEl.textContent = 'Ask Again?';
+        card.appendChild(againEl);
+      }
+      } else if (againEl) {
+      againEl.remove();
+      }
+  });
+  
+  // Cleanup stale
+  Array.from(list.children).forEach(child => {
+      if (child.dataset.dlgId && !seenIds.has(child.dataset.dlgId)) {
+          child.remove();
+      }
+  });
+
+  if (stateDirty) {
+      saveDlgState(state);
+  }
+}
+
+// Runs a conversation inside the Dialogue tab (not the first-time overlay)
+function playDialogueExplosion() {
+  const explosionContainer = document.createElement('div');
+  explosionContainer.style.position = 'fixed';
+  explosionContainer.style.top = '0';
+  explosionContainer.style.left = '0';
+  explosionContainer.style.width = '100vw';
+  explosionContainer.style.height = '100vh';
+  explosionContainer.style.pointerEvents = 'auto'; // Block interaction with underlying elements
+  explosionContainer.style.cursor = 'none'; // Hide cursor during explosion
+  explosionContainer.style.zIndex = '999999';
+  explosionContainer.style.overflow = 'hidden';
+  document.body.appendChild(explosionContainer);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.position = 'absolute';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.pointerEvents = 'none';
+  explosionContainer.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  const particles = [];
+  let isAnimating = true;
+
+  const colors = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'];
+
+  class Particle {
+    constructor(x, y, isLong, customAngle = null, customSpeed = null, customSize = null) {
+      this.x = x;
+      this.y = y;
+      
+      const angle = customAngle !== null ? customAngle : Math.random() * Math.PI * 2;
+      const speed = customSpeed !== null ? customSpeed : (isLong ? (Math.random() * 20 + 5) : (Math.random() * 10 + 2));
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed;
+      
+      this.size = customSize !== null ? customSize : (isLong ? (Math.random() * 300 + 100) : (Math.random() * 150 + 50));
+      this.color = colors[Math.floor(Math.random() * colors.length)];
+      
+      this.life = 1.0;
+      this.decay = isLong ? (Math.random() * 0.005 + 0.005) : (Math.random() * 0.02 + 0.02);
+      this.gravity = isLong ? 0.3 : 0.15;
+      
+    }
+
+    update(timeScale = 1) {
+      this.x += this.vx * timeScale;
+      this.y += this.vy * timeScale;
+      this.vy += this.gravity * timeScale;
+      this.life -= this.decay * timeScale;
+      this.size *= Math.pow(0.98, timeScale);
+    }
+
+
+    draw(ctx) {
+      if (this.life <= 0) return;
+
+      // Draw particle
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.life;
+      ctx.fill();
+
+
+      ctx.globalAlpha = 1.0;
+    }
+  }
+
+  const spawnParticles = (isLong, currentCount = 0) => {
+    const numParticles = isLong ? 1000 : 50;
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    
+    // Normal random particles
+    for (let i = 0; i < numParticles; i++) {
+      particles.push(new Particle(centerX, centerY, isLong));
+    }
+    
+    // Add thick "donut" particle ring for short explosions
+    if (!isLong) {
+      const ringParticles = 150 + currentCount * 50; // More particles each time
+      const baseSpeed = Math.max(10, 40 - currentCount * 1.5); // Slower each time
+      const thickness = 20; // Spread of speeds to create a donut
+      const sizeMultiplier = 1 + (currentCount * 0.2); // Bigger particles each time
+      
+      for (let i = 0; i < ringParticles; i++) {
+        const angle = Math.random() * Math.PI * 2; // Randomize angle for natural distribution
+        const speed = baseSpeed + Math.random() * thickness;
+        
+        // Base sizes roughly scaled by the multiplier
+        const pSize = (Math.random() * 150 + 50) * sizeMultiplier;
+        
+                particles.push(new Particle(centerX, centerY, isLong, angle, speed, pSize));
+      }
+    }
+  };
+
+  let lastTime = performance.now();
+  const animate = (time) => {
+    if (!isAnimating) return;
+    
+    const dt = time - lastTime;
+    lastTime = time;
+    // Cap dt to prevent massive jumps if tab is backgrounded
+    const safeDt = Math.min(dt, 100);
+    const timeScale = safeDt / (1000 / 120);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.update(timeScale);
+      p.draw(ctx);
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+      }
+    }
+    
+    requestAnimationFrame(animate);
+  };
+  
+  requestAnimationFrame((time) => {
+    lastTime = time;
+    animate(time);
+  });
+
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+
+  let count = 0;
+  const totalShort = 10;
+  const delay = 150; // 150ms
+
+  spawnParticles(false, 0); // Immediate first one
+  playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
+  count++;
+
+  const intervalId = setInterval(() => {
+    if (count < totalShort) {
+      playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
+      spawnParticles(false, count);
+      count++;
+    } else {
+      clearInterval(intervalId);
+      // We are already inside the interval, so this is 150ms after the 10th explosion.
+      playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
+      spawnParticles(true, count);
+      // Wait 1.5 seconds before re-allowing clicks
+      setTimeout(() => {
+        explosionContainer.style.pointerEvents = 'none';
+      }, 1500);
+      // Wait for long explosion to finish before removing container
+      setTimeout(() => {
+        isAnimating = false;
+        explosionContainer.remove();
+      }, 5000); // Increased duration to allow particles to fall and fade
+    }
+  }, delay);
+}
+
+// Runs a conversation inside the Dialogue tab (not the first-time overlay)
+function startConversation(id, meta) {
+  const panel = document.getElementById('merchant-panel-dialogue');
+  if (!panel) return;
+
+  const textEl = panel.querySelector('.merchant-text');     // from your bubble
+  const bubble = panel.querySelector('.merchant-bubble');
+  const row = panel;                                        // big tap target
+  let choicesEl = panel.querySelector('.merchant-choices');
+
+
+  // Ensure blank + hide choices before typing
+  choicesEl.classList.remove('is-visible');
+  choicesEl.innerHTML = '';
+
+  const engine = new DialogueEngine({
+      textEl,
+      choicesEl,
+      skipTargets: [textEl, row, bubble],
+      onEnd: (info) => {
+      if (info && info.exploded) {
+        textEl.textContent = '...';
+        renderDialogueList();
+        playDialogueExplosion();
+        return;
+      }
+      if (info && info.noReward) {
+        textEl.textContent = '...';
+        renderDialogueList();
+        return;
+      }
+      if (info && info.startBossFight) {
+        textEl.textContent = '...';
+        renderDialogueList();
+        startBossFightSequence();
+        return;
+      }
+      completeDialogueOnce(id, meta);
+	textEl.textContent = '...';
+	renderDialogueList();
+	}
+  });
+
+  const script = MERCHANT_DIALOGUES[meta.scriptId];
+  engine.load(script);
+  engine.start();
+}
+
+export function startBossFightSequence() {
+    // 0. Dispatch music stop
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+
+    // Close overlays before the boss fight starts
+    forceCloseCoveOverlays();
+
+    // 1. Black screen overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'bossfight-sequence-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.backgroundColor = 'black';
+    overlay.style.zIndex = '2147483645';
+    overlay.style.pointerEvents = 'all';
+    overlay.style.cursor = 'none'; // Hide cursor
+    document.body.appendChild(overlay);
+    
+    // 2. Set active flag
+    window.__bossFightSequenceActive = true;
+    
+    // 3. Stop spawning
+    if (window.spawner && typeof window.spawner.stop === 'function') {
+        window.spawner.stop();
+        if (typeof window.spawner.stopAllWaveSounds === "function") {
+            window.spawner.stopAllWaveSounds();
+        }
+    }
+
+    // 4. Start visuals after 5 seconds
+    setTimeout(() => {
+        // Remove black screen
+        if (overlay && overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+
+        // Create container for boss fight visuals
+        const visualsContainer = document.createElement('div');
+        visualsContainer.id = 'bossfight-visuals-container';
+        visualsContainer.style.position = 'fixed';
+        visualsContainer.style.inset = '0';
+        visualsContainer.style.zIndex = '2147483641';
+        document.body.appendChild(visualsContainer);
+
+        // Start visuals and return to normal Cove state when complete
+        playSecretDlgBossFightSequence(visualsContainer, () => {
+            window.__bossFightSequenceActive = false;
+
+            if (visualsContainer && visualsContainer.parentNode) {
+                visualsContainer.parentNode.removeChild(visualsContainer);
+            }
+
+            const transitionOverlay = document.getElementById('bossfight-sequence-overlay');
+            if (transitionOverlay && transitionOverlay.parentNode) {
+                transitionOverlay.parentNode.removeChild(transitionOverlay);
+            }
+
+            const victoryOverlay = document.getElementById('boss-victory-container');
+            if (victoryOverlay && victoryOverlay.parentNode) {
+                victoryOverlay.parentNode.removeChild(victoryOverlay);
+            }
+
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+            }
+
+            if (window.spawner && typeof window.spawner.start === 'function') {
+                const startSpawner = () => {
+                    if (window.spawner && typeof window.spawner.start === 'function') {
+                        window.spawner.start();
+                        if (typeof window.spawner.playEntranceWave === 'function') {
+                            window.spawner.playEntranceWave();
+                        }
+                    }
+                };
+                if (window.isMusicPlaying && window.isMusicPlaying()) {
+                    startSpawner();
+                } else {
+                    window.addEventListener('music:started', startSpawner, { once: true });
+                }
+            }
+
+            forceCloseCoveOverlays();
+        }, {});
+    }, 5000);
+}
+
+function forceCloseCoveOverlays() {
+  const hadNoOverlayTransitions = document.body.classList.contains('no-overlay-transitions');
+  if (!hadNoOverlayTransitions) {
+    document.body.classList.add('no-overlay-transitions');
+  }
+
+  closeMerchant();
+
+  const closeSelectors = [
+    '.offline-close-btn',
+    '.hm-milestones-close',
+    '.merchant-close',
+    '.shop-close',
+    '.sas-close'
+  ];
+  closeSelectors.forEach((selector) => {
+    document.querySelectorAll(selector).forEach((btn) => {
+      try { btn.click(); } catch {}
+    });
+  });
+
+  if (!hadNoOverlayTransitions) {
+    requestAnimationFrame(() => {
+      document.body.classList.remove('no-overlay-transitions');
+    });
+  }
+}
+
+function runFirstMeet() {
+  const fc = merchantOverlayEl.querySelector('.merchant-firstchat');
+  const textEl = fc.querySelector('#merchant-first-line');
+  const rowEl  = fc.querySelector('.merchant-firstchat__row');
+  const cardEl = fc.querySelector('.merchant-firstchat__card');
+  const choicesEl = fc.querySelector('#merchant-first-choices');
+
+
+  const engine = new DialogueEngine({
+      textEl,
+      choicesEl,
+      skipTargets: [textEl, rowEl, cardEl],
+      onChoice: (nodeId, opt) => {
+        if (nodeId === 'c1') {
+          let choice = 3;
+          if (opt.to === 'r_who') choice = 1;
+          else if (opt.to === 'r_where') choice = 2;
+          try {
+          if (getActiveSlot() != null) {
+            localStorage.setItem(`ccc:merchant:initialChoice:${getActiveSlot() ?? 'default'}`, choice.toString());
+          }
+          } catch {}
+        }
+      },
+      onEnd: () => {
+      try {
+        if (getActiveSlot() != null) {
+          localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1');
+        }
+      } catch {}
+      try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
+      fc.classList.remove('is-visible');
+      merchantOverlayEl.classList.remove('firstchat-active');
+      }
+  });
+
+  engine.load(MERCHANT_DIALOGUES[0]);
+  engine.start();
+}
+
+function resetFirstChatOverlayState() {
+  if (!merchantOverlayEl) return;
+  const fc = merchantOverlayEl.querySelector('.merchant-firstchat--initial');
+  if (!fc) return;
+
+  fc.classList.remove('is-visible');
+
+  const textEl = fc.querySelector('#merchant-first-line');
+  if (textEl) {
+      textEl.classList.remove('is-typing');
+      textEl.textContent = '...';
+  }
+
+  const choicesEl = fc.querySelector('#merchant-first-choices');
+  if (choicesEl) {
+      choicesEl.classList.remove('is-visible');
+      choicesEl.style.opacity = '0';
+      choicesEl.style.transform = 'translateY(6px)';
+      choicesEl.style.pointerEvents = 'none';
+      choicesEl.style.minHeight = '';
+      choicesEl.innerHTML = '';
+  }
+
+  merchantOverlayEl.classList.remove('firstchat-active');
+}
+
+export function openMerchant() {
+  ensureMerchantOverlay();
+  setDelveElements(merchantOverlayEl, merchantSheetEl);
+  if (merchantOpen) return;
+
+  const activeEl = document.activeElement;
+  if (activeEl instanceof HTMLElement && !merchantOverlayEl.contains(activeEl)) {
+      merchantLastFocus = activeEl;
+  } else {
+      merchantLastFocus = null;
+  }
+  merchantOpen = true;
+
+  // Check for pending Lab unlock
+  const slot = getActiveSlot();
+  let forcedDialogueTab = false;
+
+  if (slot != null) {
+      const pendingKey = `ccc:tsunami:labPending:${slot}`;
+      if (localStorage.getItem(pendingKey) === '1') {
+          try { localStorage.removeItem(pendingKey); } catch {}
+          try { localStorage.setItem(LAB_UNLOCK_KEY(slot), '1'); } catch {}
+          setLabIntroSeen(false);
+          syncLabTabUnlockState();
+          try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'lab', slot } })); } catch {}
+          forcedDialogueTab = true;
+      }
+  }
+
+  // Check whether this is the very first time we’re meeting the Merchant
+  let met = false;
+  try {
+      met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1';
+  } catch {
+      met = false;
+  }
+
+  // For the very first chat, pin the sheet in place (no slide-up animation)
+  if (!met) {
+      merchantOverlayEl.classList.add('firstchat-instant');
+  }
+
+  // Restore last tab (MOVED UP)
+  let last = 'dialogue';
+  try { last = localStorage.getItem(sk(MERCHANT_TAB_KEY_BASE)) || 'dialogue'; } catch {}
+
+  if (forcedDialogueTab) {
+    last = 'dialogue';
+    try {
+      if (slot != null) {
+        localStorage.setItem(`ccc:delveTab:${merchantOverlayEl.id}:${slot}`, 'dialogue');
+      }
+    } catch {}
+  }
+
+  selectMerchantTab(last);
+
+  // Ensure no orphaned audio
+  stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+
+  // First-time chat
+  if (!met) {
+    const fc = merchantOverlayEl.querySelector('.merchant-firstchat');
+    fc?.classList.add('is-visible');
+    merchantOverlayEl.classList.add('firstchat-active');
+    runFirstMeet();
+  }
+
+  // Reset transform and transition and apply the standard Delve logic
+  openDelveOverlay(merchantOverlayEl, merchantSheetEl);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (merchantOverlayEl.classList.contains('firstchat-instant')) {
+          merchantSheetEl.style.transition = 'none';
+      }
+
+      if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
+      try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
+      }
+    });
+  });
+}
+
+export function closeMerchant() {
+  if (!merchantOpen) return;
+  
+
+  if (IS_MOBILE) {
+    try { suppressNextGhostTap(100); } catch {}
+    try { blockInteraction(80); } catch {}
+  }
+
+  merchantOpen = false;
+  merchantSheetEl.style.transition = '';
+  merchantSheetEl.style.transform = '';
+  merchantOverlayEl.classList.remove('is-open');
+  merchantOverlayEl.classList.remove('firstchat-instant');
+  resetFirstChatOverlayState();
+
+  const activeEl = document.activeElement;
+  if (activeEl && merchantOverlayEl.contains(activeEl)) {
+    let target = merchantLastFocus;
+    if (!target || !target.isConnected) {
+      target = document.querySelector('[data-btn="shop"], .btn-shop');
+    }
+    if (target && typeof target.focus === 'function') {
+      try { target.focus({ preventScroll: true }); } catch {}
+    }
+  }
+
+  merchantOverlayEl.setAttribute('inert', '');
+  merchantLastFocus = null;
+  stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+  setTypingActive(false);
+      setAudioUnderwater(false);
+}
+
+// Drag to dismiss
+function onMerchantDragStart(e) {
+  if (!merchantOpen) return;
+
+  const clientY = typeof e.clientY === 'number'
+    ? e.clientY
+    : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+  merchantDrag = {
+    startY: clientY,
+    lastY: clientY,
+    startT: performance.now(),
+    moved: 0,
+    canceled: false,
+  };
+
+  merchantSheetEl.style.transition = 'none';
+
+  window.addEventListener('pointermove', onMerchantDragMove, { passive: true });
+  window.addEventListener('pointerup', onMerchantDragEnd);
+  window.addEventListener('pointercancel', onMerchantDragCancel);
+}
+
+function onMerchantDragMove(e) {
+  if (!merchantDrag || merchantDrag.canceled) return;
+  const y = e.clientY;
+  if (typeof y !== 'number') return;
+  const dy = Math.max(0, y - merchantDrag.startY);
+  merchantDrag.lastY = y;
+  merchantDrag.moved = dy;
+  merchantSheetEl.style.transform = `translateY(${dy}px)`;
+}
+
+function onMerchantDragEnd() {
+  if (!merchantDrag || merchantDrag.canceled) { cleanupMerchantDrag(); return; }
+  const dt = Math.max(1, performance.now() - merchantDrag.startT);
+  const dy = merchantDrag.moved;
+  const velocity = dy / dt;
+  const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
+
+  if (shouldClose) {
+    suppressNextGhostTap(160);
+    merchantSheetEl.style.transition = 'transform 140ms ease-out';
+    merchantSheetEl.style.transform = 'translateY(100%)';
+    const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 150;
+    setTimeout(() => { closeMerchant(); }, delay);
+  } else {
+    merchantSheetEl.style.transition = 'transform 180ms ease';
+    merchantSheetEl.style.transform = 'translateY(0)';
+  }
+  cleanupMerchantDrag();
+}
+
+function onMerchantDragCancel() {
+  if (!merchantDrag) return;
+  merchantDrag.canceled = true;
+  merchantSheetEl.style.transition = 'transform 180ms ease';
+  merchantSheetEl.style.transform = 'translateY(0)';
+  cleanupMerchantDrag();
+}
+
+function cleanupMerchantDrag() {
+  window.removeEventListener('pointermove', onMerchantDragMove);
+  window.removeEventListener('pointerup', onMerchantDragEnd);
+  window.removeEventListener('pointercancel', onMerchantDragCancel);
+  merchantDrag = null;
+}
+
+function selectMerchantTab(key) {
+  const def = MERCHANT_TABS_DEF.find(t => t.key === key);
+  const unlocked = merchantTabUnlockState.get(key);
+  if (!def || !unlocked) key = 'dialogue';
+
+  if (merchantSheetEl) {
+    if (key === 'lab') merchantSheetEl.classList.add('is-lab-active');
+    else merchantSheetEl.classList.remove('is-lab-active');
+
+    if (key === 'flow') merchantSheetEl.classList.add('is-flow-active');
+    else merchantSheetEl.classList.remove('is-flow-active');
+  }
+
+  for (const k in merchantTabs.buttons) {
+    merchantTabs.buttons[k].classList.toggle('is-active', k === key);
+  }
+  for (const k in merchantTabs.panels) {
+    merchantTabs.panels[k].classList.toggle('is-active', k === key);
+  }
+
+  if (key === 'dialogue') {
+    try { renderDialogueList(); } catch {}
+  }
+  if (key === 'reset') {
+    try { initResetPanel(merchantTabs.panels['reset']); } catch {}
+    try { updateResetPanel(); } catch {}
+  }
+  if (key === 'workshop') {
+    try { initWorkshopTab(merchantTabs.panels['workshop']); } catch {}
+  }
+  if (key === 'warp') {
+    try { initWarpTab(merchantTabs.panels['warp']); } catch {}
+    try { updateWarpTab(); } catch {}
+  }
+  if (key === 'lab') {
+    try { initLabTab(merchantTabs.panels['lab']); } catch {}
+    if (typeof hasSeenLabIntro === 'function' && !hasSeenLabIntro() && getTsunamiSequencePlayed()) {
+        setLabIntroSeen(true);
+        runLabIntroDialogue();
+    }
+    try { updateLabTab(); } catch {}
+  }
+  if (key === 'flow') {
+    try { initFlowTab(merchantTabs.panels['flow']); } catch {}
+    try { updateFlowTab(); } catch {}
+  }
+
+  try {
+    if (getActiveSlot() != null) {
+      localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key);
+    }
+  } catch {}
+}
+
+export function isMerchantOpen() {
+  return merchantOpen;
+}
+
+export function isViewingLabTab() {
+  if (!merchantOpen) return false;
+  const btn = merchantTabs.buttons['lab'];
+  return btn && btn.classList.contains('is-active');
+}
+
+export function unlockMerchantTabs(keys = []) {
+  keys.forEach(key => setMerchantTabUnlocked(key, true));
+}
+
+export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
+  const scriptPart1 = {
+    start: 'n1',
+    nodes: {
+      'n1': { type: 'line', say: 'O Great Tsunami...', next: 'c1' },
+      'c1': { type: 'choice', options: [{ label: '...', to: 'n2' }] },
+      'n2': { type: 'line', say: 'Cover this Cove in your wet embrace...', next: 'c2' },
+      'c2': { type: 'choice', options: [{ label: '...', to: 'n3' }] },
+      'n3': { type: 'line', say: 'We have thirsted for far too long...', next: 'c3' },
+      'c3': { type: 'choice', options: [{ label: '...', to: 'n4' }] },
+      'n4': { type: 'line', say: 'Awaken what once was lost...', next: 'c4' },
+      'c4': { type: 'choice', options: [{ label: '...', to: 'n5' }] },
+      'n5': { type: 'line', say: 'You will have my deepest gratitude...', next: 'c5' },
+      'c5': { type: 'choice', options: [{ label: '...', to: 'end' }] },
+    }
+  };
+
+  const overlay = document.createElement('div');
+  overlay.className = 'merchant-firstchat is-visible';
+  overlay.style.zIndex = '2147483647'; 
+  overlay.style.userSelect = 'none';
+  overlay.style.webkitUserSelect = 'none';
+  
+  overlay.innerHTML = `
+    <div class="merchant-firstchat__card" role="dialog" aria-label="Tsunami Dialogue">
+      <div class="merchant-firstchat__header">
+        <div class="name">Merchant</div>
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+      <div class="merchant-firstchat__row">
+        <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+        <div class="merchant-firstchat__text" id="tsunami-dlg-line" style="user-select: none; -webkit-user-select: none;">...</div>
+      </div>
+      <div class="merchant-firstchat__choices" id="tsunami-dlg-choices"></div>
+    </div>
+  `;
+  
+  container.appendChild(overlay);
+  
+  const textEl = overlay.querySelector('#tsunami-dlg-line');
+  const choicesEl = overlay.querySelector('#tsunami-dlg-choices');
+  const rowEl = overlay.querySelector('.merchant-firstchat__row');
+  const cardEl = overlay.querySelector('.merchant-firstchat__card');
+
+  primeTypingSfx();
+
+  const blockEsc = (e) => {
+    if (e.key === 'Escape') {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  };
+  document.addEventListener('keydown', blockEsc, { capture: true });
+
+  const runPart2 = () => {
+
+    // 15 seconds visual effect then fade
+    setTimeout(() => {
+        // Trigger Beacon Effect
+        if (tsunamiControls && tsunamiControls.triggerBeacons) {
+            tsunamiControls.triggerBeacons();
+        }
+        
+        // Wait 15 seconds for effect
+        setTimeout(() => {
+            // Trigger Fade
+            if (tsunamiControls && tsunamiControls.triggerFinalFade) {
+                tsunamiControls.triggerFinalFade();
+            }
+            
+            // Wait 5 seconds for fade
+            setTimeout(() => {
+                // Final Dialogue
+                runFinalLine();
+            }, 5000);
+            
+        }, 15000);
+        
+    }, 1000); // 1s delay start
+  };
+
+  const runFinalLine = () => {
+      if (tsunamiControls && tsunamiControls.showCursor) tsunamiControls.showCursor();
+
+      // Re-show overlay content for final line
+      overlay.innerHTML = `
+        <div class="merchant-firstchat__card" role="dialog" aria-label="Tsunami Dialogue">
+          <div class="merchant-firstchat__header">
+            <div class="name">Merchant</div>
+            <div class="rule" aria-hidden="true"></div>
+          </div>
+          <div class="merchant-firstchat__row">
+            <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+            <div class="merchant-firstchat__text" id="tsunami-dlg-line-2" style="user-select: none; -webkit-user-select: none;">...</div>
+          </div>
+          <div class="merchant-firstchat__choices" id="tsunami-dlg-choices-2"></div>
+        </div>
+      `;
+      
+      const textEl2 = overlay.querySelector('#tsunami-dlg-line-2');
+      const choicesEl2 = overlay.querySelector('#tsunami-dlg-choices-2');
+      const rowEl2 = overlay.querySelector('.merchant-firstchat__row');
+      const cardEl2 = overlay.querySelector('.merchant-firstchat__card');
+      
+      const finalScript = {
+          start: 'final',
+          nodes: {
+              'final': { 
+                  type: 'line', 
+                  say: 'I am sure the <span style="color:#00e5ff">Player</span> will have some questions when they wake up, but I will deal with that when I must.', 
+                  next: 'end' 
+              },
+              'end': { type: 'choice', options: [{ label: '...', to: 'end' }] }
+          }
+      };
+      
+      const engine2 = new DialogueEngine({
+          textEl: textEl2,
+          choicesEl: choicesEl2,
+          skipTargets: [textEl2, rowEl2, cardEl2],
+          onEnd: () => {
+              // Hide Dialogue
+              overlay.innerHTML = ''; // Hide UI
+              if (tsunamiControls && tsunamiControls.hideCursor) tsunamiControls.hideCursor();
+              
+              // 5 seconds darkness
+              setTimeout(() => {
+                  document.removeEventListener('keydown', blockEsc, { capture: true });
+                  stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+                  setTypingActive(false);
+      setAudioUnderwater(false);
+                  overlay.remove();
+                  if (onComplete) onComplete();
+              }, 5000);
+          }
+      });
+      
+      engine2.load(finalScript);
+      engine2.start();
+  };
+
+  const engine = new DialogueEngine({
+    textEl,
+    choicesEl,
+    skipTargets: [textEl, rowEl, cardEl],
+    onEnd: () => {
+        // Hide Dialogue UI temporarily
+        overlay.innerHTML = '';
+        stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+        setTypingActive(false);
+      setAudioUnderwater(false);
+        
+        if (tsunamiControls && tsunamiControls.hideCursor) tsunamiControls.hideCursor();
+        
+        runPart2();
+    }
+  });
+
+  engine.load(scriptPart1);
+  engine.start();
+}
+
+export function runLabIntroDialogue() {
+    const overlay = document.createElement('div');
+    overlay.className = 'merchant-firstchat is-visible';
+    overlay.style.zIndex = '99998';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.userSelect = 'none';
+    overlay.style.webkitUserSelect = 'none';
+    
+    overlay.innerHTML = `
+      <div class="merchant-firstchat__card" role="dialog" aria-label="Lab Introduction">
+        <div class="merchant-firstchat__header">
+          <div class="name">${getMerchantName()}</div>
+          <div class="rule" aria-hidden="true"></div>
+        </div>
+        <div class="merchant-firstchat__row">
+          <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+          <div class="merchant-firstchat__text" id="lab-intro-line" style="user-select: none; -webkit-user-select: none;">...</div>
+        </div>
+        <div class="merchant-firstchat__choices" id="lab-intro-choices"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    const textEl = overlay.querySelector('#lab-intro-line');
+    const choicesEl = overlay.querySelector('#lab-intro-choices');
+    const rowEl = overlay.querySelector('.merchant-firstchat__row');
+    const cardEl = overlay.querySelector('.merchant-firstchat__card');
+
+    primeTypingSfx();
+
+    const script = {
+        start: 'n1',
+        nodes: {
+            'n1': { 
+                type: 'line', 
+                say: 'Hey, <span style="color:#00e5ff">Player</span>, welcome to the Lab. I\'ll keep it brief: Research nodes, increase your Lab Level to research nodes faster, and you\'ll be making tons of Coins. Your Surge Milestones were temporarily sacrificed to the Tsunami but that\'s not important, get to researching!', 
+                next: 'c1' 
+            },
+            'c1': { 
+                type: 'choice', 
+                options: [
+                    { label: 'I don\'t understand.', to: 'end_nr' },
+                    { label: 'Tsunami sacrifice?', to: 'end_nr' },
+                    { label: '???', to: 'end_nr' }
+                ] 
+            }
+        }
+    };
+
+    const blockEsc = (e) => {
+        if (e.key === 'Escape') {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+    };
+    document.addEventListener('keydown', blockEsc, { capture: true });
+
+    const engine = new DialogueEngine({
+        textEl,
+        choicesEl,
+        skipTargets: [textEl, rowEl, cardEl],
+        onEnd: () => {
+            document.removeEventListener('keydown', blockEsc, { capture: true });
+            stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+            setTypingActive(false);
+      setAudioUnderwater(false);
+            overlay.remove();
+        }
+    });
+
+    engine.load(script);
+    engine.start();
+}
+
+export function runPostTsunamiShopDialogue(onComplete) {
+    const overlay = document.createElement('div');
+    overlay.className = 'merchant-firstchat is-visible';
+    overlay.style.zIndex = '99998';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.userSelect = 'none';
+    overlay.style.webkitUserSelect = 'none';
+    
+    overlay.innerHTML = `
+      <div class="merchant-firstchat__card" role="dialog" aria-label="Urgent Message">
+        <div class="merchant-firstchat__header">
+          <div class="name">${getMerchantName()}</div>
+          <div class="rule" aria-hidden="true"></div>
+        </div>
+        <div class="merchant-firstchat__row">
+          <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+          <div class="merchant-firstchat__text" id="post-tsunami-line" style="user-select: none; -webkit-user-select: none;">...</div>
+        </div>
+        <div class="merchant-firstchat__choices" id="post-tsunami-choices"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    const textEl = overlay.querySelector('#post-tsunami-line');
+    const choicesEl = overlay.querySelector('#post-tsunami-choices');
+    const rowEl = overlay.querySelector('.merchant-firstchat__row');
+    const cardEl = overlay.querySelector('.merchant-firstchat__card');
+
+    primeTypingSfx();
+
+    const script = {
+        start: 'n1',
+        nodes: {
+            'n1': { 
+                type: 'line', 
+                say: '<span style="color:#00e5ff">Player</span>, quickly, come to the Lab.', 
+                next: 'c1' 
+            },
+            'c1': { 
+                type: 'choice', 
+                options: [
+                    { label: 'What?', to: 'end' },
+                    { label: 'The lab?', to: 'end' },
+                    { label: '???', to: 'end' }
+                ] 
+            }
+        }
+    };
+
+    const engine = new DialogueEngine({
+        textEl,
+        choicesEl,
+        skipTargets: [textEl, rowEl, cardEl],
+        onEnd: () => {
+            stopTypingSfx();
+      setTypingActive(false);
+      setAudioUnderwater(false);
+            setTypingActive(false);
+      setAudioUnderwater(false);
+            overlay.remove();
+            if (onComplete) onComplete();
+        }
+    });
+
+    engine.load(script);
+    engine.start();
+}
+
+// Expose for other modules that may build UI later
+export { ensureMerchantOverlay };
