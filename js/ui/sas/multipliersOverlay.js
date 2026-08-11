@@ -13,12 +13,12 @@ import { getGameStatMultiplier, getDebugStatMultiplierOverride } from '../../uti
 import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { bigNumIsInfinite } from '../../util/bigNum.js';
 
-function isMultiplierGreaterThanOne(multiplier) {
+function isMultiplierNotOne(multiplier) {
   if (multiplier == null) return false;
-  if (typeof multiplier === 'number') return multiplier > 1;
+  if (typeof multiplier === 'number') return multiplier !== 1;
   if (multiplier && typeof multiplier.cmp === 'function') {
-    // Assuming cmp(1) returns > 0 if multiplier > 1
-    return multiplier.cmp(1) > 0;
+    // Assuming cmp(1) returns !== 0 if multiplier !== 1
+    return multiplier.cmp(1) !== 0;
   }
   return false;
 }
@@ -42,7 +42,7 @@ function isMultiplierEverUnlocked(key) {
   if (_unlockedCache.has(key)) {
     return true;
   }
-  const storageKey = UC_MATERIALS.includes(key) ? `ccc:multiplier_unlocked_v2:${key}:${slot}` : `ccc:multiplier_unlocked:${key}:${slot}`;
+  const storageKey = `ccc:multiplier_unlocked:${key}:${slot}`;
   if (localStorage.getItem(storageKey) === 'true') {
     _unlockedCache.add(key);
     return true;
@@ -53,7 +53,7 @@ function isMultiplierEverUnlocked(key) {
 function setMultiplierEverUnlocked(key) {
   const slot = getActiveSlot();
   if (slot == null) return;
-  const storageKey = UC_MATERIALS.includes(key) ? `ccc:multiplier_unlocked_v2:${key}:${slot}` : `ccc:multiplier_unlocked:${key}:${slot}`;
+  const storageKey = `ccc:multiplier_unlocked:${key}:${slot}`;
   localStorage.setItem(storageKey, 'true');
   _unlockedCache.add(key);
 }
@@ -88,7 +88,7 @@ function hasUnlockedUcMaterialMultiplier() {
     // Not yet stamped — check the current live value and stamp if qualifying
     if (!bank[mat]?.mult) return false;
     try {
-      if (isMultiplierGreaterThanOne(bank[mat].mult.get())) {
+      if (isMultiplierNotOne(bank[mat].mult.get())) {
         return true;
       }
     } catch {}
@@ -240,7 +240,7 @@ function processResourceRow(config, grid, initialized) {
   let unlocked = isMultiplierEverUnlocked(config.key);
   
   if (!UC_MATERIALS.includes(config.key)) {
-    if (!unlocked && isMultiplierGreaterThanOne(multiplier)) {
+    if (!unlocked && isMultiplierNotOne(multiplier)) {
       setMultiplierEverUnlocked(config.key);
       unlocked = true;
     }
@@ -299,8 +299,8 @@ function processResourceRow(config, grid, initialized) {
       const isOpen = settingsManager.get('multipliers_scrap_materials_dropdown_open');
       scrapRowOpts = {
         subText: isOpen
-          ? `${isMobileStr} this row to stop viewing Underwater Cavern material multipliers`
-          : `${isMobileStr} this row to view Underwater Cavern material multipliers`,
+          ? `${isMobileStr} this row to stop viewing Underwater Cavern Material multipliers`
+          : `${isMobileStr} this row to view Underwater Cavern Material multipliers`,
         onClick: () => {
           const nowOpen = !settingsManager.get('multipliers_scrap_materials_dropdown_open');
           settingsManager.set('multipliers_scrap_materials_dropdown_open', nowOpen);
@@ -309,8 +309,8 @@ function processResourceRow(config, grid, initialized) {
           if (rowData && rowData.row._subTextEl) {
             const str = IS_MOBILE ? 'Tap' : 'Click';
             rowData.row._subTextEl.textContent = nowOpen
-              ? `${str} this row to stop viewing Underwater Cavern material multipliers`
-              : `${str} this row to view Underwater Cavern material multipliers`;
+              ? `${str} this row to stop viewing Underwater Cavern Material multipliers`
+              : `${str} this row to view Underwater Cavern Material multipliers`;
           }
           // Rebuild the UC dropdown container
           syncUcMaterialsDropdown(grid);
@@ -408,7 +408,7 @@ function syncUcMaterialsDropdown(grid) {
       if (!bank[mat]?.mult) return;
       let currentMult = 1;
       try { currentMult = bank[mat].mult.get(); } catch { return; }
-      if (isMultiplierGreaterThanOne(currentMult)) {
+      if (isMultiplierNotOne(currentMult)) {
         setMultiplierEverUnlocked(mat);
         everUnlocked = true;
       } else {
