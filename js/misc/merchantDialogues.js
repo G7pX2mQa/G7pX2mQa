@@ -351,7 +351,7 @@ export const MERCHANT_DIALOGUES = {
     c2g: { type: 'choice', options: [
       { label: 'No.', to: 'm7b' },
       { label: 'Not really.', to: 'm7b' },
-      { label: 'My bad.', to: 'm5a' },
+      { label: 'My bad.', to: 'm8a' },
     ]},
 
     c2h: { type: 'choice', options: [
@@ -443,6 +443,18 @@ export const MERCHANT_DIALOGUES = {
       { label: '...', to: 'end_nr' },
       { label: '...', to: 'end_nr' },
       { label: '...', to: 'end_nr' },
+    ]},
+    m8a: { type: 'line', say: 'Okay.', next: 'c8a' },
+    c8a: { type: 'choice', options: [
+      { label: '...', to: 'm9a' },
+      { label: '...', to: 'm9a' },
+      { label: '...', to: 'm9a' },
+    ]},
+    m9a: { type: 'line', say: 'Any questions you’d like to ask me?', next: 'c9a' },
+    c9a: { type: 'choice', options: [
+      { label: 'Tell me about how your magic works.', to: 'm1a' },
+      { label: 'Tell me about how automation works.', to: 'm1b' },
+      { label: 'Do you have any goodies for me?', to: 'm7a' },
     ]},
     }
   },
