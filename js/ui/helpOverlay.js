@@ -7,6 +7,7 @@ import { isLabUnlocked, isSurgeActive } from '../game/surgeEffects.js';
 import { getActiveSlot } from '../util/storage.js';
 import { settingsManager } from '../game/settingsManager.js';
 import { isNodeLocked } from './mapOverlay.js';
+import { hasMetMerchant, MERCHANT_MET_EVENT } from './merchantTabs/dlgTab.js';
 
 const HELP_PERMA_UNLOCK_KEY_BASE = 'ccc:help:permaUnlocks';
 const helpPermaUnlockStateCache = new Map();
@@ -76,7 +77,15 @@ const HELP_ENTRIES = [
     icon: "img/currencies/coin/coin.webp",
     tldr: "Collect Coins; Buy upgrades; Make numbers go up",
     progressionGoal: "Unlock the XP system, then reach XP Level 31 and unlock a certain upgrade",
-    text: "The core gameplay mechanic of this game is collecting Coins, which you can do by hovering over the Coins with your cursor. Your native cursor is hidden while on the playfield (the area the Coins settle onto), and while your cursor is on the playfield, a particle trail will be constantly drawn at the location of your cursor. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant (via clicking the Delve button in the Shop) when necessary. You'll need to left-click on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster. There are also a few shortcuts you can perform on upgrades like right-click to buy max and more; you can find more information in the Shortcuts section of the Stats & Settings menu. You should follow along the progress bar at the bottom of the screen if you're ever lost on what to aim for next.",
+    get text() {
+      let base = "The core gameplay mechanic of this game is collecting Coins, which you can do by hovering over the Coins with your cursor. Your native cursor is hidden while on the playfield (the area the Coins settle onto), and while your cursor is on the playfield, a particle trail will be constantly drawn at the location of your cursor. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant (via clicking the Delve button in the Shop) when necessary. You'll need to left-click on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster.";
+      let hasShortcuts = false;
+      try { hasShortcuts = !IS_MOBILE && hasMetMerchant(); } catch {}
+      if (hasShortcuts) {
+        base += " There are also a few shortcuts you can perform on upgrades like right-click to buy max and more; you can find more information in the Shortcuts section of the Stats & Settings menu. You should follow along the progress bar at the bottom of the screen if you're ever lost on what to aim for next.";
+      }
+      return base;
+    },
     hasMobileVariant: true,
     mobileText: "The core gameplay mechanic of this game is collecting Coins, which you can do by swiping over the Coins with your finger. While your finger is held on the playfield (the area the Coins settle onto), a particle trail will be constantly drawn at the location of your finger. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to tap on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster.",
     nerdModeText: `<div style="margin-bottom:12px;"><strong>Normal Upgrade Level Cost</strong><br><code>Cost = BaseCost * (1.2 ^ UpgLevel)</code>.</div><div style="margin-bottom:12px;"><strong>XP Requirement</strong><br><code>Requirement = 10 * (1.1 ^ XPLevel) * (2.5 ^ Floor(XPLevel / 10))</code><br>After XPLevel 1e12: <code>Requirement = 10 * (1.1 ^ XPLevel) * (2.5 ^ Floor(XPLevel / 10)) * 5 * e^(2.36034e-10 * (XPLevel - 1e12))</code>.</div><div style="margin-bottom:12px;"><strong>XP Level Coin Multiplier</strong><br><code>Total Multiplier = (1.1 ^ XPLevel) + XPLevel</code>.<br></div><div><strong>Buy Next / Buy Max / Buy Cheap Logic</strong><br><strong>Buy Max:</strong> Buys the maximum possible amount of UpgLevels within the current wallet constraint.<br><strong>Buy Cheap:</strong> Buys as many UpgLevels as possible such that the cost of the <em>last purchased UpgLevel</em> does not exceed 10% of the <em>remaining wallet balance</em> after the previous UpgLevels are purchased.<br><strong>Buy Next:</strong> Only applies to milestone-type upgrades; calculates the exact amount of UpgLevels to buy to reach the next milestone or falls back to Buy Max if not enough in wallet.</div>`,
@@ -323,7 +332,7 @@ let lastRenderedEntryIds = '';
 let lastRenderedCurrentEntryId = null;
 let lastRenderedNerdMode = null;
 
-function renderHelpContent() {
+function renderHelpContent(force = false) {
 
   if (!overlayEl) return;
   const container = overlayEl.querySelector('.help-container');
@@ -341,7 +350,7 @@ function renderHelpContent() {
   const isNerdMode = settingsManager.get('nerd_mode');
   const visibleIds = visibleEntries.map(e => e.id).join(',');
 
-  if (lastRenderedEntryIds === visibleIds && 
+  if (!force && lastRenderedEntryIds === visibleIds && 
       lastRenderedCurrentEntryId === currentEntryId && 
       lastRenderedNerdMode === isNerdMode) {
     return;
@@ -445,9 +454,9 @@ function renderHelpContent() {
   });
 }
 
-export function updateHelpOverlay() {
+export function updateHelpOverlay(force = false) {
   if (isOpen) {
-    renderHelpContent();
+    renderHelpContent(force);
   }
 }
 
@@ -466,6 +475,9 @@ if (typeof window !== 'undefined') {
       updateHelpOverlay();
     }
   });
+  window.addEventListener(MERCHANT_MET_EVENT, () => {
+    updateHelpOverlay(true);
+  });
 }
 
 export function openHelpOverlay() {
@@ -473,7 +485,7 @@ export function openHelpOverlay() {
 
   if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
 
-  renderHelpContent();
+  renderHelpContent(true);
 
   if (isOpen) return;
   isOpen = true;
