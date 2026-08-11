@@ -358,6 +358,14 @@ function setupLiveBindingListeners() {
     window.addEventListener('saveSlot:change', slotHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('saveSlot:change', slotHandler));
 
+    const buildingHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'building-level'
+            && binding.slot === targetSlot);
+    };
+    document.addEventListener('ccc:buildings:changed', buildingHandler, { passive: true });
+    addDebugPanelCleanup(() => document.removeEventListener('ccc:buildings:changed', buildingHandler));
+
     const unlockHandler = (event) => {
         const { slot, key } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
