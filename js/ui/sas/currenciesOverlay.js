@@ -42,7 +42,11 @@ function ensureCurrencySettings() {
   });
 }
 
-function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc, amountText) {
+export function hasUnlockedUcMaterials() {
+  return UC_MATERIALS.some(mat => isCurrencyUnlocked(mat));
+}
+
+export function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc, amountText) {
   const row = document.createElement('div');
   row.className = 'currency-row' + (isUniversal ? ' universal-row' : '');
   if (currencyId && currencyId !== 'universal') {
@@ -82,9 +86,10 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   setHtmlOrText(amountTextDiv, amountText);
   amountDiv.appendChild(amountTextDiv);
 
-  // Add text for scrap dropdown
+  // Add text for scrap dropdown — only when UC materials are actually unlocked
   let scrapTextDiv = null;
-  if (currencyId === 'scrap') {
+  const _hasMaterials = currencyId === 'scrap' && hasUnlockedUcMaterials();
+  if (_hasMaterials) {
     amountDiv.style.display = 'flex';
     amountDiv.style.flexDirection = 'column';
     amountDiv.style.alignItems = 'flex-start';
@@ -93,13 +98,16 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     scrapTextDiv = document.createElement('div');
     const isMobileStr = IS_MOBILE ? "Tap" : "Click";
     const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
-    scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
+    scrapTextDiv.textContent = isOpen
+      ? `${isMobileStr} this row to stop viewing Underwater Cavern materials`
+      : `${isMobileStr} this row to view Underwater Cavern materials`;
     scrapTextDiv.style.fontSize = '0.7em';
-	scrapTextDiv.style.webkitTextStroke = '0.7px #000';
+    scrapTextDiv.style.webkitTextStroke = '0.7px #000';
     scrapTextDiv.style.color = '#cccccc';
-    scrapTextDiv.style.marginTop = '4px';
+    scrapTextDiv.style.marginTop = '2px';
     scrapTextDiv.style.pointerEvents = 'none'; // so clicks go to info
     amountDiv.appendChild(scrapTextDiv);
+    row.classList.add('scrap-row--has-subtext');
   }
   
   info.appendChild(iconWrapper);
@@ -107,24 +115,28 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   
   row.appendChild(info);
 
-  if (currencyId === 'scrap') {
+  if (currencyId === 'scrap' && _hasMaterials) {
     info.style.cursor = 'pointer';
     info.addEventListener('click', (e) => {
       // Don't toggle if clicking dropdown or paintbrush UI
       if (e.target.closest('.currency-controls')) return;
-      
+
       const isOpen = !settingsManager.get('currency_scrap_materials_dropdown_open');
       settingsManager.set('currency_scrap_materials_dropdown_open', isOpen);
-      
-      const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-      scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
-      
+
+      if (scrapTextDiv) {
+        const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+        scrapTextDiv.textContent = isOpen
+          ? `${isMobileStr} this row to stop viewing Underwater Cavern materials`
+          : `${isMobileStr} this row to view Underwater Cavern materials`;
+      }
+
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
-         populateCurrenciesOverlay(overlayEl);
-         if (paintbrush && paintbrush.isActive()) {
-            paintbrush.reinit();
-         }
+        populateCurrenciesOverlay(overlayEl);
+        if (paintbrush && paintbrush.isActive()) {
+          paintbrush.reinit();
+        }
       }
     });
   }
@@ -548,20 +560,23 @@ function handleCurrencyChange(e) {
                setHtmlOrText(textContainer, formatNumber(val) + ' ' + displayName);
                amountEl.appendChild(textContainer);
 
-               const scrapTextDiv = document.createElement('div');
-               const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-               const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
-               scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
-               scrapTextDiv.style.fontSize = '0.7em';
-               scrapTextDiv.style.color = '#aaaaaa';
-               scrapTextDiv.style.marginTop = '4px';
-               scrapTextDiv.style.pointerEvents = 'none';
-               amountEl.appendChild(scrapTextDiv);
+               if (hasUnlockedUcMaterials()) {
+                 const scrapTextDiv = document.createElement('div');
+                 const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+                 const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
+                 scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
+                 scrapTextDiv.style.fontSize = '0.7em';
+                 scrapTextDiv.style.webkitTextStroke = '0.7px #000';
+                 scrapTextDiv.style.color = '#cccccc';
+                 scrapTextDiv.style.marginTop = '2px';
+                 scrapTextDiv.style.pointerEvents = 'none';
+                 amountEl.appendChild(scrapTextDiv);
 
-               amountEl.style.display = 'flex';
-               amountEl.style.flexDirection = 'column';
-               amountEl.style.alignItems = 'flex-start';
-               amountEl.style.justifyContent = 'center';
+                 amountEl.style.display = 'flex';
+                 amountEl.style.flexDirection = 'column';
+                 amountEl.style.alignItems = 'flex-start';
+                 amountEl.style.justifyContent = 'center';
+               }
             }
         } else {
             setHtmlOrText(amountEl, formatNumber(val) + ' ' + displayName);
