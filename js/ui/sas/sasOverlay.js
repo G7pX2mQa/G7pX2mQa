@@ -18,6 +18,7 @@ import { clearActiveSlot } from '../../util/storage.js';
 import { refreshSlotsView } from '../../util/slots.js';
 import { enterArea, AREAS, currentArea } from '../../main.js';
 import { closeDebugPanel } from '../../util/debugPanel.js';
+import { stopAllAudio } from '../../util/audioManager.js';
 
 function populateSasButtons(overlayEl) {
   const grid = overlayEl.querySelector('.sas-grid');
@@ -142,6 +143,8 @@ function populateSasButtons(overlayEl) {
         }
       }
     }
+
+    stopAllAudio(0);
 
     // This now triggers saveSlot:change with null which clears most cache.
     clearActiveSlot();
