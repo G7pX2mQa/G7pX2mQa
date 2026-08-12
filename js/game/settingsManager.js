@@ -1,6 +1,7 @@
 // js/game/settingsManager.js
 
 import { getActiveSlot, CURRENCIES } from '../util/storage.js';
+import { PALETTES } from './mutationColorPalettes.js';
 import { isLabUnlocked } from './surgeEffects.js';
 import { RESOURCE_REGISTRY } from './offlinePanel.js';
 import { AREA_KEYS } from './upgrades.js';
@@ -323,6 +324,51 @@ export const SETTING_DEFINITIONS = {
         const name = MUTATION_NAMES[i] || `Mutation ${i}`;
         const iconSrc = i === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${i}.webp`;
         opts.push({ value: `M${i}`, label: `M${i} (${name})`, icon: iconSrc });
+      }
+      return opts;
+    }
+  },
+  save_slot_tint: {
+    type: 'dropdown',
+    label: 'Save Slot Tint',
+    overlay: 'visuals',
+    hasExtraInfo: false,
+    default: 'Default',
+    getOptions: () => {
+      let highest = 0;
+      try {
+        const hLevel = getHighestMutationLevel();
+        if (hLevel) {
+          const levelNum = levelToNumber(hLevel);
+          if (!Number.isFinite(levelNum)) {
+            highest = MAX_MUTATION_VISUAL;
+          } else {
+            highest = Math.floor(levelNum);
+          }
+        }
+      } catch (e) {}
+      
+      const opts = [];
+      opts.push({ value: 'Default', label: 'Default' });
+      opts.push({ value: 'Random', label: 'Random' });
+      for (let i = 0; i <= Math.min(highest, MAX_MUTATION_VISUAL); i++) {
+        if (i === 0) {
+          opts.push({ value: `M0`, label: `No Tint` });
+        } else {
+          const name = MUTATION_NAMES[i] || `Mutation ${i}`;
+          
+          const paletteKeys = Object.keys(PALETTES);
+          const maxVisual = paletteKeys.length - 1;
+          const paletteIndex = Math.min(i, maxVisual);
+          const paletteKey = paletteKeys[paletteIndex];
+          const colors = PALETTES[paletteKey];
+          
+          const colorString = colors.length === 1 
+            ? colors[0]
+            : `linear-gradient(135deg, ${colors.join(', ')})`;
+          
+          opts.push({ value: `M${i}`, label: `M${i} (${name})`, colorBox: colorString });
+        }
       }
       return opts;
     }
