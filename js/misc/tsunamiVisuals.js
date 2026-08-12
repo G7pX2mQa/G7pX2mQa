@@ -1,7 +1,8 @@
-import { playAudio } from '../util/audioManager.js';
+import { playAudio, muteSpawnVesselSounds } from '../util/audioManager.js';
 
 export function playTsunamiSequence(container, durationMs, onComplete, options = {}) {
     window.isTsunamiSequencePlaying = true;
+    muteSpawnVesselSounds(5000, 0.25);
     // Hide cursor initially
     container.style.cursor = 'none';
 
