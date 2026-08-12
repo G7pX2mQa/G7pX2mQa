@@ -944,7 +944,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
       }
     }
 
-    text.innerHTML = hasInfinity ? displayName : `${amountText} ${displayName}${diffText}`;
+    text.innerHTML = hasInfinity ? `${displayName}${diffText}` : `${amountText} ${displayName}${diffText}`;
 
     row.appendChild(plus);
     row.appendChild(icon);
