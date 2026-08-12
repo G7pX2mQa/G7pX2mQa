@@ -69,11 +69,9 @@ function closeMapOverlay(overlay, sheet) {
         }
     }
     
-    setTimeout(() => {
-        if (overlay) {
-            overlay.classList.remove('is-open');
-        }
-    }, 220); // Match transition time
+    if (overlay) {
+        overlay.classList.remove('is-open');
+    }
     
     const hideStyle = document.getElementById('map-cursor-hide');
     if (hideStyle) hideStyle.remove();
