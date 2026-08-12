@@ -28,7 +28,10 @@ import {
   calculatePreAutomationRewards,
   RESOURCE_REGISTRY,
   captureTotals,
+  applyAutoColor,
+  getCurrentVal,
 } from './offlinePanel.js';
+import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 
 // Lazy imports to avoid circular dependencies — resolved on first use
 let _simulateAutomationTick = null;
@@ -39,6 +42,7 @@ let _simulateFlowTick = null;
 let _simulateWorkshopTick = null;
 let _RESEARCH_NODES = null;
 let _WATERWHEEL_DEFS = null;
+let _isResearchNodeActive = null;
 
 async function ensureTickImports() {
   if (_simulateAutomationTick) return;
@@ -55,6 +59,7 @@ async function ensureTickImports() {
   _simulateLabUpdate = labTabMod.updateLabLevel;
   _simulateLabResearch = labNodesMod.tickResearch;
   _RESEARCH_NODES = labNodesMod.RESEARCH_NODES;
+  _isResearchNodeActive = labNodesMod.isResearchNodeActive;
   _simulateFlowTick = flowMod.simulateFlowTick;
   _WATERWHEEL_DEFS = flowMod.WATERWHEEL_DEFS;
   _simulateWorkshopTick = workshopMod.simulateWorkshopTick;
@@ -384,7 +389,59 @@ class SimulatedOfflineRunner {
 // UI: Simulation Overlay
 // ---------------------------------------------------------------------------
 
-function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
+function _makeLiveRow(config, key, id, name) {
+  const row = document.createElement('div');
+  row.className = 'offline-row';
+  row.style.display = 'none';
+
+  const plus = document.createElement('span');
+  plus.className = 'offline-plus';
+  plus.textContent = '+';
+
+  const icon = document.createElement('img');
+  icon.className = 'offline-icon';
+  let iconSrc = config.icon;
+  if (key === 'waterwheel_levels' && _WATERWHEEL_DEFS && _WATERWHEEL_DEFS[id]) {
+    iconSrc = _WATERWHEEL_DEFS[id].image;
+  }
+  icon.src = iconSrc;
+  icon.alt = config.singular;
+
+  const text = document.createElement('span');
+  text.className = 'offline-text';
+
+  const infSpan = document.createElement('span');
+  infSpan.className = 'infinity-symbol';
+  infSpan.innerHTML = '&infin;';
+  infSpan.style.color = '#ffff55';
+  infSpan.style.webkitTextFillColor = '#ffff55';
+  infSpan.style.display = 'none';
+
+  if (key === 'research_levels') {
+    plus.style.color = '#004F96';
+    text.style.color = '#004F96';
+  } else {
+    let styleKey = key;
+    if (key === 'waterwheel_levels' && _WATERWHEEL_DEFS && _WATERWHEEL_DEFS[id]) {
+      styleKey = _WATERWHEEL_DEFS[id].styleKey || 'coins';
+    }
+    const matchedConfig = RESOURCE_REGISTRY.find(r => r.key === styleKey);
+    applyAutoColor(plus, text, styleKey, matchedConfig);
+  }
+
+  row.appendChild(plus);
+  row.appendChild(icon);
+  row.appendChild(infSpan);
+  row.appendChild(text);
+
+  return {
+    row, textEl: text, infSpan, config, key, id, name,
+    isResearch: key === 'research_levels',
+    isWaterwheel: key === 'waterwheel_levels',
+  };
+}
+
+function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTotals, oldTotals) {
   // Remove any existing offline overlay
   const existing = document.querySelector('.offline-overlay');
   if (existing) existing.remove();
@@ -490,6 +547,153 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
   contentWrapper.appendChild(progressContainer);
   contentWrapper.appendChild(infoArea);
 
+  // ── Rewards View (Swap View) ───────────────────────────────────
+  const rewardsWrapper = document.createElement('div');
+  rewardsWrapper.className = 'offline-content-wrapper';
+  rewardsWrapper.style.display = 'none';
+
+  const rewardsScroll = document.createElement('div');
+  rewardsScroll.className = 'offline-scroll-container sim-rewards-scroll';
+
+  const rewardsList = document.createElement('div');
+  rewardsList.className = 'offline-list';
+
+  const liveRowInfos = [];
+  const visibleRowSet = new Set();
+
+  for (const config of RESOURCE_REGISTRY) {
+    const key = config.key;
+    if (key === 'research_levels' && _RESEARCH_NODES) {
+      for (const node of _RESEARCH_NODES) {
+        if (_isResearchNodeActive && !_isResearchNodeActive(node.id)) continue;
+        const info = _makeLiveRow(config, key, node.id, node.title);
+        liveRowInfos.push(info);
+        rewardsList.appendChild(info.row);
+      }
+      continue;
+    }
+    if (key === 'waterwheel_levels' && _WATERWHEEL_DEFS) {
+      for (const id of Object.keys(_WATERWHEEL_DEFS)) {
+        const def = _WATERWHEEL_DEFS[id];
+        const info = _makeLiveRow(config, key, id, def.name);
+        liveRowInfos.push(info);
+        rewardsList.appendChild(info.row);
+      }
+      continue;
+    }
+    const info = _makeLiveRow(config, key, null, null);
+    liveRowInfos.push(info);
+    rewardsList.appendChild(info.row);
+  }
+
+  rewardsScroll.appendChild(rewardsList);
+
+  const stickyTick = document.createElement('div');
+  stickyTick.className = 'sim-tick-sticky';
+  stickyTick.innerHTML = `Processing tick <span class="sim-tick-current-live">0</span> / <span class="sim-tick-total-live">${formatNumber(BigNum.fromAny(runner.totalTicks))}</span>`;
+  const stickyTickCurrent = stickyTick.querySelector('.sim-tick-current-live');
+  const stickyTickTotal = stickyTick.querySelector('.sim-tick-total-live');
+
+  rewardsWrapper.appendChild(rewardsScroll);
+  rewardsWrapper.appendChild(stickyTick);
+
+  // IntersectionObserver: only update text for rows in viewport
+  let rowObserver = null;
+  if (typeof IntersectionObserver !== 'undefined') {
+    rowObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visibleRowSet.add(entry.target);
+        else visibleRowSet.delete(entry.target);
+      }
+    }, { root: rewardsScroll, threshold: 0 });
+    for (const info of liveRowInfos) rowObserver.observe(info.row);
+  }
+
+  let isRewardsView = false;
+  let rewardsScrollbarInit = false;
+
+  function updateRewardsRows() {
+    for (const info of liveRowInfos) {
+      let val = null;
+      if (info.isResearch) {
+        const cur = getCurrentVal('research_levels', info.id);
+        const before = beforeTotals?.research_levels?.[info.id] || 0;
+        const curNum = typeof cur === 'number' ? cur : Number(String(cur));
+        const beforeNum = typeof before === 'number' ? before : Number(String(before));
+        const delta = curNum - beforeNum;
+        if (delta > 0) val = BigNum.fromAny(delta);
+      } else if (info.isWaterwheel) {
+        val = simulationLevelTracker.waterwheel_levels?.[info.id] || null;
+      } else if (info.config.type === 'levelStat') {
+        val = simulationLevelTracker[info.key] || null;
+      } else {
+        val = simulationRewardsTracker[info.key] || null;
+      }
+
+      let shouldShow = false;
+      if (val) {
+        if (typeof val.isZero === 'function' && val.isZero()) {
+          shouldShow = false;
+        } else if (val instanceof BigNum) {
+          shouldShow = val.isInfinite() || val.cmp(BigNum.fromInt(1)) >= 0;
+        } else {
+          shouldShow = Number(val) >= 1;
+        }
+      }
+      info.row.style.display = shouldShow ? '' : 'none';
+      if (!shouldShow) continue;
+      if (rowObserver && !visibleRowSet.has(info.row)) continue;
+
+      if (info.isResearch || info.isWaterwheel) {
+        const levelCount = BigNum.fromAny(val);
+        const label = !levelCount.isInfinite() && levelCount.cmp(BigNum.fromInt(1)) === 0 ? 'Level' : 'Levels';
+        let diffText = '';
+        if (settingsManager.get('show_offline_diff') && oldTotals && oldTotals[info.key]) {
+          const newAmt = getCurrentVal(info.key, info.id);
+          const oldAmt = oldTotals[info.key]?.[info.id];
+          if (newAmt !== undefined && oldAmt !== undefined) {
+            let oldStr = formatNumber(oldAmt);
+            let newStr = formatNumber(newAmt);
+            if (oldStr === 'Infinity' || oldStr === 'NaN') oldStr = '\u221e';
+            if (newStr === 'Infinity' || newStr === 'NaN') newStr = '\u221e';
+            diffText = ` <span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
+          }
+        }
+        setHtmlOrText(info.textEl, `${formatNumber(levelCount)} ${label} of ${info.name}${diffText}`);
+        info.infSpan.style.display = 'none';
+      } else {
+        let isOne = false;
+        if (val instanceof BigNum) {
+          isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
+        } else {
+          isOne = Number(val) === 1;
+        }
+        const displayName = isOne ? info.config.singular : info.config.plural;
+        let amountText = formatNumber(val);
+        const hasInfinity = amountText === 'Infinity' || amountText === 'NaN' || amountText.includes('infinity-symbol');
+        let diffText = '';
+        if (settingsManager.get('show_offline_diff') && oldTotals && oldTotals[info.key] !== undefined) {
+          const newAmt = getCurrentVal(info.key);
+          const oldAmt = oldTotals[info.key];
+          if (newAmt !== undefined && oldAmt !== undefined) {
+            let oldStr = formatNumber(oldAmt);
+            let newStr = formatNumber(newAmt);
+            if (oldStr === 'Infinity' || oldStr === 'NaN') oldStr = '\u221e';
+            if (newStr === 'Infinity' || newStr === 'NaN') newStr = '\u221e';
+            diffText = ` <span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
+          }
+        }
+        if (hasInfinity) {
+          info.infSpan.style.display = '';
+          info.textEl.innerHTML = displayName;
+        } else {
+          info.infSpan.style.display = 'none';
+          setHtmlOrText(info.textEl, `${amountText} ${displayName}${diffText}`);
+        }
+      }
+    }
+  }
+
   // Action buttons
   const actions = document.createElement('div');
   actions.className = 'offline-actions sim-actions';
@@ -512,12 +716,30 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
     onSkip();
   });
 
+  const swapBtn = document.createElement('button');
+  swapBtn.type = 'button';
+  swapBtn.className = 'sim-swap-btn';
+  swapBtn.textContent = 'Swap View';
+  swapBtn.addEventListener('click', () => {
+    isRewardsView = !isRewardsView;
+    contentWrapper.style.display = isRewardsView ? 'none' : '';
+    rewardsWrapper.style.display = isRewardsView ? '' : 'none';
+    if (isRewardsView && !rewardsScrollbarInit) {
+      rewardsScrollbarInit = true;
+      requestAnimationFrame(() => {
+        ensureCustomScrollbar(panel, rewardsWrapper, '.sim-rewards-scroll');
+      });
+    }
+  });
+
   actions.appendChild(speedBtn);
   actions.appendChild(skipBtn);
+  actions.appendChild(swapBtn);
 
   panel.appendChild(header);
   panel.appendChild(subHeader);
   panel.appendChild(contentWrapper);
+  panel.appendChild(rewardsWrapper);
   panel.appendChild(actions);
 
   overlay.appendChild(panel);
@@ -586,6 +808,15 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
     setHtmlOrText(etaValueSpan, etaStr);
     
     updateGranInfo();
+
+    // Sticky tick info (always updated)
+    setHtmlOrText(stickyTickCurrent, formatNumber(BigNum.fromAny(runner.ticksProcessed)));
+    setHtmlOrText(stickyTickTotal, formatNumber(BigNum.fromAny(runner.totalTicks)));
+
+    // Update live rewards rows when rewards view is active
+    if (isRewardsView) {
+      updateRewardsRows();
+    }
   }
 
   function updateDisplayMs(newMs) {
@@ -595,6 +826,7 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete) {
   function cleanup() {
     tamperObserver.disconnect();
     blockerAttrObserver.disconnect();
+    if (rowObserver) rowObserver.disconnect();
     if (document.body.contains(blocker)) blocker.remove();
     if (document.body.contains(overlay)) overlay.remove();
   }
@@ -707,7 +939,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
   }
 
   activeDisplayMs = displayMs;
-  uiHandle = createSimulationOverlay(runner, displayMs, handleSkip, finishSimulation);
+  uiHandle = createSimulationOverlay(runner, displayMs, handleSkip, finishSimulation, beforeTotals, oldTotals);
   activeUiHandle = uiHandle;
 
   // Block ESC from closing overlay during simulation
