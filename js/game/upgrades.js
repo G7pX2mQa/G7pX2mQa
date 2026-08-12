@@ -1539,6 +1539,9 @@ function ensureUpgradeScaling(upg) {
           ratioLn = Math.log(ratio);
       }
       var ratioMinus1 = Math.max(1e-12, ratio - 1);
+      var ratioMinus1Log = (ratio === Infinity && Number.isFinite(ratioLog10)) 
+         ? ratioLog10 
+         : Math.log10(ratioMinus1);
     }
 
     const baseLog10 = approxLog10BigNum(baseBn);
@@ -1548,6 +1551,7 @@ function ensureUpgradeScaling(upg) {
       baseLog10,
       ratio,
       ratioMinus1,
+      ratioMinus1Log,
       ratioLog10,
       ratioLn,
       ratioStr,
@@ -1637,7 +1641,7 @@ function logSeriesTotal(scaling, startLevel, count) {
   const growth = scaling.ratioLn * count;
   const numerLog10 = log10ExpMinus1(growth);
   if (!Number.isFinite(numerLog10)) return Number.POSITIVE_INFINITY;
-  const denomLog10 = Math.log10(scaling.ratioMinus1);
+  const denomLog10 = scaling.ratioMinus1Log ?? Math.log10(scaling.ratioMinus1);
   const totalLog10 = startLog10 + numerLog10 - denomLog10;
   return totalLog10;
 }
@@ -1898,79 +1902,7 @@ const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
 
 const startPriceLog = scaling.baseLog10 + (startLevelNum * ratioLog10);
 
-// Fallback: if walletLog isn't finite *or* magnitudes are so huge that
-// double-precision subtraction will be meaningless, do a pure-BigNum search.
-const needBnSearch =
-  (ratioMinus1 > 0) && (
-    !Number.isFinite(walletLog) ||
-    (Math.abs(walletLog) > 1e6 && Math.abs(startPriceLog) > 1e6)
-  );
 
-if (needBnSearch) {
-  // Quick "can't even buy 1" check
-  const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
-  if (walletBn.cmp(firstPrice) < 0) {
-    return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
-  }
-
-  // Bound the affordable count using only BigNum compares
-  const hardLimit = Number.isFinite(room) ? Math.max(1, Math.floor(room)) : Number.MAX_VALUE;
-  let lo = 1;
-  let hi = 1;
-
-while (hi < hardLimit) {
-  const spentLog = logSeriesTotal(scaling, startLevelNum, hi);
-  const spentBn  = bigNumFromLog10(spentLog);
-  if (spentBn.cmp(walletBn) <= 0) {
-    const doubled = hi * 2;
-    if (!Number.isFinite(doubled) || doubled <= hi) { hi = hardLimit; break; }
-    lo = hi;
-    hi = Math.min(doubled, hardLimit);
-  } else {
-    break;
-  }
-}
-
-  let steps = 0;
-  while (lo < hi && steps < 256) {
-    const mid = Math.max(lo + 1, Math.floor((lo + hi + 1) / 2));
-    const spentLog = logSeriesTotal(scaling, startLevelNum, mid);
-    const spentBn  = bigNumFromLog10(spentLog);
-    if (spentBn.cmp(walletBn) <= 0) {
-      lo = mid;
-    } else {
-      hi = mid - 1;
-    }
-    steps++;
-  }
-
-  const count = Math.max(1, lo);
-  const countBn = countToBigNum(count);
-
-  // In fastOnly mode we can skip exact 'spent'; otherwise compute precisely.
-  let spent = zero;
-  let nextPrice = zero;
-  if (!fastOnly) {
-    spent = totalCostBigNum(upg, startLevelNum, count);
-    if (Number.isFinite(cap)) {
-      const capRoom = Math.max(0, Math.floor(cap - Math.min(startLevelNum, cap)));
-      if (count >= capRoom) {
-        nextPrice = zero;
-      } else {
-        nextPrice = bigNumFromLog10(startPriceLog + count * ratioLog10);
-      }
-    } else {
-      nextPrice = bigNumFromLog10(startPriceLog + count * ratioLog10);
-    }
-  }
-
-  return {
-    count: countBn,
-    spent,
-    nextPrice,
-    numericCount: count,
-  };
-}
 
   if (walletBn.cmp(firstPrice) < 0) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
@@ -2039,7 +1971,7 @@ if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
   return { count: countBn, spent, nextPrice, numericCount: count };
 }
 
-  const ratioMinus1Log = Math.log10(ratioMinus1);
+  const ratioMinus1Log = scaling.ratioMinus1Log ?? Math.log10(ratioMinus1);
   if (!Number.isFinite(ratioMinus1Log)) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
@@ -4858,15 +4790,37 @@ export function buyCheap(areaKey, upgId) {
   } else {
       // Binary Search
       let lo = 0, hi = n;
+      
+      const scaling = ensureUpgradeScaling(upg);
+      if (scaling && Number.isFinite(scaling.ratioLog10) && scaling.ratioLog10 > 0) {
+          const stepBack = Math.ceil(1 / scaling.ratioLog10);
+          
+          if (n > 9e15) {
+              // Float precision lost. Subtracting stepBack from n does nothing in IEEE 754.
+              // At this magnitude, spending wallet on up to n levels is perfectly fine.
+              bestK = n;
+              lo = hi; // Skip binary search
+          } else {
+              lo = Math.max(0, hi - stepBack * 3 - 50);
+          }
+      }
+
       while (lo < hi) {
           const mid = Math.ceil((lo + hi) / 2);
+          
+          // Guard against float precision loops (e.g. 1e300 - 1 === 1e300)
+          if (mid === hi || mid === lo) {
+              if (check(hi)) lo = hi;
+              break;
+          }
+          
           if (check(mid)) {
               lo = mid;
           } else {
               hi = mid - 1;
           }
       }
-      bestK = lo;
+      if (bestK === 0) bestK = lo;
   }
   
   if (bestK <= 0) return { bought: 0, spent: BigNum.fromInt(0) };
