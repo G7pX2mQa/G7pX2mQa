@@ -55,17 +55,27 @@ function closeMapOverlay(overlay, sheet) {
         if (overlay) {
             overlay.classList.remove('is-open');
         }
-        if (currentArea === AREAS.STARTER_COVE && wasJustMapSequence) {
+        const shouldRestart = wasJustMapSequence;
+        wasJustMapSequence = false;
+        if (typeof window !== 'undefined') {
+            window.__wasJustMapSequence = false;
+        }
+        
+        if (shouldRestart) {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('audio:restartMusic'));
                 if (window.spawner && typeof window.spawner.start === 'function') {
                     window.spawner.start();
-                    
                 }
             }
         }
-        wasJustMapSequence = false;
     }, 220); // Match transition time
+    
+    const hideStyle = document.getElementById('map-cursor-hide');
+    if (hideStyle) hideStyle.remove();
+    if (typeof window !== 'undefined') {
+        window.__hideCursorTrail = false;
+    }
 }
 
 
@@ -85,7 +95,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
     grabber.className = 'shop-grabber';
     grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
     
-    setupDragToClose(grabber, sheet, () => isMapOverlayOpen, () => {
+    setupDragToClose(grabber, sheet, () => isMapOverlayOpen && !window.__mapSequenceActive, () => {
         closeMapOverlay(overlay, sheet);
     });
 
@@ -316,6 +326,9 @@ export function ensureMapOverlay(unlockedNodeId = null) {
             }
             
             wasJustMapSequence = false;
+            if (typeof window !== 'undefined') {
+                window.__wasJustMapSequence = false;
+            }
             
             if (IS_MOBILE) blockInteraction(500);
 
@@ -494,6 +507,8 @@ export function openMapOverlay(unlockedNodeId = null) {
         wasJustMapSequence = true;
         window.__mapSequenceActive = true;
         window.__mapSequenceTarget = unlockedNodeId;
+        window.__wasJustMapSequence = true;
+        window.__hideCursorTrail = true;
     }
 
     ensureMapOverlay(unlockedNodeId);
@@ -508,6 +523,11 @@ export function openMapOverlay(unlockedNodeId = null) {
         firstTimeFade.style.transition = 'none';
         firstTimeFade.style.opacity = '1';
         document.body.appendChild(firstTimeFade);
+        
+        const style = document.createElement('style');
+        style.id = 'map-cursor-hide';
+        style.textContent = '* { cursor: none !important; }';
+        document.head.appendChild(style);
         
         firstTimeFade.offsetHeight;
         
@@ -539,6 +559,9 @@ export function openMapOverlay(unlockedNodeId = null) {
                                 audioInst.pause();
                             }
                             
+                            const hideStyle = document.getElementById('map-cursor-hide');
+                            if (hideStyle) hideStyle.remove();
+                            window.__hideCursorTrail = false;
                             
                             if (nodeBtn) {
                                 nodeBtn.btn.style.animation = 'mapNodePop 0.3s ease-out';
