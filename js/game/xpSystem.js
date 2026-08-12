@@ -661,6 +661,46 @@ function normalizeProgress(applyRewards = false) {
     return;
   }
 
+  const currentProgressLog = approxLog10(xpState.progress);
+  if (currentProgressLog - approxLog10(requirementBn) > 2) {
+    let currentLevelNum;
+    try {
+      const s = xpState.xpLevel.toPlainIntegerString?.() ?? xpState.xpLevel.toString();
+      currentLevelNum = (s && s !== 'Infinity') ? Number(s) : Infinity;
+    } catch {
+      currentLevelNum = 0;
+    }
+    
+    if (Number.isFinite(currentLevelNum)) {
+      let low = currentLevelNum;
+      let high = Math.max(currentLevelNum, 4500000000000);
+      let best = currentLevelNum;
+
+      for (let i = 0; i < 60; i++) {
+        const mid = Math.floor((low + high) / 2);
+        const midReq = approximateRequirementFromLevel(BigNum.fromAny(mid.toString()));
+        const midLog = approxLog10(midReq);
+        if (midLog <= currentProgressLog) {
+            best = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+        if (midLog === Number.POSITIVE_INFINITY) break;
+      }
+      
+      const estimatedGain = best - currentLevelNum;
+      if (estimatedGain > 10) {
+        const safeGain = Math.max(0, estimatedGain - 5);
+        if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
+          const safeGainBn = BigNum.fromAny(safeGain.toString());
+          xpState.xpLevel = xpState.xpLevel.add(safeGainBn);
+          updateXpRequirement();
+        }
+      }
+    }
+  }
+
   let guard = 0;
   const limit = 10000;
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
