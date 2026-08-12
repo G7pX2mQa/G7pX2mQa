@@ -324,3 +324,36 @@
 }
 .sim-skip-btn:hover { background: hsla(0, 80%, 40%, 0.6); }
 .sim-skip-btn:active { transform: translateY(1px); }
+
+/* Swap View button */
+.sim-swap-btn {
+    min-width: 150px;
+    height: 50px;
+    border-radius: 0;
+    border: 2px solid hsla(50, 100%, 50%, 1);
+    background: hsla(50, 100%, 50%, 0.2);
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 120ms ease, background 120ms ease;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.sim-swap-btn:hover { background: hsla(50, 100%, 50%, 0.3); }
+.sim-swap-btn:active { transform: translateY(1px); }
+
+/* Sticky tick info at bottom of rewards view */
+.sim-tick-sticky {
+    background: #020617;
+    border-top: 1px solid #002329;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 18px;
+    color: #94a3b8;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
