@@ -1,3 +1,4 @@
+import { PALETTES } from '../game/mutationColorPalettes.js';
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
 import { isManageMode } from './slotsManager.js';
@@ -59,6 +60,41 @@ function renderSlotCards() {
       metaEl.className = 'slot-meta';
       metaEl.textContent = `Created on: ${formatCreationDate(creationTime)}`;
       btn.appendChild(metaEl);
+
+      let highestLevel = 0;
+      const highestLevelRaw = localStorage.getItem(`ccc:mutation:highest_level:${slot}`);
+      if (highestLevelRaw) {
+        try {
+          const bn = BigNum.fromAny(highestLevelRaw);
+          const plain = bn.toPlainIntegerString?.();
+          if (plain && plain !== 'Infinity' && plain.length <= 15) {
+            highestLevel = Number(plain);
+          } else {
+            highestLevel = Object.keys(PALETTES).length - 1;
+          }
+        } catch (e) {}
+      }
+
+      if (highestLevel > 0) {
+        const paletteKeys = Object.keys(PALETTES);
+        const maxVisual = paletteKeys.length - 1;
+        const paletteIndex = Math.min(highestLevel, maxVisual);
+        const paletteKey = paletteKeys[paletteIndex];
+        const colors = PALETTES[paletteKey];
+        
+        const colorString = colors.length === 1 
+          ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]})` 
+          : `linear-gradient(135deg, ${colors.join(', ')})`;
+        
+        btn.style.setProperty('--slot-tint-gradient', colorString);
+        btn.dataset.hasTint = "true";
+      } else {
+        btn.dataset.hasTint = "false";
+        btn.style.removeProperty('--slot-tint-gradient');
+      }
+    } else {
+      btn.dataset.hasTint = "false";
+      btn.style.removeProperty('--slot-tint-gradient');
     }
 
     btn.dataset.slot = String(slot);
