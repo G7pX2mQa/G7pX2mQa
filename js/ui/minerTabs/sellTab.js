@@ -280,6 +280,8 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
       minerOverlayEl.addEventListener('transitionstart', (e) => {
           if (e.target === minerOverlayEl || e.target === minerSheetEl) {
               minerOverlayEl.classList.add('is-animating');
+              minerOverlayEl.__animStartTime = performance.now();
+              minerOverlayEl.__animIsOpening = minerOverlayEl.classList.contains('is-open');
           }
       });
       const endAnim = (e) => {
@@ -1108,8 +1110,20 @@ registerUiFrame((time, dt) => {
   const isViewed = panel && panel.classList.contains('is-active') && 
                    (panel.closest('.merchant-overlay.is-open') || document.querySelector('.miner-sheet.is-sell-active'));
 
-  const isAnimating = panel && panel.closest('.merchant-overlay.is-animating') !== null;
-  if (isAnimating) return;
+  const overlay = panel ? panel.closest('.merchant-overlay') : null;
+  const isAnimating = overlay && overlay.classList.contains('is-animating');
+  let shouldPause = false;
+  
+  if (isAnimating && overlay.__animStartTime) {
+      const elapsedMs = performance.now() - overlay.__animStartTime;
+      if (overlay.__animIsOpening) {
+          shouldPause = elapsedMs < 170; // Resume 50ms before opening finishes (220ms - 50ms = 170ms)
+      } else {
+          shouldPause = elapsedMs >= 50; // Pause 50ms after closing starts
+      }
+  }
+
+  if (shouldPause) return;
 
   if (!isViewed && conveyorPool.length === 0) return;
 
