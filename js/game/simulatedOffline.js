@@ -919,7 +919,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
     // Show standard offline panel with computed rewards
     const hasRewards = Object.keys(combinedRewards).length > 0;
     if (hasRewards) {
-      showOfflinePanel(combinedRewards, displayMs, isPreAutomation, oldTotals);
+      showOfflinePanel(combinedRewards, activeDisplayMs, isPreAutomation, oldTotals);
     }
   }
 
