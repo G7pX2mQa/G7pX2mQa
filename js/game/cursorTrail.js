@@ -227,7 +227,7 @@ export function createCursorTrail(playfield, options = {}) {
   }
 
   const spawn = (x, y, isIdle = false) => {
-    if (freeCount <= 0 || !settingsManager.get('cursor_trail')) return;
+    if (freeCount <= 0 || !settingsManager.get('cursor_trail') || (typeof window !== 'undefined' && window.__hideCursorTrail)) return;
     const idx = freeSlots[--freeCount];
     if (idx > maxActiveIndex) maxActiveIndex = idx;
     const offset = idx * STRIDE;
