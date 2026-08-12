@@ -217,6 +217,9 @@
     }
 }
 
+.offline-content-wrapper .shop-scrollbar {
+    z-index: 20;
+}
 /* Simulation Overlay Styles */
 .sim-interaction-blocker {
     position: fixed;
@@ -346,7 +349,14 @@
 .sim-swap-btn:active { transform: translateY(1px); }
 
 /* Sticky tick info at bottom of rewards view */
+.sim-rewards-scroll {
+    padding-bottom: 56px;
+}
 .sim-tick-sticky {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background: #020617;
     border-top: 1px solid #002329;
     padding: 8px 16px;
@@ -354,6 +364,5 @@
     font-size: 18px;
     color: #94a3b8;
     font-weight: bold;
-    flex-shrink: 0;
+    z-index: 10;
 }
-
