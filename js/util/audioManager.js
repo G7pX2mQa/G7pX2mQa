@@ -11,6 +11,18 @@ let sfxFilter = null;
 
 const buffers = new Map();
 const loadPromises = new Map();
+const activeSpawnVesselAudios = new Set();
+let spawnVesselMutedUntil = 0;
+
+export function muteSpawnVesselSounds(durationMs) {
+    spawnVesselMutedUntil = Date.now() + durationMs;
+    for (const audio of activeSpawnVesselAudios) {
+        if (audio.stop) {
+            audio.stop(0.1);
+        }
+    }
+    activeSpawnVesselAudios.clear();
+}
 
 // Helper to get or create context
 function getAudioContext() {
@@ -154,6 +166,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
  
   let isSpawnVessel = false;
   if (type === 'spawn_vessel') {
+      if (Date.now() < spawnVesselMutedUntil) return null;
       isSpawnVessel = true;
       const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
       volume = volume * (spawnVesselVolumeSetting / 100);
@@ -205,7 +218,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         
         let stopTimeout = null;
         
-        return {
+        const retObj = {
             stop: (fadeOutDuration = 0) => {
                 if (stopTimeout) clearTimeout(stopTimeout);
                 if (fadeOutDuration > 0) {
@@ -241,6 +254,15 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
             },
             element: null // No HTML5 audio element
         };
+
+        if (isSpawnVessel) {
+            activeSpawnVesselAudios.add(retObj);
+            source.onended = () => {
+                activeSpawnVesselAudios.delete(retObj);
+            };
+        }
+
+        return retObj;
     } else {
         // Trigger load for next time
         loadAudio(src);
@@ -299,7 +321,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
       a.loop = loop;
       a.play().catch(() => {});
       
-      return {
+      const retObj = {
           stop: (fadeOutDuration = 0) => {
               if (fadeInterval) clearInterval(fadeInterval);
               if (stopTimeout) clearTimeout(stopTimeout);
@@ -346,6 +368,15 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
           },
           element: a
       };
+
+      if (isSpawnVessel) {
+          activeSpawnVesselAudios.add(retObj);
+          a.addEventListener('ended', () => {
+              activeSpawnVesselAudios.delete(retObj);
+          });
+      }
+
+      return retObj;
   } catch(e) {
       console.warn('[audioManager] Fallback play failed', e);
   }
