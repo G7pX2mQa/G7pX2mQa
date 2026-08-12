@@ -497,6 +497,8 @@ export function createBaseSpawner(config = {}) {
         const w = canvases[0].width;
         const h = canvases[0].height;
 
+        if (w === 0 || h === 0) return;
+
         // If items settled, stamp them onto their respective in-memory layer contexts without a full redraw
         if (newlySettledBuffer.length > 0 && !staticCanvasDirty) {
             for (let i = 0; i < newlySettledBuffer.length; i++) {
