@@ -31,6 +31,7 @@ export function initPinnedAreas() {
     renderPinnedAreas();
     window.addEventListener('pinnedAreas:changed', renderPinnedAreas);
     window.addEventListener('saveSlot:change', renderPinnedAreas);
+    window.addEventListener('unlock:change', renderPinnedAreas);
 }
 
 function renderPinnedAreas() {
