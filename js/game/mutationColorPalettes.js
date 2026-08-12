@@ -20,7 +20,7 @@ export const PALETTES = {
   pancake: ['#C99853', '#C46A1A', '#F6BB00'],
   watermelon: ['#8CE632', '#1E9638', '#126422'],
   pepperoni: ['#E44E30', '#FFD69A', '#F17A3C'],
-  pizza: ['#6F3005', '#FFA500', '#FFFF00', '#FFA500', '#FFFF00'],
+  pizza: ['#6F3005', '#FFA500', '#FFFF00', '#FFA500', '#6F3005', '#FFA500', '#FFFF00', '#FFA500'],
   donut: (function() {
     const br = '#B37933';
     const pi = '#FF3783';
