@@ -5058,7 +5058,7 @@ function buildMiscContent(content) {
 
                 let secondsNum = 0;
                 if (typeof seconds.toScientific === 'function') {
-                     secondsNum = parseFloat(seconds.toScientific());
+                     secondsNum = parseFloat(seconds.toScientific(20));
                 } else if (typeof seconds === 'number') {
                      secondsNum = seconds;
                 } else {
