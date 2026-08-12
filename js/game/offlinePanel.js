@@ -870,7 +870,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
             let newStr = formatNumber(newAmt);
             if (oldStr === "Infinity" || oldStr === "NaN") oldStr = "∞";
             if (newStr === "Infinity" || newStr === "NaN") newStr = "∞";
-            diffText = ` <span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
+            diffText = `&nbsp;<span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
           }
         }
 
@@ -940,7 +940,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
         let newStr = formatNumber(newAmt);
         if (oldStr === "Infinity" || oldStr === "NaN") oldStr = "∞";
         if (newStr === "Infinity" || newStr === "NaN") newStr = "∞";
-        diffText = ` <span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
+        diffText = `&nbsp;<span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
       }
     }
 
