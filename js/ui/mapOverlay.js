@@ -51,23 +51,27 @@ function closeMapOverlay(overlay, sheet) {
         sheet.style.transform = 'translateY(100%)';
     }
     
+    const shouldRestart = wasJustMapSequence;
+    wasJustMapSequence = false;
+    if (typeof window !== 'undefined') {
+        window.__wasJustMapSequence = false;
+    }
+    
+    if (shouldRestart) {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+            if (window.spawner && typeof window.spawner.start === 'function') {
+                window.spawner.start();
+                if (window.currentArea === AREAS.STARTER_COVE && typeof window.spawner.playEntranceWave === 'function') {
+                    window.spawner.playEntranceWave();
+                }
+            }
+        }
+    }
+    
     setTimeout(() => {
         if (overlay) {
             overlay.classList.remove('is-open');
-        }
-        const shouldRestart = wasJustMapSequence;
-        wasJustMapSequence = false;
-        if (typeof window !== 'undefined') {
-            window.__wasJustMapSequence = false;
-        }
-        
-        if (shouldRestart) {
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('audio:restartMusic'));
-                if (window.spawner && typeof window.spawner.start === 'function') {
-                    window.spawner.start();
-                }
-            }
         }
     }, 220); // Match transition time
     
