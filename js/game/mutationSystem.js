@@ -533,6 +533,47 @@ function normalizeProgress() {
     return;
   }
 
+  const currentProgressLog = approxLog10BigNum(mutationState.progress);
+  if (currentProgressLog - approxLog10BigNum(currentReq) > 2) {
+    let currentLevelNum;
+    try {
+      const s = mutationState.level.toPlainIntegerString?.() ?? mutationState.level.toString();
+      currentLevelNum = (s && s !== 'Infinity') ? Number(s) : Infinity;
+    } catch {
+      currentLevelNum = 0;
+    }
+    
+    if (Number.isFinite(currentLevelNum)) {
+      let low = currentLevelNum;
+      let high = Math.max(currentLevelNum, 4500000000000);
+      let best = currentLevelNum;
+
+      for (let i = 0; i < 60; i++) {
+        const mid = Math.floor((low + high) / 2);
+        const midReq = computeRequirement(BigNum.fromAny(mid.toString()));
+        const midLog = approxLog10BigNum(midReq);
+        if (midLog <= currentProgressLog) {
+            best = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+        if (midLog === Number.POSITIVE_INFINITY) break;
+      }
+      
+      const estimatedGain = best - currentLevelNum;
+      if (estimatedGain > 10) {
+        const safeGain = Math.max(0, estimatedGain - 5);
+        if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
+          const safeGainBn = BigNum.fromAny(safeGain.toString());
+          mutationState.level = mutationState.level.add(safeGainBn);
+          ensureRequirement();
+          currentReq = mutationState.requirement;
+        }
+      }
+    }
+  }
+
   let guard = 0;
   const limit = 100000;
 
