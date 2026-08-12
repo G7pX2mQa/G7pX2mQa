@@ -681,7 +681,7 @@ export function createBaseSpawner(config = {}) {
 
     function start() {
       if (rafId) return;
-      if (typeof window !== 'undefined' && window.__mapSequenceActive) return;
+      if (typeof window !== 'undefined' && (window.__mapSequenceActive || window.__wasJustMapSequence)) return;
       if (!validRefs()) {
         console.warn('[BaseSpawner] start() called but required nodes are missing.');
         return;
@@ -772,7 +772,7 @@ export function createBaseSpawner(config = {}) {
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
           if (typeof shouldAutoResume === 'function' && !shouldAutoResume()) return;
-          if (typeof window !== 'undefined' && (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive)) return;
+          if (typeof window !== 'undefined' && (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive || window.__wasJustMapSequence)) return;
           staticCanvasDirty = true;
           if (!rafId) start();
         }
