@@ -12,7 +12,18 @@ let sfxFilter = null;
 const buffers = new Map();
 const loadPromises = new Map();
 const activeSpawnVesselAudios = new Set();
+const activeAudios = new Set();
 let spawnVesselMutedUntil = 0;
+
+export function stopAllAudio(fadeOutDuration = 0.1) {
+    for (const audio of activeAudios) {
+        if (audio.stop) {
+            audio.stop(fadeOutDuration);
+        }
+    }
+    activeAudios.clear();
+    activeSpawnVesselAudios.clear();
+}
 
 export function muteSpawnVesselSounds(durationMs) {
     spawnVesselMutedUntil = Date.now() + durationMs;
@@ -255,11 +266,14 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
             element: null // No HTML5 audio element
         };
 
+        activeAudios.add(retObj);
+        source.onended = () => {
+            activeAudios.delete(retObj);
+            if (isSpawnVessel) activeSpawnVesselAudios.delete(retObj);
+        };
+
         if (isSpawnVessel) {
             activeSpawnVesselAudios.add(retObj);
-            source.onended = () => {
-                activeSpawnVesselAudios.delete(retObj);
-            };
         }
 
         return retObj;
@@ -369,11 +383,14 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
           element: a
       };
 
+      activeAudios.add(retObj);
+      a.addEventListener('ended', () => {
+          activeAudios.delete(retObj);
+          if (isSpawnVessel) activeSpawnVesselAudios.delete(retObj);
+      });
+
       if (isSpawnVessel) {
           activeSpawnVesselAudios.add(retObj);
-          a.addEventListener('ended', () => {
-              activeSpawnVesselAudios.delete(retObj);
-          });
       }
 
       return retObj;
