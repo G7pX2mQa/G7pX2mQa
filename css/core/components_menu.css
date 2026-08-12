@@ -62,7 +62,6 @@
   .slots-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Card */
 .slot-card {
   text-align: left;
   /* Lighter dark-blue gradient */
@@ -81,6 +80,14 @@
 
 .slot-card:hover {
   background: #121a2e;
+}
+
+.slot-card[data-has-tint="true"] {
+  background: linear-gradient(rgba(15, 22, 38, 0.75), rgba(15, 22, 38, 0.75)), var(--slot-tint-gradient);
+}
+
+.slot-card[data-has-tint="true"]:hover {
+  background: linear-gradient(rgba(18, 26, 46, 0.74), rgba(18, 26, 46, 0.74)), var(--slot-tint-gradient);
 }
 
 /* Remove aspect ratio on narrow/short screens */
