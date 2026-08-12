@@ -299,9 +299,12 @@ export function updateLastSaveTime() {
   
   const slot = getActiveSlot();
   if (slot == null) return;
-  const now = Date.now();
+  let saveTime = Date.now();
+  if (typeof window !== 'undefined' && typeof window.getActiveSimRemainingMs === 'function') {
+      saveTime -= window.getActiveSimRemainingMs();
+  }
   try {
-    localStorage.setItem(getLastSaveTimeKey(slot), String(now));
+    localStorage.setItem(getLastSaveTimeKey(slot), String(Math.floor(saveTime)));
   } catch {}
 }
 
@@ -337,7 +340,11 @@ function initHeartbeat() {
       
       const slot = getActiveSlot();
       if (slot != null) {
-          try { localStorage.setItem(getLastSaveTimeKey(slot), String(Date.now())); } catch {}
+          let saveTime = Date.now();
+          if (typeof window !== 'undefined' && typeof window.getActiveSimRemainingMs === 'function') {
+              saveTime -= window.getActiveSimRemainingMs();
+          }
+          try { localStorage.setItem(getLastSaveTimeKey(slot), String(Math.floor(saveTime))); } catch {}
       }
   });
   
