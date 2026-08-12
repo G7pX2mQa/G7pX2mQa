@@ -655,7 +655,7 @@ export const RESOURCE_REGISTRY = [
   },
 ];
 
-function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
+export function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
   let displayStyle = null;
   let fallbackClass = null;
 
@@ -708,7 +708,7 @@ function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
   }
 }
 
-function getCurrentVal(key, id) {
+export function getCurrentVal(key, id) {
   if (bank[key] && bank[key].value !== undefined) {
     return bank[key].value;
   }
