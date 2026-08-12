@@ -876,7 +876,7 @@ function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
     return `ccc:debug:stat-mult:${statKey}:${resolvedSlot}`;
 }
 
-function getGameStatMultiplier(statKey) {
+export function getGameStatMultiplier(statKey) {
     try {
         if (statKey === 'xp') {
             const mult = getXpGainMultiplier();
