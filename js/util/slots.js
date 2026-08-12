@@ -61,24 +61,41 @@ function renderSlotCards() {
       metaEl.textContent = `Created on: ${formatCreationDate(creationTime)}`;
       btn.appendChild(metaEl);
 
-      let highestLevel = 0;
+      let actualHighest = 0;
       const highestLevelRaw = localStorage.getItem(`ccc:mutation:highest_level:${slot}`);
       if (highestLevelRaw) {
         try {
           const bn = BigNum.fromAny(highestLevelRaw);
           const plain = bn.toPlainIntegerString?.();
           if (plain && plain !== 'Infinity' && plain.length <= 15) {
-            highestLevel = Number(plain);
+            actualHighest = Number(plain);
           } else {
-            highestLevel = Object.keys(PALETTES).length - 1;
+            actualHighest = Object.keys(PALETTES).length - 1;
           }
         } catch (e) {}
       }
 
-      if (highestLevel > 0) {
+      const tintSettingRaw = localStorage.getItem(`ccc:setting:save_slot_tint:${slot}`);
+      let tintSetting = 'Default';
+      if (tintSettingRaw) {
+        try { tintSetting = JSON.parse(tintSettingRaw); } catch(e) {}
+      }
+
+      let finalTintLevel = actualHighest;
+      if (tintSetting === 'Random') {
+        const maxRand = Math.min(actualHighest, Object.keys(PALETTES).length - 1);
+        finalTintLevel = Math.floor(Math.random() * (maxRand + 1));
+      } else if (tintSetting.startsWith('M')) {
+        const chosen = parseInt(tintSetting.substring(1), 10);
+        if (!Number.isNaN(chosen) && chosen <= actualHighest) {
+          finalTintLevel = chosen;
+        }
+      }
+
+      if (finalTintLevel > 0) {
         const paletteKeys = Object.keys(PALETTES);
         const maxVisual = paletteKeys.length - 1;
-        const paletteIndex = Math.min(highestLevel, maxVisual);
+        const paletteIndex = Math.min(finalTintLevel, maxVisual);
         const paletteKey = paletteKeys[paletteIndex];
         const colors = PALETTES[paletteKey];
         
