@@ -1108,14 +1108,16 @@ registerUiFrame((time, dt) => {
   const isViewed = panel && panel.classList.contains('is-active') && 
                    (panel.closest('.merchant-overlay.is-open') || document.querySelector('.miner-sheet.is-sell-active'));
 
+  const isAnimating = panel && panel.closest('.merchant-overlay.is-animating') !== null;
+  if (isAnimating) return;
+
   if (!isViewed && conveyorPool.length === 0) return;
 
   const beltSpeed = 60; // px/s
   
   // Scroll the backgrounds continuously
   // Left canvas background scrolls UP, Right canvas background scrolls DOWN
-  const isAnimating = panel && panel.closest('.merchant-overlay.is-animating') !== null;
-  if (isViewed && !isAnimating) {
+  if (isViewed) {
       for (const layer of bgLayers) {
           layer.offset += beltSpeed * layer.speedMult * dt;
           while (layer.offset >= BG_CHUNK_HEIGHT) {
@@ -1126,8 +1128,6 @@ registerUiFrame((time, dt) => {
           }
       }
   }
-
-
 
   if (isViewed || conveyorPool.length > 0) { 
     beltOffset = (beltOffset + beltSpeed * dt) % 40; 
@@ -1196,17 +1196,13 @@ registerUiFrame((time, dt) => {
 
   if (!isViewed) return;
 
-  let didResize = false;
   ['left', 'right'].forEach(side => {
     let { canvas, width } = sellCanvases[side];
     let parentEl = canvas ? canvas.parentElement : null;
     if (parentEl && parentEl.clientWidth > 0 && width === 0) {
       syncSellLayout();
-      didResize = true;
     }
   });
-
-  if (isAnimating && !didResize) return;
 
   ['left', 'right'].forEach(side => {
     let { ctx, width, height } = sellCanvases[side];
