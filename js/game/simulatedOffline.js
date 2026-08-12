@@ -671,7 +671,7 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
         }
         if (hasInfinity) {
           info.infSpan.style.display = '';
-          info.textEl.innerHTML = displayName;
+          info.textEl.innerHTML = `${displayName}${diffText}`;
         } else {
           info.infSpan.style.display = 'none';
           setHtmlOrText(info.textEl, `${amountText} ${displayName}${diffText}`);
