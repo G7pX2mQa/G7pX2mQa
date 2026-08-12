@@ -559,7 +559,6 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
   rewardsList.className = 'offline-list';
 
   const liveRowInfos = [];
-  const visibleRowSet = new Set();
 
   for (const config of RESOURCE_REGISTRY) {
     const key = config.key;
@@ -597,18 +596,6 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
   rewardsWrapper.appendChild(rewardsScroll);
   rewardsWrapper.appendChild(stickyTick);
 
-  // IntersectionObserver: only update text for rows in viewport
-  let rowObserver = null;
-  if (typeof IntersectionObserver !== 'undefined') {
-    rowObserver = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) visibleRowSet.add(entry.target);
-        else visibleRowSet.delete(entry.target);
-      }
-    }, { root: rewardsScroll, threshold: 0 });
-    for (const info of liveRowInfos) rowObserver.observe(info.row);
-  }
-
   let isRewardsView = false;
   let rewardsScrollbarInit = false;
 
@@ -642,7 +629,6 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
       }
       info.row.style.display = shouldShow ? '' : 'none';
       if (!shouldShow) continue;
-      if (rowObserver && !visibleRowSet.has(info.row)) continue;
 
       if (info.isResearch || info.isWaterwheel) {
         const levelCount = BigNum.fromAny(val);
@@ -826,7 +812,6 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
   function cleanup() {
     tamperObserver.disconnect();
     blockerAttrObserver.disconnect();
-    if (rowObserver) rowObserver.disconnect();
     if (document.body.contains(blocker)) blocker.remove();
     if (document.body.contains(overlay)) overlay.remove();
   }
