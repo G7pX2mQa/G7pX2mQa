@@ -1,4 +1,4 @@
-import { playAudio } from '../util/audioManager.js';
+import { playAudio, muteSpawnVesselSounds } from '../util/audioManager.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
 import { getActiveSlot } from '../util/storage.js';
 import { createCursorTrail } from '../game/cursorTrail.js';
@@ -157,6 +157,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         bossHp = 0; updateBossHpUI(); updateMusicSpeed();
         bossHp = 1; updateBossHpUI(); updateMusicSpeed();
     };
+    muteSpawnVesselSounds(5000, 0);
     // Start Boss Music
     let bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
 
