@@ -1301,6 +1301,8 @@ export function grantOfflineRewards(rewards) {
   const slot = getActiveSlot();
   if (slot == null) return;
 
+  const oldTotals = captureTotals();
+
   // Handle special systems (XP, MP)
   if (rewards.xp) {
     try {
@@ -1406,6 +1408,26 @@ export function grantOfflineRewards(rewards) {
 
     if (bank[key] && typeof bank[key].add === "function") {
       bank[key].add(rewards[key]);
+    }
+  }
+
+  const newTotals = captureTotals();
+  for (const config of RESOURCE_REGISTRY) {
+    if (config.type === 'currency') {
+      const key = config.key;
+      const oldVal = oldTotals[key];
+      const newVal = newTotals[key];
+      if (oldVal !== undefined && newVal !== undefined) {
+        let diff;
+        if (newVal instanceof BigNum && oldVal instanceof BigNum) {
+            diff = newVal.sub(oldVal);
+        } else {
+            diff = BigNum.fromAny(newVal).sub(BigNum.fromAny(oldVal));
+        }
+        if (diff.cmp(0) > 0) {
+          rewards[key] = diff;
+        }
+      }
     }
   }
 }
