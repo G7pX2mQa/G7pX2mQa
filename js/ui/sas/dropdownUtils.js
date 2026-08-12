@@ -44,6 +44,7 @@ export function createDropdown(options) {
     const val = isObj ? opt.value : opt;
     const labelText = isObj ? opt.label : opt;
     const iconSrc = isObj ? opt.icon : null;
+    const colorBoxStr = isObj ? opt.colorBox : null;
     const customClass = isObj ? opt.className : null;
     if (customClass) optionEl.classList.add(customClass);
 
@@ -77,7 +78,14 @@ export function createDropdown(options) {
     optionEl.style.alignItems = "center";
     optionEl.style.gap = "8px";
 
-    if (iconSrc) {
+    if (colorBoxStr) {
+      const box = document.createElement("div");
+      box.style.width = "1.2em";
+      box.style.height = "1.2em";
+      box.style.borderRadius = "4px";
+      box.style.background = colorBoxStr;
+      optionEl.appendChild(box);
+    } else if (iconSrc) {
       const img = document.createElement("img");
       img.src = iconSrc;
       img.style.width = "1.2em";
@@ -173,8 +181,16 @@ export function createDropdown(options) {
     const isObj = typeof selectedOpt === 'object' && selectedOpt !== null;
     const labelText = isObj ? selectedOpt.label : selectedOpt;
     const iconSrc = isObj ? selectedOpt.icon : null;
+    const colorBoxStr = isObj ? selectedOpt.colorBox : null;
     
-    if (iconSrc) {
+    if (colorBoxStr) {
+      const box = document.createElement("div");
+      box.style.width = "1.2em";
+      box.style.height = "1.2em";
+      box.style.borderRadius = "4px";
+      box.style.background = colorBoxStr;
+      dropdownValueDisplay.appendChild(box);
+    } else if (iconSrc) {
       const img = document.createElement("img");
       img.src = iconSrc;
       img.style.width = "1.2em";
