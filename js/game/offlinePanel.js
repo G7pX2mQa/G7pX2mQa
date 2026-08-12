@@ -1418,14 +1418,13 @@ export function grantOfflineRewards(rewards) {
       const oldVal = oldTotals[key];
       const newVal = newTotals[key];
       if (oldVal !== undefined && newVal !== undefined) {
-        let diff;
-        if (newVal instanceof BigNum && oldVal instanceof BigNum) {
-            diff = newVal.sub(oldVal);
-        } else {
-            diff = BigNum.fromAny(newVal).sub(BigNum.fromAny(oldVal));
-        }
-        if (diff.cmp(0) > 0) {
-          rewards[key] = diff;
+        const bnNew = newVal instanceof BigNum ? newVal : BigNum.fromAny(newVal);
+        const bnOld = oldVal instanceof BigNum ? oldVal : BigNum.fromAny(oldVal);
+        if (!(bnNew.isInfinite() && bnOld.isInfinite())) {
+            const diff = bnNew.sub(bnOld);
+            if (diff.cmp(0) > 0) {
+              rewards[key] = diff;
+            }
         }
       }
     }
