@@ -1129,6 +1129,17 @@ class LabSystem {
         this.overlayProgress.className = 'upg-line';
         this.overlayProgress.style.color = '#aaa';
         
+        this.overlayProgressText = document.createElement('span');
+        this.overlayProgressText.textContent = 'RP to next level: ';
+        
+        this.overlayProgressCurrent = document.createElement('span');
+        this.overlayProgressSeparator = document.createElement('span');
+        this.overlayProgressSeparator.textContent = ' / ';
+        
+        this.overlayProgressMax = document.createElement('span');
+        
+        this.overlayProgress.append(this.overlayProgressText, this.overlayProgressCurrent, this.overlayProgressSeparator, this.overlayProgressMax);
+        
         info.append(this.overlayBonus, this.overlayActiveStatus, this.overlayProgress);
         content.append(desc, info);
         
@@ -1216,7 +1227,7 @@ class LabSystem {
             const line = node.bonusLine(level);
             if (line) {
                 this.overlayBonus.style.display = '';
-                this.overlayBonus.innerHTML = line;
+                setHtmlOrText(this.overlayBonus, line);
             } else {
                 this.overlayBonus.style.display = 'none';
             }
@@ -1225,14 +1236,15 @@ class LabSystem {
         }
         
         if (!isMaxed) {
-            this.overlayActiveStatus.textContent = `Currently active: ${active ? 'Yes' : 'No'}`;
+            setHtmlOrText(this.overlayActiveStatus, `Currently active: ${active ? 'Yes' : 'No'}`);
             this.overlayActiveStatus.style.color = active ? '#4f4' : '#f44';
             this.overlayActiveStatus.style.webkitTextFillColor = active ? '#4f4' : '#f44';
             
             const rpFmt = rp.cmp(1e9) > 0 ? formatNumber(rp) : rp.toString();
             const reqFmt = req.isInfinite?.() ? 'Infinity' : (req.cmp(1e9) > 0 ? formatNumber(req) : req.toString());
             
-            setHtmlOrText(this.overlayProgress, `RP to next level: ${formatNumber(rp)} / ${formatNumber(req)}`);
+            setHtmlOrText(this.overlayProgressCurrent, rpFmt);
+            setHtmlOrText(this.overlayProgressMax, reqFmt);
         }
     }
 
