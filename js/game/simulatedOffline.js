@@ -479,10 +479,7 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
 
   if (wasInterrupted) {
     const interruptNote = document.createElement('div');
-    interruptNote.style.color = '#ffff55';
-    interruptNote.style.fontSize = '18px';
-    interruptNote.style.marginBottom = '10px';
-    interruptNote.style.textAlign = 'center';
+    interruptNote.className = 'sim-interrupt-note';
     interruptNote.textContent = "The offline progress from a previous session was interrupted, and has been gracefully restored in addition to any newly obtained offline time";
     progressContainer.appendChild(interruptNote);
   }
