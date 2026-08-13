@@ -1,6 +1,6 @@
 // js/ui/merchantTabs/dlgTab.js
 
-import { __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio, openDelveOverlay } from '../delveCore.js';
+import { setDelveElements, setTypingActive, openDelveOverlay } from '../delveCore.js';
 import { 
   bank,
   getActiveSlot,
@@ -10,15 +10,14 @@ import {
 import { BigNum } from '../../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
-import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset, isSurgeUnlocked, getCurrentSurgeLevel } from './resetTab.js';
-import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset, getCurrentSurgeLevel } from './resetTab.js';
+import { initWorkshopTab } from './workshopTab.js';
 import { initWarpTab, updateWarpTab } from './warpTab.js';
 import { initLabTab, updateLabTab, hasSeenLabIntro, setLabIntroSeen } from './labTab.js';
 import { initFlowTab, updateFlowTab, getFlowUnlockState, setFlowUnlockChecker } from './flowTab.js';
 import { isLabUnlocked, getTsunamiSequencePlayed } from '../../game/surgeEffects.js';
-import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
+import { blockInteraction } from '../shopOverlay.js';
 import {
-  shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../util/platformChecker.js';
@@ -34,14 +33,9 @@ import {
   DEFAULT_LOCKED_BLURB,
   DEFAULT_LOCK_MESSAGE,
   DIALOGUE_STATUS_ORDER,
-  HAS_POINTER_EVENTS,
-  HAS_TOUCH_EVENTS,
   DialogueEngine,
-  typeText,
   primeTypingSfx,
-  startTypingSfx,
   stopTypingSfx,
-  injectScrollTimelineStyles,
   ensureMerchantScrollbar,
   bindRapidActivation,
   openDialogueLockInfo,
