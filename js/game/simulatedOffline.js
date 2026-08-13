@@ -648,7 +648,7 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
             let newStr = formatNumber(newAmt);
             if (oldStr === 'Infinity' || oldStr === 'NaN') oldStr = '\u221e';
             if (newStr === 'Infinity' || newStr === 'NaN') newStr = '\u221e';
-            diffText = ` <span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
+            diffText = `&nbsp;<span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
           }
         }
         setHtmlOrText(info.textEl, `${formatNumber(levelCount)} ${label} of ${info.name}${diffText}`);
@@ -672,7 +672,7 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
             let newStr = formatNumber(newAmt);
             if (oldStr === 'Infinity' || oldStr === 'NaN') oldStr = '\u221e';
             if (newStr === 'Infinity' || newStr === 'NaN') newStr = '\u221e';
-            diffText = ` <span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
+            diffText = `&nbsp;<span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
           }
         }
         if (hasInfinity) {
