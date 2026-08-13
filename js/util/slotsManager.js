@@ -1,6 +1,6 @@
 // js/util/slotsManager.js
-import { activeStorageKeys, flushLocalStorageBuffer } from '../main.js';
-import { KEYS, getActiveSlot, markSaveSlotModified } from './storage.js';
+import { flushLocalStorageBuffer } from '../main.js';
+import { markSaveSlotModified } from './storage.js';
 import { refreshSlotsView } from './slots.js';
 
 let currentMode = null; // null, 'menu', 'export-json', 'import-json', 'export-b64', 'import-b64'
