@@ -604,7 +604,7 @@ export function updateSellTab() {
        const materialValue = BigNum.fromAny(t.value || 0);
        const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
        
-       const localAmountStr = rowCache.localSellAmount || '1';
+       const localAmountStr = rowCache.localSellAmount || '100%';
        const theoreticalAmt = calculateTheoreticalSellAmount(owned, localAmountStr);
        const displayVal = theoreticalAmt.mulBigNumInteger(val);
 
@@ -663,7 +663,7 @@ function createSellRow(matKey, index) {
    colSell.className = 'sell-col-sell';
    
    const slot = getActiveSlot() ?? 'default';
-   const initVal = localStorage.getItem(`ccc:sellAmount:${slot}:${matKey}`) || '1';
+   const initVal = localStorage.getItem(`ccc:sellAmount:${slot}:${matKey}`) || '100%';
    const dropdownObj = createDropdown({
        getOptions: () => DROPDOWN_OPTIONS,
        getValue: () => {
@@ -671,7 +671,7 @@ function createSellRow(matKey, index) {
            return rowCache ? rowCache.localSellAmount : initVal;
        },
        setValue: (val) => {
-           let newAmount = '1';
+           let newAmount = '100%';
            const rowCache = sellPanelDomCache.rows[matKey];
            if (val === 'custom') {
              const res = prompt("Enter a custom amount. Integers, percentages, and fractions are supported inputs.");
@@ -764,7 +764,7 @@ function createSellRow(matKey, index) {
        ownedEl: colOwned,
        valEl: colVal,
        dropdownWrapper: dropdownWrap,
-       localSellAmount: localStorage.getItem(`ccc:sellAmount:${getActiveSlot() ?? 'default'}:${matKey}`) || '1'
+       localSellAmount: localStorage.getItem(`ccc:sellAmount:${getActiveSlot() ?? 'default'}:${matKey}`) || '100%'
    };
 }
 
