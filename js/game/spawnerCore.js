@@ -418,7 +418,9 @@ export function createBaseSpawner(config = {}) {
         if (idx !== -1) {
             activeItems[idx] = null;
             garbageCount++;
-            staticCanvasDirty = true;
+            if (itemObj.settled) {
+                staticCanvasDirty = true;
+            }
         }
         
         if (itemObj.el) {
@@ -441,7 +443,9 @@ export function createBaseSpawner(config = {}) {
             if (idx !== -1) {
                 activeItems[idx] = null;
                 garbageCount++;
-                staticCanvasDirty = true;
+                if (itemObj.settled) {
+                    staticCanvasDirty = true;
+                }
             }
             if (itemElOrObj._itemObj) itemElOrObj._itemObj = null;
         }
@@ -648,9 +652,6 @@ export function createBaseSpawner(config = {}) {
 
       let rawDt = now - last;
       let dt = rawDt / 1000;
-      if (rawDt > 250) {
-          staticCanvasDirty = true;
-      }
       last = now;
       if (dt > 0.1) dt = 0.1;
       
