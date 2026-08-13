@@ -3,8 +3,8 @@
 // Editing local storage every time I want to change something.
 
 import { settingsManager } from '../game/settingsManager.js';
-import { BigNum, bigNumFromLog10 } from './bigNum.js';
-import { formatNumber, formatMultForUi } from './numFormat.js';
+import { BigNum } from './bigNum.js';
+import { formatNumber } from './numFormat.js';
 import {
     bank,
     CURRENCIES,
@@ -18,17 +18,15 @@ import {
     setCurrencyMultiplierBN,
     UC_MATERIALS
 } from './storage.js';
-import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
-import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
+import { broadcastXpChange, getXpGainMultiplier, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
+import { broadcastMutationChange, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import { isNodeLocked, setNodeLocked, refreshNodesState } from '../ui/mapOverlay.js';
 import { IS_MOBILE } from './platformChecker.js';
 import {
     getUpgradeStorageKey,
     AREA_KEYS,
-    computeDefaultUpgradeCost,
     computeUpgradeEffects,
     getLevel,
-    getMpValueMultiplierBn,
     getUpgradesForArea,
     markUpgradePermanentlyUnlocked,
     clearPermanentUpgradeUnlock,
@@ -39,9 +37,9 @@ import {
 import { isMapUnlocked, isShopUnlocked, isShopUcUnlocked, lockMap, lockShop, lockShopUc, unlockMap, unlockShop, unlockShopUc } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getVoidLevel, setVoidLevel } from '../ui/sas/achievementExtras/voidGemAltarTab.js';
-import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
+import { getGenerationLevelKey } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
-import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiExponent, getTsunamiSequencePlayed, setTsunamiSequencePlayed } from '../game/surgeEffects.js';
+import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiSequencePlayed, setTsunamiSequencePlayed } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
