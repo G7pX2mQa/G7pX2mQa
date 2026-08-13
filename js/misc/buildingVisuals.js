@@ -1135,7 +1135,7 @@ function drawCavern(ctx, w, h, t) {
       }
 
       let cachedImage;
-      if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
+      if (typeof OffscreenCanvas !== 'undefined') {
         cachedImage = new OffscreenCanvas(40, 40);
       } else {
         cachedImage = document.createElement("canvas");
@@ -5400,7 +5400,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     
     for (let f = 0; f < frames; f++) {
       let offCanvas;
-      if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
+      if (typeof OffscreenCanvas !== 'undefined') {
         offCanvas = new OffscreenCanvas(width, height);
       } else {
         offCanvas = document.createElement("canvas");
@@ -5715,7 +5715,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     sideOnLinkHighlightPath.moveTo(-4.5, -1);
     sideOnLinkHighlightPath.lineTo(4.5, -1);
 
-    if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
+    if (typeof OffscreenCanvas !== 'undefined') {
         cachedFaceOnLink = new OffscreenCanvas(20, 20);
         cachedSideOnLink = new OffscreenCanvas(20, 20);
     } else {
