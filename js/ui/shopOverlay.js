@@ -6,7 +6,6 @@ import { formatNumber } from '../util/numFormat.js';
 import { FONT_MAP } from '../main.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
 import { openMerchant,
-    ensureMerchantOverlay,
     unlockMerchantTabs,
     hasMetMerchant,
     MERCHANT_MET_EVENT,
@@ -14,7 +13,6 @@ import { openMerchant,
 } from './merchantTabs/dlgTab.js';
 import { openMiner, hasMetMiner, MINER_MET_EVENT } from './minerTabs/dlgTab.js';
 import { primeTypingSfx } from './delveCore.js';
-import { takePreloadedAudio } from '../util/audioCache.js';
 import { playAudio } from '../util/audioManager.js';
 import { settingsManager } from '../game/settingsManager.js';
 import {
