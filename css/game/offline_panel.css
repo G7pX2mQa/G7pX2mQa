@@ -316,7 +316,6 @@
 
 .sim-speed-btn, .sim-skip-btn {
     min-width: 150px;
-    flex: 1 1 auto;
     height: 50px;
     border-radius: 0;
     color: #fff;
@@ -346,7 +345,6 @@
 /* Swap View button */
 .sim-swap-btn {
     min-width: 150px;
-    flex: 1 1 auto;
     height: 50px;
     border-radius: 0;
     border: 2px solid hsla(50, 100%, 50%, 1);
