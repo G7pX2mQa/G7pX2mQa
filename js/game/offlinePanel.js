@@ -1516,8 +1516,16 @@ export async function processOfflineProgress() {
   const diff = now - lastSave;
   if (diff < 1000) return; // Ignore gaps < 1s
 
+  let wasInterrupted = false;
+  try {
+      if (localStorage.getItem(`ccc:simInterrupted:${slot}`) === '1') {
+          wasInterrupted = true;
+          localStorage.removeItem(`ccc:simInterrupted:${slot}`);
+      }
+  } catch {}
+
   if (isSimulatedOfflineEnabled()) {
-    const started = await startSimulatedOffline(diff);
+    const started = await startSimulatedOffline(diff, { wasInterrupted });
     if (started) return true;
   }
 
