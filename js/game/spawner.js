@@ -2,7 +2,7 @@
 
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange, getRandomMutationCoinSprite, getRandomMutationCoinId } from './mutationSystem.js';
-import { IS_MOBILE } from '../util/platformChecker.js';
+import { IS_MOBILE, IS_FIREFOX } from '../util/platformChecker.js';
 import { isSurgeActive, getTsunamiExponentWithCombo } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem } from './webgl/waterSystem.js';
@@ -700,14 +700,16 @@ export function createSpawner(config = {}) {
             if (renderable) {
                 const draw = (img) => {
                     if (c.rot || c.scale !== 1) {
+                        let halfSize = size / 2;
+                        if (IS_FIREFOX) halfSize = halfSize | 0;
                         ctx.save();
-                        ctx.translate(c.x + size / 2, c.y + size / 2);
+                        ctx.translate(IS_FIREFOX ? ((c.x + halfSize) | 0) : (c.x + halfSize), IS_FIREFOX ? ((c.y + halfSize) | 0) : (c.y + halfSize));
                         if (c.rot) ctx.rotate(c.rot * Math.PI / 180);
                         if (c.scale !== 1) ctx.scale(c.scale, c.scale);
-                        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+                        ctx.drawImage(img, -halfSize, -halfSize, size, size);
                         ctx.restore();
                     } else {
-                        ctx.drawImage(img, c.x, c.y, size, size);
+                        ctx.drawImage(img, IS_FIREFOX ? Math.round(c.x) : c.x, IS_FIREFOX ? Math.round(c.y) : c.y, size, size);
                     }
                 };
                 if (renderable instanceof HTMLCanvasElement) {
@@ -781,10 +783,10 @@ export function createSpawner(config = {}) {
                     ctx.lineWidth = width;
                     ctx.strokeStyle = color;
                     ctx.beginPath();
-                    ctx.moveTo(startX, startY);
+                    ctx.moveTo(IS_FIREFOX ? Math.round(startX) : startX, IS_FIREFOX ? Math.round(startY) : startY);
                     for (let j = 1; j < b.points.length; j++) {
                         const p = b.points[j];
-                        ctx.lineTo(startX + p.x, startY + p.y);
+                        ctx.lineTo(IS_FIREFOX ? Math.round(startX + p.x) : (startX + p.x), IS_FIREFOX ? Math.round(startY + p.y) : (startY + p.y));
                     }
                     ctx.stroke();
                 };
@@ -808,7 +810,7 @@ export function createSpawner(config = {}) {
                 fxCtx.fillStyle = s.color;
                 fxCtx.globalAlpha = alpha;
                 fxCtx.beginPath();
-                fxCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                fxCtx.arc(IS_FIREFOX ? Math.round(s.x) : s.x, IS_FIREFOX ? Math.round(s.y) : s.y, s.size, 0, Math.PI * 2);
                 fxCtx.fill();
                 fxCtx.globalAlpha = 1;
             }
