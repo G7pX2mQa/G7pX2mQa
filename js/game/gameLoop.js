@@ -1,6 +1,7 @@
 import { markSaveSlotModified } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
 import { maxRefreshRate } from '../util/refreshRate.js';
+import { IS_FIREFOX } from '../util/platformChecker.js';
 
 export const TICK_RATE = 20;
 export const FIXED_STEP = 1 / TICK_RATE; // 0.05s
@@ -25,6 +26,7 @@ let fpsWakeupCtx = null;
 let fpsWakeupRot = 0;
 function ensureFpsWakeupEl() {
     if (typeof document === 'undefined') return;
+    if (IS_FIREFOX) return;
     if (!fpsWakeupEl) {
         fpsWakeupEl = document.createElement('canvas');
         fpsWakeupEl.width = 256;
