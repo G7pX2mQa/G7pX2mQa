@@ -2,7 +2,7 @@ import { isForgeUnlocked, isInfuseUnlocked, isSurgeUnlocked, getCurrentSurgeLeve
 import { getActiveSlot } from '../util/storage.js';
 import { getXpState } from '../game/xpSystem.js';
 import { levelBigNumToNumber } from '../game/upgrades.js';
-import { registerFrame } from '../game/gameLoop.js';
+import { registerFrame, registerUiFrame } from '../game/gameLoop.js';
 import { settingsManager } from '../game/settingsManager.js';
 import { showNotification } from '../ui/notifications.js';
 import { getResearchNodeLevel, RESEARCH_NODES } from '../game/labNodes.js';
@@ -236,7 +236,7 @@ export function initGameProgressBar() {
   if (initialized) return;
   initialized = true;
 
-  registerFrame(updateGameProgressBar);
+  registerUiFrame(updateGameProgressBar);
 }
 
 export function updateGameProgressBar() {
