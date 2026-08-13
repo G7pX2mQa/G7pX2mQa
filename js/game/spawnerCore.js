@@ -216,6 +216,9 @@ export function createBaseSpawner(config = {}) {
     const inMemoryCanvases = [];
     const inMemoryContexts = [];
     let staticCanvasDirty = false;
+    
+    const _reusableStaticBuckets = [];
+    const _reusableDynamicBuckets = [];
 
     if (refs.c) {
         const canvas = document.createElement('canvas');
@@ -526,20 +529,23 @@ export function createBaseSpawner(config = {}) {
                 }
             }
 
-            const staticBuckets = [];
+            for (let i = 0; i < _reusableStaticBuckets.length; i++) {
+                if (_reusableStaticBuckets[i]) _reusableStaticBuckets[i].length = 0;
+            }
+
             const count = activeItems.length;
             
             for (let i = 0; i < count; i++) {
                 const c = activeItems[i];
                 if (c && c.settled && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
                     const layer = c.sizeIndex || 0;
-                    if (!staticBuckets[layer]) staticBuckets[layer] = [];
-                    staticBuckets[layer].push(c);
+                    if (!_reusableStaticBuckets[layer]) _reusableStaticBuckets[layer] = [];
+                    _reusableStaticBuckets[layer].push(c);
                 }
             }
 
-            for (let b = 0; b < staticBuckets.length; b++) {
-                const bucket = staticBuckets[b];
+            for (let b = 0; b < _reusableStaticBuckets.length; b++) {
+                const bucket = _reusableStaticBuckets[b];
                 if (!bucket) continue;
                 
                 const ctx = getInMemoryContext(b, w, h, dpr);
@@ -557,19 +563,22 @@ export function createBaseSpawner(config = {}) {
         mainCtx.clearRect(0, 0, canvases[0].width, canvases[0].height);
         mainCtx.restore();
 
-        const dynamicBuckets = [];
+        for (let i = 0; i < _reusableDynamicBuckets.length; i++) {
+            if (_reusableDynamicBuckets[i]) _reusableDynamicBuckets[i].length = 0;
+        }
+
         const count = activeItems.length;
         
         for (let i = 0; i < count; i++) {
             const c = activeItems[i];
             if (c && !c.settled && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
                 const layer = c.sizeIndex || 0;
-                if (!dynamicBuckets[layer]) dynamicBuckets[layer] = [];
-                dynamicBuckets[layer].push(c);
+                if (!_reusableDynamicBuckets[layer]) _reusableDynamicBuckets[layer] = [];
+                _reusableDynamicBuckets[layer].push(c);
             }
         }
 
-        const maxLayer = Math.max(inMemoryCanvases.length, dynamicBuckets.length);
+        const maxLayer = Math.max(inMemoryCanvases.length, _reusableDynamicBuckets.length);
 
         for (let layer = 0; layer < maxLayer; layer++) {
             // Draw static/settled items for this layer
@@ -581,12 +590,28 @@ export function createBaseSpawner(config = {}) {
             }
 
             // Draw moving items for this layer
-            const movingBucket = dynamicBuckets[layer];
+            const movingBucket = _reusableDynamicBuckets[layer];
             if (movingBucket) {
                 for (let i = 0; i < movingBucket.length; i++) {
                     const c = movingBucket[i];
                     const state = getItemState(c, now);
-                    onDrawSingleSettledItem(mainCtx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
+                    
+                    const origX = c.x;
+                    const origY = c.y;
+                    const origRot = c.rot;
+                    const origScale = c.scale;
+                    
+                    c.x = state.x;
+                    c.y = state.y;
+                    c.rot = state.rot;
+                    c.scale = state.scale;
+                    
+                    onDrawSingleSettledItem(mainCtx, c);
+                    
+                    c.x = origX;
+                    c.y = origY;
+                    c.rot = origRot;
+                    c.scale = origScale;
                 }
             }
         }
