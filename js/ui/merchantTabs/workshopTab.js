@@ -2,7 +2,7 @@
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, CURRENCIES, getActiveSlot } from '../../util/storage.js';
-import { registerTick, TICK_RATE, FIXED_STEP } from '../../game/gameLoop.js';
+import { registerTick, FIXED_STEP } from '../../game/gameLoop.js';
 import { openShop, playPurchaseSfx, isAnyMenuScrolling } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/upgrades.js';
@@ -10,6 +10,7 @@ import { IS_MOBILE } from '../../util/platformChecker.js';
 import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
 import { isSurgeActive } from "../../game/surgeEffects.js";
 import { setHtmlOrText } from '../../util/uiHelpers.js';
+import { settingsManager } from '../../game/settingsManager.js';
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
@@ -598,6 +599,14 @@ export function updateWorkshopTab() {
     rightCol.style.opacity = isLevelZero ? '0' : '1';
     rightCol.style.pointerEvents = isLevelZero ? 'none' : '';
   }
+
+  const showSideContainers = settingsManager.get('show_side_containers');
+  if (leftCol) {
+    leftCol.style.display = showSideContainers ? '' : 'none';
+  }
+  if (rightCol) {
+    rightCol.style.display = showSideContainers ? '' : 'none';
+  }
 }
 
 function stopRenderLoop() {
@@ -683,6 +692,9 @@ export function initWorkshopSystem() {
       window.addEventListener('unlock:change', (e) => {
          const detail = e.detail || {};
          if (detail.key === 'infuse') { if (!hasDoneInfuseReset()) { resetWorkshopState(); } }
+      });
+      window.addEventListener('setting:changed', (e) => {
+         if (e.detail && e.detail.key === 'show_side_containers') { updateWorkshopTab(); }
       });
   }
 }
