@@ -248,7 +248,6 @@ let initDpSystem;
 let initPpSystem;
 let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
-let registerPreloadedAudio;
 let initPopups;
 let installsuspensionSafeguards;
 let restoreSuspendBackup;
@@ -1257,7 +1256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/saveIntegrity.js'),
     import('./game/upgrades.js'),
     import('./game/upgradeEffects.js'),
-    import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
     import('./game/dpSystem.js'),
     import('./game/ppSystem.js'),
@@ -1522,7 +1520,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveIntegrityModule,
     upgradesModule,
     upgradeEffectsModule,
-    audioCacheModule,
     xpModule,
     dpModule,
     ppModule,
@@ -1559,7 +1556,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged, AREA_KEYS } = upgradesModule);
   ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
-  ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
   ({ initDpSystem } = dpModule);
   ({ initPpSystem } = ppModule);
