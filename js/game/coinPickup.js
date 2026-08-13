@@ -6,7 +6,7 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
-import { coinsCollected, globalCoinsCollected, currentArea, AREAS } from '../main.js';
+import { currentArea, AREAS } from '../main.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
 import {
   addMutationPower,
@@ -15,8 +15,7 @@ import {
   onMutationChange,
   computeMutationMultiplierForLevel,
 } from './mutationSystem.js';
-import { getMpValueMultiplierBn, getMagnetLevel, getLevelNumber } from './upgrades.js';
-import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
+import { getMpValueMultiplierBn } from './upgrades.js';
 import { playAudio } from '../util/audioManager.js';
 import { onCoinCollected, addComboChangeListener, removeComboChangeListener } from './comboSystem.js';
 import { getComboUiString } from './surgeEffects.js';
