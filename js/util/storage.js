@@ -279,6 +279,7 @@ function initCurrencyStorageWatchers() {
 // -------------------- HEARTBEAT / OFFLINE TRACKING --------------------
 let lastSaveTimeTimer = null;
 let hasEnteredGameSession = false;
+let memoryLastSaveTime = 0;
 
 export function notifyGameSessionStarted() {
   hasEnteredGameSession = true;
@@ -291,26 +292,44 @@ export function getLastSaveTimeKey(slot = getActiveSlot()) {
 
 export function updateLastSaveTime() {
   if (!hasEnteredGameSession) return;
+  
   // If the document is hidden, we STOP updating the heartbeat.
   // This causes the lastSaveTime to "drift" into the past,
   // so when the user returns, (Date.now() - lastSaveTime) reflects
   // the entire time they were away/tabbed-out.
   if (document.hidden) return;
-  
+
   const slot = getActiveSlot();
   if (slot == null) return;
-  let saveTime = Date.now();
+  
+  memoryLastSaveTime = Date.now();
+  let saveTime = memoryLastSaveTime;
+  let wasInterrupted = false;
   if (typeof window !== 'undefined' && typeof window.getActiveSimRemainingMs === 'function') {
-      saveTime -= window.getActiveSimRemainingMs();
+      const remaining = window.getActiveSimRemainingMs();
+      if (remaining > 0) {
+          saveTime -= remaining;
+          wasInterrupted = true;
+      }
   }
   try {
     localStorage.setItem(getLastSaveTimeKey(slot), String(Math.floor(saveTime)));
+    if (wasInterrupted) {
+        localStorage.setItem(`ccc:simInterrupted:${slot}`, '1');
+    } else {
+        localStorage.removeItem(`ccc:simInterrupted:${slot}`);
+    }
   } catch {}
 }
 
 export function getLastSaveTime() {
   const slot = getActiveSlot();
   if (slot == null) return 0;
+  
+  if (memoryLastSaveTime > 0) {
+      return memoryLastSaveTime;
+  }
+  
   try {
     const raw = localStorage.getItem(getLastSaveTimeKey(slot));
     const val = parseInt(raw, 10);
@@ -341,10 +360,22 @@ function initHeartbeat() {
       const slot = getActiveSlot();
       if (slot != null) {
           let saveTime = Date.now();
+          let wasInterrupted = false;
           if (typeof window !== 'undefined' && typeof window.getActiveSimRemainingMs === 'function') {
-              saveTime -= window.getActiveSimRemainingMs();
+              const remaining = window.getActiveSimRemainingMs();
+              if (remaining > 0) {
+                  saveTime -= remaining;
+                  wasInterrupted = true;
+              }
           }
-          try { localStorage.setItem(getLastSaveTimeKey(slot), String(Math.floor(saveTime))); } catch {}
+          try { 
+              localStorage.setItem(getLastSaveTimeKey(slot), String(Math.floor(saveTime))); 
+              if (wasInterrupted) {
+                  localStorage.setItem(`ccc:simInterrupted:${slot}`, '1');
+              } else {
+                  localStorage.removeItem(`ccc:simInterrupted:${slot}`);
+              }
+          } catch {}
       }
   });
   
@@ -452,12 +483,14 @@ export function clearActiveSlot() {
   // lastSaveTime from the previous session with the current time, erasing offline progress.
   if (currentSlot != null && hasEnteredGameSession) {
     try {
-      localStorage.setItem(getLastSaveTimeKey(currentSlot), String(Date.now()));
+      memoryLastSaveTime = Date.now();
+      localStorage.setItem(getLastSaveTimeKey(currentSlot), String(memoryLastSaveTime));
     } catch (e) {
       console.error(e);
     }
   }
   hasEnteredGameSession = false;
+  memoryLastSaveTime = 0;
   _activeSlotCache = null;
   localStorage.removeItem(KEYS.SAVE_SLOT);
   try {
