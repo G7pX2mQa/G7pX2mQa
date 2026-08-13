@@ -441,7 +441,7 @@ function _makeLiveRow(config, key, id, name) {
   };
 }
 
-function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTotals, oldTotals) {
+function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTotals, oldTotals, wasInterrupted = false) {
   // Remove any existing offline overlay
   const existing = document.querySelector('.offline-overlay');
   if (existing) existing.remove();
@@ -474,9 +474,18 @@ function createSimulationOverlay(runner, offlineMs, onSkip, onComplete, beforeTo
   const contentWrapper = document.createElement('div');
   contentWrapper.className = 'offline-content-wrapper sim-content-wrapper';
 
-  // Progress bar container
   const progressContainer = document.createElement('div');
   progressContainer.className = 'sim-progress-container';
+
+  if (wasInterrupted) {
+    const interruptNote = document.createElement('div');
+    interruptNote.style.color = '#ffff55';
+    interruptNote.style.fontSize = '18px';
+    interruptNote.style.marginBottom = '10px';
+    interruptNote.style.textAlign = 'center';
+    interruptNote.textContent = "The offline progress from a previous session was interrupted, and has been gracefully restored in addition to any newly obtained offline time";
+    progressContainer.appendChild(interruptNote);
+  }
 
   const progressBar = document.createElement('div');
   progressBar.className = 'sim-progress-bar';
@@ -845,11 +854,15 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
   await ensureTickImports();
 
   if (activeSimRunner && activeSimRunner.running) {
-    activeSimRunner.addTime(totalSeconds);
-    const msToAdd = options.overrideSeconds ? options.overrideSeconds * 1000 : totalOfflineMs;
-    activeDisplayMs += msToAdd;
-    if (activeUiHandle) {
-        activeUiHandle.updateDisplayMs(activeDisplayMs);
+    let actualNewSeconds = totalSeconds;
+    
+    if (actualNewSeconds > 0) {
+        activeSimRunner.addTime(actualNewSeconds);
+        const msToAdd = options.overrideSeconds ? options.overrideSeconds * 1000 : (actualNewSeconds * 1000);
+        activeDisplayMs += msToAdd;
+        if (activeUiHandle) {
+            activeUiHandle.updateDisplayMs(activeDisplayMs);
+        }
     }
     return true;
   }
@@ -924,7 +937,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
   }
 
   activeDisplayMs = displayMs;
-  uiHandle = createSimulationOverlay(runner, displayMs, handleSkip, finishSimulation, beforeTotals, oldTotals);
+  uiHandle = createSimulationOverlay(runner, displayMs, handleSkip, finishSimulation, beforeTotals, oldTotals, options.wasInterrupted);
   activeUiHandle = uiHandle;
 
   // Block ESC from closing overlay during simulation
@@ -950,6 +963,13 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
 
       const now = performance.now();
       let dt = (now - lastFrameTime) / 1000;
+      
+      if (document.hidden) {
+          lastFrameTime = now;
+          requestAnimationFrame(frameLoop);
+          return;
+      }
+      
       // Cap at 0.1s to prevent huge jumps if the thread stutters
       if (dt > 0.1) dt = 0.1;
       if (dt <= 0) dt = 0.016;
