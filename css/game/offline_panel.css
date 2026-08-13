@@ -276,6 +276,19 @@
     color: #94a3b8;
 }
 
+.sim-interrupt-note {
+    color: #ffff55;
+    font-size: 18px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+@media (max-width: 1500px) {
+    .sim-interrupt-note {
+        font-size: 16px;
+    }
+}
+
 .sim-tick-info {
     font-size: 18px;
     color: #94a3b8;
