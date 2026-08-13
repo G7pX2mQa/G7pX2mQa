@@ -19,7 +19,8 @@ export const IS_FIREFOX = (() => {
   if (typeof window.IS_FIREFOX !== 'undefined') {
     return !!window.IS_FIREFOX;
   }
-  const detected = (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('-moz-appearance', 'none')) || (navigator.userAgent && navigator.userAgent.toLowerCase().includes('firefox'));
+  const detected = (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('-moz-appearance', 'none'))
+	|| (navigator.userAgent && navigator.userAgent.toLowerCase().includes('firefox'));
   window.IS_FIREFOX = detected;
   return detected;
 })();
