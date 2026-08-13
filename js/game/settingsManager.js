@@ -4,7 +4,6 @@ import { getActiveSlot, CURRENCIES } from '../util/storage.js';
 import { PALETTES } from './mutationColorPalettes.js';
 import { isLabUnlocked } from './surgeEffects.js';
 import { RESOURCE_REGISTRY } from './offlinePanel.js';
-import { AREA_KEYS } from './upgrades.js';
 import { MAP_NODES } from './mapNodesData.js';
 import { getHighestMutationLevel, levelToNumber } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
@@ -21,7 +20,6 @@ import {
 } from '../ui/merchantTabs/resetTab.js';
 import { isCombineUnlocked, isCompressUnlocked } from '../ui/minerTabs/resetTab.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
-import { maxRefreshRate } from '../util/refreshRate.js';
 
 const SETTINGS_KEY_PREFIX = 'ccc:setting:';
 
@@ -399,6 +397,21 @@ export const SETTING_DEFINITIONS = {
     info: 'Applies to all collectibles that spawn. Turning this setting OFF would disable the pickup animations for all collectibles.',
     default: true,
     unlockCondition: () => !IS_MOBILE,
+  },
+  show_side_containers: {
+    type: 'toggle',
+    label: 'Show Side Containers',
+    overlay: 'performance',
+    hasExtraInfo: true,
+    info: 'In various Delve tabs, to fill empty space, visual side containers are placed to add some visual enhancement to the gameplay experience. If you find these to be unwanted or a performance bottleneck, then turn this setting OFF to hide them.',
+    default: true,
+    unlockCondition: () => {
+      try {
+        return hasDoneInfuseReset() && window.innerWidth >= 800;
+      } catch {
+        return false;
+      }
+    },
   },
   insta_teleport: {
     type: 'toggle',
