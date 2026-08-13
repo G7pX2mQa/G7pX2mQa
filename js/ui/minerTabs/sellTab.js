@@ -1,4 +1,3 @@
-import { IS_FIREFOX } from '../../util/platformChecker.js';
 import { CURRENCIES, getActiveSlot, UC_MATERIALS, bank, getCurrencyMultiplierScaledBN } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
@@ -427,7 +426,12 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
              updateSellTab();
          }
      });
-     if (typeof window !== 'undefined') window.addEventListener('resize', debouncedAlignSellColumns);
+     if (typeof window !== 'undefined') {
+         window.addEventListener('resize', debouncedAlignSellColumns);
+         window.addEventListener('setting:changed', (e) => {
+             if (e.detail && e.detail.key === 'show_side_containers') { updateSellTab(); }
+         });
+     }
   }
 
   return { tabBtn, panel };
@@ -438,6 +442,10 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
 export function updateSellTab() {
    if (!hasViewedSellTab()) setSellTabViewed(true);
    if (!sellPanelDomCache.listContainer) return;
+   
+   const showSideContainers = settingsManager.get('show_side_containers');
+   if (sellPanelDomCache.sideLeft) sellPanelDomCache.sideLeft.style.display = showSideContainers ? '' : 'none';
+   if (sellPanelDomCache.sideRight) sellPanelDomCache.sideRight.style.display = showSideContainers ? '' : 'none';
    
    let dpLevelNum = 0;
    try {
