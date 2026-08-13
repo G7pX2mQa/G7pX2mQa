@@ -1,4 +1,3 @@
-import { IS_FIREFOX } from '../util/platformChecker.js';
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
