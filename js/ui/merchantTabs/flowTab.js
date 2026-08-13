@@ -4,15 +4,13 @@ import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
 import { registerTick, registerUiFrame, FIXED_STEP } from '../../game/gameLoop.js';
 import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from '../../game/xpSystem.js';
-import { playPurchaseSfx } from '../shopOverlay.js';
 import { trackBinaryFlowSequence } from '../../game/secretAchievements.js';
-import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { syncCurrencyMultipliersFromUpgrades } from '../../game/upgradeEffects.js';
 import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
-import { isDpSystemUnlocked } from '../../game/dpSystem.js';
-import { getCurrentSurgeLevel, getSurgeBarLevel, predictSurgeLevel, resetState } from "./resetTab.js";
+import { getSurgeBarLevel, predictSurgeLevel, resetState } from "./resetTab.js";
 import { isNodeLocked } from '../mapOverlay.js';
+import { settingsManager } from '../../game/settingsManager.js';
 
 /* =========================================
    CONSTANTS & KEYS
@@ -1409,8 +1407,11 @@ function buildUI(panel) {
 export function updateFlowTab() {
     if (!flowTabInitialized || !flowPanel) return;
     
-
-
+    const showSideContainers = settingsManager.get('show_side_containers');
+    const leftCol = flowPanel.querySelector('.flow-side-left');
+    const rightCol = flowPanel.querySelector('.flow-side-right');
+    if (leftCol) leftCol.style.display = showSideContainers ? '' : 'none';
+    if (rightCol) rightCol.style.display = showSideContainers ? '' : 'none';
 
     
     const explainerTextEl = flowPanel.querySelector('.flow-explainer-text');
@@ -1771,6 +1772,9 @@ export function initFlowSystem() {
             loadState();
             refreshMysteriousWatcher();
             updateFlowTab();
+        });
+        window.addEventListener('setting:changed', (e) => {
+            if (e.detail && e.detail.key === 'show_side_containers') { updateFlowTab(); }
         });
     }
     loadState();
