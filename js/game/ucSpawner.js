@@ -1,5 +1,5 @@
 import { createBaseSpawner, CUBIC_BEZIER, getImage, getPreRenderedItem, getPreRenderedItemUrl, clearPreRenderedItems } from './spawnerCore.js';
-import { IS_MOBILE } from '../util/platformChecker.js';
+import { IS_MOBILE, IS_FIREFOX } from '../util/platformChecker.js';
 import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
@@ -650,14 +650,16 @@ export function createUcSpawner(config = {}) {
                 const renderable = getPreRenderedItem(c.src, size);
                 if (renderable) {
                     if (c.rot || c.scale !== 1) {
+                        let halfSize = size / 2;
+                        if (IS_FIREFOX) halfSize = halfSize | 0;
                         ctx.save();
-                        ctx.translate(c.x + size / 2, c.y + size / 2);
+                        ctx.translate(IS_FIREFOX ? ((c.x + halfSize) | 0) : (c.x + halfSize), IS_FIREFOX ? ((c.y + halfSize) | 0) : (c.y + halfSize));
                         if (c.rot) ctx.rotate(c.rot * Math.PI / 180);
                         if (c.scale !== 1) ctx.scale(c.scale, c.scale);
-                        ctx.drawImage(renderable, -size / 2, -size / 2, size, size);
+                        ctx.drawImage(renderable, -halfSize, -halfSize, size, size);
                         ctx.restore();
                     } else {
-                        ctx.drawImage(renderable, c.x, c.y, size, size);
+                        ctx.drawImage(renderable, IS_FIREFOX ? Math.round(c.x) : c.x, IS_FIREFOX ? Math.round(c.y) : c.y, size, size);
                     }
                 }
             }
