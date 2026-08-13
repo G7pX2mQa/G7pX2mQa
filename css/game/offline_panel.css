@@ -159,6 +159,7 @@
 
 .offline-actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     padding-top: 0;
 }
@@ -315,6 +316,7 @@
 
 .sim-speed-btn, .sim-skip-btn {
     min-width: 150px;
+    flex: 1 1 auto;
     height: 50px;
     border-radius: 0;
     color: #fff;
@@ -344,6 +346,7 @@
 /* Swap View button */
 .sim-swap-btn {
     min-width: 150px;
+    flex: 1 1 auto;
     height: 50px;
     border-radius: 0;
     border: 2px solid hsla(50, 100%, 50%, 1);
@@ -378,4 +381,36 @@
     color: #94a3b8;
     font-weight: bold;
     z-index: 10;
+}
+
+@media (max-width: 600px) {
+    .offline-panel {
+        padding: 16px;
+    }
+    .sim-panel .offline-header {
+        font-size: 24px;
+    }
+    .offline-subheader {
+        font-size: 14px;
+    }
+    .sim-tick-info, .sim-info-area, .sim-tick-sticky {
+        font-size: 14px;
+    }
+    .sim-actions {
+        gap: 6px;
+    }
+    .sim-speed-btn, .sim-skip-btn, .sim-swap-btn {
+        min-width: 0;
+        height: 36px;
+        font-size: 14px;
+        padding: 0 2px;
+        flex: 1 1 0;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 425px) {
+    .sim-panel .offline-header {
+        font-size: 19px;
+    }
 }
