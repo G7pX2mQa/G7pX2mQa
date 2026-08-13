@@ -1021,7 +1021,7 @@ function generateBgChunk(layerConf, lastChunk) {
                     // Pre-render the crystal to a canvas
                     let cachedImage = null;
                     let tempCanvas = null;
-                    if (typeof OffscreenCanvas !== 'undefined' && !IS_FIREFOX) {
+                    if (typeof OffscreenCanvas !== 'undefined') {
                         tempCanvas = new OffscreenCanvas(40, 40);
                     } else if (typeof document !== 'undefined') {
                         tempCanvas = document.createElement('canvas');
