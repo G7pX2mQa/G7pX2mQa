@@ -1,7 +1,6 @@
 // js/game/spawner.js
 
-import { takePreloadedAudio } from '../util/audioCache.js';
-import { getMutationState, onMutationChange, getRandomMutationCoinSprite, getRandomMutationCoinId } from './mutationSystem.js';
+import { getMutationState, onMutationChange, getRandomMutationCoinId } from './mutationSystem.js';
 import { IS_MOBILE, IS_FIREFOX } from '../util/platformChecker.js';
 import { isSurgeActive, getTsunamiExponentWithCombo } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
@@ -9,7 +8,7 @@ import { waterSystem } from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../util/bigCoinManager.js';
 import { settingsManager } from './settingsManager.js';
 import { AREAS, currentArea } from '../main.js';
-import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic, getPreRenderedItem, getPreRenderedItemUrl, clearPreRenderedItems } from './spawnerCore.js';
+import { createBaseSpawner, CUBIC_BEZIER, getPreRenderedItem, getPreRenderedItemUrl, clearPreRenderedItems } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0;
