@@ -1,5 +1,5 @@
 // js/game/upgrades.js
-import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from '../util/storage.js';
+import { bank, getActiveSlot, primeStorageWatcherSnapshot, isStorageKeyLocked } from '../util/storage.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 } from '../util/bigNum.js';
 export { approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 };
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
@@ -9,18 +9,13 @@ import {
   isXpSystemUnlocked,
   getXpState,
 } from './xpSystem.js';
-import { getMutationMultiplier } from './mutationSystem.js';
 import {
-  initResetSystem,
   onForgeUpgradeUnlocked,
-  isForgeUnlocked,
   hasDoneForgeReset,
   onInfuseUpgradeUnlocked,
-  isInfuseUnlocked,
   hasDoneInfuseReset,
   onSurgeUpgradeUnlocked,
   getCurrentSurgeLevel,
-  hasDoneSurgeReset,
   isSurgeUnlocked,
 } from '../ui/merchantTabs/resetTab.js';
 import { UC_REGISTRY } from './ucUpgrades.js';
@@ -36,7 +31,6 @@ import {
   getMpValueMultiplierBn,
   getMagnetLevel,
   syncBookCurrencyMultiplierFromUpgrade,
-  registerXpUpgradeEffects,
 } from './upgradeEffects.js';
 
 export {
