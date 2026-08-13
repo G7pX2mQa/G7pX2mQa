@@ -25,7 +25,6 @@ import {
   setLevel,
   approxLog10BigNum,
   bigNumFromLog10,
-  formatMultForUi,
 } from '../../game/upgrades.js';
 import {
   initMutationSystem,
@@ -41,12 +40,10 @@ import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
 import { isPpSystemUnlocked } from '../../game/ppSystem.js';
 import { RESEARCH_NODES } from '../../game/labNodes.js';
-import { ensureCustomScrollbar, closeShop, openShop, isAnyMenuScrolling } from '../shopOverlay.js';
+import { ensureCustomScrollbar, closeShop, openShop } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
 import { collectActiveBigCoins } from '../../util/bigCoinManager.js';
 import { 
-  getBookProductionRate, 
-  getSurge6WealthMultipliers, 
   getTsunamiSequencePlayed,
   setTsunamiSequencePlayed,
   setLabUnlocked,
@@ -56,17 +53,14 @@ import {
   getTsunamiExponent,
   getSurge25Multiplier,
   getSurge27Multiplier,
-  getSurge29Multiplier,
   getSurge31Multiplier,
   getSurge35Multiplier
 } from '../../game/surgeEffects.js';
-import { 
-    getTsunamiResearchBonus,
+import {
     isExperimentUnlocked as isLabExperimentUnlocked,
     resetLab,
     getLabGoldMultiplier,
-    getLabMagicMultiplier,
-    getLabDnaMultiplier
+    getLabMagicMultiplier
 } from '../../game/labNodes.js';
 import { getLabLevel, setLabLevel } from './labTab.js';
 import { showDelayedAchievementNotifications } from '../../game/achievements.js';
@@ -74,7 +68,7 @@ import { showDelayedGoalNotifications, updateGameProgressBar } from '../gameProg
 import { showDelayedSecretAchievementNotifications, checkSecretAchievements, setLifetimeUselessExperiment } from '../../game/secretAchievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../misc/tsunamiVisuals.js';
-import { unlockMap, isMapUnlocked } from '../hudButtons.js';
+import { unlockMap } from '../hudButtons.js';
 import { openMapOverlay, setNodeLocked, refreshNodesState, isNodeLocked } from '../mapOverlay.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
 import { settingsManager } from '../../game/settingsManager.js';
