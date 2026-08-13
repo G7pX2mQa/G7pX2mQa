@@ -465,7 +465,11 @@ function setupLiveBindingListeners() {
         );
     };
     window.addEventListener('flow:change', flowHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('flow:change', flowHandler));
+    window.addEventListener('waterwheel:change', flowHandler, { passive: true });
+    addDebugPanelCleanup(() => {
+        window.removeEventListener('flow:change', flowHandler);
+        window.removeEventListener('waterwheel:change', flowHandler);
+    });
 }
 
 const XP_KEYS = {
@@ -4462,7 +4466,7 @@ function buildFlowDebug(container) {
     }
 
     Object.values(WATERWHEEL_DEFS).forEach((def) => {
-        const nodeContainer = createSubsection(`${def.name || def.id} Waterwheel`, (sub) => {
+        const nodeContainer = createSubsection(def.name || `${def.id} Waterwheel`, (sub) => {
             // Level
             const levelKey = `ccc:flow:level:${def.id}:${slot}`;
             const levelRow = createInputRow('Level', getWaterwheelLevel(def.id), (value, { setValue }) => {
