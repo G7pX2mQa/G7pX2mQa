@@ -12,8 +12,10 @@ import {
 import {
   onForgeUpgradeUnlocked,
   hasDoneForgeReset,
+  isForgeUnlocked,
   onInfuseUpgradeUnlocked,
   hasDoneInfuseReset,
+  isInfuseUnlocked,
   onSurgeUpgradeUnlocked,
   getCurrentSurgeLevel,
   isSurgeUnlocked,
@@ -230,14 +232,12 @@ const FORGE_PLACEHOLDER_TIES = new Set([
   UPGRADE_TIES.XP_VALUE_II,
   UPGRADE_TIES.MP_VALUE_I,
   UPGRADE_TIES.MAGNET,
-  UPGRADE_TIES.ENDLESS_XP,
 ]);
 const INFUSE_PLACEHOLDER_TIES = new Set([
   UPGRADE_TIES.COIN_VALUE_III,
   UPGRADE_TIES.XP_VALUE_III,
   UPGRADE_TIES.MP_VALUE_II,
   UPGRADE_TIES.FASTER_COINS_III,
-  UPGRADE_TIES.ENDLESS_MP,
 ]);
 const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_XP,
@@ -245,6 +245,8 @@ const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_INFUSE,
   UPGRADE_TIES.UNLOCK_SURGE,
   UPGRADE_TIES.UNLOCK_COMBINE,
+  UPGRADE_TIES.ENDLESS_XP,
+  UPGRADE_TIES.ENDLESS_MP,
   ...FORGE_PLACEHOLDER_TIES,
   ...INFUSE_PLACEHOLDER_TIES,
 ]);
@@ -689,9 +691,25 @@ export function determineLockState(ctx) {
     return { state: 'mysterious', unlockReqText: revealText };
   }
 
+  // ==== Endless MP ====
+  if (tieKey === UPGRADE_TIES.ENDLESS_MP) {
+    if (hasDoneInfuseReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
+      try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
+      return { state: 'unlocked' };
+    }
+    let xp101 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp101 = levelBigNumToNumber(xpBn) >= 101; } catch {}
+    if (!xp101) return { state: 'locked' };
+    const revealText = 'Do an Infuse reset to reveal this upgrade';
+    try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
+    return { state: 'mysterious', unlockReqText: revealText };
+  }
+
   // ==== Infuse Placeholders ====
   if (INFUSE_PLACEHOLDER_TIES.has(tieKey)) {
-    if (hasDoneInfuseReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
+    let isInfUnlocked = false;
+    try { isInfUnlocked = isInfuseUnlocked?.(); } catch {}
+    if (isInfUnlocked || isUpgradePermanentlyUnlocked(area, upgRef)) {
       try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
       return { state: 'unlocked' };
     }
@@ -705,12 +723,34 @@ export function determineLockState(ctx) {
     }
 
     // 101+ -> Mysterious
-    const revealText = 'Do an Infuse reset to reveal this upgrade';
+    const revealText = 'Unlock Infuse to reveal this upgrade';
     try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
     return { state: 'mysterious', unlockReqText: revealText };
   }
 
-  if (hasDoneForgeReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
+  // ==== Endless XP ====
+  if (tieKey === UPGRADE_TIES.ENDLESS_XP) {
+    if (hasDoneForgeReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
+      try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
+      return { state: 'unlocked' };
+    }
+    if (!xpUnlocked) return { state: 'locked' };
+    let xp31 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp31 = levelBigNumToNumber(xpBn) >= 31; } catch {}
+    if (!xp31) return { state: 'locked' };
+
+    if (isUpgradePermanentlyMysterious(area, upgRef)) {
+      const revealText = 'Do a Forge reset to reveal this upgrade';
+      return { state: 'mysterious', unlockReqText: revealText };
+    }
+    try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
+    return { state: 'mysterious', unlockReqText: '' };
+  }
+
+  // ==== Forge Placeholders (Default for remaining special ties) ====
+  let isForgUnlocked = false;
+  try { isForgUnlocked = isForgeUnlocked?.(); } catch {}
+  if (isForgUnlocked || isUpgradePermanentlyUnlocked(area, upgRef)) {
     try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
     return { state: 'unlocked' };
   }
@@ -721,7 +761,7 @@ export function determineLockState(ctx) {
   }
 
   if (isUpgradePermanentlyMysterious(area, upgRef)) {
-    const revealText = 'Do a Forge reset to reveal this upgrade';
+    const revealText = 'Unlock Forge to reveal this upgrade';
     return { state: 'mysterious', unlockReqText: revealText };
   }
 
@@ -731,7 +771,6 @@ export function determineLockState(ctx) {
 
 // Before 31 -> hard LOCKED (not mysterious, not clickable)
 if (!xp31) {
-  const revealText = 'Do a Forge reset to reveal this upgrade';
   return { state: 'locked' };
 }
 
@@ -2446,7 +2485,7 @@ export const REGISTRY = [
     id: 7,
     tie: UPGRADE_TIES.UNLOCK_FORGE,
     title: "Unlock Forge",
-    desc: "Unlocks the Reset tab and Forge reset in the Delve menu",
+    desc: "Unlocks the Reset tab and Forge reset in the Delve menu\nAlso unlocks new Shop upgrades related to Forge",
     lvlCap: 1,
     upgType: "NM",
     icon: "img/misc/forge.webp",
@@ -2587,7 +2626,7 @@ export const REGISTRY = [
     id: 13,
     tie: UPGRADE_TIES.UNLOCK_INFUSE,
     title: "Unlock Infuse",
-    desc: "Unlocks the Infuse reset",
+    desc: "Unlocks the Infuse reset\nAlso unlocks new Shop upgrades related to Infuse",
     lvlCap: 1,
     upgType: "NM",
     icon: "img/misc/infuse.webp",
