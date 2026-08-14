@@ -202,12 +202,18 @@ function parseSlotFromKey(key) {
   return Number.isFinite(slot) && slot > 0 ? slot : null;
 }
 
-const DEVTOOLS_CONSOLE_FRAME_RE = /\bat <anonymous>:\d+:\d+\b/;
+
 
 function isTrustedStorageStack(stack) {
   if (typeof stack !== 'string' || stack.length === 0) return true;
   
-  if (DEVTOOLS_CONSOLE_FRAME_RE.test(stack)) return false;
+  const lines = stack.split('\n').map(l => l.trim()).filter(l => l.startsWith('at '));
+  
+  if (lines.length >= 3) {
+      if (lines[2].includes('<anonymous>')) {
+          return false;
+      }
+  }
 
   return true;
 }
