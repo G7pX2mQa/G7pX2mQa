@@ -138,7 +138,7 @@ function captureStackTrace() {
 }
 
 function isTrustedStorageStack(stack) {
-  if (typeof stack !== 'string' || stack.length === 0) return false;
+  if (typeof stack !== 'string' || stack.length === 0) return true;
   if (DEVTOOLS_CONSOLE_FRAME_RE.test(stack)) return false;
   return true;
 }
