@@ -9138,16 +9138,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.fill();
     ctx.stroke();
 
-    // Dome plates and bolts
-    ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = 2;
-    for(let a=Math.PI; a<=Math.PI*2; a+=Math.PI/6) {
-        ctx.beginPath();
-        ctx.moveTo(0, baseY - 120);
-        ctx.lineTo(160 * Math.cos(a), baseY - 120 + 160 * Math.sin(a));
-        ctx.stroke();
-    }
-    
+
     // Concrete base pad
     ctx.fillStyle = fillRuby;
     ctx.fillRect(-bw/2, baseY - 20, bw, 20);
@@ -9173,10 +9164,29 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     // Prominent Radiation Symbol (Inactive) on Dome
     ctx.save();
     ctx.translate(0, baseY - 160);
+    ctx.rotate(t * 0.5); // Spin clockwise
     ctx.fillStyle = '#111';
     ctx.beginPath();
     ctx.arc(0, 0, 40, 0, Math.PI*2);
     ctx.fill();
+
+    // Spinning lines at Tier 1+ inside the radiation symbol
+    if (t1 > 0) {
+        ctx.save();
+        ctx.globalAlpha = t1;
+        ctx.strokeStyle = '#3a3a3a'; // slightly lighter than black to be visible
+        ctx.lineWidth = 2;
+        for(let i=0; i<=6; i++) {
+            let a = Math.PI + (i * Math.PI / 6);
+            ctx.beginPath();
+            // Start from the inner circle (radius 15) and end at the edge (radius 40)
+            ctx.moveTo(15 * Math.cos(a), 15 * Math.sin(a));
+            ctx.lineTo(40 * Math.cos(a), 40 * Math.sin(a));
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     ctx.fillStyle = '#222'; // Dull yellow-ish grey since inactive
     ctx.beginPath();
     ctx.arc(0, 0, 10, 0, Math.PI*2);
