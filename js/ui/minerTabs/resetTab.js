@@ -378,7 +378,7 @@ export function getPotentialScrap() {
 }
 
 export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
-    const totalScrap = scrapBn.add(potentialScrapBn);
+    const totalScrap = scrapBn;
     
     // Total Scrap base threshold: 1e7
     const logScrap = approxLog10BigNum(totalScrap);
@@ -651,7 +651,7 @@ function initCombineTabUI(panel) {
               <div class="merchant-reset__titles">
                 <p data-reset-desc="combine">
                   Resets everything Experiment does as well as DNA, DNA upgrades, Waterwheels, Scrap, Materials, DP, Depth, and Scrap upgrades for Cores<br>
-                  Increase pending Core amount by increasing Scrap or potential Scrap (collective value of all held Materials) and Depth
+                  Increase pending Core amount by increasing Scrap and Depth
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="combine"></div>
@@ -681,7 +681,7 @@ function initCombineTabUI(panel) {
               <div class="merchant-reset__titles">
                 <p data-reset-desc="compress">
                   Resets everything Combine does as well as all Buildings (except Crystal's) and sets your Surge to 200 (and Waves to 0) for Crystals<br>
-                  Increase pending Crystal amount by increasing Scrap or potential Scrap and Surge past 200
+                  Increase pending Crystal amount by increasing Scrap and Surge past 200
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="compress"></div>
@@ -817,7 +817,7 @@ function checkCompressRequirements() {
 }
 
 export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
-    const totalScrap = scrapBn.add(potentialScrapBn);
+    const totalScrap = scrapBn;
     
     // Scale start at 1e33 Scrap instead
     const logScrap = approxLog10BigNum(totalScrap);
