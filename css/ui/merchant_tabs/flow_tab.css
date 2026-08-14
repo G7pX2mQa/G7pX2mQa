@@ -80,7 +80,7 @@
 }
 
 .flow-explainer {
-  font-size: 0.95rem;
+  font-size: clamp(0.5rem, 2.8cqi, 0.95rem);
   color: #e6f5ff;
   background: rgba(64, 224, 208, 0.15);
   padding: 10px 16px;
@@ -104,6 +104,7 @@
   text-align: center;
   min-width: 0; /* Allow text to wrap/shrink properly in flex */
   line-height: 1.43;
+  white-space: nowrap;
 }
 
 .flow-minis-col {
@@ -362,10 +363,6 @@
     display: none;
   }
 
-  .flow-explainer {
-    font-size: 0.8rem;
-  }
-
   .flow-list-header {
     display: none; 
   }
@@ -439,9 +436,6 @@
 
 
 @media (max-width: 400px) {
-  .flow-explainer {
-    font-size: 0.6rem;
-  }
   .flow-level-val, .flow-effect-val {
     flex-direction: column; /* Stack "Lvl: " and number if it gets too tight, wait they are pseudo elements */
     font-size: 0.9rem;
