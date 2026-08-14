@@ -616,7 +616,7 @@ function updateCompressCard() {
     }
     
     if (!checkCompressRequirements()) {
-        const reqSurge = isPpSystemUnlocked() ? 250 : 200;
+        const reqSurge = hasDoneCompressReset() ? 250 : 200;
         updateResetButtonContent(el.btn, { disabled: true, msg: `Reach Depth: 101m and Surge ${reqSurge} to perform a Compress reset` });
     } else {
         updateResetButtonContent(el.btn, { disabled: false }, COMPRESS_ICON_SRC, resetState.pendingCrystals);
@@ -812,7 +812,7 @@ function checkCompressRequirements() {
         surgeLevel = getCurrentSurgeLevel();
     } catch {}
     
-    const reqSurge = isPpSystemUnlocked() ? 250 : 200;
+    const reqSurge = hasDoneCompressReset() ? 250 : 200;
     return dpLevelNum >= 101 && surgeLevel >= reqSurge;
 }
 
