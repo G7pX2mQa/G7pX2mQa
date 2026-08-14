@@ -133,7 +133,15 @@ export function createCurrencyRow(container, isUniversal, currencyId, iconSrc, b
 
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
-        populateCurrenciesOverlay(overlayEl);
+        if (isOpen) {
+           const materialsContainer = createMaterialsDropdown();
+           row.after(materialsContainer);
+        } else {
+           const nextEl = row.nextElementSibling;
+           if (nextEl && nextEl.classList.contains('materials-dropdown-container')) {
+               nextEl.remove();
+           }
+        }
         if (paintbrush && paintbrush.isActive()) {
           paintbrush.reinit();
         }
@@ -443,40 +451,45 @@ function populateCurrenciesOverlay(overlayEl) {
     createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + displayName);
 
     if (currency === 'scrap' && settingsManager.get('currency_scrap_materials_dropdown_open')) {
-        const materialsContainer = document.createElement('div');
-        materialsContainer.className = 'materials-dropdown-container';
-        materialsContainer.style.display = 'flex';
-        materialsContainer.style.flexDirection = 'column';
-        materialsContainer.style.gap = '10px';
-        materialsContainer.style.paddingLeft = '20px';
-        materialsContainer.style.gridColumn = '1 / -1'; // span full width if in a grid
-        materialsContainer.style.borderLeft = '2px solid #555';
-        
-        UC_MATERIALS.forEach(mat => {
-            if (!isCurrencyUnlocked(mat)) return;
-            const matVal = bank[mat]?.value;
-            const matAmountStr = formatNumber(matVal);
-            const matConfig = RESOURCE_REGISTRY.find(c => c.key === mat);
-            const matIconSrc = matConfig?.icon || "img/misc/mysterious.webp";
-            const matBaseSrc = matConfig?.baseIcon || "img/misc/locked.webp";
-            
-            let matDisplayName = mat.charAt(0).toUpperCase() + mat.slice(1);
-            if (matConfig) {
-                let isOne = false;
-                if (matVal instanceof BigNum) {
-                    isOne = !matVal.isInfinite() && matVal.cmp(BigNum.fromInt(1)) === 0;
-                } else {
-                    isOne = (Number(matVal) === 1);
-                }
-                matDisplayName = isOne ? matConfig.singular : matConfig.plural;
-            }
-
-            createCurrencyRow(materialsContainer, false, mat, matIconSrc, matBaseSrc, matAmountStr + ' ' + matDisplayName);
-        });
-        
+        const materialsContainer = createMaterialsDropdown();
         grid.appendChild(materialsContainer);
     }
   });
+}
+
+function createMaterialsDropdown() {
+    const materialsContainer = document.createElement('div');
+    materialsContainer.className = 'materials-dropdown-container';
+    materialsContainer.style.display = 'flex';
+    materialsContainer.style.flexDirection = 'column';
+    materialsContainer.style.gap = '10px';
+    materialsContainer.style.paddingLeft = '20px';
+    materialsContainer.style.gridColumn = '1 / -1'; // span full width if in a grid
+    materialsContainer.style.borderLeft = '2px solid #555';
+    
+    UC_MATERIALS.forEach(mat => {
+        if (!isCurrencyUnlocked(mat)) return;
+        const matVal = bank[mat]?.value;
+        const matAmountStr = formatNumber(matVal);
+        const matConfig = RESOURCE_REGISTRY.find(c => c.key === mat);
+        const matIconSrc = matConfig?.icon || "img/misc/mysterious.webp";
+        const matBaseSrc = matConfig?.baseIcon || "img/misc/locked.webp";
+        
+        let matDisplayName = mat.charAt(0).toUpperCase() + mat.slice(1);
+        if (matConfig) {
+            let isOne = false;
+            if (matVal instanceof BigNum) {
+                isOne = !matVal.isInfinite() && matVal.cmp(BigNum.fromInt(1)) === 0;
+            } else {
+                isOne = (Number(matVal) === 1);
+            }
+            matDisplayName = isOne ? matConfig.singular : matConfig.plural;
+        }
+
+        createCurrencyRow(materialsContainer, false, mat, matIconSrc, matBaseSrc, matAmountStr + ' ' + matDisplayName);
+    });
+    
+    return materialsContainer;
 }
 
 
