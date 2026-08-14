@@ -604,11 +604,11 @@ function updateCompressCard() {
         } else {
             const expected = `
               <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-                Reaching Depth: 101m unlocked the Crystal building; you can preview it before you reset to see what it's like<br>
                 Compressing for the first time will unlock new Shop upgrades and <strong style="color:#ff66d9; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">Pressure</strong><br>
                 Collect Materials to get PP; increasing Pressure will yield double DP and Material value per atm of Pressure<br>
                 Compressing for the first time will also replace the Surge 200 milestone with something new<br>
-                Additionally, the Surge requirement to perform Compress will be moved to Surge 250 once Pressure is unlocked
+                Additionally, the Surge requirement to perform Compress will be moved to Surge 250 once Pressure is unlocked<br>
+				Purchasing the "Unlock Compress" upgrade unlocked the Crystal building; spend Crystals there<br>
               </span>
             `.trim();
             if (!el.status.innerHTML.includes('Pressure')) el.status.innerHTML = expected;
