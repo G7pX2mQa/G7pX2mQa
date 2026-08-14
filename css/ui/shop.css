@@ -469,6 +469,8 @@
     pointer-events: none;              /* don’t steal touches when hidden */
     transition: opacity .2s ease;
   }
+  .merchant-panel.is-scrolling .shop-scrollbar,
+  .merchant-sheet.is-scrolling .shop-scrollbar,
   .shop-sheet.is-scrolling .shop-scrollbar,
   .shop-scrollbar__thumb.dragging {
     opacity: 1;
