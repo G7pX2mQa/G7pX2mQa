@@ -9073,11 +9073,13 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.translate(0, coreY);
     for(let i=0; i<60; i++) {
         let angle = (i * Math.PI / 30) + (t * (i%2==0 ? 1 : -1));
-        ctx.strokeStyle = i%3==0 ? '#ffffff' : '#ff4444';
-        ctx.lineWidth = i%3==0 ? 3 : 1;
+        let dist = 100 + 400 * Math.abs(Math.sin(t * 3 + i));
         ctx.beginPath();
-        ctx.moveTo(0,0);
-        ctx.lineTo(1500 * Math.cos(angle), 1500 * Math.sin(angle));
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(angle)*dist, Math.sin(angle)*dist);
+        ctx.strokeStyle = i%3==0 ? '#ff5555' : '#ff0000';
+        ctx.lineWidth = 1 + 2 * Math.abs(Math.cos(t * 5 + i));
+        ctx.globalAlpha = 0.3 * Math.abs(Math.sin(t * 8 + i));
         ctx.stroke();
     }
     ctx.restore();
@@ -9085,15 +9087,15 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
   // --- TIER 0: BASE REACTOR STRUCTURE ---
   // Must look like a reactor from the start. Containment domes and cooling towers.
-  // Outlines removed per Tier 0 feedback. Lines on the building are intentional with shading.
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
-
+    
     // Background Cooling Towers (Symmetrical)
     symDraw(() => {
-      // Cooling tower base fill
       ctx.fillStyle = fillRuby;
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 4;
       ctx.beginPath();
       // Left cooling tower (mirrored automatically by symDraw)
       // Upright cooling tower
@@ -9103,23 +9105,13 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.bezierCurveTo(-250, baseY - 200, -270, baseY - 150, -270, baseY);
       ctx.closePath();
       ctx.fill();
-
-      // Cooling tower shading to give volume without lines
-      let shadeGrad = ctx.createLinearGradient(-270, baseY, -170, baseY);
-      shadeGrad.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
-      shadeGrad.addColorStop(0.2, 'rgba(0, 0, 0, 0.2)');
-      shadeGrad.addColorStop(0.8, 'rgba(255, 255, 255, 0.1)');
-      shadeGrad.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
-      ctx.fillStyle = shadeGrad;
-      ctx.fill();
+      ctx.stroke();
 
       // Tower rim
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = '#111';
       ctx.fillRect(-265, baseY - 310, 90, 10);
       
-      // Intentional structural lines (Tower vertical ribs) using shading/highlights instead of strokes
-      ctx.save();
-      ctx.clip();
+      // Tower vertical ribs
       for(let j=0; j<4; j++) {
          ctx.beginPath();
          let bx = -190 - j*20; // -190, -210, -230, -250
@@ -9127,104 +9119,33 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
          let wx = -202 - j*12; // Waist points
          ctx.moveTo(bx, baseY);
          ctx.bezierCurveTo(bx, baseY-150, wx, baseY-200, tx, baseY-300);
-         ctx.lineTo(tx-2, baseY-300);
-         ctx.bezierCurveTo(wx-2, baseY-200, bx-2, baseY-150, bx-2, baseY);
-         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-         ctx.fill();
-         
-         ctx.beginPath();
-         ctx.moveTo(bx, baseY);
-         ctx.bezierCurveTo(bx, baseY-150, wx, baseY-200, tx, baseY-300);
-         ctx.lineTo(tx+2, baseY-300);
-         ctx.bezierCurveTo(wx+2, baseY-200, bx+2, baseY-150, bx+2, baseY);
-         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-         ctx.fill();
+         ctx.strokeStyle = '#222';
+         ctx.lineWidth = 2;
+         ctx.stroke();
       }
-      ctx.restore();
-    });
-
-    // Animated grey steam for Tier 0 to show activity
-    symDraw(() => {
-        let towerX = -220;
-        let towerY = baseY - 300;
-        for(let i=0; i<8; i++) {
-           let vx = towerX + Math.sin(t * 5 + i * 2) * 20;
-           // Slow moving steam
-           let steamProg = (t * 10 + i * 15) % 100;
-           let vy = towerY - steamProg;
-           let size = 15 + steamProg * 0.4;
-           let alpha = 1 - (steamProg / 100);
-           ctx.fillStyle = `rgba(150, 150, 150, ${alpha * 0.4})`;
-           ctx.beginPath();
-           ctx.arc(vx, vy, size, 0, Math.PI*2);
-           ctx.fill();
-        }
     });
 
     // Central Containment Dome
-    // Dome shading
-    let domeGrad = ctx.createRadialGradient(0, baseY - 120, 0, 0, baseY - 60, 200);
-    domeGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-    domeGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
-    domeGrad.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
-
     ctx.fillStyle = fillRuby;
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.moveTo(-180, baseY);
-    ctx.lineTo(-180, baseY - 80);
-    // Huge arching dome
-    ctx.arc(0, baseY - 80, 180, Math.PI, 0);
-    ctx.lineTo(180, baseY);
+    ctx.moveTo(-160, baseY);
+    ctx.lineTo(-160, baseY - 120);
+    ctx.arc(0, baseY - 120, 160, Math.PI, 0);
+    ctx.lineTo(160, baseY);
     ctx.closePath();
     ctx.fill();
-    
-    ctx.fillStyle = domeGrad;
-    ctx.fill();
-
-    // Structural plates on dome (shaded, no outlines)
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(-180, baseY);
-    ctx.lineTo(-180, baseY - 80);
-    ctx.arc(0, baseY - 80, 180, Math.PI, 0);
-    ctx.lineTo(180, baseY);
-    ctx.clip();
-
-    // Horizontal plate lines
-    for(let y=baseY - 40; y>baseY - 260; y-=40) {
-       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-       ctx.fillRect(-180, y, 360, 2);
-       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-       ctx.fillRect(-180, y-2, 360, 2);
-    }
-    // Vertical plate lines
-    for(let i=1; i<7; i++) {
-        let angle = Math.PI + i * Math.PI/7;
-        ctx.beginPath();
-        ctx.moveTo(0, baseY - 80);
-        ctx.lineTo(180 * Math.cos(angle), baseY - 80 + 180 * Math.sin(angle));
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(2, baseY - 80);
-        ctx.lineTo(2 + 180 * Math.cos(angle), baseY - 80 + 180 * Math.sin(angle));
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.stroke();
-    }
-    ctx.restore();
+    ctx.stroke();
 
 
-    // Concrete base pad (No stroke)
+    // Concrete base pad
     ctx.fillStyle = fillRuby;
     ctx.fillRect(-bw/2, baseY - 20, bw, 20);
-    let padGrad = ctx.createLinearGradient(0, baseY - 20, 0, baseY);
-    padGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-    padGrad.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
-    ctx.fillStyle = padGrad;
-    ctx.fillRect(-bw/2, baseY - 20, bw, 20);
+    ctx.strokeStyle = '#000';
+    ctx.strokeRect(-bw/2, baseY - 20, bw, 20);
 
-    // Hazard Stripes on base (Clean, no lines)
+    // Hazard Stripes on base
     ctx.save();
     ctx.beginPath();
     ctx.rect(-bw/2, baseY - 20, bw, 20);
@@ -9240,140 +9161,197 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
 
-    // Top cap on dome
+    // Prominent Radiation Symbol (Inactive) on Dome
+    ctx.save();
+    ctx.translate(0, baseY - 160);
+    ctx.rotate(t * 0.5); // Spin clockwise
     ctx.fillStyle = '#111';
     ctx.beginPath();
-    ctx.arc(0, baseY - 260, 25, 0, Math.PI*2);
+    ctx.arc(0, 0, 40, 0, Math.PI*2);
     ctx.fill();
+
+    // Spinning lines at Tier 1+ inside the radiation symbol
+    if (t1 > 0) {
+        ctx.save();
+        ctx.globalAlpha = t1;
+        ctx.strokeStyle = '#3a3a3a'; // slightly lighter than black to be visible
+        ctx.lineWidth = 2;
+        for(let i=0; i<=6; i++) {
+            let a = Math.PI + (i * Math.PI / 6);
+            ctx.beginPath();
+            // Start from the inner circle (radius 15) and end at the edge (radius 40)
+            ctx.moveTo(15 * Math.cos(a), 15 * Math.sin(a));
+            ctx.lineTo(40 * Math.cos(a), 40 * Math.sin(a));
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    ctx.fillStyle = '#222'; // Dull yellow-ish grey since inactive
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI*2);
+    ctx.fill();
+    for(let i=0; i<3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.arc(0, 0, 35, i * Math.PI*2/3 - 0.5, i * Math.PI*2/3 + 0.5);
+        ctx.lineTo(0,0);
+        ctx.fill();
+    }
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
 
     ctx.restore();
   }
 
-  // --- TIER 1: CORE EXPOSURE ---
-  // The dome opens up to reveal a sleek inner chamber where the core will go.
-  // We draw this cutaway inside the dome, overriding the front face.
+  // --- TIER 1: CORE EXCAVATION & SHIELDING ---
   if (t1 > 0) {
     ctx.save();
     ctx.globalAlpha = t1;
-    // Inner chamber cutaway
-    ctx.fillStyle = '#0a0a0a'; // Deep dark inner chamber
+    // Open up the containment dome - draw an inner cutaway
+    ctx.fillStyle = '#111';
     ctx.beginPath();
     ctx.moveTo(-140, baseY);
-    ctx.lineTo(-140, baseY - 90);
-    ctx.arc(0, baseY - 90, 140, Math.PI, 0);
+    ctx.lineTo(-140, baseY - 120);
+    ctx.arc(0, baseY - 120, 140, Math.PI, 0);
     ctx.lineTo(140, baseY);
     ctx.closePath();
     ctx.fill();
 
-    // Inner chamber shading (depth)
-    let innerGrad = ctx.createRadialGradient(0, coreY, 0, 0, coreY, 140);
-    innerGrad.addColorStop(0, 'rgba(20, 0, 0, 0.5)'); // faint red glow
-    innerGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
-    ctx.fillStyle = innerGrad;
-    ctx.fill();
-    
-    // Chamber framing / sleek tech edges
-    ctx.lineWidth = 4;
+    // Lead shielding blocks
+    ctx.fillStyle = '#444';
     ctx.strokeStyle = '#222';
-    ctx.stroke();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#555';
-    ctx.stroke();
+    ctx.lineWidth = 2;
+    for(let row=0; row<5; row++) {
+      for(let col=-4; col<=4; col++) {
+         let w = 30;
+         let h = 20;
+         let x = col * w - w/2 + (row%2==0 ? 0 : w/2);
+         let y = baseY - 20 - (row+1)*h;
+         if (x*x + (y - (baseY-120))*(y - (baseY-120)) < 130*130) {
+             ctx.fillRect(x, y, w, h);
+             ctx.strokeRect(x, y, w, h);
+         }
+      }
+    }
     
+    // Coolant pipes
+    symDraw(() => {
+       ctx.strokeStyle = '#333';
+       ctx.lineWidth = 15;
+       ctx.beginPath();
+       ctx.moveTo(-180, baseY - 40);
+       ctx.lineTo(-110, baseY - 40);
+       ctx.lineTo(-110, baseY - 100);
+       ctx.stroke();
+    });
+
     ctx.restore();
   }
 
-  // --- TIER 2: RUBY FOUNDATION ---
-  // Glowing ruby pedestal and floating shards in the chamber.
+  // --- TIER 2: COOLING POOLS & RUBY VEINS ---
   if (t2 > 0) {
     ctx.save();
     ctx.globalAlpha = t2;
     
-    // Ruby Pedestal
-    const pedY = baseY - 20;
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.moveTo(-60, pedY);
-    ctx.lineTo(-40, pedY - 40);
-    ctx.lineTo(40, pedY - 40);
-    ctx.lineTo(60, pedY);
-    ctx.closePath();
-    ctx.fill();
+    // Ruby-infused Heavy Water Pool
+    const poolY = baseY - 60;
+    ctx.fillStyle = '#3a0000';
+    ctx.fillRect(-120, poolY, 240, 60);
     
-    // Pedestal ruby inlay
-    ctx.fillStyle = fillRuby;
-    ctx.beginPath();
-    ctx.moveTo(-45, pedY);
-    ctx.lineTo(-30, pedY - 35);
-    ctx.lineTo(30, pedY - 35);
-    ctx.lineTo(45, pedY);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Glowing base of the pedestal
-    ctx.shadowColor = '#ff0000';
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = '#ff3333';
-    ctx.fillRect(-30, pedY - 35, 60, 4);
-    ctx.shadowBlur = 0;
-
-    // Small dormant floating shards
-    ctx.fillStyle = fillRuby;
-    for (let i=0; i<3; i++) {
-        let sx = (i-1) * 30;
-        let sy = pedY - 60 + Math.sin(t*2 + i) * 5;
-        ctx.beginPath();
-        ctx.moveTo(sx, sy - 15);
-        ctx.lineTo(sx + 10, sy);
-        ctx.lineTo(sx, sy + 15);
-        ctx.lineTo(sx - 10, sy);
-        ctx.closePath();
-        ctx.fill();
+    // Ripples/Waves in pool
+    ctx.strokeStyle = '#ff1111';
+    ctx.lineWidth = 2;
+    for(let w=0; w<4; w++) {
+       ctx.beginPath();
+       ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t*3 + w);
+       let wy = poolY + 10 + w*12;
+       for(let x=-120; x<=120; x+=20) {
+          ctx.lineTo(x, wy + 3 * Math.sin(t*5 + x*0.05 + w));
+       }
+       ctx.stroke();
     }
-    
+    ctx.globalAlpha = t2;
+
+    // Heat Exchangers
+    symDraw(() => {
+       ctx.fillStyle = '#555';
+       ctx.fillRect(-100, baseY - 180, 40, 100);
+       ctx.fillStyle = '#222';
+       for(let i=0; i<10; i++) {
+          ctx.fillRect(-100, baseY - 180 + i*10, 40, 5);
+       }
+       
+       // Pipes connecting pool to exchangers
+       ctx.strokeStyle = '#550000';
+       ctx.lineWidth = 8;
+       ctx.beginPath();
+       ctx.moveTo(-80, baseY - 80);
+       ctx.lineTo(-80, baseY - 60);
+       ctx.stroke();
+    });
+
     ctx.restore();
   }
 
-  // --- TIER 3: ACTIVATION ---
-  // Core begins to ignite, shards orbit, energy flows up.
+  // --- TIER 3: MECHANICAL ACTIVATION ---
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
     
-    // Energy beams from pedestal
-    const pedTop = baseY - 55;
-    ctx.globalCompositeOperation = 'screen';
-    let beamGrad = ctx.createLinearGradient(0, pedTop, 0, coreY);
-    beamGrad.addColorStop(0, 'rgba(255, 50, 50, 0.8)');
-    beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-    ctx.fillStyle = beamGrad;
+    // The Radiation Symbol lights up Ruby Red
+    ctx.save();
+    ctx.translate(0, baseY - 160);
+    ctx.fillStyle = '#550000';
     ctx.beginPath();
-    ctx.moveTo(-30, pedTop);
-    ctx.lineTo(-10, coreY);
-    ctx.lineTo(10, coreY);
-    ctx.lineTo(30, pedTop);
+    ctx.arc(0, 0, 40, 0, Math.PI*2);
     ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
-
-    // Orbiting active shards
-    ctx.translate(0, coreY);
+    ctx.fillStyle = '#ff2222';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI*2);
+    ctx.fill();
+    for(let i=0; i<3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.arc(0, 0, 35, i * Math.PI*2/3 - 0.5, i * Math.PI*2/3 + 0.5);
+        ctx.lineTo(0,0);
+        ctx.fill();
+    }
+    ctx.fillStyle = '#550000';
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#ff2222';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI*2);
+    ctx.fill();
+    // Add glow
     ctx.shadowColor = '#ff0000';
     ctx.shadowBlur = 15;
-    ctx.fillStyle = '#ff4444';
-    
-    for (let i=0; i<3; i++) {
-        let angle = t*3 + (i * Math.PI*2/3);
-        let rad = 40;
-        let sx = rad * Math.cos(angle);
-        let sy = rad * Math.sin(angle) * 0.4; // 3D orbit tilt
-        
-        ctx.beginPath();
-        ctx.moveTo(sx, sy - 10);
-        ctx.lineTo(sx + 6, sy);
-        ctx.lineTo(sx, sy + 10);
-        ctx.lineTo(sx - 6, sy);
-        ctx.closePath();
-        ctx.fill();
+    ctx.fill();
+    ctx.restore();
+
+    // Control rods lowered into the pool
+    ctx.fillStyle = '#666';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    for(let i=-3; i<=3; i++) {
+       let cx = i * 25;
+       let cy = baseY - 60;
+       ctx.fillRect(cx - 5, cy - 80, 10, 80);
+       ctx.strokeRect(cx - 5, cy - 80, 10, 80);
+       
+       // Glowing tips
+       ctx.fillStyle = '#ff5555';
+       ctx.fillRect(cx - 4, cy - 20, 8, 20);
+       ctx.fillStyle = '#666';
     }
 
     ctx.restore();
@@ -9384,16 +9362,14 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t4;
     
+    // The core is now exposed and active. 
     // Massive Ruby Hexagon Core at the center
     ctx.translate(0, coreY);
     
-    // Outer glowing rings (Pulsing)
-    const pulse = 30 + 10 * Math.sin(t*4);
+    // Outer glowing rings
     ctx.shadowColor = '#ff0000';
-    ctx.shadowBlur = pulse;
-    
-    // Solid fill rings, no harsh strokes
-    ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+    ctx.shadowBlur = 30 + 10 * Math.sin(t*4);
+    ctx.strokeStyle = fillRuby;
     ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.arc(0, 0, 80, 0, Math.PI*2);
@@ -9401,7 +9377,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     
     ctx.shadowBlur = 0;
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255, 200, 200, 0.9)';
+    ctx.strokeStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(0, 0, 80, 0, Math.PI*2);
     ctx.stroke();
@@ -9417,13 +9393,10 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.closePath();
     ctx.fill();
-    // Soft inner edge
-    ctx.strokeStyle = 'rgba(255,100,100,0.5)';
-    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // ATOMIC MOTIF ⚛️ (Rotating inner structure, more integrated)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    // ATOMIC MOTIF ⚛️ (Rotating inner structure)
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 3;
     for (let i = 0; i < 3; i++) {
       ctx.save();
@@ -9432,12 +9405,12 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.ellipse(0, 0, 50, 15, 0, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Electrons orbiting (Ruby tinted)
+      // Electrons orbiting
       let eAngle = t*5 + i*Math.PI;
       let ex = 50 * Math.cos(eAngle);
       let ey = 15 * Math.sin(eAngle);
-      ctx.fillStyle = '#ffaaaa';
-      ctx.shadowColor = '#ffaaaa';
+      ctx.fillStyle = '#ffffbb';
+      ctx.shadowColor = '#ffffbb';
       ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(ex, ey, 5, 0, Math.PI*2);
@@ -9446,8 +9419,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     }
     
     // Core center nucleus
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 20;
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(0, 0, 12, 0, Math.PI*2);
@@ -9456,162 +9427,195 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // --- TIER 5: ENERGY RINGS ---
-  // Floating horizontal spinning energy rings instead of pillars.
+  // --- TIER 5: ELECTROMAGNETIC CONTAINMENT RINGS ---
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
     ctx.translate(0, coreY);
 
-    for (let i=0; i<3; i++) {
-        let ringY = (i - 1) * 40;
-        let r = 110;
-        let tilt = 0.3; // Tilt for 3D effect of horizontal rings
-        
-        ctx.save();
-        ctx.translate(0, ringY);
-        // We draw the back half, then front half, to allow things inside to look correct,
-        // but since we are drawn after the core, we draw the whole ring with low opacity on back
-        
-        // Ring glow
-        ctx.shadowColor = '#ff2222';
-        ctx.shadowBlur = 15;
-        ctx.strokeStyle = 'rgba(255, 50, 50, 0.8)';
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r, r*tilt, 0, 0, Math.PI*2);
-        ctx.stroke();
+    // Magnetic Coils around the Core
+    symDraw(() => {
+        for(let i=0; i<4; i++) {
+           let r = 90 + i*15;
+           ctx.strokeStyle = '#aaaaaa';
+           ctx.lineWidth = 4;
+           ctx.beginPath();
+           ctx.arc(0, 0, r, -Math.PI/4, Math.PI/4);
+           ctx.stroke();
+           
+           // Energy bridging the coils
+           if (Math.random() > 0.8) {
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              let a = -Math.PI/4 + Math.random() * Math.PI/2;
+              ctx.moveTo(r * Math.cos(a), r * Math.sin(a));
+              ctx.lineTo((r+15) * Math.cos(a), (r+15) * Math.sin(a));
+              ctx.stroke();
+           }
+        }
+    });
 
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = '#ffffff';
+    // Vertical Containment Pillars
+    symDraw(() => {
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-110, -60, 20, 120);
+        ctx.strokeStyle = '#ff0000';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r, r*tilt, 0, 0, Math.PI*2);
-        ctx.stroke();
-
-        // Orbiting nodes on the ring
-        let angle = t * 2 * (i%2==0 ? 1 : -1);
-        let nx = r * Math.cos(angle);
-        let ny = r * tilt * Math.sin(angle);
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(nx, ny, 6, 0, Math.PI*2);
-        ctx.fill();
-        
-        let angle2 = angle + Math.PI;
-        let nx2 = r * Math.cos(angle2);
-        let ny2 = r * tilt * Math.sin(angle2);
-        ctx.beginPath();
-        ctx.arc(nx2, ny2, 6, 0, Math.PI*2);
-        ctx.fill();
-        
-        ctx.restore();
-    }
+        ctx.strokeRect(-110, -60, 20, 120);
+        // Pillar nodes
+        for(let j=0; j<5; j++) {
+           ctx.fillStyle = '#ff5555';
+           ctx.beginPath();
+           ctx.arc(-100, -45 + j*22.5, 5, 0, Math.PI*2);
+           ctx.fill();
+        }
+    });
 
     ctx.restore();
   }
 
-  // --- TIER 6: OVERDRIVE ---
-  // Intense ruby vapor, faster core, clean plasma arcs connecting rings to core.
+  // --- TIER 6: PLASMA FIELDS AND EXTREME HEAT ---
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
-    
-    // Intense ruby vapor from towers
+    ctx.translate(0, coreY);
+
+    // Plasma arcs firing off the containment pillars
+    ctx.strokeStyle = '#ff8888';
+    ctx.lineWidth = 2;
+    for(let i=0; i<12; i++) {
+       let y = -45 + (i%5)*22.5;
+       let x1 = -90;
+       let x2 = 90;
+       if (i >= 5) {
+           x1 = -100;
+           x2 = -80; // inward
+       }
+       
+       ctx.beginPath();
+       ctx.moveTo(-90, y);
+       // jagged line to core
+       let steps = 4;
+       let cx = -90;
+       let cy = y;
+       for(let s=1; s<=steps; s++) {
+           let nx = -90 + (90/steps)*s;
+           let ny = y + (Math.random()-0.5)*20;
+           if (s===steps) { nx = -80 * Math.cos(Math.atan2(y, -90)); ny = -80 * Math.sin(Math.atan2(y, -90)); }
+           ctx.lineTo(nx, ny);
+           cx = nx; cy = ny;
+       }
+       ctx.stroke();
+
+       // Sym arc
+       ctx.beginPath();
+       ctx.moveTo(90, y);
+       cx = 90;
+       cy = y;
+       for(let s=1; s<=steps; s++) {
+           let nx = 90 - (90/steps)*s;
+           let ny = y + (Math.random()-0.5)*20;
+           if (s===steps) { nx = 80 * Math.cos(Math.atan2(y, 90)); ny = 80 * Math.sin(Math.atan2(y, 90)); }
+           ctx.lineTo(nx, ny);
+           cx = nx; cy = ny;
+       }
+       ctx.stroke();
+    }
+
+    // Cooling Towers start emitting ruby vapor
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = t6 * 0.6;
     symDraw(() => {
-        let towerX = -220;
+        let towerX = -190;
         let towerY = baseY - 300;
-        ctx.globalCompositeOperation = 'screen';
-        for(let i=0; i<15; i++) {
-           let vx = towerX + Math.sin(t * 5 + i * 2) * 20;
-           let steamProg = (t * 25 + i * 15) % 150;
-           let vy = towerY - steamProg;
-           let size = 15 + steamProg * 0.5;
-           let alpha = 1 - (steamProg / 150);
-           ctx.fillStyle = `rgba(255, 50, 50, ${alpha * 0.6})`;
+        for(let i=0; i<8; i++) {
+           let vx = towerX + (Math.random()-0.5)*40;
+           let vy = towerY - Math.random() * 100 - t*20%100;
+           let size = 10 + Math.random()*20;
+           ctx.fillStyle = `rgba(255, 50, 50, ${1 - ((vy - towerY) / -100)})`;
            ctx.beginPath();
            ctx.arc(vx, vy, size, 0, Math.PI*2);
            ctx.fill();
         }
-        ctx.globalCompositeOperation = 'source-over';
     });
-    
-    // Clean plasma arcs from rings to core
-    ctx.translate(0, coreY);
-    ctx.strokeStyle = 'rgba(255, 150, 150, 0.8)';
-    ctx.lineWidth = 2;
-    for (let i=0; i<3; i++) {
-        let ringY = (i - 1) * 40;
-        let r = 110;
-        let angle = t * 4 + (i * Math.PI/1.5); // Fast spinning
-        let nx = r * Math.cos(angle);
-        let ny = ringY + r * 0.3 * Math.sin(angle);
-        
-        // Arc line to center core (0,0)
-        ctx.beginPath();
-        ctx.moveTo(nx, ny);
-        // Control point for arc curve
-        ctx.quadraticCurveTo(nx/2, ny - 30, 0, 0);
-        ctx.stroke();
-    }
-
     ctx.restore();
   }
 
-  // --- TIER 7: CONTAINMENT FIELD ---
-  // Translucent glowing energy shield and ruby light rays.
+  // --- TIER 7: HEAVY SCAFFOLDING & FUSION RINGS ---
   if (t7 > 0) {
     ctx.save();
     ctx.globalAlpha = t7;
     ctx.translate(0, coreY);
 
-    // Light rays shining through
-    ctx.globalCompositeOperation = 'screen';
-    for(let i=0; i<12; i++) {
-        let angle = (i * Math.PI / 6) + t;
-        let grad = ctx.createLinearGradient(0, 0, 200 * Math.cos(angle), 200 * Math.sin(angle));
-        grad.addColorStop(0, 'rgba(255, 50, 50, 0.4)');
-        grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-        ctx.fillStyle = grad;
+    // Intricate geometric scaffolding
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 2;
+    for(let r=0; r<12; r++) {
+        let angle = r * Math.PI/6;
+        let p1x = 110 * Math.cos(angle);
+        let p1y = 110 * Math.sin(angle);
+        let p2x = 180 * Math.cos(angle);
+        let p2y = 180 * Math.sin(angle);
+        
         ctx.beginPath();
-        ctx.moveTo(0,0);
-        ctx.lineTo(200 * Math.cos(angle - 0.1), 200 * Math.sin(angle - 0.1));
-        ctx.lineTo(200 * Math.cos(angle + 0.1), 200 * Math.sin(angle + 0.1));
-        ctx.closePath();
+        ctx.moveTo(p1x, p1y);
+        ctx.lineTo(p2x, p2y);
+        ctx.stroke();
+        
+        // cross braces
+        let angle2 = (r+1) * Math.PI/6;
+        let p3x = 110 * Math.cos(angle2);
+        let p3y = 110 * Math.sin(angle2);
+        let p4x = 180 * Math.cos(angle2);
+        let p4y = 180 * Math.sin(angle2);
+        
+        ctx.beginPath();
+        ctx.moveTo(p1x, p1y);
+        ctx.lineTo(p4x, p4y);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(p2x, p2y);
+        ctx.lineTo(p3x, p3y);
+        ctx.stroke();
+    }
+
+    // Fusion Ring Accelerators
+    ctx.strokeStyle = '#ff2222';
+    ctx.lineWidth = 8;
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(0, 0, 180, 0, Math.PI*2);
+    ctx.stroke();
+    
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 180, 0, Math.PI*2);
+    ctx.stroke();
+
+    // Accelerator Nodes
+    for(let i=0; i<6; i++) {
+        let angle = i * Math.PI/3 + t*1.5;
+        let nx = 180 * Math.cos(angle);
+        let ny = 180 * Math.sin(angle);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(nx, ny, 10, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(nx, ny, 5, 0, Math.PI*2);
         ctx.fill();
     }
-    
-    // Translucent glowing shield
-    const shieldPulse = 0.8 + 0.2 * Math.sin(t*8);
-    let shieldGrad = ctx.createRadialGradient(0,0, 80, 0,0, 130);
-    shieldGrad.addColorStop(0, 'rgba(255, 100, 100, 0)');
-    shieldGrad.addColorStop(0.8, `rgba(255, 50, 50, ${0.3 * shieldPulse})`);
-    shieldGrad.addColorStop(0.95, `rgba(255, 200, 200, ${0.5 * shieldPulse})`);
-    shieldGrad.addColorStop(1, 'rgba(255, 50, 50, 0)');
-    ctx.fillStyle = shieldGrad;
-    ctx.beginPath();
-    ctx.arc(0, 0, 130, 0, Math.PI*2);
-    ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
-
-    // Hexagonal grid overlay on shield (subtle)
-    ctx.strokeStyle = `rgba(255, 100, 100, ${0.2 * shieldPulse})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      let a = i * Math.PI / 3;
-      let r = 130;
-      if (i === 0) ctx.moveTo(r * Math.cos(a), r * Math.sin(a));
-      else ctx.lineTo(r * Math.cos(a), r * Math.sin(a));
-    }
-    ctx.closePath();
-    ctx.stroke();
 
     ctx.restore();
   }
 
-  // --- TIER 8: SUPERCRITICAL RUBY ---
-  // Hyper-spinning crystalline matrix, retaining outer particle orbits.
+  // --- TIER 8: THE "TRULY CRAZY" SUPERCRITICAL BEYOND ---
   if (t8 > 0) {
     ctx.save();
     ctx.globalAlpha = t8;
@@ -9619,33 +9623,56 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     
     ctx.globalCompositeOperation = "screen";
 
-    // 1) Hyper-spinning fractured crystalline matrix
-    for (let layer = 0; layer < 4; layer++) {
-        ctx.save();
-        ctx.rotate(t * (3 + layer) * (layer%2==0 ? 1 : -1));
-        ctx.scale(1 - layer*0.15, 1 - layer*0.15);
+    // 1) Massive Spirograph Overlays
+    ctx.strokeStyle = 'rgba(255, 100, 100, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 300; i++) {
+        let theta = i * 0.1;
+        let R = 150;
+        let r = 52;
+        let d = 70;
+        let rx = (R - r) * Math.cos(theta) + d * Math.cos(((R - r) / r) * theta + t*2);
+        let ry = (R - r) * Math.sin(theta) - d * Math.sin(((R - r) / r) * theta + t*2);
+        if (i === 0) ctx.moveTo(rx, ry);
+        else ctx.lineTo(rx, ry);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 200, 200, 0.5)';
+    ctx.beginPath();
+    for (let i = 0; i < 300; i++) {
+        let theta = i * 0.1;
+        let R = 200;
+        let r = 85;
+        let d = 110;
+        let rx = (R - r) * Math.cos(theta) + d * Math.cos(((R - r) / r) * theta - t*3);
+        let ry = (R - r) * Math.sin(theta) - d * Math.sin(((R - r) / r) * theta - t*3);
+        if (i === 0) ctx.moveTo(rx, ry);
+        else ctx.lineTo(rx, ry);
+    }
+    ctx.stroke();
+
+    // 2) Lissajous Electron Storm (100+ Orbits)
+    for(let i=0; i<120; i++) {
+        let a = 3;
+        let b = 2;
+        let delta = i * Math.PI / 60;
+        let lx = 250 * Math.sin(a * t + delta);
+        let ly = 250 * Math.sin(b * t);
         
-        ctx.fillStyle = fillRuby;
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 10;
-        
+        // Rotate the Lissajous curve
+        let rot = t*0.5 + i*0.05;
+        let rlx = lx * Math.cos(rot) - ly * Math.sin(rot);
+        let rly = lx * Math.sin(rot) + ly * Math.cos(rot);
+
+        ctx.fillStyle = i%4===0 ? '#ffffff' : '#ff5555';
         ctx.beginPath();
-        for (let i = 0; i < 8; i++) {
-          let a = i * Math.PI / 4;
-          let r = 70 + (i%2==0 ? 20 : 0); // Star shape
-          if (i === 0) ctx.moveTo(r * Math.cos(a), r * Math.sin(a));
-          else ctx.lineTo(r * Math.cos(a), r * Math.sin(a));
-        }
-        ctx.closePath();
+        ctx.arc(rlx, rly, i%4===0 ? 3 : 1.5, 0, Math.PI*2);
         ctx.fill();
-        
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
     }
 
-    // 2) Multiplying Atomic Motifs (Orbiting the entire complex - retained from original)
+    // 3) Multiplying Atomic Motifs (Orbiting the entire complex)
     for (let j = 0; j < 5; j++) {
         ctx.save();
         let orbRad = 220;
@@ -9677,11 +9704,37 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
+    // 4) Massive Vertical Energy Beam piercing the heavens
+    ctx.globalCompositeOperation = "source-over";
+    let beamWidth = 40 + 20 * Math.sin(t*15);
+    let beamGrad = ctx.createLinearGradient(-beamWidth/2, 0, beamWidth/2, 0);
+    beamGrad.addColorStop(0, 'rgba(255,0,0,0)');
+    beamGrad.addColorStop(0.2, 'rgba(255,100,100,0.8)');
+    beamGrad.addColorStop(0.5, 'rgba(255,255,255,1)');
+    beamGrad.addColorStop(0.8, 'rgba(255,100,100,0.8)');
+    beamGrad.addColorStop(1, 'rgba(255,0,0,0)');
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(-beamWidth/2, -800, beamWidth, 1600); // Massive vertical beam
+    
+    // Beam particles
+    ctx.fillStyle = '#ffffff';
+    for(let i=0; i<30; i++) {
+        let px = (Math.random()-0.5)*beamWidth;
+        let py = -800 + ( (t*1000 + i*50) % 1600 );
+        ctx.beginPath();
+        ctx.arc(px, py, Math.random()*3+1, 0, Math.PI*2);
+        ctx.fill();
+    }
+
     ctx.restore();
   }
 
   ctx.restore();
 }
+
+
+
+
 function drawCentrifuge(ctx, t, tier) {
   ctx.fillStyle = "#555";
   ctx.fillRect(-20, -80, 40, 80);
