@@ -600,6 +600,8 @@
   height: 0.9em;
   vertical-align: -0.14em;
   margin-right: -0.1em;
+  position: relative;
+  top: -1px;
 }
 
 .upg-actions{
