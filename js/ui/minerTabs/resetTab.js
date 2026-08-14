@@ -1,6 +1,5 @@
 import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { getActiveSlot, bank, CURRENCIES, UC_MATERIALS, getCurrencyMultiplierScaledBN, incrementResetStat } from '../../util/storage.js';
-import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { getDpState, isDpSystemUnlocked, resetDpProgress } from '../../game/dpSystem.js';
 import { isPpSystemUnlocked } from '../../game/ppSystem.js';
@@ -562,7 +561,8 @@ function updateCombineCard() {
             const expected = `
               <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
                 Combining for the first time will unlock new Shop upgrades and a new tab: <strong style="color: black; text-shadow: 0 0 5px white, 0 0 10px white;">Buildings</strong><br>
-                This new tab will allow you to upgrade powerful Buildings to help you progress
+                This new tab will allow you to upgrade powerful Buildings to help you progress<br>
+				The amount of Cores you get from this first Combine reset isn't too important; reset immediately
               </span>
             `.trim();
             if (el.status.innerHTML !== expected) el.status.innerHTML = expected;
