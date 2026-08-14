@@ -2282,7 +2282,7 @@ function updateInfuseCard() {
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
             Infusing for the first time will unlock a new Shop upgrade, a new Merchant dialogue, and a new tab: <strong style="color:#c68cff">Workshop</strong><br>
             This new tab will allow you to passively generate Gears<br>
-            Spend Gears on new upgrades in the Shop to automate various things
+            Spend Gears in the Automation Shop to automate various things
           </span>
          `.trim();
          if (!el.status.innerHTML.includes('Workshop')) el.status.innerHTML = expected;
