@@ -13,9 +13,7 @@ import { BigNum } from "../util/bigNum.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
 import { formatNumber, formatMultForUi } from "../util/numFormat.js";
 import { ensureCustomScrollbar } from "../ui/shopOverlay.js";
-import { IS_MOBILE } from '../util/platformChecker.js';
 import {
-  getLevelNumber,
   computeUpgradeEffects,
   getCurrentAreaKey as getUpgAreaKey,
 } from "./upgrades.js";
@@ -28,12 +26,9 @@ import {
   setResearchNodeLevel,
   setResearchNodeRp,
 } from "./labNodes.js";
-import {
-  AUTOMATION_AREA_KEY,
-  EFFECTIVE_AUTO_COLLECT_ID,
-} from "./automationUpgrades.js";
+
+
 import { passiveRegistry } from "./passiveRegistry.js";
-import { getEacAmountMultiplier } from "./automationEffects.js";
 import { settingsManager } from "./settingsManager.js";
 import { getPassiveCoinReward } from "./coinPickup.js";
 import { addXp, getXpProgressRatio, getXpState } from "./xpSystem.js";
