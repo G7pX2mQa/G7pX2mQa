@@ -13,6 +13,9 @@ export function createPaintbrush({
     let paintbrushRowStates = {};
     let isPaintbrushMouseDown = false;
     let hoveredRowDuringPaintbrush = null;
+    let lastToggledRow = null;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
 
     function open() {
         if (paintbrushActive) return;
@@ -169,6 +172,9 @@ export function createPaintbrush({
         if (!paintbrushActive) return;
         if (e.button !== 0) return; 
         isPaintbrushMouseDown = true;
+        lastToggledRow = null;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
         
         const row = e.target.closest('.currency-row:not(.universal-row)');
         const overlayEl = getOverlayEl();
@@ -182,29 +188,55 @@ export function createPaintbrush({
         if (e.button !== 0) return;
         isPaintbrushMouseDown = false;
         hoveredRowDuringPaintbrush = null;
+        lastToggledRow = null;
         stopAutoScroll();
     }
 
     let autoScrollRaf = null;
     let autoScrollSpeed = 0;
 
+    function checkRowUnderMouse() {
+        const overlayEl = getOverlayEl();
+        if (!overlayEl) return;
+        
+        const scroller = overlayEl.querySelector('.sas-scroller');
+        if (!scroller) return;
+
+        const scrollerRect = scroller.getBoundingClientRect();
+        if (scrollerRect.height === 0) return;
+
+        const clampedY = Math.max(scrollerRect.top + 1, Math.min(scrollerRect.bottom - 1, lastMouseY));
+
+        const allRows = Array.from(overlayEl.querySelectorAll('.currency-row:not(.universal-row)'));
+        let hitRow = null;
+        for (const r of allRows) {
+            const rect = r.getBoundingClientRect();
+            if (clampedY >= rect.top && clampedY <= rect.bottom) {
+                hitRow = r;
+                break;
+            }
+        }
+
+        if (hitRow) {
+            flipRowStateFromElement(hitRow);
+        }
+    }
+
     function handleMouseMoveDocument(e) {
         if (!paintbrushActive || !isPaintbrushMouseDown) return;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
         handleCursorPosition(e.clientY);
+        checkRowUnderMouse();
     }
 
     function handleTouchMoveDocument(e) {
         if (!paintbrushActive || !isPaintbrushMouseDown || !e.touches || e.touches.length === 0) return;
+        lastMouseX = e.touches[0].clientX;
+        lastMouseY = e.touches[0].clientY;
         handleCursorPosition(e.touches[0].clientY);
         
-        // Touch move doesn't natively trigger mouseenter/mouseleave over elements 
-        // during a drag consistently across browsers, so we simulate it.
-        const touch = e.touches[0];
-        const element = document.elementFromPoint(touch.clientX, touch.clientY);
-        const row = element ? element.closest('.currency-row:not(.universal-row)') : null;
-        if (row) {
-            flipRowStateFromElement(row);
-        }
+        checkRowUnderMouse();
     }
 
     function handleCursorPosition(clientY) {
@@ -263,6 +295,9 @@ export function createPaintbrush({
                 return;
             }
             scroller.scrollTop += autoScrollSpeed;
+            
+            checkRowUnderMouse();
+
             autoScrollRaf = requestAnimationFrame(loop);
         }
         
@@ -282,17 +317,36 @@ export function createPaintbrush({
         flipRowStateFromElement(e.currentTarget);
     }
 
-    function handleMouseLeave(e) {
-        if (!paintbrushActive) return;
-        const row = e.currentTarget;
-        if (hoveredRowDuringPaintbrush === row) {
-            hoveredRowDuringPaintbrush = null;
-        }
-    }
-
     function flipRowStateFromElement(row) {
         if (!row || hoveredRowDuringPaintbrush === row) return;
         
+        const overlayEl = getOverlayEl();
+        if (!overlayEl) return;
+
+        const allRows = Array.from(overlayEl.querySelectorAll('.currency-row:not(.universal-row)'));
+        const currentIndex = allRows.indexOf(row);
+        
+        if (currentIndex !== -1 && lastToggledRow) {
+            const lastIndex = allRows.indexOf(lastToggledRow);
+            if (lastIndex !== -1 && Math.abs(currentIndex - lastIndex) > 1) {
+                const minIndex = Math.min(lastIndex, currentIndex);
+                const maxIndex = Math.max(lastIndex, currentIndex);
+                
+                for (let i = minIndex; i <= maxIndex; i++) {
+                    const intermediateRow = allRows[i];
+                    if (i !== lastIndex && i !== currentIndex) {
+                        toggleRowState(intermediateRow);
+                    }
+                }
+            }
+        }
+
+        toggleRowState(row);
+        hoveredRowDuringPaintbrush = row;
+        lastToggledRow = row;
+    }
+
+    function toggleRowState(row) {
         const overlay = row.querySelector('.paintbrush-row-overlay');
         const dataId = row.dataset.currency || row.dataset.level;
         
@@ -309,7 +363,6 @@ export function createPaintbrush({
                 if (dataId) paintbrushRowStates[dataId] = 'red';
             }
         }
-        hoveredRowDuringPaintbrush = row;
     }
 
     function initEvents() {
@@ -353,7 +406,6 @@ export function createPaintbrush({
                 r.appendChild(overlay);
 
                 r.addEventListener('mouseenter', handleMouseEnter);
-                r.addEventListener('mouseleave', handleMouseLeave);
             });
         }
     }
@@ -374,11 +426,11 @@ export function createPaintbrush({
                 if (overlay) overlay.remove();
                 
                 r.removeEventListener('mouseenter', handleMouseEnter);
-                r.removeEventListener('mouseleave', handleMouseLeave);
             });
         }
         isPaintbrushMouseDown = false;
         hoveredRowDuringPaintbrush = null;
+        lastToggledRow = null;
     }
 
     function reinit() {
