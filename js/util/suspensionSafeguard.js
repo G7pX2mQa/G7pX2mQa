@@ -209,13 +209,27 @@ function isTrustedStorageStack(stack) {
   
   const lines = stack.split('\n').map(l => l.trim()).filter(l => l.startsWith('at '));
   
-  if (lines.length >= 3) {
-      if (lines[2].includes('<anonymous>')) {
+  const isCheat = lines.some(l => {
+      // Only inspect frames that look like console/eval execution
+      if (!l.includes('<anonymous>') && !l.includes('eval') && !l.match(/\bVM\d+/)) return false;
+      
+      const lastColon = l.lastIndexOf(':');
+      if (lastColon === -1) return false;
+      const secondLastColon = l.lastIndexOf(':', lastColon - 1);
+      if (secondLastColon === -1) return false;
+      
+      let filePart = l.substring(0, secondLastColon);
+      filePart = filePart.split('?')[0].split('#')[0];
+      
+      // If it originated from a legitimate file, it's fine
+      if (filePart.endsWith('.js') || filePart.endsWith('.html') || filePart.endsWith('.mjs')) {
           return false;
       }
-  }
-
-  return true;
+      
+      return true;
+  });
+  
+  return !isCheat;
 }
 
 function notifySaveIntegrityOfStorageMutation(key, stack) {
