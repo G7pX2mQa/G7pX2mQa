@@ -1,12 +1,11 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementState } from '../../game/achievements.js';
 import { getActiveSlot, bank } from '../../util/storage.js';
-import { playAudio } from "../../util/audioManager.js";
 import { getRainbowGemMultiplier } from './achievementExtras/voidGemAltarTab.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { openAchievementExtras } from './achievementExtras/rainbowGemShopTab.js';
 import { formatNumber } from '../../util/numFormat.js';
-import { BigNum } from '../../util/bigNum.js';
+import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 
@@ -80,6 +79,11 @@ function renderAchievements(gridEl) {
         gridEl.appendChild(btn);
 
         btn.addEventListener('click', (e) => {
+            if (e.isTrusted && shouldSkipGhostTap(btn)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
             if (e.shiftKey || e.ctrlKey) return;
             if (state === ACHIEVEMENT_STATES.NOT_OWNED) return;
             openAchievementDetails(achievement);
