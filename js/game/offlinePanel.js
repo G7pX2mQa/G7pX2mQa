@@ -26,8 +26,6 @@ import {
   setResearchNodeLevel,
   setResearchNodeRp,
 } from "./labNodes.js";
-
-
 import { passiveRegistry } from "./passiveRegistry.js";
 import { settingsManager } from "./settingsManager.js";
 import { getPassiveCoinReward } from "./coinPickup.js";
@@ -1502,8 +1500,8 @@ export async function processOfflineProgress() {
   if (lastSave <= 0) return;
 
   // Detect reverse time travel (user changed clock back after saving in future)
-  // Tolerance of 10 seconds to avoid drift issues
-  if (now < lastSave - 10000) {
+  // Tolerance of 50 seconds to avoid drift issues
+  if (now < lastSave - 50000) {
     markSaveSlotModified(slot);
     return;
   }
