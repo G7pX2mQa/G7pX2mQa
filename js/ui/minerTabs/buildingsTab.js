@@ -3,7 +3,7 @@ import { getDpState } from '../../game/dpSystem.js';
 import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { setupDragToClose } from '../shopOverlay.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
-import { levelBigNumToNumber, evaluateBulkPurchase } from '../../game/upgrades.js';
+import { levelBigNumToNumber } from '../../game/upgrades.js';
 import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
 import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
@@ -22,6 +22,9 @@ export const BUILDING_IDS = [
 ];
 
 export function isBuildingUnlocked(id) {
+  if (id === 'crystal') {
+    return window.resetSystem?.isCompressUnlocked?.() ?? false;
+  }
   const slotKey = String(getActiveSlot() ?? 'default');
   if (typeof localStorage === 'undefined') return false;
   try {
@@ -231,7 +234,7 @@ export function renderBuildingsGrid(gridEl) {
         iconSrc: '',
         baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
         isLocked: crystalLocked,
-        mysteriousText: 'Reach Depth: 101m to reveal this Building',
+        mysteriousText: 'Unlock a certain upgrade to reveal this Building',
         level: formatNumber(getBuildingLevel("crystal")),
         plusLevel: getAffordableBuildingLevels("crystal")
     });
@@ -377,6 +380,14 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
     }
   });
 
+  window.addEventListener('unlock:change', (e) => {
+    if (e.detail?.key === 'compress') {
+      if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
+        renderBuildingsGrid(grid);
+      }
+    }
+  });
+
   // Listen for depth changes and check if any new building unlocks
   window.addEventListener('dp:change', () => {
     if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
@@ -400,13 +411,7 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
         }
       }
       
-      // Check crystal for unlock
-      if (!isBuildingUnlocked('crystal')) {
-          if (highestDepth >= 101) {
-              setBuildingUnlocked('crystal', true);
-              newlyUnlocked = true;
-          }
-      }
+
 
       if (newlyUnlocked) {
         renderBuildingsGrid(grid);
