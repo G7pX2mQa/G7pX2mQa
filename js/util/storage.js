@@ -594,8 +594,6 @@ export function markSaveSlotModified(slot = getActiveSlot()) {
   if (!key) return;
   try {
     localStorage.setItem(key, '1');
-    const stack = new Error().stack;
-    alert(`Marked modified! Stack: ${stack}`);
     console.warn(`[Integrity] Save Slot ${normalized} has been permanently marked as modified due to debug panel usage or manual data tampering.`);
   } catch { return; }
   try {
