@@ -1,7 +1,7 @@
 import { SECRET_ACHIEVEMENTS, SECRET_ACHIEVEMENT_STATES, getSecretAchievementState, setSecretAchievementState, getLifetimeSizeCoinsCollected } from '../../../game/secretAchievements.js';
 import { bank, getActiveSlot } from '../../../util/storage.js';
 import { playPurchaseSfx } from '../../shopOverlay.js';
-import { formatNumber } from '../../../util/numFormat.js';
+import { shouldSkipGhostTap } from '../../../util/ghostTapGuard.js';
 
 let currentGrid = null;
 
@@ -73,6 +73,11 @@ function renderSecretAchievements(gridEl) {
         gridEl.appendChild(btn);
 
         btn.addEventListener('click', (e) => {
+            if (e.isTrusted && shouldSkipGhostTap(btn)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
             if (e.shiftKey || e.ctrlKey) return;
             openSecretAchievementDetails(achievement);
         });
