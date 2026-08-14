@@ -2774,10 +2774,7 @@ export const REGISTRY = [
           return { state: 'unlocked' };
       }
       
-      let xp201 = false;
-      try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
-
-      if (xp201) {
+      if (isSurgeUnlocked()) {
           const revealText = "Reach Surge 3 to reveal this upgrade";
           return { state: 'mysterious', unlockReqText: revealText };
       }
@@ -2825,7 +2822,7 @@ export const REGISTRY = [
           return { state: 'unlocked' };
       }
 
-      if (ctx.xpLevel < 201) {
+      if (!isSurgeUnlocked()) {
           return { state: 'locked' };
       }
 
@@ -2873,7 +2870,7 @@ export const REGISTRY = [
           return { state: 'unlocked' };
       }
 
-      if (ctx.xpLevel < 201) {
+      if (!isSurgeUnlocked()) {
           return { state: 'locked' };
       }
 
@@ -2922,7 +2919,7 @@ export const REGISTRY = [
           return { state: 'unlocked' };
       }
 
-      if (ctx.xpLevel < 201) {
+      if (!isSurgeUnlocked()) {
           return { state: 'locked' };
       }
 
