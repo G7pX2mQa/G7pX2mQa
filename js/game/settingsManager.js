@@ -140,7 +140,7 @@ export const SETTING_DEFINITIONS = {
     type: 'toggle',
     label: 'Show Cursor',
     hasExtraInfo: true,
-	info: 'Shows the cursor in areas where the cursor is normally hidden and replaced with the cursor trail.',
+    info: 'Shows the cursor in areas where the cursor is normally hidden and replaced with the cursor trail.',
     default: false,
     unlockCondition: () => !IS_MOBILE,
   },
@@ -158,6 +158,14 @@ export const SETTING_DEFINITIONS = {
     hasExtraInfo: true,
     info: 'If turned OFF, disables the short open/close transition that most overlays in the game use.',
     default: true,
+    unlockCondition: () => true,
+  },
+  show_valc_button: {
+    type: 'toggle',
+    label: 'Show V.A.L.C. Button',
+    hasExtraInfo: true,
+    info: 'In most upgrade overlays, adds an "Open V.A.L.C. Menu" button. This tool allows you to see detailed breakdowns of arbitrary cumulative and direct level costs of upgrades.',
+    default: false,
     unlockCondition: () => true,
   },
   warp_vfx: {
