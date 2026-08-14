@@ -403,6 +403,10 @@
     justify-self: center;
   }
   
+  .flow-bar-text {
+    text-shadow: 0px 2px 2px rgba(0, 0, 0, 0.8);
+  }
+  
   .flow-level-val::before { content: "Level:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
   .flow-effect-val::before { content: "Effect:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
   
