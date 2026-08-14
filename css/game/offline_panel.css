@@ -135,6 +135,7 @@
     position: relative;
     top: -0.5px;
     left: -0.5px;
+    text-align: center;
 }
 
 .text-dna, .offline-plus.text-dna {
