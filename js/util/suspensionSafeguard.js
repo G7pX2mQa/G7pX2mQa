@@ -1,15 +1,16 @@
-// js/util/suspensionSafeguard.js
+// js/util/suspendSafeguard.js
 // Improves local storage tracking by supplying helper functions for saveIntegrity.js,
 // And also supplies frequent IndexedDB snapshots to back up progress if
 // Local storage ever becomes corrupted (safeguard against abrupt page suspensions)
-import { activeStorageKeys } from '../main.js';
 import { beforeSlotWrite, afterSlotWrite } from './saveIntegrity.js';
 
+const STORAGE_PREFIX = 'ccc:';
 const DB_NAME = 'ccc:safety';
 const DB_VERSION = 1;
 const STORE_NAME = 'snapshots';
 const SNAPSHOT_KEY = 'latest';
-
+const SLOT_SIGNATURE_PREFIX = `${STORAGE_PREFIX}slotSig`;
+const SLOT_MOD_FLAG_PREFIX = `${STORAGE_PREFIX}slotMod`;
 const FLUSH_DEBOUNCE_MS = 1000;
 
 let dbPromise = null;
@@ -29,22 +30,14 @@ function canUseIndexedDb() {
   }
 }
 
-let cachedCanUseLocalStorage = null;
-
 function canUseLocalStorage() {
-  if (cachedCanUseLocalStorage !== null) return cachedCanUseLocalStorage;
-  if (typeof localStorage === 'undefined') {
-    cachedCanUseLocalStorage = false;
-    return false;
-  }
+  if (typeof localStorage === 'undefined') return false;
   try {
-    const testKey = `ccc:__test__`;
+    const testKey = `${STORAGE_PREFIX}__test__`;
     localStorage.setItem(testKey, '1');
     localStorage.removeItem(testKey);
-    cachedCanUseLocalStorage = true;
     return true;
   } catch {
-    cachedCanUseLocalStorage = false;
     return false;
   }
 }
@@ -100,8 +93,9 @@ function captureSnapshot() {
   const data = {};
   let captured = false;
   try {
-    for (const key of activeStorageKeys) {
-      if (!key || !key.startsWith('ccc:')) continue;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
       let value = null;
       try {
         value = localStorage.getItem(key);
@@ -205,7 +199,7 @@ function parseSlotFromKey(key) {
 const DEVTOOLS_CONSOLE_FRAME_RE = /\bat <anonymous>:\d+:\d+\b/;
 
 function isTrustedStorageStack(stack) {
-  if (typeof stack !== 'string' || stack.length === 0) return false;
+  if (typeof stack !== 'string' || stack.length === 0) return true;
   
   if (DEVTOOLS_CONSOLE_FRAME_RE.test(stack)) return false;
 
@@ -216,8 +210,8 @@ function notifySaveIntegrityOfStorageMutation(key, stack) {
   if (typeof window === 'undefined') return;
   if (!key) return;
   const strKey = String(key);
-  if (!strKey.startsWith('ccc:')) return;
-  if (strKey.startsWith("ccc:slotSig") || strKey.startsWith("ccc:slotMod") || strKey.startsWith("ccc:debug:")) return;
+  if (!strKey.startsWith(STORAGE_PREFIX)) return;
+  if (strKey.startsWith(SLOT_SIGNATURE_PREFIX) || strKey.startsWith(SLOT_MOD_FLAG_PREFIX)) return;
   const slot = parseSlotFromKey(strKey);
   if (slot == null) return;
   try {
@@ -247,15 +241,14 @@ if (typeof originalSet === 'function') {
 
 	const isTrackedGameKey =
       this === localStorage &&
-      strKey.startsWith('ccc:');
+      strKey.startsWith(STORAGE_PREFIX);
+
 
     // Before we write, verify nothing in this slot changed behind our back.
     if (isTrackedGameKey) {
-      if (!window.__isFlushing) {
-        try {
-          beforeSlotWrite(strKey);
-        } catch {}
-      }
+      try {
+        beforeSlotWrite(strKey);
+      } catch {}
     }
 
     let result;
@@ -273,7 +266,7 @@ if (typeof originalSet === 'function') {
 
         // We still want integrity events for game keys, but we've already
         // excluded slotSig/slotMod inside notifySaveIntegrityOfStorageMutation.
-        if (this === localStorage && strKey.startsWith('ccc:')) {
+        if (this === localStorage && strKey.startsWith(STORAGE_PREFIX)) {
           notifySaveIntegrityOfStorageMutation(strKey, stack);
         }
       } catch {}
@@ -290,7 +283,7 @@ if (typeof originalSet === 'function') {
           result = originalRemove.apply(this, arguments);
         } finally {
           try {
-            if (this === localStorage && String(key).startsWith('ccc:')) {
+            if (this === localStorage && String(key).startsWith(STORAGE_PREFIX)) {
               markProgressDirty('removeItem');
               notifySaveIntegrityOfStorageMutation(key, stack);
             }
@@ -393,8 +386,9 @@ function flushBeforeSuspend(reason) {
 function hasAnyPrefixedKeys() {
   if (!canUseLocalStorage()) return false;
   try {
-    for (const key of activeStorageKeys) {
-      if (key && key.startsWith('ccc:')) return true;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(STORAGE_PREFIX)) return true;
     }
   } catch {}
   return false;
@@ -410,9 +404,9 @@ export async function restoreFromBackupIfNeeded() {
     if (!hasAnyPrefixedKeys()) {
       shouldRestore = true;
     } else {
-      const activeSlot = localStorage.getItem(`ccc:saveSlot`);
+      const activeSlot = localStorage.getItem(`${STORAGE_PREFIX}saveSlot`);
       if (activeSlot) {
-        const coinKey = `ccc:coins:${activeSlot}`;
+        const coinKey = `${STORAGE_PREFIX}coins:${activeSlot}`;
         if (localStorage.getItem(coinKey) == null) {
           shouldRestore = true;
         }
@@ -447,7 +441,7 @@ export async function restoreFromBackupIfNeeded() {
   return restored;
 }
 
-export function installsuspensionSafeguards() {
+export function installSuspendSafeguards() {
   if (installAttempted) return;
   installAttempted = true;
   if (typeof window === 'undefined') return;
@@ -472,7 +466,7 @@ export function installsuspensionSafeguards() {
   try { window.addEventListener('storage', (event) => {
     if (!event) return;
     if (event.storageArea !== localStorage) return;
-    if (event.key && !String(event.key).startsWith('ccc:')) return;
+    if (event.key && !String(event.key).startsWith(STORAGE_PREFIX)) return;
     markProgressDirty('storage-event');
   }); } catch {}
 
