@@ -249,6 +249,8 @@ function handleInstantClick(event) {
     buttonLike.closest('.automation-shop-scroller') ||
     (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) ||
     buttonLike.closest('.merchant-tabs') ||
+    buttonLike.closest('.merchant-content') ||
+    buttonLike.closest('.achievements-grid') ||
     buttonLike.closest('.merchant-reset__sidebar') ||
     buttonLike.closest('.help-sidebar') ||
     buttonLike.closest('.sas-scroller');
