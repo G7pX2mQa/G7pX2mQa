@@ -346,7 +346,7 @@ const UPGRADE_DEFINITIONS = [
     area: AUTOMATION_AREA_KEY,
     id: EFFECTIVE_AUTO_SELL_ID,
     title: 'Effective Auto-Sell',
-    desc: 'Every game tick, generates 0.0001%/0.01%/1%/100% of potential Scrap from selling\n100% of all held Materials are considered regardless of manual sell preferences',
+    desc: 'Every game tick, generates Scrap based on owned Materials\nGenerates at 0.0001%/0.01%/1%/100% efficiency depending on level',
     icon: 'img/uc_upg_icons/effective_auto_sell.webp',
     requiredNodeId: 'cavern',
     lvlCap: 4,
