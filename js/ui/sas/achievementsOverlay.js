@@ -306,7 +306,5 @@ function closeAchievementDetails() {
     if (!overlay) return;
     const sheet = overlay.querySelector('.upg-sheet');
     sheet.style.transform = 'translateY(100%)';
-    setTimeout(() => {
-        overlay.classList.remove('is-open');
-    }, 180);
+		overlay.classList.remove('is-open');
 }
