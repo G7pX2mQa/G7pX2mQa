@@ -375,7 +375,7 @@
   .flow-row {
     /* Keep padding symmetrical. The overhang is on the left, so we add equal padding on both left and right to center everything visually */
     padding: 16px max(12px, calc(var(--flow-plus-size) * 0.5 + 8px));
-    grid-template-columns: auto auto auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     justify-content: space-between;
     grid-template-areas: 
       "lvl effect state"
@@ -410,8 +410,8 @@
   .flow-level-val::before { content: "Level:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
   .flow-effect-val::before { content: "Effect:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
   
-  .flow-level-val { grid-area: lvl; justify-self: center; align-self: center; text-align: center; }
-  .flow-effect-val { grid-area: effect; justify-self: center; align-self: center; font-size: 1rem; text-align: center; }
+  .flow-level-val { grid-area: lvl; justify-self: center; align-self: center; text-align: center; flex-wrap: wrap; white-space: normal; overflow-wrap: anywhere; }
+  .flow-effect-val { grid-area: effect; justify-self: center; align-self: center; font-size: 1rem; text-align: center; flex-wrap: wrap; white-space: normal; overflow-wrap: anywhere; }
   .flow-row-controls { grid-area: state; justify-self: center; align-self: center; }
 
   /* Horizontal line */
@@ -439,10 +439,14 @@
 }
 
 
-@media (max-width: 400px) {
+@media (max-width: 500px) {
   .flow-level-val, .flow-effect-val {
     flex-direction: column; /* Stack "Lvl: " and number if it gets too tight, wait they are pseudo elements */
     font-size: 0.9rem;
+  }
+  .flow-level-val::before, .flow-effect-val::before {
+    margin-right: 0;
+    margin-bottom: 2px;
   }
   .flow-effect-val {
     font-size: 0.85rem;
