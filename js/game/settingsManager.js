@@ -288,7 +288,7 @@ export const SETTING_DEFINITIONS = {
     type: 'slider',
     label: 'EAS Efficiency',
     hasExtraInfo: true,
-    info: 'This slider represents the efficiency at which your Effective Auto-Sell will generate potential Scrap from selling. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAS run at n% efficiency. Set this slider value to 0 to completely disable EAS earnings.',
+    info: 'This slider represents the efficiency at which your Effective Auto-Sell will generate Scrap. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAS run at n% efficiency. Set this slider value to 0 to completely disable EAS earnings.',
     min: 0,
     max: 100,
     step: 1,
