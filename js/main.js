@@ -143,12 +143,18 @@ function isTrustedStorageStack(stack) {
   const lines = stack.split('\n').map(l => l.trim()).filter(l => l.startsWith('at '));
   
   const isCheat = lines.some(l => {
-      // Catch Chrome snippet/VM executions
-      if (l.match(/\bVM\d+/)) return true;
-      
-      // Catch direct Chrome console executions e.g. "at <anonymous>:1:14" or eval ending in "<anonymous>:1:14)"
-      if (l.match(/<anonymous>:\d+(:\d+)?\)?$/)) return true;
-      
+      // Catch direct console executions, which typically show up as <anonymous>:L:C or VM\d+:L:C
+      // with very small line and column numbers.
+      // Legitimate mobile browsers running the game in a VM will have large line
+      // or column numbers (since the game bundle is large and often minified).
+      const match = l.match(/(?:<anonymous>|VM\d+):(\d+)(?::(\d+))?\)?$/);
+      if (match) {
+          const lineNum = parseInt(match[1], 10);
+          const colNum = match[2] ? parseInt(match[2], 10) : 0;
+          if (lineNum <= 10 && colNum <= 2000) {
+              return true;
+          }
+      }
       return false;
   });
   
