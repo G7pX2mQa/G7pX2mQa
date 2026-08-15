@@ -595,7 +595,8 @@
   font-weight: 600;
 }
 
-.upg-line .currency-ico {
+.upg-line .currency-ico,
+.valc-content .currency-ico {
   width: 0.9em;
   height: 0.9em;
   vertical-align: -0.14em;
