@@ -1,10 +1,9 @@
-// js/util/debugPanel.js
-// Using a debug panel is much faster and more convenient than
+// js/util/debugPanel.js// Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
-
-import { settingsManager } from '../game/settingsManager.js';
-import { BigNum } from './bigNum.js';
-import { formatNumber } from './numFormat.js';
+import { lsSetItem, lsRemoveItem, lsSetItemForce, lsRemoveItemForce, setDebugStorageLockChecker } from "../main.js";
+import { settingsManager } from "../game/settingsManager.js";
+import { BigNum } from "./bigNum.js";
+import { formatNumber } from "./numFormat.js";
 import {
     bank,
     CURRENCIES,
@@ -16,12 +15,27 @@ import {
     primeStorageWatcherSnapshot,
     setCurrency,
     setCurrencyMultiplierBN,
-    UC_MATERIALS
-} from './storage.js';
-import { broadcastXpChange, getXpGainMultiplier, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
-import { broadcastMutationChange, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
-import { isNodeLocked, setNodeLocked, refreshNodesState } from '../ui/mapOverlay.js';
-import { IS_MOBILE } from './platformChecker.js';
+    UC_MATERIALS,
+} from "./storage.js";
+import {
+    broadcastXpChange,
+    getXpGainMultiplier,
+    getXpState,
+    initXpSystem,
+    resetXpProgress,
+    unlockXpSystem,
+} from "../game/xpSystem.js";
+import {
+    broadcastMutationChange,
+    getMutationMultiplier,
+    getMutationGainMultiplier,
+    getMutationState,
+    initMutationSystem,
+    setMutationUnlockedForDebug,
+    unlockMutationSystem,
+} from "../game/mutationSystem.js";
+import { isNodeLocked, setNodeLocked, refreshNodesState } from "../ui/mapOverlay.js";
+import { IS_MOBILE } from "./platformChecker.js";
 import {
     getUpgradeStorageKey,
     AREA_KEYS,
@@ -33,30 +47,62 @@ import {
     setLevel,
     getUpgradeLockState,
     batchUpgradeOperations,
-} from '../game/upgrades.js';
-import { isMapUnlocked, isShopUnlocked, isShopUcUnlocked, lockMap, lockShop, lockShopUc, unlockMap, unlockShop, unlockShopUc } from '../ui/hudButtons.js';
-import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
-import { getVoidLevel, setVoidLevel } from '../ui/sas/achievementExtras/voidGemAltarTab.js';
-import { getGenerationLevelKey } from '../ui/merchantTabs/workshopTab.js';
-import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
-import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiSequencePlayed, setTsunamiSequencePlayed } from '../game/surgeEffects.js';
-import { setAutobuyerToggle } from '../game/automationEffects.js';
-import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
-import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
-import { isCombineUnlocked, setCombineUnlocked } from '../ui/minerTabs/resetTab.js';
-import { isBuildingsUnlocked, setBuildingsUnlocked, getBuildingLevel, setBuildingLevel, BUILDING_NAMES, BUILDING_IDS, isBuildingUnlocked, setBuildingUnlocked as setBuildingUnlockedById } from '../ui/minerTabs/buildingsTab.js';
-import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
-import { getLabLevel, setLabLevel, getLabLevelKey, getRpMult } from '../ui/merchantTabs/labTab.js';
-import { 
-    getFlowUnlockState, 
-    WATERWHEEL_DEFS, 
-    getWaterwheelLevel, 
-    setWaterwheelLevel, 
-    getWaterwheelFp, 
-    setWaterwheelFp, 
-    getFpMultiplier 
-} from '../ui/merchantTabs/flowTab.js';
-import { 
+} from "../game/upgrades.js";
+import {
+    isMapUnlocked,
+    isShopUnlocked,
+    isShopUcUnlocked,
+    lockMap,
+    lockShop,
+    lockShopUc,
+    unlockMap,
+    unlockShop,
+    unlockShopUc,
+} from "../ui/hudButtons.js";
+import {
+    DLG_CATALOG,
+    MERCHANT_DLG_STATE_KEY_BASE,
+    isJeffUnlocked,
+    setJeffUnlocked,
+} from "../ui/merchantTabs/dlgTab.js";
+import { getVoidLevel, setVoidLevel } from "../ui/sas/achievementExtras/voidGemAltarTab.js";
+import { getGenerationLevelKey } from "../ui/merchantTabs/workshopTab.js";
+import { getSurgeBarLevelKey, hasDoneInfuseReset } from "../ui/merchantTabs/resetTab.js";
+import {
+    getBaseTsunamiExponent,
+    setTsunamiNerf,
+    getTsunamiNerfKey,
+    isLabUnlocked,
+    setLabUnlocked,
+    getTsunamiSequencePlayed,
+    setTsunamiSequencePlayed,
+} from "../game/surgeEffects.js";
+import { setAutobuyerToggle } from "../game/automationEffects.js";
+import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from "../game/automationUpgrades.js";
+import { isSellUnlocked, setSellUnlocked } from "../ui/minerTabs/sellTab.js";
+import { isCombineUnlocked, setCombineUnlocked } from "../ui/minerTabs/resetTab.js";
+import {
+    isBuildingsUnlocked,
+    setBuildingsUnlocked,
+    getBuildingLevel,
+    setBuildingLevel,
+    BUILDING_NAMES,
+    BUILDING_IDS,
+    isBuildingUnlocked,
+    setBuildingUnlocked as setBuildingUnlockedById,
+} from "../ui/minerTabs/buildingsTab.js";
+import { updateWarpTab } from "../ui/merchantTabs/warpTab.js";
+import { getLabLevel, setLabLevel, getLabLevelKey, getRpMult } from "../ui/merchantTabs/labTab.js";
+import {
+    getFlowUnlockState,
+    WATERWHEEL_DEFS,
+    getWaterwheelLevel,
+    setWaterwheelLevel,
+    getWaterwheelFp,
+    setWaterwheelFp,
+    getFpMultiplier,
+} from "../ui/merchantTabs/flowTab.js";
+import {
     RESEARCH_NODES,
     getResearchNodeLevel,
     setResearchNodeLevel,
@@ -66,28 +112,33 @@ import {
     setResearchNodeActive,
     getTsunamiResearchBonus,
     NODE_LEVEL_KEY,
-    NODE_RP_KEY
-} from '../game/labNodes.js';
-import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
-import { startSimulatedOffline, isSimulatedOfflineEnabled } from '../game/simulatedOffline.js';
-import { nukeNotifications } from '../ui/notifications.js';
-import { unlockDpSystem, resetDpProgress, isDpSystemUnlocked, getDpMultiplier } from '../game/dpSystem.js';
-import { 
-    getActiveCombo, 
-    setActiveCombo, 
-    getMaxCombo, 
-    setComboLocked, 
-    addComboChangeListener, 
-    removeComboChangeListener 
-} from '../game/comboSystem.js';
-import { setHtmlOrText } from './uiHelpers.js';
+    NODE_RP_KEY,
+} from "../game/labNodes.js";
+import {
+    calculateOfflineRewards,
+    grantOfflineRewards,
+    showOfflinePanel,
+    calculatePreAutomationRewards,
+} from "../game/offlinePanel.js";
+import { startSimulatedOffline, isSimulatedOfflineEnabled } from "../game/simulatedOffline.js";
+import { nukeNotifications } from "../ui/notifications.js";
+import { unlockDpSystem, resetDpProgress, isDpSystemUnlocked, getDpMultiplier } from "../game/dpSystem.js";
+import {
+    getActiveCombo,
+    setActiveCombo,
+    getMaxCombo,
+    setComboLocked,
+    addComboChangeListener,
+    removeComboChangeListener,
+} from "../game/comboSystem.js";
+import { setHtmlOrText } from "./uiHelpers.js";
 
 const debugPanelStatSetters = [];
 let isBuildingStats = false;
 
-const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
-const DEBUG_PANEL_ID = 'debug-panel';
-const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
+const DEBUG_PANEL_STYLE_ID = "debug-panel-style";
+const DEBUG_PANEL_ID = "debug-panel";
+const DEBUG_PANEL_TOGGLE_ID = "debug-panel-toggle";
 const DEFAULT_MISC_RESET_SELECTION = `currency:${CURRENCIES.COINS}`;
 let debugPanelOpen = false;
 let debugPanelAccess = false;
@@ -106,51 +157,48 @@ const currencyOverrideApplications = new Set();
 const statOverrides = new Map();
 const statOverrideBaselines = new Map();
 const lockedStorageKeys = new Set();
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
     window.__cccLockedStorageKeys = lockedStorageKeys;
 }
+
 let storageLockPatched = false;
-let originalSetItem = null;
-let originalRemoveItem = null;
 
 const MAX_ACTION_LOG_ENTRIES = 100;
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
 const MAX_WARPS = 24;
 
 function isOnMenu() {
-    const menuRoot = document.querySelector('.menu-root');
+    const menuRoot = document.querySelector(".menu-root");
     if (!menuRoot) return false;
 
     const style = window.getComputedStyle?.(menuRoot);
-    if (!style) return menuRoot.style.display !== 'none';
+    if (!style) return menuRoot.style.display !== "none";
 
-    return style.display !== 'none' && style.visibility !== 'hidden' && !menuRoot.hidden;
+    return style.display !== "none" && style.visibility !== "hidden" && !menuRoot.hidden;
 }
 
 function isLoading() {
-    const loader = document.getElementById('boot-loader');
-    if (loader && loader.classList.contains('fading')) {
+    const loader = document.getElementById("boot-loader");
+    if (loader && loader.classList.contains("fading")) {
         return false;
     }
-    return document.documentElement.classList.contains('booting') || !!loader;
+    return document.documentElement.classList.contains("booting") || !!loader;
 }
 
 function isGameVisible() {
-    const gameRoot = document.getElementById('game-root');
+    const gameRoot = document.getElementById("game-root");
     if (!gameRoot) return false;
 
     const style = window.getComputedStyle?.(gameRoot);
     if (!style) {
-        return gameRoot.style.display !== 'none'
-            && gameRoot.style.visibility !== 'hidden'
-            && !gameRoot.hidden;
+        return gameRoot.style.display !== "none" && gameRoot.style.visibility !== "hidden" && !gameRoot.hidden;
     }
 
-    return style.display !== 'none' && style.visibility !== 'hidden' && !gameRoot.hidden;
+    return style.display !== "none" && style.visibility !== "hidden" && !gameRoot.hidden;
 }
 
 function addDebugPanelCleanup(fn) {
-    if (typeof fn === 'function') {
+    if (typeof fn === "function") {
         debugPanelCleanups.push(fn);
     }
 }
@@ -164,17 +212,17 @@ function captureDebugPanelExpansionState() {
     if (!panel) return createEmptyExpansionState();
 
     const sections = new Set();
-    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+    panel.querySelectorAll(".debug-panel-section-toggle").forEach((toggle) => {
         const key = toggle.dataset.sectionKey ?? toggle.textContent;
-        if (toggle.classList.contains('expanded')) {
+        if (toggle.classList.contains("expanded")) {
             sections.add(key);
         }
     });
 
     const subsections = new Set();
-    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+    panel.querySelectorAll(".debug-panel-subsection-toggle").forEach((toggle) => {
         const key = toggle.dataset.subsectionKey ?? toggle.textContent;
-        if (toggle.classList.contains('expanded')) {
+        if (toggle.classList.contains("expanded")) {
             subsections.add(key);
         }
     });
@@ -185,20 +233,20 @@ function captureDebugPanelExpansionState() {
 function applyDebugPanelExpansionState(panel) {
     const { sections, subsections } = debugPanelExpansionState ?? createEmptyExpansionState();
 
-    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+    panel.querySelectorAll(".debug-panel-section-toggle").forEach((toggle) => {
         const key = toggle.dataset.sectionKey ?? toggle.textContent;
         if (!sections.has(key)) return;
         const content = toggle.nextElementSibling;
-        toggle.classList.add('expanded');
-        if (content) content.classList.add('active');
+        toggle.classList.add("expanded");
+        if (content) content.classList.add("active");
     });
 
-    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+    panel.querySelectorAll(".debug-panel-subsection-toggle").forEach((toggle) => {
         const key = toggle.dataset.subsectionKey ?? toggle.textContent;
         if (!subsections.has(key)) return;
         const content = toggle.nextElementSibling;
-        toggle.classList.add('expanded');
-        if (content) content.classList.add('active');
+        toggle.classList.add("expanded");
+        if (content) content.classList.add("active");
     });
 }
 
@@ -207,248 +255,260 @@ let refreshRafId = null;
 
 function cleanupDebugPanelResources() {
     debugPanelCleanups.forEach((fn) => {
-        try { fn?.(); } catch {}
+        try {
+            fn?.();
+        } catch {}
     });
     debugPanelCleanups = [];
     liveBindings.length = 0;
     pendingBindings.clear();
-    if (typeof window !== 'undefined' && refreshRafId !== null) {
+    if (typeof window !== "undefined" && refreshRafId !== null) {
         window.cancelAnimationFrame(refreshRafId);
         refreshRafId = null;
     }
 }
 
 function registerLiveBinding(binding) {
-    if (!binding || typeof binding.refresh !== 'function') return;
+    if (!binding || typeof binding.refresh !== "function") return;
     liveBindings.push(binding);
 }
 
 function refreshLiveBindings(predicate) {
     liveBindings.forEach((binding) => {
-        if (typeof predicate === 'function' && !predicate(binding)) return;
+        if (typeof predicate === "function" && !predicate(binding)) return;
         pendingBindings.add(binding);
     });
 
-    if (refreshRafId === null && typeof window !== 'undefined') {
+    if (refreshRafId === null && typeof window !== "undefined") {
         refreshRafId = window.requestAnimationFrame(() => {
             refreshRafId = null;
             const toProcess = pendingBindings;
             pendingBindings = new Set();
-            toProcess.forEach(binding => {
-                try { binding.refresh(); } catch {}
+            toProcess.forEach((binding) => {
+                try {
+                    binding.refresh();
+                } catch {}
             });
         });
-    } else if (typeof window === 'undefined') {
+    } else if (typeof window === "undefined") {
         const toProcess = pendingBindings;
         pendingBindings = new Set();
-        toProcess.forEach(binding => {
-            try { binding.refresh(); } catch {}
+        toProcess.forEach((binding) => {
+            try {
+                binding.refresh();
+            } catch {}
         });
     }
 }
 
 function setupLiveBindingListeners() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const currencyHandler = (event) => {
         const { key, slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'currency'
-            && binding.key === key
-            && binding.slot === targetSlot);
+        refreshLiveBindings(
+            (binding) => binding.type === "currency" && binding.key === key && binding.slot === targetSlot,
+        );
     };
-    window.addEventListener('currency:change', currencyHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('currency:change', currencyHandler));
+    window.addEventListener("currency:change", currencyHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("currency:change", currencyHandler));
 
     const currencyMultiplierHandler = (event) => {
         const { key, slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'currency-mult'
-            && binding.key === key
-            && binding.slot === targetSlot);
+        refreshLiveBindings(
+            (binding) => binding.type === "currency-mult" && binding.key === key && binding.slot === targetSlot,
+        );
     };
-    window.addEventListener('currency:multiplier', currencyMultiplierHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('currency:multiplier', currencyMultiplierHandler));
+    window.addEventListener("currency:multiplier", currencyMultiplierHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("currency:multiplier", currencyMultiplierHandler));
 
     const xpHandler = (event) => {
         const { slot, changeType, unlocked } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'xp'
-            && binding.slot === targetSlot);
-        refreshLiveBindings((binding) => binding.type === 'stat-mult'
-            && binding.key === 'xp'
-            && binding.slot === targetSlot);
-        if (changeType === 'unlock' || typeof unlocked === 'boolean') {
-            refreshLiveBindings((binding) => binding.type === 'unlock'
-                && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === "xp" && binding.slot === targetSlot);
+        refreshLiveBindings(
+            (binding) => binding.type === "stat-mult" && binding.key === "xp" && binding.slot === targetSlot,
+        );
+        if (changeType === "unlock" || typeof unlocked === "boolean") {
+            refreshLiveBindings(
+                (binding) => binding.type === "unlock" && (binding.slot == null || binding.slot === targetSlot),
+            );
         }
     };
-    window.addEventListener('xp:change', xpHandler, { passive: true });
-    window.addEventListener('xp:unlock', xpHandler, { passive: true });
+    window.addEventListener("xp:change", xpHandler, { passive: true });
+    window.addEventListener("xp:unlock", xpHandler, { passive: true });
     addDebugPanelCleanup(() => {
-        window.removeEventListener('xp:change', xpHandler);
-        window.removeEventListener('xp:unlock', xpHandler);
+        window.removeEventListener("xp:change", xpHandler);
+        window.removeEventListener("xp:unlock", xpHandler);
     });
 
     const mutationHandler = (event) => {
         const { changeType, slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'mutation'
-            && binding.slot === targetSlot);
-        refreshLiveBindings((binding) => binding.type === 'stat-mult'
-            && binding.key === 'mutation'
-            && binding.slot === targetSlot);
-        if (changeType === 'unlock') {
-            refreshLiveBindings((binding) => binding.type === 'unlock'
-                && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === "mutation" && binding.slot === targetSlot);
+        refreshLiveBindings(
+            (binding) => binding.type === "stat-mult" && binding.key === "mutation" && binding.slot === targetSlot,
+        );
+        if (changeType === "unlock") {
+            refreshLiveBindings(
+                (binding) => binding.type === "unlock" && (binding.slot == null || binding.slot === targetSlot),
+            );
         }
     };
-    window.addEventListener('mutation:change', mutationHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('mutation:change', mutationHandler));
+    window.addEventListener("mutation:change", mutationHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("mutation:change", mutationHandler));
 
     const dpHandler = (event) => {
         const { changeType, slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'dp'
-            && binding.slot === targetSlot);
-        refreshLiveBindings((binding) => binding.type === 'stat-mult'
-            && binding.key === 'dp'
-            && binding.slot === targetSlot);
-        if (changeType === 'unlock') {
-            refreshLiveBindings((binding) => binding.type === 'unlock'
-                && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === "dp" && binding.slot === targetSlot);
+        refreshLiveBindings(
+            (binding) => binding.type === "stat-mult" && binding.key === "dp" && binding.slot === targetSlot,
+        );
+        if (changeType === "unlock") {
+            refreshLiveBindings(
+                (binding) => binding.type === "unlock" && (binding.slot == null || binding.slot === targetSlot),
+            );
         }
     };
-    window.addEventListener('dp:change', dpHandler, { passive: true });
+    window.addEventListener("dp:change", dpHandler, { passive: true });
     const ppHandler = (event) => {
         const { changeType, slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'pp'
-            && binding.slot === targetSlot);
-        refreshLiveBindings((binding) => binding.type === 'stat-mult'
-            && binding.key === 'pp'
-            && binding.slot === targetSlot);
-        if (changeType === 'unlock') {
-            refreshLiveBindings((binding) => binding.type === 'unlock'
-                && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === "pp" && binding.slot === targetSlot);
+        refreshLiveBindings(
+            (binding) => binding.type === "stat-mult" && binding.key === "pp" && binding.slot === targetSlot,
+        );
+        if (changeType === "unlock") {
+            refreshLiveBindings(
+                (binding) => binding.type === "unlock" && (binding.slot == null || binding.slot === targetSlot),
+            );
         }
     };
-    window.addEventListener('pp:change', ppHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('pp:change', ppHandler));
-    addDebugPanelCleanup(() => window.removeEventListener('dp:change', dpHandler));
+    window.addEventListener("pp:change", ppHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("pp:change", ppHandler));
+    addDebugPanelCleanup(() => window.removeEventListener("dp:change", dpHandler));
 
     const upgradeHandler = () => {
         const targetSlot = getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'upgrade'
-            && binding.slot === targetSlot);
-        refreshLiveBindings((binding) => binding.type === 'currency-mult'
-            && binding.slot === targetSlot);
-        refreshLiveBindings((binding) => binding.type === 'stat-mult'
-            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === "upgrade" && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === "currency-mult" && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === "stat-mult" && binding.slot === targetSlot);
     };
-    document.addEventListener('ccc:upgrades:changed', upgradeHandler, { passive: true });
-    addDebugPanelCleanup(() => document.removeEventListener('ccc:upgrades:changed', upgradeHandler));
+    document.addEventListener("ccc:upgrades:changed", upgradeHandler, { passive: true });
+    addDebugPanelCleanup(() => document.removeEventListener("ccc:upgrades:changed", upgradeHandler));
 
     const slotHandler = () => {
         const targetSlot = getActiveSlot();
         refreshLiveBindings((binding) => binding.slot === targetSlot);
     };
-    window.addEventListener('saveSlot:change', slotHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('saveSlot:change', slotHandler));
+    window.addEventListener("saveSlot:change", slotHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("saveSlot:change", slotHandler));
 
     const buildingHandler = () => {
         const targetSlot = getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'building-level'
-            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === "building-level" && binding.slot === targetSlot);
     };
-    document.addEventListener('ccc:buildings:changed', buildingHandler, { passive: true });
-    addDebugPanelCleanup(() => document.removeEventListener('ccc:buildings:changed', buildingHandler));
+    document.addEventListener("ccc:buildings:changed", buildingHandler, { passive: true });
+    addDebugPanelCleanup(() => document.removeEventListener("ccc:buildings:changed", buildingHandler));
 
     const unlockHandler = (event) => {
         const { slot, key } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'unlock'
-            && (binding.slot == null || binding.slot === targetSlot)
-            && (binding.key == null || binding.key === key));
+        refreshLiveBindings(
+            (binding) =>
+                binding.type === "unlock" &&
+                (binding.slot == null || binding.slot === targetSlot) &&
+                (binding.key == null || binding.key === key),
+        );
     };
-    window.addEventListener('unlock:change', unlockHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('unlock:change', unlockHandler));
+    window.addEventListener("unlock:change", unlockHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("unlock:change", unlockHandler));
 
     const workshopHandler = (event) => {
         const { slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'workshop-level'
-            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === "workshop-level" && binding.slot === targetSlot);
     };
-    window.addEventListener('workshop:change', workshopHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('workshop:change', workshopHandler));
+    window.addEventListener("workshop:change", workshopHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("workshop:change", workshopHandler));
 
     const surgeHandler = (event) => {
         const { slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'surge-level'
-            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === "surge-level" && binding.slot === targetSlot);
     };
-    window.addEventListener('surge:level:change', surgeHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('surge:level:change', surgeHandler));
+    window.addEventListener("surge:level:change", surgeHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("surge:level:change", surgeHandler));
 
     const tsunamiHandler = (event) => {
         const { slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
-            && (binding.slot == null || binding.slot === targetSlot));
-        refreshLiveBindings((binding) => binding.type === 'stat-mult'
-            && (binding.slot == null || binding.slot === targetSlot));
-        refreshLiveBindings((binding) => binding.type === 'currency-mult'
-            && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings(
+            (binding) => binding.type === "tsunami-nerf" && (binding.slot == null || binding.slot === targetSlot),
+        );
+        refreshLiveBindings(
+            (binding) => binding.type === "stat-mult" && (binding.slot == null || binding.slot === targetSlot),
+        );
+        refreshLiveBindings(
+            (binding) => binding.type === "currency-mult" && (binding.slot == null || binding.slot === targetSlot),
+        );
     };
-    window.addEventListener('surge:nerf:change', tsunamiHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('surge:nerf:change', tsunamiHandler));
+    window.addEventListener("surge:nerf:change", tsunamiHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("surge:nerf:change", tsunamiHandler));
 
     const labHandler = (event) => {
         const { slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'lab-level'
-            && (binding.slot == null || binding.slot === targetSlot));
-        refreshLiveBindings((binding) => binding.type === 'stat-mult'
-            && binding.key === 'rp'
-            && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings(
+            (binding) => binding.type === "lab-level" && (binding.slot == null || binding.slot === targetSlot),
+        );
+        refreshLiveBindings(
+            (binding) =>
+                binding.type === "stat-mult" &&
+                binding.key === "rp" &&
+                (binding.slot == null || binding.slot === targetSlot),
+        );
     };
-    window.addEventListener('lab:level:change', labHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('lab:level:change', labHandler));
+    window.addEventListener("lab:level:change", labHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("lab:level:change", labHandler));
 
     const labNodeHandler = (event) => {
         const { id, level } = event?.detail ?? {};
         const targetSlot = getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'lab-node-level'
-            && binding.slot === targetSlot
-            && binding.id === id);
-        
+        refreshLiveBindings(
+            (binding) => binding.type === "lab-node-level" && binding.slot === targetSlot && binding.id === id,
+        );
+
         if (id === 1) {
-            refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
-                && (binding.slot == null || binding.slot === targetSlot));
+            refreshLiveBindings(
+                (binding) => binding.type === "tsunami-nerf" && (binding.slot == null || binding.slot === targetSlot),
+            );
         }
         if (id === 4) {
-            refreshLiveBindings((binding) => binding.type === 'unlock'
-                && (binding.slot == null || binding.slot === targetSlot));
+            refreshLiveBindings(
+                (binding) => binding.type === "unlock" && (binding.slot == null || binding.slot === targetSlot),
+            );
         }
     };
-    window.addEventListener('lab:node:change', labNodeHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('lab:node:change', labNodeHandler));
+    window.addEventListener("lab:node:change", labNodeHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("lab:node:change", labNodeHandler));
 
     const labNodeRpHandler = (event) => {
         const { id, rp } = event?.detail ?? {};
         const targetSlot = getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'lab-node-rp'
-            && binding.slot === targetSlot
-            && binding.id === id);
+        refreshLiveBindings(
+            (binding) => binding.type === "lab-node-rp" && binding.slot === targetSlot && binding.id === id,
+        );
     };
-    window.addEventListener('lab:node:rp', labNodeRpHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('lab:node:rp', labNodeRpHandler));
+    window.addEventListener("lab:node:rp", labNodeRpHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener("lab:node:rp", labNodeRpHandler));
 
     const comboHandler = (val) => {
         const targetSlot = getActiveSlot();
-        refreshLiveBindings((binding) => binding.type === 'combo' && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === "combo" && binding.slot === targetSlot);
     };
     addComboChangeListener(comboHandler);
     addDebugPanelCleanup(() => removeComboChangeListener(comboHandler));
@@ -456,70 +516,74 @@ function setupLiveBindingListeners() {
     const flowHandler = (event) => {
         const { id } = event?.detail ?? {};
         const targetSlot = getActiveSlot();
-        refreshLiveBindings((binding) => 
-            (binding.type === 'flow-level' || binding.type === 'flow-fp')
-            && binding.slot === targetSlot
-            && (id == null || binding.id == null || binding.id === id)
+        refreshLiveBindings(
+            (binding) =>
+                (binding.type === "flow-level" || binding.type === "flow-fp") &&
+                binding.slot === targetSlot &&
+                (id == null || binding.id == null || binding.id === id),
         );
     };
-    window.addEventListener('flow:change', flowHandler, { passive: true });
-    window.addEventListener('waterwheel:change', flowHandler, { passive: true });
+    window.addEventListener("flow:change", flowHandler, { passive: true });
+    window.addEventListener("waterwheel:change", flowHandler, { passive: true });
     addDebugPanelCleanup(() => {
-        window.removeEventListener('flow:change', flowHandler);
-        window.removeEventListener('waterwheel:change', flowHandler);
+        window.removeEventListener("flow:change", flowHandler);
+        window.removeEventListener("waterwheel:change", flowHandler);
     });
 }
 
 const XP_KEYS = {
     unlock: (slot) => `ccc:xp:unlocked:${slot}`,
-    level:  (slot) => `ccc:xp:level:${slot}`,
+    level: (slot) => `ccc:xp:level:${slot}`,
     progress: (slot) => `ccc:xp:progress:${slot}`,
 };
 
 const MUTATION_KEYS = {
     unlock: (slot) => `ccc:mutation:unlocked:${slot}`,
-    level:  (slot) => `ccc:mutation:level:${slot}`,
+    level: (slot) => `ccc:mutation:level:${slot}`,
     progress: (slot) => `ccc:mutation:progress:${slot}`,
 };
 
 const DP_KEYS = {
     unlock: (slot) => `ccc:dp:unlocked:${slot}`,
-    level:  (slot) => `ccc:dp:level:${slot}`,
+    level: (slot) => `ccc:dp:level:${slot}`,
     progress: (slot) => `ccc:dp:progress:${slot}`,
 };
 
 const PP_KEYS = {
-    level:  (slot) => `ccc:ppLevel:${slot}`,
+    level: (slot) => `ccc:ppLevel:${slot}`,
     progress: (slot) => `ccc:ppProgress:${slot}`,
 };
 
 const STAT_MULTIPLIERS = [
-    { key: 'spawnRate', label: 'Spawn Rate' },
-    { key: 'xp', label: 'XP' },
-    { key: 'mutation', label: 'MP' },
-    { key: 'allMaterials', label: 'All Materials' },
-    { key: 'dp', label: 'DP' },
-    { key: 'pp', label: 'PP' },
-    { key: 'rp', label: 'RP' },
-    { key: 'fp', label: 'FP' },
+    { key: "spawnRate", label: "Spawn Rate" },
+    { key: "xp", label: "XP" },
+    { key: "mutation", label: "MP" },
+    { key: "allMaterials", label: "All Materials" },
+    { key: "dp", label: "DP" },
+    { key: "pp", label: "PP" },
+    { key: "rp", label: "RP" },
+    { key: "fp", label: "FP" },
 ];
 
 function getAreas() {
     const coveCurrencies = [];
     const cavernCurrencies = [];
 
-    Object.keys(CURRENCIES).forEach(key => {
+    Object.keys(CURRENCIES).forEach((key) => {
         const currencyKey = CURRENCIES[key];
-        let label = '';
-        if (key === 'DNA') {
-            label = 'DNA';
+        let label = "";
+        if (key === "DNA") {
+            label = "DNA";
         } else {
-            label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+            label = key
+                .split("_")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(" ");
         }
 
         const area = CURRENCY_AREAS[currencyKey] || AREA_KEYS.STARTER_COVE;
         // Handle logic directly matching the UNDERWATER_CAVERN string mapping or the AREA_KEYS
-        if (area === 'underwater_cavern') {
+        if (area === "underwater_cavern") {
             cavernCurrencies.push({ key: currencyKey, label });
         } else {
             coveCurrencies.push({ key: currencyKey, label });
@@ -529,22 +593,22 @@ function getAreas() {
     return [
         {
             key: AREA_KEYS.STARTER_COVE,
-            title: 'The Cove',
+            title: "The Cove",
             currencies: coveCurrencies,
             stats: [
-                { key: 'voidLevel', label: 'Void Level' },
-                { key: 'spawnRate', label: 'Spawn Rate' },
-                { key: 'xp', label: 'XP' },
-                { key: 'mutation', label: 'MP' },
+                { key: "voidLevel", label: "Void Level" },
+                { key: "spawnRate", label: "Spawn Rate" },
+                { key: "xp", label: "XP" },
+                { key: "mutation", label: "MP" },
             ],
         },
         {
-            key: 'underwater_cavern', // use literal since AREA_KEYS is imported but might not be correctly exposed
-            title: 'Underwater Cavern',
+            key: "underwater_cavern", // use literal since AREA_KEYS is imported but might not be correctly exposed
+            title: "Underwater Cavern",
             currencies: cavernCurrencies,
             stats: [
-                { key: 'dp', label: 'DP' },
-                { key: 'pp', label: 'PP' }
+                { key: "dp", label: "DP" },
+                { key: "pp", label: "PP" },
             ],
         },
     ];
@@ -561,16 +625,16 @@ function ensureDebugPanelStyles() {
 
     const bundledStylesheet = document.querySelector('link[href$="styles.css"]');
     if (bundledStylesheet) {
-        const marker = document.createElement('meta');
+        const marker = document.createElement("meta");
         marker.id = DEBUG_PANEL_STYLE_ID;
-        marker.setAttribute('data-debug-panel-styles', 'bundled');
+        marker.setAttribute("data-debug-panel-styles", "bundled");
         document.head.appendChild(marker);
         return;
     }
 
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'css/misc/debug.css';
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "css/misc/debug.css";
     link.id = DEBUG_PANEL_STYLE_ID;
     document.head.appendChild(link);
 }
@@ -581,12 +645,7 @@ function removeDebugPanelToggleButton() {
 }
 
 function shouldShowDebugPanelToggleButton() {
-    return debugPanelAccess
-        && IS_MOBILE
-        && getActiveSlot() != null
-        && !isOnMenu()
-        && !isLoading()
-        && isGameVisible();
+    return debugPanelAccess && IS_MOBILE && getActiveSlot() != null && !isOnMenu() && !isLoading() && isGameVisible();
 }
 
 function onMenuVisibilityChange(event) {
@@ -597,19 +656,19 @@ function onMenuVisibilityChange(event) {
 }
 
 function createSection(title, contentId, contentBuilder) {
-    const section = document.createElement('div');
-    section.className = 'debug-panel-section';
+    const section = document.createElement("div");
+    section.className = "debug-panel-section";
 
-    const toggle = document.createElement('button');
-    toggle.className = 'debug-panel-section-toggle';
-    toggle.type = 'button';
+    const toggle = document.createElement("button");
+    toggle.className = "debug-panel-section-toggle";
+    toggle.type = "button";
     toggle.textContent = title;
     const stateKey = contentId || `${title}-${sectionKeyCounter++}`;
     toggle.dataset.sectionKey = stateKey;
     section.appendChild(toggle);
 
-    const content = document.createElement('div');
-    content.className = 'debug-panel-section-content';
+    const content = document.createElement("div");
+    content.className = "debug-panel-section-content";
     content.id = contentId;
     content.dataset.sectionKey = stateKey;
     contentBuilder(content);
@@ -618,12 +677,12 @@ function createSection(title, contentId, contentBuilder) {
     let lastPointerType = null;
 
     const handleToggle = (event) => {
-        const expanded = toggle.classList.toggle('expanded');
-        content.classList.toggle('active', expanded);
+        const expanded = toggle.classList.toggle("expanded");
+        content.classList.toggle("active", expanded);
     };
 
-    toggle.addEventListener('click', (event) => {
-        if (lastPointerType && lastPointerType !== 'mouse') {
+    toggle.addEventListener("click", (event) => {
+        if (lastPointerType && lastPointerType !== "mouse") {
             lastPointerType = null;
             return;
         }
@@ -635,19 +694,19 @@ function createSection(title, contentId, contentBuilder) {
 }
 
 function createSubsection(title, contentBuilder, { defaultExpanded = false } = {}) {
-    const container = document.createElement('div');
-    container.className = 'debug-panel-subsection';
+    const container = document.createElement("div");
+    container.className = "debug-panel-subsection";
 
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'debug-panel-subsection-toggle';
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "debug-panel-subsection-toggle";
     toggle.textContent = title;
     const stateKey = `${title}-${subsectionKeyCounter++}`;
     toggle.dataset.subsectionKey = stateKey;
     container.appendChild(toggle);
 
-    const content = document.createElement('div');
-    content.className = 'debug-panel-subsection-content';
+    const content = document.createElement("div");
+    content.className = "debug-panel-subsection-content";
     content.dataset.subsectionKey = stateKey;
     contentBuilder(content);
     container.appendChild(content);
@@ -655,12 +714,12 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
     let lastPointerType = null;
 
     const handleToggle = (event) => {
-        const expanded = toggle.classList.toggle('expanded');
-        content.classList.toggle('active', expanded);
+        const expanded = toggle.classList.toggle("expanded");
+        content.classList.toggle("active", expanded);
     };
 
-    toggle.addEventListener('click', (event) => {
-        if (lastPointerType && lastPointerType !== 'mouse') {
+    toggle.addEventListener("click", (event) => {
+        if (lastPointerType && lastPointerType !== "mouse") {
             lastPointerType = null;
             return;
         }
@@ -669,8 +728,8 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
     });
 
     if (defaultExpanded) {
-        toggle.classList.add('expanded');
-        content.classList.add('active');
+        toggle.classList.add("expanded");
+        content.classList.add("active");
     }
 
     return container;
@@ -679,14 +738,21 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
 function bigNumEquals(a, b) {
     if (a === b) return true;
     if (a == null || b == null) return a == null && b == null;
-    if (typeof a?.cmp === 'function') {
-        try { return a.cmp(b) === 0; } catch {}
+    if (typeof a?.cmp === "function") {
+        try {
+            return a.cmp(b) === 0;
+        } catch {}
     }
-    if (typeof b?.cmp === 'function') {
-        try { return b.cmp(a) === 0; } catch {}
+    if (typeof b?.cmp === "function") {
+        try {
+            return b.cmp(a) === 0;
+        } catch {}
     }
-    try { return Object.is(String(a), String(b)); }
-    catch { return false; }
+    try {
+        return Object.is(String(a), String(b));
+    } catch {
+        return false;
+    }
 }
 
 function bigNumToFiniteNumber(value) {
@@ -711,12 +777,16 @@ function getCurrencyValueForSlot(currencyKey, slot = getActiveSlot()) {
 
     const handle = bank?.[currencyKey];
     if (handle) {
-        try { return handle.value ?? BigNum.fromInt(0); }
-        catch {}
+        try {
+            return handle.value ?? BigNum.fromInt(0);
+        } catch {}
     }
 
-    try { return peekCurrency(resolvedSlot, currencyKey); }
-    catch { return BigNum.fromInt(0); }
+    try {
+        return peekCurrency(resolvedSlot, currencyKey);
+    } catch {
+        return BigNum.fromInt(0);
+    }
 }
 
 function applyCurrencyState(currencyKey, value, slot = getActiveSlot()) {
@@ -737,47 +807,50 @@ function applyCurrencyState(currencyKey, value, slot = getActiveSlot()) {
         const effective = setCurrency(currencyKey, value, { previous });
         next = effective ?? previous;
         if (storageKey) primeStorageWatcherSnapshot(storageKey);
-        
+
         // Update the last known amount so the event listener in popups.js
         // calculates a delta of zero, preventing the duplicate standard popup.
-        if (typeof window !== 'undefined' && window.lastKnownAmounts) {
-             window.lastKnownAmounts.set(currencyKey, effective.clone?.() ?? effective);
+        if (typeof window !== "undefined" && window.lastKnownAmounts) {
+            window.lastKnownAmounts.set(currencyKey, effective.clone?.() ?? effective);
         }
-        
-        if (typeof window !== 'undefined' && window.showPopup) {
+
+        if (typeof window !== "undefined" && window.showPopup) {
             window.showPopup(currencyKey, effective, { overrideAmount: true });
         }
-    } catch {}
-    finally {
+    } catch {
+    } finally {
         if (wasLocked) lockStorageKey(storageKey);
     }
 
-    refreshLiveBindings((binding) => binding.type === 'currency'
-        && binding.key === currencyKey
-        && binding.slot === resolvedSlot);
+    refreshLiveBindings(
+        (binding) => binding.type === "currency" && binding.key === currencyKey && binding.slot === resolvedSlot,
+    );
 
     return { previous, next };
 }
 
 function buildOverrideKey(slot, key) {
-    return `${slot ?? 'null'}::${key}`;
+    return `${slot ?? "null"}::${key}`;
 }
 
 function loadCurrencyMultiplierOverrideFromStorage(currencyKey, slot = getActiveSlot()) {
     const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
-    if (!storageKey || typeof localStorage === 'undefined') return null;
+    if (!storageKey || typeof localStorage === "undefined") return null;
     const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
-    try { return BigNum.fromAny(raw); }
-    catch { return null; }
+    try {
+        return BigNum.fromAny(raw);
+    } catch {
+        return null;
+    }
 }
 
 function storeCurrencyMultiplierOverride(currencyKey, slot, value) {
     const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
-    if (!storageKey || typeof localStorage === 'undefined') return;
+    if (!storageKey || typeof localStorage === "undefined") return;
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
-        localStorage.setItem(storageKey, bn.toStorage?.() ?? String(bn));
+        lsSetItem(storageKey, bn.toStorage?.() ?? String(bn));
     } catch {}
 }
 
@@ -785,13 +858,13 @@ function getCurrencyOverride(slot, key) {
     const cacheKey = buildOverrideKey(slot, key);
     let cached = currencyOverrides.get(cacheKey);
     if (cached) return cached;
-    
+
     const fromStorage = loadCurrencyMultiplierOverrideFromStorage(key, slot);
     if (fromStorage) {
         currencyOverrides.set(cacheKey, fromStorage);
         return fromStorage;
     }
-    
+
     return null;
 }
 
@@ -816,12 +889,14 @@ export function clearCurrencyMultiplierOverride(currencyKey, slot = getActiveSlo
     currencyOverrides.delete(cacheKey);
     currencyOverrideBaselines.delete(cacheKey);
     const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
-    if (storageKey && typeof localStorage !== 'undefined') {
-        try { localStorage.removeItem(storageKey); } catch {}
+    if (storageKey && typeof localStorage !== "undefined") {
+        try {
+            lsRemoveItem(storageKey);
+        } catch {}
     }
-    refreshLiveBindings((binding) => binding.type === 'currency-mult'
-        && binding.key === currencyKey
-        && binding.slot === slot);
+    refreshLiveBindings(
+        (binding) => binding.type === "currency-mult" && binding.key === currencyKey && binding.slot === slot,
+    );
 }
 
 function getStatOverride(slot, key) {
@@ -841,18 +916,18 @@ function getStatOverride(slot, key) {
 }
 
 function notifyStatMultiplierChange(statKey, slot) {
-    refreshLiveBindings((binding) => binding.type === 'stat-mult'
-        && binding.key === statKey
-        && binding.slot === slot);
+    refreshLiveBindings((binding) => binding.type === "stat-mult" && binding.key === statKey && binding.slot === slot);
 }
 
 function clearStatMultiplierOverride(statKey, slot = getActiveSlot()) {
     const storageKey = getStatMultiplierStorageKey(statKey, slot);
     statOverrides.delete(buildOverrideKey(slot, statKey));
     statOverrideBaselines.delete(buildOverrideKey(slot, statKey));
-    if (!storageKey || typeof localStorage === 'undefined') return;
+    if (!storageKey || typeof localStorage === "undefined") return;
     if (isStorageKeyLocked(storageKey)) return;
-    try { localStorage.removeItem(storageKey); } catch {}
+    try {
+        lsRemoveItem(storageKey);
+    } catch {}
     notifyStatMultiplierChange(statKey, slot);
 }
 
@@ -880,50 +955,50 @@ function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
 
 export function getGameStatMultiplier(statKey) {
     try {
-        if (statKey === 'xp') {
+        if (statKey === "xp") {
             const mult = getXpGainMultiplier();
             if (mult) return mult;
-        } else if (statKey === 'mutation') {
+        } else if (statKey === "mutation") {
             const valueMult = getMutationGainMultiplier?.();
             if (valueMult) return valueMult;
 
             const mult = getMutationMultiplier();
             if (mult) return mult;
-        } else if (statKey === 'scrap') {
+        } else if (statKey === "scrap") {
             const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
             if (eff?.scrapValueMultiplier) {
                 return BigNum.fromAny(eff.scrapValueMultiplier);
             }
-        } else if (statKey === 'allMaterials') {
+        } else if (statKey === "allMaterials") {
             const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
             if (eff?.allMaterialsValueMultiplier) {
                 return BigNum.fromAny(eff.allMaterialsValueMultiplier);
             }
-        } else if (statKey === 'allMaterials') {
+        } else if (statKey === "allMaterials") {
             const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
             if (eff?.allMaterialsValueMultiplier) {
                 return BigNum.fromAny(eff.allMaterialsValueMultiplier);
             }
-        } else if (statKey === 'spawnRate') {
+        } else if (statKey === "spawnRate") {
             const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
             if (eff?.coinsPerSecondMult) {
                 return BigNum.fromAny(eff.coinsPerSecondMult);
             }
-        } else if (statKey === 'materialSpawnRate') {
+        } else if (statKey === "materialSpawnRate") {
             const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
             if (eff?.materialSpawnRateMult) {
                 return BigNum.fromAny(0.2 * eff.materialSpawnRateMult);
             }
             return BigNum.fromAny(0.2);
-        } else if (statKey === 'rp') {
+        } else if (statKey === "rp") {
             return getRpMult();
-        } else if (statKey === 'fp') {
+        } else if (statKey === "fp") {
             return getFpMultiplier();
-        } else if (statKey === 'dp') {
+        } else if (statKey === "dp") {
             return getDpMultiplier();
-        } else if (statKey === 'pp') {
+        } else if (statKey === "pp") {
             return window.ppSystem?.getPpMultiplier?.() ?? BigNum.fromInt(1);
-        } else if (statKey === 'books') {
+        } else if (statKey === "books") {
             return window.bank?.books?.mult?.get?.() ?? BigNum.fromInt(1);
         }
     } catch {}
@@ -933,23 +1008,24 @@ export function getGameStatMultiplier(statKey) {
 
 function loadStatMultiplierOverrideFromStorage(statKey, slot = getActiveSlot()) {
     const storageKey = getStatMultiplierStorageKey(statKey, slot);
-    if (!storageKey || typeof localStorage === 'undefined') return null;
+    if (!storageKey || typeof localStorage === "undefined") return null;
     const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
-    try { return BigNum.fromAny(raw); }
-    catch { return null; }
+    try {
+        return BigNum.fromAny(raw);
+    } catch {
+        return null;
+    }
 }
 
 function storeStatMultiplierOverride(statKey, slot, value) {
     const storageKey = getStatMultiplierStorageKey(statKey, slot);
-    if (!storageKey || typeof localStorage === 'undefined') return;
+    if (!storageKey || typeof localStorage === "undefined") return;
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
         const locked = isStorageKeyLocked(storageKey);
-        const setter = locked && originalSetItem ? originalSetItem : localStorage.setItem.bind(localStorage);
-        if (locked && !originalSetItem) unlockStorageKey(storageKey);
+        const setter = locked ? lsSetItemForce : lsSetItem;
         setter(storageKey, bn.toStorage?.() ?? String(bn));
-        if (locked && !originalSetItem) lockStorageKey(storageKey);
     } catch {}
 }
 
@@ -968,65 +1044,76 @@ function applyCurrencyOverrideForSlot(currencyKey, slot = getActiveSlot()) {
         // even if get() returns the override (because it intercepts it).
         // This ensures currency:multiplier is fired and the UI/game correctly synchronizes.
         bank?.[currencyKey]?.mult?.set?.(override);
-    } catch {} finally {
+    } catch {
+    } finally {
         currencyOverrideApplications.delete(cacheKey);
     }
 }
 
 let currencyListenerAttached = false;
 function ensureCurrencyOverrideListener() {
-    if (currencyListenerAttached || typeof window === 'undefined') return;
+    if (currencyListenerAttached || typeof window === "undefined") return;
     currencyListenerAttached = true;
     try {
-        window.addEventListener('currency:multiplier', (event) => {
-            const { key, slot, mult } = event?.detail ?? {};
-            const targetSlot = slot ?? getActiveSlot();
-            const cacheKey = buildOverrideKey(targetSlot, key);
-            if (!targetSlot || !currencyOverrides.has(cacheKey)) return;
-            if (currencyOverrideApplications.has(cacheKey)) return;
+        window.addEventListener(
+            "currency:multiplier",
+            (event) => {
+                const { key, slot, mult } = event?.detail ?? {};
+                const targetSlot = slot ?? getActiveSlot();
+                const cacheKey = buildOverrideKey(targetSlot, key);
+                if (!targetSlot || !currencyOverrides.has(cacheKey)) return;
+                if (currencyOverrideApplications.has(cacheKey)) return;
 
-            const baseline = currencyOverrideBaselines.get(cacheKey);
-            const override = getCurrencyOverride(targetSlot, key);
+                const baseline = currencyOverrideBaselines.get(cacheKey);
+                const override = getCurrencyOverride(targetSlot, key);
 
-            if (baseline && override && mult) {
-                let shouldScale = true;
-                const baselineBn = BigNum.fromAny(baseline);
-                const nextBn = BigNum.fromAny(mult);
+                if (baseline && override && mult) {
+                    let shouldScale = true;
+                    const baselineBn = BigNum.fromAny(baseline);
+                    const nextBn = BigNum.fromAny(mult);
 
-                if (!baselineBn.isZero()) {
-                    try {
-                        // Sometimes the event fires with the exact same multiplier. We should ignore exact matches.
-                        if (!bigNumEquals(baselineBn, nextBn)) {
-                            const ratio = nextBn.div(baselineBn);
-                            const locked = isCurrencyMultiplierLocked(key, targetSlot);
-                            
-                            // If it's an unlocked currency and its baseline ACTUALLY changed, wipe its override.
-                            if (!locked) {
-                                clearCurrencyMultiplierOverride(key, targetSlot);
-                                shouldScale = false;
+                    if (!baselineBn.isZero()) {
+                        try {
+                            // Sometimes the event fires with the exact same multiplier. We should ignore exact matches.
+                            if (!bigNumEquals(baselineBn, nextBn)) {
+                                const ratio = nextBn.div(baselineBn);
+                                const locked = isCurrencyMultiplierLocked(key, targetSlot);
+
+                                // If it's an unlocked currency and its baseline ACTUALLY changed, wipe its override.
+                                if (!locked) {
+                                    clearCurrencyMultiplierOverride(key, targetSlot);
+                                    shouldScale = false;
+                                }
+
+                                if (shouldScale) {
+                                    const scaledOverride = override.mulDecimal(
+                                        ratio.toScientific(BigNum.DEFAULT_PRECISION),
+                                        BigNum.DEFAULT_PRECISION,
+                                    );
+                                    currencyOverrides.set(cacheKey, scaledOverride);
+                                    storeCurrencyMultiplierOverride(key, targetSlot, scaledOverride);
+                                }
                             }
-
-                            if (shouldScale) {
-                                const scaledOverride = override.mulDecimal(ratio.toScientific(BigNum.DEFAULT_PRECISION), BigNum.DEFAULT_PRECISION);
-                                currencyOverrides.set(cacheKey, scaledOverride);
-                                storeCurrencyMultiplierOverride(key, targetSlot, scaledOverride);
-                            }
-                        }
-                    } catch (e) {
+                        } catch (e) {}
                     }
+                    currencyOverrideBaselines.set(cacheKey, mult);
+                } else if (mult) {
+                    currencyOverrideBaselines.set(cacheKey, mult);
                 }
-                currencyOverrideBaselines.set(cacheKey, mult);
-            } else if (mult) {
-                currencyOverrideBaselines.set(cacheKey, mult);
-            }
 
-            if (currencyOverrides.has(cacheKey)) {
-                applyCurrencyOverrideForSlot(key, targetSlot);
-            }
-        }, { passive: true });
-        window.addEventListener('saveSlot:change', () => {
-            applyAllCurrencyOverridesForActiveSlot();
-        }, { passive: true });
+                if (currencyOverrides.has(cacheKey)) {
+                    applyCurrencyOverrideForSlot(key, targetSlot);
+                }
+            },
+            { passive: true },
+        );
+        window.addEventListener(
+            "saveSlot:change",
+            () => {
+                applyAllCurrencyOverridesForActiveSlot();
+            },
+            { passive: true },
+        );
     } catch {}
 }
 
@@ -1042,8 +1129,12 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     if (!currencyKey || slot == null) return null;
     ensureCurrencyOverrideListener();
     let bn;
-    try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
-    catch { bn = BigNum.fromInt(1); }
+    try {
+        bn = value instanceof BigNum ? (value.clone?.() ?? value) : BigNum.fromAny(value ?? 1);
+    } catch {
+        bn = BigNum.fromInt(1);
+    }
+
     const cacheKey = buildOverrideKey(slot, currencyKey);
 
     // Fix: Only set the baseline if it's not already set.
@@ -1058,12 +1149,12 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
 
     currencyOverrides.set(cacheKey, bn);
     storeCurrencyMultiplierOverride(currencyKey, slot, bn);
-    
+
     applyCurrencyOverrideForSlot(currencyKey, slot);
     return bn;
 }
 
-if (typeof window !== 'undefined') window.getDebugCurrencyMultiplierOverride = getDebugCurrencyMultiplierOverride;
+if (typeof window !== "undefined") window.getDebugCurrencyMultiplierOverride = getDebugCurrencyMultiplierOverride;
 export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
     if (!currencyKey || slot == null) return null;
     return getCurrencyOverride(slot, currencyKey);
@@ -1072,20 +1163,23 @@ export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActive
 export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveSlot()) {
     if (!statKey || slot == null) return null;
     let bn;
-    try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
-    catch { bn = BigNum.fromInt(1); }
+    try {
+        bn = value instanceof BigNum ? (value.clone?.() ?? value) : BigNum.fromAny(value ?? 1);
+    } catch {
+        bn = BigNum.fromInt(1);
+    }
     statOverrides.set(buildOverrideKey(slot, statKey), bn);
     statOverrideBaselines.set(buildOverrideKey(slot, statKey), getGameStatMultiplier(statKey));
     storeStatMultiplierOverride(statKey, slot, bn);
     notifyStatMultiplierChange(statKey, slot);
 
-    if (statKey === 'allMaterials') {
+    if (statKey === "allMaterials") {
         for (const mat of UC_MATERIALS) {
             if (!isCurrencyMultiplierLocked(mat, slot)) {
                 clearCurrencyMultiplierOverride(mat, slot);
                 const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
                 if (storageKey) {
-                    localStorage.removeItem(storageKey);
+                    lsRemoveItem(storageKey);
                 }
             }
         }
@@ -1097,16 +1191,18 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
 export function clearAllDebugOverrides(slot = getActiveSlot()) {
     if (slot == null) return;
 
-    if (typeof window !== 'undefined' && window.__activeStorageKeys) {
+    if (typeof window !== "undefined" && window.__activeStorageKeys) {
         const keysToRemove = [];
         for (const key of window.__activeStorageKeys) {
-            if (key && key.startsWith('ccc:debug:') && key.endsWith(`:${slot}`)) {
+            if (key && key.startsWith("ccc:debug:") && key.endsWith(`:${slot}`)) {
                 keysToRemove.push(key);
             }
         }
-        keysToRemove.forEach(key => {
+        keysToRemove.forEach((key) => {
             unlockStorageKey(key);
-            try { localStorage.removeItem(key); } catch {}
+            try {
+                lsRemoveItem(key);
+            } catch {}
         });
     }
 
@@ -1122,28 +1218,40 @@ export function clearAllDebugOverrides(slot = getActiveSlot()) {
     clearMapEntriesForSlot(statOverrideBaselines);
     clearMapEntriesForSlot(currencyOverrides);
     clearMapEntriesForSlot(currencyOverrideBaselines);
-    
+
     Object.values(CURRENCIES).forEach((key) => {
         unlockStorageKey(getCurrencyMultiplierStorageKey(key, slot));
         const storageKey = getCurrencyMultiplierStorageKey(key, slot);
         if (storageKey) {
-            try { localStorage.removeItem(storageKey); } catch {}
+            try {
+                lsRemoveItem(storageKey);
+            } catch {}
         }
     });
-    
-    try { refreshLiveBindings((binding) => binding.slot === slot || binding.slot == null); } catch {}
-    
-    if (typeof window.refreshCoinMultiplierCache === 'function') {
-        try { window.refreshCoinMultiplierCache(); } catch {}
+
+    try {
+        refreshLiveBindings((binding) => binding.slot === slot || binding.slot == null);
+    } catch {}
+
+    if (typeof window.refreshCoinMultiplierCache === "function") {
+        try {
+            window.refreshCoinMultiplierCache();
+        } catch {}
     }
-    if (typeof window.refreshMpValueMultiplierCache === 'function') {
-        try { window.refreshMpValueMultiplierCache(); } catch {}
+    if (typeof window.refreshMpValueMultiplierCache === "function") {
+        try {
+            window.refreshMpValueMultiplierCache();
+        } catch {}
     }
-    if (typeof window.refreshSurgeMultiplierCache === 'function') {
-        try { window.refreshSurgeMultiplierCache(); } catch {}
+    if (typeof window.refreshSurgeMultiplierCache === "function") {
+        try {
+            window.refreshSurgeMultiplierCache();
+        } catch {}
     }
-    
-    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); } catch {}
+
+    try {
+        window.dispatchEvent(new CustomEvent("debug:change", { detail: { slot } }));
+    } catch {}
 }
 
 export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) {
@@ -1158,7 +1266,7 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
 
     let base;
     try {
-        base = amount instanceof BigNum ? amount.clone?.() ?? amount : BigNum.fromAny(amount ?? 0);
+        base = amount instanceof BigNum ? (amount.clone?.() ?? amount) : BigNum.fromAny(amount ?? 0);
     } catch {
         return amount;
     }
@@ -1186,21 +1294,20 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
     // Fix: Use BigNum div instead of converting to finite numbers
     let ratio = null;
     try {
-         const numBn = BigNum.fromAny(override);
-         const denomBn = BigNum.fromAny(multiplierForRatio);
-         if (!denomBn.isZero()) {
-             ratio = numBn.div(denomBn);
-         }
+        const numBn = BigNum.fromAny(override);
+        const denomBn = BigNum.fromAny(multiplierForRatio);
+        if (!denomBn.isZero()) {
+            ratio = numBn.div(denomBn);
+        }
     } catch (e) {
         ratio = null;
     }
 
     if (ratio) {
-        try { 
+        try {
             // mulBigNumInteger supports generic BigNum multiplication
-            return base.mulBigNumInteger(ratio); 
-        }
-        catch {}
+            return base.mulBigNumInteger(ratio);
+        } catch {}
     }
 
     return base;
@@ -1225,13 +1332,13 @@ function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
             return override;
         }
         clearStatMultiplierOverride(statKey, slot);
-        if (statKey === 'allMaterials') {
+        if (statKey === "allMaterials") {
             for (const mat of UC_MATERIALS) {
                 if (!isCurrencyMultiplierLocked(mat, slot)) {
                     clearCurrencyMultiplierOverride(mat, slot);
                     const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
                     if (storageKey) {
-                        localStorage.removeItem(storageKey);
+                        lsRemoveItem(storageKey);
                     }
                 }
             }
@@ -1243,19 +1350,10 @@ function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
 }
 
 function ensureStorageLockPatch() {
-    if (storageLockPatched || typeof localStorage === 'undefined') return;
+    if (storageLockPatched || typeof localStorage === "undefined") return;
     storageLockPatched = true;
     try {
-        originalSetItem = localStorage.setItem.bind(localStorage);
-        originalRemoveItem = localStorage.removeItem.bind(localStorage);
-        localStorage.setItem = (key, value) => {
-            if (lockedStorageKeys.has(key)) return;
-            return originalSetItem(key, value);
-        };
-        localStorage.removeItem = (key) => {
-            if (lockedStorageKeys.has(key)) return;
-            return originalRemoveItem(key);
-        };
+        setDebugStorageLockChecker((key) => lockedStorageKeys.has(key));
     } catch {}
 }
 
@@ -1292,39 +1390,39 @@ function toggleStorageLock(key) {
 }
 
 function createLockToggle(storageKey, { onToggle } = {}) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'debug-lock-button';
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "debug-lock-button";
 
     const refresh = () => {
         const locked = isStorageKeyLocked(storageKey);
-        button.textContent = locked ? 'L' : 'UL';
-        button.classList.toggle('locked', locked);
+        button.textContent = locked ? "L" : "UL";
+        button.classList.toggle("locked", locked);
     };
 
-    button.addEventListener('click', () => {
+    button.addEventListener("click", () => {
         toggleStorageLock(storageKey);
-        if (typeof onToggle === 'function') {
-            try { onToggle(isStorageKeyLocked(storageKey)); }
-            catch {}
+        if (typeof onToggle === "function") {
+            try {
+                onToggle(isStorageKeyLocked(storageKey));
+            } catch {}
         }
         refresh();
     });
 
-    document.addEventListener('debugStorageLocksChanged', refresh);
-    addDebugPanelCleanup(() => document.removeEventListener('debugStorageLocksChanged', refresh));
+    document.addEventListener("debugStorageLocksChanged", refresh);
+    addDebugPanelCleanup(() => document.removeEventListener("debugStorageLocksChanged", refresh));
 
     refresh();
     return { button, refresh };
 }
 
 function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'debug-lock-button';
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "debug-lock-button";
 
-    const getKeys = () =>
-        Array.from(new Set((resolveKeys?.() ?? []).filter(Boolean)));
+    const getKeys = () => Array.from(new Set((resolveKeys?.() ?? []).filter(Boolean)));
 
     const isLocked = () => {
         const keys = getKeys();
@@ -1339,12 +1437,12 @@ function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
     const refresh = () => {
         const keys = getKeys();
         const anyLocked = hasAnyLocked();
-        button.textContent = anyLocked ? 'L' : 'UL';
-        button.classList.toggle('locked', anyLocked);
+        button.textContent = anyLocked ? "L" : "UL";
+        button.classList.toggle("locked", anyLocked);
         button.disabled = keys.length === 0;
     };
 
-    button.addEventListener('click', () => {
+    button.addEventListener("click", () => {
         const keys = getKeys();
         if (keys.length === 0) return;
 
@@ -1357,9 +1455,10 @@ function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
             }
         });
 
-        if (typeof onToggle === 'function') {
-            try { onToggle(isLocked()); }
-            catch {}
+        if (typeof onToggle === "function") {
+            try {
+                onToggle(isLocked());
+            } catch {}
         }
 
         refresh();
@@ -1372,12 +1471,12 @@ function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
 applyAllCurrencyOverridesForActiveSlot();
 ensureCurrencyOverrideListener();
 
-if (typeof window !== 'undefined') {
-    window.addEventListener('surge:level:change', () => {
-        refreshLiveBindings((binding) => binding.type === 'stat-mult');
+if (typeof window !== "undefined") {
+    window.addEventListener("surge:level:change", () => {
+        refreshLiveBindings((binding) => binding.type === "stat-mult");
     });
-    window.addEventListener('lab:node:change', () => {
-        refreshLiveBindings((binding) => binding.type === 'stat-mult');
+    window.addEventListener("lab:node:change", () => {
+        refreshLiveBindings((binding) => binding.type === "stat-mult");
     });
 }
 
@@ -1385,16 +1484,16 @@ function collapseAllDebugCategories() {
     const panel = document.getElementById(DEBUG_PANEL_ID);
     if (!panel) return;
 
-    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
-        toggle.classList.remove('expanded');
+    panel.querySelectorAll(".debug-panel-section-toggle").forEach((toggle) => {
+        toggle.classList.remove("expanded");
         const content = toggle.nextElementSibling;
-        if (content) content.classList.remove('active');
+        if (content) content.classList.remove("active");
     });
 
-    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
-        toggle.classList.remove('expanded');
+    panel.querySelectorAll(".debug-panel-subsection-toggle").forEach((toggle) => {
+        toggle.classList.remove("expanded");
         const content = toggle.nextElementSibling;
-        if (content) content.classList.remove('active');
+        if (content) content.classList.remove("active");
     });
 }
 
@@ -1419,57 +1518,59 @@ function withTemporaryUnlock(keys, fn) {
 function formatBigNumForInput(value) {
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
-        if (bn.isNaN?.()) return 'BN:NaN';
+        if (bn.isNaN?.()) return "BN:NaN";
         if (bn.isInfinite?.()) {
-            return 'BN:infinite';
+            return "BN:infinite";
         }
         if (bn.isZero?.()) {
-            return 'BN:zero';
+            return "BN:zero";
         }
+
         const storage = bn.toStorage?.();
-        const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '', expPart = '0'] = (storage || '').split(':');
+        const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = "", expPart = "0"] = (storage || "").split(":");
         let precision = Number.parseInt(pStr, 10);
         if (Number.isNaN(precision)) precision = BigNum.DEFAULT_PRECISION;
         if (precision === 0) {
             return `BN:0::${expPart}`;
         }
-        const paddedSig = sigPart ? sigPart.padStart(precision, '0') : '0'.repeat(precision);
+
+        const paddedSig = sigPart ? sigPart.padStart(precision, "0") : "0".repeat(precision);
         return `BN:${precision}:${paddedSig}:${expPart}`;
     } catch {
-        return String(value ?? '');
+        return String(value ?? "");
     }
 }
 
 export function parseBigNumInput(raw) {
-    let trimmed = String(raw ?? '').trim();
+    let trimmed = String(raw ?? "").trim();
     if (!trimmed) return BigNum.fromInt(0);
 
-    if (trimmed.startsWith('.')) {
-        trimmed = '0' + trimmed;
-    } else if (trimmed.startsWith('-.')) {
-        trimmed = '-0' + trimmed.substring(1);
+    if (trimmed.startsWith(".")) {
+        trimmed = "0" + trimmed;
+    } else if (trimmed.startsWith("-.")) {
+        trimmed = "-0" + trimmed.substring(1);
     }
 
     try {
         if (/^nan$/i.test(trimmed)) return new BigNum(NaN, 0);
         if (/^inf(?:inity)?$/i.test(trimmed)) {
-            return BigNum.fromAny('Infinity');
+            return BigNum.fromAny("Infinity");
         }
-        if (trimmed.startsWith('BN:')) {
-            const parts = trimmed.split(':');
-            if (parts.length >= 4 && parts[1] !== 'infinite' && parts[1] !== 'NaN') {
-                const sigPart = parts[2] || '';
-                let expPart = parts.slice(3).join(':');
-                if (!expPart) expPart = '0';
+        if (trimmed.startsWith("BN:")) {
+            const parts = trimmed.split(":");
+            if (parts.length >= 4 && parts[1] !== "infinite" && parts[1] !== "NaN") {
+                const sigPart = parts[2] || "";
+                let expPart = parts.slice(3).join(":");
+                if (!expPart) expPart = "0";
 
-                const eIndex = expPart.toLowerCase().indexOf('e');
+                const eIndex = expPart.toLowerCase().indexOf("e");
                 if (eIndex !== -1) {
-                    const dotAfterE = expPart.indexOf('.', eIndex);
+                    const dotAfterE = expPart.indexOf(".", eIndex);
                     if (dotAfterE !== -1) {
                         expPart = expPart.substring(0, dotAfterE);
                     }
                 } else {
-                    const dotIndex = expPart.indexOf('.');
+                    const dotIndex = expPart.indexOf(".");
                     if (dotIndex !== -1) {
                         expPart = expPart.substring(0, dotIndex);
                     }
@@ -1482,7 +1583,7 @@ export function parseBigNumInput(raw) {
                 trimmed = `BN:${parts[1]}:${sigPart}:${expPart}`;
 
                 const isZeroSig = /^0*$/.test(sigPart);
-                if (isZeroSig && expPart !== '0' && expPart !== '') {
+                if (isZeroSig && expPart !== "0" && expPart !== "") {
                     let p = parseInt(parts[1], 10);
                     if (Number.isNaN(p)) p = BigNum.DEFAULT_PRECISION;
                     const parsed2 = BigNum.fromStorage(`BN:${p}:1:${expPart}`);
@@ -1491,6 +1592,7 @@ export function parseBigNumInput(raw) {
                 }
             }
         }
+
         const parsed = BigNum.fromAny(trimmed);
         if (parsed && parsed.isNegative()) return null;
         return parsed;
@@ -1500,15 +1602,17 @@ export function parseBigNumInput(raw) {
 }
 
 function setInputValidity(input, valid) {
-    input.classList.toggle('debug-invalid', !valid);
+    input.classList.toggle("debug-invalid", !valid);
 }
 
 function flagDebugUsage() {
     const slot = getActiveSlot();
-    try { markSaveSlotModified(slot); }
-    catch {}
-    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); }
-    catch {}
+    try {
+        markSaveSlotModified(slot);
+    } catch {}
+    try {
+        window.dispatchEvent(new CustomEvent("debug:change", { detail: { slot } }));
+    } catch {}
 }
 
 function getActionLogKey(slot = getActiveSlot()) {
@@ -1521,8 +1625,9 @@ function getCurrentActionLog(slot = getActiveSlot()) {
     if (!key) return [];
 
     let raw = null;
-    try { raw = localStorage.getItem(key); }
-    catch {}
+    try {
+        raw = localStorage.getItem(key);
+    } catch {}
     if (!raw) return [];
 
     try {
@@ -1535,11 +1640,12 @@ function getCurrentActionLog(slot = getActiveSlot()) {
 
 function persistActionLog(entries, slot = getActiveSlot()) {
     const key = getActionLogKey(slot);
-    if (!key || typeof localStorage === 'undefined') return;
+    if (!key || typeof localStorage === "undefined") return;
 
     const trimmed = (Array.isArray(entries) ? entries : []).slice(0, MAX_ACTION_LOG_ENTRIES);
-    try { localStorage.setItem(key, JSON.stringify(trimmed)); }
-    catch {}
+    try {
+        lsSetItem(key, JSON.stringify(trimmed));
+    } catch {}
 }
 
 function appendActionLogEntry(entry, slot = getActiveSlot()) {
@@ -1558,7 +1664,7 @@ function logAction(message) {
 
     const now = new Date();
     const entry = {
-        time: now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
+        time: now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true }),
         message,
         timestamp: now.getTime(),
     };
@@ -1571,29 +1677,43 @@ function updateActionLogDisplay() {
 
     const actionLog = getCurrentActionLog();
     if (actionLog.length === 0) {
-        actionLogContainer.innerHTML = '';
-        const msg = document.createElement('div');
-        msg.className = 'action-log-empty';
-        msg.textContent = window.currentArea === 666 ? 'You are in Jail' : 'Actions you perform in the Debug Panel will be logged permanently in this action log.';
+        actionLogContainer.innerHTML = "";
+        const msg = document.createElement("div");
+        msg.className = "action-log-empty";
+        msg.textContent =
+            window.currentArea === 666
+                ? "You are in Jail"
+                : "Actions you perform in the Debug Panel will be logged permanently in this action log.";
         actionLogContainer.appendChild(msg);
         return;
     }
 
-    actionLogContainer.innerHTML = actionLog.map((entry) => {
-        let formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
-        let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
-        formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
-        formattedMessage = formattedMessage.replace(/(?:\b[eE]\d|\d)[a-zA-Z\d.,+-]*/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
-        formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g, '<span class="action-log-number">inf</span>');
-        formattedMessage = formattedMessage.replace(/\u221E/g, '<span class="action-log-number">inf</span>');
+    actionLogContainer.innerHTML = actionLog
+        .map((entry) => {
+            let formattedTime = String(entry.time ?? "").replace(/^0(\d)/, "$1");
+            let formattedMessage =
+                entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? "";
+            formattedMessage = formattedMessage.replace(
+                /\b(?:Level|Lv)\s?(\d+)\b/g,
+                '<span class="action-log-level">Lv$1</span>',
+            );
+            formattedMessage = formattedMessage.replace(/(?:\b[eE]\d|\d)[a-zA-Z\d.,+-]*/g, (match) =>
+                /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match,
+            );
+            formattedMessage = formattedMessage.replace(
+                /<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g,
+                '<span class="action-log-number">inf</span>',
+            );
+            formattedMessage = formattedMessage.replace(/\u221E/g, '<span class="action-log-number">inf</span>');
 
-        if (window.currentArea === 666) {
-            formattedTime = 'You are in Jail:';
-            formattedMessage = 'You are in Jail';
-        }
+            if (window.currentArea === 666) {
+                formattedTime = "You are in Jail:";
+                formattedMessage = "You are in Jail";
+            }
 
-        return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}${window.currentArea === 666 ? ': ' : ':'}</span><span class="action-log-message">${formattedMessage}</span></div>`;
-    }).join('');
+            return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}${window.currentArea === 666 ? ": " : ":"}</span><span class="action-log-message">${formattedMessage}</span></div>`;
+        })
+        .join("");
 }
 
 function dialogueStateStorageKey(slot = getActiveSlot()) {
@@ -1606,7 +1726,7 @@ function persistDialogueState(state, slot = getActiveSlot()) {
     if (!key) return;
     try {
         const payload = JSON.stringify(state || {});
-        localStorage.setItem(key, payload);
+        lsSetItem(key, payload);
     } catch {}
 }
 
@@ -1637,8 +1757,9 @@ function grantDialogueReward(reward) {
         return;
     }
 
-    try { window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward })); }
-    catch {}
+    try {
+        window.dispatchEvent(new CustomEvent("merchantReward", { detail: reward }));
+    } catch {}
 }
 
 function completeAllDialoguesForDebug() {
@@ -1652,7 +1773,7 @@ function completeAllDialoguesForDebug() {
         const key = String(id);
         const prev = state[key] || {};
         const alreadyClaimed = !!prev.claimed;
-        const next = Object.assign({}, prev, { status: 'unlocked', claimed: true });
+        const next = Object.assign({}, prev, { status: "unlocked", claimed: true });
         state[key] = next;
         if (!alreadyClaimed) {
             completed += 1;
@@ -1683,23 +1804,23 @@ function restoreAllDialoguesForDebug() {
 }
 
 function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey, onLockChange, format } = {}) {
-    const row = document.createElement('div');
-    row.className = 'debug-panel-row';
+    const row = document.createElement("div");
+    row.className = "debug-panel-row";
 
-    const label = document.createElement('label');
+    const label = document.createElement("label");
     label.textContent = labelText;
     if (idLabel != null) {
-        label.append(' ');
-        const idSpan = document.createElement('span');
-        idSpan.className = 'debug-panel-id';
+        label.append(" ");
+        const idSpan = document.createElement("span");
+        idSpan.className = "debug-panel-id";
         idSpan.textContent = `(ID: ${idLabel})`;
         label.appendChild(idSpan);
     }
     row.appendChild(label);
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'debug-panel-input';
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "debug-panel-input";
     let editing = false;
     let pendingValue = null;
     let skipBlurCommit = false;
@@ -1707,7 +1828,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
 
     const setValue = (value) => {
         if (window.currentArea === 666) {
-            input.value = 'You are in Jail';
+            input.value = "You are in Jail";
             return;
         }
 
@@ -1716,9 +1837,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
             return;
         }
         pendingValue = null;
-        input.value = typeof format === 'function'
-            ? format(value)
-            : formatBigNumForInput(value);
+        input.value = typeof format === "function" ? format(value) : formatBigNumForInput(value);
     };
 
     row.appendChild(input);
@@ -1744,17 +1863,19 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
         }
     };
 
-    input.addEventListener('focus', () => { editing = true; });
-    input.addEventListener('change', commitValue);
-    input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
+    input.addEventListener("focus", () => {
+        editing = true;
+    });
+    input.addEventListener("change", commitValue);
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
             event.preventDefault();
             skipBlurCommit = true;
             commitValue();
             input.blur();
         }
     });
-    input.addEventListener('blur', () => {
+    input.addEventListener("blur", () => {
         editing = false;
         if (!skipBlurCommit) {
             commitValue();
@@ -1770,40 +1891,45 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     setValue(initialValue);
     if (lockToggle) lockToggle.refresh();
 
-    const commitValueWithArg = (val) => { input.value = val; commitValue(); };
-    if (isBuildingStats) { debugPanelStatSetters.push(commitValueWithArg); }
+    const commitValueWithArg = (val) => {
+        input.value = val;
+        commitValue();
+    };
+    if (isBuildingStats) {
+        debugPanelStatSetters.push(commitValueWithArg);
+    }
 
     return { row, input, setValue, isEditing: () => editing, commitValueWithArg };
 }
 
 function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable, slot }) {
-    const row = document.createElement('div');
-    row.className = 'debug-panel-row debug-unlock-row';
+    const row = document.createElement("div");
+    row.className = "debug-panel-row debug-unlock-row";
 
-    const toggle = document.createElement('label');
-    toggle.className = 'flag-toggle';
-    toggle.setAttribute('aria-label', labelText);
+    const toggle = document.createElement("label");
+    toggle.className = "flag-toggle";
+    toggle.setAttribute("aria-label", labelText);
 
-    const input = document.createElement('input');
-    input.type = 'checkbox';
+    const input = document.createElement("input");
+    input.type = "checkbox";
 
-    const slider = document.createElement('span');
-    slider.className = 'flag-slider';
+    const slider = document.createElement("span");
+    slider.className = "flag-slider";
 
     toggle.appendChild(input);
     toggle.appendChild(slider);
 
-    const textContainer = document.createElement('div');
-    textContainer.className = 'debug-unlock-text';
+    const textContainer = document.createElement("div");
+    textContainer.className = "debug-unlock-text";
 
-    const title = document.createElement('span');
-    title.className = 'debug-unlock-title';
+    const title = document.createElement("span");
+    title.className = "debug-unlock-title";
     title.textContent = labelText;
     textContainer.appendChild(title);
 
     if (description) {
-        const desc = document.createElement('span');
-        desc.className = 'debug-unlock-desc';
+        const desc = document.createElement("span");
+        desc.className = "debug-unlock-desc";
         desc.textContent = `- ${description}`;
         textContainer.appendChild(desc);
     }
@@ -1813,10 +1939,10 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
 
     const toggleRow = () => {
         input.checked = !input.checked;
-        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
     };
 
-    row.addEventListener('click', (event) => {
+    row.addEventListener("click", (event) => {
         if (window.currentArea === 666) return;
         if (toggle.contains(event.target)) return;
         toggleRow();
@@ -1826,14 +1952,15 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
 
     const refresh = () => {
         let unlocked = false;
-        try { unlocked = typeof isUnlocked === 'function' ? !!isUnlocked() : false; }
-        catch {}
+        try {
+            unlocked = typeof isUnlocked === "function" ? !!isUnlocked() : false;
+        } catch {}
         input.checked = unlocked;
         lastKnown = unlocked;
         return unlocked;
     };
 
-    input.addEventListener('change', (event) => {
+    input.addEventListener("change", (event) => {
         if (window.currentArea === 666) {
             // Restore previous state if in jail and prevent processing
             input.checked = lastKnown;
@@ -1852,45 +1979,48 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
         flagDebugUsage();
         const refreshed = refresh();
         if (previous !== refreshed) {
-            logAction(`Toggled ${labelText} [GOLD]${previous ? 'True' : 'False'}[/GOLD] → [GOLD]${refreshed ? 'True' : 'False'}[/GOLD]`);
+            logAction(
+                `Toggled ${labelText} [GOLD]${previous ? "True" : "False"}[/GOLD] → [GOLD]${refreshed ? "True" : "False"}[/GOLD]`,
+            );
         }
     });
 
     refresh();
-    registerLiveBinding({ type: 'unlock', slot, refresh });
+    registerLiveBinding({ type: "unlock", slot, refresh });
     return row;
 }
 
 function formatCalculatorResult(value) {
     try {
-        if (value instanceof BigNum || typeof value?.toScientific === 'function') {
+        if (value instanceof BigNum || typeof value?.toScientific === "function") {
             return formatNumber(value);
         }
+
         const num = Number(value);
         if (Number.isFinite(num)) {
             return formatNumber(num);
         }
-        return String(value ?? '—');
+        return String(value ?? "—");
     } catch {
-        return '—';
+        return "—";
     }
 }
 
 function createCalculatorRow({ labelText, inputs = [], compute }) {
-    const row = document.createElement('div');
-    row.className = 'debug-panel-row debug-calculator-row';
+    const row = document.createElement("div");
+    row.className = "debug-panel-row debug-calculator-row";
 
-    const label = document.createElement('label');
+    const label = document.createElement("label");
     label.textContent = labelText;
     row.appendChild(label);
 
-    const controls = document.createElement('div');
-    controls.className = 'debug-calculator-inputs';
+    const controls = document.createElement("div");
+    controls.className = "debug-calculator-inputs";
     row.appendChild(controls);
 
-    const output = document.createElement('div');
-    output.className = 'debug-calculator-output';
-    output.textContent = '—';
+    const output = document.createElement("div");
+    output.className = "debug-calculator-output";
+    output.textContent = "—";
     row.appendChild(output);
 
     const fieldEls = [];
@@ -1900,7 +2030,7 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
         let hasError = false;
 
         fieldEls.forEach(({ config, el }) => {
-            if (config.type === 'select') {
+            if (config.type === "select") {
                 values[config.key] = el.value;
                 return;
             }
@@ -1915,8 +2045,8 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
             values[config.key] = parsed;
         });
 
-        if (hasError || typeof compute !== 'function') {
-            output.textContent = '—';
+        if (hasError || typeof compute !== "function") {
+            output.textContent = "—";
             return;
         }
 
@@ -1924,19 +2054,19 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
             const result = compute(values);
             setHtmlOrText(output, formatCalculatorResult(result));
         } catch {
-            output.textContent = '—';
+            output.textContent = "—";
         }
     };
 
     inputs.forEach((inputConfig) => {
-        const config = Object.assign({ type: 'text', defaultValue: '' }, inputConfig);
+        const config = Object.assign({ type: "text", defaultValue: "" }, inputConfig);
         if (!config.key) return;
 
-        if (config.type === 'select') {
-            const select = document.createElement('select');
-            select.className = 'debug-panel-input';
+        if (config.type === "select") {
+            const select = document.createElement("select");
+            select.className = "debug-panel-input";
             (config.options || []).forEach(({ value, label: optLabel }) => {
-                const option = document.createElement('option');
+                const option = document.createElement("option");
                 option.value = value;
                 option.textContent = optLabel ?? value;
                 if (config.defaultValue != null && config.defaultValue === value) {
@@ -1944,18 +2074,18 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
                 }
                 select.appendChild(option);
             });
-            select.addEventListener('change', recompute);
+            select.addEventListener("change", recompute);
             controls.appendChild(select);
             fieldEls.push({ config, el: select });
         } else {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'debug-panel-input';
-            input.placeholder = config.label || '';
-            input.value = config.defaultValue ?? '';
-            input.addEventListener('input', recompute);
-            input.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "debug-panel-input";
+            input.placeholder = config.label || "";
+            input.value = config.defaultValue ?? "";
+            input.addEventListener("input", recompute);
+            input.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
                     event.preventDefault();
                     recompute();
                 }
@@ -1971,75 +2101,88 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
 }
 
 function applyXpState({ level, progress }) {
-  const slot = getActiveSlot();
-  if (slot == null) return;
+    const slot = getActiveSlot();
+    if (slot == null) return;
 
-  const current = (() => {
-    try { return getXpState(); }
-    catch { return null; }
-  })();
+    const current = (() => {
+        try {
+            return getXpState();
+        } catch {
+            return null;
+        }
+    })();
 
-  const zero = (() => {
-    try { return BigNum.fromInt(0); }
-    catch { return null; }
-  })();
+    const zero = (() => {
+        try {
+            return BigNum.fromInt(0);
+        } catch {
+            return null;
+        }
+    })();
 
-  const toBnOrNull = (value) => {
-    if (value == null) return null;
-    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
-    catch { return null; }
-  };
+    const toBnOrNull = (value) => {
+        if (value == null) return null;
+        try {
+            return value instanceof BigNum ? (value.clone?.() ?? value) : BigNum.fromAny(value);
+        } catch {
+            return null;
+        }
+    };
 
-  let nextLevel = toBnOrNull(level) ?? current?.xpLevel ?? null;
-  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+    let nextLevel = toBnOrNull(level) ?? current?.xpLevel ?? null;
+    let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
 
-  const levelIsFinite = !(nextLevel?.isInfinite?.());
-  const progressIsFinite = !(nextProgress?.isInfinite?.());
+    const levelIsFinite = !nextLevel?.isInfinite?.();
+    const progressIsFinite = !nextProgress?.isInfinite?.();
 
-  // If either field is being changed back to a finite value, but its partner
-  // was still stuck at Infinity, zero it out so the XP system can resume
-  // normal accumulation.
-  if (!levelIsFinite && progressIsFinite && level !== undefined) {
-      nextProgress = BigNum.fromAny('Infinity');
-  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
-      nextLevel = BigNum.fromAny('Infinity');
-  } else if ((level != null || progress != null) && zero) {
-    if (levelIsFinite && !progressIsFinite) {
-      if (level != null) {
-        nextProgress = zero.clone?.() ?? zero;
-      }
-    } else if (progressIsFinite && !levelIsFinite) {
-      if (progress != null) {
-        nextLevel = zero.clone?.() ?? zero;
-      }
+    // If either field is being changed back to a finite value, but its partner
+    // was still stuck at Infinity, zero it out so the XP system can resume
+    // normal accumulation.
+    if (!levelIsFinite && progressIsFinite && level !== undefined) {
+        nextProgress = BigNum.fromAny("Infinity");
+    } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+        nextLevel = BigNum.fromAny("Infinity");
+    } else if ((level != null || progress != null) && zero) {
+        if (levelIsFinite && !progressIsFinite) {
+            if (level != null) {
+                nextProgress = zero.clone?.() ?? zero;
+            }
+        } else if (progressIsFinite && !levelIsFinite) {
+            if (progress != null) {
+                nextLevel = zero.clone?.() ?? zero;
+            }
+        }
     }
-  }
 
     // If we're manually editing XP stats from the debug panel, the XP system
     // should be treated as unlocked.
-    try { unlockXpSystem(); } catch {}
+    try {
+        unlockXpSystem();
+    } catch {}
 
     const unlockKey = XP_KEYS.unlock(slot);
-    try { localStorage.setItem(unlockKey, '1'); } catch {}
-    primeStorageWatcherSnapshot(unlockKey, '1');
-
-  if (nextLevel != null) {
     try {
-      const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
-      const key = XP_KEYS.level(slot);
-      localStorage.setItem(key, raw);
-      primeStorageWatcherSnapshot(key, raw);
+        lsSetItem(unlockKey, "1");
     } catch {}
-  }
+    primeStorageWatcherSnapshot(unlockKey, "1");
 
-  if (nextProgress != null) {
-    try {
-      const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
-      const key = XP_KEYS.progress(slot);
-      localStorage.setItem(key, raw);
-      primeStorageWatcherSnapshot(key, raw);
-    } catch {}
-  }
+    if (nextLevel != null) {
+        try {
+            const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+            const key = XP_KEYS.level(slot);
+            lsSetItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
+
+    if (nextProgress != null) {
+        try {
+            const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+            const key = XP_KEYS.progress(slot);
+            lsSetItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
 
     try {
         initXpSystem({ forceReload: true });
@@ -2049,10 +2192,10 @@ function applyXpState({ level, progress }) {
     // the Forge reset panel) can refresh immediately without waiting for normal
     // gameplay hooks to fire.
     try {
-        if (typeof window !== 'undefined' && window.showPopup) {
-            window.showPopup('xp', nextProgress, { overrideAmount: true });
+        if (typeof window !== "undefined" && window.showPopup) {
+            window.showPopup("xp", nextProgress, { overrideAmount: true });
         }
-        broadcastXpChange({ changeType: 'debug-panel', slot, xpAdded: 0 });
+        broadcastXpChange({ changeType: "debug-panel", slot, xpAdded: 0 });
     } catch {}
 
     // Also keep ALL debug live bindings in sync (including the Unlocks tab
@@ -2063,151 +2206,174 @@ function applyXpState({ level, progress }) {
 }
 
 function applyPpState({ level, progress }) {
-  const slot = getActiveSlot();
-  if (slot == null) return;
+    const slot = getActiveSlot();
+    if (slot == null) return;
 
-  const current = (() => {
-    try { return window.ppSystem.getPpState(); }
-    catch { return null; }
-  })();
+    const current = (() => {
+        try {
+            return window.ppSystem.getPpState();
+        } catch {
+            return null;
+        }
+    })();
 
-  const zero = (() => {
-    try { return BigNum.fromInt(0); }
-    catch { return null; }
-  })();
+    const zero = (() => {
+        try {
+            return BigNum.fromInt(0);
+        } catch {
+            return null;
+        }
+    })();
 
-  const toBnOrNull = (value) => {
-    if (value == null) return null;
-    if (value instanceof BigNum) return value;
-    try { return BigNum.fromAny(value); }
-    catch { return null; }
-  };
+    const toBnOrNull = (value) => {
+        if (value == null) return null;
+        if (value instanceof BigNum) return value;
+        try {
+            return BigNum.fromAny(value);
+        } catch {
+            return null;
+        }
+    };
 
-  let nextLevel = toBnOrNull(level) ?? current?.ppLevel ?? null;
-  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+    let nextLevel = toBnOrNull(level) ?? current?.ppLevel ?? null;
+    let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
 
-  if (nextLevel == null && nextProgress == null) return;
+    if (nextLevel == null && nextProgress == null) return;
 
-  if (nextLevel == null) nextLevel = zero;
-  if (nextProgress == null) nextProgress = zero;
+    if (nextLevel == null) nextLevel = zero;
+    if (nextProgress == null) nextProgress = zero;
 
-  const levelIsFinite = !(nextLevel?.isInfinite?.());
-  const progressIsFinite = !(nextProgress?.isInfinite?.());
-  if (!levelIsFinite && progressIsFinite && level !== undefined) {
-      nextProgress = BigNum.fromAny('Infinity');
-  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
-      nextLevel = BigNum.fromAny('Infinity');
-  } else if ((level != null || progress != null) && zero) {
-    if (levelIsFinite && !progressIsFinite) {
-      if (level != null) {
-        nextProgress = zero.clone?.() ?? zero;
-      }
-    } else if (progressIsFinite && !levelIsFinite) {
-      if (progress != null) {
-        nextLevel = zero.clone?.() ?? zero;
-      }
+    const levelIsFinite = !nextLevel?.isInfinite?.();
+    const progressIsFinite = !nextProgress?.isInfinite?.();
+    if (!levelIsFinite && progressIsFinite && level !== undefined) {
+        nextProgress = BigNum.fromAny("Infinity");
+    } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+        nextLevel = BigNum.fromAny("Infinity");
+    } else if ((level != null || progress != null) && zero) {
+        if (levelIsFinite && !progressIsFinite) {
+            if (level != null) {
+                nextProgress = zero.clone?.() ?? zero;
+            }
+        } else if (progressIsFinite && !levelIsFinite) {
+            if (progress != null) {
+                nextLevel = zero.clone?.() ?? zero;
+            }
+        }
     }
-  }
 
-  try {
-      const rawLevel = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage(); localStorage.setItem(PP_KEYS.level(slot), rawLevel); primeStorageWatcherSnapshot(PP_KEYS.level(slot), rawLevel);
-      const rawProgress = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage(); localStorage.setItem(PP_KEYS.progress(slot), rawProgress); primeStorageWatcherSnapshot(PP_KEYS.progress(slot), rawProgress);
-      if (typeof window !== 'undefined') {
-          const detail = window.ppSystem?.getPpState?.() || { ppLevel: nextLevel, progress: nextProgress };
-          window.dispatchEvent(new CustomEvent('pp:change', { detail }));
-      }
-  } catch {}
+    try {
+        const rawLevel = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+        lsSetItem(PP_KEYS.level(slot), rawLevel);
+        primeStorageWatcherSnapshot(PP_KEYS.level(slot), rawLevel);
+        const rawProgress = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+        lsSetItem(PP_KEYS.progress(slot), rawProgress);
+        primeStorageWatcherSnapshot(PP_KEYS.progress(slot), rawProgress);
+        if (typeof window !== "undefined") {
+            const detail = window.ppSystem?.getPpState?.() || { ppLevel: nextLevel, progress: nextProgress };
+            window.dispatchEvent(new CustomEvent("pp:change", { detail }));
+        }
+    } catch {}
 
-  try {
-      window.ppSystem.initPpSystem({ forceReload: true });
-  } catch {}
+    try {
+        window.ppSystem.initPpSystem({ forceReload: true });
+    } catch {}
 
-  try {
-      if (typeof window !== 'undefined' && window.showPopup) {
-          window.showPopup('pp', nextProgress, { overrideAmount: true });
-      }
-      window.dispatchEvent(new CustomEvent('pp:change', { detail: { changeType: 'debug-panel', slot, ppAdded: 0 } }));
-  } catch {}
+    try {
+        if (typeof window !== "undefined" && window.showPopup) {
+            window.showPopup("pp", nextProgress, { overrideAmount: true });
+        }
+        window.dispatchEvent(new CustomEvent("pp:change", { detail: { changeType: "debug-panel", slot, ppAdded: 0 } }));
+    } catch {}
 
-  try {
-      refreshLiveBindings();
-  } catch {}
+    try {
+        refreshLiveBindings();
+    } catch {}
 }
 
 function applyDpState({ level, progress }) {
-  const slot = getActiveSlot();
-  if (slot == null) return;
+    const slot = getActiveSlot();
+    if (slot == null) return;
 
-  const current = (() => {
-    try { return window.dpSystem.getDpState(); }
-    catch { return null; }
-  })();
+    const current = (() => {
+        try {
+            return window.dpSystem.getDpState();
+        } catch {
+            return null;
+        }
+    })();
 
-  const zero = (() => {
-    try { return BigNum.fromInt(0); }
-    catch { return null; }
-  })();
+    const zero = (() => {
+        try {
+            return BigNum.fromInt(0);
+        } catch {
+            return null;
+        }
+    })();
 
-  const toBnOrNull = (value) => {
-    if (value == null) return null;
-    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
-    catch { return null; }
-  };
+    const toBnOrNull = (value) => {
+        if (value == null) return null;
+        try {
+            return value instanceof BigNum ? (value.clone?.() ?? value) : BigNum.fromAny(value);
+        } catch {
+            return null;
+        }
+    };
 
-  let nextLevel = toBnOrNull(level) ?? current?.dpLevel ?? null;
-  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+    let nextLevel = toBnOrNull(level) ?? current?.dpLevel ?? null;
+    let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
 
-  const levelIsFinite = !(nextLevel?.isInfinite?.());
-  const progressIsFinite = !(nextProgress?.isInfinite?.());
+    const levelIsFinite = !nextLevel?.isInfinite?.();
+    const progressIsFinite = !nextProgress?.isInfinite?.();
 
-  if (!levelIsFinite && progressIsFinite && level !== undefined) {
-      nextProgress = BigNum.fromAny('Infinity');
-  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
-      nextLevel = BigNum.fromAny('Infinity');
-  } else if ((level != null || progress != null) && zero) {
-    if (levelIsFinite && !progressIsFinite) {
-      if (level != null) {
-        nextProgress = zero.clone?.() ?? zero;
-      }
-    } else if (progressIsFinite && !levelIsFinite) {
-      if (progress != null) {
-        nextLevel = zero.clone?.() ?? zero;
-      }
+    if (!levelIsFinite && progressIsFinite && level !== undefined) {
+        nextProgress = BigNum.fromAny("Infinity");
+    } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+        nextLevel = BigNum.fromAny("Infinity");
+    } else if ((level != null || progress != null) && zero) {
+        if (levelIsFinite && !progressIsFinite) {
+            if (level != null) {
+                nextProgress = zero.clone?.() ?? zero;
+            }
+        } else if (progressIsFinite && !levelIsFinite) {
+            if (progress != null) {
+                nextLevel = zero.clone?.() ?? zero;
+            }
+        }
     }
-  }
 
     const unlockKey = DP_KEYS.unlock(slot);
-    try { localStorage.setItem(unlockKey, '1'); } catch {}
-    primeStorageWatcherSnapshot(unlockKey, '1');
-
-  if (nextLevel != null) {
     try {
-      const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
-      const key = DP_KEYS.level(slot);
-      localStorage.setItem(key, raw);
-      primeStorageWatcherSnapshot(key, raw);
+        lsSetItem(unlockKey, "1");
     } catch {}
-  }
+    primeStorageWatcherSnapshot(unlockKey, "1");
 
+    if (nextLevel != null) {
+        try {
+            const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+            const key = DP_KEYS.level(slot);
+            lsSetItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
 
-  if (nextProgress != null) {
-    try {
-      const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
-      const key = DP_KEYS.progress(slot);
-      localStorage.setItem(key, raw);
-      primeStorageWatcherSnapshot(key, raw);
-    } catch {}
-  }
+    if (nextProgress != null) {
+        try {
+            const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+            const key = DP_KEYS.progress(slot);
+            lsSetItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
 
     try {
         window.dpSystem.initDpSystem({ forceReload: true });
     } catch {}
 
     try {
-        if (typeof window !== 'undefined' && window.showPopup) {
-            window.showPopup('dp', nextProgress, { overrideAmount: true });
+        if (typeof window !== "undefined" && window.showPopup) {
+            window.showPopup("dp", nextProgress, { overrideAmount: true });
         }
-        window.dispatchEvent(new CustomEvent('dp:change', { detail: { changeType: 'debug-panel', slot, dpAdded: 0 } }));
+        window.dispatchEvent(new CustomEvent("dp:change", { detail: { changeType: "debug-panel", slot, dpAdded: 0 } }));
     } catch {}
 
     try {
@@ -2216,80 +2382,101 @@ function applyDpState({ level, progress }) {
 }
 
 function applyMutationState({ level, progress }) {
-  const slot = getActiveSlot();
-  if (slot == null) return;
+    const slot = getActiveSlot();
+    if (slot == null) return;
 
-  const current = (() => {
-    try { return getMutationState(); }
-    catch { return null; }
-  })();
+    const current = (() => {
+        try {
+            return getMutationState();
+        } catch {
+            return null;
+        }
+    })();
 
-  const zero = (() => {
-    try { return BigNum.fromInt(0); }
-    catch { return null; }
-  })();
+    const zero = (() => {
+        try {
+            return BigNum.fromInt(0);
+        } catch {
+            return null;
+        }
+    })();
 
-  const toBnOrNull = (value) => {
-    if (value == null) return null;
-    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
-    catch { return null; }
-  };
+    const toBnOrNull = (value) => {
+        if (value == null) return null;
+        try {
+            return value instanceof BigNum ? (value.clone?.() ?? value) : BigNum.fromAny(value);
+        } catch {
+            return null;
+        }
+    };
 
-  let nextLevel = toBnOrNull(level) ?? current?.level ?? null;
-  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+    let nextLevel = toBnOrNull(level) ?? current?.level ?? null;
+    let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
 
-  const levelIsFinite = !(nextLevel?.isInfinite?.());
-  const progressIsFinite = !(nextProgress?.isInfinite?.());
+    const levelIsFinite = !nextLevel?.isInfinite?.();
+    const progressIsFinite = !nextProgress?.isInfinite?.();
 
-  if (!levelIsFinite && progressIsFinite && level !== undefined) {
-      nextProgress = BigNum.fromAny('Infinity');
-  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
-      nextLevel = BigNum.fromAny('Infinity');
-  } else if ((level != null || progress != null) && zero) {
-    if (levelIsFinite && !progressIsFinite) {
-      nextProgress = zero.clone?.() ?? zero;
-    } else if (progressIsFinite && !levelIsFinite) {
-      nextLevel = zero.clone?.() ?? zero;
+    if (!levelIsFinite && progressIsFinite && level !== undefined) {
+        nextProgress = BigNum.fromAny("Infinity");
+    } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+        nextLevel = BigNum.fromAny("Infinity");
+    } else if ((level != null || progress != null) && zero) {
+        if (levelIsFinite && !progressIsFinite) {
+            nextProgress = zero.clone?.() ?? zero;
+        } else if (progressIsFinite && !levelIsFinite) {
+            nextLevel = zero.clone?.() ?? zero;
+        }
     }
-  }
 
     // If the MP system isn't unlocked yet, setting its level/progress should
     // auto-enable the relevant unlock flags so the UI and systems stay in
     // sync.
     try {
-        const forgeUnlocked = typeof window.resetSystem?.isForgeUnlocked === 'function' ? window.resetSystem.isForgeUnlocked() : false;
-        const forgeOverride = typeof window.resetSystem?.getForgeDebugOverrideState === 'function'
-            ? window.resetSystem.getForgeDebugOverrideState()
-            : null;
+        const forgeUnlocked =
+            typeof window.resetSystem?.isForgeUnlocked === "function" ? window.resetSystem.isForgeUnlocked() : false;
+        const forgeOverride =
+            typeof window.resetSystem?.getForgeDebugOverrideState === "function"
+                ? window.resetSystem.getForgeDebugOverrideState()
+                : null;
         if (!forgeUnlocked && forgeOverride !== true) {
             window.resetSystem?.setForgeDebugOverride?.(true);
         }
     } catch {}
 
     try {
-        if (typeof window.resetSystem?.hasDoneForgeReset === 'function' && !window.resetSystem.hasDoneForgeReset()) {
+        if (typeof window.resetSystem?.hasDoneForgeReset === "function" && !window.resetSystem.hasDoneForgeReset()) {
             window.resetSystem?.setForgeResetCompleted?.(true);
         }
     } catch {}
 
-    try { setMutationUnlockedForDebug(true); } catch {}
+    try {
+        setMutationUnlockedForDebug(true);
+    } catch {}
 
-    try { window.resetSystem?.updateResetPanel?.(); } catch {}
+    try {
+        window.resetSystem?.updateResetPanel?.();
+    } catch {}
 
     // Make sure the mutation / MP system is treated as unlocked if we're
     // manually editing its stats from the debug panel.
-    try { initMutationSystem(); } catch {}
-    try { unlockMutationSystem(); } catch {}
+    try {
+        initMutationSystem();
+    } catch {}
+    try {
+        unlockMutationSystem();
+    } catch {}
 
     const unlockKey = MUTATION_KEYS.unlock(slot);
-    try { localStorage.setItem(unlockKey, '1'); } catch {}
-    primeStorageWatcherSnapshot(unlockKey, '1');
+    try {
+        lsSetItem(unlockKey, "1");
+    } catch {}
+    primeStorageWatcherSnapshot(unlockKey, "1");
 
     if (nextLevel != null) {
         try {
             const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
             const key = MUTATION_KEYS.level(slot);
-            localStorage.setItem(key, raw);
+            lsSetItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
         } catch {}
     }
@@ -2298,7 +2485,7 @@ function applyMutationState({ level, progress }) {
         try {
             const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
             const key = MUTATION_KEYS.progress(slot);
-            localStorage.setItem(key, raw);
+            lsSetItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
         } catch {}
     }
@@ -2308,14 +2495,18 @@ function applyMutationState({ level, progress }) {
     } catch {}
 
     try {
-        if (typeof window !== 'undefined' && window.showPopup) {
-            window.showPopup('mp', nextProgress, { overrideAmount: true });
+        if (typeof window !== "undefined" && window.showPopup) {
+            window.showPopup("mp", nextProgress, { overrideAmount: true });
         }
-        broadcastMutationChange({ changeType: 'debug-panel', slot, delta: 0 });
+        broadcastMutationChange({ changeType: "debug-panel", slot, delta: 0 });
     } catch {}
 
-    try { window.resetSystem?.recomputePendingMagic?.(); } catch {}
-    try { window.resetSystem?.updateResetPanel?.(); } catch {}
+    try {
+        window.resetSystem?.recomputePendingMagic?.();
+    } catch {}
+    try {
+        window.resetSystem?.updateResetPanel?.();
+    } catch {}
 
     // Keep all debug rows that depend on mutation / MP state in sync.
     try {
@@ -2326,34 +2517,41 @@ function applyMutationState({ level, progress }) {
 function buildAreaCurrencies(container, area) {
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit currency values.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit currency values.";
         container.appendChild(msg);
         return;
     }
 
-    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+    const areaLabel = area?.title ?? area?.key ?? "Unknown Area";
 
     area.currencies.forEach((currency) => {
         const storageKey = getCurrencyStorageKey(currency.key, slot);
         const current = getCurrencyValueForSlot(currency.key, slot);
-        const currencyRow = createInputRow(currency.label, current, (value, { setValue }) => {
-            const latestSlot = getActiveSlot();
-            if (latestSlot == null) return;
-            const previous = getCurrencyValueForSlot(currency.key, latestSlot);
-            const { next } = applyCurrencyState(currency.key, value, latestSlot);
-            setValue(next);
-            if (!bigNumEquals(previous, next)) {
-                flagDebugUsage();
-                logAction(`Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(next)}`);
-            }
-        }, {
-            storageKey,
-            onLockChange: () => currencyRow.setValue(getCurrencyValueForSlot(currency.key, getActiveSlot())),
-        });
+        const currencyRow = createInputRow(
+            currency.label,
+            current,
+            (value, { setValue }) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                const previous = getCurrencyValueForSlot(currency.key, latestSlot);
+                const { next } = applyCurrencyState(currency.key, value, latestSlot);
+                setValue(next);
+                if (!bigNumEquals(previous, next)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(next)}`,
+                    );
+                }
+            },
+            {
+                storageKey,
+                onLockChange: () => currencyRow.setValue(getCurrencyValueForSlot(currency.key, getActiveSlot())),
+            },
+        );
         registerLiveBinding({
-            type: 'currency',
+            type: "currency",
             key: currency.key,
             slot,
             refresh: () => {
@@ -2370,94 +2568,112 @@ function buildAreaStats(container, area) {
     isBuildingStats = true;
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit stats.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit stats.";
         container.appendChild(msg);
         return;
-
     }
-	
-	    if (area.key === AREA_KEYS.STARTER_COVE) {
-        const voidLevelRow = createInputRow('Void Level', getVoidLevel(slot), (value, { setValue }) => {
-            let valToApply = value;
-                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
+
+    if (area.key === AREA_KEYS.STARTER_COVE) {
+        const voidLevelRow = createInputRow(
+            "Void Level",
+            getVoidLevel(slot),
+            (value, { setValue }) => {
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+
                 let valBn;
                 try {
-                     valBn = valToApply instanceof BigNum ? valToApply : BigNum.fromAny(valToApply);
-                if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
-                if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
-            } catch {
-                setValue(getVoidLevel(slot));
-                return;
-            }
+                    valBn = valToApply instanceof BigNum ? valToApply : BigNum.fromAny(valToApply);
+                    if (typeof valBn.floorToInteger === "function") valBn = valBn.floorToInteger();
+                    if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                } catch {
+                    setValue(getVoidLevel(slot));
+                    return;
+                }
 
-            const prev = getVoidLevel(slot);
-            setVoidLevel(valBn, slot);
-            
-            flagDebugUsage();
-            if (!bigNumEquals(prev, valBn)) {
-                logAction(`Modified Void Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
-            }
-            setValue(valBn);
-        }, {
-            storageKey: `ccc:voidLevel:${slot}`,
-        });
+                const prev = getVoidLevel(slot);
+                setVoidLevel(valBn, slot);
+
+                flagDebugUsage();
+                if (!bigNumEquals(prev, valBn)) {
+                    logAction(`Modified Void Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
+                }
+                setValue(valBn);
+            },
+            {
+                storageKey: `ccc:voidLevel:${slot}`,
+            },
+        );
 
         registerLiveBinding({
-            type: 'void-level',
+            type: "void-level",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
                 voidLevelRow.setValue(getVoidLevel(slot));
-            }
+            },
         });
 
         container.appendChild(voidLevelRow.row);
     }
 
     if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
-        const materialSpawnRateKey = 'materialSpawnRate';
+        const materialSpawnRateKey = "materialSpawnRate";
         const materialSpawnRateStorageKey = getStatMultiplierStorageKey(materialSpawnRateKey, slot);
-        const materialSpawnRateRow = createInputRow('Material Spawn Rate', getStatMultiplierDisplayValue(materialSpawnRateKey, slot), (value, { setValue }) => {
-            const latestSlot = getActiveSlot();
-            if (latestSlot == null) return;
-            const previous = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
-            try { setDebugStatMultiplierOverride(materialSpawnRateKey, value, latestSlot); } catch {}
-            const refreshed = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
-            setValue(refreshed);
-            if (!bigNumEquals(previous, refreshed)) {
-                flagDebugUsage();
-                logAction(`Modified Material Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
-            }
-        }, {
-            storageKey: materialSpawnRateStorageKey,
-            onLockChange: (locked) => {
+        const materialSpawnRateRow = createInputRow(
+            "Material Spawn Rate",
+            getStatMultiplierDisplayValue(materialSpawnRateKey, slot),
+            (value, { setValue }) => {
                 const latestSlot = getActiveSlot();
                 if (latestSlot == null) return;
-                if (locked) {
-                    const existingOverride = getLockedStatOverride(latestSlot, materialSpawnRateKey);
-                    if (existingOverride) return;
-                    try {
-                        setDebugStatMultiplierOverride(
-                            materialSpawnRateKey,
-                            getGameStatMultiplier(materialSpawnRateKey),
-                            latestSlot
-                        );
-                    } catch {}
-                } else {
-                    getEffectiveStatMultiplierOverride(
-                        materialSpawnRateKey,
-                        latestSlot,
-                        getGameStatMultiplier(materialSpawnRateKey)
+                const previous = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
+                try {
+                    setDebugStatMultiplierOverride(materialSpawnRateKey, value, latestSlot);
+                } catch {}
+                const refreshed = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
+                setValue(refreshed);
+                if (!bigNumEquals(previous, refreshed)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified Material Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`,
                     );
                 }
-                materialSpawnRateRow.setValue(getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot));
             },
-        });
+            {
+                storageKey: materialSpawnRateStorageKey,
+                onLockChange: (locked) => {
+                    const latestSlot = getActiveSlot();
+                    if (latestSlot == null) return;
+                    if (locked) {
+                        const existingOverride = getLockedStatOverride(latestSlot, materialSpawnRateKey);
+                        if (existingOverride) return;
+                        try {
+                            setDebugStatMultiplierOverride(
+                                materialSpawnRateKey,
+                                getGameStatMultiplier(materialSpawnRateKey),
+                                latestSlot,
+                            );
+                        } catch {}
+                    } else {
+                        getEffectiveStatMultiplierOverride(
+                            materialSpawnRateKey,
+                            latestSlot,
+                            getGameStatMultiplier(materialSpawnRateKey),
+                        );
+                    }
+                    materialSpawnRateRow.setValue(getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot));
+                },
+            },
+        );
 
         registerLiveBinding({
-            type: 'stat-mult',
+            type: "stat-mult",
             key: materialSpawnRateKey,
             slot,
             refresh: () => {
@@ -2468,7 +2684,7 @@ function buildAreaStats(container, area) {
         });
 
         registerLiveBinding({
-            type: 'upgrade',
+            type: "upgrade",
             key: materialSpawnRateKey,
             slot,
             refresh: () => {
@@ -2480,32 +2696,45 @@ function buildAreaStats(container, area) {
 
         container.appendChild(materialSpawnRateRow.row);
 
-        const dpStateVal = window.dpSystem ? window.dpSystem.getDpState() : { dpLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
+        const dpStateVal = window.dpSystem
+            ? window.dpSystem.getDpState()
+            : { dpLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
 
         let dpProgressRow;
         const dpLevelKey = DP_KEYS.level(slot);
-        const dpLevelRow = createInputRow('Depth', dpStateVal.dpLevel, (value, { setValue }) => {
-            const prev = window.dpSystem.getDpState().dpLevel;
-            let valToApply = value;
-            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
-            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
-                valToApply = BigNum.fromAny('Infinity');
-            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
-                valToApply = BigNum.fromAny('Infinity');
-            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
-                valToApply = BigNum.fromAny('Infinity');
-            }
-            applyDpState({ level: valToApply });
-            const latest = window.dpSystem.getDpState();
-            setValue(latest.dpLevel);
-            if (dpProgressRow) dpProgressRow.setValue(latest.progress);
-            if (!bigNumEquals(prev, latest.dpLevel)) {
-                flagDebugUsage();
-                logAction(`Modified DP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.dpLevel)}`);
-            }
-        }, { storageKey: dpLevelKey });
+        const dpLevelRow = createInputRow(
+            "Depth",
+            dpStateVal.dpLevel,
+            (value, { setValue }) => {
+                const prev = window.dpSystem.getDpState().dpLevel;
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+                if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "number" && valToApply >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                }
+                applyDpState({ level: valToApply });
+                const latest = window.dpSystem.getDpState();
+                setValue(latest.dpLevel);
+                if (dpProgressRow) dpProgressRow.setValue(latest.progress);
+                if (!bigNumEquals(prev, latest.dpLevel)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified DP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.dpLevel)}`,
+                    );
+                }
+            },
+            { storageKey: dpLevelKey },
+        );
         registerLiveBinding({
-            type: 'dp',
+            type: "dp",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
@@ -2515,21 +2744,28 @@ function buildAreaStats(container, area) {
         container.appendChild(dpLevelRow.row);
 
         const dpProgressKey = DP_KEYS.progress(slot);
-        dpProgressRow = createInputRow('DP', dpStateVal.progress, (value, { setValue }) => {
-            const prev = window.dpSystem.getDpState();
-            const prevLevel = prev?.dpLevel?.clone?.() ?? prev?.dpLevel;
-            const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
-            applyDpState({ progress: value });
-            const latest = window.dpSystem.getDpState();
-            setValue(latest.progress);
-            dpLevelRow.setValue(latest.dpLevel);
-            if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.dpLevel)) {
-                flagDebugUsage();
-                logAction(`Modified DP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
-            }
-        }, { storageKey: dpProgressKey });
+        dpProgressRow = createInputRow(
+            "DP",
+            dpStateVal.progress,
+            (value, { setValue }) => {
+                const prev = window.dpSystem.getDpState();
+                const prevLevel = prev?.dpLevel?.clone?.() ?? prev?.dpLevel;
+                const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+                applyDpState({ progress: value });
+                const latest = window.dpSystem.getDpState();
+                setValue(latest.progress);
+                dpLevelRow.setValue(latest.dpLevel);
+                if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.dpLevel)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified DP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`,
+                    );
+                }
+            },
+            { storageKey: dpProgressKey },
+        );
         registerLiveBinding({
-            type: 'dp',
+            type: "dp",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
@@ -2538,32 +2774,45 @@ function buildAreaStats(container, area) {
         });
         container.appendChild(dpProgressRow.row);
 
-        const ppStateVal = window.ppSystem ? window.ppSystem.getPpState() : { ppLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
+        const ppStateVal = window.ppSystem
+            ? window.ppSystem.getPpState()
+            : { ppLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
 
         let ppProgressRow; // forward declaration
         const ppLevelKey = PP_KEYS.level(slot);
-        const ppLevelRow = createInputRow('Pressure', ppStateVal.ppLevel, (value, { setValue }) => {
-            const prev = window.ppSystem.getPpState().ppLevel;
-            let valToApply = value;
-            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
-            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
-                valToApply = BigNum.fromAny('Infinity');
-            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
-                valToApply = BigNum.fromAny('Infinity');
-            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
-                valToApply = BigNum.fromAny('Infinity');
-            }
-            applyPpState({ level: valToApply });
-            const latest = window.ppSystem.getPpState();
-            setValue(latest.ppLevel);
-            if (ppProgressRow) ppProgressRow.setValue(latest.progress);
-            if (!bigNumEquals(prev, latest.ppLevel)) {
-                flagDebugUsage();
-                logAction(`Modified PP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.ppLevel)}`);
-            }
-        }, { storageKey: ppLevelKey });
+        const ppLevelRow = createInputRow(
+            "Pressure",
+            ppStateVal.ppLevel,
+            (value, { setValue }) => {
+                const prev = window.ppSystem.getPpState().ppLevel;
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+                if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "number" && valToApply >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                }
+                applyPpState({ level: valToApply });
+                const latest = window.ppSystem.getPpState();
+                setValue(latest.ppLevel);
+                if (ppProgressRow) ppProgressRow.setValue(latest.progress);
+                if (!bigNumEquals(prev, latest.ppLevel)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified PP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.ppLevel)}`,
+                    );
+                }
+            },
+            { storageKey: ppLevelKey },
+        );
         registerLiveBinding({
-            type: 'pp',
+            type: "pp",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
@@ -2573,21 +2822,28 @@ function buildAreaStats(container, area) {
         container.appendChild(ppLevelRow.row);
 
         const ppProgressKey = PP_KEYS.progress(slot);
-        ppProgressRow = createInputRow('PP', ppStateVal.progress, (value, { setValue }) => {
-            const prev = window.ppSystem.getPpState();
-            const prevLevel = prev?.ppLevel?.clone?.() ?? prev?.ppLevel;
-            const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
-            applyPpState({ progress: value });
-            const latest = window.ppSystem.getPpState();
-            setValue(latest.progress);
-            ppLevelRow.setValue(latest.ppLevel);
-            if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.ppLevel)) {
-                flagDebugUsage();
-                logAction(`Modified PP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
-            }
-        }, { storageKey: ppProgressKey });
+        ppProgressRow = createInputRow(
+            "PP",
+            ppStateVal.progress,
+            (value, { setValue }) => {
+                const prev = window.ppSystem.getPpState();
+                const prevLevel = prev?.ppLevel?.clone?.() ?? prev?.ppLevel;
+                const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+                applyPpState({ progress: value });
+                const latest = window.ppSystem.getPpState();
+                setValue(latest.progress);
+                ppLevelRow.setValue(latest.ppLevel);
+                if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.ppLevel)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified PP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`,
+                    );
+                }
+            },
+            { storageKey: ppProgressKey },
+        );
         registerLiveBinding({
-            type: 'pp',
+            type: "pp",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
@@ -2598,536 +2854,641 @@ function buildAreaStats(container, area) {
     }
 
     if (area.key === AREA_KEYS.STARTER_COVE) {
-    const spawnRateKey = 'spawnRate';
-    const spawnRateStorageKey = getStatMultiplierStorageKey(spawnRateKey, slot);
-    const spawnRateRow = createInputRow('Coin Spawn Rate', getStatMultiplierDisplayValue(spawnRateKey, slot), (value, { setValue }) => {
-        const latestSlot = getActiveSlot();
-        if (latestSlot == null) return;
-        const previous = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
-        try { setDebugStatMultiplierOverride(spawnRateKey, value, latestSlot); } catch {}
-        const refreshed = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
-        setValue(refreshed);
-        if (!bigNumEquals(previous, refreshed)) {
-            flagDebugUsage();
-            logAction(`Modified Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
-        }
-    }, {
-        storageKey: spawnRateStorageKey,
-        onLockChange: (locked) => {
-            const latestSlot = getActiveSlot();
-            if (latestSlot == null) return;
-            if (locked) {
-                const existingOverride = getLockedStatOverride(latestSlot, spawnRateKey);
-                if (existingOverride) return;
+        const spawnRateKey = "spawnRate";
+        const spawnRateStorageKey = getStatMultiplierStorageKey(spawnRateKey, slot);
+        const spawnRateRow = createInputRow(
+            "Coin Spawn Rate",
+            getStatMultiplierDisplayValue(spawnRateKey, slot),
+            (value, { setValue }) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                const previous = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
                 try {
-                    setDebugStatMultiplierOverride(
-                        spawnRateKey,
-                        getGameStatMultiplier(spawnRateKey),
-                        latestSlot
-                    );
+                    setDebugStatMultiplierOverride(spawnRateKey, value, latestSlot);
                 } catch {}
-            } else {
-                getEffectiveStatMultiplierOverride(
-                    spawnRateKey,
-                    latestSlot,
-                    getGameStatMultiplier(spawnRateKey)
-                );
-            }
-            spawnRateRow.setValue(getStatMultiplierDisplayValue(spawnRateKey, latestSlot));
-        },
-    });
+                const refreshed = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
+                setValue(refreshed);
+                if (!bigNumEquals(previous, refreshed)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`,
+                    );
+                }
+            },
+            {
+                storageKey: spawnRateStorageKey,
+                onLockChange: (locked) => {
+                    const latestSlot = getActiveSlot();
+                    if (latestSlot == null) return;
+                    if (locked) {
+                        const existingOverride = getLockedStatOverride(latestSlot, spawnRateKey);
+                        if (existingOverride) return;
+                        try {
+                            setDebugStatMultiplierOverride(
+                                spawnRateKey,
+                                getGameStatMultiplier(spawnRateKey),
+                                latestSlot,
+                            );
+                        } catch {}
+                    } else {
+                        getEffectiveStatMultiplierOverride(
+                            spawnRateKey,
+                            latestSlot,
+                            getGameStatMultiplier(spawnRateKey),
+                        );
+                    }
+                    spawnRateRow.setValue(getStatMultiplierDisplayValue(spawnRateKey, latestSlot));
+                },
+            },
+        );
 
-    registerLiveBinding({
-        type: 'stat-mult',
-        key: spawnRateKey,
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
-            spawnRateRow.setValue(latest);
-        },
-    });
+        registerLiveBinding({
+            type: "stat-mult",
+            key: spawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
+                spawnRateRow.setValue(latest);
+            },
+        });
 
-    registerLiveBinding({
-        type: 'upgrade',
-        key: spawnRateKey,
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
-            spawnRateRow.setValue(latest);
-        },
-    });
+        registerLiveBinding({
+            type: "upgrade",
+            key: spawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
+                spawnRateRow.setValue(latest);
+            },
+        });
 
-    container.appendChild(spawnRateRow.row);
+        container.appendChild(spawnRateRow.row);
     }
 
     const xp = getXpState();
     const mutation = getMutationState();
-    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+    const areaLabel = area?.title ?? area?.key ?? "Unknown Area";
 
     if (area.key === AREA_KEYS.STARTER_COVE) {
-    let xpProgressRow;
-    const xpLevelKey = XP_KEYS.level(slot);
-    const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
-        let valToApply = value;
-        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
-        const prev = getXpState().xpLevel;
-        applyXpState({ level: valToApply });
-        const latest = getXpState();
-        setValue(latest.xpLevel);
-        if (xpProgressRow) xpProgressRow.setValue(latest.progress);
-        if (!bigNumEquals(prev, latest.xpLevel)) {
-            flagDebugUsage();
-            logAction(`Modified XP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.xpLevel)}`);
-        }
-    }, { storageKey: xpLevelKey });
-    registerLiveBinding({
-        type: 'xp',
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            xpLevelRow.setValue(getXpState().xpLevel);
-        },
-    });
-    container.appendChild(xpLevelRow.row);
+        let xpProgressRow;
+        const xpLevelKey = XP_KEYS.level(slot);
+        const xpLevelRow = createInputRow(
+            "XP Level",
+            xp.xpLevel,
+            (value, { setValue }) => {
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
 
-    const xpProgressKey = XP_KEYS.progress(slot);
-    xpProgressRow = createInputRow('XP', xp.progress, (value, { setValue }) => {
-        const prev = getXpState();
-        const prevLevel = prev?.xpLevel?.clone?.() ?? prev?.xpLevel;
-        const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
-        applyXpState({ progress: value });
-        const latest = getXpState();
-        setValue(latest.progress);
-        xpLevelRow.setValue(latest.xpLevel);
-        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.xpLevel)) {
-            flagDebugUsage();
-            logAction(`Modified XP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
-        }
-    }, { storageKey: xpProgressKey });
-    registerLiveBinding({
-        type: 'xp',
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            xpProgressRow.setValue(getXpState().progress);
-        },
-    });
-    container.appendChild(xpProgressRow.row);
-
-    let mpProgressRow;
-    const mpLevelKey = MUTATION_KEYS.level(slot);
-    const mpLevelRow = createInputRow('Mutation', mutation.level, (value, { setValue }) => {
-        let valToApply = value;
-        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
-        const prev = getMutationState().level;
-        applyMutationState({ level: valToApply });
-        const latest = getMutationState();
-        setValue(latest.level);
-        if (mpProgressRow) mpProgressRow.setValue(latest.progress);
-        if (!bigNumEquals(prev, latest.level)) {
-            flagDebugUsage();
-            logAction(`Modified MP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.level)}`);
-        }
-    }, { storageKey: mpLevelKey });
-    registerLiveBinding({
-        type: 'mutation',
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            mpLevelRow.setValue(getMutationState().level);
-        },
-    });
-    container.appendChild(mpLevelRow.row);
-
-    const mpProgressKey = MUTATION_KEYS.progress(slot);
-    mpProgressRow = createInputRow('MP', mutation.progress, (value, { setValue }) => {
-        const prev = getMutationState();
-        const prevLevel = prev?.level?.clone?.() ?? prev?.level;
-        const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
-        applyMutationState({ progress: value });
-        const latest = getMutationState();
-        setValue(latest.progress);
-        mpLevelRow.setValue(latest.level);
-        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {
-            flagDebugUsage();
-            logAction(`Modified MP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
-        }
-    }, { storageKey: mpProgressKey });
-    registerLiveBinding({
-        type: 'mutation',
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            mpProgressRow.setValue(getMutationState().progress);
-        },
-    });
-    container.appendChild(mpProgressRow.row);
-	
-	    if (area.key === AREA_KEYS.STARTER_COVE) {
-    // Workshop Level
-    const genLevelKey = getGenerationLevelKey(slot);
-    if (genLevelKey) {
-        const getLevel = () => {
-        try {
-            const raw = localStorage.getItem(genLevelKey);
-            const bn = BigNum.fromAny(raw || '0');
-            if (bn.isInfinite()) return Infinity;
-            try {
-                return Number(bn.toScientific(20));
-            } catch {
-                return 0;
-            }
-        } catch {
-            return 0;
-        }
-    };
-
-    const genLevelRow = createInputRow('Workshop Level', getLevel(), (value, { setValue }) => {
-        // Helper to get a finite number from input, which might be BigNum or string/number
-        let valToApply = value;
-        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
-        let valNum = Number(valToApply);
-        if (valToApply instanceof BigNum) {
-             if (valToApply.isInfinite()) {
-                 valNum = Infinity; 
-             } else {
-                 try {
-                    // Use a large enough precision for toScientific to preserve the exponent
-                    // toScientific(20) returns e.g. "1.000...e21"
-                    valNum = Number(value.toScientific(20));
-                 } catch {
-                    valNum = NaN;
-                 }
-             }
-        }
-
-        if (Number.isNaN(valNum) || valNum < 0) return;
-        valNum = Math.floor(valNum);
-        if (valNum >= 4.5e12) valNum = Infinity;
-        const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
-        
-        try {
-            const currentGenLevel = getLevel();
-            localStorage.setItem(genLevelKey, cleanVal);
-            flagDebugUsage();
-            if (currentGenLevel !== valNum) {
-                logAction(`Modified Workshop Level (The Cove) ${formatNumber(currentGenLevel)} → ${cleanVal}`);
-            }
-        } catch {}
-        
-        setValue(valNum);
-    }, {
-            storageKey: genLevelKey,
-            onLockChange: () => {
-                let newVal = 0;
-                try {
-                    const r = localStorage.getItem(genLevelKey);
-                    const bn = BigNum.fromAny(r || '0');
-                    if (bn.isInfinite()) newVal = Infinity;
-                    else newVal = Number(bn.toScientific(20));
-                } catch {}
-                genLevelRow.setValue(newVal);
-            }
-        });
-        
-        container.appendChild(genLevelRow.row);
-
+                const prev = getXpState().xpLevel;
+                applyXpState({ level: valToApply });
+                const latest = getXpState();
+                setValue(latest.xpLevel);
+                if (xpProgressRow) xpProgressRow.setValue(latest.progress);
+                if (!bigNumEquals(prev, latest.xpLevel)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified XP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.xpLevel)}`,
+                    );
+                }
+            },
+            { storageKey: xpLevelKey },
+        );
         registerLiveBinding({
-            type: 'workshop-level',
+            type: "xp",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
-                let newVal = 0;
-                try {
-                    const r = localStorage.getItem(genLevelKey);
-                    const bn = BigNum.fromAny(r || '0');
-                    if (bn.isInfinite()) newVal = Infinity;
-                    else newVal = Number(bn.toScientific(20));
-                } catch {}
-                genLevelRow.setValue(newVal);
-            }
-        });
-    }
-
-    // Surge Level
-    const surgeLevelKey = getSurgeBarLevelKey(slot);
-    if (surgeLevelKey) {
-        const getSurgeLevel = () => {
-        try {
-            const raw = localStorage.getItem(surgeLevelKey);
-            if (raw === 'Infinity') return Infinity;
-            return BigNum.fromAny(raw || '0');
-        } catch { return BigNum.fromInt(0); }
-    };
-
-    const surgeLevelRow = createInputRow('Surge', getSurgeLevel(), (value, { setValue }) => {
-        let valToApply = value;
-        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
-
-        let valToStore = '0';
-        let valForDisplay = 0;
-
-        if (valToApply instanceof BigNum) {
-             if (value.isInfinite()) {
-                 valToStore = 'Infinity';
-                 valForDisplay = Infinity;
-             } else {
-                 valToStore = value.inf || value.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : value.toPlainIntegerString();
-                 valForDisplay = value;
-             }
-        } else if (valToApply === Infinity || (typeof valToApply === 'string' && /infinity/i.test(valToApply))) {
-             valToStore = 'Infinity';
-             valForDisplay = Infinity;
-        } else {
-             valToStore = String(valToApply);
-             valForDisplay = valToApply;
-        }
-
-        if (valForDisplay instanceof BigNum && valForDisplay.cmp(BigNum.fromAny(4.5e12)) >= 0) {
-             valToStore = 'Infinity';
-             valForDisplay = Infinity;
-        } else if (typeof valForDisplay === 'number' && valForDisplay >= 4.5e12) {
-             valToStore = 'Infinity';
-             valForDisplay = Infinity;
-        } else if (typeof valForDisplay === 'string' && Number(valForDisplay) >= 4.5e12) {
-             valToStore = 'Infinity';
-             valForDisplay = Infinity;
-        }
-
-        try {
-            const currentSurgeLevel = getSurgeLevel();
-            localStorage.setItem(surgeLevelKey, valToStore);
-            flagDebugUsage();
-            
-            const displayStr = valForDisplay === Infinity ? 'Infinity' : formatNumber(valForDisplay);
-            const prevStr = (currentSurgeLevel === Infinity || (currentSurgeLevel instanceof BigNum && currentSurgeLevel.isInfinite())) 
-                            ? 'Infinity' 
-                            : formatNumber(currentSurgeLevel);
-            
-            if (prevStr !== displayStr) {
-                logAction(`Modified Surge Level (The Cove) ${prevStr} → ${displayStr}`);
-            }
-            
-            let isSurge8 = false;
-            let currentLevelToCheck = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
-            if (currentLevelToCheck === Infinity) {
-                isSurge8 = true;
-            } else if (currentLevelToCheck instanceof BigNum) {
-                if (typeof currentLevelToCheck.cmp === 'function' && currentLevelToCheck.cmp(8) >= 0) {
-                    isSurge8 = true;
-                }
-            } else if (typeof currentLevelToCheck === 'number') {
-                if (currentLevelToCheck >= 8) isSurge8 = true;
-            }
-
-            if (isSurge8) {
-                setTsunamiNerf(0.00);
-                if (!isLabUnlocked()) {
-                    setLabUnlocked(true);
-                    try { setTsunamiSequencePlayed(true); } catch {}
-                }
-            }
-        } catch {}
-        
-        setValue(valForDisplay);
-        try { window.resetSystem?.updateResetPanel?.(); } catch {}
-        try {
-            let eventLevel = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
-            if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
-                try { eventLevel = eventLevel.inf || eventLevel.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(eventLevel.toPlainIntegerString()); } catch {}
-            }
-            window.dispatchEvent(new CustomEvent('surge:level:change', {
-                detail: { slot, level: eventLevel }
-            }));
-        } catch {}
-    }, {
-            storageKey: surgeLevelKey,
-            onLockChange: (locked) => {
-                 let newVal = BigNum.fromInt(0);
-                 try {
-                    const r = localStorage.getItem(surgeLevelKey);
-                     if (r === 'Infinity') {
-                         newVal = Infinity;
-                     } else {
-                         newVal = BigNum.fromAny(r || '0');
-                     }
-                 } catch {}
-                 surgeLevelRow.setValue(newVal);
-            }
-        });
-        
-        registerLiveBinding({
-            type: 'surge-level', 
-            slot,
-            refresh: () => {
-                 if (slot !== getActiveSlot()) return;
-                 let newVal = BigNum.fromInt(0);
-                 try {
-                    const r = localStorage.getItem(surgeLevelKey);
-                     if (r === 'Infinity') {
-                         newVal = Infinity;
-                     } else {
-                         newVal = BigNum.fromAny(r || '0');
-                     }
-                 } catch {}
-                 surgeLevelRow.setValue(newVal);
-            }
-        });
-        
-        container.appendChild(surgeLevelRow.row);
-    }
-
-    // Lab Level
-    const labLevel = getLabLevel();
-    const labLevelRow = createInputRow('Lab Level', labLevel, (value, { setValue }) => {
-        let valBn;
-        try {
-             valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
-             if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
-             if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
-        } catch {
-             setValue(getLabLevel());
-             return;
-        }
-
-        const prev = getLabLevel();
-        setLabLevel(valBn);
-        
-        flagDebugUsage();
-        if (!bigNumEquals(prev, valBn)) {
-            logAction(`Modified Lab Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
-        }
-        setValue(valBn);
-    }, {
-        storageKey: getLabLevelKey(slot)
-    });
-    
-    registerLiveBinding({
-        type: 'lab-level',
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            labLevelRow.setValue(getLabLevel());
-        }
-    });
-    
-    container.appendChild(labLevelRow.row);
-
-    // Tsunami Exponent
-    // This value is 0.00 when the tsunami is fully active (nerfing everything),
-    // and goes up to 1.00 (restored) as you gain Surge Levels.
-    // We display it as a decimal (0.00 - 1.00).
-    // The displayed value includes the Research Lab bonus.
-    const getTsunamiExponent = () => {
-        const base = getBaseTsunamiExponent();
-        const bonus = getTsunamiResearchBonus();
-        let val = base + bonus;
-        if (val > 1) val = 1;
-        return val;
-    };
-
-    const tsunamiRow = createInputRow('Tsunami Exponent', getTsunamiExponent().toFixed(2), (value, { setValue }) => {
-        let valNum = Number(value);
-        
-        // Handle BigNum inputs or "inf"
-        if (value instanceof BigNum) {
-             if (value.isInfinite()) valNum = Infinity;
-             else valNum = Number(value.toScientific(10));
-        } else if (typeof value === 'string' && /infinity/i.test(value)) {
-             valNum = Infinity;
-        }
-
-        if (Number.isNaN(valNum)) {
-             setValue(getTsunamiExponent().toFixed(2));
-             return;
-        }
-        
-        // The user is inputting the *effective* value they want.
-        // We need to calculate what base value produces that effective value.
-        // Effective = Base + Bonus
-        // Base = Effective - Bonus
-        
-        const bonus = getTsunamiResearchBonus();
-        let targetBase = valNum - bonus;
-        
-        // Clamp base to [0, 1] (logic from before, though strictly it should be 0 to 1)
-        if (targetBase > 1) targetBase = 1;
-        // It's possible for targetBase to be < 0 if they input something smaller than the bonus.
-        // In that case, we set base to 0.
-        if (targetBase < 0) targetBase = 0;
-        
-        // Round base to 2 decimal places to keep it clean
-        targetBase = Math.round(targetBase * 100) / 100;
-
-        const prevBase = getBaseTsunamiExponent();
-        setTsunamiNerf(targetBase);
-        
-        flagDebugUsage();
-        if (Math.abs(prevBase - targetBase) > 0.0001) {
-            logAction(`Modified Tsunami Exponent (The Cove) Base:${prevBase.toFixed(2)} → ${targetBase.toFixed(2)} (Effective: ${valNum.toFixed(2)})`);
-        }
-        setValue(getTsunamiExponent().toFixed(2));
-    }, {
-        storageKey: getTsunamiNerfKey(slot),
-        format: (val) => {
-            // Ensure we format nicely as a number with 2 decimals if possible
-            const n = Number(val);
-            return Number.isFinite(n) ? n.toFixed(2) : String(val);
-        }
-    });
-    
-    registerLiveBinding({
-        type: 'tsunami-nerf',
-        slot,
-        refresh: () => {
-            if (slot !== getActiveSlot()) return;
-            const val = getTsunamiExponent();
-            tsunamiRow.setValue(val.toFixed(2));
-        }
-    });
-    container.appendChild(tsunamiRow.row);
-    if (area.key === AREA_KEYS.STARTER_COVE) {
-        const comboLockKey = `ccc:debug:comboLock:${slot}`;
-        const comboRow = createInputRow('Combo', getActiveCombo(), (value, { setValue }) => {
-            let nextVal = 0;
-            if (value === Infinity || (value instanceof BigNum && value.isInfinite())) {
-                nextVal = getMaxCombo();
-            } else {
-                try {
-                    nextVal = value instanceof BigNum ? Number(value.toScientific(10)) : Number(value);
-                } catch {
-                    nextVal = Number(value);
-                }
-                if (Number.isNaN(nextVal)) nextVal = 0;
-            }
-            setActiveCombo(nextVal);
-            setValue(getActiveCombo());
-            flagDebugUsage();
-        }, {
-            storageKey: comboLockKey,
-            onLockChange: (locked) => setComboLocked(locked),
-            format: (val) => {
-                const n = Number(val);
-                return (Number.isFinite(n) && Math.abs(n) < 1e9) ? n.toFixed(3) : formatNumber(val);
+                xpLevelRow.setValue(getXpState().xpLevel);
             },
         });
-        
-        // Initialize lock state from storage
-        setComboLocked(isStorageKeyLocked(comboLockKey));
+        container.appendChild(xpLevelRow.row);
 
+        const xpProgressKey = XP_KEYS.progress(slot);
+        xpProgressRow = createInputRow(
+            "XP",
+            xp.progress,
+            (value, { setValue }) => {
+                const prev = getXpState();
+                const prevLevel = prev?.xpLevel?.clone?.() ?? prev?.xpLevel;
+                const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+                applyXpState({ progress: value });
+                const latest = getXpState();
+                setValue(latest.progress);
+                xpLevelRow.setValue(latest.xpLevel);
+                if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.xpLevel)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified XP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`,
+                    );
+                }
+            },
+            { storageKey: xpProgressKey },
+        );
         registerLiveBinding({
-            type: 'combo',
+            type: "xp",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
-                comboRow.setValue(getActiveCombo());
+                xpProgressRow.setValue(getXpState().progress);
             },
         });
-        container.appendChild(comboRow.row);
-    }
-    }
+        container.appendChild(xpProgressRow.row);
+
+        let mpProgressRow;
+        const mpLevelKey = MUTATION_KEYS.level(slot);
+        const mpLevelRow = createInputRow(
+            "Mutation",
+            mutation.level,
+            (value, { setValue }) => {
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+
+                const prev = getMutationState().level;
+                applyMutationState({ level: valToApply });
+                const latest = getMutationState();
+                setValue(latest.level);
+                if (mpProgressRow) mpProgressRow.setValue(latest.progress);
+                if (!bigNumEquals(prev, latest.level)) {
+                    flagDebugUsage();
+                    logAction(`Modified MP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.level)}`);
+                }
+            },
+            { storageKey: mpLevelKey },
+        );
+        registerLiveBinding({
+            type: "mutation",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                mpLevelRow.setValue(getMutationState().level);
+            },
+        });
+        container.appendChild(mpLevelRow.row);
+
+        const mpProgressKey = MUTATION_KEYS.progress(slot);
+        mpProgressRow = createInputRow(
+            "MP",
+            mutation.progress,
+            (value, { setValue }) => {
+                const prev = getMutationState();
+                const prevLevel = prev?.level?.clone?.() ?? prev?.level;
+                const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+                applyMutationState({ progress: value });
+                const latest = getMutationState();
+                setValue(latest.progress);
+                mpLevelRow.setValue(latest.level);
+                if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified MP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`,
+                    );
+                }
+            },
+            { storageKey: mpProgressKey },
+        );
+        registerLiveBinding({
+            type: "mutation",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                mpProgressRow.setValue(getMutationState().progress);
+            },
+        });
+        container.appendChild(mpProgressRow.row);
+
+        if (area.key === AREA_KEYS.STARTER_COVE) {
+            // Workshop Level
+            const genLevelKey = getGenerationLevelKey(slot);
+            if (genLevelKey) {
+                const getLevel = () => {
+                    try {
+                        const raw = localStorage.getItem(genLevelKey);
+                        const bn = BigNum.fromAny(raw || "0");
+                        if (bn.isInfinite()) return Infinity;
+                        try {
+                            return Number(bn.toScientific(20));
+                        } catch {
+                            return 0;
+                        }
+                    } catch {
+                        return 0;
+                    }
+                };
+
+                const genLevelRow = createInputRow(
+                    "Workshop Level",
+                    getLevel(),
+                    (value, { setValue }) => {
+                        // Helper to get a finite number from input, which might be BigNum or string/number
+                        let valToApply = value;
+                        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                            valToApply = valToApply.floorToInteger();
+                        } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                            valToApply = Math.floor(Number(valToApply));
+                        }
+
+                        let valNum = Number(valToApply);
+                        if (valToApply instanceof BigNum) {
+                            if (valToApply.isInfinite()) {
+                                valNum = Infinity;
+                            } else {
+                                try {
+                                    // Use a large enough precision for toScientific to preserve the exponent
+                                    // toScientific(20) returns e.g. "1.000...e21"
+                                    valNum = Number(value.toScientific(20));
+                                } catch {
+                                    valNum = NaN;
+                                }
+                            }
+                        }
+
+                        if (Number.isNaN(valNum) || valNum < 0) return;
+                        valNum = Math.floor(valNum);
+                        if (valNum >= 4.5e12) valNum = Infinity;
+                        const cleanVal = valNum === Infinity ? "Infinity" : String(Math.floor(valNum));
+
+                        try {
+                            const currentGenLevel = getLevel();
+                            lsSetItem(genLevelKey, cleanVal);
+                            flagDebugUsage();
+                            if (currentGenLevel !== valNum) {
+                                logAction(
+                                    `Modified Workshop Level (The Cove) ${formatNumber(currentGenLevel)} → ${cleanVal}`,
+                                );
+                            }
+                        } catch {}
+
+                        setValue(valNum);
+                    },
+                    {
+                        storageKey: genLevelKey,
+                        onLockChange: () => {
+                            let newVal = 0;
+                            try {
+                                const r = localStorage.getItem(genLevelKey);
+                                const bn = BigNum.fromAny(r || "0");
+                                if (bn.isInfinite()) newVal = Infinity;
+                                else newVal = Number(bn.toScientific(20));
+                            } catch {}
+                            genLevelRow.setValue(newVal);
+                        },
+                    },
+                );
+
+                container.appendChild(genLevelRow.row);
+
+                registerLiveBinding({
+                    type: "workshop-level",
+                    slot,
+                    refresh: () => {
+                        if (slot !== getActiveSlot()) return;
+                        let newVal = 0;
+                        try {
+                            const r = localStorage.getItem(genLevelKey);
+                            const bn = BigNum.fromAny(r || "0");
+                            if (bn.isInfinite()) newVal = Infinity;
+                            else newVal = Number(bn.toScientific(20));
+                        } catch {}
+                        genLevelRow.setValue(newVal);
+                    },
+                });
+            }
+
+            // Surge Level
+            const surgeLevelKey = getSurgeBarLevelKey(slot);
+            if (surgeLevelKey) {
+                const getSurgeLevel = () => {
+                    try {
+                        const raw = localStorage.getItem(surgeLevelKey);
+                        if (raw === "Infinity") return Infinity;
+                        return BigNum.fromAny(raw || "0");
+                    } catch {
+                        return BigNum.fromInt(0);
+                    }
+                };
+
+                const surgeLevelRow = createInputRow(
+                    "Surge",
+                    getSurgeLevel(),
+                    (value, { setValue }) => {
+                        let valToApply = value;
+                        if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                            valToApply = valToApply.floorToInteger();
+                        } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                            valToApply = Math.floor(Number(valToApply));
+                        }
+
+                        let valToStore = "0";
+                        let valForDisplay = 0;
+
+                        if (valToApply instanceof BigNum) {
+                            if (value.isInfinite()) {
+                                valToStore = "Infinity";
+                                valForDisplay = Infinity;
+                            } else {
+                                valToStore =
+                                    value.inf || value.e >= BigNum.DEFAULT_PRECISION
+                                        ? "Infinity"
+                                        : value.toPlainIntegerString();
+                                valForDisplay = value;
+                            }
+                        } else if (
+                            valToApply === Infinity ||
+                            (typeof valToApply === "string" && /infinity/i.test(valToApply))
+                        ) {
+                            valToStore = "Infinity";
+                            valForDisplay = Infinity;
+                        } else {
+                            valToStore = String(valToApply);
+                            valForDisplay = valToApply;
+                        }
+
+                        if (valForDisplay instanceof BigNum && valForDisplay.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                            valToStore = "Infinity";
+                            valForDisplay = Infinity;
+                        } else if (typeof valForDisplay === "number" && valForDisplay >= 4.5e12) {
+                            valToStore = "Infinity";
+                            valForDisplay = Infinity;
+                        } else if (typeof valForDisplay === "string" && Number(valForDisplay) >= 4.5e12) {
+                            valToStore = "Infinity";
+                            valForDisplay = Infinity;
+                        }
+
+                        try {
+                            const currentSurgeLevel = getSurgeLevel();
+                            lsSetItem(surgeLevelKey, valToStore);
+                            flagDebugUsage();
+
+                            const displayStr = valForDisplay === Infinity ? "Infinity" : formatNumber(valForDisplay);
+                            const prevStr =
+                                currentSurgeLevel === Infinity ||
+                                (currentSurgeLevel instanceof BigNum && currentSurgeLevel.isInfinite())
+                                    ? "Infinity"
+                                    : formatNumber(currentSurgeLevel);
+
+                            if (prevStr !== displayStr) {
+                                logAction(`Modified Surge Level (The Cove) ${prevStr} → ${displayStr}`);
+                            }
+
+                            let isSurge8 = false;
+                            let currentLevelToCheck =
+                                valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
+                            if (currentLevelToCheck === Infinity) {
+                                isSurge8 = true;
+                            } else if (currentLevelToCheck instanceof BigNum) {
+                                if (typeof currentLevelToCheck.cmp === "function" && currentLevelToCheck.cmp(8) >= 0) {
+                                    isSurge8 = true;
+                                }
+                            } else if (typeof currentLevelToCheck === "number") {
+                                if (currentLevelToCheck >= 8) isSurge8 = true;
+                            }
+
+                            if (isSurge8) {
+                                setTsunamiNerf(0.0);
+                                if (!isLabUnlocked()) {
+                                    setLabUnlocked(true);
+                                    try {
+                                        setTsunamiSequencePlayed(true);
+                                    } catch {}
+                                }
+                            }
+                        } catch {}
+
+                        setValue(valForDisplay);
+                        try {
+                            window.resetSystem?.updateResetPanel?.();
+                        } catch {}
+                        try {
+                            let eventLevel = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
+                            if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
+                                try {
+                                    eventLevel =
+                                        eventLevel.inf || eventLevel.e >= BigNum.DEFAULT_PRECISION
+                                            ? Infinity
+                                            : Number(eventLevel.toPlainIntegerString());
+                                } catch {}
+                            }
+                            window.dispatchEvent(
+                                new CustomEvent("surge:level:change", {
+                                    detail: { slot, level: eventLevel },
+                                }),
+                            );
+                        } catch {}
+                    },
+                    {
+                        storageKey: surgeLevelKey,
+                        onLockChange: (locked) => {
+                            let newVal = BigNum.fromInt(0);
+                            try {
+                                const r = localStorage.getItem(surgeLevelKey);
+                                if (r === "Infinity") {
+                                    newVal = Infinity;
+                                } else {
+                                    newVal = BigNum.fromAny(r || "0");
+                                }
+                            } catch {}
+                            surgeLevelRow.setValue(newVal);
+                        },
+                    },
+                );
+
+                registerLiveBinding({
+                    type: "surge-level",
+                    slot,
+                    refresh: () => {
+                        if (slot !== getActiveSlot()) return;
+                        let newVal = BigNum.fromInt(0);
+                        try {
+                            const r = localStorage.getItem(surgeLevelKey);
+                            if (r === "Infinity") {
+                                newVal = Infinity;
+                            } else {
+                                newVal = BigNum.fromAny(r || "0");
+                            }
+                        } catch {}
+                        surgeLevelRow.setValue(newVal);
+                    },
+                });
+
+                container.appendChild(surgeLevelRow.row);
+            }
+
+            // Lab Level
+            const labLevel = getLabLevel();
+            const labLevelRow = createInputRow(
+                "Lab Level",
+                labLevel,
+                (value, { setValue }) => {
+                    let valBn;
+                    try {
+                        valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                        if (typeof valBn.floorToInteger === "function") valBn = valBn.floorToInteger();
+                        if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                    } catch {
+                        setValue(getLabLevel());
+                        return;
+                    }
+
+                    const prev = getLabLevel();
+                    setLabLevel(valBn);
+
+                    flagDebugUsage();
+                    if (!bigNumEquals(prev, valBn)) {
+                        logAction(`Modified Lab Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
+                    }
+                    setValue(valBn);
+                },
+                {
+                    storageKey: getLabLevelKey(slot),
+                },
+            );
+
+            registerLiveBinding({
+                type: "lab-level",
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    labLevelRow.setValue(getLabLevel());
+                },
+            });
+
+            container.appendChild(labLevelRow.row);
+
+            // Tsunami Exponent
+            // This value is 0.00 when the tsunami is fully active (nerfing everything),
+            // and goes up to 1.00 (restored) as you gain Surge Levels.
+            // We display it as a decimal (0.00 - 1.00).
+            // The displayed value includes the Research Lab bonus.
+            const getTsunamiExponent = () => {
+                const base = getBaseTsunamiExponent();
+                const bonus = getTsunamiResearchBonus();
+                let val = base + bonus;
+                if (val > 1) val = 1;
+                return val;
+            };
+
+            const tsunamiRow = createInputRow(
+                "Tsunami Exponent",
+                getTsunamiExponent().toFixed(2),
+                (value, { setValue }) => {
+                    let valNum = Number(value);
+
+                    // Handle BigNum inputs or "inf"
+                    if (value instanceof BigNum) {
+                        if (value.isInfinite()) valNum = Infinity;
+                        else valNum = Number(value.toScientific(10));
+                    } else if (typeof value === "string" && /infinity/i.test(value)) {
+                        valNum = Infinity;
+                    }
+
+                    if (Number.isNaN(valNum)) {
+                        setValue(getTsunamiExponent().toFixed(2));
+                        return;
+                    }
+
+                    // The user is inputting the *effective* value they want.
+                    // We need to calculate what base value produces that effective value.
+                    // Effective = Base + Bonus
+                    // Base = Effective - Bonus
+
+                    const bonus = getTsunamiResearchBonus();
+                    let targetBase = valNum - bonus;
+
+                    // Clamp base to [0, 1] (logic from before, though strictly it should be 0 to 1)
+                    if (targetBase > 1) targetBase = 1;
+                    // It's possible for targetBase to be < 0 if they input something smaller than the bonus.
+                    // In that case, we set base to 0.
+                    if (targetBase < 0) targetBase = 0;
+
+                    // Round base to 2 decimal places to keep it clean
+                    targetBase = Math.round(targetBase * 100) / 100;
+
+                    const prevBase = getBaseTsunamiExponent();
+                    setTsunamiNerf(targetBase);
+
+                    flagDebugUsage();
+                    if (Math.abs(prevBase - targetBase) > 0.0001) {
+                        logAction(
+                            `Modified Tsunami Exponent (The Cove) Base:${prevBase.toFixed(2)} → ${targetBase.toFixed(2)} (Effective: ${valNum.toFixed(2)})`,
+                        );
+                    }
+                    setValue(getTsunamiExponent().toFixed(2));
+                },
+                {
+                    storageKey: getTsunamiNerfKey(slot),
+                    format: (val) => {
+                        // Ensure we format nicely as a number with 2 decimals if possible
+                        const n = Number(val);
+                        return Number.isFinite(n) ? n.toFixed(2) : String(val);
+                    },
+                },
+            );
+
+            registerLiveBinding({
+                type: "tsunami-nerf",
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    const val = getTsunamiExponent();
+                    tsunamiRow.setValue(val.toFixed(2));
+                },
+            });
+            container.appendChild(tsunamiRow.row);
+            if (area.key === AREA_KEYS.STARTER_COVE) {
+                const comboLockKey = `ccc:debug:comboLock:${slot}`;
+                const comboRow = createInputRow(
+                    "Combo",
+                    getActiveCombo(),
+                    (value, { setValue }) => {
+                        let nextVal = 0;
+                        if (value === Infinity || (value instanceof BigNum && value.isInfinite())) {
+                            nextVal = getMaxCombo();
+                        } else {
+                            try {
+                                nextVal = value instanceof BigNum ? Number(value.toScientific(10)) : Number(value);
+                            } catch {
+                                nextVal = Number(value);
+                            }
+                            if (Number.isNaN(nextVal)) nextVal = 0;
+                        }
+                        setActiveCombo(nextVal);
+                        setValue(getActiveCombo());
+                        flagDebugUsage();
+                    },
+                    {
+                        storageKey: comboLockKey,
+                        onLockChange: (locked) => setComboLocked(locked),
+                        format: (val) => {
+                            const n = Number(val);
+                            return Number.isFinite(n) && Math.abs(n) < 1e9 ? n.toFixed(3) : formatNumber(val);
+                        },
+                    },
+                );
+
+                // Initialize lock state from storage
+                setComboLocked(isStorageKeyLocked(comboLockKey));
+
+                registerLiveBinding({
+                    type: "combo",
+                    slot,
+                    refresh: () => {
+                        if (slot !== getActiveSlot()) return;
+                        comboRow.setValue(getActiveCombo());
+                    },
+                });
+                container.appendChild(comboRow.row);
+            }
+        }
     }
     isBuildingStats = false;
 }
@@ -3135,45 +3496,54 @@ function buildAreaStats(container, area) {
 function buildAreaUpgrades(container, area) {
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit upgrades.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit upgrades.";
         container.appendChild(msg);
         return;
     }
 
     const upgrades = getUpgradesForArea(area.key);
     if (!upgrades || upgrades.length === 0) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'No upgrades found for this area yet.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "No upgrades found for this area yet.";
         container.appendChild(msg);
         return;
     }
 
-    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+    const areaLabel = area?.title ?? area?.key ?? "Unknown Area";
 
     upgrades.forEach((upg) => {
         const idLabel = upg.id ?? upg.tie ?? upg.tieKey;
-        const title = upg.title || `Upgrade ${idLabel ?? ''}`.trim();
+        const title = upg.title || `Upgrade ${idLabel ?? ""}`.trim();
         const current = getLevel(area.key, upg.id ?? upg.tie);
         const storageKey = getUpgradeStorageKey(area.key, upg.id ?? upg.tie, slot);
-        const upgradeRow = createInputRow(title, current, (value, { setValue }) => {
-            const latestSlot = getActiveSlot();
-            if (latestSlot == null) return;
-            const previous = getLevel(area.key, upg.id ?? upg.tie);
-            let valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
-            if (typeof valBn.floorToInteger === 'function') valBn = valBn.floorToInteger();
-            try { setLevel(area.key, upg.id ?? upg.tie, valBn, false); } catch {}
-            const refreshed = getLevel(area.key, upg.id ?? upg.tie);
-            setValue(refreshed);
-            if (!bigNumEquals(previous, refreshed)) {
-                flagDebugUsage();
-                logAction(`Modified ${title} (${areaLabel} - ID: ${idLabel ?? 'Unknown'}) Lv${formatNumber(previous)} → Lv${formatNumber(refreshed)}`);
-            }
-        }, { idLabel, storageKey });
+        const upgradeRow = createInputRow(
+            title,
+            current,
+            (value, { setValue }) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                const previous = getLevel(area.key, upg.id ?? upg.tie);
+                let valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                if (typeof valBn.floorToInteger === "function") valBn = valBn.floorToInteger();
+                try {
+                    setLevel(area.key, upg.id ?? upg.tie, valBn, false);
+                } catch {}
+                const refreshed = getLevel(area.key, upg.id ?? upg.tie);
+                setValue(refreshed);
+                if (!bigNumEquals(previous, refreshed)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified ${title} (${areaLabel} - ID: ${idLabel ?? "Unknown"}) Lv${formatNumber(previous)} → Lv${formatNumber(refreshed)}`,
+                    );
+                }
+            },
+            { idLabel, storageKey },
+        );
         registerLiveBinding({
-            type: 'upgrade',
+            type: "upgrade",
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
@@ -3188,38 +3558,48 @@ function buildAreaUpgrades(container, area) {
 function buildAreaCurrencyMultipliers(container, area) {
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit currency multipliers.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit currency multipliers.";
         container.appendChild(msg);
         return;
     }
 
-    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+    const areaLabel = area?.title ?? area?.key ?? "Unknown Area";
 
     area.currencies.forEach((currency) => {
         const handle = bank?.[currency.key]?.mult;
         const currentOverride = getDebugCurrencyMultiplierOverride(currency.key, slot);
         const current = currentOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
         const storageKey = getCurrencyMultiplierStorageKey(currency.key, slot);
-        const row = createInputRow(`${currency.label} Multiplier`, current, (value, { setValue }) => {
-            const latestSlot = getActiveSlot();
-            if (latestSlot == null) return;
-            const previous = getDebugCurrencyMultiplierOverride(currency.key, latestSlot)
-                ?? handle?.get?.()
-                ?? BigNum.fromInt(1);
-            try { setDebugCurrencyMultiplierOverride(currency.key, value, latestSlot); } catch {}
-            applyAllCurrencyOverridesForActiveSlot();
-            const refreshedOverride = getDebugCurrencyMultiplierOverride(currency.key, latestSlot);
-            const refreshed = refreshedOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
-            setValue(refreshed);
-            if (!bigNumEquals(previous, refreshed)) {
-                flagDebugUsage();
-                logAction(`Modified ${currency.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
-            }
-        }, { storageKey });
+        const row = createInputRow(
+            `${currency.label} Multiplier`,
+            current,
+            (value, { setValue }) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                const previous =
+                    getDebugCurrencyMultiplierOverride(currency.key, latestSlot) ??
+                    handle?.get?.() ??
+                    BigNum.fromInt(1);
+                try {
+                    setDebugCurrencyMultiplierOverride(currency.key, value, latestSlot);
+                } catch {}
+                applyAllCurrencyOverridesForActiveSlot();
+                const refreshedOverride = getDebugCurrencyMultiplierOverride(currency.key, latestSlot);
+                const refreshed = refreshedOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
+                setValue(refreshed);
+                if (!bigNumEquals(previous, refreshed)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified ${currency.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`,
+                    );
+                }
+            },
+            { storageKey },
+        );
         registerLiveBinding({
-            type: 'currency-mult',
+            type: "currency-mult",
             key: currency.key,
             slot,
             refresh: () => {
@@ -3237,7 +3617,7 @@ function setAllCurrenciesToInfinity() {
     const slot = getActiveSlot();
     if (slot == null) return 0;
 
-    const inf = BigNum.fromAny('Infinity');
+    const inf = BigNum.fromAny("Infinity");
     let updated = 0;
 
     Object.values(CURRENCIES).forEach((key) => {
@@ -3245,9 +3625,7 @@ function setAllCurrenciesToInfinity() {
         if (!handle) return;
         try {
             const current = handle.value ?? handle.get?.();
-            const isAlreadyInf =
-                current?.isInfinite?.() ||
-                bigNumEquals(current, inf);
+            const isAlreadyInf = current?.isInfinite?.() || bigNumEquals(current, inf);
 
             if (isAlreadyInf) return;
 
@@ -3280,545 +3658,738 @@ function setAllCurrenciesToZero() {
 
 function setAllStatsToInfinity() {
     for (const setter of debugPanelStatSetters) {
-        setter('Infinity');
+        setter("Infinity");
     }
-    try { window.resetSystem?.updateResetPanel?.(); } catch {}
-    try { refreshLiveBindings(); } catch {}
+    try {
+        window.resetSystem?.updateResetPanel?.();
+    } catch {}
+    try {
+        refreshLiveBindings();
+    } catch {}
     return debugPanelStatSetters.length;
 }
 
 function setAllStatsToZero() {
     for (const setter of debugPanelStatSetters) {
-        setter('0');
+        setter("0");
     }
-    try { window.resetSystem?.updateResetPanel?.(); } catch {}
-    try { refreshLiveBindings(); } catch {}
+    try {
+        window.resetSystem?.updateResetPanel?.();
+    } catch {}
+    try {
+        refreshLiveBindings();
+    } catch {}
     return debugPanelStatSetters.length;
 }
 
 function getUnlockRowDefinitions(slot) {
     return [
         {
-            labelText: 'Unlock Underwater Cavern',
-            description: 'If true, unlocks Underwater Cavern',
+            labelText: "Unlock Underwater Cavern",
+            description: "If true, unlocks Underwater Cavern",
             isUnlocked: () => {
-                try { return !isNodeLocked('cavern', true); }
-                catch { return false; }
+                try {
+                    return !isNodeLocked("cavern", true);
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
                 try {
-                    setNodeLocked('cavern', false);
+                    setNodeLocked("cavern", false);
                     refreshNodesState();
-                    window.dispatchEvent(new Event('pinnedAreas:changed'));
-                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:cavern', slot } }));
+                    window.dispatchEvent(new Event("pinnedAreas:changed"));
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:cavern", slot } }));
                 } catch {}
             },
             onDisable: () => {
-                try { setNodeLocked('cavern', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
-                catch {}
+                try {
+                    setNodeLocked("cavern", true);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event("pinnedAreas:changed"));
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Coral Reef',
-            description: 'If true, unlocks Coral Reef',
+            labelText: "Unlock Coral Reef",
+            description: "If true, unlocks Coral Reef",
             isUnlocked: () => {
-                try { return !isNodeLocked('coral', true); }
-                catch { return false; }
+                try {
+                    return !isNodeLocked("coral", true);
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
                 try {
-                    setNodeLocked('coral', false);
+                    setNodeLocked("coral", false);
                     refreshNodesState();
-                    window.dispatchEvent(new Event('pinnedAreas:changed'));
-                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:coral', slot } }));
+                    window.dispatchEvent(new Event("pinnedAreas:changed"));
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:coral", slot } }));
                 } catch {}
             },
             onDisable: () => {
-                try { setNodeLocked('coral', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
-                catch {}
+                try {
+                    setNodeLocked("coral", true);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event("pinnedAreas:changed"));
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Deep Depths',
-            description: 'If true, unlocks Deep Depths',
+            labelText: "Unlock Deep Depths",
+            description: "If true, unlocks Deep Depths",
             isUnlocked: () => {
-                try { return !isNodeLocked('depths', true); }
-                catch { return false; }
+                try {
+                    return !isNodeLocked("depths", true);
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
                 try {
-                    setNodeLocked('depths', false);
+                    setNodeLocked("depths", false);
                     refreshNodesState();
-                    window.dispatchEvent(new Event('pinnedAreas:changed'));
-                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:depths', slot } }));
+                    window.dispatchEvent(new Event("pinnedAreas:changed"));
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:depths", slot } }));
                 } catch {}
             },
             onDisable: () => {
-                try { setNodeLocked('depths', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
-                catch {}
+                try {
+                    setNodeLocked("depths", true);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event("pinnedAreas:changed"));
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Combine',
-            description: 'If true, unlocks the Combine reset and Reset tab',
+            labelText: "Unlock Combine",
+            description: "If true, unlocks the Combine reset and Reset tab",
             isUnlocked: () => {
-                try { return isCombineUnlocked(); }
-                catch { return false; }
+                try {
+                    return isCombineUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { setCombineUnlocked(true); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
-                catch {}
+                try {
+                    setCombineUnlocked(true);
+                    window.resetSystem?.updateCombinePanelVisibility?.(
+                        document.querySelector(".merchant-overlay.is-miner .merchant-sheet"),
+                    );
+                } catch {}
             },
             onDisable: () => {
-                try { setCombineUnlocked(false); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
-                catch {}
+                try {
+                    setCombineUnlocked(false);
+                    window.resetSystem?.updateCombinePanelVisibility?.(
+                        document.querySelector(".merchant-overlay.is-miner .merchant-sheet"),
+                    );
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Compress',
-            description: 'If true, unlocks the Compress reset',
+            labelText: "Unlock Compress",
+            description: "If true, unlocks the Compress reset",
             isUnlocked: () => {
-                try { return window.resetSystem?.isCompressUnlocked?.(); }
-                catch { return false; }
+                try {
+                    return window.resetSystem?.isCompressUnlocked?.();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { window.resetSystem?.setCompressUnlocked?.(true); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
-                catch {}
+                try {
+                    window.resetSystem?.setCompressUnlocked?.(true);
+                    window.resetSystem?.updateCompressPanelVisibility?.(
+                        document.querySelector(".merchant-overlay.is-miner .merchant-sheet"),
+                    );
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setCompressUnlocked?.(false); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
-                catch {}
+                try {
+                    window.resetSystem?.setCompressUnlocked?.(false);
+                    window.resetSystem?.updateCompressPanelVisibility?.(
+                        document.querySelector(".merchant-overlay.is-miner .merchant-sheet"),
+                    );
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Buildings',
-            description: 'If true, unlocks the Buildings tab',
+            labelText: "Unlock Buildings",
+            description: "If true, unlocks the Buildings tab",
             isUnlocked: () => {
-                try { return isBuildingsUnlocked(); }
-                catch { return false; }
+                try {
+                    return isBuildingsUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { window.resetSystem?.setCombineResetCompleted?.(true); }
-                catch {}
-                try { setBuildingsUnlocked(true); }
-                catch {}
-                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
-                catch {}
-                try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
-                catch {}
-                try { window.resetSystem?.updateCombineCard?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setCombineResetCompleted?.(true);
+                } catch {}
+                try {
+                    setBuildingsUnlocked(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateBuildingsPanelVisibility?.(
+                        document.querySelector(".merchant-overlay.is-miner .merchant-sheet"),
+                    );
+                } catch {}
+                try {
+                    window.dispatchEvent(new Event("ccc:buildings:changed"));
+                } catch {}
+                try {
+                    window.resetSystem?.updateCombineCard?.();
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setCombineResetCompleted?.(false); }
-                catch {}
-                try { setBuildingsUnlocked(false); }
-                catch {}
-                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
-                catch {}
-                try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
-                catch {}
-                try { window.resetSystem?.updateCombineCard?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setCombineResetCompleted?.(false);
+                } catch {}
+                try {
+                    setBuildingsUnlocked(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateBuildingsPanelVisibility?.(
+                        document.querySelector(".merchant-overlay.is-miner .merchant-sheet"),
+                    );
+                } catch {}
+                try {
+                    window.dispatchEvent(new Event("ccc:buildings:changed"));
+                } catch {}
+                try {
+                    window.resetSystem?.updateCombineCard?.();
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Pressure',
-            description: 'If true, unlocks the Pressure system',
+            labelText: "Unlock Pressure",
+            description: "If true, unlocks the Pressure system",
             isUnlocked: () => {
-                try { return window.resetSystem?.hasDoneCompressReset?.() ?? false; }
-                catch { return false; }
+                try {
+                    return window.resetSystem?.hasDoneCompressReset?.() ?? false;
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { window.resetSystem?.setCompressResetCompleted?.(true); }
-                catch {}
-                try { window.resetSystem?.updateCompressCard?.(); }
-                catch {}
-                try { window.ppSystem?.unlockPpSystem?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setCompressResetCompleted?.(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateCompressCard?.();
+                } catch {}
+                try {
+                    window.ppSystem?.unlockPpSystem?.();
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setCompressResetCompleted?.(false); }
-                catch {}
-                try { window.resetSystem?.updateCompressCard?.(); }
-                catch {}
-                try { window.ppSystem?.resetPpProgress?.({ keepUnlock: false }); }
-                catch {}
-            },
-            slot,
-        },
-                {
-            labelText: 'Unlock Sell',
-            description: 'If true, unlocks the Sell tab in the Miner delve',
-            isUnlocked: () => {
-                try { return isSellUnlocked(); }
-                catch { return false; }
-            },
-            onEnable: () => {
-                try { setSellUnlocked(true); }
-                catch {}
-            },
-            onDisable: () => {
-                try { setSellUnlocked(false); }
-                catch {}
+                try {
+                    window.resetSystem?.setCompressResetCompleted?.(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateCompressCard?.();
+                } catch {}
+                try {
+                    window.ppSystem?.resetPpProgress?.({ keepUnlock: false });
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Depth',
-            description: 'If true, unlocks the Depth system',
+            labelText: "Unlock Sell",
+            description: "If true, unlocks the Sell tab in the Miner delve",
             isUnlocked: () => {
-                try { return isDpSystemUnlocked(); }
-                catch { return false; }
+                try {
+                    return isSellUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { unlockDpSystem(); }
-                catch {}
+                try {
+                    setSellUnlocked(true);
+                } catch {}
             },
             onDisable: () => {
-                try { resetDpProgress({ keepUnlock: false }); }
-                catch {}
+                try {
+                    setSellUnlocked(false);
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock XP',
-            description: 'If true, unlocks the XP system',
+            labelText: "Unlock Depth",
+            description: "If true, unlocks the Depth system",
             isUnlocked: () => {
-                try { return !!getXpState()?.unlocked; }
-                catch { return false; }
+                try {
+                    return isDpSystemUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { unlockXpSystem(); }
-                catch {}
-                try { initXpSystem({ forceReload: true }); }
-                catch {}
+                try {
+                    unlockDpSystem();
+                } catch {}
             },
             onDisable: () => {
-                try { resetXpProgress({ keepUnlock: false }); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    resetDpProgress({ keepUnlock: false });
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Flow',
-            description: 'If true, unlocks the Flow tab',
+            labelText: "Unlock XP",
+            description: "If true, unlocks the XP system",
             isUnlocked: () => {
-                try { return !!getFlowUnlockState(); }
-                catch { return false; }
+                try {
+                    return !!getXpState()?.unlocked;
+                } catch {
+                    return false;
+                }
+            },
+            onEnable: () => {
+                try {
+                    unlockXpSystem();
+                } catch {}
+                try {
+                    initXpSystem({ forceReload: true });
+                } catch {}
+            },
+            onDisable: () => {
+                try {
+                    resetXpProgress({ keepUnlock: false });
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
+            },
+            slot,
+        },
+        {
+            labelText: "Unlock Flow",
+            description: "If true, unlocks the Flow tab",
+            isUnlocked: () => {
+                try {
+                    return !!getFlowUnlockState();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
                 const slot = getActiveSlot();
                 if (slot == null) return;
-                try { localStorage.setItem(`ccc:unlock:flow:${slot}`, '1'); } catch {}
-                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'flow', slot } })); } catch {}
+                try {
+                    lsSetItem(`ccc:unlock:flow:${slot}`, "1");
+                } catch {}
+                try {
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "flow", slot } }));
+                } catch {}
             },
             onDisable: () => {
                 const slot = getActiveSlot();
                 if (slot == null) return;
-                try { localStorage.setItem(`ccc:unlock:flow:${slot}`, '0'); } catch {}
-                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'flow', slot } })); } catch {}
-            },
-            slot,
-        },
-		{
-            labelText: 'Unlock Wave Scaling',
-            description: 'If true, Wave amount from Surge is uncapped',
-            isUnlocked: () => {
-                try { return window.resetSystem?.hasDoneSurgeReset?.() ?? false; }
-                catch { return false; }
-            },
-            onEnable: () => {
-                try { window.resetSystem?.setSurgeResetCompleted?.(true); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
-            },
-            onDisable: () => {
-                try { window.resetSystem?.setSurgeResetCompleted?.(false); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    lsSetItem(`ccc:unlock:flow:${slot}`, "0");
+                } catch {}
+                try {
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "flow", slot } }));
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Workshop',
-            description: 'If true, unlocks the Workshop tab',
+            labelText: "Unlock Wave Scaling",
+            description: "If true, Wave amount from Surge is uncapped",
             isUnlocked: () => {
-                try { return window.resetSystem?.hasDoneInfuseReset?.() ?? false; }
-                catch { return false; }
+                try {
+                    return window.resetSystem?.hasDoneSurgeReset?.() ?? false;
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { window.resetSystem?.setInfuseResetCompleted?.(true); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setSurgeResetCompleted?.(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setInfuseResetCompleted?.(false); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
-            },
-            slot,
-        },
-		{
-            labelText: 'Unlock Mutations',
-            description: 'If true, unlocks the Mutation system',
-            isUnlocked: () => {
-                try { return window.resetSystem?.hasDoneForgeReset?.() ?? false; }
-                catch { return false; }
-            },
-            onEnable: () => {
-                try { window.resetSystem?.setForgeResetCompleted?.(true); }
-                catch {}
-                try { setMutationUnlockedForDebug(true); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
-            },
-            onDisable: () => {
-                try { window.resetSystem?.setForgeResetCompleted?.(false); }
-                catch {}
-                try { setMutationUnlockedForDebug(false); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setSurgeResetCompleted?.(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Forge',
-            description: 'If true, unlocks the Forge reset and Reset tab',
+            labelText: "Unlock Workshop",
+            description: "If true, unlocks the Workshop tab",
+            isUnlocked: () => {
+                try {
+                    return window.resetSystem?.hasDoneInfuseReset?.() ?? false;
+                } catch {
+                    return false;
+                }
+            },
+            onEnable: () => {
+                try {
+                    window.resetSystem?.setInfuseResetCompleted?.(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
+            },
+            onDisable: () => {
+                try {
+                    window.resetSystem?.setInfuseResetCompleted?.(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
+            },
+            slot,
+        },
+        {
+            labelText: "Unlock Mutations",
+            description: "If true, unlocks the Mutation system",
+            isUnlocked: () => {
+                try {
+                    return window.resetSystem?.hasDoneForgeReset?.() ?? false;
+                } catch {
+                    return false;
+                }
+            },
+            onEnable: () => {
+                try {
+                    window.resetSystem?.setForgeResetCompleted?.(true);
+                } catch {}
+                try {
+                    setMutationUnlockedForDebug(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
+            },
+            onDisable: () => {
+                try {
+                    window.resetSystem?.setForgeResetCompleted?.(false);
+                } catch {}
+                try {
+                    setMutationUnlockedForDebug(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
+            },
+            slot,
+        },
+        {
+            labelText: "Unlock Forge",
+            description: "If true, unlocks the Forge reset and Reset tab",
             isUnlocked: () => {
                 try {
                     const override = window.resetSystem?.getForgeDebugOverrideState?.();
                     if (override != null) return override;
                 } catch {}
-                try { return !!window.resetSystem?.isForgeUnlocked?.(); }
-                catch { return false; }
+                try {
+                    return !!window.resetSystem?.isForgeUnlocked?.();
+                } catch {
+                    return false;
+                }
                 return false;
             },
             onEnable: () => {
-                try { window.resetSystem?.setForgeDebugOverride?.(true); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setForgeDebugOverride?.(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setForgeDebugOverride?.(false); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setForgeDebugOverride?.(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
         },
         {
-            labelText: 'Unlock Infuse',
-            description: 'If true, unlocks the Infuse reset',
+            labelText: "Unlock Infuse",
+            description: "If true, unlocks the Infuse reset",
             isUnlocked: () => {
                 try {
                     const override = window.resetSystem?.getInfuseDebugOverrideState?.();
                     if (override != null) return override;
                 } catch {}
-                try { return !!window.resetSystem?.isInfuseUnlocked?.(); }
-                catch { return false; }
+                try {
+                    return !!window.resetSystem?.isInfuseUnlocked?.();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { window.resetSystem?.setInfuseUnlockedForDebug?.(true); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setInfuseUnlockedForDebug?.(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setInfuseUnlockedForDebug?.(false); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setInfuseUnlockedForDebug?.(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             slot,
         },
-		{
-            labelText: 'Unlock Surge',
-            description: 'If true, unlocks the Surge reset',
+        {
+            labelText: "Unlock Surge",
+            description: "If true, unlocks the Surge reset",
             isUnlocked: () => {
                 try {
                     const override = window.resetSystem?.getSurgeDebugOverrideState?.();
                     if (override != null) return override;
                 } catch {}
-                try { return !!window.resetSystem?.isSurgeUnlocked?.(); }
-                catch { return false; }
+                try {
+                    return !!window.resetSystem?.isSurgeUnlocked?.();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { window.resetSystem?.setSurgeUnlockedForDebug?.(true); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setSurgeUnlockedForDebug?.(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setSurgeUnlockedForDebug?.(false); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setSurgeUnlockedForDebug?.(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Shop',
-            description: 'If true, makes the Shop button visible',
+            labelText: "Unlock Shop",
+            description: "If true, makes the Shop button visible",
             isUnlocked: () => {
-                try { return isShopUnlocked(); }
-                catch { return false; }
+                try {
+                    return isShopUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { unlockShop(); }
-                catch {}
+                try {
+                    unlockShop();
+                } catch {}
             },
             onDisable: () => {
-                try { lockShop(); }
-                catch {}
+                try {
+                    lockShop();
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Shop UC',
-            description: 'If true, makes the UC Shop button visible',
+            labelText: "Unlock Shop UC",
+            description: "If true, makes the UC Shop button visible",
             isUnlocked: () => {
-                try { return isShopUcUnlocked(); }
-                catch { return false; }
+                try {
+                    return isShopUcUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { unlockShopUc(); }
-                catch {}
+                try {
+                    unlockShopUc();
+                } catch {}
             },
             onDisable: () => {
-                try { lockShopUc(); }
-                catch {}
+                try {
+                    lockShopUc();
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Map',
-            description: 'If true, makes the Map button visible',
+            labelText: "Unlock Map",
+            description: "If true, makes the Map button visible",
             isUnlocked: () => {
-                try { return isMapUnlocked(); }
-                catch { return false; }
+                try {
+                    return isMapUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { unlockMap(); }
-                catch {}
+                try {
+                    unlockMap();
+                } catch {}
             },
             onDisable: () => {
-                try { lockMap(); }
-                catch {}
+                try {
+                    lockMap();
+                } catch {}
             },
             slot,
         },
 
         {
-            labelText: 'Unlock Jeff',
-            description: 'If true, changes the Merchant\'s name to Jeff',
+            labelText: "Unlock Jeff",
+            description: "If true, changes the Merchant's name to Jeff",
             isUnlocked: () => {
-                try { return isJeffUnlocked(); }
-                catch { return false; }
+                try {
+                    return isJeffUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { setJeffUnlocked(true); }
-                catch {}
+                try {
+                    setJeffUnlocked(true);
+                } catch {}
             },
             onDisable: () => {
-                try { setJeffUnlocked(false); }
-                catch {}
+                try {
+                    setJeffUnlocked(false);
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Tsunami',
-            description: 'If true, the Tsunami Sequence has been seen',
+            labelText: "Unlock Tsunami",
+            description: "If true, the Tsunami Sequence has been seen",
             isUnlocked: () => {
-                try { return !!getTsunamiSequencePlayed(); }
-                catch { return false; }
+                try {
+                    return !!getTsunamiSequencePlayed();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { setTsunamiSequencePlayed(true); }
-                catch {}
+                try {
+                    setTsunamiSequencePlayed(true);
+                } catch {}
             },
             onDisable: () => {
-                try { setTsunamiSequencePlayed(false); }
-                catch {}
+                try {
+                    setTsunamiSequencePlayed(false);
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Lab',
-            description: 'If true, unlocks the Lab tab',
+            labelText: "Unlock Lab",
+            description: "If true, unlocks the Lab tab",
             isUnlocked: () => {
-                try { return !!isLabUnlocked(); }
-                catch { return false; }
+                try {
+                    return !!isLabUnlocked();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { setLabUnlocked(true); }
-                catch {}
-                try { setTsunamiSequencePlayed(true); }
-                catch {}
+                try {
+                    setLabUnlocked(true);
+                } catch {}
+                try {
+                    setTsunamiSequencePlayed(true);
+                } catch {}
             },
             onDisable: () => {
-                try { setLabUnlocked(false); }
-                catch {}
+                try {
+                    setLabUnlocked(false);
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Experiment',
-            description: 'If true, Lab node 4 is maxed',
+            labelText: "Unlock Experiment",
+            description: "If true, Lab node 4 is maxed",
             isUnlocked: () => {
-                try { return getResearchNodeLevel(4) >= 1; }
-                catch { return false; }
+                try {
+                    return getResearchNodeLevel(4) >= 1;
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { setResearchNodeLevel(4, 1); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
-                try { window.helpSystem?.updateHelpOverlay?.(); }
-                catch {}
+                try {
+                    setResearchNodeLevel(4, 1);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
+                try {
+                    window.helpSystem?.updateHelpOverlay?.();
+                } catch {}
             },
             onDisable: () => {
-                try { setResearchNodeLevel(4, 0); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
-                try { window.helpSystem?.updateHelpOverlay?.(); }
-                catch {}
+                try {
+                    setResearchNodeLevel(4, 0);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
+                try {
+                    window.helpSystem?.updateHelpOverlay?.();
+                } catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Past N4',
-            description: 'If true, unlocks Lab nodes past node 4',
+            labelText: "Unlock Past N4",
+            description: "If true, unlocks Lab nodes past node 4",
             isUnlocked: () => {
-                try { return !!window.resetSystem?.hasDoneExperimentReset?.(); }
-                catch { return false; }
+                try {
+                    return !!window.resetSystem?.hasDoneExperimentReset?.();
+                } catch {
+                    return false;
+                }
             },
             onEnable: () => {
-                try { window.resetSystem?.setExperimentResetCompleted?.(true); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setExperimentResetCompleted?.(true);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setExperimentResetCompleted?.(false); }
-                catch {}
-                try { window.resetSystem?.updateResetPanel?.(); }
-                catch {}
+                try {
+                    window.resetSystem?.setExperimentResetCompleted?.(false);
+                } catch {}
+                try {
+                    window.resetSystem?.updateResetPanel?.();
+                } catch {}
             },
             slot,
         },
@@ -3832,8 +4403,9 @@ function setAllUnlockToggles(targetState) {
     let toggled = 0;
     getUnlockRowDefinitions(slot).forEach((rowDef) => {
         let unlocked = false;
-        try { unlocked = typeof rowDef.isUnlocked === 'function' ? !!rowDef.isUnlocked() : false; }
-        catch {}
+        try {
+            unlocked = typeof rowDef.isUnlocked === "function" ? !!rowDef.isUnlocked() : false;
+        } catch {}
 
         if (unlocked === targetState) return;
 
@@ -3847,7 +4419,9 @@ function setAllUnlockToggles(targetState) {
         } catch {}
     });
 
-    try { refreshLiveBindings(); } catch {}
+    try {
+        refreshLiveBindings();
+    } catch {}
 
     return toggled;
 }
@@ -3859,13 +4433,21 @@ function unlockAllUnlocks() {
     getAreas().forEach((area) => {
         getUpgradesForArea(area.key).forEach((upg) => {
             if (!upg?.unlockUpgrade) return;
-            try { markUpgradePermanentlyUnlocked(area.key, upg, slot); unlocked += 1; }
-            catch {}
+            try {
+                markUpgradePermanentlyUnlocked(area.key, upg, slot);
+                unlocked += 1;
+            } catch {}
         });
     });
-    try { unlockShop(); } catch {}
-    try { unlockShopUc(); } catch {}
-    try { unlockMap(); } catch {}
+    try {
+        unlockShop();
+    } catch {}
+    try {
+        unlockShopUc();
+    } catch {}
+    try {
+        unlockMap();
+    } catch {}
     const toggled = setAllUnlockToggles(true);
     return { unlocks: unlocked, toggles: toggled };
 }
@@ -3877,13 +4459,21 @@ function lockAllUnlockUpgrades() {
     getAreas().forEach((area) => {
         getUpgradesForArea(area.key).forEach((upg) => {
             if (!upg?.unlockUpgrade) return;
-            try { clearPermanentUpgradeUnlock(area.key, upg, slot); locked += 1; }
-            catch {}
+            try {
+                clearPermanentUpgradeUnlock(area.key, upg, slot);
+                locked += 1;
+            } catch {}
         });
     });
-    try { lockShop(); } catch {}
-    try { lockShopUc(); } catch {}
-    try { lockMap(); } catch {}
+    try {
+        lockShop();
+    } catch {}
+    try {
+        lockShopUc();
+    } catch {}
+    try {
+        lockMap();
+    } catch {}
     const toggled = setAllUnlockToggles(false);
     return { locks: locked, toggles: toggled };
 }
@@ -3893,7 +4483,9 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
     if (resolvedSlot == null) return [];
 
     const keys = new Set();
-    const add = (key) => { if (key) keys.add(key); };
+    const add = (key) => {
+        if (key) keys.add(key);
+    };
 
     const addCurrencyKeys = (currencyKey) => {
         add(getCurrencyStorageKey(currencyKey, resolvedSlot));
@@ -3904,25 +4496,25 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
 
     const addStatKeys = (statKey) => {
         addStatMultiplier(statKey);
-        if (statKey === 'xp' || statKey === 'xpLevel' || statKey === 'xpProgress') {
+        if (statKey === "xp" || statKey === "xpLevel" || statKey === "xpProgress") {
             add(XP_KEYS.level(resolvedSlot));
             add(XP_KEYS.progress(resolvedSlot));
         }
-        if (statKey === 'mutation' || statKey === 'mp' || statKey === 'mpLevel' || statKey === 'mpProgress') {
+        if (statKey === "mutation" || statKey === "mp" || statKey === "mpLevel" || statKey === "mpProgress") {
             add(MUTATION_KEYS.level(resolvedSlot));
             add(MUTATION_KEYS.progress(resolvedSlot));
         }
-        if (statKey === 'dp' || statKey === 'dpLevel' || statKey === 'dpProgress') {
+        if (statKey === "dp" || statKey === "dpLevel" || statKey === "dpProgress") {
             add(DP_KEYS.level(resolvedSlot));
             add(DP_KEYS.progress(resolvedSlot));
         }
-        if (statKey === 'pp' || statKey === 'ppLevel' || statKey === 'ppProgress') {
+        if (statKey === "pp" || statKey === "ppLevel" || statKey === "ppProgress") {
             add(PP_KEYS.level(resolvedSlot));
             add(PP_KEYS.progress(resolvedSlot));
         }
     };
 
-    if (target === 'all') {
+    if (target === "all") {
         Object.values(CURRENCIES).forEach(addCurrencyKeys);
         getAreas().forEach((area) => {
             area.stats.forEach((stat) => addStatKeys(stat.key));
@@ -3931,40 +4523,42 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
         return Array.from(keys);
     }
 
-    if (target === 'allCurrencies') {
+    if (target === "allCurrencies") {
         Object.values(CURRENCIES).forEach(addCurrencyKeys);
         return Array.from(keys);
     }
 
-    if (target === 'allUnlockedStats') {
-        if (getXpState()?.unlocked) addStatKeys('xp');
-        if (getMutationState()?.unlocked) addStatKeys('mutation');
-        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
-        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) addStatKeys('pp');
+    if (target === "allUnlockedStats") {
+        if (getXpState()?.unlocked) addStatKeys("xp");
+        if (getMutationState()?.unlocked) addStatKeys("mutation");
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys("dp");
+        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked())
+            addStatKeys("pp");
         return Array.from(keys);
     }
 
-    if (target === 'allUnlocked') {
+    if (target === "allUnlocked") {
         Object.values(CURRENCIES).forEach(addCurrencyKeys);
-        if (getXpState()?.unlocked) addStatKeys('xp');
-        if (getMutationState()?.unlocked) addStatKeys('mutation');
-        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
-        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) addStatKeys('pp');
+        if (getXpState()?.unlocked) addStatKeys("xp");
+        if (getMutationState()?.unlocked) addStatKeys("mutation");
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys("dp");
+        if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked())
+            addStatKeys("pp");
         return Array.from(keys);
     }
 
-    if (target.startsWith('currency:')) {
-        addCurrencyKeys(target.slice('currency:'.length));
+    if (target.startsWith("currency:")) {
+        addCurrencyKeys(target.slice("currency:".length));
         return Array.from(keys);
     }
 
-    if (target.startsWith('statmult:')) {
-        addStatMultiplier(target.slice('statmult:'.length));
+    if (target.startsWith("statmult:")) {
+        addStatMultiplier(target.slice("statmult:".length));
         return Array.from(keys);
     }
 
-    if (target.startsWith('stat:')) {
-        addStatKeys(target.slice('stat:'.length));
+    if (target.startsWith("stat:")) {
+        addStatKeys(target.slice("stat:".length));
         return Array.from(keys);
     }
 
@@ -3989,7 +4583,7 @@ function resetCurrencyAndMultiplier(currencyKey) {
 }
 
 function resetStatsAndMultipliers(target) {
-    if (target === 'all') {
+    if (target === "all") {
         // All currencies + multipliers: clear overrides and put real multipliers back to 1x
         Object.values(CURRENCIES).forEach((key) => resetCurrencyAndMultiplier(key));
 
@@ -3998,20 +4592,25 @@ function resetStatsAndMultipliers(target) {
         // Reset all states
         applyXpState({ level: zero, progress: zero });
         applyMutationState({ level: zero, progress: zero });
-        if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
-        if (window.ppSystem && typeof window.ppSystem.getPpState === 'function') applyPpState({ level: zero, progress: zero });
+        if (typeof applyDpState === "function") applyDpState({ level: zero, progress: zero });
+        if (window.ppSystem && typeof window.ppSystem.getPpState === "function")
+            applyPpState({ level: zero, progress: zero });
 
         let statCount = 0;
         getAreas().forEach((area) => {
             area.stats.forEach((stat) => {
                 statCount++;
-                try { setDebugStatMultiplierOverride(stat.key, BigNum.fromInt(1)); } catch {}
+                try {
+                    setDebugStatMultiplierOverride(stat.key, BigNum.fromInt(1));
+                } catch {}
             });
         });
-        
+
         STAT_MULTIPLIERS.forEach(({ key }) => {
             statCount++;
-            try { setDebugStatMultiplierOverride(key, BigNum.fromInt(1)); } catch {}
+            try {
+                setDebugStatMultiplierOverride(key, BigNum.fromInt(1));
+            } catch {}
         });
 
         // Waterwheels -> 0
@@ -4025,28 +4624,30 @@ function resetStatsAndMultipliers(target) {
         } catch {}
 
         const totalCount = Object.values(CURRENCIES).length + statCount;
-        return { label: '[GOLD]all[/GOLD] currency/stats', count: totalCount };
+        return { label: "[GOLD]all[/GOLD] currency/stats", count: totalCount };
     }
 
-    if (target === 'allCurrencies') {
+    if (target === "allCurrencies") {
         let currencyCount = 0;
         Object.values(CURRENCIES).forEach((key) => {
             resetCurrencyAndMultiplier(key);
             currencyCount += 1;
         });
 
-        const label = currencyCount === 1 ? '1 currency' : `${currencyCount} currencies`;
+        const label = currencyCount === 1 ? "1 currency" : `${currencyCount} currencies`;
         return { label, count: currencyCount };
     }
 
-    if (target === 'allUnlockedStats') {
+    if (target === "allUnlockedStats") {
         const zero = BigNum.fromInt(0);
         let resetCount = 0;
 
         try {
             if (getXpState()?.unlocked) {
                 applyXpState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
+                try {
+                    setDebugStatMultiplierOverride("xp", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -4054,15 +4655,19 @@ function resetStatsAndMultipliers(target) {
         try {
             if (getMutationState()?.unlocked) {
                 applyMutationState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                try {
+                    setDebugStatMultiplierOverride("mutation", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
 
         try {
             if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
-                if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+                if (typeof applyDpState === "function") applyDpState({ level: zero, progress: zero });
+                try {
+                    setDebugStatMultiplierOverride("dp", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -4070,7 +4675,9 @@ function resetStatsAndMultipliers(target) {
         try {
             if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) {
                 applyPpState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
+                try {
+                    setDebugStatMultiplierOverride("pp", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -4085,11 +4692,11 @@ function resetStatsAndMultipliers(target) {
             }
         } catch {}
 
-        const label = resetCount === 1 ? '1 unlocked stat' : `${resetCount} unlocked stats`;
+        const label = resetCount === 1 ? "1 unlocked stat" : `${resetCount} unlocked stats`;
         return { label, count: resetCount };
     }
 
-    if (target === 'allUnlocked') {
+    if (target === "allUnlocked") {
         let currencyCount = 0;
         Object.values(CURRENCIES).forEach((key) => {
             resetCurrencyAndMultiplier(key);
@@ -4102,7 +4709,9 @@ function resetStatsAndMultipliers(target) {
         try {
             if (getXpState()?.unlocked) {
                 applyXpState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
+                try {
+                    setDebugStatMultiplierOverride("xp", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -4110,15 +4719,19 @@ function resetStatsAndMultipliers(target) {
         try {
             if (getMutationState()?.unlocked) {
                 applyMutationState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                try {
+                    setDebugStatMultiplierOverride("mutation", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
 
         try {
             if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
-                if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+                if (typeof applyDpState === "function") applyDpState({ level: zero, progress: zero });
+                try {
+                    setDebugStatMultiplierOverride("dp", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -4126,7 +4739,9 @@ function resetStatsAndMultipliers(target) {
         try {
             if (window.ppSystem && window.ppSystem.isPpSystemUnlocked && window.ppSystem.isPpSystemUnlocked()) {
                 applyPpState({ level: zero, progress: zero });
-                try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
+                try {
+                    setDebugStatMultiplierOverride("pp", BigNum.fromInt(1));
+                } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -4143,97 +4758,106 @@ function resetStatsAndMultipliers(target) {
 
         const parts = [];
 
-        if (resetCount === 1) parts.push('1 unlocked stat');
+        if (resetCount === 1) parts.push("1 unlocked stat");
         else parts.push(`${resetCount} unlocked stats`);
 
-        parts.push(currencyCount === 1 ? '1 currency' : `${currencyCount} currencies`);
+        parts.push(currencyCount === 1 ? "1 currency" : `${currencyCount} currencies`);
 
-        return { label: parts.join(' and '), count: resetCount + currencyCount };
+        return { label: parts.join(" and "), count: resetCount + currencyCount };
     }
 
-    if (target.startsWith('currency:')) {
-        const currencyKey = target.slice('currency:'.length);
+    if (target.startsWith("currency:")) {
+        const currencyKey = target.slice("currency:".length);
         resetCurrencyAndMultiplier(currencyKey);
         return { label: `${currencyKey}`, count: 1 };
     }
 
-    if (target.startsWith('statmult:')) {
-        const statKey = target.slice('statmult:'.length);
+    if (target.startsWith("statmult:")) {
+        const statKey = target.slice("statmult:".length);
         // "Reset this stat multiplier" = remove any debug override,
         // let the game recalculate the multiplier normally.
-        try { clearStatMultiplierOverride(statKey); } catch {}
+        try {
+            clearStatMultiplierOverride(statKey);
+        } catch {}
         return { label: `${statKey} multiplier`, count: 1 };
     }
 
-    if (!target.startsWith('stat:')) {
+    if (!target.startsWith("stat:")) {
         return { label: `unknown target ${target}`, count: 0 };
     }
 
-    const statKey = target.slice('stat:'.length);
+    const statKey = target.slice("stat:".length);
     const zero = BigNum.fromInt(0);
 
     // Treat any XP-related key as "XP": level + progress + multiplier.
-    if (statKey === 'xp' || statKey === 'xpLevel' || statKey === 'xpProgress') {
+    if (statKey === "xp" || statKey === "xpLevel" || statKey === "xpProgress") {
         applyXpState({ level: zero, progress: zero });
         // Temporarily force XP multiplier to 1x (override cleared on next real update)
-        try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
-        return { label: 'XP', count: 1 };
+        try {
+            setDebugStatMultiplierOverride("xp", BigNum.fromInt(1));
+        } catch {}
+        return { label: "XP", count: 1 };
     }
 
     // Treat any MP / mutation key as "MP": level + progress + multiplier.
-    if (
-        statKey === 'mutation' ||
-        statKey === 'mp' ||
-        statKey === 'mpLevel' ||
-        statKey === 'mpProgress'
-    ) {
+    if (statKey === "mutation" || statKey === "mp" || statKey === "mpLevel" || statKey === "mpProgress") {
         applyMutationState({ level: zero, progress: zero });
         // Temporarily force MP multiplier to 1x, same semantics as XP
-        try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
-        return 'MP';
+        try {
+            setDebugStatMultiplierOverride("mutation", BigNum.fromInt(1));
+        } catch {}
+        return "MP";
     }
 
-    if (
-        statKey === 'dp' ||
-        statKey === 'dpLevel' ||
-        statKey === 'dpProgress'
-    ) {
-        if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
-        try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
-        return 'DP';
+    if (statKey === "dp" || statKey === "dpLevel" || statKey === "dpProgress") {
+        if (typeof applyDpState === "function") applyDpState({ level: zero, progress: zero });
+        try {
+            setDebugStatMultiplierOverride("dp", BigNum.fromInt(1));
+        } catch {}
+        return "DP";
     }
 
-    if (
-        statKey === 'pp' ||
-        statKey === 'ppLevel' ||
-        statKey === 'ppProgress'
-    ) {
+    if (statKey === "pp" || statKey === "ppLevel" || statKey === "ppProgress") {
         applyPpState({ level: zero, progress: zero });
-        try { setDebugStatMultiplierOverride('pp', BigNum.fromInt(1)); } catch {}
-        return 'PP';
+        try {
+            setDebugStatMultiplierOverride("pp", BigNum.fromInt(1));
+        } catch {}
+        return "PP";
     }
 
     // Fallback: generic stat multiplier reset -> same semantics as the debug stat input
-    try { setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1)); } catch {}
+    try {
+        setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1));
+    } catch {}
     return `stat ${statKey}`;
 }
 
 function buildAreaStatMultipliers(container, area) {
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit stat multipliers.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit stat multipliers.";
         container.appendChild(msg);
         return;
     }
 
-    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+    const areaLabel = area?.title ?? area?.key ?? "Unknown Area";
 
     STAT_MULTIPLIERS.forEach((stat) => {
-        if (stat.key === 'spawnRate') return;
-        if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp' && stat.key !== 'pp' && stat.key !== 'allMaterials') return;
-        if (area.key === AREA_KEYS.STARTER_COVE && (stat.key === 'dp' || stat.key === 'pp' || stat.key === 'allMaterials')) return;
+        if (stat.key === "spawnRate") return;
+        if (
+            area.key === AREA_KEYS.UNDERWATER_CAVERN &&
+            stat.key !== "dp" &&
+            stat.key !== "pp" &&
+            stat.key !== "allMaterials"
+        )
+            return;
+        if (
+            area.key === AREA_KEYS.STARTER_COVE &&
+            (stat.key === "dp" || stat.key === "pp" || stat.key === "allMaterials")
+        )
+            return;
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
         const row = createInputRow(
             `${stat.label} Multiplier`,
@@ -4242,13 +4866,15 @@ function buildAreaStatMultipliers(container, area) {
                 const latestSlot = getActiveSlot();
                 if (latestSlot == null) return;
                 const previous = getStatMultiplierDisplayValue(stat.key, latestSlot);
-                try { setDebugStatMultiplierOverride(stat.key, value, latestSlot); } catch {}
+                try {
+                    setDebugStatMultiplierOverride(stat.key, value, latestSlot);
+                } catch {}
                 const refreshed = getStatMultiplierDisplayValue(stat.key, latestSlot);
                 setValue(refreshed);
                 if (!bigNumEquals(previous, refreshed)) {
                     flagDebugUsage();
                     logAction(
-                        `Modified ${stat.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`
+                        `Modified ${stat.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`,
                     );
                 }
             },
@@ -4261,26 +4887,18 @@ function buildAreaStatMultipliers(container, area) {
                         const existingOverride = getLockedStatOverride(latestSlot, stat.key);
                         if (existingOverride) return;
                         try {
-                            setDebugStatMultiplierOverride(
-                                stat.key,
-                                getGameStatMultiplier(stat.key),
-                                latestSlot
-                            );
+                            setDebugStatMultiplierOverride(stat.key, getGameStatMultiplier(stat.key), latestSlot);
                         } catch {}
                     } else {
-                        getEffectiveStatMultiplierOverride(
-                            stat.key,
-                            latestSlot,
-                            getGameStatMultiplier(stat.key)
-                        );
+                        getEffectiveStatMultiplierOverride(stat.key, latestSlot, getGameStatMultiplier(stat.key));
                     }
                     row.setValue(getStatMultiplierDisplayValue(stat.key, latestSlot));
                 },
-            }
+            },
         );
 
         registerLiveBinding({
-            type: 'stat-mult',
+            type: "stat-mult",
             key: stat.key,
             slot,
             refresh: () => {
@@ -4291,7 +4909,7 @@ function buildAreaStatMultipliers(container, area) {
         });
 
         registerLiveBinding({
-            type: 'upgrade',
+            type: "upgrade",
             key: stat.key,
             slot,
             refresh: () => {
@@ -4301,9 +4919,9 @@ function buildAreaStatMultipliers(container, area) {
             },
         });
 
-        if (stat.key === 'mutation') {
+        if (stat.key === "mutation") {
             registerLiveBinding({
-                type: 'mutation',
+                type: "mutation",
                 key: stat.key,
                 slot,
                 refresh: () => {
@@ -4314,9 +4932,9 @@ function buildAreaStatMultipliers(container, area) {
             });
         }
 
-        if (stat.key === 'dp') {
+        if (stat.key === "dp") {
             registerLiveBinding({
-                type: 'dp',
+                type: "dp",
                 key: stat.key,
                 slot,
                 refresh: () => {
@@ -4327,9 +4945,9 @@ function buildAreaStatMultipliers(container, area) {
             });
         }
 
-        if (stat.key === 'pp') {
+        if (stat.key === "pp") {
             registerLiveBinding({
-                type: 'pp',
+                type: "pp",
                 key: stat.key,
                 slot,
                 refresh: () => {
@@ -4347,17 +4965,17 @@ function buildAreaStatMultipliers(container, area) {
 function buildLabNodesDebug(container) {
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit lab nodes.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit lab nodes.";
         container.appendChild(msg);
         return;
     }
 
     if (!RESEARCH_NODES || RESEARCH_NODES.length === 0) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'No lab nodes found.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "No lab nodes found.";
         container.appendChild(msg);
         return;
     }
@@ -4366,78 +4984,88 @@ function buildLabNodesDebug(container) {
         const nodeContainer = createSubsection(`${node.title || `Node ${node.id}`} (ID: ${node.id})`, (sub) => {
             // Level
             const levelKey = NODE_LEVEL_KEY(slot, node.id);
-            const levelRow = createInputRow('Level', getResearchNodeLevel(node.id), (value, { setValue }) => {
-                let valNum = Number(value);
-                if (value instanceof BigNum) {
-                     valNum = value.isInfinite() ? Infinity : Number(value.toScientific(10));
-                }
-                if (Number.isNaN(valNum) || valNum < 0) return;
-                
-                // Allow up to maxLevel
-                if (valNum > node.maxLevel) valNum = node.maxLevel;
-                valNum = Math.floor(valNum);
+            const levelRow = createInputRow(
+                "Level",
+                getResearchNodeLevel(node.id),
+                (value, { setValue }) => {
+                    let valNum = Number(value);
+                    if (value instanceof BigNum) {
+                        valNum = value.isInfinite() ? Infinity : Number(value.toScientific(10));
+                    }
+                    if (Number.isNaN(valNum) || valNum < 0) return;
 
-                const prev = getResearchNodeLevel(node.id);
-                setResearchNodeLevel(node.id, valNum);
-                flagDebugUsage();
-                
-                if (prev !== valNum) {
-                    logAction(`Modified Node ${node.id} Level (The Cove) ${prev} → ${valNum}`);
-                }
-                setValue(valNum);
-            }, {
-                storageKey: levelKey,
-                format: (val) => {
-                    const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
-                    return bn.toStorage?.() ?? formatBigNumForInput(val);
-                }
-            });
+                    // Allow up to maxLevel
+                    if (valNum > node.maxLevel) valNum = node.maxLevel;
+                    valNum = Math.floor(valNum);
+
+                    const prev = getResearchNodeLevel(node.id);
+                    setResearchNodeLevel(node.id, valNum);
+                    flagDebugUsage();
+
+                    if (prev !== valNum) {
+                        logAction(`Modified Node ${node.id} Level (The Cove) ${prev} → ${valNum}`);
+                    }
+                    setValue(valNum);
+                },
+                {
+                    storageKey: levelKey,
+                    format: (val) => {
+                        const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
+                        return bn.toStorage?.() ?? formatBigNumForInput(val);
+                    },
+                },
+            );
             registerLiveBinding({
-                type: 'lab-node-level',
+                type: "lab-node-level",
                 slot,
                 id: node.id,
                 refresh: () => {
                     if (slot !== getActiveSlot()) return;
                     levelRow.setValue(getResearchNodeLevel(node.id));
-                }
+                },
             });
             sub.appendChild(levelRow.row);
 
             // RP
             const rpKey = NODE_RP_KEY(slot, node.id);
-            const rpRow = createInputRow('Current RP', getResearchNodeRp(node.id), (value, { setValue }) => {
-                let bn;
-                try {
-                     bn = value instanceof BigNum ? value : BigNum.fromAny(value);
-                     if (bn.isNegative && bn.isNegative()) bn = BigNum.fromInt(0);
-                } catch {
-                     setValue(getResearchNodeRp(node.id));
-                     return;
-                }
+            const rpRow = createInputRow(
+                "Current RP",
+                getResearchNodeRp(node.id),
+                (value, { setValue }) => {
+                    let bn;
+                    try {
+                        bn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                        if (bn.isNegative && bn.isNegative()) bn = BigNum.fromInt(0);
+                    } catch {
+                        setValue(getResearchNodeRp(node.id));
+                        return;
+                    }
 
-                const prev = getResearchNodeRp(node.id);
-                setResearchNodeRp(node.id, bn);
-                flagDebugUsage();
-                
-                if (!bigNumEquals(prev, bn)) {
-                    logAction(`Modified Node ${node.id} RP (The Cove) ${formatNumber(prev)} → ${formatNumber(bn)}`);
-                }
-                setValue(bn);
-            }, {
-                storageKey: rpKey,
-                format: (val) => {
-                    const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
-                    return bn.toStorage?.() ?? formatBigNumForInput(val);
-                }
-            });
+                    const prev = getResearchNodeRp(node.id);
+                    setResearchNodeRp(node.id, bn);
+                    flagDebugUsage();
+
+                    if (!bigNumEquals(prev, bn)) {
+                        logAction(`Modified Node ${node.id} RP (The Cove) ${formatNumber(prev)} → ${formatNumber(bn)}`);
+                    }
+                    setValue(bn);
+                },
+                {
+                    storageKey: rpKey,
+                    format: (val) => {
+                        const bn = val instanceof BigNum ? val : BigNum.fromAny(val ?? 0);
+                        return bn.toStorage?.() ?? formatBigNumForInput(val);
+                    },
+                },
+            );
             registerLiveBinding({
-                type: 'lab-node-rp',
+                type: "lab-node-rp",
                 slot,
                 id: node.id,
                 refresh: () => {
                     if (slot !== getActiveSlot()) return;
                     rpRow.setValue(getResearchNodeRp(node.id));
-                }
+                },
             });
             sub.appendChild(rpRow.row);
         });
@@ -4448,17 +5076,17 @@ function buildLabNodesDebug(container) {
 function buildFlowDebug(container) {
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit flow.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit flow.";
         container.appendChild(msg);
         return;
     }
 
     if (!WATERWHEEL_DEFS) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'No waterwheels found.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "No waterwheels found.";
         container.appendChild(msg);
         return;
     }
@@ -4467,65 +5095,77 @@ function buildFlowDebug(container) {
         const nodeContainer = createSubsection(def.name || `${def.id} Waterwheel`, (sub) => {
             // Level
             const levelKey = `ccc:flow:level:${def.id}:${slot}`;
-            const levelRow = createInputRow('Level', getWaterwheelLevel(def.id), (value, { setValue }) => {
-                let valBn;
-                try {
-                     valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
-                     if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
-                } catch {
-                     setValue(getWaterwheelLevel(def.id));
-                     return;
-                }
+            const levelRow = createInputRow(
+                "Level",
+                getWaterwheelLevel(def.id),
+                (value, { setValue }) => {
+                    let valBn;
+                    try {
+                        valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                        if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                    } catch {
+                        setValue(getWaterwheelLevel(def.id));
+                        return;
+                    }
 
-                const prev = getWaterwheelLevel(def.id);
-                setWaterwheelLevel(def.id, valBn);
-                flagDebugUsage();
-                
-                if (!bigNumEquals(prev, valBn)) {
-                    logAction(`Modified Waterwheel ${def.name} Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
-                }
-                setValue(valBn);
-            }, {
-                storageKey: levelKey,
-            });
+                    const prev = getWaterwheelLevel(def.id);
+                    setWaterwheelLevel(def.id, valBn);
+                    flagDebugUsage();
+
+                    if (!bigNumEquals(prev, valBn)) {
+                        logAction(
+                            `Modified Waterwheel ${def.name} Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`,
+                        );
+                    }
+                    setValue(valBn);
+                },
+                {
+                    storageKey: levelKey,
+                },
+            );
             registerLiveBinding({
-                type: 'flow-level',
+                type: "flow-level",
                 slot,
                 id: def.id,
                 refresh: () => {
                     if (slot !== getActiveSlot()) return;
                     levelRow.setValue(getWaterwheelLevel(def.id));
-                }
+                },
             });
             sub.appendChild(levelRow.row);
 
             // FP
             const fpKey = `ccc:flow:fp:${def.id}:${slot}`;
-            const fpRow = createInputRow('Current FP', getWaterwheelFp(def.id), (value, { setValue }) => {
-                let valBn;
-                try {
-                     valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
-                     if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
-                } catch {
-                     setValue(getWaterwheelFp(def.id));
-                     return;
-                }
-                
-                setWaterwheelFp(def.id, valBn);
-                flagDebugUsage();
-                
-                setValue(valBn);
-            }, {
-                storageKey: fpKey,
-            });
+            const fpRow = createInputRow(
+                "Current FP",
+                getWaterwheelFp(def.id),
+                (value, { setValue }) => {
+                    let valBn;
+                    try {
+                        valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                        if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                    } catch {
+                        setValue(getWaterwheelFp(def.id));
+                        return;
+                    }
+
+                    setWaterwheelFp(def.id, valBn);
+                    flagDebugUsage();
+
+                    setValue(valBn);
+                },
+                {
+                    storageKey: fpKey,
+                },
+            );
             registerLiveBinding({
-                type: 'flow-fp',
+                type: "flow-fp",
                 slot,
                 id: def.id,
                 refresh: () => {
                     if (slot !== getActiveSlot()) return;
                     fpRow.setValue(getWaterwheelFp(def.id));
-                }
+                },
             });
             sub.appendChild(fpRow.row);
         });
@@ -4536,85 +5176,96 @@ function buildFlowDebug(container) {
 function buildBuildingsDebug(container) {
     const slot = getActiveSlot();
     if (slot == null) {
-        const msg = document.createElement('div');
-        msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit buildings.';
+        const msg = document.createElement("div");
+        msg.className = "debug-panel-empty";
+        msg.textContent = "Select a save slot to edit buildings.";
         container.appendChild(msg);
         return;
     }
 
     BUILDING_IDS.forEach((id) => {
-        const title = (BUILDING_NAMES[id] || id) + ' Level';
+        const title = (BUILDING_NAMES[id] || id) + " Level";
         const levelKey = `ccc:buildingLevel:${id}:${slot}`;
-        
+
         let currentLevel = getBuildingLevel(id);
-        
-        const row = createInputRow(title, currentLevel, (value, { setValue }) => {
-            let valToApply = value;
-            if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === 'function') { valToApply = valToApply.floorToInteger(); } else if (typeof valToApply === 'number' || typeof valToApply === 'string') { valToApply = Math.floor(Number(valToApply)); }
-            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
-                valToApply = BigNum.fromAny('Infinity');
-            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
-                valToApply = BigNum.fromAny('Infinity');
-            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
-                valToApply = BigNum.fromAny('Infinity');
-            } else if (valToApply instanceof BigNum) {
-                valToApply = valToApply;
-            } else {
-                valToApply = BigNum.fromAny(valToApply);
-            }
-            
-            const prev = getBuildingLevel(id);
-            setBuildingLevel(id, valToApply);
-            
-            // Unlock if building's level is higher than 0
-            if (valToApply.cmp && valToApply.cmp(BigNum.fromInt(0)) > 0 && !isBuildingUnlocked(id)) {
-                setBuildingUnlockedById(id, true);
-            } else if (typeof valToApply === 'number' && valToApply > 0 && !isBuildingUnlocked(id)) {
-                setBuildingUnlockedById(id, true);
-            }
-            
-            // Check tier regress
-            import('../misc/buildingVisuals.js').then(module => {
-                module.checkTierUp(id, prev, valToApply);
-            });
-            
-            document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
-            
-            const latest = getBuildingLevel(id);
-            setValue(latest);
-            
-            if (!bigNumEquals(prev, latest)) {
-                flagDebugUsage();
-                logAction(`Modified Building ${title} Level (Underwater Cavern) ${formatNumber(prev)} → ${formatNumber(latest)}`);
-            }
-        }, {
-            storageKey: levelKey
-        });
-        
+
+        const row = createInputRow(
+            title,
+            currentLevel,
+            (value, { setValue }) => {
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+                if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "number" && valToApply >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (valToApply instanceof BigNum) {
+                    valToApply = valToApply;
+                } else {
+                    valToApply = BigNum.fromAny(valToApply);
+                }
+
+                const prev = getBuildingLevel(id);
+                setBuildingLevel(id, valToApply);
+
+                // Unlock if building's level is higher than 0
+                if (valToApply.cmp && valToApply.cmp(BigNum.fromInt(0)) > 0 && !isBuildingUnlocked(id)) {
+                    setBuildingUnlockedById(id, true);
+                } else if (typeof valToApply === "number" && valToApply > 0 && !isBuildingUnlocked(id)) {
+                    setBuildingUnlockedById(id, true);
+                }
+
+                // Check tier regress
+                import("../misc/buildingVisuals.js").then((module) => {
+                    module.checkTierUp(id, prev, valToApply);
+                });
+
+                document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+
+                const latest = getBuildingLevel(id);
+                setValue(latest);
+
+                if (!bigNumEquals(prev, latest)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified Building ${title} Level (Underwater Cavern) ${formatNumber(prev)} → ${formatNumber(latest)}`,
+                    );
+                }
+            },
+            {
+                storageKey: levelKey,
+            },
+        );
+
         registerLiveBinding({
-            type: 'building-level',
+            type: "building-level",
             slot,
             id: id,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
                 row.setValue(getBuildingLevel(id));
-            }
+            },
         });
-        
+
         container.appendChild(row.row);
     });
 }
 
 function buildAreasContent(content) {
-    content.innerHTML = '';
+    content.innerHTML = "";
     debugPanelStatSetters.length = 0;
 
     const slot = getActiveSlot();
     if (slot == null) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'Areas are available once a save slot is selected.';
+        const placeholder = document.createElement("div");
+        placeholder.className = "debug-panel-empty";
+        placeholder.textContent = "Areas are available once a save slot is selected.";
         content.appendChild(placeholder);
         return;
     }
@@ -4625,10 +5276,10 @@ function buildAreasContent(content) {
 
     areas.forEach((area) => {
         const areaContainer = createSubsection(area.title, (areaContent) => {
-            const currencies = createSubsection('Currencies', (sub) => {
+            const currencies = createSubsection("Currencies", (sub) => {
                 buildAreaCurrencies(sub, area);
             });
-            
+
             let stats = null;
             let multipliers = null;
             let upgrades = null;
@@ -4639,20 +5290,20 @@ function buildAreasContent(content) {
             let calculators = null;
 
             if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
-                stats = createSubsection('Stats', (sub) => {
+                stats = createSubsection("Stats", (sub) => {
                     buildAreaStats(sub, area);
                 });
             }
 
             if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
-                multipliers = createSubsection('Multipliers', (sub) => {
-                    const currencyMultipliers = createSubsection('Currencies', (subsection) => {
+                multipliers = createSubsection("Multipliers", (sub) => {
+                    const currencyMultipliers = createSubsection("Currencies", (subsection) => {
                         buildAreaCurrencyMultipliers(subsection, area);
                     });
                     sub.appendChild(currencyMultipliers);
 
                     if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
-                        const statMultipliers = createSubsection('Stats', (subsection) => {
+                        const statMultipliers = createSubsection("Stats", (subsection) => {
                             buildAreaStatMultipliers(subsection, area);
                         });
                         sub.appendChild(statMultipliers);
@@ -4661,26 +5312,26 @@ function buildAreasContent(content) {
             }
 
             if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
-                upgrades = createSubsection('Upgrades', (sub) => {
+                upgrades = createSubsection("Upgrades", (sub) => {
                     buildAreaUpgrades(sub, area);
                 });
             }
 
             if (area.key === AREA_KEYS.STARTER_COVE) {
-                automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
-                    buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
+                automationUpgrades = createSubsection("Automation Upgrades", (sub) => {
+                    buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: "Automation" });
                 });
-                dnaUpgrades = createSubsection('DNA Upgrades', (sub) => {
-                    buildAreaUpgrades(sub, { key: AREA_KEYS.DNA, title: 'DNA' });
+                dnaUpgrades = createSubsection("DNA Upgrades", (sub) => {
+                    buildAreaUpgrades(sub, { key: AREA_KEYS.DNA, title: "DNA" });
                 });
-                labNodesSection = createSubsection('Lab Nodes', (sub) => {
+                labNodesSection = createSubsection("Lab Nodes", (sub) => {
                     buildLabNodesDebug(sub);
                 });
-                waterwheelsSection = createSubsection('Waterwheels', (sub) => {
+                waterwheelsSection = createSubsection("Waterwheels", (sub) => {
                     buildFlowDebug(sub);
                 });
             }
-			
+
             areaContent.appendChild(currencies);
             if (stats) areaContent.appendChild(stats);
             if (multipliers) areaContent.appendChild(multipliers);
@@ -4697,10 +5348,10 @@ function buildAreasContent(content) {
             if (waterwheelsSection) {
                 areaContent.appendChild(waterwheelsSection);
             }
-            
+
             let buildingsSection = null;
             if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
-                buildingsSection = createSubsection('Buildings', (sub) => {
+                buildingsSection = createSubsection("Buildings", (sub) => {
                     buildBuildingsDebug(sub);
                 });
             }
@@ -4708,7 +5359,7 @@ function buildAreasContent(content) {
                 areaContent.appendChild(buildingsSection);
             }
         });
-        areaContainer.classList.add('debug-panel-area');
+        areaContainer.classList.add("debug-panel-area");
 
         content.appendChild(areaContainer);
     });
@@ -4722,9 +5373,9 @@ function setAllUpgradesMaxed(onlyUnlocked = false) {
     const areas = Object.values(AREA_KEYS);
     const targets = [];
 
-    areas.forEach(areaKey => {
+    areas.forEach((areaKey) => {
         const upgrades = getUpgradesForArea(areaKey);
-        upgrades.forEach(upg => {
+        upgrades.forEach((upg) => {
             if (onlyUnlocked) {
                 const lockState = getUpgradeLockState(areaKey, upg.id);
                 if (lockState.locked) return;
@@ -4740,7 +5391,7 @@ function setAllUpgradesMaxed(onlyUnlocked = false) {
                 setLevel(areaKey, upg.id, targetLevel);
                 count++;
             } catch (e) {
-                console.warn('Failed to max upgrade', upg, e);
+                console.warn("Failed to max upgrade", upg, e);
             }
         });
     });
@@ -4755,9 +5406,9 @@ function setAllUpgradesZero(onlyUnlocked = false) {
     const areas = Object.values(AREA_KEYS);
     const targets = [];
 
-    areas.forEach(areaKey => {
+    areas.forEach((areaKey) => {
         const upgrades = getUpgradesForArea(areaKey);
-        upgrades.forEach(upg => {
+        upgrades.forEach((upg) => {
             if (onlyUnlocked) {
                 const lockState = getUpgradeLockState(areaKey, upg.id);
                 if (lockState.locked) return;
@@ -4770,10 +5421,10 @@ function setAllUpgradesZero(onlyUnlocked = false) {
         batchUpgradeOperations(() => {
             targets.forEach(({ areaKey, upg }) => {
                 try {
-                    setAutobuyerToggle(areaKey, upg.id, '0');
+                    setAutobuyerToggle(areaKey, upg.id, "0");
                     setLevel(areaKey, upg.id, 0);
                 } catch (e) {
-                    console.warn('Failed to zero upgrade', upg, e);
+                    console.warn("Failed to zero upgrade", upg, e);
                 }
             });
         });
@@ -4789,13 +5440,13 @@ function setAllAutomationToggles(targetState) {
     const slot = getActiveSlot();
     if (slot == null) return 0;
 
-    const val = targetState ? '1' : '0';
+    const val = targetState ? "1" : "0";
     let count = 0;
-	
-	// 1. Max (or Zero) Automation Upgrades
+
+    // 1. Max (or Zero) Automation Upgrades
     const automationUpgrades = getUpgradesForArea(AUTOMATION_AREA_KEY);
     batchUpgradeOperations(() => {
-        automationUpgrades.forEach(upg => {
+        automationUpgrades.forEach((upg) => {
             try {
                 // If targetState is true, set to max level (lvlCap).
                 // If false, set to 0.
@@ -4803,7 +5454,7 @@ function setAllAutomationToggles(targetState) {
                 setLevel(AUTOMATION_AREA_KEY, upg.id, lvl);
                 count++;
             } catch (e) {
-                console.warn('Failed to set automation level', upg, e);
+                console.warn("Failed to set automation level", upg, e);
             }
         });
     });
@@ -4812,16 +5463,16 @@ function setAllAutomationToggles(targetState) {
     // Keys: ccc:autobuy:master:{type}:{slot}
     const masterTypes = Object.values(MASTER_AUTOBUY_IDS);
     const automatedCostTypes = new Set(masterTypes);
-    
-    masterTypes.forEach(type => {
-         settingsManager.set(`currency_${type}_automated`, val === '1');
+
+    masterTypes.forEach((type) => {
+        settingsManager.set(`currency_${type}_automated`, val === "1");
     });
 
     // 3. Set Individual Toggles (Logic state)
     // Iterate over ALL areas to support future upgrades
-    Object.values(AREA_KEYS).forEach(areaKey => {
+    Object.values(AREA_KEYS).forEach((areaKey) => {
         if (areaKey === AUTOMATION_AREA_KEY) return; // Handled separately below (or via specific logic)
-        
+
         const upgrades = getUpgradesForArea(areaKey);
         upgrades.forEach((upg) => {
             if (automatedCostTypes.has(upg.costType)) {
@@ -4836,26 +5487,28 @@ function setAllAutomationToggles(targetState) {
     count++;
 
     // Force UI refresh if shop is open
-    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); } catch {}
+    try {
+        window.dispatchEvent(new CustomEvent("debug:change", { detail: { slot } }));
+    } catch {}
 
     return count;
 }
 
 function buildMiscContent(content) {
-    content.innerHTML = '';
+    content.innerHTML = "";
 
     const slot = getActiveSlot();
     if (slot == null) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'Miscellaneous tools are available once a save slot is selected.';
+        const placeholder = document.createElement("div");
+        placeholder.className = "debug-panel-empty";
+        placeholder.textContent = "Miscellaneous tools are available once a save slot is selected.";
         content.appendChild(placeholder);
         return;
     }
 
     const buttons = [
         {
-            label: 'Complete Dialogues',
+            label: "Complete Dialogues",
             onClick: () => {
                 const { completed } = completeAllDialoguesForDebug();
                 flagDebugUsage();
@@ -4863,48 +5516,50 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'Restore Dialogues',
+            label: "Restore Dialogues",
             onClick: () => {
                 const { restored } = restoreAllDialoguesForDebug();
                 flagDebugUsage();
-                const entryLabel = restored === 1 ? 'entry' : 'entries';
+                const entryLabel = restored === 1 ? "entry" : "entries";
                 logAction(`Restored dialogues to unclaimed state (${restored} ${entryLabel} reset)`);
             },
         },
         {
-            label: 'All Currencies Inf',
+            label: "All Currencies Inf",
             onClick: () => {
                 const touched = setAllCurrenciesToInfinity();
                 flagDebugUsage();
-                logAction(`Set all currencies to Infinity (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated)`);
+                logAction(
+                    `Set all currencies to Infinity (${touched} ${touched === 1 ? "currency" : "currencies"} updated)`,
+                );
             },
         },
         {
-            label: 'All Stats Inf',
+            label: "All Stats Inf",
             onClick: () => {
-                                const touched = setAllStatsToInfinity();
+                const touched = setAllStatsToInfinity();
                 flagDebugUsage();
-                logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? 'stat' : 'stats'} updated)`);
+                logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? "stat" : "stats"} updated)`);
             },
         },
-		{
-            label: 'All Currencies 0',
+        {
+            label: "All Currencies 0",
             onClick: () => {
                 const touched = setAllCurrenciesToZero();
                 flagDebugUsage();
-                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated)`);
+                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? "currency" : "currencies"} updated)`);
             },
         },
         {
-            label: 'All Stats 0',
+            label: "All Stats 0",
             onClick: () => {
                 const touched = setAllStatsToZero();
                 flagDebugUsage();
-                logAction(`Set all unlocked stats to 0 (${touched} ${touched === 1 ? 'stat' : 'stats'} updated)`);
+                logAction(`Set all unlocked stats to 0 (${touched} ${touched === 1 ? "stat" : "stats"} updated)`);
             },
         },
         {
-            label: 'Max All Upgs',
+            label: "Max All Upgs",
             onClick: () => {
                 const count = setAllUpgradesMaxed(false);
                 flagDebugUsage();
@@ -4912,7 +5567,7 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'All Upgs 0',
+            label: "All Upgs 0",
             onClick: () => {
                 const count = setAllUpgradesZero(false);
                 flagDebugUsage();
@@ -4920,7 +5575,7 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'Enable All Auto',
+            label: "Enable All Auto",
             onClick: () => {
                 const count = setAllAutomationToggles(true);
                 flagDebugUsage();
@@ -4928,7 +5583,7 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'Disable All Auto',
+            label: "Disable All Auto",
             onClick: () => {
                 const count = setAllAutomationToggles(false);
                 flagDebugUsage();
@@ -4936,15 +5591,17 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'Unlock All Unlocks',
+            label: "Unlock All Unlocks",
             onClick: () => {
                 const { unlocks, toggles } = unlockAllUnlocks();
                 flagDebugUsage();
-                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled)`);
+                logAction(
+                    `Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled)`,
+                );
             },
         },
         {
-            label: 'Lock All Unlocks',
+            label: "Lock All Unlocks",
             onClick: () => {
                 const { locks, toggles } = lockAllUnlockUpgrades();
                 flagDebugUsage();
@@ -4952,22 +5609,22 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'Max All Lab Nodes',
+            label: "Max All Lab Nodes",
             onClick: () => {
                 let count = 0;
                 RESEARCH_NODES.forEach((node) => {
-                   if (Number.isFinite(node.maxLevel)) {
-                       setResearchNodeLevel(node.id, node.maxLevel, true);
-                       count++;
-                   }
+                    if (Number.isFinite(node.maxLevel)) {
+                        setResearchNodeLevel(node.id, node.maxLevel, true);
+                        count++;
+                    }
                 });
-                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent("lab:node:change", { detail: { suppressNotify: false } }));
                 flagDebugUsage();
                 logAction(`Maxed ${count} Lab Nodes`);
             },
         },
         {
-            label: 'All Lab Nodes 0',
+            label: "All Lab Nodes 0",
             onClick: () => {
                 let count = 0;
                 RESEARCH_NODES.forEach((node) => {
@@ -4978,15 +5635,15 @@ function buildMiscContent(content) {
                     }
                     count++;
                 });
-                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
-                window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { suppressNotify: false } }));
-                window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent("lab:node:change", { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent("lab:node:rp", { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent("lab:node:active", { detail: { suppressNotify: false } }));
                 flagDebugUsage();
                 logAction(`Reset ${count} Lab Nodes to 0 (Level & RP)`);
             },
         },
         {
-            label: 'Max Nodes Until X',
+            label: "Max Nodes Until X",
             onClick: () => {
                 const raw = window.prompt("Input the Lab Node number you want to max until (inclusive)");
                 if (raw == null) return;
@@ -5003,75 +5660,82 @@ function buildMiscContent(content) {
                         }
                     }
                 });
-                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent("lab:node:change", { detail: { suppressNotify: false } }));
                 flagDebugUsage();
                 logAction(`Maxed ${count} Lab Nodes up to node ${limit}`);
             },
         },
         {
-            label: 'Wipe Action Log',
+            label: "Wipe Action Log",
             onClick: () => {
                 persistActionLog([], slot);
                 updateActionLogDisplay();
-                logAction('Action log wiped');
+                logAction("Action log wiped");
             },
         },
         {
-            label: 'Toggle The W',
+            label: "Toggle The W",
             onClick: () => {
                 const slot = getActiveSlot();
                 if (slot != null) {
                     try {
                         const key = `ccc:debug:toggleTheW:${slot}`;
-                        const current = localStorage.getItem(key) === '1';
-                        const next = current ? '0' : '1';
-                        localStorage.setItem(key, next);
-                        window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge_completed', slot } }));
+                        const current = localStorage.getItem(key) === "1";
+                        const next = current ? "0" : "1";
+                        lsSetItem(key, next);
+                        window.dispatchEvent(
+                            new CustomEvent("unlock:change", { detail: { key: "surge_completed", slot } }),
+                        );
                         window.resetSystem?.updateResetPanel?.();
                         flagDebugUsage();
-                        const prevText = current ? 'True' : 'False';
-                        const nextText = next === '1' ? 'True' : 'False';
+                        const prevText = current ? "True" : "False";
+                        const nextText = next === "1" ? "True" : "False";
                         logAction(`Toggled Warp tab visibility [GOLD]${prevText}[/GOLD] → [GOLD]${nextText}[/GOLD]`);
                     } catch {}
                 }
             },
         },
         {
-            label: 'Restock The W',
+            label: "Restock The W",
             onClick: () => {
                 const slot = getActiveSlot();
                 if (slot != null) {
                     try {
-                        localStorage.setItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
+                        lsSetItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
                         updateWarpTab(true);
                         flagDebugUsage();
-                        logAction('Restocked Warps');
+                        logAction("Restocked Warps");
                     } catch {}
                 }
             },
         },
         {
-            label: 'OP Time Warp',
+            label: "OP Time Warp",
             onClick: () => {
                 const raw = window.prompt("Enter amount of seconds to warp:");
                 if (raw == null) return;
                 const seconds = parseBigNumInput(raw);
-                if (!seconds || (typeof seconds.isZero === 'function' && seconds.isZero()) || (typeof seconds.isNegative === 'function' && seconds.isNegative())) return;
+                if (
+                    !seconds ||
+                    (typeof seconds.isZero === "function" && seconds.isZero()) ||
+                    (typeof seconds.isNegative === "function" && seconds.isNegative())
+                )
+                    return;
 
                 let secondsNum = 0;
-                if (typeof seconds.toScientific === 'function') {
-                     secondsNum = parseFloat(seconds.toScientific(20));
-                } else if (typeof seconds === 'number') {
-                     secondsNum = seconds;
+                if (typeof seconds.toScientific === "function") {
+                    secondsNum = parseFloat(seconds.toScientific(20));
+                } else if (typeof seconds === "number") {
+                    secondsNum = seconds;
                 } else {
-                     secondsNum = Number(seconds);
+                    secondsNum = Number(seconds);
                 }
 
                 if (isSimulatedOfflineEnabled()) {
-                     startSimulatedOffline(0, { isDebug: true, overrideSeconds: secondsNum });
-                     flagDebugUsage();
-                     logAction(`Performed OP Time Warp (Simulated) for ${formatNumber(seconds)} seconds`);
-                     return;
+                    startSimulatedOffline(0, { isDebug: true, overrideSeconds: secondsNum });
+                    flagDebugUsage();
+                    logAction(`Performed OP Time Warp (Simulated) for ${formatNumber(seconds)} seconds`);
+                    return;
                 }
 
                 let rewards;
@@ -5090,49 +5754,49 @@ function buildMiscContent(content) {
 
                 flagDebugUsage();
                 logAction(`Performed OP Time Warp for ${formatNumber(seconds)} seconds`);
-            }
+            },
         },
         {
-            label: 'Toggle Hitboxes',
+            label: "Toggle Hitboxes",
             onClick: () => {
                 window.__showHitboxes = !window.__showHitboxes;
-                logAction(`Toggled hitboxes ${window.__showHitboxes ? 'on' : 'off'}`);
-            }
+                logAction(`Toggled hitboxes ${window.__showHitboxes ? "on" : "off"}`);
+            },
         },
     ];
 
-    const buttonGrid = document.createElement('div');
-    buttonGrid.className = 'debug-misc-button-list';
+    const buttonGrid = document.createElement("div");
+    buttonGrid.className = "debug-misc-button-list";
     buttons.forEach((cfg) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'debug-panel-toggle debug-misc-button';
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "debug-panel-toggle debug-misc-button";
         btn.textContent = cfg.label;
-        btn.addEventListener('click', cfg.onClick);
+        btn.addEventListener("click", cfg.onClick);
         buttonGrid.appendChild(btn);
     });
     content.appendChild(buttonGrid);
 
-    const resetRow = document.createElement('div');
-    resetRow.className = 'debug-panel-row';
-    const resetLabel = document.createElement('label');
-    resetLabel.textContent = 'Reset Values & Multis For:';
+    const resetRow = document.createElement("div");
+    resetRow.className = "debug-panel-row";
+    const resetLabel = document.createElement("label");
+    resetLabel.textContent = "Reset Values & Multis For:";
     resetRow.appendChild(resetLabel);
 
-    const resetSelect = document.createElement('select');
-    resetSelect.className = 'debug-panel-input debug-reset-values-select';
+    const resetSelect = document.createElement("select");
+    resetSelect.className = "debug-panel-input debug-reset-values-select";
 
     getAreas().forEach((area) => {
-        const group = document.createElement('optgroup');
+        const group = document.createElement("optgroup");
         group.label = area.title || area.key;
         area.currencies.forEach((currency) => {
-            const opt = document.createElement('option');
+            const opt = document.createElement("option");
             opt.value = `currency:${currency.key}`;
             opt.textContent = `${area.title || area.key} → ${currency.label}`;
             group.appendChild(opt);
         });
         area.stats.forEach((stat) => {
-            const opt = document.createElement('option');
+            const opt = document.createElement("option");
             opt.value = `stat:${stat.key}`;
             opt.textContent = `${area.title || area.key} → ${stat.label}`;
             group.appendChild(opt);
@@ -5140,24 +5804,24 @@ function buildMiscContent(content) {
         resetSelect.appendChild(group);
     });
 
-    const allCurrenciesOption = document.createElement('option');
-    allCurrenciesOption.value = 'allCurrencies';
-    allCurrenciesOption.textContent = 'All Currencies';
+    const allCurrenciesOption = document.createElement("option");
+    allCurrenciesOption.value = "allCurrencies";
+    allCurrenciesOption.textContent = "All Currencies";
     resetSelect.appendChild(allCurrenciesOption);
 
-    const allUnlockedStatsOption = document.createElement('option');
-    allUnlockedStatsOption.value = 'allUnlockedStats';
-    allUnlockedStatsOption.textContent = 'All Unlocked Stats';
+    const allUnlockedStatsOption = document.createElement("option");
+    allUnlockedStatsOption.value = "allUnlockedStats";
+    allUnlockedStatsOption.textContent = "All Unlocked Stats";
     resetSelect.appendChild(allUnlockedStatsOption);
-	
-	const allUnlockedOption = document.createElement('option');
-    allUnlockedOption.value = 'allUnlocked';
-    allUnlockedOption.textContent = 'All Unlocked Stats & Currencies';
+
+    const allUnlockedOption = document.createElement("option");
+    allUnlockedOption.value = "allUnlocked";
+    allUnlockedOption.textContent = "All Unlocked Stats & Currencies";
     resetSelect.appendChild(allUnlockedOption);
 
-    const allOption = document.createElement('option');
-    allOption.value = 'all';
-    allOption.textContent = 'All';
+    const allOption = document.createElement("option");
+    allOption.value = "all";
+    allOption.textContent = "All";
     resetSelect.appendChild(allOption);
 
     if (!resetSelect.querySelector(`option[value="${debugPanelMiscResetSelection}"]`)) {
@@ -5165,43 +5829,46 @@ function buildMiscContent(content) {
     }
     resetSelect.value = debugPanelMiscResetSelection;
 
-    const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || DEFAULT_MISC_RESET_SELECTION, getActiveSlot());
+    const resolveResetLockKeys = () =>
+        getResetTargetLockKeys(resetSelect.value || DEFAULT_MISC_RESET_SELECTION, getActiveSlot());
 
     // We create a standalone toggle button that doesn't actually lock/unlock anything on click
     const resetLockToggle = {
-        button: document.createElement('button'),
+        button: document.createElement("button"),
         isLocked: false,
-        refresh: function() {
-            this.button.textContent = this.isLocked ? 'L' : 'UL';
-            this.button.classList.toggle('locked', this.isLocked);
-        }
+        refresh: function () {
+            this.button.textContent = this.isLocked ? "L" : "UL";
+            this.button.classList.toggle("locked", this.isLocked);
+        },
     };
-    resetLockToggle.button.type = 'button';
-    resetLockToggle.button.className = 'debug-lock-button';
-    resetLockToggle.button.addEventListener('click', () => {
+    resetLockToggle.button.type = "button";
+    resetLockToggle.button.className = "debug-lock-button";
+    resetLockToggle.button.addEventListener("click", () => {
         resetLockToggle.isLocked = !resetLockToggle.isLocked;
         resetLockToggle.refresh();
     });
     resetLockToggle.refresh();
-    
-    resetSelect.addEventListener('change', () => {
+
+    resetSelect.addEventListener("change", () => {
         debugPanelMiscResetSelection = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
     });
 
     resetRow.appendChild(resetSelect);
     resetRow.appendChild(resetLockToggle.button);
 
-    const resetBtn = document.createElement('button');
-    resetBtn.type = 'button';
-    resetBtn.className = 'debug-panel-toggle reset-check';
-    resetBtn.textContent = '✅';
-    resetBtn.addEventListener('click', () => {
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "debug-panel-toggle reset-check";
+    resetBtn.textContent = "✅";
+    resetBtn.addEventListener("click", () => {
         const target = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
         const lockKeys = resolveResetLockKeys();
 
         const performReset = (logEntry = true) => {
-            const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target))
-                ?? { label: target, count: 0 };
+            const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target)) ?? {
+                label: target,
+                count: 0,
+            };
 
             // Apply the UI toggle state directly to the affected items
             const updatedLockKeys = resolveResetLockKeys();
@@ -5212,13 +5879,13 @@ function buildMiscContent(content) {
             }
 
             // Dispatch a custom event to notify all individual lock toggles to refresh their UI state
-            document.dispatchEvent(new CustomEvent('debugStorageLocksChanged'));
+            document.dispatchEvent(new CustomEvent("debugStorageLocksChanged"));
 
             flagDebugUsage();
 
             if (logEntry) {
                 const { label, count } = result;
-                const nounPhrase = count === 1 ? 'value and multiplier' : 'values and multipliers';
+                const nounPhrase = count === 1 ? "value and multiplier" : "values and multipliers";
                 logAction(`Reset ${nounPhrase} for ${label} to defaults`);
             }
         };
@@ -5229,61 +5896,65 @@ function buildMiscContent(content) {
     resetRow.appendChild(resetBtn);
     content.appendChild(resetRow);
 
-    const actionLogRow = document.createElement('div');
-    actionLogRow.className = 'debug-panel-row';
+    const actionLogRow = document.createElement("div");
+    actionLogRow.className = "debug-panel-row";
 
-const wipeSlotBtn = document.createElement('button');
-wipeSlotBtn.type = 'button';
-wipeSlotBtn.className = 'debug-panel-toggle debug-danger-button';
-wipeSlotBtn.textContent = 'Wipe Slot & Refresh';
-wipeSlotBtn.addEventListener('click', () => {
-    const confirmWipe = window.confirm?.(
-        'Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.'
-    );
-    if (!confirmWipe) return;
+    const wipeSlotBtn = document.createElement("button");
+    wipeSlotBtn.type = "button";
+    wipeSlotBtn.className = "debug-panel-toggle debug-danger-button";
+    wipeSlotBtn.textContent = "Wipe Slot & Refresh";
+    wipeSlotBtn.addEventListener("click", () => {
+        const confirmWipe = window.confirm?.(
+            "Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.",
+        );
+        if (!confirmWipe) return;
 
-    try {
-        localStorage.setItem('ccc:pendingSlotWipe', String(slot));
-    } catch {}
+        try {
+            lsSetItem("ccc:pendingSlotWipe", String(slot));
+        } catch {}
 
-    try {
-        localStorage.removeItem('ccc:saveSlot');
-    } catch {}
+        try {
+            lsRemoveItem("ccc:saveSlot");
+        } catch {}
 
-    try {
-        const menuRoot = document.querySelector('.menu-root');
-        const gameRoot = document.getElementById('game-root');
-        if (menuRoot) {
-            menuRoot.hidden = false;
-            menuRoot.style.display = '';
-            menuRoot.style.visibility = '';
+        try {
+            const menuRoot = document.querySelector(".menu-root");
+            const gameRoot = document.getElementById("game-root");
+            if (menuRoot) {
+                menuRoot.hidden = false;
+                menuRoot.style.display = "";
+                menuRoot.style.visibility = "";
+            }
+            if (gameRoot) {
+                gameRoot.hidden = true;
+                gameRoot.style.display = "none";
+            }
+        } catch {}
+
+        try {
+            setTimeout(() => {
+                try {
+                    window.location.reload();
+                } catch {}
+            }, 16);
+        } catch {
+            try {
+                window.location.reload();
+            } catch {}
         }
-        if (gameRoot) {
-            gameRoot.hidden = true;
-            gameRoot.style.display = 'none';
-        }
-    } catch {}
-
-    try {
-        setTimeout(() => {
-            try { window.location.reload(); } catch {}
-        }, 16);
-    } catch {
-        try { window.location.reload(); } catch {}
-    }
-});
-actionLogRow.appendChild(wipeSlotBtn);
+    });
+    actionLogRow.appendChild(wipeSlotBtn);
 
     content.appendChild(actionLogRow);
 
     if (window.currentArea !== 666) {
-        const jailRow = document.createElement('div');
-        jailRow.className = 'debug-panel-row';
-        const jailBtn = document.createElement('button');
-        jailBtn.type = 'button';
-        jailBtn.className = 'debug-panel-toggle debug-danger-button';
-        jailBtn.textContent = 'Go to Jail';
-        jailBtn.addEventListener('click', () => {
+        const jailRow = document.createElement("div");
+        jailRow.className = "debug-panel-row";
+        const jailBtn = document.createElement("button");
+        jailBtn.type = "button";
+        jailBtn.className = "debug-panel-toggle debug-danger-button";
+        jailBtn.textContent = "Go to Jail";
+        jailBtn.addEventListener("click", () => {
             window.enterArea(666);
             closeDebugPanel();
         });
@@ -5293,26 +5964,27 @@ actionLogRow.appendChild(wipeSlotBtn);
 }
 
 function buildUnlocksContent(content) {
-    content.innerHTML = '';
+    content.innerHTML = "";
 
     const slot = getActiveSlot();
     if (slot == null) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'Unlocks are available once a save slot is selected.';
+        const placeholder = document.createElement("div");
+        placeholder.className = "debug-panel-empty";
+        placeholder.textContent = "Unlocks are available once a save slot is selected.";
         content.appendChild(placeholder);
         return;
     }
 
-    try { initXpSystem(); }
-    catch {}
+    try {
+        initXpSystem();
+    } catch {}
 
     const rows = getUnlockRowDefinitions(slot);
 
     rows.sort((a, b) => {
-        const textA = a.labelText ?? '';
-        const textB = b.labelText ?? '';
-        return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
+        const textA = a.labelText ?? "";
+        const textB = b.labelText ?? "";
+        return textA.localeCompare(textB, undefined, { sensitivity: "base" });
     });
 
     rows.forEach((rowDef) => {
@@ -5330,56 +6002,56 @@ function buildDebugPanel() {
     const existingPanel = document.getElementById(DEBUG_PANEL_ID);
     if (existingPanel) existingPanel.remove();
 
-    const panel = document.createElement('div');
+    const panel = document.createElement("div");
     panel.id = DEBUG_PANEL_ID;
-    panel.className = 'debug-panel';
+    panel.className = "debug-panel";
 
-    const header = document.createElement('div');
-    header.className = 'debug-panel-header';
+    const header = document.createElement("div");
+    header.className = "debug-panel-header";
 
-    const titleContainer = document.createElement('div');
+    const titleContainer = document.createElement("div");
 
-    const title = document.createElement('div');
-    title.className = 'debug-panel-title';
-    title.textContent = 'Debug Panel';
+    const title = document.createElement("div");
+    title.className = "debug-panel-title";
+    title.textContent = "Debug Panel";
 
-    const closeButtonContainer = document.createElement('div');
-    closeButtonContainer.className = 'debug-panel-close-buttons';
+    const closeButtonContainer = document.createElement("div");
+    closeButtonContainer.className = "debug-panel-close-buttons";
 
-    const closeButton = document.createElement('button');
-    closeButton.className = 'debug-panel-close';
-    closeButton.type = 'button';
-    closeButton.setAttribute('aria-label', 'Close Debug Panel');
-    closeButton.textContent = 'Close';
-    closeButton.addEventListener('click', () => closeDebugPanel({ preserveExpansionState: true }));
+    const closeButton = document.createElement("button");
+    closeButton.className = "debug-panel-close";
+    closeButton.type = "button";
+    closeButton.setAttribute("aria-label", "Close Debug Panel");
+    closeButton.textContent = "Close";
+    closeButton.addEventListener("click", () => closeDebugPanel({ preserveExpansionState: true }));
 
-    const collapseCloseButton = document.createElement('button');
-    collapseCloseButton.className = 'debug-panel-close debug-panel-close-collapse';
-    collapseCloseButton.type = 'button';
-    collapseCloseButton.setAttribute('aria-label', 'Close Debug Panel and Collapse Sections');
-    collapseCloseButton.textContent = 'Close & Collapse';
-    collapseCloseButton.addEventListener('click', () => closeDebugPanel());
+    const collapseCloseButton = document.createElement("button");
+    collapseCloseButton.className = "debug-panel-close debug-panel-close-collapse";
+    collapseCloseButton.type = "button";
+    collapseCloseButton.setAttribute("aria-label", "Close Debug Panel and Collapse Sections");
+    collapseCloseButton.textContent = "Close & Collapse";
+    collapseCloseButton.addEventListener("click", () => closeDebugPanel());
 
     closeButtonContainer.appendChild(closeButton);
     closeButtonContainer.appendChild(collapseCloseButton);
 
     titleContainer.appendChild(title);
-    const info = document.createElement('div');
-    info.className = 'debug-panel-info';
+    const info = document.createElement("div");
+    info.className = "debug-panel-info";
 
     const infoLines = [
-        { text: 'C: Close and preserve panels', hideOnMobile: true },
-        { text: 'Shift+C: Close and collapse panels', hideOnMobile: true },
-        { text: 'Input fields can take a normal, scientific, or BN number as input' },
+        { text: "C: Close and preserve panels", hideOnMobile: true },
+        { text: "Shift+C: Close and collapse panels", hideOnMobile: true },
+        { text: "Input fields can take a normal, scientific, or BN number as input" },
         { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
-        { text: 'Toggle UL/L (Unlocked/Locked) on a value to freeze it from accruing normally' },
-        { text: 'Press N to nuke all notifications, press Shift+N to nuke only the current notification' },
+        { text: "Toggle UL/L (Unlocked/Locked) on a value to freeze it from accruing normally" },
+        { text: "Press N to nuke all notifications, press Shift+N to nuke only the current notification" },
     ];
 
     infoLines.forEach(({ text, hideOnMobile }) => {
-        const infoLine = document.createElement('div');
-        infoLine.className = 'debug-panel-info-line';
-        if (hideOnMobile) infoLine.classList.add('debug-panel-info-mobile-hidden');
+        const infoLine = document.createElement("div");
+        infoLine.className = "debug-panel-info-line";
+        if (hideOnMobile) infoLine.classList.add("debug-panel-info-mobile-hidden");
         infoLine.textContent = text;
         info.appendChild(infoLine);
     });
@@ -5390,36 +6062,46 @@ function buildDebugPanel() {
     header.appendChild(closeButtonContainer);
     panel.appendChild(header);
 
-    panel.appendChild(createSection('Areas: main currency/stat/upgrade management for each area', 'debug-areas', content => {
-        buildAreasContent(content);
-    }));
+    panel.appendChild(
+        createSection("Areas: main currency/stat/upgrade management for each area", "debug-areas", (content) => {
+            buildAreasContent(content);
+        }),
+    );
 
-    panel.appendChild(createSection('Unlocks: modify specific unlock flags', 'debug-unlocks', content => {
-        buildUnlocksContent(content);
-    }));
+    panel.appendChild(
+        createSection("Unlocks: modify specific unlock flags", "debug-unlocks", (content) => {
+            buildUnlocksContent(content);
+        }),
+    );
 
-    panel.appendChild(createSection('Action Log: keep track of everything you do', 'debug-action-log', content => {
-        const container = document.createElement('div');
-        container.id = 'action-log-entries';
-        container.className = 'debug-panel-action-log';
-        container.style.maxHeight = '240px';
-        container.style.overflowY = 'auto';
-        content.appendChild(container);
-        actionLogContainer = container;
-        updateActionLogDisplay();
-        addDebugPanelCleanup(() => { actionLogContainer = null; });
-    }));
-	
-    panel.appendChild(createSection('Miscellaneous: helpful miscellaneous functions', 'debug-misc', content => {
-        buildMiscContent(content);
-    }));
+    panel.appendChild(
+        createSection("Action Log: keep track of everything you do", "debug-action-log", (content) => {
+            const container = document.createElement("div");
+            container.id = "action-log-entries";
+            container.className = "debug-panel-action-log";
+            container.style.maxHeight = "240px";
+            container.style.overflowY = "auto";
+            content.appendChild(container);
+            actionLogContainer = container;
+            updateActionLogDisplay();
+            addDebugPanelCleanup(() => {
+                actionLogContainer = null;
+            });
+        }),
+    );
+
+    panel.appendChild(
+        createSection("Miscellaneous: helpful miscellaneous functions", "debug-misc", (content) => {
+            buildMiscContent(content);
+        }),
+    );
 
     applyDebugPanelExpansionState(panel);
 
     document.body.appendChild(panel);
-    
+
     if (window.currentArea === 666) {
-        panel.classList.add('is-jailed');
+        panel.classList.add("is-jailed");
         // Update panel title
         const panelTitle = panel.querySelector(".debug-panel-title");
         if (panelTitle) {
@@ -5431,75 +6113,74 @@ function buildDebugPanel() {
             toggleBtn.textContent = "Jail Panel";
         }
 
-        
         // Update info lines
-        const infoLinesElements = panel.querySelectorAll('.debug-panel-info-line');
+        const infoLinesElements = panel.querySelectorAll(".debug-panel-info-line");
         infoLinesElements.forEach((line, index) => {
-			line.textContent = 'You are in Jail';
+            line.textContent = "You are in Jail";
         });
-        
+
         // Update section titles
-        const sectionToggles = panel.querySelectorAll('.debug-panel-section-toggle');
-        sectionToggles.forEach(toggle => {
-            toggle.textContent = 'Jail: You are in Jail';
+        const sectionToggles = panel.querySelectorAll(".debug-panel-section-toggle");
+        sectionToggles.forEach((toggle) => {
+            toggle.textContent = "Jail: You are in Jail";
         });
-        
+
         // Update all text nodes and inputs
-        const walker = document.createTreeWalker(
-            panel,
-            NodeFilter.SHOW_TEXT,
-            null,
-            false
-        );
-        
+        const walker = document.createTreeWalker(panel, NodeFilter.SHOW_TEXT, null, false);
+
         let node;
         const nodesToUpdate = [];
         while ((node = walker.nextNode())) {
             // Check if parent is one of the headers/info we already changed, or action log title
-            if (node.parentElement && 
-               !node.parentElement.classList.contains('debug-panel-info-line') &&
-               !node.parentElement.classList.contains('debug-panel-section-toggle') &&
-               !node.parentElement.classList.contains('debug-panel-close') &&
-               !node.parentElement.classList.contains('debug-panel-title')) {
+            if (
+                node.parentElement &&
+                !node.parentElement.classList.contains("debug-panel-info-line") &&
+                !node.parentElement.classList.contains("debug-panel-section-toggle") &&
+                !node.parentElement.classList.contains("debug-panel-close") &&
+                !node.parentElement.classList.contains("debug-panel-title")
+            ) {
                 if (node.nodeValue.trim().length > 0) {
                     nodesToUpdate.push(node);
                 }
             }
         }
-        
-        nodesToUpdate.forEach(n => {
-            if (n.parentElement && n.parentElement.classList.contains('action-log-time')) {
-                n.nodeValue = 'You are in Jail: ';
+
+        nodesToUpdate.forEach((n) => {
+            if (n.parentElement && n.parentElement.classList.contains("action-log-time")) {
+                n.nodeValue = "You are in Jail: ";
             } else {
-                n.nodeValue = 'You are in Jail';
+                n.nodeValue = "You are in Jail";
             }
         });
-        
+
         // Update inputs
-        const inputs = panel.querySelectorAll('input, select');
-        inputs.forEach(input => {
+        const inputs = panel.querySelectorAll("input, select");
+        inputs.forEach((input) => {
             input.disabled = true;
-            if (input.tagName === 'INPUT' && input.type !== 'checkbox' && input.type !== 'radio') {
-                input.value = 'You are in Jail';
+            if (input.tagName === "INPUT" && input.type !== "checkbox" && input.type !== "radio") {
+                input.value = "You are in Jail";
             }
         });
-        
+
         // Update buttons
-        const buttons = panel.querySelectorAll('button');
-        buttons.forEach(button => {
-            if (!button.classList.contains('debug-panel-close') && 
-                !button.classList.contains('debug-panel-section-toggle') &&
-                !button.classList.contains('debug-panel-subsection-toggle')) {
+        const buttons = panel.querySelectorAll("button");
+        buttons.forEach((button) => {
+            if (
+                !button.classList.contains("debug-panel-close") &&
+                !button.classList.contains("debug-panel-section-toggle") &&
+                !button.classList.contains("debug-panel-subsection-toggle")
+            ) {
                 button.disabled = true;
                 // Don't replace close buttons texts
-                button.textContent = 'You are in Jail';
+                button.textContent = "You are in Jail";
             }
         });
     }
 
     if (debugPanelScrollTop > 0) {
-        try { panel.scrollTop = debugPanelScrollTop; }
-        catch {}
+        try {
+            panel.scrollTop = debugPanelScrollTop;
+        } catch {}
     }
     setupLiveBindingListeners();
     debugPanelOpen = true;
@@ -5516,13 +6197,14 @@ function openDebugPanel() {
 }
 
 export function closeDebugPanel({ preserveExpansionState = false } = {}) {
-    debugPanelExpansionState = preserveExpansionState
-        ? captureDebugPanelExpansionState()
-        : createEmptyExpansionState();
+    debugPanelExpansionState = preserveExpansionState ? captureDebugPanelExpansionState() : createEmptyExpansionState();
     const panel = document.getElementById(DEBUG_PANEL_ID);
     if (panel) {
-        try { debugPanelScrollTop = panel.scrollTop ?? 0; }
-        catch { debugPanelScrollTop = 0; }
+        try {
+            debugPanelScrollTop = panel.scrollTop ?? 0;
+        } catch {
+            debugPanelScrollTop = 0;
+        }
         panel.remove();
     }
     cleanupDebugPanelResources();
@@ -5555,19 +6237,19 @@ function createDebugPanelToggleButton() {
 
     removeDebugPanelToggleButton();
 
-    const button = document.createElement('button');
+    const button = document.createElement("button");
     button.id = DEBUG_PANEL_TOGGLE_ID;
-    button.className = 'debug-panel-toggle-button';
-    button.type = 'button';
-    button.textContent = 'Debug Panel';
+    button.className = "debug-panel-toggle-button";
+    button.type = "button";
+    button.textContent = "Debug Panel";
     let lastPointerType = null;
 
     const handleToggle = (event) => {
         toggleDebugPanel();
     };
 
-    button.addEventListener('click', (event) => {
-        if (lastPointerType && lastPointerType !== 'mouse') {
+    button.addEventListener("click", (event) => {
+        if (lastPointerType && lastPointerType !== "mouse") {
             lastPointerType = null;
             return;
         }
@@ -5587,15 +6269,15 @@ function applyDebugPanelAccess(enabled) {
     createDebugPanelToggleButton();
 }
 
-document.addEventListener('keydown', event => {
+document.addEventListener("keydown", (event) => {
     if (!debugPanelAccess || isOnMenu() || isLoading()) return;
 
-    if (event.key?.toLowerCase() === 'n') {
+    if (event.key?.toLowerCase() === "n") {
         nukeNotifications(!event.shiftKey);
         return;
     }
 
-    if (event.key?.toLowerCase() !== 'c') return;
+    if (event.key?.toLowerCase() !== "c") return;
     if (event.ctrlKey) return;
 
     if (getActiveSlot() == null) return;
@@ -5616,24 +6298,24 @@ document.addEventListener('keydown', event => {
     } else {
         closeDebugPanel({ preserveExpansionState: true });
     }
-	
+
     event.preventDefault();
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     createDebugPanelToggleButton();
 });
 
-window.addEventListener('menu:visibilitychange', onMenuVisibilityChange);
+window.addEventListener("menu:visibilitychange", onMenuVisibilityChange);
 
-window.addEventListener('saveSlot:change', () => {
+window.addEventListener("saveSlot:change", () => {
     createDebugPanelToggleButton();
     if (debugPanelOpen) {
         buildDebugPanel();
     }
 });
 
-window.addEventListener('boot:complete', () => {
+window.addEventListener("boot:complete", () => {
     createDebugPanelToggleButton();
 });
 
