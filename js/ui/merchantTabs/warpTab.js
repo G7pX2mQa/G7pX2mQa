@@ -1,63 +1,57 @@
-import { getActiveSlot } from '../../util/storage.js';
-import { formatTimeCompact, calculateOfflineRewards, grantOfflineRewards, showOfflinePanel } from '../../game/offlinePanel.js';
-import { playAudio, applyAudioDrownEffect, removeAudioDrownEffect } from '../../util/audioManager.js';
+import { lsSetItem } from "../../main.js";
+import { getActiveSlot } from "../../util/storage.js";
+import {
+    formatTimeCompact,
+    calculateOfflineRewards,
+    grantOfflineRewards,
+    showOfflinePanel,
+} from "../../game/offlinePanel.js";
+import { playAudio, applyAudioDrownEffect, removeAudioDrownEffect } from "../../util/audioManager.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { registerTick } from "../../game/gameLoop.js";
 import { startSimulatedOffline, isSimulatedOfflineEnabled } from "../../game/simulatedOffline.js";
-
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
 const WARP_LAST_CHARGE_KEY = (slot) => `ccc:warp:lastCharge:${slot}`;
-
 const MAX_WARPS = 24;
 const CHARGE_TIME_MS = 60 * 60 * 1000; // 1 hour
 const WARP_DURATION_SEC = 150; // 2 minutes 30 seconds
-
 // const warpSfx = createSfxPlayer({ src: 'sounds/warp.ogg', mobileVolume: 0.5, desktopVolume: 0.5 });
-const WARP_SFX_SRC = 'sounds/warp.ogg';
-
+const WARP_SFX_SRC = "sounds/warp.ogg";
 let warpTabPanel = null;
 let updateTimer = null;
-
 function getWarpState(slot) {
     let charges = 24;
     let lastCharge = Date.now();
-    
     try {
         const c = localStorage.getItem(WARP_CHARGES_KEY(slot));
         if (c !== null) charges = parseInt(c, 10);
-        
         const l = localStorage.getItem(WARP_LAST_CHARGE_KEY(slot));
         if (l !== null) lastCharge = parseInt(l, 10);
         else if (c === null) {
-             // First time init: 24 charges.
-             try {
-                localStorage.setItem(WARP_CHARGES_KEY(slot), '24');
-                localStorage.setItem(WARP_LAST_CHARGE_KEY(slot), String(lastCharge));
+            // First time init: 24 charges.
+            try {
+                lsSetItem(WARP_CHARGES_KEY(slot), "24");
+                lsSetItem(WARP_LAST_CHARGE_KEY(slot), String(lastCharge));
             } catch {}
         }
     } catch {}
-    
     return { charges, lastCharge };
 }
 
 function saveWarpState(slot, charges, lastCharge) {
     try {
-        localStorage.setItem(WARP_CHARGES_KEY(slot), String(charges));
-        localStorage.setItem(WARP_LAST_CHARGE_KEY(slot), String(lastCharge));
+        lsSetItem(WARP_CHARGES_KEY(slot), String(charges));
+        lsSetItem(WARP_LAST_CHARGE_KEY(slot), String(lastCharge));
     } catch {}
 }
 
 export function checkWarpRecharge() {
     const slot = getActiveSlot();
     if (slot == null) return;
-    
     let { charges, lastCharge } = getWarpState(slot);
-    
     if (charges >= MAX_WARPS) return; // Full
-    
     const now = Date.now();
     const elapsed = now - lastCharge;
-    
     if (elapsed >= CHARGE_TIME_MS) {
         const gained = Math.floor(elapsed / CHARGE_TIME_MS);
         charges += gained;
@@ -69,8 +63,8 @@ export function checkWarpRecharge() {
         }
         saveWarpState(slot, charges, lastCharge);
         // Force update UI if visible
-        if (warpTabPanel && warpTabPanel.classList.contains('is-active')) {
-             updateWarpTab(true); // pass flag to avoid infinite recursion if I called check inside update
+        if (warpTabPanel && warpTabPanel.classList.contains("is-active")) {
+            updateWarpTab(true); // pass flag to avoid infinite recursion if I called check inside update
         }
     }
 }
@@ -78,62 +72,46 @@ export function checkWarpRecharge() {
 function performWarp() {
     const slot = getActiveSlot();
     if (slot == null) return;
-    
     checkWarpRecharge(); // Ensure state is up to date first
-
     let { charges, lastCharge } = getWarpState(slot);
-    
     if (charges <= 0) return;
-    
     // If we are at MAX, we start the timer now
     if (charges >= MAX_WARPS) {
         // Offset by 50ms so the timer starts at 59m 59s instead of 1h
         lastCharge = Date.now() - 50;
     }
-    
     charges--;
     saveWarpState(slot, charges, lastCharge);
-    
     updateWarpTab(true);
-    
     // Reset timer loop to synchronize tick with click
     if (updateTimer) clearInterval(updateTimer);
     updateTimer = setInterval(() => {
         updateWarpTab();
     }, 1000);
-    
-        // warpSfx.play();
-    playAudio(WARP_SFX_SRC, { volume: 1.0, type: 'ui' });
-
+    // warpSfx.play();
+    playAudio(WARP_SFX_SRC, { volume: 1.0, type: "ui" });
     applyAudioDrownEffect(7.25);
-    
     let overlay = null;
     let stage2Triggered = false;
-    
-    if (settingsManager.get('warp_vfx')) {
-        overlay = document.createElement('div');
-        overlay.className = 'warp-overlay';
+    if (settingsManager.get("warp_vfx")) {
+        overlay = document.createElement("div");
+        overlay.className = "warp-overlay";
         document.body.appendChild(overlay);
     }
-    
+
     let warpTimeAccumulator = 0;
-    
     let unsub = null;
     unsub = registerTick((dt) => {
         if (!document.hidden) {
             warpTimeAccumulator += dt;
-            
             if (overlay && warpTimeAccumulator >= 3.0 && !stage2Triggered) {
-                overlay.classList.add('stage-2');
+                overlay.classList.add("stage-2");
                 stage2Triggered = true;
             }
-            
             if (warpTimeAccumulator >= 7.25) {
                 if (unsub) unsub();
                 if (overlay) overlay.remove();
-                
                 removeAudioDrownEffect();
-
                 if (isSimulatedOfflineEnabled()) {
                     startSimulatedOffline(0, { isWarp: true, overrideSeconds: WARP_DURATION_SEC });
                 } else {
@@ -150,45 +128,41 @@ export function updateWarpTab(skipRechargeCheck = false) {
     if (!warpTabPanel) return;
     // We update even if not active? No, waste of resources.
     // But timer needs to update if active.
-    if (!warpTabPanel.classList.contains('is-active')) return;
-    
+    if (!warpTabPanel.classList.contains("is-active")) return;
     const slot = getActiveSlot();
     if (slot == null) return;
-    
     if (!skipRechargeCheck) checkWarpRecharge();
-    
     const { charges, lastCharge } = getWarpState(slot);
-    
-    const counterEl = warpTabPanel.querySelector('.warp-counter');
+    const counterEl = warpTabPanel.querySelector(".warp-counter");
     if (counterEl) {
         counterEl.innerHTML = `Warps remaining: <span class="text-cyan">${charges} / ${MAX_WARPS}</span>`;
     }
-    
-    const timerEl = warpTabPanel.querySelector('.warp-timer');
+
+    const timerEl = warpTabPanel.querySelector(".warp-timer");
     if (timerEl) {
         if (charges >= MAX_WARPS) {
-            timerEl.style.visibility = 'hidden';
+            timerEl.style.visibility = "hidden";
         } else {
-            timerEl.style.visibility = 'visible';
+            timerEl.style.visibility = "visible";
             const now = Date.now();
             const nextCharge = lastCharge + CHARGE_TIME_MS;
             const diff = Math.max(0, nextCharge - now);
             timerEl.textContent = `Next warp in ${formatTimeCompact(diff)}`;
         }
     }
-    
-    const btn = warpTabPanel.querySelector('.warp-btn');
+
+    const btn = warpTabPanel.querySelector(".warp-btn");
     if (btn) {
         btn.disabled = charges <= 0;
     }
 
-    const warningContainer = warpTabPanel.querySelector('.warp-warning-container');
+    const warningContainer = warpTabPanel.querySelector(".warp-warning-container");
     if (warningContainer) {
-        const ack = localStorage.getItem('ccc:warp:warningAck:' + slot) === 'true';
-        if (settingsManager.get('warp_vfx') && !ack) {
-            warningContainer.style.display = 'block';
+        const ack = localStorage.getItem("ccc:warp:warningAck:" + slot) === "true";
+        if (settingsManager.get("warp_vfx") && !ack) {
+            warningContainer.style.display = "block";
         } else {
-            warningContainer.style.display = 'none';
+            warningContainer.style.display = "none";
         }
     }
 }
@@ -197,7 +171,6 @@ export function initWarpTab(panel) {
     if (!panel || panel.__warpInit) return;
     panel.__warpInit = true;
     warpTabPanel = panel;
-    
     panel.innerHTML = `
         <div class="warp-tab">
             <h3 class="warp-title">Warp</h3>
@@ -216,27 +189,23 @@ export function initWarpTab(panel) {
             <button type="button" class="warp-btn">Warp</button>
         </div>
     `;
-    
-    const btn = panel.querySelector('.warp-btn');
-    btn.addEventListener('click', performWarp);
-
-    const ackBtn = panel.querySelector('.warp-ack-btn');
+    const btn = panel.querySelector(".warp-btn");
+    btn.addEventListener("click", performWarp);
+    const ackBtn = panel.querySelector(".warp-ack-btn");
     if (ackBtn) {
-        ackBtn.addEventListener('click', () => {
+        ackBtn.addEventListener("click", () => {
             const slot = getActiveSlot();
             if (slot != null) {
-                localStorage.setItem('ccc:warp:warningAck:' + slot, 'true');
+                lsSetItem("ccc:warp:warningAck:" + slot, "true");
                 updateWarpTab();
             }
         });
     }
-    
     // Start update loop
     if (!updateTimer) {
         updateTimer = setInterval(() => {
             updateWarpTab();
         }, 1000);
     }
-    
     updateWarpTab();
 }
