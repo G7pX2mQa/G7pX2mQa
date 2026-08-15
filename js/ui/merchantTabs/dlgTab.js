@@ -96,10 +96,17 @@ function updateMerchantNameInUI() {
   const name = getMerchantName();
   
   if (merchantOverlayEl) {
-    const modalNames = merchantOverlayEl.querySelectorAll('.merchant-firstchat:not(.merchant-firstchat--initial) .merchant-firstchat__header .name');
+    const modalNames = merchantOverlayEl.querySelectorAll('.merchant-firstchat__header .name');
     modalNames.forEach((modalName) => {
       if (modalName && (modalName.textContent === 'Merchant' || modalName.textContent === 'Jeff')) {
         modalName.textContent = name;
+      }
+    });
+
+    const mainTitles = merchantOverlayEl.querySelectorAll('.merchant-title');
+    mainTitles.forEach((mainTitle) => {
+      if (mainTitle && (mainTitle.textContent === 'Merchant' || mainTitle.textContent === 'Jeff')) {
+        mainTitle.textContent = name;
       }
     });
   }
@@ -865,6 +872,7 @@ const engine = new DialogueEngine({
   textEl,
   choicesEl,
   skipTargets: [textEl, rowEl, cardEl],
+  getJeffState: () => isJeffUnlocked(),
       onChoice: (nodeId, opt) => {
       if (meta.scriptId === 4 && nodeId === 'c4b') {
         setJeffUnlocked(true);
@@ -948,6 +956,8 @@ const engine = new DialogueEngine({
   if (meta.scriptId === 6 && script?.nodes?.m3a && getLifetimeBossBeaten()) {
       script.nodes.m3a.say = 'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battl<span style="overflow-wrap: anywhere; word-break: break-all;">ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓≽ணၷᘑർ࿷᭭⋚ᬭᠴ</span>';
   }
+
+
 
   if (meta.reward && !meta.rewardNode) {
       throw new Error(`Dialogue ${id} has a reward but no rewardNode declared.`);
