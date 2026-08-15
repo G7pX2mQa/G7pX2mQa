@@ -164,7 +164,7 @@ export const SETTING_DEFINITIONS = {
     type: 'toggle',
     label: 'Show V.A.L.C. Button',
     hasExtraInfo: true,
-    info: 'In most upgrade overlays, adds an "Use V.A.L.C." button. This V.A.L.C. tool allows you to see detailed breakdowns of arbitrary cumulative and direct level costs of upgrades.',
+    info: 'In most upgrade overlays, adds a "Use V.A.L.C." button. This V.A.L.C. tool allows you to see detailed breakdowns of arbitrary cumulative and direct level costs of upgrades.',
     default: false,
     unlockCondition: () => true,
   },
