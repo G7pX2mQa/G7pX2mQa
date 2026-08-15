@@ -1,36 +1,29 @@
-import { getActiveSlot, bank } from '../../../util/storage.js';
-import { IS_MOBILE } from '../../../util/platformChecker.js';
-
-import { BigNum } from '../../../util/bigNum.js';
-import { formatNumber } from '../../../util/numFormat.js';
-import { getLevel, getLevelNumber, evaluateBulkPurchase, buyMax, getUpgradeLockState, AREA_KEYS } from '../../../game/upgrades.js';
-import { openUpgradeOverlay, playPurchaseSfx, computeAffordableLevels } from '../../shopOverlay.js';
-import { RAINBOW_GEM_UPGRADES, RAINBOW_GEM_AREA_KEY } from '../../../game/rainbowGemUpgrades.js';
-
-import { blockInteraction } from '../../shopOverlay.js';
-import { shouldSkipGhostTap, suppressNextGhostTap } from '../../../util/ghostTapGuard.js';
-import { ensureCustomScrollbar } from '../../shopOverlay.js';
-import { setupDragToClose } from '../../shopOverlay.js';
-
+import { lsSetItem } from "../../../main.js";
+import { getActiveSlot, bank } from "../../../util/storage.js";
+import { IS_MOBILE } from "../../../util/platformChecker.js";
+import { BigNum } from "../../../util/bigNum.js";
+import { getLevel, getLevelNumber, buyMax, getUpgradeLockState } from "../../../game/upgrades.js";
+import { openUpgradeOverlay, playPurchaseSfx, computeAffordableLevels } from "../../shopOverlay.js";
+import { RAINBOW_GEM_UPGRADES, RAINBOW_GEM_AREA_KEY } from "../../../game/rainbowGemUpgrades.js";
+import { blockInteraction } from "../../shopOverlay.js";
+import { shouldSkipGhostTap, suppressNextGhostTap } from "../../../util/ghostTapGuard.js";
+import { ensureCustomScrollbar } from "../../shopOverlay.js";
+import { setupDragToClose } from "../../shopOverlay.js";
 // Import tabs logic
-import { initSecretAchievementsTab, updateSecretAchievementsTab } from './secretAchievementsTab.js';
-import { initVoidGemAltarTab, updateVoidGemAltarTab } from './voidGemAltarTab.js';
-import { initMiscStatsTab, updateMiscStatsTab } from './miscStatsTab.js';
-import { settingsManager } from '../../../game/settingsManager.js';
-
-const TAB_KEY_BASE = 'ccc:achievementExtrasTab';
-
+import { initSecretAchievementsTab, updateSecretAchievementsTab } from "./secretAchievementsTab.js";
+import { initVoidGemAltarTab, updateVoidGemAltarTab } from "./voidGemAltarTab.js";
+import { initMiscStatsTab, updateMiscStatsTab } from "./miscStatsTab.js";
+import { settingsManager } from "../../../game/settingsManager.js";
+const TAB_KEY_BASE = "ccc:achievementExtrasTab";
 const TABS_DEF = [
-  { key: 'rainbow', label: 'Rainbow Gem Shop', unlocked: true },
-  { key: 'secret', label: 'Secret Achievements', unlocked: true },
-  { key: 'void', label: 'Void Gem Altar', unlocked: false, lockedLabel: '???' },
-  { key: 'misc', label: 'Miscellaneous Stats', unlocked: true },
+    { key: "rainbow", label: "Rainbow Gem Shop", unlocked: true },
+    { key: "secret", label: "Secret Achievements", unlocked: true },
+    { key: "void", label: "Void Gem Altar", unlocked: false, lockedLabel: "???" },
+    { key: "misc", label: "Miscellaneous Stats", unlocked: true },
 ];
-
 const tabUnlockState = new Map();
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('saveSlot:change', () => tabUnlockState.clear());
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => tabUnlockState.clear());
 }
 
 let overlayEl = null;
@@ -41,31 +34,27 @@ let dragState = null;
 let lastFocus = null;
 let eventsBound = false;
 let tabsState = { buttons: {}, panels: {}, tablist: null };
-
 function sk(base) {
-    return `${base}:${getActiveSlot() ?? 'default'}`;
+    return `${base}:${getActiveSlot() ?? "default"}`;
 }
 
 function setTabUnlocked(key, unlocked) {
-  const def = TABS_DEF.find(t => t.key === key);
-  if (!def) return;
-
-  const lockedLabel = def.lockedLabel || '???';
-  const normalized = !!unlocked;
-  tabUnlockState.set(key, normalized);
-  def.unlocked = normalized;
-
-  const btn = tabsState.buttons[key];
-  if (btn) {
-    btn.disabled = !normalized;
-    btn.classList.toggle('is-locked', !normalized);
-    btn.textContent = normalized ? def.label : lockedLabel;
-    btn.title = normalized ? (def.label || 'Tab') : '???';
-  }
-
-  if (!normalized && tabsState.buttons[key]?.classList.contains('is-active')) {
-    selectTab('rainbow');
-  }
+    const def = TABS_DEF.find((t) => t.key === key);
+    if (!def) return;
+    const lockedLabel = def.lockedLabel || "???";
+    const normalized = !!unlocked;
+    tabUnlockState.set(key, normalized);
+    def.unlocked = normalized;
+    const btn = tabsState.buttons[key];
+    if (btn) {
+        btn.disabled = !normalized;
+        btn.classList.toggle("is-locked", !normalized);
+        btn.textContent = normalized ? def.label : lockedLabel;
+        btn.title = normalized ? def.label || "Tab" : "???";
+    }
+    if (!normalized && tabsState.buttons[key]?.classList.contains("is-active")) {
+        selectTab("rainbow");
+    }
 }
 
 function syncVoidTabUnlockState() {
@@ -73,139 +62,127 @@ function syncVoidTabUnlockState() {
     const slot = getActiveSlot();
     if (slot == null) return;
     const unlockKey = `ccc:unlock:voidGemAltar:${slot}`;
-    
     try {
-        if (localStorage.getItem(unlockKey) === '1') {
+        if (localStorage.getItem(unlockKey) === "1") {
             unlocked = true;
         } else {
             if (bank.voidGems && bank.voidGems.value && bank.voidGems.value.cmp(0) > 0) {
                 unlocked = true;
-                localStorage.setItem(unlockKey, '1');
+                lsSetItem(unlockKey, "1");
             }
         }
     } catch {}
-
-    setTabUnlocked('void', unlocked);
+    setTabUnlocked("void", unlocked);
 }
 
 function selectTab(key) {
-  const def = TABS_DEF.find(t => t.key === key);
-  const unlocked = tabUnlockState.get(key);
-  if (!def || !unlocked) key = 'rainbow';
+    const def = TABS_DEF.find((t) => t.key === key);
+    const unlocked = tabUnlockState.get(key);
+    if (!def || !unlocked) key = "rainbow";
+    for (const k in tabsState.buttons) {
+        tabsState.buttons[k].classList.toggle("is-active", k === key);
+    }
+    for (const k in tabsState.panels) {
+        tabsState.panels[k].classList.toggle("is-active", k === key);
+    }
 
-  for (const k in tabsState.buttons) {
-    tabsState.buttons[k].classList.toggle('is-active', k === key);
-  }
-  for (const k in tabsState.panels) {
-    tabsState.panels[k].classList.toggle('is-active', k === key);
-  }
-  const progRow = document.getElementById("secret-achievements-progress-row");
-  if (progRow) {
-      progRow.style.display = key === "secret" ? "flex" : "none";
-  }
-
-  if (key === 'rainbow') {
-      try { updateRainbowGemShopTab(); } catch {}
-  }
-  if (key === 'secret') {
-      try { updateSecretAchievementsTab(); } catch {}
-  }
-  if (key === 'void') {
-      try { updateVoidGemAltarTab(); } catch {}
-  }
-  if (key === 'misc') {
-      try { updateMiscStatsTab(); } catch {}
-  }
-
-  try { localStorage.setItem(sk(TAB_KEY_BASE), key); } catch {}
-
-  requestAnimationFrame(() => {
+    const progRow = document.getElementById("secret-achievements-progress-row");
+    if (progRow) {
+        progRow.style.display = key === "secret" ? "flex" : "none";
+    }
+    if (key === "rainbow") {
+        try {
+            updateRainbowGemShopTab();
+        } catch {}
+    }
+    if (key === "secret") {
+        try {
+            updateSecretAchievementsTab();
+        } catch {}
+    }
+    if (key === "void") {
+        try {
+            updateVoidGemAltarTab();
+        } catch {}
+    }
+    if (key === "misc") {
+        try {
+            updateMiscStatsTab();
+        } catch {}
+    }
+    try {
+        lsSetItem(sk(TAB_KEY_BASE), key);
+    } catch {}
     requestAnimationFrame(() => {
-      const scroller = overlayEl?.querySelector(".merchant-content");
-      if (scroller) {
-        scroller.scrollTop = 0;
-        if (scroller.__customScroll && typeof scroller.__customScroll.update === "function") {
-          scroller.__customScroll.update();
-        }
-      }
+        requestAnimationFrame(() => {
+            const scroller = overlayEl?.querySelector(".merchant-content");
+            if (scroller) {
+                scroller.scrollTop = 0;
+                if (scroller.__customScroll && typeof scroller.__customScroll.update === "function") {
+                    scroller.__customScroll.update();
+                }
+            }
+        });
     });
-  });
 }
-
 
 export function ensureOverlay() {
     if (overlayEl) return;
-
-    overlayEl = document.createElement('div');
-    overlayEl.className = 'merchant-overlay'; // Reusing merchant overlay classes for structural similarity
-    overlayEl.id = 'achievement-extras-overlay';
-    overlayEl.setAttribute('inert', '');
-
-    sheetEl = document.createElement('div');
-    sheetEl.className = 'merchant-sheet';
-    sheetEl.setAttribute('role', 'dialog');
-    sheetEl.setAttribute('aria-modal', 'false');
-    sheetEl.setAttribute('aria-label', 'Achievement Extras');
-
-    const grabber = document.createElement('div');
-    grabber.className = 'merchant-grabber';
+    overlayEl = document.createElement("div");
+    overlayEl.className = "merchant-overlay"; // Reusing merchant overlay classes for structural similarity
+    overlayEl.id = "achievement-extras-overlay";
+    overlayEl.setAttribute("inert", "");
+    sheetEl = document.createElement("div");
+    sheetEl.className = "merchant-sheet";
+    sheetEl.setAttribute("role", "dialog");
+    sheetEl.setAttribute("aria-modal", "false");
+    sheetEl.setAttribute("aria-label", "Achievement Extras");
+    const grabber = document.createElement("div");
+    grabber.className = "merchant-grabber";
     grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
-
-    const header = document.createElement('header');
-    header.className = 'merchant-header';
+    const header = document.createElement("header");
+    header.className = "merchant-header";
     header.innerHTML = `
         <div class="merchant-title">Achievement Extras</div>
         <div class="merchant-line" aria-hidden="true"></div>
     `;
-
-    const content = document.createElement('div');
-    content.className = 'merchant-content';
-
-    const tabs = document.createElement('div');
-    tabs.className = 'merchant-tabs';
-    tabs.setAttribute('role', 'tablist');
-
-    const panelsWrap = document.createElement('div');
-    panelsWrap.className = 'merchant-panels';
-
-    const panelRainbow = document.createElement('section');
-    panelRainbow.className = 'merchant-panel is-active';
-    panelRainbow.id = 'ae-panel-rainbow';
-
-    const panelSecret = document.createElement('section');
-    panelSecret.className = 'merchant-panel';
-    panelSecret.id = 'ae-panel-secret';
-
-    const panelVoid = document.createElement('section');
-    panelVoid.className = 'merchant-panel';
-    panelVoid.id = 'ae-panel-void';
-
-    const panelMisc = document.createElement('section');
-    panelMisc.className = 'merchant-panel';
-    panelMisc.id = 'ae-panel-misc';
-
+    const content = document.createElement("div");
+    content.className = "merchant-content";
+    const tabs = document.createElement("div");
+    tabs.className = "merchant-tabs";
+    tabs.setAttribute("role", "tablist");
+    const panelsWrap = document.createElement("div");
+    panelsWrap.className = "merchant-panels";
+    const panelRainbow = document.createElement("section");
+    panelRainbow.className = "merchant-panel is-active";
+    panelRainbow.id = "ae-panel-rainbow";
+    const panelSecret = document.createElement("section");
+    panelSecret.className = "merchant-panel";
+    panelSecret.id = "ae-panel-secret";
+    const panelVoid = document.createElement("section");
+    panelVoid.className = "merchant-panel";
+    panelVoid.id = "ae-panel-void";
+    const panelMisc = document.createElement("section");
+    panelMisc.className = "merchant-panel";
+    panelMisc.id = "ae-panel-misc";
     syncVoidTabUnlockState();
-
-    TABS_DEF.forEach(def => {
+    TABS_DEF.forEach((def) => {
         const stored = tabUnlockState.get(def.key) ?? !!def.unlocked;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'merchant-tab';
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "merchant-tab";
         btn.dataset.tab = def.key;
-        
-        const lockedLabel = def.lockedLabel || '???';
+        const lockedLabel = def.lockedLabel || "???";
         btn.textContent = stored ? def.label : lockedLabel;
         if (!stored) {
-            btn.classList.add('is-locked');
+            btn.classList.add("is-locked");
             btn.disabled = true;
-            btn.title = '???';
+            btn.title = "???";
         } else {
-            btn.title = def.label || 'Tab';
+            btn.title = def.label || "Tab";
         }
-        
         tabUnlockState.set(def.key, stored);
-
-        btn.addEventListener('click', (event) => {
+        btn.addEventListener("click", (event) => {
             if (btn.disabled) {
                 event?.preventDefault?.();
                 return;
@@ -216,80 +193,80 @@ export function ensureOverlay() {
             }
             selectTab(def.key);
         });
-
         tabs.appendChild(btn);
         tabsState.buttons[def.key] = btn;
     });
-
-    tabsState.panels['rainbow'] = panelRainbow;
-    tabsState.panels['secret'] = panelSecret;
-    tabsState.panels['void'] = panelVoid;
-    tabsState.panels['misc'] = panelMisc;
+    tabsState.panels["rainbow"] = panelRainbow;
+    tabsState.panels["secret"] = panelSecret;
+    tabsState.panels["void"] = panelVoid;
+    tabsState.panels["misc"] = panelMisc;
     tabsState.tablist = tabs;
-
     panelsWrap.append(panelRainbow, panelSecret, panelVoid, panelMisc);
     content.append(tabs, panelsWrap);
-
-    try { initRainbowGemShopTab(panelRainbow); } catch {}
-    try { initSecretAchievementsTab(panelSecret); } catch {}
-    try { initVoidGemAltarTab(panelVoid); } catch {}
-    try { initMiscStatsTab(panelMisc); } catch {}
+    try {
+        initRainbowGemShopTab(panelRainbow);
+    } catch {}
+    try {
+        initSecretAchievementsTab(panelSecret);
+    } catch {}
+    try {
+        initVoidGemAltarTab(panelVoid);
+    } catch {}
+    try {
+        initMiscStatsTab(panelMisc);
+    } catch {}
     const progressRow = document.createElement("div");
     progressRow.id = "secret-achievements-progress-row";
     progressRow.className = "achievements-progress-row";
     progressRow.style.display = "none";
-
-
-    const actions = document.createElement('div');
-    actions.className = 'merchant-actions';
-    
-    closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'merchant-close';
-    closeBtn.textContent = 'Close';
+    const actions = document.createElement("div");
+    actions.className = "merchant-actions";
+    closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "merchant-close";
+    closeBtn.textContent = "Close";
     actions.appendChild(closeBtn);
-
     sheetEl.append(grabber, header, content, progressRow, actions);
     overlayEl.appendChild(sheetEl);
     document.body.appendChild(overlayEl);
-
-    ensureCustomScrollbar(overlayEl, sheetEl, '.merchant-content');
-
+    ensureCustomScrollbar(overlayEl, sheetEl, ".merchant-content");
     if (!eventsBound) {
         eventsBound = true;
-        closeBtn.addEventListener('click', () => { closeOverlay(); });
-
-        setupDragToClose(grabber, sheetEl, () => isOpen, () => {
-            closeOverlay(true);
+        closeBtn.addEventListener("click", () => {
+            closeOverlay();
         });
-        
-        window.addEventListener('currency:change', (e) => {
-            if (e.detail?.key === 'voidGems') {
+        setupDragToClose(
+            grabber,
+            sheetEl,
+            () => isOpen,
+            () => {
+                closeOverlay(true);
+            },
+        );
+        window.addEventListener("currency:change", (e) => {
+            if (e.detail?.key === "voidGems") {
                 syncVoidTabUnlockState();
             }
-            if (e.detail?.key === 'rainbowGems') {
-                if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
+            if (e.detail?.key === "rainbowGems") {
+                if (isOpen && tabsState.panels["rainbow"]?.classList.contains("is-active")) {
                     updateRainbowGemShopTab();
                 }
             }
         });
-        
-        document.addEventListener('ccc:upgrades:changed', () => {
-             if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
-                 updateRainbowGemShopTab();
-             }
+        document.addEventListener("ccc:upgrades:changed", () => {
+            if (isOpen && tabsState.panels["rainbow"]?.classList.contains("is-active")) {
+                updateRainbowGemShopTab();
+            }
         });
-        
-        window.addEventListener('setting:changed', (e) => {
-            if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
-                if (e.detail?.key && e.detail.key.startsWith('active_')) {
+        window.addEventListener("setting:changed", (e) => {
+            if (isOpen && tabsState.panels["rainbow"]?.classList.contains("is-active")) {
+                if (e.detail?.key && e.detail.key.startsWith("active_")) {
                     updateRainbowGemShopTab();
                 }
             }
         });
-
-        window.addEventListener('mutation:change', () => {
-            if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
+        window.addEventListener("mutation:change", () => {
+            if (isOpen && tabsState.panels["rainbow"]?.classList.contains("is-active")) {
                 updateRainbowGemShopTab();
             }
         });
@@ -299,9 +276,7 @@ export function ensureOverlay() {
 export function openAchievementExtras() {
     ensureOverlay();
     if (isOpen) return;
-
     syncVoidTabUnlockState();
-
     const activeEl = document.activeElement;
     if (activeEl instanceof HTMLElement && !overlayEl.contains(activeEl)) {
         lastFocus = activeEl;
@@ -309,27 +284,25 @@ export function openAchievementExtras() {
         lastFocus = null;
     }
     isOpen = true;
-
-    let last = 'rainbow';
-    try { last = localStorage.getItem(sk(TAB_KEY_BASE)) || 'rainbow'; } catch {}
-
+    let last = "rainbow";
+    try {
+        last = localStorage.getItem(sk(TAB_KEY_BASE)) || "rainbow";
+    } catch {}
     selectTab(last);
-
-    sheetEl.style.transition = 'none';
-    sheetEl.style.transform = 'translateY(100%)';
-    overlayEl.removeAttribute('inert');
-
+    sheetEl.style.transition = "none";
+    sheetEl.style.transform = "translateY(100%)";
+    overlayEl.removeAttribute("inert");
     void sheetEl.offsetHeight;
-
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            sheetEl.style.transition = '';
-            sheetEl.style.transform = '';
-            overlayEl.classList.add('is-open');
+            sheetEl.style.transition = "";
+            sheetEl.style.transform = "";
+            overlayEl.classList.add("is-open");
             blockInteraction(140);
-            
-            if (closeBtn && typeof closeBtn.focus === 'function') {
-                try { closeBtn.focus({ preventScroll: true }); } catch {}
+            if (closeBtn && typeof closeBtn.focus === "function") {
+                try {
+                    closeBtn.focus({ preventScroll: true });
+                } catch {}
             }
         });
     });
@@ -337,34 +310,37 @@ export function openAchievementExtras() {
 
 export function closeOverlay(force = false) {
     if (!isOpen) return;
-    
     if (IS_MOBILE) {
-        try { suppressNextGhostTap(100); } catch {}
-        try { blockInteraction(80); } catch {}
+        try {
+            suppressNextGhostTap(100);
+        } catch {}
+        try {
+            blockInteraction(80);
+        } catch {}
     }
-
     isOpen = false;
-    sheetEl.style.transition = 'transform 140ms ease-out';
-    sheetEl.style.transform = 'translateY(100%)';
-    overlayEl.classList.remove('is-open');
-    
+    sheetEl.style.transition = "transform 140ms ease-out";
+    sheetEl.style.transform = "translateY(100%)";
+    overlayEl.classList.remove("is-open");
     const activeEl = document.activeElement;
     if (activeEl && overlayEl.contains(activeEl)) {
-        if (lastFocus && typeof lastFocus.focus === 'function') {
-            try { lastFocus.focus({ preventScroll: true }); } catch {}
+        if (lastFocus && typeof lastFocus.focus === "function") {
+            try {
+                lastFocus.focus({ preventScroll: true });
+            } catch {}
         }
     }
-
-    overlayEl.setAttribute('inert', '');
+    overlayEl.setAttribute("inert", "");
     lastFocus = null;
-    
-    setTimeout(() => {
-        if (!isOpen) {
-             sheetEl.style.transition = '';
-        }
-    }, document.body.classList.contains('no-overlay-transitions') ? 0 : 150);
+    setTimeout(
+        () => {
+            if (!isOpen) {
+                sheetEl.style.transition = "";
+            }
+        },
+        document.body.classList.contains("no-overlay-transitions") ? 0 : 150,
+    );
 }
-
 
 export function initRainbowGemShopTab(panel) {
     if (!panel || panel.__rgInit) return;
@@ -374,10 +350,8 @@ export function initRainbowGemShopTab(panel) {
             <div class="shop-grid" role="grid" id="ae-rainbow-shop-grid"></div>
         </div>
     `;
-    ensureCustomScrollbar(panel, panel, '.shop-scroller');
+    ensureCustomScrollbar(panel, panel, ".shop-scroller");
 }
-
-
 
 let _rgShopUpdateQueued = false;
 export function updateRainbowGemShopTab() {
@@ -385,238 +359,208 @@ export function updateRainbowGemShopTab() {
     _rgShopUpdateQueued = true;
     requestAnimationFrame(() => {
         _rgShopUpdateQueued = false;
-        const grid = document.getElementById('ae-rainbow-shop-grid');
+        const grid = document.getElementById("ae-rainbow-shop-grid");
         if (!grid) return;
-
-    let counts = { font: 0, trail: 0, magnet: 0 };
-    for (const upg of RAINBOW_GEM_UPGRADES) {
-        counts[upg.modType] = (counts[upg.modType] || 0) + 1;
-        let upgradeLabel = "";
-        if (upg.modType === 'font') upgradeLabel = "Font" + counts.font;
-        else if (upg.modType === 'trail') upgradeLabel = "Trail" + counts.trail;
-        else if (upg.modType === 'magnet') upgradeLabel = "Magnet" + counts.magnet;
-
-        let btn = grid.querySelector(`.shop-upgrade[data-upgid="${upg.id}"]`);
-        
-        if (!btn) {
-            btn = document.createElement('button');
-            btn.className = 'shop-upgrade';
-            btn.setAttribute('data-upgid', upg.id);
-            btn.type = 'button';
-            btn.setAttribute('role', 'gridcell');
-            
-            const tile = document.createElement('div');
-            tile.className = 'shop-tile';
-            
-            const baseImg = document.createElement('img');
-            baseImg.className = 'base';
-            baseImg.alt = '';
-            
-            const iconImg = document.createElement('img');
-            iconImg.className = 'icon';
-            iconImg.src = upg.icon || 'img/currencies/rainbow_gem.webp';
-            iconImg.alt = upg.title;
-            iconImg.style.borderRadius = '50%';
-
-            const maxedBorder = document.createElement('img');
-            maxedBorder.className = 'maxed-overlay'; // Using base class to position it same as base icons
-            maxedBorder.src = 'img/misc/maxed.webp';
-            maxedBorder.alt = '';
-            maxedBorder.style.display = 'none'; // Hidden by default
-            
-            const activeBorder = document.createElement("img");
-            activeBorder.className = "maxed-overlay";
-            activeBorder.src = "img/misc/green_border.webp";
-            activeBorder.alt = "";
-            activeBorder.style.display = "none";
-            activeBorder.style.zIndex = "10";
-
-            
-            const overlayText = document.createElement('div');
-            overlayText.className = 'rainbow-upgrade-text';
-            overlayText.textContent = upgradeLabel;
-
-            tile.appendChild(baseImg);
-            tile.appendChild(iconImg);
-            tile.appendChild(maxedBorder);
-            tile.appendChild(activeBorder);
-            tile.appendChild(overlayText);
-            
-            const badge = document.createElement('div');
-            badge.className = 'level-badge text-badge';
-            badge.textContent = 'Not Owned';
-            
-            btn.appendChild(tile);
-            tile.appendChild(badge);
-            grid.appendChild(btn);
-
-            const attemptBuyMax = () => {
-                const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
-                if (lockState.locked) return;
-
-                const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
-                const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
-                const isOwned = lvlNum > 0;
-                if (isOwned) return;
-
-                const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
-                const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
-                if (!plusBn.isZero?.()) {
-                    const purchase = buyMax(RAINBOW_GEM_AREA_KEY, upg.id, upg);
-                    const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought ?? 0);
-                    if (!boughtBn.isZero?.()) {
-                        if (upg.upgType === 'TM') {
-                            import('../../../game/settingsManager.js').then(({ settingsManager }) => {
-                                settingsManager.set('active_' + upg.modType + '_mod', upg.id);
-                            });
+        let counts = { font: 0, trail: 0, magnet: 0 };
+        for (const upg of RAINBOW_GEM_UPGRADES) {
+            counts[upg.modType] = (counts[upg.modType] || 0) + 1;
+            let upgradeLabel = "";
+            if (upg.modType === "font") upgradeLabel = "Font" + counts.font;
+            else if (upg.modType === "trail") upgradeLabel = "Trail" + counts.trail;
+            else if (upg.modType === "magnet") upgradeLabel = "Magnet" + counts.magnet;
+            let btn = grid.querySelector(`.shop-upgrade[data-upgid="${upg.id}"]`);
+            if (!btn) {
+                btn = document.createElement("button");
+                btn.className = "shop-upgrade";
+                btn.setAttribute("data-upgid", upg.id);
+                btn.type = "button";
+                btn.setAttribute("role", "gridcell");
+                const tile = document.createElement("div");
+                tile.className = "shop-tile";
+                const baseImg = document.createElement("img");
+                baseImg.className = "base";
+                baseImg.alt = "";
+                const iconImg = document.createElement("img");
+                iconImg.className = "icon";
+                iconImg.src = upg.icon || "img/currencies/rainbow_gem.webp";
+                iconImg.alt = upg.title;
+                iconImg.style.borderRadius = "50%";
+                const maxedBorder = document.createElement("img");
+                maxedBorder.className = "maxed-overlay"; // Using base class to position it same as base icons
+                maxedBorder.src = "img/misc/maxed.webp";
+                maxedBorder.alt = "";
+                maxedBorder.style.display = "none"; // Hidden by default
+                const activeBorder = document.createElement("img");
+                activeBorder.className = "maxed-overlay";
+                activeBorder.src = "img/misc/green_border.webp";
+                activeBorder.alt = "";
+                activeBorder.style.display = "none";
+                activeBorder.style.zIndex = "10";
+                const overlayText = document.createElement("div");
+                overlayText.className = "rainbow-upgrade-text";
+                overlayText.textContent = upgradeLabel;
+                tile.appendChild(baseImg);
+                tile.appendChild(iconImg);
+                tile.appendChild(maxedBorder);
+                tile.appendChild(activeBorder);
+                tile.appendChild(overlayText);
+                const badge = document.createElement("div");
+                badge.className = "level-badge text-badge";
+                badge.textContent = "Not Owned";
+                btn.appendChild(tile);
+                tile.appendChild(badge);
+                grid.appendChild(btn);
+                const attemptBuyMax = () => {
+                    const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
+                    if (lockState.locked) return;
+                    const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
+                    const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
+                    const isOwned = lvlNum > 0;
+                    if (isOwned) return;
+                    const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
+                    const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
+                    if (!plusBn.isZero?.()) {
+                        const purchase = buyMax(RAINBOW_GEM_AREA_KEY, upg.id, upg);
+                        const boughtBn =
+                            purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought ?? 0);
+                        if (!boughtBn.isZero?.()) {
+                            if (upg.upgType === "TM") {
+                                import("../../../game/settingsManager.js").then(({ settingsManager }) => {
+                                    settingsManager.set("active_" + upg.modType + "_mod", upg.id);
+                                });
+                            }
+                            playPurchaseSfx();
                         }
-                        playPurchaseSfx();
+                    }
+                };
+                btn.addEventListener("click", (event) => {
+                    if (btn.disabled) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        return;
+                    }
+                    if (event.isTrusted && shouldSkipGhostTap(btn)) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        return;
+                    }
+                    if (event.shiftKey || event.ctrlKey) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        attemptBuyMax();
+                        return;
+                    }
+                    openUpgradeOverlay(upg, "rainbow_gem_shop");
+                });
+                btn.addEventListener("contextmenu", (event) => {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    if (btn.disabled) return;
+                    attemptBuyMax();
+                });
+            }
+            // Update state
+            const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
+            const locked = !!lockState.locked;
+            const lockIcon = lockState?.iconOverride;
+            const hasMysteriousIcon = typeof lockIcon === "string" && lockIcon.includes("mysterious");
+            const isMysterious = locked && (lockState?.hidden || hasMysteriousIcon);
+            const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
+            const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
+            const isOwned = lvlNum > 0;
+            btn.dataset.mysterious = isMysterious ? "1" : "0";
+            if (locked) {
+                btn.title = isMysterious ? "Hidden Upgrade" : "Locked Upgrade";
+            } else if (isOwned) {
+                btn.title = "Owned";
+            } else {
+                btn.title = "Left-click: Details • Right-click: Buy Max";
+            }
+
+            const baseImg = btn.querySelector(".base");
+            const iconImg = btn.querySelector(".icon");
+            if (baseImg) {
+                let baseSrc = "";
+                let rawIcon = lockState?.iconOverride || upg.icon || "img/currencies/rainbow_gem.webp";
+                if (isMysterious || locked || lockState?.useLockedBase) {
+                    baseSrc = "img/misc/locked_base.webp";
+                }
+                if (rawIcon === "img/misc/mysterious.webp" && baseSrc === "img/misc/locked_base.webp") {
+                    baseSrc = "img/misc/mysterious_plus_base.webp";
+                    rawIcon = null;
+                } else if (rawIcon === "img/misc/locked.webp" && baseSrc === "img/misc/locked_base.webp") {
+                    baseSrc = "img/misc/locked_plus_base.webp";
+                    rawIcon = null;
+                }
+                if (baseSrc) {
+                    baseImg.src = baseSrc;
+                    baseImg.style.display = "";
+                } else {
+                    baseImg.style.display = "none";
+                }
+                if (iconImg) {
+                    if (rawIcon) {
+                        iconImg.src = rawIcon;
+                        iconImg.style.display = "";
+                    } else {
+                        iconImg.style.display = "none";
                     }
                 }
-            };
-
-            btn.addEventListener('click', (event) => {
-                if (btn.disabled) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    return;
-                }
-                if (event.isTrusted && shouldSkipGhostTap(btn)) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    return;
-                }
-                
-                if (event.shiftKey || event.ctrlKey) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    attemptBuyMax();
-                    return;
-                }
-                
-                openUpgradeOverlay(upg, 'rainbow_gem_shop');
-            });
-
-            btn.addEventListener('contextmenu', (event) => {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                if (btn.disabled) return;
-                attemptBuyMax();
-            });
-        }
-        
-        // Update state
-        const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
-        const locked = !!lockState.locked;
-        
-        const lockIcon = lockState?.iconOverride;
-        const hasMysteriousIcon = typeof lockIcon === 'string' && lockIcon.includes('mysterious');
-        const isMysterious = locked && (lockState?.hidden || hasMysteriousIcon);
-
-        const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
-        const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
-        const isOwned = lvlNum > 0;
-        
-        btn.dataset.mysterious = isMysterious ? '1' : '0';
-        if (locked) {
-            btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
-        } else if (isOwned) {
-            btn.title = 'Owned';
-        } else {
-            btn.title = 'Left-click: Details • Right-click: Buy Max';
-        }
-
-        const baseImg = btn.querySelector('.base');
-        const iconImg = btn.querySelector('.icon');
-        
-        if (baseImg) {
-            let baseSrc = '';
-            let rawIcon = lockState?.iconOverride || upg.icon || 'img/currencies/rainbow_gem.webp';
-            
-            if (isMysterious || locked || lockState?.useLockedBase) {
-                baseSrc = 'img/misc/locked_base.webp';
             }
-            
-            if (rawIcon === 'img/misc/mysterious.webp' && baseSrc === 'img/misc/locked_base.webp') {
-                baseSrc = 'img/misc/mysterious_plus_base.webp';
-                rawIcon = null;
-            } else if (rawIcon === 'img/misc/locked.webp' && baseSrc === 'img/misc/locked_base.webp') {
-                baseSrc = 'img/misc/locked_plus_base.webp';
-                rawIcon = null;
-            }
-            
-            if (baseSrc) {
-                baseImg.src = baseSrc;
-                baseImg.style.display = '';
-            } else {
-                baseImg.style.display = 'none';
-            }
-            
-            if (iconImg) {
-                if (rawIcon) {
-                    iconImg.src = rawIcon;
-                    iconImg.style.display = '';
+
+            const badge = btn.querySelector(".level-badge");
+            if (badge) {
+                badge.style.color = "";
+                if (locked) {
+                    if (isMysterious) {
+                        badge.style.display = "none";
+                    } else {
+                        badge.style.display = "";
+                        badge.textContent = "Locked";
+                        badge.classList.remove("is-maxed", "can-buy");
+                    }
+                } else if (isOwned) {
+                    const isActive = settingsManager.get("active_" + upg.modType + "_mod") === upg.id;
+                    badge.style.display = "";
+                    badge.textContent = isActive ? "Active" : "Owned";
+                    if (isActive) {
+                        badge.style.color = "#44ff44";
+                    }
+                    badge.classList.add("is-maxed");
+                    badge.classList.remove("can-buy");
                 } else {
-                    iconImg.style.display = 'none';
+                    badge.style.display = "";
+                    const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
+                    const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
+                    const hasPlus = !plusBn.isZero?.();
+                    if (hasPlus) {
+                        badge.textContent = "Purchasable";
+                        badge.classList.add("can-buy");
+                    } else {
+                        badge.textContent = "Not Owned";
+                        badge.classList.remove("can-buy");
+                    }
+                    badge.classList.remove("is-maxed");
                 }
             }
-        }
 
-        
-        const badge = btn.querySelector('.level-badge');
-        if (badge) {
-            badge.style.color = '';
+            const maxedBorders = btn.querySelectorAll(".maxed-overlay");
+            const maxedBorder = maxedBorders[0];
+            const activeBorder = maxedBorders[1];
+            if (maxedBorder) {
+                maxedBorder.style.display = isOwned ? "block" : "none";
+            }
+            if (activeBorder) {
+                const isActive = settingsManager.get("active_" + upg.modType + "_mod") === upg.id;
+                activeBorder.style.display = isOwned && isActive ? "block" : "none";
+            }
             if (locked) {
-                if (isMysterious) {
-                    badge.style.display = 'none';
-                } else {
-                    badge.style.display = '';
-                    badge.textContent = 'Locked';
-                    badge.classList.remove('is-maxed', 'can-buy');
-                }
-            } else if (isOwned) {
-                const isActive = settingsManager.get('active_' + upg.modType + '_mod') === upg.id;
-                badge.style.display = '';
-                badge.textContent = isActive ? 'Active' : 'Owned';
-                if (isActive) {
-                    badge.style.color = '#44ff44';
-                }
-                badge.classList.add('is-maxed');
-                badge.classList.remove('can-buy');
+                btn.dataset.locked = "1";
+                btn.classList.add("is-locked");
             } else {
-                badge.style.display = '';
-                const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
-                const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
-                const hasPlus = !plusBn.isZero?.();
-                if (hasPlus) {
-                    badge.textContent = 'Purchasable';
-                    badge.classList.add('can-buy');
-                } else {
-                    badge.textContent = 'Not Owned';
-                    badge.classList.remove('can-buy');
-                }
-                badge.classList.remove('is-maxed');
+                btn.dataset.locked = "0";
+                btn.classList.remove("is-locked");
             }
         }
-        
-        const maxedBorders = btn.querySelectorAll(".maxed-overlay");
-        const maxedBorder = maxedBorders[0];
-        const activeBorder = maxedBorders[1];
-        if (maxedBorder) {
-            maxedBorder.style.display = isOwned ? "block" : "none";
-        }
-        if (activeBorder) {
-            const isActive = settingsManager.get("active_" + upg.modType + "_mod") === upg.id;
-            activeBorder.style.display = (isOwned && isActive) ? "block" : "none";
-        }
-
-        if (locked) {
-            btn.dataset.locked = '1';
-            btn.classList.add('is-locked');
-        } else {
-            btn.dataset.locked = '0';
-            btn.classList.remove('is-locked');
-        }
-    }
     });
 }
