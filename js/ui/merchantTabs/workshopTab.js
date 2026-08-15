@@ -1,58 +1,49 @@
 // js/ui/merchantTabs/workshopTab.js
-import { BigNum } from '../../util/bigNum.js';
-import { formatNumber } from '../../util/numFormat.js';
-import { bank, CURRENCIES, getActiveSlot } from '../../util/storage.js';
-import { registerTick, FIXED_STEP } from '../../game/gameLoop.js';
-import { openShop, playPurchaseSfx, isAnyMenuScrolling } from '../shopOverlay.js';
-import { hasDoneInfuseReset } from './resetTab.js';
-import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/upgrades.js';
-import { IS_MOBILE } from '../../util/platformChecker.js';
-import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
+import { lsSetItem } from "../../main.js";
+import { BigNum } from "../../util/bigNum.js";
+import { formatNumber } from "../../util/numFormat.js";
+import { bank, CURRENCIES, getActiveSlot } from "../../util/storage.js";
+import { registerTick, FIXED_STEP } from "../../game/gameLoop.js";
+import { openShop, playPurchaseSfx, isAnyMenuScrolling } from "../shopOverlay.js";
+import { hasDoneInfuseReset } from "./resetTab.js";
+import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from "../../game/upgrades.js";
+import { IS_MOBILE } from "../../util/platformChecker.js";
+import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from "../../game/automationUpgrades.js";
 import { isSurgeActive } from "../../game/surgeEffects.js";
-import { setHtmlOrText } from '../../util/uiHelpers.js';
-import { settingsManager } from '../../game/settingsManager.js';
-
-const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
-const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
+import { setHtmlOrText } from "../../util/uiHelpers.js";
+import { settingsManager } from "../../game/settingsManager.js";
+const GEAR_ICON_SRC = "img/currencies/gear/gear.webp";
+const GEAR_HUD_ICON_SRC = "img/currencies/gear/gear_plus_base.webp";
 const gearImage = new Image();
 gearImage.src = GEAR_ICON_SRC;
-const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
-
+const COIN_ICON_SRC = "img/currencies/coin/coin.webp";
 const MAX_GEAR_DECORATIONS = 300;
-
 let workshopEl = null;
 let initialized = false;
-let accumulatorBuffer = 0; 
+let accumulatorBuffer = 0;
 let currentGenerationLevel = BigNum.zero();
 let lastSyncedLevel = -1;
 let renderFrameId = null;
-
 // Upgrade Constants
 const GENERATION_UPGRADE_BASE_COST_LOG = 12; // 1T = 1e12
-const LOG10_2 = 0.3010299956639812; 
+const LOG10_2 = 0.3010299956639812;
 const LOG10_3 = 0.47712125471966244;
 const LOG10_4 = 0.6020599913279624;
 const LOG10_5 = 0.6989700043360188;
-
 // Scaling Thresholds & Constants
 const L1 = 1e6;
 const L2 = 1e9;
 const L3 = 1e12;
-
 const BASE_MULT_LOG = 1; // log10(10)
 const K_LIN = 0.001;
-
 // S3 Constants
 const EXP_DIV_S3 = 1000;
 const LOG_EXP_BASE_S3 = Math.log10(1.00001);
-
 // S4 Constants (Explosion)
 const EXPLOSION_RATE = 2.3e-10;
-
 // Precomputed Constants
 const LN10 = Math.log(10);
 const INV_LN10 = 1 / LN10;
-
 // Helper Integrals
 function integralLogLin(x, k) {
     if (x <= 0) return 0;
@@ -60,128 +51,110 @@ function integralLogLin(x, k) {
     const val = (term * Math.log(term) - k * x) / k;
     return val * INV_LN10;
 }
-
 // Lazy Caches
 let CACHE_S1_END_LOG = null;
 let CACHE_S2_END_LOG = null;
 let CACHE_S3_END_LOG = null;
-
 export function getGenerationLevelKey(slot) {
-  return `ccc:workshop:genLevel:${slot}`;
+    return `ccc:workshop:genLevel:${slot}`;
 }
 
-const animatedGears = new Map(); 
-
+const animatedGears = new Map();
 // Config
-const GEAR_SPEED = 67; 
-const GEAR_ROTATION_SPEED_BASE = 67; 
-const GEAR_ROTATION_VARIANCE = 67; 
-
-
+const GEAR_SPEED = 67;
+const GEAR_ROTATION_SPEED_BASE = 67;
+const GEAR_ROTATION_VARIANCE = 67;
 export function getGenerationLevel() {
-  return currentGenerationLevel;
+    return currentGenerationLevel;
 }
+
 export function loadGenerationLevel() {
-  const slot = getActiveSlot();
-  if (!slot) return BigNum.zero();
-  const raw = localStorage.getItem(getGenerationLevelKey(slot));
-  if (!raw) return BigNum.zero();
-  
-  try {
-      // Handle both legacy "123" and new "BN:..." formats
-      if (raw.startsWith('BN:') || /infinity/i.test(raw)) {
-          let bn = BigNum.fromStorage(raw);
-          if (bn.cmp && bn.cmp(4500000000000) >= 0) return BigNum.fromAny('Infinity');
-          return bn;
-      }
-      let bn2 = BigNum.fromAny(raw);
-      if (bn2.cmp && bn2.cmp(4500000000000) >= 0) return BigNum.fromAny('Infinity');
-      return bn2;
-  } catch {
-      return BigNum.zero();
-  }
+    const slot = getActiveSlot();
+    if (!slot) return BigNum.zero();
+    const raw = localStorage.getItem(getGenerationLevelKey(slot));
+    if (!raw) return BigNum.zero();
+    try {
+        // Handle both legacy "123" and new "BN:..." formats
+        if (raw.startsWith("BN:") || /infinity/i.test(raw)) {
+            let bn = BigNum.fromStorage(raw);
+            if (bn.cmp && bn.cmp(4500000000000) >= 0) return BigNum.fromAny("Infinity");
+            return bn;
+        }
+
+        let bn2 = BigNum.fromAny(raw);
+        if (bn2.cmp && bn2.cmp(4500000000000) >= 0) return BigNum.fromAny("Infinity");
+        return bn2;
+    } catch {
+        return BigNum.zero();
+    }
 }
 
 function saveGenerationLevel(level) {
-  const slot = getActiveSlot();
-  if (!slot) return false;
-  const key = getGenerationLevelKey(slot);
-  
-  let valStr;
-  if (level instanceof BigNum) {
-      valStr = level.toStorage();
-  } else {
-      valStr = String(level);
-  }
-  
-  try {
-    localStorage.setItem(key, valStr);
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('workshop:change', { detail: { slot, level } }));
+    const slot = getActiveSlot();
+    if (!slot) return false;
+    const key = getGenerationLevelKey(slot);
+    let valStr;
+    if (level instanceof BigNum) {
+        valStr = level.toStorage();
+    } else {
+        valStr = String(level);
     }
-  } catch {}
-  
-  let readBack = null;
-  try {
-    readBack = localStorage.getItem(key);
-  } catch {}
-  return readBack === valStr;
+    try {
+        lsSetItem(key, valStr);
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("workshop:change", { detail: { slot, level } }));
+        }
+    } catch {}
+    let readBack = null;
+    try {
+        readBack = localStorage.getItem(key);
+    } catch {}
+    return readBack === valStr;
 }
 
 function calculateWorkshopCostLog(level) {
     // Level is BigNum here, but for calculation we need primitive
     if (level.isInfinite()) return Infinity;
-    
     // Check if level is too large for JS numbers
     // 9e15 is safe integer limit approx.
     // If level > 9e15, cost is definitely infinity given the super-exponential scaling
     if (level.cmp(9e15) > 0) return Infinity;
-    
     // Convert to number for internal calc
     let lvlNum = 0;
     try {
-        const str = level.inf || level.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : level.toPlainIntegerString();
+        const str = level.inf || level.e >= BigNum.DEFAULT_PRECISION ? "Infinity" : level.toPlainIntegerString();
         lvlNum = parseFloat(str);
     } catch {
         return Infinity;
     }
-    
     if (lvlNum <= 0) return GENERATION_UPGRADE_BASE_COST_LOG;
-
     // S1
     if (lvlNum <= L1) {
         return GENERATION_UPGRADE_BASE_COST_LOG + lvlNum * BASE_MULT_LOG;
     }
-    
     if (CACHE_S1_END_LOG === null) {
         CACHE_S1_END_LOG = GENERATION_UPGRADE_BASE_COST_LOG + L1 * BASE_MULT_LOG;
     }
-
     // S2
     const u = lvlNum - L1;
     if (lvlNum <= L2) {
         return CACHE_S1_END_LOG + u + integralLogLin(u, K_LIN);
     }
-
     if (CACHE_S2_END_LOG === null) {
         const u2 = L2 - L1;
         CACHE_S2_END_LOG = CACHE_S1_END_LOG + u2 + integralLogLin(u2, K_LIN);
     }
-
     // S3
     const v = lvlNum - L2;
     const u_at_L = lvlNum - L1;
     const u_at_L2 = L2 - L1;
-    
     // Delta S2 integral + S3 quadratic term
     const s2_continuation = v + (integralLogLin(u_at_L, K_LIN) - integralLogLin(u_at_L2, K_LIN));
     const C3 = LOG_EXP_BASE_S3 / EXP_DIV_S3;
     const s3_extra = 0.5 * C3 * v * v;
-    
     if (lvlNum <= L3) {
         return CACHE_S2_END_LOG + s2_continuation + s3_extra;
     }
-
     if (CACHE_S3_END_LOG === null) {
         const v3 = L3 - L2;
         const u3 = L3 - L1;
@@ -189,123 +162,119 @@ function calculateWorkshopCostLog(level) {
         const s3_extra_3 = 0.5 * C3 * v3 * v3;
         CACHE_S3_END_LOG = CACHE_S2_END_LOG + s2_cont_3 + s3_extra_3;
     }
-    
     // S4: Exponential Explosion
     // logCost grows exponentially with level delta
     const scalingExp = EXPLOSION_RATE * (lvlNum - L3);
     // If scalingExp > 709, Math.exp overflows to Infinity.
-    if (scalingExp > 709) return Infinity; 
-    
+    if (scalingExp > 709) return Infinity;
     const result = CACHE_S3_END_LOG * Math.exp(scalingExp);
-    
     // Hard Cap at BigNum limit (approx 1.8e308)
     if (!Number.isFinite(result) || result > 1.79e308) return Infinity;
-    
     return result;
 }
 
 export function getGenerationUpgradeCost(level) {
-  let bnLevel = level;
-  if (!(level instanceof BigNum)) {
-      bnLevel = BigNum.fromAny(level);
-  }
-  
-  if (bnLevel.isInfinite()) return BigNum.fromAny('Infinity');
-  
-  const logCost = calculateWorkshopCostLog(bnLevel);
-  return bigNumFromLog10(logCost, true);
+    let bnLevel = level;
+    if (!(level instanceof BigNum)) {
+        bnLevel = BigNum.fromAny(level);
+    }
+    if (bnLevel.isInfinite()) return BigNum.fromAny("Infinity");
+    const logCost = calculateWorkshopCostLog(bnLevel);
+    return bigNumFromLog10(logCost, true);
 }
 
 export function getGearsPerSecond(level) {
-  let baseRate;
-  let bnLevel = level;
-  if (!(level instanceof BigNum)) {
-      bnLevel = BigNum.fromAny(level);
-  }
-  const logBase = isSurgeActive(150) ? LOG10_5 : (isSurgeActive(11) ? LOG10_4 : (isSurgeActive(7) ? LOG10_3 : LOG10_2));
+    let baseRate;
+    let bnLevel = level;
+    if (!(level instanceof BigNum)) {
+        bnLevel = BigNum.fromAny(level);
+    }
 
-  if (bnLevel.isZero()) {
-    baseRate = BigNum.fromInt(1);
-  } else if (bnLevel.isInfinite()) {
-    baseRate = BigNum.fromAny('Infinity');
-  } else {
-    const logValue = bnLevel.mulDecimal(logBase);
-    
-    if (bnLevel.cmp(9e15) <= 0) {
-        const lvlNum = (bnLevel.inf ? Infinity : (bnLevel.sig * Math.pow(10, bnLevel.e)));
-        const logVal = lvlNum * logBase;
-        baseRate = bigNumFromLog10(logVal);
+    const logBase = isSurgeActive(150) ? LOG10_5 : isSurgeActive(11) ? LOG10_4 : isSurgeActive(7) ? LOG10_3 : LOG10_2;
+    if (bnLevel.isZero()) {
+        baseRate = BigNum.fromInt(1);
+    } else if (bnLevel.isInfinite()) {
+        baseRate = BigNum.fromAny("Infinity");
     } else {
-        const logExpBn = bnLevel.mulDecimal(logBase);
-        
-        if (logExpBn.cmp(Number.MAX_VALUE) >= 0) {
-            baseRate = BigNum.fromAny('Infinity');
+        const logValue = bnLevel.mulDecimal(logBase);
+        if (bnLevel.cmp(9e15) <= 0) {
+            const lvlNum = bnLevel.inf ? Infinity : bnLevel.sig * Math.pow(10, bnLevel.e);
+            const logVal = lvlNum * logBase;
+            baseRate = bigNumFromLog10(logVal);
         } else {
-            
-            try {
-                 const logExpVal = Number(logExpBn.toScientific(10));
-                 if (logExpVal === Infinity) {
-                     baseRate = BigNum.fromAny('Infinity');
-                 } else {
-                     baseRate = bigNumFromLog10(logExpVal);
-                 }
-            } catch {
-                baseRate = BigNum.fromAny('Infinity');
+            const logExpBn = bnLevel.mulDecimal(logBase);
+            if (logExpBn.cmp(Number.MAX_VALUE) >= 0) {
+                baseRate = BigNum.fromAny("Infinity");
+            } else {
+                try {
+                    const logExpVal = Number(logExpBn.toScientific(10));
+                    if (logExpVal === Infinity) {
+                        baseRate = BigNum.fromAny("Infinity");
+                    } else {
+                        baseRate = bigNumFromLog10(logExpVal);
+                    }
+                } catch {
+                    baseRate = BigNum.fromAny("Infinity");
+                }
             }
         }
     }
-  }
-  
-  return baseRate;
+    return baseRate;
 }
 
 function buyGenerationUpgrade() {
-  const cost = getGenerationUpgradeCost(currentGenerationLevel);
-  if (bank.coins.value.cmp(cost) < 0) return;
-  // currentGenerationLevel is BigNum
-  let nextLevel = currentGenerationLevel.add(1);
-  if (nextLevel.cmp && nextLevel.cmp(4500000000000) >= 0) nextLevel = BigNum.fromAny('Infinity');
-  if (saveGenerationLevel(nextLevel)) {
-    currentGenerationLevel = nextLevel;
-    bank.coins.sub(cost);
-    updateWorkshopTab();
-    playPurchaseSfx();
-  }
+    const cost = getGenerationUpgradeCost(currentGenerationLevel);
+    if (bank.coins.value.cmp(cost) < 0) return;
+    // currentGenerationLevel is BigNum
+    let nextLevel = currentGenerationLevel.add(1);
+    if (nextLevel.cmp && nextLevel.cmp(4500000000000) >= 0) nextLevel = BigNum.fromAny("Infinity");
+    if (saveGenerationLevel(nextLevel)) {
+        currentGenerationLevel = nextLevel;
+        bank.coins.sub(cost);
+        updateWorkshopTab();
+        playPurchaseSfx();
+    }
 }
 
 function onTick(dt = FIXED_STEP) {
-  if (!hasDoneInfuseReset()) return;
-  const rateBn = getGearsProductionRate();
-  const perTick = rateBn.mulDecimal(String(dt));
-  const whole = perTick.floorToInteger();
-  const hasWhole = !whole.isZero();
-  if (hasWhole) {
-      if (bank.gears) bank.gears.add(whole);
-  }
-  
-  // Accumulator logic only for small levels < 20
-  if (currentGenerationLevel.cmp(20) < 0) {
-      // Safe to convert to number
-      const lvlNum = currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
-      const rateNum = Math.pow(isSurgeActive(150) ? 5 : (isSurgeActive(11) ? 4 : (isSurgeActive(7) ? 3 : 2)), lvlNum);
-      const mult = bank.gears && typeof bank.gears.mult?.get === 'function' ? bank.gears.mult.get() : 1;
-      let multNum = 1;
-      try { multNum = (mult.inf ? Infinity : (mult.sig * Math.pow(10, mult.e))); } catch {}
-      const perTickNum = (rateNum * multNum) * dt;
-      const wholeNum = Math.floor(perTickNum);
-      const frac = perTickNum - wholeNum;
-      accumulatorBuffer += frac;
-      if (accumulatorBuffer >= 1) {
-          const accWhole = Math.floor(accumulatorBuffer);
-          accumulatorBuffer -= accWhole;
-          if (bank.gears) bank.gears.add(accWhole);
-      }
-  } else {
-      accumulatorBuffer = 0;
-  }
+    if (!hasDoneInfuseReset()) return;
+    const rateBn = getGearsProductionRate();
+    const perTick = rateBn.mulDecimal(String(dt));
+    const whole = perTick.floorToInteger();
+    const hasWhole = !whole.isZero();
+    if (hasWhole) {
+        if (bank.gears) bank.gears.add(whole);
+    }
+    // Accumulator logic only for small levels < 20
+    if (currentGenerationLevel.cmp(20) < 0) {
+        // Safe to convert to number
+        const lvlNum =
+            currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION
+                ? Infinity
+                : Number(currentGenerationLevel.toPlainIntegerString());
+        const rateNum = Math.pow(isSurgeActive(150) ? 5 : isSurgeActive(11) ? 4 : isSurgeActive(7) ? 3 : 2, lvlNum);
+        const mult = bank.gears && typeof bank.gears.mult?.get === "function" ? bank.gears.mult.get() : 1;
+        let multNum = 1;
+        try {
+            multNum = mult.inf ? Infinity : mult.sig * Math.pow(10, mult.e);
+        } catch {}
+        const perTickNum = rateNum * multNum * dt;
+        const wholeNum = Math.floor(perTickNum);
+        const frac = perTickNum - wholeNum;
+        accumulatorBuffer += frac;
+        if (accumulatorBuffer >= 1) {
+            const accWhole = Math.floor(accumulatorBuffer);
+            accumulatorBuffer -= accWhole;
+            if (bank.gears) bank.gears.add(accWhole);
+        }
+    } else {
+        accumulatorBuffer = 0;
+    }
 }
 
-export function simulateWorkshopTick(dt) { onTick(dt); }
+export function simulateWorkshopTick(dt) {
+    onTick(dt);
+}
 
 function resetWorkshopState() {
     if (bank.gears) bank.gears.set(0);
@@ -317,109 +286,106 @@ function resetWorkshopState() {
 }
 
 function syncGearDecorations(container) {
-  if (!container) return;
-  let entry = animatedGears.get(container);
-  
-  // Ensure canvas exists
-  let canvas = container.querySelector('canvas.workshop-gear-canvas');
-  if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvas.classList.add('workshop-gear-canvas');
-      canvas.style.position = 'absolute';
-      canvas.style.top = '0';
-      canvas.style.left = '0';
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.pointerEvents = 'none';
-      canvas.style.userSelect = 'none';
-      canvas.style.zIndex = '0';
-      container.appendChild(canvas);
-  }
-
-  const rect = container.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-
-  if (!entry) {
-    entry = { 
-        gears: [], 
-        width: rect.width, 
-        height: rect.height, 
-        needsDistribution: !rect.width || !rect.height,
-        canvas: canvas,
-        ctx: canvas.getContext('2d', { alpha: true }) 
-    };
-    // Initialize canvas resolution
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-    entry.ctx.scale(dpr, dpr);
-    animatedGears.set(container, entry);
-  } else {
-    // Update canvas reference if for some reason it changed (unlikely but safe)
-    if (!entry.canvas) {
-        entry.canvas = canvas;
-        entry.ctx = canvas.getContext('2d', { alpha: true });
-        entry.ctx.scale(dpr, dpr);
+    if (!container) return;
+    let entry = animatedGears.get(container);
+    // Ensure canvas exists
+    let canvas = container.querySelector("canvas.workshop-gear-canvas");
+    if (!canvas) {
+        canvas = document.createElement("canvas");
+        canvas.classList.add("workshop-gear-canvas");
+        canvas.style.position = "absolute";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.pointerEvents = "none";
+        canvas.style.userSelect = "none";
+        canvas.style.zIndex = "0";
+        container.appendChild(canvas);
     }
-  }
 
-  if (rect.width > 0 && rect.height > 0) {
-    entry.width = rect.width;
-    entry.height = rect.height;
-    const targetWidth = Math.round(rect.width * dpr);
-    const targetHeight = Math.round(rect.height * dpr);
-
-    if (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight) {
-        entry.canvas.width = targetWidth;
-        entry.canvas.height = targetHeight;
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    if (!entry) {
+        entry = {
+            gears: [],
+            width: rect.width,
+            height: rect.height,
+            needsDistribution: !rect.width || !rect.height,
+            canvas: canvas,
+            ctx: canvas.getContext("2d", { alpha: true }),
+        };
+        // Initialize canvas resolution
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
         entry.ctx.scale(dpr, dpr);
-    }
-  }
-  
-  // Cap at 100 gears, but handle BigNum level safely
-  let lvlNum = 0;
-  if (currentGenerationLevel.cmp(MAX_GEAR_DECORATIONS) > 0) {
-      lvlNum = MAX_GEAR_DECORATIONS;
-  } else {
-      lvlNum = currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
-  }
-
-  const targetCount = Math.min(Math.floor(lvlNum), MAX_GEAR_DECORATIONS);
-  const gears = entry.gears;
-  
-  // Create new gears (state only)
-  while (gears.length < targetCount) {
-    const size = 32 + Math.random() * 48;
-    let x = 0;
-    let y = 0;
-    if (entry.width > 0 && entry.height > 0) {
-      x = Math.random() * (entry.width - size);
-      y = Math.random() * (entry.height - size);
-      if (x < 0) x = 0;
-      if (y < 0) y = 0;
+        animatedGears.set(container, entry);
     } else {
-      entry.needsDistribution = true;
+        // Update canvas reference if for some reason it changed (unlikely but safe)
+        if (!entry.canvas) {
+            entry.canvas = canvas;
+            entry.ctx = canvas.getContext("2d", { alpha: true });
+            entry.ctx.scale(dpr, dpr);
+        }
     }
-    const angle = Math.random() * Math.PI * 2;
-    const dx = Math.cos(angle) * GEAR_SPEED;
-    const dy = Math.sin(angle) * GEAR_SPEED;
-    const rotation = Math.random() * 360;
-    const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * (GEAR_ROTATION_SPEED_BASE + Math.random() * GEAR_ROTATION_VARIANCE);
-    
-    gears.push({ x, y, dx, dy, rotation, rotationSpeed, size });
-  }
-  
-  // Remove excess gears
-  while (gears.length > targetCount) {
-    gears.pop();
-  }
+    if (rect.width > 0 && rect.height > 0) {
+        entry.width = rect.width;
+        entry.height = rect.height;
+        const targetWidth = Math.round(rect.width * dpr);
+        const targetHeight = Math.round(rect.height * dpr);
+        if (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight) {
+            entry.canvas.width = targetWidth;
+            entry.canvas.height = targetHeight;
+            entry.ctx.scale(dpr, dpr);
+        }
+    }
+    // Cap at 100 gears, but handle BigNum level safely
+    let lvlNum = 0;
+    if (currentGenerationLevel.cmp(MAX_GEAR_DECORATIONS) > 0) {
+        lvlNum = MAX_GEAR_DECORATIONS;
+    } else {
+        lvlNum =
+            currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION
+                ? Infinity
+                : Number(currentGenerationLevel.toPlainIntegerString());
+    }
+
+    const targetCount = Math.min(Math.floor(lvlNum), MAX_GEAR_DECORATIONS);
+    const gears = entry.gears;
+    // Create new gears (state only)
+    while (gears.length < targetCount) {
+        const size = 32 + Math.random() * 48;
+        let x = 0;
+        let y = 0;
+        if (entry.width > 0 && entry.height > 0) {
+            x = Math.random() * (entry.width - size);
+            y = Math.random() * (entry.height - size);
+            if (x < 0) x = 0;
+            if (y < 0) y = 0;
+        } else {
+            entry.needsDistribution = true;
+        }
+
+        const angle = Math.random() * Math.PI * 2;
+        const dx = Math.cos(angle) * GEAR_SPEED;
+        const dy = Math.sin(angle) * GEAR_SPEED;
+        const rotation = Math.random() * 360;
+        const rotationSpeed =
+            (Math.random() < 0.5 ? -1 : 1) * (GEAR_ROTATION_SPEED_BASE + Math.random() * GEAR_ROTATION_VARIANCE);
+        gears.push({ x, y, dx, dy, rotation, rotationSpeed, size });
+    }
+    // Remove excess gears
+    while (gears.length > targetCount) {
+        gears.pop();
+    }
 }
 
 function buildWorkshopUI(container) {
-  let descText = 'Click the big red button below to open the Automation Shop';
-  if (IS_MOBILE) {
-    descText = 'Tap the big red button below to open the Automation Shop';
-  }
-  container.innerHTML = `
+    let descText = "Click the big red button below to open the Automation Shop";
+    if (IS_MOBILE) {
+        descText = "Tap the big red button below to open the Automation Shop";
+    }
+    container.innerHTML = `
     <div class="merchant-workshop">
       <div class="workshop-side-col workshop-side-left"></div>
       <div class="workshop-center-col">
@@ -455,388 +421,416 @@ function buildWorkshopUI(container) {
       <div class="workshop-side-col workshop-side-right"></div>
     </div>
   `;
-  const leftCol = container.querySelector('.workshop-side-left');
-  const rightCol = container.querySelector('.workshop-side-right');
-  const upgradeBtn = container.querySelector('[data-workshop="upgrade-gen"]');
-  upgradeBtn.addEventListener('click', () => { buyGenerationUpgrade(); });
-  upgradeBtn.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      buyMaxGenerationUpgrade();
-  });
-  const automationBtn = container.querySelector('.btn-automation-shop');
-  automationBtn.addEventListener('click', () => { openShop('automation'); });
-  const syncLayout = () => {
-      const statsBtn = document.querySelector('.hud-bottom [data-btn="stats"]');
-      if (statsBtn && automationBtn) {
-          const rect = statsBtn.getBoundingClientRect();
-          automationBtn.style.width = `${rect.width}px`;
-          automationBtn.style.height = `${rect.height}px`;
-          automationBtn.style.minWidth = '0';
-          automationBtn.style.maxWidth = 'none';
-      }
-      if (workshopEl && workshopEl.isConnected) {
-        const left = workshopEl.querySelector('.workshop-side-left');
-        const right = workshopEl.querySelector('.workshop-side-right');
-        const updateBounds = (col) => {
-           if (!col) return;
-           const entry = animatedGears.get(col);
-           if (entry) {
-             const rect = col.getBoundingClientRect();
-             const dpr = window.devicePixelRatio || 1;
-             entry.width = rect.width;
-             entry.height = rect.height;
-             const targetWidth = Math.round(rect.width * dpr);
-             const targetHeight = Math.round(rect.height * dpr);
-
-             if (entry.canvas && (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight)) {
-                 entry.canvas.width = targetWidth;
-                 entry.canvas.height = targetHeight;
-                 entry.ctx.scale(dpr, dpr);
-             }
-             if (entry.needsDistribution && entry.width > 0 && entry.height > 0) {
-                 entry.needsDistribution = false;
-                 for (const g of entry.gears) {
-                     g.x = Math.random() * (entry.width - g.size);
-                     if (g.x < 0) g.x = 0;
-                     g.y = Math.random() * (entry.height - g.size);
-                     if (g.y < 0) g.y = 0;
-                 }
-             }
-           }
-        };
-        updateBounds(left);
-        updateBounds(right);
-      }
-  };
-  if (typeof ResizeObserver !== 'undefined') {
-      const ro = new ResizeObserver(syncLayout);
-      const hud = document.querySelector('.hud-bottom');
-      if (hud) ro.observe(hud);
-      if (leftCol) ro.observe(leftCol);
-      if (rightCol) ro.observe(rightCol);
-      window.addEventListener('resize', syncLayout);
-      requestAnimationFrame(syncLayout);
-  } else {
-      window.addEventListener('resize', syncLayout);
-      requestAnimationFrame(syncLayout);
-  }
-  if (typeof IntersectionObserver !== 'undefined') {
-      const visibilityObserver = new IntersectionObserver((entries) => {
-          for (const entry of entries) {
-              if (entry.isIntersecting) { startRenderLoop(); } else { stopRenderLoop(); }
-          }
-      }, { root: null, threshold: 0 });
-      visibilityObserver.observe(container);
-  }
-  workshopEl = container;
+    const leftCol = container.querySelector(".workshop-side-left");
+    const rightCol = container.querySelector(".workshop-side-right");
+    const upgradeBtn = container.querySelector('[data-workshop="upgrade-gen"]');
+    upgradeBtn.addEventListener("click", () => {
+        buyGenerationUpgrade();
+    });
+    upgradeBtn.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        buyMaxGenerationUpgrade();
+    });
+    const automationBtn = container.querySelector(".btn-automation-shop");
+    automationBtn.addEventListener("click", () => {
+        openShop("automation");
+    });
+    const syncLayout = () => {
+        const statsBtn = document.querySelector('.hud-bottom [data-btn="stats"]');
+        if (statsBtn && automationBtn) {
+            const rect = statsBtn.getBoundingClientRect();
+            automationBtn.style.width = `${rect.width}px`;
+            automationBtn.style.height = `${rect.height}px`;
+            automationBtn.style.minWidth = "0";
+            automationBtn.style.maxWidth = "none";
+        }
+        if (workshopEl && workshopEl.isConnected) {
+            const left = workshopEl.querySelector(".workshop-side-left");
+            const right = workshopEl.querySelector(".workshop-side-right");
+            const updateBounds = (col) => {
+                if (!col) return;
+                const entry = animatedGears.get(col);
+                if (entry) {
+                    const rect = col.getBoundingClientRect();
+                    const dpr = window.devicePixelRatio || 1;
+                    entry.width = rect.width;
+                    entry.height = rect.height;
+                    const targetWidth = Math.round(rect.width * dpr);
+                    const targetHeight = Math.round(rect.height * dpr);
+                    if (entry.canvas && (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight)) {
+                        entry.canvas.width = targetWidth;
+                        entry.canvas.height = targetHeight;
+                        entry.ctx.scale(dpr, dpr);
+                    }
+                    if (entry.needsDistribution && entry.width > 0 && entry.height > 0) {
+                        entry.needsDistribution = false;
+                        for (const g of entry.gears) {
+                            g.x = Math.random() * (entry.width - g.size);
+                            if (g.x < 0) g.x = 0;
+                            g.y = Math.random() * (entry.height - g.size);
+                            if (g.y < 0) g.y = 0;
+                        }
+                    }
+                }
+            };
+            updateBounds(left);
+            updateBounds(right);
+        }
+    };
+    if (typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(syncLayout);
+        const hud = document.querySelector(".hud-bottom");
+        if (hud) ro.observe(hud);
+        if (leftCol) ro.observe(leftCol);
+        if (rightCol) ro.observe(rightCol);
+        window.addEventListener("resize", syncLayout);
+        requestAnimationFrame(syncLayout);
+    } else {
+        window.addEventListener("resize", syncLayout);
+        requestAnimationFrame(syncLayout);
+    }
+    if (typeof IntersectionObserver !== "undefined") {
+        const visibilityObserver = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        startRenderLoop();
+                    } else {
+                        stopRenderLoop();
+                    }
+                }
+            },
+            { root: null, threshold: 0 },
+        );
+        visibilityObserver.observe(container);
+    }
+    workshopEl = container;
 }
 
 export function updateWorkshopTab() {
-  if (!workshopEl) return;
-  const verbEl = workshopEl.querySelector("[data-workshop=\"production-verb\"]");
-  if (verbEl) {
-      const verb = isSurgeActive(150) ? "quintuple" : (isSurgeActive(11) ? "quadruple" : (isSurgeActive(7) ? "triple" : "double"));
-      if (verbEl.textContent !== verb) verbEl.textContent = verb;
-  }
-  const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
-  const gearsRateEl = workshopEl.querySelector('[data-workshop="gears-rate"]');
-  const upgradeCostEl = workshopEl.querySelector('[data-workshop="upgrade-cost"]');
-  const upgradeBtn = workshopEl.querySelector('[data-workshop="upgrade-gen"]');
-  const rateBn = getGearsProductionRate();
-  const cost = getGenerationUpgradeCost(currentGenerationLevel);
-  if (gearsAmountEl) setHtmlOrText(gearsAmountEl, bank.gears.fmt(bank.gears.value));
-  if (gearsRateEl) setHtmlOrText(gearsRateEl, formatNumber(rateBn));
-  if (upgradeCostEl) {
-      let label = 'Coins';
-      try {
-          const isOne = !cost.isInfinite() && cost.cmp(1) === 0;
-          label = isOne ? 'Coin' : 'Coins';
-      } catch {}
-      setHtmlOrText(upgradeCostEl, `${formatNumber(cost)} ${label}`);
-  }
-  if (upgradeBtn) {
-    const canAfford = bank.coins.value.cmp(cost) >= 0;
-    upgradeBtn.disabled = !canAfford;
-    const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
-    let isAutomated = false;
-    if (autoLevel > 0) {
-        const slot = getActiveSlot();
-        const slotSuffix = slot != null ? `:${slot}` : '';
-        const key = `ccc:autobuy:${AUTOMATION_AREA_KEY}:${AUTOBUY_WORKSHOP_LEVELS_ID}${slotSuffix}`;
-        isAutomated = localStorage.getItem(key) !== '0';
+    if (!workshopEl) return;
+    const verbEl = workshopEl.querySelector('[data-workshop="production-verb"]');
+    if (verbEl) {
+        const verb = isSurgeActive(150)
+            ? "quintuple"
+            : isSurgeActive(11)
+              ? "quadruple"
+              : isSurgeActive(7)
+                ? "triple"
+                : "double";
+        if (verbEl.textContent !== verb) verbEl.textContent = verb;
     }
-    if (isAutomated) upgradeBtn.classList.add('is-automated');
-    else upgradeBtn.classList.remove('is-automated');
-  }
-  
-  // Use toScientific for large level comparisons? or just check if it changed significantly
-  // For animations, we just need to know if it grew.
-  // Using toPlainIntegerString is risky if it's huge, but fine for checking floor change if we cache properly.
-  // Actually, we can just use the BigNum instance itself as a key if it's immutable, but it's not.
-  // We can format it to a string.
-  
-  let currentIntStr = '';
-  if (currentGenerationLevel.isInfinite()) currentIntStr = 'Infinity';
-  else currentIntStr = currentGenerationLevel.floorToInteger().toStorage(); // BN:15:sig:exp
 
-  if (currentIntStr !== lastSyncedLevel) {
-    lastSyncedLevel = currentIntStr;
-    const leftCol = workshopEl.querySelector('.workshop-side-left');
-    const rightCol = workshopEl.querySelector('.workshop-side-right');
-    if (leftCol) syncGearDecorations(leftCol);
-    if (rightCol) syncGearDecorations(rightCol);
-  }
+    const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
+    const gearsRateEl = workshopEl.querySelector('[data-workshop="gears-rate"]');
+    const upgradeCostEl = workshopEl.querySelector('[data-workshop="upgrade-cost"]');
+    const upgradeBtn = workshopEl.querySelector('[data-workshop="upgrade-gen"]');
+    const rateBn = getGearsProductionRate();
+    const cost = getGenerationUpgradeCost(currentGenerationLevel);
+    if (gearsAmountEl) setHtmlOrText(gearsAmountEl, bank.gears.fmt(bank.gears.value));
+    if (gearsRateEl) setHtmlOrText(gearsRateEl, formatNumber(rateBn));
+    if (upgradeCostEl) {
+        let label = "Coins";
+        try {
+            const isOne = !cost.isInfinite() && cost.cmp(1) === 0;
+            label = isOne ? "Coin" : "Coins";
+        } catch {}
+        setHtmlOrText(upgradeCostEl, `${formatNumber(cost)} ${label}`);
+    }
+    if (upgradeBtn) {
+        const canAfford = bank.coins.value.cmp(cost) >= 0;
+        upgradeBtn.disabled = !canAfford;
+        const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
+        let isAutomated = false;
+        if (autoLevel > 0) {
+            const slot = getActiveSlot();
+            const slotSuffix = slot != null ? `:${slot}` : "";
+            const key = `ccc:autobuy:${AUTOMATION_AREA_KEY}:${AUTOBUY_WORKSHOP_LEVELS_ID}${slotSuffix}`;
+            isAutomated = localStorage.getItem(key) !== "0";
+        }
+        if (isAutomated) upgradeBtn.classList.add("is-automated");
+        else upgradeBtn.classList.remove("is-automated");
+    }
+    // Use toScientific for large level comparisons? or just check if it changed significantly
+    // For animations, we just need to know if it grew.
+    // Using toPlainIntegerString is risky if it's huge, but fine for checking floor change if we cache properly.
+    // Actually, we can just use the BigNum instance itself as a key if it's immutable, but it's not.
+    // We can format it to a string.
+    let currentIntStr = "";
+    if (currentGenerationLevel.isInfinite()) currentIntStr = "Infinity";
+    else currentIntStr = currentGenerationLevel.floorToInteger().toStorage(); // BN:15:sig:exp
+    if (currentIntStr !== lastSyncedLevel) {
+        lastSyncedLevel = currentIntStr;
+        const leftCol = workshopEl.querySelector(".workshop-side-left");
+        const rightCol = workshopEl.querySelector(".workshop-side-right");
+        if (leftCol) syncGearDecorations(leftCol);
+        if (rightCol) syncGearDecorations(rightCol);
+    }
+    // Hide the gear container borders if Workshop Level is 0
+    const isLevelZero = currentGenerationLevel.isZero();
+    const leftCol = workshopEl.querySelector(".workshop-side-left");
+    const rightCol = workshopEl.querySelector(".workshop-side-right");
+    if (leftCol) {
+        leftCol.style.opacity = isLevelZero ? "0" : "1";
+        leftCol.style.pointerEvents = isLevelZero ? "none" : "";
+    }
+    if (rightCol) {
+        rightCol.style.opacity = isLevelZero ? "0" : "1";
+        rightCol.style.pointerEvents = isLevelZero ? "none" : "";
+    }
 
-  // Hide the gear container borders if Workshop Level is 0
-  const isLevelZero = currentGenerationLevel.isZero();
-  const leftCol = workshopEl.querySelector('.workshop-side-left');
-  const rightCol = workshopEl.querySelector('.workshop-side-right');
-  if (leftCol) {
-    leftCol.style.opacity = isLevelZero ? '0' : '1';
-    leftCol.style.pointerEvents = isLevelZero ? 'none' : '';
-  }
-  if (rightCol) {
-    rightCol.style.opacity = isLevelZero ? '0' : '1';
-    rightCol.style.pointerEvents = isLevelZero ? 'none' : '';
-  }
-
-  const showSideContainers = settingsManager.get('show_side_containers');
-  if (leftCol) {
-    leftCol.style.display = showSideContainers ? '' : 'none';
-  }
-  if (rightCol) {
-    rightCol.style.display = showSideContainers ? '' : 'none';
-  }
+    const showSideContainers = settingsManager.get("show_side_containers");
+    if (leftCol) {
+        leftCol.style.display = showSideContainers ? "" : "none";
+    }
+    if (rightCol) {
+        rightCol.style.display = showSideContainers ? "" : "none";
+    }
 }
 
 function stopRenderLoop() {
-  if (renderFrameId) {
-    cancelAnimationFrame(renderFrameId);
-    renderFrameId = null;
-  }
+    if (renderFrameId) {
+        cancelAnimationFrame(renderFrameId);
+        renderFrameId = null;
+    }
 }
 
 let lastRenderTime = 0;
 function startRenderLoop() {
-  if (renderFrameId) return;
-  lastRenderTime = 0;
-  const loop = (timestamp) => {
-    if (workshopEl && workshopEl.isConnected) {
-        const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
-        if (gearsAmountEl && !isAnyMenuScrolling()) {
-             setHtmlOrText(gearsAmountEl, bank.gears.fmt(bank.gears.value));
-        }
-        if (!lastRenderTime) lastRenderTime = timestamp;
-        let dt = (timestamp - lastRenderTime) / 1000;
-        lastRenderTime = timestamp;
-        if (dt > 0.1) dt = 0.1; 
-        for (const [container, data] of animatedGears) {
-            if (!container.isConnected) continue;
-            const { gears, width, height, ctx } = data;
-            if (!width || !height || !ctx) continue;
-            
-            ctx.clearRect(0, 0, width, height);
-
-            // If image not loaded, skip drawing
-            if (!gearImage.complete || gearImage.naturalWidth === 0) continue;
-
-            for (const g of gears) {
-                g.x += g.dx * dt;
-                g.y += g.dy * dt;
-                if (g.x < 0) { g.x = 0; g.dx = -g.dx; }
-                else if (g.x + g.size > width) { g.x = width - g.size; g.dx = -g.dx; }
-                if (g.y < 0) { g.y = 0; g.dy = -g.dy; }
-                else if (g.y + g.size > height) { g.y = height - g.size; g.dy = -g.dy; }
-                g.rotation += g.rotationSpeed * dt;
-                
-                // Draw to canvas
-                // Translate to center of gear
-                const cx = g.x + g.size / 2;
-                const cy = g.y + g.size / 2;
-                
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(g.rotation * Math.PI / 180);
-                ctx.drawImage(gearImage, -g.size / 2, -g.size / 2, g.size, g.size);
-                ctx.restore();
+    if (renderFrameId) return;
+    lastRenderTime = 0;
+    const loop = (timestamp) => {
+        if (workshopEl && workshopEl.isConnected) {
+            const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
+            if (gearsAmountEl && !isAnyMenuScrolling()) {
+                setHtmlOrText(gearsAmountEl, bank.gears.fmt(bank.gears.value));
+            }
+            if (!lastRenderTime) lastRenderTime = timestamp;
+            let dt = (timestamp - lastRenderTime) / 1000;
+            lastRenderTime = timestamp;
+            if (dt > 0.1) dt = 0.1;
+            for (const [container, data] of animatedGears) {
+                if (!container.isConnected) continue;
+                const { gears, width, height, ctx } = data;
+                if (!width || !height || !ctx) continue;
+                ctx.clearRect(0, 0, width, height);
+                // If image not loaded, skip drawing
+                if (!gearImage.complete || gearImage.naturalWidth === 0) continue;
+                for (const g of gears) {
+                    g.x += g.dx * dt;
+                    g.y += g.dy * dt;
+                    if (g.x < 0) {
+                        g.x = 0;
+                        g.dx = -g.dx;
+                    } else if (g.x + g.size > width) {
+                        g.x = width - g.size;
+                        g.dx = -g.dx;
+                    }
+                    if (g.y < 0) {
+                        g.y = 0;
+                        g.dy = -g.dy;
+                    } else if (g.y + g.size > height) {
+                        g.y = height - g.size;
+                        g.dy = -g.dy;
+                    }
+                    g.rotation += g.rotationSpeed * dt;
+                    // Draw to canvas
+                    // Translate to center of gear
+                    const cx = g.x + g.size / 2;
+                    const cy = g.y + g.size / 2;
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate((g.rotation * Math.PI) / 180);
+                    ctx.drawImage(gearImage, -g.size / 2, -g.size / 2, g.size, g.size);
+                    ctx.restore();
+                }
             }
         }
-    }
+        renderFrameId = requestAnimationFrame(loop);
+    };
     renderFrameId = requestAnimationFrame(loop);
-  };
-  renderFrameId = requestAnimationFrame(loop);
 }
 
 export function initWorkshopSystem() {
-  if (initialized) return;
-  initialized = true;
-  currentGenerationLevel = loadGenerationLevel();
-  registerTick(onTick);
-  if (typeof window !== 'undefined') {
-      window.addEventListener('saveSlot:change', () => {
-          currentGenerationLevel = loadGenerationLevel();
-          accumulatorBuffer = 0;
-          if (!hasDoneInfuseReset()) { resetWorkshopState(); }
-          updateWorkshopTab();
-      });
-      window.addEventListener('currency:change', (e) => {
-          if (e.detail && e.detail.key === CURRENCIES.COINS) { updateWorkshopTab(); }
-      });
-      window.addEventListener('currency:multiplier', (e) => {
-          if (e.detail && e.detail.key === CURRENCIES.GEARS) { updateWorkshopTab(); }
-      });
-      window.addEventListener('debug:change', () => {
-          currentGenerationLevel = loadGenerationLevel();
-          updateWorkshopTab();
-      });
-      window.addEventListener('unlock:change', (e) => {
-         const detail = e.detail || {};
-         if (detail.key === 'infuse') { if (!hasDoneInfuseReset()) { resetWorkshopState(); } }
-      });
-      window.addEventListener('setting:changed', (e) => {
-         if (e.detail && e.detail.key === 'show_side_containers') { updateWorkshopTab(); }
-      });
-  }
+    if (initialized) return;
+    initialized = true;
+    currentGenerationLevel = loadGenerationLevel();
+    registerTick(onTick);
+    if (typeof window !== "undefined") {
+        window.addEventListener("saveSlot:change", () => {
+            currentGenerationLevel = loadGenerationLevel();
+            accumulatorBuffer = 0;
+            if (!hasDoneInfuseReset()) {
+                resetWorkshopState();
+            }
+            updateWorkshopTab();
+        });
+        window.addEventListener("currency:change", (e) => {
+            if (e.detail && e.detail.key === CURRENCIES.COINS) {
+                updateWorkshopTab();
+            }
+        });
+        window.addEventListener("currency:multiplier", (e) => {
+            if (e.detail && e.detail.key === CURRENCIES.GEARS) {
+                updateWorkshopTab();
+            }
+        });
+        window.addEventListener("debug:change", () => {
+            currentGenerationLevel = loadGenerationLevel();
+            updateWorkshopTab();
+        });
+        window.addEventListener("unlock:change", (e) => {
+            const detail = e.detail || {};
+            if (detail.key === "infuse") {
+                if (!hasDoneInfuseReset()) {
+                    resetWorkshopState();
+                }
+            }
+        });
+        window.addEventListener("setting:changed", (e) => {
+            if (e.detail && e.detail.key === "show_side_containers") {
+                updateWorkshopTab();
+            }
+        });
+    }
 }
 
 export function initWorkshopTab(panelEl) {
-  initWorkshopSystem();
-  if (panelEl.__workshopInit) return;
-  panelEl.__workshopInit = true;
-  currentGenerationLevel = loadGenerationLevel();
-  animatedGears.clear();
-  lastSyncedLevel = -1;
-  buildWorkshopUI(panelEl);
-  if (typeof IntersectionObserver === 'undefined') { startRenderLoop(); }
-  if (!hasDoneInfuseReset()) { resetWorkshopState(); }
-  updateWorkshopTab();
+    initWorkshopSystem();
+    if (panelEl.__workshopInit) return;
+    panelEl.__workshopInit = true;
+    currentGenerationLevel = loadGenerationLevel();
+    animatedGears.clear();
+    lastSyncedLevel = -1;
+    buildWorkshopUI(panelEl);
+    if (typeof IntersectionObserver === "undefined") {
+        startRenderLoop();
+    }
+    if (!hasDoneInfuseReset()) {
+        resetWorkshopState();
+    }
+    updateWorkshopTab();
 }
 
 export function getGearsProductionRate() {
-  let base = BigNum.fromInt(1);
-  if (bank.gears && typeof bank.gears.mult?.applyTo === 'function') {
-      base = bank.gears.mult.applyTo(base);
-  }
-  return base;
+    let base = BigNum.fromInt(1);
+    if (bank.gears && typeof bank.gears.mult?.applyTo === "function") {
+        base = bank.gears.mult.applyTo(base);
+    }
+    return base;
 }
 
 export function performFreeGenerationUpgrade() {
-  // If user has infinite coins and cost is infinite, or coins are simply infinite, snap to infinity immediately if cost is also seemingly infinite
-  const coinsInf = bank.coins.value.isInfinite();
-  const currentCost = getGenerationUpgradeCost(currentGenerationLevel);
-  const costInf = currentCost.isInfinite();
-
-  if (coinsInf && costInf && !currentGenerationLevel.isInfinite()) {
-      currentGenerationLevel = BigNum.fromAny('Infinity');
-      saveGenerationLevel(currentGenerationLevel);
-      updateWorkshopTab();
-      return true;
-  }
-    
-  if (bank.coins.value.isZero()) return false;
-  let coinsLog = approxLog10BigNum(bank.coins.value);
-  if (!Number.isFinite(coinsLog)) {
-     if (bank.coins.value.inf) coinsLog = Infinity;
-     else return false;
-  }
-  
-  // calculateWorkshopCostLog now expects BigNum
-  if (calculateWorkshopCostLog(currentGenerationLevel) > coinsLog) return false;
-  
-  // We need to find the max affordable level.
-  // Since level is BigNum, we have to handle potentially huge ranges.
-  // But calculateWorkshopCostLog crashes if level > 1e15 or so.
-  // If coinsLog is Finite, then level MUST be < 1e15 roughly.
-  // So we can convert currentGenerationLevel to number for the search if it's small.
-  
-  if (currentGenerationLevel.cmp(9e15) > 0) return false; // Too big for normal logic, handled by Infinity check above
-  
-  let low = currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
-  let high = 9e15; 
-  if (coinsLog === Infinity) high = 9e15; 
-
-  let best = low;
-  while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      // mid is number, need to pass BigNum to calculator
-      if (calculateWorkshopCostLog(BigNum.fromInt(mid)) <= coinsLog) {
-          best = mid;
-          low = mid + 1;
-      } else {
-          high = mid - 1;
-      }
-  }
-  
-  let targetLevelVal = best + 1;
-  let targetLevel = BigNum.fromInt(targetLevelVal);
-  if (targetLevel.cmp && targetLevel.cmp(4500000000000) >= 0) targetLevel = BigNum.fromAny('Infinity');
-
-  if (targetLevel.cmp(currentGenerationLevel) > 0) {
-    if (saveGenerationLevel(targetLevel)) {
-      currentGenerationLevel = targetLevel;
-      updateWorkshopTab();
-      return true;
+    // If user has infinite coins and cost is infinite, or coins are simply infinite, snap to infinity immediately if cost is also seemingly infinite
+    const coinsInf = bank.coins.value.isInfinite();
+    const currentCost = getGenerationUpgradeCost(currentGenerationLevel);
+    const costInf = currentCost.isInfinite();
+    if (coinsInf && costInf && !currentGenerationLevel.isInfinite()) {
+        currentGenerationLevel = BigNum.fromAny("Infinity");
+        saveGenerationLevel(currentGenerationLevel);
+        updateWorkshopTab();
+        return true;
     }
-  }
-  return false;
+    if (bank.coins.value.isZero()) return false;
+    let coinsLog = approxLog10BigNum(bank.coins.value);
+    if (!Number.isFinite(coinsLog)) {
+        if (bank.coins.value.inf) coinsLog = Infinity;
+        else return false;
+    }
+    // calculateWorkshopCostLog now expects BigNum
+    if (calculateWorkshopCostLog(currentGenerationLevel) > coinsLog) return false;
+    // We need to find the max affordable level.
+    // Since level is BigNum, we have to handle potentially huge ranges.
+    // But calculateWorkshopCostLog crashes if level > 1e15 or so.
+    // If coinsLog is Finite, then level MUST be < 1e15 roughly.
+    // So we can convert currentGenerationLevel to number for the search if it's small.
+    if (currentGenerationLevel.cmp(9e15) > 0) return false; // Too big for normal logic, handled by Infinity check above
+    let low =
+        currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION
+            ? Infinity
+            : Number(currentGenerationLevel.toPlainIntegerString());
+    let high = 9e15;
+    if (coinsLog === Infinity) high = 9e15;
+    let best = low;
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        // mid is number, need to pass BigNum to calculator
+        if (calculateWorkshopCostLog(BigNum.fromInt(mid)) <= coinsLog) {
+            best = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    let targetLevelVal = best + 1;
+    let targetLevel = BigNum.fromInt(targetLevelVal);
+    if (targetLevel.cmp && targetLevel.cmp(4500000000000) >= 0) targetLevel = BigNum.fromAny("Infinity");
+    if (targetLevel.cmp(currentGenerationLevel) > 0) {
+        if (saveGenerationLevel(targetLevel)) {
+            currentGenerationLevel = targetLevel;
+            updateWorkshopTab();
+            return true;
+        }
+    }
+    return false;
 }
 
 function buyMaxGenerationUpgrade() {
-  if (bank.coins.value.isInfinite()) {
-      if (currentGenerationLevel.isInfinite() || performFreeGenerationUpgrade()) {
-          playPurchaseSfx();
-      }
-      return;
-  }
-  
-  const coinsLog = approxLog10BigNum(bank.coins.value);
-  if (!Number.isFinite(coinsLog)) {
-     if (bank.coins.value.isZero()) return;
-  }
-  
-  if (calculateWorkshopCostLog(currentGenerationLevel) > coinsLog) return;
-  
-  if (currentGenerationLevel.cmp(9e15) > 0) return; 
+    if (bank.coins.value.isInfinite()) {
+        if (currentGenerationLevel.isInfinite() || performFreeGenerationUpgrade()) {
+            playPurchaseSfx();
+        }
+        return;
+    }
 
-  let low = currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
-  let high = 9e15; 
-  if (coinsLog === Infinity) high = 9e15; 
+    const coinsLog = approxLog10BigNum(bank.coins.value);
+    if (!Number.isFinite(coinsLog)) {
+        if (bank.coins.value.isZero()) return;
+    }
+    if (calculateWorkshopCostLog(currentGenerationLevel) > coinsLog) return;
+    if (currentGenerationLevel.cmp(9e15) > 0) return;
+    let low =
+        currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION
+            ? Infinity
+            : Number(currentGenerationLevel.toPlainIntegerString());
+    let high = 9e15;
+    if (coinsLog === Infinity) high = 9e15;
+    let best = low;
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        if (calculateWorkshopCostLog(BigNum.fromInt(mid)) <= coinsLog) {
+            best = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
 
-  let best = low;
-  while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      if (calculateWorkshopCostLog(BigNum.fromInt(mid)) <= coinsLog) {
-          best = mid;
-          low = mid + 1;
-      } else {
-          high = mid - 1;
-      }
-  }
-  
-  let targetLevelVal = best + 1;
-  let currentVal = currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
-  
-  let startL = Math.max(currentVal, targetLevelVal - 100);
-  
-  let totalCost = BigNum.zero();
-  for (let l = startL; l < targetLevelVal; l++) {
-      totalCost = totalCost.add(getGenerationUpgradeCost(BigNum.fromInt(l)));
-  }
-  
-  if (totalCost.cmp(bank.coins.value) > 0) {
-      let topCost = getGenerationUpgradeCost(BigNum.fromInt(targetLevelVal - 1));
-      totalCost = totalCost.sub(topCost);
-      targetLevelVal--;
-  }
-  
-  let targetLevel = BigNum.fromInt(targetLevelVal);
-  if (targetLevel.cmp && targetLevel.cmp(4500000000000) >= 0) targetLevel = BigNum.fromAny('Infinity');
-  if (targetLevel.cmp(currentGenerationLevel) > 0) {
-      if (saveGenerationLevel(targetLevel)) {
-          currentGenerationLevel = targetLevel;
-          bank.coins.sub(totalCost);
-          updateWorkshopTab();
-          playPurchaseSfx();
-      }
-  }
+    let targetLevelVal = best + 1;
+    let currentVal =
+        currentGenerationLevel.inf || currentGenerationLevel.e >= BigNum.DEFAULT_PRECISION
+            ? Infinity
+            : Number(currentGenerationLevel.toPlainIntegerString());
+    let startL = Math.max(currentVal, targetLevelVal - 100);
+    let totalCost = BigNum.zero();
+    for (let l = startL; l < targetLevelVal; l++) {
+        totalCost = totalCost.add(getGenerationUpgradeCost(BigNum.fromInt(l)));
+    }
+    if (totalCost.cmp(bank.coins.value) > 0) {
+        let topCost = getGenerationUpgradeCost(BigNum.fromInt(targetLevelVal - 1));
+        totalCost = totalCost.sub(topCost);
+        targetLevelVal--;
+    }
+
+    let targetLevel = BigNum.fromInt(targetLevelVal);
+    if (targetLevel.cmp && targetLevel.cmp(4500000000000) >= 0) targetLevel = BigNum.fromAny("Infinity");
+    if (targetLevel.cmp(currentGenerationLevel) > 0) {
+        if (saveGenerationLevel(targetLevel)) {
+            currentGenerationLevel = targetLevel;
+            bank.coins.sub(totalCost);
+            updateWorkshopTab();
+            playPurchaseSfx();
+        }
+    }
 }
