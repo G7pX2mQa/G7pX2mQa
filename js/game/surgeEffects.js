@@ -1,1461 +1,1208 @@
+import { lsSetItem } from "../main.js";
 import { BigNum } from "../util/bigNum.js";
 import { bank, getActiveSlot, isStorageKeyLocked } from "../util/storage.js";
 import {
-  addExternalCoinMultiplierProvider,
-  addExternalXpGainMultiplierProvider,
-  getXpState,
-  setExternalBookRewardProvider,
+    addExternalCoinMultiplierProvider,
+    addExternalXpGainMultiplierProvider,
+    getXpState,
+    setExternalBookRewardProvider,
 } from "./xpSystem.js";
 import { syncCurrencyMultipliersFromUpgrades } from "./upgradeEffects.js";
+import { addExternalMutationGainMultiplierProvider, getTotalCumulativeMp, getMutationState } from "./mutationSystem.js";
 import {
-  addExternalMutationGainMultiplierProvider,
-  getTotalCumulativeMp,
-  getMutationState,
-} from "./mutationSystem.js";
-import {
-  getCurrentSurgeLevel,
-  computeForgeGoldFromInputs,
-  computeInfuseMagicFromInputs,
-  computePendingDnaFromInputs,
+    getCurrentSurgeLevel,
+    computeForgeGoldFromInputs,
+    computeInfuseMagicFromInputs,
+    computePendingDnaFromInputs,
 } from "../ui/merchantTabs/resetTab.js";
-import { getResearchNodeLevel } from "./labNodes.js";
 import { getLabLevel } from "../ui/merchantTabs/labTab.js";
 import { registerTick, RateAccumulator } from "./gameLoop.js";
 import { bigNumFromLog10, approxLog10BigNum } from "../util/bigNum.js";
 import { getTsunamiResearchBonus, getLabGoldMultiplier } from "./labNodes.js";
-import {
-  getComboRestorationFactor,
-  updateCombo,
-  initComboSystem,
-} from "./comboSystem.js";
+import { getComboRestorationFactor, updateCombo, initComboSystem } from "./comboSystem.js";
 import { formatMultForUi } from "../util/numFormat.js";
 import { addExternalFpMultiplierProvider } from "../ui/merchantTabs/flowTab.js";
 import { addExternalPpMultiplierProvider } from "./ppSystem.js";
 import { applyStatMultiplierOverride } from "../util/debugPanel.js";
 import { levelBigNumToNumber } from "./upgrades.js";
-
 const BN = BigNum;
 const MULTIPLIER = 10;
 const LOG10_EXP_0_2 = 0.08685889638; // log10(e^0.2)
 const TSUNAMI_NERF_KEY = (slot) => `ccc:surge:tsunamiNerf:${slot}`;
 const TSUNAMI_UNLOCKED_KEY = (slot) => `ccc:unlock:tsunami:${slot}`;
-const TSUNAMI_PLAYED_KEY = (slot) =>
-  `ccc:permanent:tsunamiSequencePlayed:${slot}`;
-
-const MAP_SEEN_KEY = (slot, nodeId) =>
-  `ccc:unlock:mapSequence:${nodeId}:${slot}`;
-
+const TSUNAMI_PLAYED_KEY = (slot) => `ccc:permanent:tsunamiSequencePlayed:${slot}`;
+const MAP_SEEN_KEY = (slot, nodeId) => `ccc:unlock:mapSequence:${nodeId}:${slot}`;
 export function getMapSequenceSeen(nodeId) {
-  const slot = getActiveSlot();
-  if (slot == null) return false;
-  try {
-    return localStorage.getItem(MAP_SEEN_KEY(slot, nodeId)) === "1";
-  } catch {
-    return false;
-  }
+    const slot = getActiveSlot();
+    if (slot == null) return false;
+    try {
+        return localStorage.getItem(MAP_SEEN_KEY(slot, nodeId)) === "1";
+    } catch {
+        return false;
+    }
 }
 
 export function setMapSequenceSeen(nodeId, value) {
-  const slot = getActiveSlot();
-  if (slot == null) return;
-  const normalized = !!value;
-  try {
-    localStorage.setItem(MAP_SEEN_KEY(slot, nodeId), normalized ? "1" : "0");
-  } catch {}
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const normalized = !!value;
+    try {
+        lsSetItem(MAP_SEEN_KEY(slot, nodeId), normalized ? "1" : "0");
+    } catch {}
 }
 
 export function getTsunamiNerfKey(slot) {
-  return TSUNAMI_NERF_KEY(slot);
+    return TSUNAMI_NERF_KEY(slot);
 }
 
 export function getTsunamiSequencePlayed() {
-  const slot = getActiveSlot();
-  if (slot == null) return false;
-  try {
-    return localStorage.getItem(TSUNAMI_PLAYED_KEY(slot)) === "1";
-  } catch {
-    return false;
-  }
+    const slot = getActiveSlot();
+    if (slot == null) return false;
+    try {
+        return localStorage.getItem(TSUNAMI_PLAYED_KEY(slot)) === "1";
+    } catch {
+        return false;
+    }
 }
 
 export function setTsunamiSequencePlayed(value) {
-  const slot = getActiveSlot();
-  if (slot == null) return;
-  const normalized = !!value;
-  try {
-    localStorage.setItem(TSUNAMI_PLAYED_KEY(slot), normalized ? "1" : "0");
-  } catch {}
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const normalized = !!value;
+    try {
+        lsSetItem(TSUNAMI_PLAYED_KEY(slot), normalized ? "1" : "0");
+    } catch {}
 }
 
 let cachedLabUnlockedStates = {};
-
 export function isLabUnlocked() {
-  const slot = getActiveSlot();
-  if (slot == null) return false;
-  if (cachedLabUnlockedStates[slot] !== undefined && cachedLabUnlockedStates[slot] !== null) return cachedLabUnlockedStates[slot];
-  try {
-    const result = localStorage.getItem(TSUNAMI_UNLOCKED_KEY(slot)) === "1";
-    cachedLabUnlockedStates[slot] = result;
-    return result;
-  } catch {
-    return false;
-  }
+    const slot = getActiveSlot();
+    if (slot == null) return false;
+    if (cachedLabUnlockedStates[slot] !== undefined && cachedLabUnlockedStates[slot] !== null)
+        return cachedLabUnlockedStates[slot];
+    try {
+        const result = localStorage.getItem(TSUNAMI_UNLOCKED_KEY(slot)) === "1";
+        cachedLabUnlockedStates[slot] = result;
+        return result;
+    } catch {
+        return false;
+    }
 }
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('saveSlot:change', () => { cachedLabUnlockedStates = {}; });
-  window.addEventListener('unlock:change', () => { cachedLabUnlockedStates = {}; });
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => {
+        cachedLabUnlockedStates = {};
+    });
+    window.addEventListener("unlock:change", () => {
+        cachedLabUnlockedStates = {};
+    });
 }
 
 export function setLabUnlocked(value) {
-  const slot = getActiveSlot();
-  if (slot == null) return;
-  const normalized = !!value;
-  try {
-    localStorage.setItem(TSUNAMI_UNLOCKED_KEY(slot), normalized ? "1" : "0");
-    cachedLabUnlockedStates[slot] = normalized;
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("unlock:change", { detail: { key: "tsunami", slot } }),
-      );
-    }
-  } catch {}
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const normalized = !!value;
+    try {
+        lsSetItem(TSUNAMI_UNLOCKED_KEY(slot), normalized ? "1" : "0");
+        cachedLabUnlockedStates[slot] = normalized;
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "tsunami", slot } }));
+        }
+    } catch {}
 }
 
 let currentMultiplier = BigNum.fromInt(1);
 let cachedSurgeLevel = 0;
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('saveSlot:change', () => {
-    cachedSurgeLevel = 0;
-  });
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => {
+        cachedSurgeLevel = 0;
+    });
 }
+
 let bookRateAccumulator = null;
 let baseTsunamiExponent = 0.0; // declared as mutable because the base tsunami exponent can change over time depending on lab nodes
-
 export function getBaseTsunamiExponent() {
-  return baseTsunamiExponent;
+    return baseTsunamiExponent;
 }
 
 export function getTsunamiExponent() {
-  const nerf = getBaseTsunamiExponent();
-  let effective = nerf + getTsunamiResearchBonus();
-  if (effective > 1) effective = 1;
-
-  return effective;
+    const nerf = getBaseTsunamiExponent();
+    let effective = nerf + getTsunamiResearchBonus();
+    if (effective > 1) effective = 1;
+    return effective;
 }
 
 export function getTsunamiExponentWithCombo() {
-  let effective = getTsunamiExponent();
-
-  if (isSurgeActive(14)) {
-    const added = getComboRestorationFactor();
-    effective += added;
-    if (effective > 1) effective = 1;
-  }
-
-  return effective;
+    let effective = getTsunamiExponent();
+    if (isSurgeActive(14)) {
+        const added = getComboRestorationFactor();
+        effective += added;
+        if (effective > 1) effective = 1;
+    }
+    return effective;
 }
 
 export function getComboUiString() {
-  if (!isSurgeActive(14)) return "";
-
-  const added = getComboRestorationFactor();
-
-  // Show if combo is active (non-zero factor), even if added value is very small
-  if (added <= 0) return "";
-
-  let str = formatMultForUi(added);
-  if (str === "0") str = "0.000";
-
-  let finalStr = ` (+^${str})`;
-
-  const nerf = getBaseTsunamiExponent();
-  let baseEffective = nerf + getTsunamiResearchBonus();
-  if (baseEffective > 1) baseEffective = 1;
-  const gap = 1.0 - baseEffective;
-
-  if (added >= gap - 0.0005 && gap > 0) {
-    finalStr = `<span style="color: #02e815; -webkit-text-fill-color: #02e815">${finalStr}</span>`;
-  }
-
-  return finalStr;
+    if (!isSurgeActive(14)) return "";
+    const added = getComboRestorationFactor();
+    // Show if combo is active (non-zero factor), even if added value is very small
+    if (added <= 0) return "";
+    let str = formatMultForUi(added);
+    if (str === "0") str = "0.000";
+    let finalStr = ` (+^${str})`;
+    const nerf = getBaseTsunamiExponent();
+    let baseEffective = nerf + getTsunamiResearchBonus();
+    if (baseEffective > 1) baseEffective = 1;
+    const gap = 1.0 - baseEffective;
+    if (added >= gap - 0.0005 && gap > 0) {
+        finalStr = `<span style="color: #02e815; -webkit-text-fill-color: #02e815">${finalStr}</span>`;
+    }
+    return finalStr;
 }
 
 export function setTsunamiNerf(value) {
-  let val = Number(value);
-  if (Number.isNaN(val)) val = 0;
-
-  // Treat Infinity or > 1 as 1.00 (nerf restored)
-  if (!Number.isFinite(val) || val > 1) {
-    val = 1;
-  }
-  if (val < 0) val = 0;
-
-  const slot = getActiveSlot();
-  if (slot != null) {
-    const key = TSUNAMI_NERF_KEY(slot);
-    if (isStorageKeyLocked(key)) return;
-
+    let val = Number(value);
+    if (Number.isNaN(val)) val = 0;
+    // Treat Infinity or > 1 as 1.00 (nerf restored)
+    if (!Number.isFinite(val) || val > 1) {
+        val = 1;
+    }
+    if (val < 0) val = 0;
+    const slot = getActiveSlot();
+    if (slot != null) {
+        const key = TSUNAMI_NERF_KEY(slot);
+        if (isStorageKeyLocked(key)) return;
+        try {
+            lsSetItem(key, val.toFixed(2));
+        } catch {}
+    }
+    baseTsunamiExponent = val;
+    updateMultiplier();
     try {
-      localStorage.setItem(key, val.toFixed(2));
+        window.dispatchEvent(new CustomEvent("surge:nerf:change", { detail: { value: val } }));
     } catch {}
-  }
-
-  baseTsunamiExponent = val;
-
-  updateMultiplier();
-  try {
-    window.dispatchEvent(
-      new CustomEvent("surge:nerf:change", { detail: { value: val } }),
-    );
-  } catch {}
 }
 
 export function isSurgeActive(n) {
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  )
-    return true;
-  if (cachedSurgeLevel === Number.POSITIVE_INFINITY) return true;
-
-  if (typeof cachedSurgeLevel === "number") {
-    return cachedSurgeLevel >= n;
-  }
-  return false;
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity"))
+        return true;
+    if (cachedSurgeLevel === Number.POSITIVE_INFINITY) return true;
+    if (typeof cachedSurgeLevel === "number") {
+        return cachedSurgeLevel >= n;
+    }
+    return false;
 }
 
 function applyTsunamiNerf(bn) {
-  if (!isSurgeActive(8)) return bn;
-  const log10 = approxLog10BigNum(bn);
-  if (!Number.isFinite(log10)) return bn;
-
-  const effective = getTsunamiExponent();
-
-  return bigNumFromLog10(log10 * effective);
+    if (!isSurgeActive(8)) return bn;
+    const log10 = approxLog10BigNum(bn);
+    if (!Number.isFinite(log10)) return bn;
+    const effective = getTsunamiExponent();
+    return bigNumFromLog10(log10 * effective);
 }
 
 export function refreshSurgeMultiplierCache() {
-  updateMultiplier();
+    updateMultiplier();
 }
 
 function updateMultiplier() {
-  const level = getCurrentSurgeLevel();
-  cachedSurgeLevel = level;
-  let isReached = false;
-
-  if (level === Infinity) {
-    isReached = true;
-  } else if (typeof level === "number") {
-    isReached = level >= 1;
-  }
-
-  if (isReached) {
-    if (isSurgeActive(8)) {
-      const effective = getTsunamiExponent();
-
-      const log10 = Math.log10(MULTIPLIER);
-      currentMultiplier = bigNumFromLog10(log10 * effective);
-    } else {
-      currentMultiplier = BigNum.fromInt(MULTIPLIER);
+    const level = getCurrentSurgeLevel();
+    cachedSurgeLevel = level;
+    let isReached = false;
+    if (level === Infinity) {
+        isReached = true;
+    } else if (typeof level === "number") {
+        isReached = level >= 1;
     }
-  } else {
-    currentMultiplier = BigNum.fromInt(1);
-  }
+    if (isReached) {
+        if (isSurgeActive(8)) {
+            const effective = getTsunamiExponent();
+            const log10 = Math.log10(MULTIPLIER);
+            currentMultiplier = bigNumFromLog10(log10 * effective);
+        } else {
+            currentMultiplier = BigNum.fromInt(MULTIPLIER);
+        }
+    } else {
+        currentMultiplier = BigNum.fromInt(1);
+    }
 }
 
 export function getSurge21BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge21Multiplier() {
-  if (!isSurgeActive(21)) return BigNum.fromInt(1);
+    if (!isSurgeActive(21)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(20)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge21BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(20));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(20)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge21BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(20));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge23BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge23Multiplier() {
-  if (!isSurgeActive(22)) return BigNum.fromInt(1);
+    if (!isSurgeActive(22)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(22)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge23BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(22));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(22)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge23BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(22));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge25BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge25Multiplier() {
-  if (!isSurgeActive(25)) return BigNum.fromInt(1);
+    if (!isSurgeActive(25)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(24)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge25BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(24));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(24)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge25BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(24));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge27BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge27Multiplier() {
-  if (!isSurgeActive(27)) return BigNum.fromInt(1);
+    if (!isSurgeActive(27)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(26)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge27BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(26));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(26)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge27BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(26));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge29BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge29Multiplier() {
-  if (!isSurgeActive(29)) return BigNum.fromInt(1);
+    if (!isSurgeActive(29)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(28)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge29BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(28));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(28)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge29BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(28));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge31BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge31Multiplier() {
-  if (!isSurgeActive(31)) return BigNum.fromInt(1);
+    if (!isSurgeActive(31)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(30)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge31BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(30));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(30)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge31BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(30));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge33BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) + 1e-6;
 }
 
 export function getSurge33Multiplier() {
-  if (!isSurgeActive(33)) return BigNum.fromInt(1);
+    if (!isSurgeActive(33)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(32)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge33BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(32));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(32)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge33BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(32));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge35BonusPercentage() {
-  const effective = getTsunamiExponent();
-  if (effective === 0) return 0;
-  return Math.pow(1e10, effective) / 4 + 1e-6;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return 0;
+    return Math.pow(1e10, effective) / 4 + 1e-6;
 }
 
 export function getSurge35Multiplier() {
-  if (!isSurgeActive(35)) return BigNum.fromInt(1);
+    if (!isSurgeActive(35)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(34)) <= 0)
-    return BigNum.fromInt(1);
-  const bonusPct = getSurge35BonusPercentage();
-
-  const diffBN = levelBN.sub(BigNum.fromInt(34));
-  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(34)) <= 0) return BigNum.fromInt(1);
+    const bonusPct = getSurge35BonusPercentage();
+    const diffBN = levelBN.sub(BigNum.fromInt(34));
+    return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge200Multiplier() {
-  if (!isSurgeActive(200)) return BigNum.fromInt(1);
+    if (!isSurgeActive(200)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(200)) <= 0)
-    return BigNum.fromInt(1);
-
-  const effective = getTsunamiExponent();
-  const baseMult = 1 + effective;
-
-  const diffBN = levelBN.sub(BigNum.fromInt(200));
-
-  const logBase = Math.log10(baseMult);
-  const exponent = diffBN.inf ? Infinity : diffBN.sig * Math.pow(10, diffBN.e);
-
-  if (logBase === 0) return BigNum.fromInt(1);
-
-  return bigNumFromLog10(exponent * logBase);
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(200)) <= 0) return BigNum.fromInt(1);
+    const effective = getTsunamiExponent();
+    const baseMult = 1 + effective;
+    const diffBN = levelBN.sub(BigNum.fromInt(200));
+    const logBase = Math.log10(baseMult);
+    const exponent = diffBN.inf ? Infinity : diffBN.sig * Math.pow(10, diffBN.e);
+    if (logBase === 0) return BigNum.fromInt(1);
+    return bigNumFromLog10(exponent * logBase);
 }
 
 export function getSurge40Multiplier() {
-  if (!isSurgeActive(40)) return BigNum.fromInt(1);
-
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(39)) <= 0)
-    return BigNum.fromInt(1);
-
-  const diffBN = levelBN.sub(BigNum.fromInt(39));
-
-  if (diffBN.cmp(1e15) > 0) {
-    const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
-    const logTotalNum = Number(logTotalBN.toScientific());
-    return bigNumFromLog10(logTotalNum).floorToInteger();
-  } else {
-    const diffNum = Number(diffBN.toScientific());
-    if (diffNum <= 1024) {
-      return BigNum.fromAny((2 ** diffNum).toString());
-    } else {
-      const logTotal = diffNum * Math.log10(2);
-      return bigNumFromLog10(logTotal).floorToInteger();
+    if (!isSurgeActive(40)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
     }
-  }
+
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(39)) <= 0) return BigNum.fromInt(1);
+    const diffBN = levelBN.sub(BigNum.fromInt(39));
+    if (diffBN.cmp(1e15) > 0) {
+        const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
+        const logTotalNum = Number(logTotalBN.toScientific());
+        return bigNumFromLog10(logTotalNum).floorToInteger();
+    } else {
+        const diffNum = Number(diffBN.toScientific());
+        if (diffNum <= 1024) {
+            return BigNum.fromAny((2 ** diffNum).toString());
+        } else {
+            const logTotal = diffNum * Math.log10(2);
+            return bigNumFromLog10(logTotal).floorToInteger();
+        }
+    }
 }
 
 export function getSurge50Multiplier() {
-  if (!isSurgeActive(50)) return BigNum.fromInt(1);
-
-  if (
-    cachedSurgeLevel === Infinity ||
-    (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")
-  ) {
-    return BigNum.fromAny("Infinity");
-  }
-
-  let levelBN;
-  try {
-    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
-  } catch (e) {
-    return BigNum.fromInt(1);
-  }
-
-  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(49)) <= 0)
-    return BigNum.fromInt(1);
-
-  const diffBN = levelBN.sub(BigNum.fromInt(49));
-
-  if (diffBN.cmp(1e15) > 0) {
-    const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
-    const logTotalNum = Number(logTotalBN.toScientific());
-    return bigNumFromLog10(logTotalNum).floorToInteger();
-  } else {
-    const diffNum = Number(diffBN.toScientific());
-    if (diffNum <= 1024) {
-      return BigNum.fromAny((2 ** diffNum).toString());
-    } else {
-      const logTotal = diffNum * Math.log10(2);
-      return bigNumFromLog10(logTotal).floorToInteger();
+    if (!isSurgeActive(50)) return BigNum.fromInt(1);
+    if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
+        return BigNum.fromAny("Infinity");
     }
-  }
+
+    let levelBN;
+    try {
+        levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+    } catch (e) {
+        return BigNum.fromInt(1);
+    }
+    if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(49)) <= 0) return BigNum.fromInt(1);
+    const diffBN = levelBN.sub(BigNum.fromInt(49));
+    if (diffBN.cmp(1e15) > 0) {
+        const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
+        const logTotalNum = Number(logTotalBN.toScientific());
+        return bigNumFromLog10(logTotalNum).floorToInteger();
+    } else {
+        const diffNum = Number(diffBN.toScientific());
+        if (diffNum <= 1024) {
+            return BigNum.fromAny((2 ** diffNum).toString());
+        } else {
+            const logTotal = diffNum * Math.log10(2);
+            return bigNumFromLog10(logTotal).floorToInteger();
+        }
+    }
 }
 
 export function getSurge15Multiplier(preview = false) {
-  if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
+    if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
+    const dna = bank.dna?.value;
+    if (!dna) return BigNum.fromInt(1);
+    const calc = (amount) => {
+        if (!amount) return BigNum.fromInt(1);
+        if (amount.isInfinite?.()) return BigNum.fromAny("Infinity");
+        const log10Bn = approxLog10BigNum(amount);
+        if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
+        // Formula: 2 ^ (log10(amount))
+        const power = log10Bn;
+        if (power <= 0) return BigNum.fromInt(1);
+        const log10Result = power * Math.log10(2);
+        return bigNumFromLog10(log10Result);
+    };
 
-  const dna = bank.dna?.value;
-  if (!dna) return BigNum.fromInt(1);
-
-  const calc = (amount) => {
-    if (!amount) return BigNum.fromInt(1);
-    if (amount.isInfinite?.()) return BigNum.fromAny("Infinity");
-
-    const log10Bn = approxLog10BigNum(amount);
-    if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
-
-    // Formula: 2 ^ (log10(amount))
-    const power = log10Bn;
-    if (power <= 0) return BigNum.fromInt(1);
-
-    const log10Result = power * Math.log10(2);
-    return bigNumFromLog10(log10Result);
-  };
-
-  const mult = calc(dna);
-
-  if (isSurgeActive(8)) {
-    return applyTsunamiNerf(mult);
-  }
-
-  return mult;
+    const mult = calc(dna);
+    if (isSurgeActive(8)) {
+        return applyTsunamiNerf(mult);
+    }
+    return mult;
 }
 
 export function getSurge15Divisor(preview = false) {
-  if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
+    if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
+    const dna = bank.dna?.value;
+    if (!dna) return BigNum.fromInt(1);
+    const calc = (amount) => {
+        if (!amount) return BigNum.fromInt(1);
+        if (amount.isInfinite?.()) return BigNum.fromAny("Infinity");
+        const log10Bn = approxLog10BigNum(amount);
+        if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
+        // Formula: 2 ^ (log10(amount) / 2)
+        const power = log10Bn / 2;
+        if (power <= 0) return BigNum.fromInt(1);
+        let log10Result = power * Math.log10(2);
+        return bigNumFromLog10(log10Result);
+    };
 
-  const dna = bank.dna?.value;
-  if (!dna) return BigNum.fromInt(1);
-
-  const calc = (amount) => {
-    if (!amount) return BigNum.fromInt(1);
-    if (amount.isInfinite?.()) return BigNum.fromAny("Infinity");
-
-    const log10Bn = approxLog10BigNum(amount);
-    if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
-
-    // Formula: 2 ^ (log10(amount) / 2)
-    const power = log10Bn / 2;
-    if (power <= 0) return BigNum.fromInt(1);
-
-    let log10Result = power * Math.log10(2);
-
-    return bigNumFromLog10(log10Result);
-  };
-
-  let div = calc(dna);
-
-  if (isSurgeActive(8)) {
-    div = applyTsunamiNerf(div);
-  }
-
-  if (div.cmp(BigNum.fromInt(100)) > 0) {
-    return BigNum.fromInt(100);
-  }
-
-  return div;
+    let div = calc(dna);
+    if (isSurgeActive(8)) {
+        div = applyTsunamiNerf(div);
+    }
+    if (div.cmp(BigNum.fromInt(100)) > 0) {
+        return BigNum.fromInt(100);
+    }
+    return div;
 }
 
 export function getSurge6WealthMultipliers() {
-  if (!isSurgeActive(6)) {
-    return {
-      coins: BigNum.fromInt(1),
-      books: BigNum.fromInt(1),
-      gold: BigNum.fromInt(1),
-      magic: BigNum.fromInt(1),
-      total: BigNum.fromInt(1),
-    };
-  }
-
-  const calc = (amount, residue = 0) => {
-    if (!amount) {
-      if (residue <= 0) return BigNum.fromInt(1);
-      const log10 = Math.log10(residue);
-      const power = log10 / 3;
-      if (power <= 0) return BigNum.fromInt(1);
-      const log10Result = power * Math.log10(2);
-      return bigNumFromLog10(log10Result);
+    if (!isSurgeActive(6)) {
+        return {
+            coins: BigNum.fromInt(1),
+            books: BigNum.fromInt(1),
+            gold: BigNum.fromInt(1),
+            magic: BigNum.fromInt(1),
+            total: BigNum.fromInt(1),
+        };
     }
 
-    if (amount.isInfinite?.()) return BigNum.fromAny("Infinity");
-
-    const log10Bn = approxLog10BigNum(amount);
-    let finalLog10 = log10Bn;
-
-    if (!Number.isFinite(log10Bn)) {
-      if (residue > 0) {
-        finalLog10 = Math.log10(residue);
-      } else {
-        return BigNum.fromInt(1);
-      }
-    } else if (log10Bn < 15 && residue > 0) {
-      try {
-        const val =
-          amount.inf || amount.e >= BigNum.DEFAULT_PRECISION
-            ? Infinity
-            : Number(amount.toPlainIntegerString());
-        if (Number.isFinite(val)) {
-          const total = val + residue;
-          if (total > 0) {
-            finalLog10 = Math.log10(total);
-          }
+    const calc = (amount, residue = 0) => {
+        if (!amount) {
+            if (residue <= 0) return BigNum.fromInt(1);
+            const log10 = Math.log10(residue);
+            const power = log10 / 3;
+            if (power <= 0) return BigNum.fromInt(1);
+            const log10Result = power * Math.log10(2);
+            return bigNumFromLog10(log10Result);
         }
-      } catch {}
+        if (amount.isInfinite?.()) return BigNum.fromAny("Infinity");
+        const log10Bn = approxLog10BigNum(amount);
+        let finalLog10 = log10Bn;
+        if (!Number.isFinite(log10Bn)) {
+            if (residue > 0) {
+                finalLog10 = Math.log10(residue);
+            } else {
+                return BigNum.fromInt(1);
+            }
+        } else if (log10Bn < 15 && residue > 0) {
+            try {
+                const val =
+                    amount.inf || amount.e >= BigNum.DEFAULT_PRECISION
+                        ? Infinity
+                        : Number(amount.toPlainIntegerString());
+                if (Number.isFinite(val)) {
+                    const total = val + residue;
+                    if (total > 0) {
+                        finalLog10 = Math.log10(total);
+                    }
+                }
+            } catch {}
+        }
+        // Formula: 2 ^ (log10(amount) / 6)
+        const power = finalLog10 / 6;
+        if (power <= 0) return BigNum.fromInt(1);
+        // 2^power = 10^(power * log10(2))
+        const log10Result = power * Math.log10(2);
+        return bigNumFromLog10(log10Result);
+    };
+
+    const c = calc(bank.coins?.value);
+    let bookVal = bank.books?.value;
+    let bookResidue = 0;
+    if (typeof window !== "undefined" && typeof window.__bookResidue === "number") {
+        bookResidue = window.__bookResidue;
     }
 
-    // Formula: 2 ^ (log10(amount) / 6)
-    const power = finalLog10 / 6;
-    if (power <= 0) return BigNum.fromInt(1);
+    const b = calc(bookVal, bookResidue);
+    const g = calc(bank.gold?.value);
+    const m = calc(bank.magic?.value);
+    let cOut = c,
+        bOut = b,
+        gOut = g,
+        mOut = m;
+    if (isSurgeActive(8)) {
+        cOut = applyTsunamiNerf(c);
+        bOut = applyTsunamiNerf(b);
+        gOut = applyTsunamiNerf(g);
+        mOut = applyTsunamiNerf(m);
+    }
 
-    // 2^power = 10^(power * log10(2))
-    const log10Result = power * Math.log10(2);
-    return bigNumFromLog10(log10Result);
-  };
-
-  const c = calc(bank.coins?.value);
-
-  let bookVal = bank.books?.value;
-  let bookResidue = 0;
-  if (
-    typeof window !== "undefined" &&
-    typeof window.__bookResidue === "number"
-  ) {
-    bookResidue = window.__bookResidue;
-  }
-  const b = calc(bookVal, bookResidue);
-
-  const g = calc(bank.gold?.value);
-  const m = calc(bank.magic?.value);
-
-  let cOut = c,
-    bOut = b,
-    gOut = g,
-    mOut = m;
-
-  if (isSurgeActive(8)) {
-    cOut = applyTsunamiNerf(c);
-    bOut = applyTsunamiNerf(b);
-    gOut = applyTsunamiNerf(g);
-    mOut = applyTsunamiNerf(m);
-  }
-
-  let total = cOut.mulBigNumInteger ? cOut.mulBigNumInteger(bOut) : cOut;
-  total = total.mulBigNumInteger ? total.mulBigNumInteger(gOut) : total;
-  total = total.mulBigNumInteger ? total.mulBigNumInteger(mOut) : total;
-
-  return {
-    coins: cOut,
-    books: bOut,
-    gold: gOut,
-    magic: mOut,
-    total,
-  };
+    let total = cOut.mulBigNumInteger ? cOut.mulBigNumInteger(bOut) : cOut;
+    total = total.mulBigNumInteger ? total.mulBigNumInteger(gOut) : total;
+    total = total.mulBigNumInteger ? total.mulBigNumInteger(mOut) : total;
+    return {
+        coins: cOut,
+        books: bOut,
+        gold: gOut,
+        magic: mOut,
+        total,
+    };
 }
 
 export function getBookProductionRate() {
-  if (!isSurgeActive(3)) return BigNum.fromInt(0);
-
-  // Formula: max(1, floor(1 * exp(0.20 * xp_level)))
-  const xpState = getXpState();
-  const xpLevelBn = xpState.xpLevel;
-
-  let baseRate;
-  if (xpLevelBn.isInfinite?.()) {
-    baseRate = BigNum.fromAny("Infinity");
-  } else {
-    // BigNum-safe logic for 10^(0.086... * xpLevel)
-    if (xpLevelBn.cmp(1e16) > 0) {
-      // Exponent E = floor(xpLevel * 0.086858...)
-      // We can calculate this using BigNum math.
-      const logValBn = xpLevelBn.mulDecimal(String(LOG10_EXP_0_2), BigNum.DEFAULT_PRECISION);
-
-      // Extract E from logValBn
-      // logValBn is roughly the exponent of 10.
-      if (logValBn.cmp(Number.MAX_VALUE) >= 0) {
+    if (!isSurgeActive(3)) return BigNum.fromInt(0);
+    // Formula: max(1, floor(1 * exp(0.20 * xp_level)))
+    const xpState = getXpState();
+    const xpLevelBn = xpState.xpLevel;
+    let baseRate;
+    if (xpLevelBn.isInfinite?.()) {
         baseRate = BigNum.fromAny("Infinity");
-      } else {
-        try {
-          // If logValBn is finite and within Number range, use it for bigNumFromLog10
-          const logValNum = Number(logValBn.toScientific());
-          if (logValNum === Infinity || !Number.isFinite(logValNum)) {
-            baseRate = BigNum.fromAny("Infinity");
-          } else {
-            baseRate = bigNumFromLog10(logValNum);
-          }
-        } catch {
-          baseRate = BigNum.fromAny("Infinity");
-        }
-      }
     } else {
-      const lvlNum =
-        xpLevelBn.inf || xpLevelBn.e >= BigNum.DEFAULT_PRECISION
-          ? Infinity
-          : Number(xpLevelBn.toPlainIntegerString());
-      const logVal = lvlNum * LOG10_EXP_0_2;
-      baseRate = bigNumFromLog10(logVal);
+        // BigNum-safe logic for 10^(0.086... * xpLevel)
+        if (xpLevelBn.cmp(1e16) > 0) {
+            // Exponent E = floor(xpLevel * 0.086858...)
+            // We can calculate this using BigNum math.
+            const logValBn = xpLevelBn.mulDecimal(String(LOG10_EXP_0_2), BigNum.DEFAULT_PRECISION);
+            // Extract E from logValBn
+            // logValBn is roughly the exponent of 10.
+            if (logValBn.cmp(Number.MAX_VALUE) >= 0) {
+                baseRate = BigNum.fromAny("Infinity");
+            } else {
+                try {
+                    // If logValBn is finite and within Number range, use it for bigNumFromLog10
+                    const logValNum = Number(logValBn.toScientific());
+                    if (logValNum === Infinity || !Number.isFinite(logValNum)) {
+                        baseRate = BigNum.fromAny("Infinity");
+                    } else {
+                        baseRate = bigNumFromLog10(logValNum);
+                    }
+                } catch {
+                    baseRate = BigNum.fromAny("Infinity");
+                }
+            }
+        } else {
+            const lvlNum =
+                xpLevelBn.inf || xpLevelBn.e >= BigNum.DEFAULT_PRECISION
+                    ? Infinity
+                    : Number(xpLevelBn.toPlainIntegerString());
+            const logVal = lvlNum * LOG10_EXP_0_2;
+            baseRate = bigNumFromLog10(logVal);
+        }
     }
-  }
-
-  // Ensure min 1
-  if (baseRate.cmp(1) < 0) baseRate = BigNum.fromInt(1);
-
-  // Apply multipliers
-  if (isSurgeActive(8)) {
-    baseRate = applyTsunamiNerf(baseRate);
-  }
-
-  if (bank.books?.mult) {
-    const mult = bank.books.mult.get();
-    baseRate = baseRate.mulBigNumInteger(mult);
-  }
-
-  baseRate = applyStatMultiplierOverride("books", baseRate);
-
-  return baseRate;
+    // Ensure min 1
+    if (baseRate.cmp(1) < 0) baseRate = BigNum.fromInt(1);
+    // Apply multipliers
+    if (isSurgeActive(8)) {
+        baseRate = applyTsunamiNerf(baseRate);
+    }
+    if (bank.books?.mult) {
+        const mult = bank.books.mult.get();
+        baseRate = baseRate.mulBigNumInteger(mult);
+    }
+    baseRate = applyStatMultiplierOverride("books", baseRate);
+    return baseRate;
 }
 
-export function simulateSurgeTick(dt) { onTick(dt); }
+export function simulateSurgeTick(dt) {
+    onTick(dt);
+}
+
 function onTick(dt) {
-  if (isSurgeActive(14)) {
-    updateCombo(dt);
-  }
-
-  if (isSurgeActive(3)) {
-    if (!bookRateAccumulator) {
-      bookRateAccumulator = new RateAccumulator("books", bank);
+    if (isSurgeActive(14)) {
+        updateCombo(dt);
     }
-
-    const baseRate = getBookProductionRate();
-
-    // Accumulate
-    if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
-      // Direct add per tick for large numbers, using dt
-      // dt corresponds to FIXED_STEP (usually 0.05s)
-      const perTick = baseRate.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
-      if (bank.books) bank.books.add(perTick);
-    } else {
-      // Use accumulator for small numbers to handle fractional accumulation
-      const rateNum = Number(baseRate.toScientific());
-      // RateAccumulator expects amount per second
-      // We manually update it with variable dt support by bypassing addRate
-      // if RateAccumulator isn't dt-aware, but here we can just do manual accumulation for consistency
-      // or assume addRate is fixed step.
-      // Ideally we should modify RateAccumulator to take dt, or manually implement it here.
-      // Let's implement manual accumulation here for safety and precision.
-
-      if (!window.__bookResidue) window.__bookResidue = 0;
-      window.__bookResidue += rateNum * dt;
-
-      if (window.__bookResidue > 0) {
-        try {
-          window.dispatchEvent(new CustomEvent("surge:bookResidue"));
-        } catch {}
-      }
-
-      if (window.__bookResidue >= 1) {
-        const whole = Math.floor(window.__bookResidue);
-        window.__bookResidue -= whole;
-        if (bank.books) bank.books.add(BigNum.fromInt(whole));
-      }
-    }
-  }
-
-  if (isSurgeActive(13)) {
-    const xpStateForGold = getXpState();
-    if (
-      xpStateForGold &&
-      xpStateForGold.unlocked &&
-      levelBigNumToNumber(xpStateForGold.xpLevel) >= 31
-    ) {
-      const effectiveNerf = getTsunamiExponent();
-      const mapped = effectiveNerf * 1.5 - 0.5;
-
-      const log10Rate = 2 * mapped - 2;
-      const rateMultiplier = bigNumFromLog10(log10Rate);
-
-      const coins = bank.coins?.value;
-      const xpState = getXpState();
-
-      // Calculate pending Gold (base)
-      const basePending = computeForgeGoldFromInputs(coins, xpState.xpLevel);
-
-      // Apply multipliers
-      // 1. Bank Gold multiplier
-      let pending = bank.gold?.mult?.applyTo?.(basePending) ?? basePending;
-
-      // 2. Surge 25 Multiplier
-      const surge25Mult = getSurge25Multiplier();
-      if (surge25Mult.isInfinite?.()) {
-        pending = BigNum.fromAny("Infinity");
-      } else if (surge25Mult.cmp(1) > 0) {
-        pending = pending.mulBigNumInteger(surge25Mult);
-      }
-
-      // Surge 35 Multiplier (Gold)
-      const surge35Mult = getSurge35Multiplier();
-      if (surge35Mult.isInfinite?.()) {
-        pending = BigNum.fromAny("Infinity");
-      } else if (surge35Mult.cmp(1) > 0) {
-        pending = pending.mulBigNumInteger(surge35Mult);
-      }
-
-      // 3. Lab Gold multiplier
-      const labMult = getLabGoldMultiplier();
-      pending = pending.mulDecimal(labMult.toScientific());
-
-      // Multiply by rate and dt
-      const perSec = pending.mulDecimal(rateMultiplier.toScientific());
-      const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
-
-      if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
-        if (bank.gold) bank.gold.add(amountToAdd);
-      } else {
-        const rateNum = Number(amountToAdd.toScientific());
-        if (!window.__goldResidue) window.__goldResidue = 0;
-        window.__goldResidue += rateNum;
-
-        if (window.__goldResidue >= 1) {
-          const whole = Math.floor(window.__goldResidue);
-          window.__goldResidue -= whole;
-          if (bank.gold) bank.gold.add(BigNum.fromInt(whole));
+    if (isSurgeActive(3)) {
+        if (!bookRateAccumulator) {
+            bookRateAccumulator = new RateAccumulator("books", bank);
         }
-      }
-    }
-  }
 
-  if (isSurgeActive(16)) {
-    const mStateForMagic = getMutationState();
-    if (
-      mStateForMagic &&
-      mStateForMagic.unlocked &&
-      levelBigNumToNumber(mStateForMagic.level) >= 7
-    ) {
-      const effectiveNerf = getTsunamiExponent();
-      const mapped = effectiveNerf * 1.5 - 0.5;
-
-      const log10Rate = 2 * mapped - 2;
-      const rateMultiplier = bigNumFromLog10(log10Rate);
-
-      const coins = bank.coins?.value;
-      const cumulativeMp = getTotalCumulativeMp();
-
-      let pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
-
-      const surge27Mult = getSurge27Multiplier();
-      if (surge27Mult.isInfinite?.()) {
-        pending = BigNum.fromAny("Infinity");
-      } else if (surge27Mult.cmp(1) > 0) {
-        pending = pending.mulBigNumInteger(surge27Mult);
-      }
-
-      const surge35Mult = getSurge35Multiplier();
-      if (surge35Mult.isInfinite?.()) {
-        pending = BigNum.fromAny("Infinity");
-      } else if (surge35Mult.cmp(1) > 0) {
-        pending = pending.mulBigNumInteger(surge35Mult);
-      }
-
-      // Multiply by rate and dt
-      const perSec = pending.mulDecimal(rateMultiplier.toScientific());
-      const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
-
-      if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
-        if (bank.magic) bank.magic.add(amountToAdd);
-      } else {
-        const rateNum = Number(amountToAdd.toScientific());
-        if (!window.__magicResidue) window.__magicResidue = 0;
-        window.__magicResidue += rateNum;
-
-        if (window.__magicResidue >= 1) {
-          const whole = Math.floor(window.__magicResidue);
-          window.__magicResidue -= whole;
-          if (bank.magic) bank.magic.add(BigNum.fromInt(whole));
-        }
-      }
-    }
-  }
-
-  if (isSurgeActive(80)) {
-    const labLevelForDna = getLabLevel();
-    if (labLevelForDna && labLevelForDna.cmp(10) >= 0) {
-      const effectiveNerf = getTsunamiExponent();
-      const tNerf = effectiveNerf;
-      if (tNerf > 0) {
-        const mapped = effectiveNerf * 1.5 - 0.5;
-        const pct = Math.pow(100, mapped);
-        const newPct = Math.pow(parseFloat(formatMultForUi(pct)), 1 / tNerf);
-
-        const log10Rate = Math.log10(newPct / 100);
-        const rateMultiplier = bigNumFromLog10(log10Rate);
-
-        const xpState = getXpState();
-        const labLevel = getLabLevel();
-
-        let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
-        pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
-
-        // Multiply by rate and dt
-        const perSec = pending.mulDecimal(rateMultiplier.toScientific());
-        const amountToAddDna = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
-
-        if (amountToAddDna.cmp(1e9) > 0 || amountToAddDna.isInfinite?.()) {
-          if (bank.dna) bank.dna.add(amountToAddDna);
+        const baseRate = getBookProductionRate();
+        // Accumulate
+        if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
+            // Direct add per tick for large numbers, using dt
+            // dt corresponds to FIXED_STEP (usually 0.05s)
+            const perTick = baseRate.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
+            if (bank.books) bank.books.add(perTick);
         } else {
-          const rateNum = Number(amountToAddDna.toScientific());
-          if (!window.__dnaResidue) window.__dnaResidue = 0;
-          window.__dnaResidue += rateNum;
-
-          if (window.__dnaResidue >= 1) {
-            const whole = Math.floor(window.__dnaResidue);
-            window.__dnaResidue -= whole;
-            if (bank.dna) bank.dna.add(BigNum.fromInt(whole));
-          }
+            // Use accumulator for small numbers to handle fractional accumulation
+            const rateNum = Number(baseRate.toScientific());
+            // RateAccumulator expects amount per second
+            // We manually update it with variable dt support by bypassing addRate
+            // if RateAccumulator isn't dt-aware, but here we can just do manual accumulation for consistency
+            // or assume addRate is fixed step.
+            // Ideally we should modify RateAccumulator to take dt, or manually implement it here.
+            // Let's implement manual accumulation here for safety and precision.
+            if (!window.__bookResidue) window.__bookResidue = 0;
+            window.__bookResidue += rateNum * dt;
+            if (window.__bookResidue > 0) {
+                try {
+                    window.dispatchEvent(new CustomEvent("surge:bookResidue"));
+                } catch {}
+            }
+            if (window.__bookResidue >= 1) {
+                const whole = Math.floor(window.__bookResidue);
+                window.__bookResidue -= whole;
+                if (bank.books) bank.books.add(BigNum.fromInt(whole));
+            }
         }
-      }
     }
-  }
+    if (isSurgeActive(13)) {
+        const xpStateForGold = getXpState();
+        if (xpStateForGold && xpStateForGold.unlocked && levelBigNumToNumber(xpStateForGold.xpLevel) >= 31) {
+            const effectiveNerf = getTsunamiExponent();
+            const mapped = effectiveNerf * 1.5 - 0.5;
+            const log10Rate = 2 * mapped - 2;
+            const rateMultiplier = bigNumFromLog10(log10Rate);
+            const coins = bank.coins?.value;
+            const xpState = getXpState();
+            // Calculate pending Gold (base)
+            const basePending = computeForgeGoldFromInputs(coins, xpState.xpLevel);
+            // Apply multipliers
+            // 1. Bank Gold multiplier
+            let pending = bank.gold?.mult?.applyTo?.(basePending) ?? basePending;
+            // 2. Surge 25 Multiplier
+            const surge25Mult = getSurge25Multiplier();
+            if (surge25Mult.isInfinite?.()) {
+                pending = BigNum.fromAny("Infinity");
+            } else if (surge25Mult.cmp(1) > 0) {
+                pending = pending.mulBigNumInteger(surge25Mult);
+            }
+            // Surge 35 Multiplier (Gold)
+            const surge35Mult = getSurge35Multiplier();
+            if (surge35Mult.isInfinite?.()) {
+                pending = BigNum.fromAny("Infinity");
+            } else if (surge35Mult.cmp(1) > 0) {
+                pending = pending.mulBigNumInteger(surge35Mult);
+            }
+            // 3. Lab Gold multiplier
+            const labMult = getLabGoldMultiplier();
+            pending = pending.mulDecimal(labMult.toScientific());
+            // Multiply by rate and dt
+            const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+            const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
+            if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
+                if (bank.gold) bank.gold.add(amountToAdd);
+            } else {
+                const rateNum = Number(amountToAdd.toScientific());
+                if (!window.__goldResidue) window.__goldResidue = 0;
+                window.__goldResidue += rateNum;
+                if (window.__goldResidue >= 1) {
+                    const whole = Math.floor(window.__goldResidue);
+                    window.__goldResidue -= whole;
+                    if (bank.gold) bank.gold.add(BigNum.fromInt(whole));
+                }
+            }
+        }
+    }
+    if (isSurgeActive(16)) {
+        const mStateForMagic = getMutationState();
+        if (mStateForMagic && mStateForMagic.unlocked && levelBigNumToNumber(mStateForMagic.level) >= 7) {
+            const effectiveNerf = getTsunamiExponent();
+            const mapped = effectiveNerf * 1.5 - 0.5;
+            const log10Rate = 2 * mapped - 2;
+            const rateMultiplier = bigNumFromLog10(log10Rate);
+            const coins = bank.coins?.value;
+            const cumulativeMp = getTotalCumulativeMp();
+            let pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
+            const surge27Mult = getSurge27Multiplier();
+            if (surge27Mult.isInfinite?.()) {
+                pending = BigNum.fromAny("Infinity");
+            } else if (surge27Mult.cmp(1) > 0) {
+                pending = pending.mulBigNumInteger(surge27Mult);
+            }
+
+            const surge35Mult = getSurge35Multiplier();
+            if (surge35Mult.isInfinite?.()) {
+                pending = BigNum.fromAny("Infinity");
+            } else if (surge35Mult.cmp(1) > 0) {
+                pending = pending.mulBigNumInteger(surge35Mult);
+            }
+            // Multiply by rate and dt
+            const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+            const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
+            if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
+                if (bank.magic) bank.magic.add(amountToAdd);
+            } else {
+                const rateNum = Number(amountToAdd.toScientific());
+                if (!window.__magicResidue) window.__magicResidue = 0;
+                window.__magicResidue += rateNum;
+                if (window.__magicResidue >= 1) {
+                    const whole = Math.floor(window.__magicResidue);
+                    window.__magicResidue -= whole;
+                    if (bank.magic) bank.magic.add(BigNum.fromInt(whole));
+                }
+            }
+        }
+    }
+    if (isSurgeActive(80)) {
+        const labLevelForDna = getLabLevel();
+        if (labLevelForDna && labLevelForDna.cmp(10) >= 0) {
+            const effectiveNerf = getTsunamiExponent();
+            const tNerf = effectiveNerf;
+            if (tNerf > 0) {
+                const mapped = effectiveNerf * 1.5 - 0.5;
+                const pct = Math.pow(100, mapped);
+                const newPct = Math.pow(parseFloat(formatMultForUi(pct)), 1 / tNerf);
+                const log10Rate = Math.log10(newPct / 100);
+                const rateMultiplier = bigNumFromLog10(log10Rate);
+                const xpState = getXpState();
+                const labLevel = getLabLevel();
+                let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
+                pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
+                // Multiply by rate and dt
+                const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+                const amountToAddDna = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
+                if (amountToAddDna.cmp(1e9) > 0 || amountToAddDna.isInfinite?.()) {
+                    if (bank.dna) bank.dna.add(amountToAddDna);
+                } else {
+                    const rateNum = Number(amountToAddDna.toScientific());
+                    if (!window.__dnaResidue) window.__dnaResidue = 0;
+                    window.__dnaResidue += rateNum;
+                    if (window.__dnaResidue >= 1) {
+                        const whole = Math.floor(window.__dnaResidue);
+                        window.__dnaResidue -= whole;
+                        if (bank.dna) bank.dna.add(BigNum.fromInt(whole));
+                    }
+                }
+            }
+        }
+    }
 }
 
 function loadTsunamiNerf(slot) {
-  if (slot == null) return;
-  const stored = localStorage.getItem(TSUNAMI_NERF_KEY(slot));
-  if (stored !== null) {
-    baseTsunamiExponent = Number(stored);
-    // Ensure validity on load
-    if (
-      Number.isNaN(baseTsunamiExponent) ||
-      !Number.isFinite(baseTsunamiExponent)
-    ) {
-      baseTsunamiExponent = isSurgeActive(8) ? 0.0 : 1.0;
-    }
-  } else {
-    // Default behavior if not stored
-    if (isSurgeActive(8)) {
-      baseTsunamiExponent = 0.0;
+    if (slot == null) return;
+    const stored = localStorage.getItem(TSUNAMI_NERF_KEY(slot));
+    if (stored !== null) {
+        baseTsunamiExponent = Number(stored);
+        // Ensure validity on load
+        if (Number.isNaN(baseTsunamiExponent) || !Number.isFinite(baseTsunamiExponent)) {
+            baseTsunamiExponent = isSurgeActive(8) ? 0.0 : 1.0;
+        }
     } else {
-      baseTsunamiExponent = 1.0;
+        // Default behavior if not stored
+        if (isSurgeActive(8)) {
+            baseTsunamiExponent = 0.0;
+        } else {
+            baseTsunamiExponent = 1.0;
+        }
     }
-  }
 }
 
 function compareSurgeLevels(prev, curr) {
-  const isInfPrev =
-    prev === Infinity ||
-    (typeof prev === "string" && prev === "Infinity") ||
-    prev === Number.POSITIVE_INFINITY;
-  const isInfCurr =
-    curr === Infinity ||
-    (typeof curr === "string" && curr === "Infinity") ||
-    curr === Number.POSITIVE_INFINITY;
-
-  if (isInfPrev && isInfCurr) return 0;
-  if (isInfCurr) return 1;
-  if (isInfPrev) return -1;
-
-  let p = Number(0);
-  let c = Number(0);
-  try {
-    p = typeof prev === "number" ? prev : Number(prev);
-  } catch {}
-  try {
-    c = typeof curr === "number" ? curr : Number(curr);
-  } catch {}
-
-  if (c > p) return 1;
-  if (c < p) return -1;
-  return 0;
+    const isInfPrev =
+        prev === Infinity || (typeof prev === "string" && prev === "Infinity") || prev === Number.POSITIVE_INFINITY;
+    const isInfCurr =
+        curr === Infinity || (typeof curr === "string" && curr === "Infinity") || curr === Number.POSITIVE_INFINITY;
+    if (isInfPrev && isInfCurr) return 0;
+    if (isInfCurr) return 1;
+    if (isInfPrev) return -1;
+    let p = Number(0);
+    let c = Number(0);
+    try {
+        p = typeof prev === "number" ? prev : Number(prev);
+    } catch {}
+    try {
+        c = typeof curr === "number" ? curr : Number(curr);
+    } catch {}
+    if (c > p) return 1;
+    if (c < p) return -1;
+    return 0;
 }
 
 export function initSurgeEffects() {
-  initComboSystem(
-    () =>
-      isSurgeActive(14) &&
-      getBaseTsunamiExponent() + getTsunamiResearchBonus() < 1.0,
-    () => 1.0 - getTsunamiExponent(),
-    () => {
-      const level = getCurrentSurgeLevel();
-      if (
-        level === Infinity ||
-        (typeof level === "string" && level === "Infinity") ||
-        level === Number.POSITIVE_INFINITY
-      )
-        return true;
-      if (typeof level === "number") return level >= 20;
-      return false;
-    },
-  );
-
-  const slot = getActiveSlot();
-  // Update multiplier first to ensure cachedSurgeLevel is set,
-  // allowing isSurgeActive(8) to return the correct state for loadTsunamiNerf default logic.
-  updateMultiplier();
-  loadTsunamiNerf(slot);
-  // Update multiplier again to apply the loaded nerf value.
-  updateMultiplier();
-
-  if (typeof window !== "undefined") {
-    window.addEventListener("surge:level:change", () => {
-      const prevLevel = cachedSurgeLevel;
-      const wasActive = isSurgeActive(8);
-
-      updateMultiplier();
-
-      const currLevel = cachedSurgeLevel;
-      const isActive = isSurgeActive(8);
-
-      if (!wasActive && isActive) {
-        setTsunamiNerf(0.0);
-        if (!isLabUnlocked()) {
-          setLabUnlocked(true);
+    initComboSystem(
+        () => isSurgeActive(14) && getBaseTsunamiExponent() + getTsunamiResearchBonus() < 1.0,
+        () => 1.0 - getTsunamiExponent(),
+        () => {
+            const level = getCurrentSurgeLevel();
+            if (
+                level === Infinity ||
+                (typeof level === "string" && level === "Infinity") ||
+                level === Number.POSITIVE_INFINITY
+            )
+                return true;
+            if (typeof level === "number") return level >= 20;
+            return false;
+        },
+    );
+    const slot = getActiveSlot();
+    // Update multiplier first to ensure cachedSurgeLevel is set,
+    // allowing isSurgeActive(8) to return the correct state for loadTsunamiNerf default logic.
+    updateMultiplier();
+    loadTsunamiNerf(slot);
+    // Update multiplier again to apply the loaded nerf value.
+    updateMultiplier();
+    if (typeof window !== "undefined") {
+        window.addEventListener("surge:level:change", () => {
+            const prevLevel = cachedSurgeLevel;
+            const wasActive = isSurgeActive(8);
+            updateMultiplier();
+            const currLevel = cachedSurgeLevel;
+            const isActive = isSurgeActive(8);
+            if (!wasActive && isActive) {
+                setTsunamiNerf(0.0);
+                if (!isLabUnlocked()) {
+                    setLabUnlocked(true);
+                }
+            } else if (isActive) {
+                // If already active, check if level increased
+                if (compareSurgeLevels(prevLevel, currLevel) > 0) {
+                    setTsunamiNerf(0.0);
+                    if (!isLabUnlocked()) {
+                        setLabUnlocked(true);
+                    }
+                }
+            } else if (wasActive && !isActive) {
+                setTsunamiNerf(1.0);
+            }
+        });
+        window.addEventListener("lab:node:change", () => {
+            updateMultiplier();
+        });
+        window.addEventListener("saveSlot:change", () => {
+            loadTsunamiNerf(getActiveSlot());
+            updateMultiplier();
+        });
+        // Listen for DNA changes to update dynamic multipliers
+        window.addEventListener("currency:change", (e) => {
+            if (e.detail?.key === "dna") {
+                try {
+                    syncCurrencyMultipliersFromUpgrades();
+                } catch {}
+            }
+        });
+    }
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseMultiplier;
+        return baseMultiplier.mulBigNumInteger(currentMultiplier);
+    });
+    addExternalXpGainMultiplierProvider(({ baseGain }) => {
+        if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseGain;
+        return baseGain.mulBigNumInteger(currentMultiplier);
+    });
+    addExternalXpGainMultiplierProvider(({ baseGain }) => {
+        if (!isSurgeActive(19)) return baseGain;
+        return baseGain.mulSmall(2);
+    });
+    addExternalXpGainMultiplierProvider(({ baseGain }) => {
+        if (!isSurgeActive(22)) return baseGain;
+        const mult = getSurge23Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
         }
-      } else if (isActive) {
-        // If already active, check if level increased
-        if (compareSurgeLevels(prevLevel, currLevel) > 0) {
-          setTsunamiNerf(0.0);
-          if (!isLabUnlocked()) {
-            setLabUnlocked(true);
-          }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseGain.mulBigNumInteger(mult);
         }
-      } else if (wasActive && !isActive) {
-        setTsunamiNerf(1.0);
-      }
+        return baseGain;
     });
-
-    window.addEventListener("lab:node:change", () => {
-      updateMultiplier();
+    addExternalXpGainMultiplierProvider(({ baseGain }) => {
+        if (!isSurgeActive(35)) return baseGain;
+        const mult = getSurge35Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseGain.mulBigNumInteger(mult);
+        }
+        return baseGain;
     });
-
-    window.addEventListener("saveSlot:change", () => {
-      loadTsunamiNerf(getActiveSlot());
-      updateMultiplier();
+    addExternalMutationGainMultiplierProvider(({ baseGain }) => {
+        if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseGain;
+        return baseGain.mulBigNumInteger(currentMultiplier);
     });
-
-    // Listen for DNA changes to update dynamic multipliers
-    window.addEventListener("currency:change", (e) => {
-      if (e.detail?.key === "dna") {
-        try {
-          syncCurrencyMultipliersFromUpgrades();
-        } catch {}
-      }
+    addExternalMutationGainMultiplierProvider(({ baseGain }) => {
+        if (!isSurgeActive(4)) return baseGain;
+        let mult = BigNum.fromInt(4.444e12);
+        if (isSurgeActive(8)) {
+            const effective = getTsunamiExponent();
+            const logVal = Math.log10(4.444e12);
+            mult = bigNumFromLog10(logVal * effective);
+        }
+        return baseGain.mulBigNumInteger(mult);
     });
-  }
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        if (!isSurgeActive(6)) return baseMultiplier;
+        const wealth = getSurge6WealthMultipliers();
+        if (wealth.total.cmp(1) <= 0) return baseMultiplier;
+        return baseMultiplier.mulBigNumInteger(wealth.total);
+    });
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        if (!isSurgeActive(15)) return baseMultiplier;
+        let result = baseMultiplier;
+        const mult = getSurge15Multiplier();
+        if (mult.cmp(1) > 0) {
+            result = result.mulBigNumInteger(mult);
+        }
 
-  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-    if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseMultiplier;
-    return baseMultiplier.mulBigNumInteger(currentMultiplier);
-  });
+        const div = getSurge15Divisor();
+        if (div.cmp(1) > 0) {
+            result = result.div(div);
+        }
+        return result;
+    });
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        if (!isSurgeActive(21)) return baseMultiplier;
+        const mult = getSurge21Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseMultiplier.mulBigNumInteger(mult);
+        }
+        return baseMultiplier;
+    });
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        if (!isSurgeActive(35)) return baseMultiplier;
+        const mult = getSurge35Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseMultiplier.mulBigNumInteger(mult);
+        }
+        return baseMultiplier;
+    });
+    addExternalPpMultiplierProvider((baseMultiplier) => {
+        if (!isSurgeActive(200)) return baseMultiplier;
+        const mult = getSurge200Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseMultiplier.mulBigNumInteger(mult);
+        }
+        return baseMultiplier;
+    });
+    addExternalFpMultiplierProvider((baseMultiplier) => {
+        if (!isSurgeActive(33)) return baseMultiplier;
+        const mult = getSurge33Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseMultiplier.mulBigNumInteger(mult);
+        }
+        return baseMultiplier;
+    });
+    addExternalFpMultiplierProvider((baseMultiplier) => {
+        if (!isSurgeActive(35)) return baseMultiplier;
+        const mult = getSurge35Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseMultiplier.mulBigNumInteger(mult);
+        }
+        return baseMultiplier;
+    });
+    // Surge 17 (Div 1e5), and Surge 18 (Mul 1e15) for Coins
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        let log10Total = 0;
+        // Surge 17: Divide by 1e5 -> -5
+        if (isSurgeActive(17)) {
+            log10Total -= 5;
+        }
+        // Surge 18: Multiply by 1e15 -> +15
+        if (isSurgeActive(18)) {
+            log10Total += 15;
+        }
+        if (log10Total === 0) return baseMultiplier;
+        if (isSurgeActive(8)) {
+            const effective = getTsunamiExponent();
+            log10Total *= effective;
+        }
 
-  addExternalXpGainMultiplierProvider(({ baseGain }) => {
-    if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseGain;
-    return baseGain.mulBigNumInteger(currentMultiplier);
-  });
-
-  addExternalXpGainMultiplierProvider(({ baseGain }) => {
-    if (!isSurgeActive(19)) return baseGain;
-    return baseGain.mulSmall(2);
-  });
-
-  addExternalXpGainMultiplierProvider(({ baseGain }) => {
-    if (!isSurgeActive(22)) return baseGain;
-    const mult = getSurge23Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseGain.mulBigNumInteger(mult);
-    }
-    return baseGain;
-  });
-
-  addExternalXpGainMultiplierProvider(({ baseGain }) => {
-    if (!isSurgeActive(35)) return baseGain;
-    const mult = getSurge35Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseGain.mulBigNumInteger(mult);
-    }
-    return baseGain;
-  });
-
-  addExternalMutationGainMultiplierProvider(({ baseGain }) => {
-    if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseGain;
-    return baseGain.mulBigNumInteger(currentMultiplier);
-  });
-
-  addExternalMutationGainMultiplierProvider(({ baseGain }) => {
-    if (!isSurgeActive(4)) return baseGain;
-    let mult = BigNum.fromInt(4.444e12);
-    if (isSurgeActive(8)) {
-      const effective = getTsunamiExponent();
-
-      const logVal = Math.log10(4.444e12);
-      mult = bigNumFromLog10(logVal * effective);
-    }
-    return baseGain.mulBigNumInteger(mult);
-  });
-
-  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-    if (!isSurgeActive(6)) return baseMultiplier;
-    const wealth = getSurge6WealthMultipliers();
-    if (wealth.total.cmp(1) <= 0) return baseMultiplier;
-    return baseMultiplier.mulBigNumInteger(wealth.total);
-  });
-
-  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-    if (!isSurgeActive(15)) return baseMultiplier;
-
-    let result = baseMultiplier;
-
-    const mult = getSurge15Multiplier();
-    if (mult.cmp(1) > 0) {
-      result = result.mulBigNumInteger(mult);
-    }
-
-    const div = getSurge15Divisor();
-    if (div.cmp(1) > 0) {
-      result = result.div(div);
-    }
-
-    return result;
-  });
-
-  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-    if (!isSurgeActive(21)) return baseMultiplier;
-    const mult = getSurge21Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseMultiplier.mulBigNumInteger(mult);
-    }
-    return baseMultiplier;
-  });
-
-  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-    if (!isSurgeActive(35)) return baseMultiplier;
-    const mult = getSurge35Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseMultiplier.mulBigNumInteger(mult);
-    }
-    return baseMultiplier;
-  });
-
-  addExternalPpMultiplierProvider((baseMultiplier) => {
-    if (!isSurgeActive(200)) return baseMultiplier;
-    const mult = getSurge200Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseMultiplier.mulBigNumInteger(mult);
-    }
-    return baseMultiplier;
-  });
-
-  addExternalFpMultiplierProvider((baseMultiplier) => {
-    if (!isSurgeActive(33)) return baseMultiplier;
-    const mult = getSurge33Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseMultiplier.mulBigNumInteger(mult);
-    }
-    return baseMultiplier;
-  });
-
-  addExternalFpMultiplierProvider((baseMultiplier) => {
-    if (!isSurgeActive(35)) return baseMultiplier;
-    const mult = getSurge35Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseMultiplier.mulBigNumInteger(mult);
-    }
-    return baseMultiplier;
-  });
-
-  // Surge 17 (Div 1e5), and Surge 18 (Mul 1e15) for Coins
-  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-    let log10Total = 0;
-
-    // Surge 17: Divide by 1e5 -> -5
-    if (isSurgeActive(17)) {
-      log10Total -= 5;
-    }
-
-    // Surge 18: Multiply by 1e15 -> +15
-    if (isSurgeActive(18)) {
-      log10Total += 15;
-    }
-
-    if (log10Total === 0) return baseMultiplier;
-
-    if (isSurgeActive(8)) {
-      const effective = getTsunamiExponent();
-      log10Total *= effective;
-    }
-
-    const mult = bigNumFromLog10(log10Total);
-    return baseMultiplier.mulBigNumInteger(mult);
-  });
-
-  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-    if (!isSurgeActive(40)) return baseMultiplier;
-    const mult = getSurge40Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseMultiplier.mulBigNumInteger(mult);
-    }
-    return baseMultiplier;
-  });
-
-  addExternalXpGainMultiplierProvider(({ baseGain }) => {
-    if (!isSurgeActive(50)) return baseGain;
-    const mult = getSurge50Multiplier();
-    if (mult.isInfinite?.()) {
-      return BigNum.fromAny("Infinity");
-    }
-    if (mult.cmp(BigNum.fromInt(1)) > 0) {
-      return baseGain.mulBigNumInteger(mult);
-    }
-    return baseGain;
-  });
-  // Surge 3: Disable flat Book reward
-  setExternalBookRewardProvider(({ baseReward }) => {
-    if (isSurgeActive(3)) {
-      return BigNum.fromInt(0);
-    }
-    return baseReward;
-  });
-
-  registerTick(onTick);
+        const mult = bigNumFromLog10(log10Total);
+        return baseMultiplier.mulBigNumInteger(mult);
+    });
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        if (!isSurgeActive(40)) return baseMultiplier;
+        const mult = getSurge40Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseMultiplier.mulBigNumInteger(mult);
+        }
+        return baseMultiplier;
+    });
+    addExternalXpGainMultiplierProvider(({ baseGain }) => {
+        if (!isSurgeActive(50)) return baseGain;
+        const mult = getSurge50Multiplier();
+        if (mult.isInfinite?.()) {
+            return BigNum.fromAny("Infinity");
+        }
+        if (mult.cmp(BigNum.fromInt(1)) > 0) {
+            return baseGain.mulBigNumInteger(mult);
+        }
+        return baseGain;
+    });
+    // Surge 3: Disable flat Book reward
+    setExternalBookRewardProvider(({ baseReward }) => {
+        if (isSurgeActive(3)) {
+            return BigNum.fromInt(0);
+        }
+        return baseReward;
+    });
+    registerTick(onTick);
 }
 
 export function getSurgeWaveMultiplier() {
-  let log10Total = 0;
+    let log10Total = 0;
+    // Surge 17 and 18 halve Wave value (immune to exponent)
+    if (isSurgeActive(17)) log10Total -= Math.log10(2);
+    if (isSurgeActive(18)) log10Total -= Math.log10(2);
+    let result = BigNum.fromInt(1);
+    if (log10Total !== 0) {
+        result = bigNumFromLog10(log10Total);
+    }
 
-  // Surge 17 and 18 halve Wave value (immune to exponent)
-  if (isSurgeActive(17)) log10Total -= Math.log10(2);
-  if (isSurgeActive(18)) log10Total -= Math.log10(2);
+    const surge29Mult = getSurge29Multiplier();
+    if (surge29Mult.isInfinite?.()) {
+        result = BigNum.fromAny("Infinity");
+    } else if (surge29Mult.cmp(1) > 0) {
+        result = result.mulBigNumInteger(surge29Mult);
+    }
 
-  let result = BigNum.fromInt(1);
-  if (log10Total !== 0) {
-    result = bigNumFromLog10(log10Total);
-  }
-
-  const surge29Mult = getSurge29Multiplier();
-  if (surge29Mult.isInfinite?.()) {
-    result = BigNum.fromAny("Infinity");
-  } else if (surge29Mult.cmp(1) > 0) {
-    result = result.mulBigNumInteger(surge29Mult);
-  }
-
-  const surge35Mult = getSurge35Multiplier();
-  if (surge35Mult.isInfinite?.()) {
-    result = BigNum.fromAny("Infinity");
-  } else if (surge35Mult.cmp(1) > 0) {
-    result = result.mulBigNumInteger(surge35Mult);
-  }
-
-  return result;
+    const surge35Mult = getSurge35Multiplier();
+    if (surge35Mult.isInfinite?.()) {
+        result = BigNum.fromAny("Infinity");
+    } else if (surge35Mult.cmp(1) > 0) {
+        result = result.mulBigNumInteger(surge35Mult);
+    }
+    return result;
 }
 
 export function getSurgeDnaMultiplier() {
-  let log10Total = 0;
+    let log10Total = 0;
+    if (isSurgeActive(17)) {
+        log10Total -= 5;
+    }
+    if (isSurgeActive(18)) {
+        log10Total -= 5;
+    }
+    if (isSurgeActive(8)) {
+        const effective = getTsunamiExponent();
+        log10Total *= effective;
+    }
 
-  if (isSurgeActive(17)) {
-    log10Total -= 5;
-  }
-
-  if (isSurgeActive(18)) {
-    log10Total -= 5;
-  }
-
-  if (isSurgeActive(8)) {
-    const effective = getTsunamiExponent();
-    log10Total *= effective;
-  }
-
-  let result = BigNum.fromInt(1);
-  if (log10Total !== 0) {
-    result = bigNumFromLog10(log10Total);
-  }
-
-  return result;
+    let result = BigNum.fromInt(1);
+    if (log10Total !== 0) {
+        result = bigNumFromLog10(log10Total);
+    }
+    return result;
 }
 
 export function getSurgeMagicMultiplier() {
-  let log10Total = 0;
-
-  if (isSurgeActive(17)) {
-    log10Total += 15;
-  }
-
-  if (isSurgeActive(18)) {
-    log10Total -= 5;
-  }
-
-  if (isSurgeActive(8)) {
-    const effective = getTsunamiExponent();
-    log10Total *= effective;
-  }
-
-  let result = BigNum.fromInt(1);
-  if (log10Total !== 0) {
-    result = bigNumFromLog10(log10Total);
-  }
-
-  if (isSurgeActive(15)) {
-    const div = getSurge15Divisor();
-    if (div.cmp(1) > 0) {
-      result = result.div(div);
+    let log10Total = 0;
+    if (isSurgeActive(17)) {
+        log10Total += 15;
     }
-  }
+    if (isSurgeActive(18)) {
+        log10Total -= 5;
+    }
+    if (isSurgeActive(8)) {
+        const effective = getTsunamiExponent();
+        log10Total *= effective;
+    }
 
-  return result;
+    let result = BigNum.fromInt(1);
+    if (log10Total !== 0) {
+        result = bigNumFromLog10(log10Total);
+    }
+    if (isSurgeActive(15)) {
+        const div = getSurge15Divisor();
+        if (div.cmp(1) > 0) {
+            result = result.div(div);
+        }
+    }
+    return result;
 }
-
 if (typeof window !== "undefined") {
-  window.surgeWaveSystem = window.surgeWaveSystem || {};
-  Object.assign(window.surgeWaveSystem, {
-    getSurgeWaveMultiplier: getSurgeWaveMultiplier,
-  });
+    window.surgeWaveSystem = window.surgeWaveSystem || {};
+    Object.assign(window.surgeWaveSystem, {
+        getSurgeWaveMultiplier: getSurgeWaveMultiplier,
+    });
 }
