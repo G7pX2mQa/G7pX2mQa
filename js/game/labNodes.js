@@ -1,24 +1,20 @@
-import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
-import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
-import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
-import { formatMultForUi, formatNumber } from '../util/numFormat.js';
-import { applyStatMultiplierOverride } from '../util/debugPanel.js';
-import { 
-    addExternalCoinMultiplierProvider, 
-    addExternalXpGainMultiplierProvider
-} from './xpSystem.js';
-import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from './upgradeEffects.js';
-import { addExternalEacMultiplierProvider, addExternalEacAmountMultiplierProvider, setTsunamiBonusProvider } from './automationEffects.js';
-import { isSurgeActive } from './surgeEffects.js';
-import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
-
+import { lsSetItem } from "../main.js";
+import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../util/bigNum.js";
+import { getActiveSlot, isStorageKeyLocked } from "../util/storage.js";
+import { getLabLevel, setLabLevel, getRpMult } from "../ui/merchantTabs/labTab.js";
+import { formatMultForUi, formatNumber } from "../util/numFormat.js";
+import { applyStatMultiplierOverride } from "../util/debugPanel.js";
+import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from "./xpSystem.js";
+import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from "./upgradeEffects.js";
+import { addExternalEacAmountMultiplierProvider, setTsunamiBonusProvider } from "./automationEffects.js";
+import { isSurgeActive } from "./surgeEffects.js";
+import { addExternalFpMultiplierProvider } from "../ui/merchantTabs/flowTab.js";
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
 export const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${id}:${slot}`;
 const NODE_ACTIVE_KEY = (slot, id) => `ccc:lab:node:active:${id}:${slot}`;
 const NODE_DISCOVERED_KEY = (slot, id) => `ccc:lab:node:discovered:${id}:${slot}`;
 const EXPERIMENT_COMPLETED_KEY = (slot) => `ccc:reset:experiment:completed:${slot}`;
-
 // --- Constants ---
 export const RESEARCH_NODES = [
     {
@@ -30,9 +26,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 0,
-        icon: 'img/lab_icons/tsunami_exponent_buff.webp',
+        icon: "img/lab_icons/tsunami_exponent_buff.webp",
         parentIds: [],
-        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
+        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`,
     },
     {
         id: 2,
@@ -44,8 +40,8 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: -1000,
         y: 1000,
-        icon: 'img/lab_icons/coin_val0.webp',
-        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
+        icon: "img/lab_icons/coin_val0.webp",
+        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`,
     },
     {
         id: 3,
@@ -57,8 +53,8 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: 1000,
         y: 1000,
-        icon: 'img/sc_upg_icons/xp_val1.webp',
-        bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
+        icon: "img/sc_upg_icons/xp_val1.webp",
+        bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`,
     },
     {
         id: 4,
@@ -69,9 +65,9 @@ export const RESEARCH_NODES = [
         maxLevel: 1,
         x: 0,
         y: -1000,
-        icon: 'img/misc/experiment.webp',
+        icon: "img/misc/experiment.webp",
         parentIds: [2, 3],
-        bonusLine: () => ''
+        bonusLine: () => "",
     },
     {
         id: 5,
@@ -82,9 +78,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -1000,
         y: -1000,
-        icon: 'img/lab_icons/gold_val0.webp',
+        icon: "img/lab_icons/gold_val0.webp",
         parentIds: [4],
-        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
+        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`,
     },
     {
         id: 6,
@@ -95,9 +91,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 1000,
         y: -1000,
-        icon: 'img/lab_icons/magic_val0.webp',
+        icon: "img/lab_icons/magic_val0.webp",
         parentIds: [4],
-        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
+        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`,
     },
     {
         id: 7,
@@ -108,9 +104,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 1000,
-        icon: 'img/lab_icons/wave_val0.webp',
+        icon: "img/lab_icons/wave_val0.webp",
         parentIds: [5, 6],
-        bonusLine: (level) => `Wave value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.1)))}x`
+        bonusLine: (level) => `Wave value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.1)))}x`,
     },
     {
         id: 8,
@@ -121,9 +117,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -1000,
         y: 0,
-        icon: 'img/sc_upg_icons/faster_coins1.webp',
+        icon: "img/sc_upg_icons/faster_coins1.webp",
         parentIds: [7],
-        bonusLine: (level) => `Coin Spawn Rate bonus: ${formatMultForUi(1 + (level * 0.1))}x`
+        bonusLine: (level) => `Coin Spawn Rate bonus: ${formatMultForUi(1 + level * 0.1)}x`,
     },
     {
         id: 9,
@@ -134,9 +130,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 1000,
         y: 0,
-        icon: 'img/sc_upg_icons/effective_auto_collect.webp',
+        icon: "img/sc_upg_icons/effective_auto_collect.webp",
         parentIds: [7],
-        bonusLine: (level) => `EAC value bonus: ${formatMultForUi(1 + (level * 0.1))}x`
+        bonusLine: (level) => `EAC value bonus: ${formatMultForUi(1 + level * 0.1)}x`,
     },
     {
         id: 10,
@@ -147,9 +143,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: -2000,
-        icon: 'img/lab_icons/tsunami_exponent_buff.webp',
+        icon: "img/lab_icons/tsunami_exponent_buff.webp",
         parentIds: [8, 9],
-        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
+        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`,
     },
     {
         id: 11,
@@ -160,9 +156,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: -2000,
-        icon: 'img/lab_icons/coin_val0.webp',
+        icon: "img/lab_icons/coin_val0.webp",
         parentIds: [10],
-        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
+        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`,
     },
     {
         id: 12,
@@ -173,9 +169,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: -2000,
-        icon: 'img/sc_upg_icons/xp_val1.webp',
+        icon: "img/sc_upg_icons/xp_val1.webp",
         parentIds: [10],
-        bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
+        bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`,
     },
     {
         id: 13,
@@ -186,9 +182,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: -1000,
-        icon: 'img/lab_icons/gold_val0.webp',
+        icon: "img/lab_icons/gold_val0.webp",
         parentIds: [10],
-        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`
+        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`,
     },
     {
         id: 14,
@@ -199,9 +195,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: -1000,
-        icon: 'img/lab_icons/magic_val0.webp',
+        icon: "img/lab_icons/magic_val0.webp",
         parentIds: [10],
-        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`
+        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`,
     },
     {
         id: 15,
@@ -212,9 +208,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: 0,
-        icon: 'img/lab_icons/dna_val0.webp',
+        icon: "img/lab_icons/dna_val0.webp",
         parentIds: [10],
-        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
+        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`,
     },
     {
         id: 16,
@@ -225,9 +221,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: 0,
-        icon: 'img/lab_icons/dna_val0.webp',
+        icon: "img/lab_icons/dna_val0.webp",
         parentIds: [10],
-        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
+        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`,
     },
     {
         id: 17,
@@ -238,9 +234,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: 1000,
-        icon: 'img/lab_icons/fp_val0.webp',
+        icon: "img/lab_icons/fp_val0.webp",
         parentIds: [10],
-        bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
+        bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`,
     },
     {
         id: 18,
@@ -251,9 +247,9 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: 1000,
-        icon: 'img/lab_icons/fp_val0.webp',
+        icon: "img/lab_icons/fp_val0.webp",
         parentIds: [10],
-        bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
+        bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`,
     },
     {
         id: 19,
@@ -264,22 +260,20 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 2000,
-        icon: 'img/lab_icons/tsunami_exponent_buff.webp',
+        icon: "img/lab_icons/tsunami_exponent_buff.webp",
         parentIds: [11, 12, 13, 14, 15, 16, 17, 18],
-        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
-    }
+        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`,
+    },
 ];
-
-export const NODE_MAP = new Map(RESEARCH_NODES.map(n => [n.id, n]));
-
+export const NODE_MAP = new Map(RESEARCH_NODES.map((n) => [n.id, n]));
 // --- State Cache ---
 let _cachedExperimentCompleted = null;
 let _cachedSlot = null;
 const labState = {
-    nodes: {}
+    nodes: {},
 };
-let activeNodeId = null;
 
+let activeNodeId = null;
 function reloadExperimentCache() {
     const slot = getActiveSlot();
     _cachedSlot = slot;
@@ -288,7 +282,7 @@ function reloadExperimentCache() {
         return;
     }
     try {
-        _cachedExperimentCompleted = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === '1';
+        _cachedExperimentCompleted = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === "1";
     } catch {
         _cachedExperimentCompleted = false;
     }
@@ -300,7 +294,7 @@ function ensureNodeState(id) {
             rp: BigNum.fromInt(0),
             level: 0,
             active: false,
-            discovered: false
+            discovered: false,
         };
     }
     return labState.nodes[id];
@@ -311,15 +305,12 @@ function loadNodeState(slot, id) {
     try {
         const lvl = localStorage.getItem(NODE_LEVEL_KEY(slot, id));
         s.level = lvl ? parseInt(lvl, 10) : 0;
-        
         const rp = localStorage.getItem(NODE_RP_KEY(slot, id));
         s.rp = rp ? BigNum.fromAny(rp) : BigNum.fromInt(0);
-        
         const act = localStorage.getItem(NODE_ACTIVE_KEY(slot, id));
-        s.active = act === '1';
-
+        s.active = act === "1";
         const disc = localStorage.getItem(NODE_DISCOVERED_KEY(slot, id));
-        s.discovered = disc === '1';
+        s.discovered = disc === "1";
     } catch {
         s.level = 0;
         s.rp = BigNum.fromInt(0);
@@ -334,7 +325,7 @@ export function reloadLabNodes() {
     labState.nodes = {}; // Clear cache
     activeNodeId = null;
     if (slot != null) {
-        RESEARCH_NODES.forEach(n => {
+        RESEARCH_NODES.forEach((n) => {
             loadNodeState(slot, n.id);
             if (labState.nodes[n.id].active) {
                 activeNodeId = n.id;
@@ -346,41 +337,35 @@ export function reloadLabNodes() {
 function saveLabNodes() {
     const slot = getActiveSlot();
     if (slot == null) return;
-    
-    RESEARCH_NODES.forEach(n => {
+    RESEARCH_NODES.forEach((n) => {
         const s = labState.nodes[n.id];
         if (s) {
             try {
                 // Save RP (High Frequency)
-                localStorage.setItem(NODE_RP_KEY(slot, n.id), s.rp.toStorage());
+                lsSetItem(NODE_RP_KEY(slot, n.id), s.rp.toStorage());
                 // Level and Active are saved immediately on change, so no need to save here
                 // unless we want double safety.
             } catch {}
         }
     });
 }
-
 // Initialize
-if (typeof window !== 'undefined') {
-    window.addEventListener('saveSlot:change', reloadLabNodes);
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", reloadLabNodes);
     // Auto-save every second
     setInterval(saveLabNodes, 1000);
     // Save on unload
-    window.addEventListener('beforeunload', saveLabNodes);
-
+    window.addEventListener("beforeunload", saveLabNodes);
     // Listen for experiment unlock
-    window.addEventListener('unlock:change', ({ detail }) => {
-        if (detail && detail.key === 'experiment_completed') {
+    window.addEventListener("unlock:change", ({ detail }) => {
+        if (detail && detail.key === "experiment_completed") {
             reloadExperimentCache();
         }
     });
-    
     // Initial load
     reloadLabNodes();
 }
-
 // --- Getters / Setters ---
-
 export function getResearchNodeLevel(id) {
     const s = ensureNodeState(id);
     return s.level;
@@ -389,23 +374,19 @@ export function getResearchNodeLevel(id) {
 export function setResearchNodeLevel(id, level, suppressNotify = false) {
     const slot = getActiveSlot();
     if (slot == null) return false;
-    
     if (isStorageKeyLocked(NODE_LEVEL_KEY(slot, id))) return false;
-
     const s = ensureNodeState(id);
     if (s.level === level) return true;
-    
     const wasExperimentUnlocked = id === 4 && s.level >= 1;
     s.level = level;
     const isExperimentUnlockedNow = id === 4 && level >= 1;
-    
     try {
-        localStorage.setItem(NODE_LEVEL_KEY(slot, id), level.toString());
+        lsSetItem(NODE_LEVEL_KEY(slot, id), level.toString());
         if (!suppressNotify) {
-            window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { id, level, suppressNotify } }));
+            window.dispatchEvent(new CustomEvent("lab:node:change", { detail: { id, level, suppressNotify } }));
         }
         if (!wasExperimentUnlocked && isExperimentUnlockedNow) {
-            window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'experiment', slot } }));
+            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "experiment", slot } }));
         }
     } catch {}
     return true;
@@ -419,14 +400,12 @@ export function getResearchNodeRp(id) {
 export function setResearchNodeRp(id, rp, suppressNotify = false) {
     const slot = getActiveSlot();
     if (slot != null && isStorageKeyLocked(NODE_RP_KEY(slot, id))) return;
-
     // In-memory update only. Persisted via saveLabNodes.
     const s = ensureNodeState(id);
     s.rp = BigNum.fromAny(rp);
-    
     try {
         if (!suppressNotify) {
-            window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { id, rp: s.rp } }));
+            window.dispatchEvent(new CustomEvent("lab:node:rp", { detail: { id, rp: s.rp } }));
         }
     } catch {}
 }
@@ -439,13 +418,11 @@ export function isResearchNodeActive(id) {
 export function setResearchNodeActive(id, active, suppressNotify = false) {
     const slot = getActiveSlot();
     if (slot == null) return;
-    
     const shouldBeActive = !!active;
-
     if (shouldBeActive) {
         // Deactivate currently active node if it's different
         if (activeNodeId !== null && activeNodeId !== id) {
-             setResearchNodeActive(activeNodeId, false, suppressNotify);
+            setResearchNodeActive(activeNodeId, false, suppressNotify);
         }
         activeNodeId = id;
     } else {
@@ -459,9 +436,9 @@ export function setResearchNodeActive(id, active, suppressNotify = false) {
     if (s.active !== shouldBeActive) {
         s.active = shouldBeActive;
         try {
-            localStorage.setItem(NODE_ACTIVE_KEY(slot, id), s.active ? '1' : '0');
+            lsSetItem(NODE_ACTIVE_KEY(slot, id), s.active ? "1" : "0");
             if (!suppressNotify) {
-                window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { id, active: s.active } }));
+                window.dispatchEvent(new CustomEvent("lab:node:active", { detail: { id, active: s.active } }));
             }
         } catch {}
     }
@@ -470,77 +447,61 @@ export function setResearchNodeActive(id, active, suppressNotify = false) {
 export function setResearchNodeDiscovered(id, discovered) {
     const slot = getActiveSlot();
     if (slot == null) return;
-    
     const s = ensureNodeState(id);
     if (s.discovered === !!discovered) return;
-    
     s.discovered = !!discovered;
     try {
-        localStorage.setItem(NODE_DISCOVERED_KEY(slot, id), s.discovered ? '1' : '0');
+        lsSetItem(NODE_DISCOVERED_KEY(slot, id), s.discovered ? "1" : "0");
     } catch {}
 }
-
 // --- Logic ---
-
 export function isResearchNodeVisible(id) {
     const node = NODE_MAP.get(id);
     if (!node) return false;
-    
     // Check persistent discovery state
     const s = ensureNodeState(id);
     if (s.discovered) return true;
-    
     // Root nodes always visible
     if (!node.parentIds || node.parentIds.length === 0) {
         setResearchNodeDiscovered(id, true);
         return true;
     }
-
     // Node 5 & 6 require Experiment Reset to be completed
     if (id === 5 || id === 6) {
         // Use cached value
         if (_cachedSlot !== getActiveSlot() || _cachedExperimentCompleted === null) {
-             reloadExperimentCache();
+            reloadExperimentCache();
         }
         if (!_cachedExperimentCompleted) return false;
     }
-    
     // Nodes attached to Node 10 require Surge 20
     if (node.parentIds && node.parentIds.includes(10)) {
         if (!isSurgeActive(20)) return false;
     }
-
     // Visible if ALL parents are maxed
     for (const parentId of node.parentIds) {
         const parent = NODE_MAP.get(parentId);
-        if (!parent) continue; 
-        
+        if (!parent) continue;
         const parentLevel = getResearchNodeLevel(parentId);
         if (parentLevel < parent.maxLevel) {
             return false;
         }
     }
-    
     setResearchNodeDiscovered(id, true);
     return true;
 }
 
 export function getResearchNodeRequirement(id) {
     const node = NODE_MAP.get(id);
-    if (!node) return BigNum.fromAny('Infinity');
-    
+    if (!node) return BigNum.fromAny("Infinity");
     const level = getResearchNodeLevel(id);
-    if (level >= node.maxLevel) return BigNum.fromAny('Infinity');
-    
+    if (level >= node.maxLevel) return BigNum.fromAny("Infinity");
     // Cost = Base * (Scale ^ Level)
     const scaleBn = BigNum.fromAny(node.scale);
-    const log10Scale = approxLog10BigNum(scaleBn); 
-    
+    const log10Scale = approxLog10BigNum(scaleBn);
     const baseBn = BigNum.fromAny(node.baseRpReq);
     const log10Base = approxLog10BigNum(baseBn);
-    
-    const totalLog10 = log10Base + (level * log10Scale);
-    
+    const totalLog10 = log10Base + level * log10Scale;
     return bigNumFromLog10(totalLog10);
 }
 
@@ -548,13 +509,10 @@ export function getTsunamiResearchBonus() {
     let bonus = 0;
     const level1 = getResearchNodeLevel(1);
     if (level1 > 0) bonus += level1 * 0.01;
-    
     const level10 = getResearchNodeLevel(10);
     if (level10 > 0) bonus += level10 * 0.01;
-    
     const level19 = getResearchNodeLevel(19);
     if (level19 > 0) bonus += level19 * 0.01;
-    
     return bonus;
 }
 
@@ -565,21 +523,17 @@ export function isExperimentUnlocked() {
 export function resetLab(exceptions = []) {
     const slot = getActiveSlot();
     if (slot == null) return;
-    
     // Reset Lab Level
     try {
         setLabLevel(0);
     } catch {}
-
     // Deactivate current active node
     if (activeNodeId !== null && !exceptions.includes(activeNodeId)) {
         setResearchNodeActive(activeNodeId, false);
     }
-
     // Reset Nodes
-    RESEARCH_NODES.forEach(node => {
+    RESEARCH_NODES.forEach((node) => {
         if (exceptions.includes(node.id)) return;
-        
         setResearchNodeLevel(node.id, 0);
         setResearchNodeRp(node.id, BigNum.fromInt(0));
     });
@@ -587,14 +541,10 @@ export function resetLab(exceptions = []) {
 
 export function tickResearch(dt) {
     if (activeNodeId === null) return;
-
     const node = NODE_MAP.get(activeNodeId);
     if (!node) return;
-    
     if (!isResearchNodeVisible(node.id)) return;
-
     if (getResearchNodeLevel(node.id) >= node.maxLevel) return;
-
     const labLvl = getLabLevel();
     if (labLvl && (labLvl.isInfinite?.() || labLvl.cmp(1e308) >= 0 || labLvl.e >= BigNum.MAX_E)) {
         setResearchNodeLevel(node.id, node.maxLevel);
@@ -603,34 +553,27 @@ export function tickResearch(dt) {
     }
 
     let mult = getRpMult();
-    if (typeof applyStatMultiplierOverride === 'function') {
-        mult = applyStatMultiplierOverride('rp', mult);
+    if (typeof applyStatMultiplierOverride === "function") {
+        mult = applyStatMultiplierOverride("rp", mult);
     }
     if (mult.isZero?.()) return;
-
     // RP per second = 1 * Multiplier
-    const rpPerSec = mult; 
+    const rpPerSec = mult;
     const rpPerTick = rpPerSec.mulDecimal(dt.toString(), BigNum.DEFAULT_PRECISION);
-    
     const currentRp = getResearchNodeRp(node.id);
-    
     let nextRp = currentRp.add(rpPerTick);
-
     // Optimized bulk leveling for large jumps
     const currentLevel = getResearchNodeLevel(node.id);
     if (currentLevel < node.maxLevel || !Number.isFinite(node.maxLevel)) {
         const currentReq = getResearchNodeRequirement(node.id);
         const logRp = approxLog10BigNum(nextRp);
         const logReq = approxLog10BigNum(currentReq);
-
         if (logRp - logReq > 2) {
             let jump = 0;
             let cost = BigNum.zero();
-            
             const scaleBn = BigNum.fromAny(node.scale);
             const scaleMinus1 = scaleBn.sub(1);
             let isLinear = false;
-            
             // Check if scale is effectively 1
             if (scaleMinus1.isZero()) isLinear = true;
             else {
@@ -638,58 +581,50 @@ export function tickResearch(dt) {
                 const absDiff = Math.abs(Number(scaleBn.toScientific()) - 1.0);
                 if (absDiff < 1e-9) isLinear = true;
             }
-
             if (isLinear) {
                 // Linear scaling (Scale ≈ 1)
                 const jumpBn = nextRp.div(currentReq).floorToInteger();
-                let jumpStr = jumpBn.inf || jumpBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : jumpBn.toPlainIntegerString();
+                let jumpStr =
+                    jumpBn.inf || jumpBn.e >= BigNum.DEFAULT_PRECISION ? "Infinity" : jumpBn.toPlainIntegerString();
                 // Safety clamp to max safe integer
-                if (jumpStr === 'Infinity' || jumpStr.length > 15) {
-                    jumpStr = "9007199254740991"; 
+                if (jumpStr === "Infinity" || jumpStr.length > 15) {
+                    jumpStr = "9007199254740991";
                 }
                 try {
                     jump = Number(jumpStr);
                 } catch {
                     jump = 0;
                 }
-                
                 if (Number.isFinite(node.maxLevel)) {
                     const rem = Number(node.maxLevel) - Number(currentLevel);
                     if (jump > rem) jump = rem;
                 }
-                
                 if (jump > 0) {
                     cost = currentReq.mulScaledInt(jump, 0);
                 }
             } else if (scaleMinus1.isZero() === false && (scaleMinus1.sig > 0 || scaleMinus1.isInfinite())) {
-                 // Geometric scaling (Scale > 1)
-                 const logS = approxLog10BigNum(scaleBn);
-                 const logSMinus1 = approxLog10BigNum(scaleMinus1);
-                 
-                 // (logRp - logReq + log(S-1)) / log(S)
-                 const numerator = (logRp - logReq) + logSMinus1;
-                 const approxLevels = Math.floor(numerator / logS);
-
-                 if (approxLevels > 5) {
-                     let safeJump = Number(Math.max(0, approxLevels - 5));
-                     if (Number.isFinite(node.maxLevel)) {
-                         const rem = Number(node.maxLevel) - Number(currentLevel);
-                         if (safeJump > rem) safeJump = rem;
-                     }
-                     
-                     if (safeJump > 0) {
-                         jump = safeJump;
-                         
-                         // Cost = currentReq * ((S^jump - 1) / (S-1))
-                         const totalLog = Number(jump) * logS;
-                         const sPowJump = bigNumFromLog10(totalLog);
-                         
-                         const costFactor = sPowJump.sub(1).div(scaleMinus1);
-                         cost = currentReq.mulBigNumInteger(costFactor);
-                     }
-                 }
+                // Geometric scaling (Scale > 1)
+                const logS = approxLog10BigNum(scaleBn);
+                const logSMinus1 = approxLog10BigNum(scaleMinus1);
+                // (logRp - logReq + log(S-1)) / log(S)
+                const numerator = logRp - logReq + logSMinus1;
+                const approxLevels = Math.floor(numerator / logS);
+                if (approxLevels > 5) {
+                    let safeJump = Number(Math.max(0, approxLevels - 5));
+                    if (Number.isFinite(node.maxLevel)) {
+                        const rem = Number(node.maxLevel) - Number(currentLevel);
+                        if (safeJump > rem) safeJump = rem;
+                    }
+                    if (safeJump > 0) {
+                        jump = safeJump;
+                        // Cost = currentReq * ((S^jump - 1) / (S-1))
+                        const totalLog = Number(jump) * logS;
+                        const sPowJump = bigNumFromLog10(totalLog);
+                        const costFactor = sPowJump.sub(1).div(scaleMinus1);
+                        cost = currentReq.mulBigNumInteger(costFactor);
+                    }
+                }
             }
-
             if (jump > 0) {
                 nextRp = nextRp.sub(cost);
                 const newLevel = currentLevel + Number(jump);
@@ -697,28 +632,20 @@ export function tickResearch(dt) {
             }
         }
     }
-    
     while (true) {
         const currentReq = getResearchNodeRequirement(node.id);
         if (nextRp.cmp(currentReq) < 0) break;
-        
         if (getResearchNodeLevel(node.id) >= node.maxLevel) break;
-
         nextRp = nextRp.sub(currentReq);
         const oldLevel = getResearchNodeLevel(node.id);
         const nextLevel = oldLevel + 1;
-        
         // Safety check for precision loss at extremely high levels (> 9e15)
         if (nextLevel <= oldLevel) break;
-
         if (!setResearchNodeLevel(node.id, nextLevel)) break;
     }
-    
     setResearchNodeRp(node.id, nextRp);
 }
-
 // --- Multipliers ---
-
 const LOG10_2 = Math.log10(2);
 const LOG10_3 = Math.log10(3);
 const LOG10_4 = Math.log10(4);
@@ -727,105 +654,87 @@ const LOG10_5 = Math.log10(5);
 const LOG10_10 = 1; // Math.log10(10)
 const LOG10_1_5 = Math.log10(1.5);
 const LOG10_1_25 = Math.log10(1.25);
-
 export function getLabCoinMultiplier() {
     let logTotal = 0;
-    
     const node2 = NODE_MAP.get(2);
     if (node2) {
         const level = getResearchNodeLevel(node2.id);
         if (level > 0) logTotal += level * LOG10_2;
     }
-    
+
     const node11 = NODE_MAP.get(11);
     if (node11) {
         const level = getResearchNodeLevel(node11.id);
         if (level > 0) logTotal += level * LOG10_3;
     }
-    
     if (logTotal === 0) return BigNum.fromInt(1);
-    
     return bigNumFromLog10(logTotal);
 }
 
 export function getLabXpMultiplier() {
     let logTotal = 0;
-    
     const node3 = NODE_MAP.get(3);
     if (node3) {
         const level = getResearchNodeLevel(node3.id);
         if (level > 0) logTotal += level * LOG10_2;
     }
-    
+
     const node12 = NODE_MAP.get(12);
     if (node12) {
         const level = getResearchNodeLevel(node12.id);
         if (level > 0) logTotal += level * LOG10_3;
     }
-    
     if (logTotal === 0) return BigNum.fromInt(1);
-    
     return bigNumFromLog10(logTotal);
 }
 
 export function getLabGoldMultiplier() {
     let logTotal = 0;
-    
     const node5 = NODE_MAP.get(5);
     if (node5) {
         const level = getResearchNodeLevel(node5.id);
         if (level > 0) logTotal += level * LOG10_3;
     }
-    
+
     const node13 = NODE_MAP.get(13);
     if (node13) {
         const level = getResearchNodeLevel(node13.id);
         if (level > 0) logTotal += level * LOG10_4;
     }
-    
     if (logTotal === 0) return BigNum.fromInt(1);
-    
     return bigNumFromLog10(logTotal);
 }
 
 export function getLabMagicMultiplier() {
     let logTotal = 0;
-    
     const node6 = NODE_MAP.get(6);
     if (node6) {
         const level = getResearchNodeLevel(node6.id);
         if (level > 0) logTotal += level * LOG10_3;
     }
-    
+
     const node14 = NODE_MAP.get(14);
     if (node14) {
         const level = getResearchNodeLevel(node14.id);
         if (level > 0) logTotal += level * LOG10_4;
     }
-    
     if (logTotal === 0) return BigNum.fromInt(1);
-    
     return bigNumFromLog10(logTotal);
 }
 
 export function getLabWaveMultiplier() {
     const node7 = NODE_MAP.get(7);
-    
     let logTotal = 0;
-
     if (node7) {
         const level = getResearchNodeLevel(node7.id);
         if (level > 0) logTotal += level * LOG10_1_1;
     }
-
     if (logTotal === 0) return BigNum.fromInt(1);
-    
     return bigNumFromLog10(logTotal);
 }
 
 export function getLabDnaMultiplier() {
     let logTotal = 0;
-
     const node15 = NODE_MAP.get(15);
     if (node15) {
         const level = getResearchNodeLevel(node15.id);
@@ -837,31 +746,25 @@ export function getLabDnaMultiplier() {
         const level = getResearchNodeLevel(node16.id);
         if (level > 0) logTotal += level * LOG10_1_5;
     }
-
     if (logTotal === 0) return BigNum.fromInt(1);
-    
     return bigNumFromLog10(logTotal);
 }
 
 export function getLabFpMultiplier() {
     let logTotal = 0;
-
     // Node 17
     const node17 = NODE_MAP.get(17);
     if (node17) {
         const level = getResearchNodeLevel(node17.id);
         if (level > 0) logTotal += level * LOG10_1_25;
     }
-    
     // Node 18
     const node18 = NODE_MAP.get(18);
     if (node18) {
         const level = getResearchNodeLevel(node18.id);
         if (level > 0) logTotal += level * LOG10_1_25;
     }
-
     if (logTotal === 0) return BigNum.fromInt(1);
-    
     return bigNumFromLog10(logTotal);
 }
 
@@ -869,14 +772,14 @@ export function getLabSpawnRateBonus() {
     const node = NODE_MAP.get(8);
     if (!node) return 1;
     const level = getResearchNodeLevel(node.id);
-    return 1 + (level * 0.1);
+    return 1 + level * 0.1;
 }
 
 export function getLabEacBonus() {
     const node = NODE_MAP.get(9);
     if (!node) return 1;
     const level = getResearchNodeLevel(node.id);
-    return 1 + (level * 0.1);
+    return 1 + level * 0.1;
 }
 
 export function initLabMultipliers() {
@@ -884,28 +787,24 @@ export function initLabMultipliers() {
         const labMult = getLabCoinMultiplier();
         return baseMultiplier.mulDecimal(labMult.toScientific());
     });
-    
     addExternalXpGainMultiplierProvider(({ baseGain }) => {
         const labMult = getLabXpMultiplier();
         return baseGain.mulDecimal(labMult.toScientific());
     });
-
     addExternalSpawnRateMultiplierProvider(() => getLabSpawnRateBonus());
     addExternalEacAmountMultiplierProvider(() => getLabEacBonus());
-    
     addExternalFpMultiplierProvider((mult) => {
         const labMult = getLabFpMultiplier();
         return mult.mulDecimal(labMult.toScientific());
     });
-
     setTsunamiBonusProvider(() => getTsunamiResearchBonus());
-
-    if (typeof window !== 'undefined') {
-        window.addEventListener('lab:node:change', ({ detail }) => {
+    if (typeof window !== "undefined") {
+        window.addEventListener("lab:node:change", ({ detail }) => {
             if (detail && detail.id === 8) {
                 triggerUpgradesChanged();
             }
         });
     }
 }
-window.RESEARCH_NODES = RESEARCH_NODES; window.isResearchNodeVisible = isResearchNodeVisible;
+window.RESEARCH_NODES = RESEARCH_NODES;
+window.isResearchNodeVisible = isResearchNodeVisible;
