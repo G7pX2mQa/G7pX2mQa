@@ -1,16 +1,15 @@
+import { lsSetItem, lsRemoveItem } from '../main.js';
 import { getActiveSlot } from '../util/storage.js';
 import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from '../ui/merchantTabs/resetTab.js';
 import { isLabUnlocked, getMapSequenceSeen } from './surgeEffects.js';
 import { hasDoneExperimentReset } from '../ui/merchantTabs/resetTab.js';
 import { hasEvolvedAnyUpgrade } from './upgrades.js';
 import { showNotification } from '../ui/notifications.js';
-
 export const ACHIEVEMENT_STATES = {
     NOT_OWNED: 0,
     PENDING_CLAIM: 1,
     ACHIEVED: 2
 };
-
 const _rawAchievements = [
     {
         id: 1,
@@ -99,19 +98,15 @@ const _rawAchievements = [
         }
     }
 ];
-
 export const ACHIEVEMENTS = _rawAchievements.map((ach, index) => {
     return {
         ...ach,
         rewardAmount: Math.floor(100 * Math.pow(1.2, index))
     };
 });
-
 const ACHIEVEMENT_STATE_KEY_BASE = 'ccc:achievements:state';
 const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
-
 const achievementStateCache = new Map();
-
 function isMapNodeUnlocked(id, defaultLocked = true, slot = getActiveSlot()) {
     if (slot == null || typeof localStorage === 'undefined') return !defaultLocked;
     try {
@@ -120,13 +115,11 @@ function isMapNodeUnlocked(id, defaultLocked = true, slot = getActiveSlot()) {
     } catch {}
     return !defaultLocked;
 }
-
 function ensureAchievementState(slot = getActiveSlot()) {
     const slotKey = String(slot ?? 'default');
     if (achievementStateCache.has(slotKey)) {
         return achievementStateCache.get(slotKey);
     }
-
     let parsed = {};
     if (typeof localStorage !== 'undefined') {
         try {
@@ -139,11 +132,9 @@ function ensureAchievementState(slot = getActiveSlot()) {
             }
         } catch {}
     }
-
     achievementStateCache.set(slotKey, parsed);
     return parsed;
 }
-
 function saveAchievementState(state, slot = getActiveSlot()) {
     const slotKey = String(slot ?? 'default');
     if (!state || typeof state !== 'object') {
@@ -152,25 +143,21 @@ function saveAchievementState(state, slot = getActiveSlot()) {
     achievementStateCache.set(slotKey, state);
     if (typeof localStorage === 'undefined') return;
     try {
-        localStorage.setItem(`${ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+        lsSetItem(`${ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`, JSON.stringify(state));
     } catch {}
 }
-
 export function getAchievementState(id, slot = getActiveSlot()) {
     const state = ensureAchievementState(slot);
     return state[id] ?? ACHIEVEMENT_STATES.NOT_OWNED;
 }
-
 export function setAchievementState(id, newState, slot = getActiveSlot()) {
     const state = ensureAchievementState(slot);
     state[id] = newState;
     saveAchievementState(state, slot);
-    
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('achievements:updated', { detail: { id, state: newState, slot } }));
     }
 }
-
 export function checkAchievements(slot = getActiveSlot()) {
     if (slot == null) return false;
     let changed = false;
@@ -191,7 +178,6 @@ export function checkAchievements(slot = getActiveSlot()) {
     }
     return changed;
 }
-
 export function showDelayedAchievementNotifications() {
     if (typeof window === 'undefined') return;
     if (window.__delayedAchievementNotifications && window.__delayedAchievementNotifications.length > 0) {
@@ -201,7 +187,6 @@ export function showDelayedAchievementNotifications() {
         window.__delayedAchievementNotifications = [];
     }
 }
-
 if (typeof window !== 'undefined') {
     window.addEventListener('forge:completed', () => checkAchievements());
     window.addEventListener('unlock:change', () => checkAchievements());
