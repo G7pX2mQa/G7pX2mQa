@@ -1,136 +1,137 @@
 // js/ui/shopOverlay.js
-
-import { bank, getActiveSlot } from '../util/storage.js';
-import { BigNum } from '../util/bigNum.js';
-import { formatNumber } from '../util/numFormat.js';
-import { FONT_MAP } from '../main.js';
-import { IS_MOBILE } from '../util/platformChecker.js';
-import { openMerchant,
+import { lsSetItem, lsRemoveItem } from "../main.js";
+import { bank, getActiveSlot } from "../util/storage.js";
+import { BigNum } from "../util/bigNum.js";
+import { formatNumber } from "../util/numFormat.js";
+import { FONT_MAP } from "../main.js";
+import { IS_MOBILE } from "../util/platformChecker.js";
+import {
+    openMerchant,
     unlockMerchantTabs,
     hasMetMerchant,
     MERCHANT_MET_EVENT,
-    runPostTsunamiShopDialogue
-} from './merchantTabs/dlgTab.js';
-import { openMiner, hasMetMiner, MINER_MET_EVENT } from './minerTabs/dlgTab.js';
-import { primeTypingSfx } from './delveCore.js';
-import { playAudio } from '../util/audioManager.js';
-import { settingsManager } from '../game/settingsManager.js';
+    runPostTsunamiShopDialogue,
+} from "./merchantTabs/dlgTab.js";
+import { openMiner, hasMetMiner, MINER_MET_EVENT } from "./minerTabs/dlgTab.js";
+import { primeTypingSfx } from "./delveCore.js";
+import { playAudio } from "../util/audioManager.js";
+import { settingsManager } from "../game/settingsManager.js";
 import {
-  AREA_KEYS,
-  UPGRADE_TIES,
-  getCurrentAreaKey,
-  getUpgradesForArea,
-  getLevel,
-  getLevelNumber,
-  getIconUrl,
-  normalizeUpgradeIconPath,
-  formatMultForUi,
-  upgradeUiModel,
-  buyOne,
-  buyMax,
-  buyCheap,
-  buyTowards,
-  evaluateBulkPurchase,
-  getUpgradeLockState,
-  evolveUpgrade,
-  HM_EVOLUTION_INTERVAL,
-  isHmReadyToEvolve,
-  getHmEvolutions,
-} from '../game/upgrades.js';
+    AREA_KEYS,
+    UPGRADE_TIES,
+    getCurrentAreaKey,
+    getUpgradesForArea,
+    getLevel,
+    getLevelNumber,
+    getIconUrl,
+    normalizeUpgradeIconPath,
+    formatMultForUi,
+    upgradeUiModel,
+    buyOne,
+    buyMax,
+    buyCheap,
+    buyTowards,
+    evaluateBulkPurchase,
+    getUpgradeLockState,
+    evolveUpgrade,
+    HM_EVOLUTION_INTERVAL,
+    isHmReadyToEvolve,
+    getHmEvolutions,
+} from "../game/upgrades.js";
+import { shouldSkipGhostTap, suppressNextGhostTap } from "../util/ghostTapGuard.js";
 import {
-  shouldSkipGhostTap,
-  suppressNextGhostTap,
-} from '../util/ghostTapGuard.js';
-import { 
-  AUTOMATION_AREA_KEY, 
-  AUTOBUY_WORKSHOP_LEVELS_ID,
-  AUTOBUY_EVOLVE_UPGRADES_ID,
-  MASTER_AUTOBUY_IDS
-} from '../game/automationUpgrades.js';
-import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
-import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
-import { setHtmlOrText } from '../util/uiHelpers.js';
-import { parseBigNumInput } from '../util/debugPanel.js';
-import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
-
+    AUTOMATION_AREA_KEY,
+    AUTOBUY_WORKSHOP_LEVELS_ID,
+    AUTOBUY_EVOLVE_UPGRADES_ID,
+    MASTER_AUTOBUY_IDS,
+} from "../game/automationUpgrades.js";
+import {
+    getAutobuyerToggle,
+    setAutobuyerToggle,
+    setAllAutobuyersForCostType,
+    getCollectiveAutobuyerState,
+} from "../game/automationEffects.js";
+import { DNA_AREA_KEY } from "../game/dnaUpgrades.js";
+import { setHtmlOrText } from "../util/uiHelpers.js";
+import { parseBigNumInput } from "../util/debugPanel.js";
+import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 // --- Shared State ---
 const scrollingElements = new Set();
-export function isAnyMenuScrolling() { return scrollingElements.size > 0; }
+export function isAnyMenuScrolling() {
+    return scrollingElements.size > 0;
+}
 
 const BASE_ICON_SRC_BY_COST = {
-  coins: 'img/currencies/coin/coin_base.webp',
-  books: 'img/currencies/book/book_base.webp',
-  gold: 'img/currencies/gold/gold_base.webp',
-  magic: 'img/currencies/magic/magic_base.webp',
-  gears: 'img/currencies/gear/gear_base.webp',
-  dna: 'img/currencies/dna/dna_base.webp',
-  scrap: 'img/currencies/scrap/scrap_base.webp',
+    coins: "img/currencies/coin/coin_base.webp",
+    books: "img/currencies/book/book_base.webp",
+    gold: "img/currencies/gold/gold_base.webp",
+    magic: "img/currencies/magic/magic_base.webp",
+    gears: "img/currencies/gear/gear_base.webp",
+    dna: "img/currencies/dna/dna_base.webp",
+    scrap: "img/currencies/scrap/scrap_base.webp",
 };
-const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
-const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
-const AUTOMATED_OVERLAY_SRC = 'img/misc/green_border.webp';
-const EVOLVE_READY_OVERLAY_SRC = 'img/misc/evolve_ready.webp';
+
+const LOCKED_BASE_ICON_SRC = "img/misc/locked_base.webp";
+const MAXED_BASE_OVERLAY_SRC = "img/misc/maxed.webp";
+const AUTOMATED_OVERLAY_SRC = "img/misc/green_border.webp";
+const EVOLVE_READY_OVERLAY_SRC = "img/misc/evolve_ready.webp";
 const CURRENCY_ICON_SRC = {
-  coins: 'img/currencies/coin/coin.webp',
-  books: 'img/currencies/book/book.webp',
-  gold: 'img/currencies/gold/gold.webp',
-  magic: 'img/currencies/magic/magic.webp',
-  gears: 'img/currencies/gear/gear.webp',
-  dna: 'img/currencies/dna/dna.webp',
-  scrap: 'img/currencies/scrap/scrap.webp',
-  rainbowGems: 'img/currencies/rainbow_gem.webp',
+    coins: "img/currencies/coin/coin.webp",
+    books: "img/currencies/book/book.webp",
+    gold: "img/currencies/gold/gold.webp",
+    magic: "img/currencies/magic/magic.webp",
+    gears: "img/currencies/gear/gear.webp",
+    dna: "img/currencies/dna/dna.webp",
+    scrap: "img/currencies/scrap/scrap.webp",
+    rainbowGems: "img/currencies/rainbow_gem.webp",
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
-
 // --- Automation Mappings ---
 // Maps standard cost types to the ID of the automation upgrade that unlocks autobuy for them.
 const COST_TYPE_TO_AUTOBUY_ID = {};
 for (const [autoId, costType] of Object.entries(MASTER_AUTOBUY_IDS)) {
-  COST_TYPE_TO_AUTOBUY_ID[costType] = Number(autoId);
+    COST_TYPE_TO_AUTOBUY_ID[costType] = Number(autoId);
 }
 
 function isUpgradeAutomated(upgDef) {
     if (!upgDef || !upgDef.costType) return false;
     const autoId = COST_TYPE_TO_AUTOBUY_ID[upgDef.costType];
     if (!autoId) return false;
-    
     // Check if player has the automation upgrade
     const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, autoId);
     if (autoLevel <= 0) return false;
-    
     // Check toggle
     const val = getAutobuyerToggle(upgDef.area, upgDef.id);
-    
     // Default is ON (if not '0')
-    return val !== '0';
+    return val !== "0";
 }
 
-
-
 function resolveUpgradeId(upgLike) {
-  if (!upgLike) return null;
-  const rawId = typeof upgLike.id !== 'undefined' ? upgLike.id : upgLike;
-  if (typeof rawId === 'number') {
-    return Number.isFinite(rawId) ? Math.trunc(rawId) : null;
-  }
-  if (typeof rawId === 'string') {
-    const parsed = Number.parseInt(rawId.trim(), 10);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
+    if (!upgLike) return null;
+    const rawId = typeof upgLike.id !== "undefined" ? upgLike.id : upgLike;
+    if (typeof rawId === "number") {
+        return Number.isFinite(rawId) ? Math.trunc(rawId) : null;
+    }
+    if (typeof rawId === "string") {
+        const parsed = Number.parseInt(rawId.trim(), 10);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
 }
 
 function isBuyCheapExcluded(upgDef) {
     if (!upgDef) return false;
     const upgId = resolveUpgradeId(upgDef);
-    return (upgDef.area === 'starter_cove' && [1, 3, 4, 5, 6].includes(upgId)) ||
-           (upgDef.area === 'underwater_cavern' && [5, 9].includes(upgId)) ||
-           (upgDef.area === 'automation' && [1, 10, 11, 12].includes(upgId));
+    return (
+        (upgDef.area === "starter_cove" && [1, 3, 4, 5, 6].includes(upgId)) ||
+        (upgDef.area === "underwater_cavern" && [5, 9].includes(upgId)) ||
+        (upgDef.area === "automation" && [1, 10, 11, 12].includes(upgId))
+    );
 }
 
 function isForgeUnlockUpgrade(upgLike, mode) {
-  return mode === 'standard' && resolveUpgradeId(upgLike) === FORGE_UNLOCK_UPGRADE_ID;
+    return mode === "standard" && resolveUpgradeId(upgLike) === FORGE_UNLOCK_UPGRADE_ID;
 }
 
 function getShopUiData(areaKey) {
@@ -144,9 +145,7 @@ function getShopUiData(areaKey) {
         const title = lockState.titleOverride ?? def.title;
         const desc = lockState.descOverride ?? def.desc;
         const locked = !!lockState.locked;
-        const hmReady = (def.upgType === 'HM')
-            ? isHmReadyToEvolve(def, lvlBn, getHmEvolutions(areaKey, def.id))
-            : false;
+        const hmReady = def.upgType === "HM" ? isHmReadyToEvolve(def, lvlBn, getHmEvolutions(areaKey, def.id)) : false;
         upgrades[def.id] = {
             id: def.id,
             icon,
@@ -168,7 +167,7 @@ function getShopUiData(areaKey) {
 
 const SHOP_ADAPTERS = {
     standard: {
-        title: 'Shop',
+        title: "Shop",
         delveButtonVisible: true,
         getUiData: () => getShopUiData(getCurrentAreaKey()),
         getUiModel: (id) => upgradeUiModel(getCurrentAreaKey(), id),
@@ -178,10 +177,19 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(getCurrentAreaKey(), id, amount),
         getLockState: (id) => getUpgradeLockState(getCurrentAreaKey(), id),
         evolve: (id) => evolveUpgrade(getCurrentAreaKey(), id),
-        events: ['ccc:upgrades:changed', 'currency:change', 'xp:change', 'xp:unlock', MERCHANT_MET_EVENT, MINER_MET_EVENT, 'forge:completed', 'unlock:change']
+        events: [
+            "ccc:upgrades:changed",
+            "currency:change",
+            "xp:change",
+            "xp:unlock",
+            MERCHANT_MET_EVENT,
+            MINER_MET_EVENT,
+            "forge:completed",
+            "unlock:change",
+        ],
     },
     automation: {
-        title: 'Automation Shop',
+        title: "Automation Shop",
         delveButtonVisible: false,
         getUiData: () => getShopUiData(AUTOMATION_AREA_KEY),
         getUiModel: (id) => upgradeUiModel(AUTOMATION_AREA_KEY, id),
@@ -191,10 +199,10 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(AUTOMATION_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(AUTOMATION_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
-        events: ['ccc:upgrades:changed', 'currency:change']
+        events: ["ccc:upgrades:changed", "currency:change"],
     },
     dna: {
-        title: 'DNA Upgrades',
+        title: "DNA Upgrades",
         delveButtonVisible: false,
         getUiData: () => getShopUiData(DNA_AREA_KEY),
         getUiModel: (id) => upgradeUiModel(DNA_AREA_KEY, id),
@@ -204,497 +212,496 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
         evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
-        events: ['ccc:upgrades:changed', 'currency:change']
+        events: ["ccc:upgrades:changed", "currency:change"],
     },
     rainbow_gem_shop: {
-        title: 'Rainbow Gem Shop',
+        title: "Rainbow Gem Shop",
         delveButtonVisible: false,
-        getUiData: () => getShopUiData('rainbow_gem_shop'),
-        getUiModel: (id) => upgradeUiModel('rainbow_gem_shop', id),
-        buyOne: (id) => buyOne('rainbow_gem_shop', id),
-        buyMax: (id) => buyMax('rainbow_gem_shop', id),
-        buyCheap: (id) => buyCheap('rainbow_gem_shop', id),
-        buyNext: (id, amount) => buyTowards('rainbow_gem_shop', id, amount),
-        getLockState: (id) => getUpgradeLockState('rainbow_gem_shop', id),
-        evolve: (id) => evolveUpgrade('rainbow_gem_shop', id),
-        events: ['ccc:upgrades:changed', 'currency:change']
-    }
+        getUiData: () => getShopUiData("rainbow_gem_shop"),
+        getUiModel: (id) => upgradeUiModel("rainbow_gem_shop", id),
+        buyOne: (id) => buyOne("rainbow_gem_shop", id),
+        buyMax: (id) => buyMax("rainbow_gem_shop", id),
+        buyCheap: (id) => buyCheap("rainbow_gem_shop", id),
+        buyNext: (id, amount) => buyTowards("rainbow_gem_shop", id, amount),
+        getLockState: (id) => getUpgradeLockState("rainbow_gem_shop", id),
+        evolve: (id) => evolveUpgrade("rainbow_gem_shop", id),
+        events: ["ccc:upgrades:changed", "currency:change"],
+    },
 };
 
 function getAdapter(mode) {
     return SHOP_ADAPTERS[mode] || SHOP_ADAPTERS.standard;
 }
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('debug:change', (e) => {
-    const activeSlot = typeof getActiveSlot === 'function' ? getActiveSlot() : null;
-    const targetSlot = e?.detail?.slot ?? activeSlot;
-    if (activeSlot != null && targetSlot != null && activeSlot !== targetSlot) return;
-    updateShopOverlay(true);
-  });
+if (typeof window !== "undefined") {
+    window.addEventListener("debug:change", (e) => {
+        const activeSlot = typeof getActiveSlot === "function" ? getActiveSlot() : null;
+        const targetSlot = e?.detail?.slot ?? activeSlot;
+        if (activeSlot != null && targetSlot != null && activeSlot !== targetSlot) return;
+        updateShopOverlay(true);
+    });
 }
-
 // --- Utils ---
 export function blockInteraction(ms = 140) {
-  if (!IS_MOBILE) return;
-
-  let shield = document.getElementById('ccc-tap-shield');
-  if (!shield) {
-    shield = document.createElement('div');
-    shield.id = 'ccc-tap-shield';
-    Object.assign(shield.style, {
-      position: 'fixed', inset: '0', zIndex: '2147483647',
-      pointerEvents: 'auto', background: 'transparent'
-    });
-    const eat = (e) => { e.stopPropagation(); e.preventDefault(); };
-    ['pointerdown','pointerup','click','touchstart','touchend','mousedown','mouseup']
-      .forEach(ev => shield.addEventListener(ev, eat, { capture: true, passive: false }));
-  }
-  document.body.appendChild(shield);
-  clearTimeout(shield.__t);
-  shield.__t = setTimeout(() => shield.remove(), ms);
+    if (!IS_MOBILE) return;
+    let shield = document.getElementById("ccc-tap-shield");
+    if (!shield) {
+        shield = document.createElement("div");
+        shield.id = "ccc-tap-shield";
+        Object.assign(shield.style, {
+            position: "fixed",
+            inset: "0",
+            zIndex: "2147483647",
+            pointerEvents: "auto",
+            background: "transparent",
+        });
+        const eat = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        };
+        ["pointerdown", "pointerup", "click", "touchstart", "touchend", "mousedown", "mouseup"].forEach((ev) =>
+            shield.addEventListener(ev, eat, { capture: true, passive: false }),
+        );
+    }
+    document.body.appendChild(shield);
+    clearTimeout(shield.__t);
+    shield.__t = setTimeout(() => shield.remove(), ms);
 }
 
 function stripTags(html) {
-  return String(html ?? '').replace(/<[^>]*>/g, '');
+    return String(html ?? "").replace(/<[^>]*>/g, "");
 }
 
 export function getCurrencyLabel(type, amountBn) {
-  let isOne = false;
-  if (amountBn && typeof amountBn.cmp === 'function') {
-      isOne = !amountBn.isInfinite() && amountBn.cmp(1) === 0;
-  } else {
-      try {
-          const bn = BigNum.fromAny(amountBn);
-          isOne = !bn.isInfinite() && bn.cmp(1) === 0;
-      } catch {
-          isOne = (amountBn == 1 || amountBn === '1');
-      }
-  }
+    let isOne = false;
+    if (amountBn && typeof amountBn.cmp === "function") {
+        isOne = !amountBn.isInfinite() && amountBn.cmp(1) === 0;
+    } else {
+        try {
+            const bn = BigNum.fromAny(amountBn);
+            isOne = !bn.isInfinite() && bn.cmp(1) === 0;
+        } catch {
+            isOne = amountBn == 1 || amountBn === "1";
+        }
+    }
 
-  const resource = RESOURCE_REGISTRY.find(r => r.key === type);
-  if (resource) {
-      return isOne ? resource.singular : resource.plural;
-  }
-  
-  return type ? (type.charAt(0).toUpperCase() + type.slice(1)) : '';
+    const resource = RESOURCE_REGISTRY.find((r) => r.key === type);
+    if (resource) {
+        return isOne ? resource.singular : resource.plural;
+    }
+    return type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
 }
-
 // --- Audio ---
-const PURCHASE_SFX_SRC = 'sounds/purchase_upg.ogg';
-const EVOLVE_SFX_SRC = 'sounds/evolve_upg.ogg';
+const PURCHASE_SFX_SRC = "sounds/purchase_upg.ogg";
+const EVOLVE_SFX_SRC = "sounds/evolve_upg.ogg";
 const MOBILE_PURCHASE_VOLUME = 0.12;
 const DESKTOP_PURCHASE_VOLUME = 0.3;
-
-export function playPurchaseSfx() { 
+export function playPurchaseSfx() {
     const vol = IS_MOBILE ? MOBILE_PURCHASE_VOLUME : DESKTOP_PURCHASE_VOLUME;
     playAudio(PURCHASE_SFX_SRC, { volume: vol });
 }
 
-function playEvolveSfx() { 
-    const vol = IS_MOBILE ? (MOBILE_PURCHASE_VOLUME * 2) : (DESKTOP_PURCHASE_VOLUME * 2);
+function playEvolveSfx() {
+    const vol = IS_MOBILE ? MOBILE_PURCHASE_VOLUME * 2 : DESKTOP_PURCHASE_VOLUME * 2;
     playAudio(EVOLVE_SFX_SRC, { volume: vol });
 }
-
 // Deprecated: createSfxPlayer is no longer used, but kept as a no-op if other modules import it (none currently).
-export function createSfxPlayer() { return { play() {} }; }
-
-function currencyIconHTML(type) {
-  const src = CURRENCY_ICON_SRC[type] || CURRENCY_ICON_SRC.coins;
-  const extraStyle = (IS_MOBILE && type === 'rainbowGems') ? ' style="transform: translateY(-0.5px);"' : '';
-  return `<img alt="" src="${src}" class="currency-ico"${extraStyle}>`;
+export function createSfxPlayer() {
+    return { play() {} };
 }
 
+function currencyIconHTML(type) {
+    const src = CURRENCY_ICON_SRC[type] || CURRENCY_ICON_SRC.coins;
+    const extraStyle = IS_MOBILE && type === "rainbowGems" ? ' style="transform: translateY(-0.5px);"' : "";
+    return `<img alt="" src="${src}" class="currency-ico"${extraStyle}>`;
+}
 // 1×1 transparent WebP
 const TRANSPARENT_PX = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4IBgAAAAwAQCdASoIAAIAAAAcJaQAA3AA";
-
 // --- Custom Scrollbar ---
-const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
+const SCROLL_TIMELINE_STYLES_ID = "ccc-scroll-timeline-styles";
 function injectScrollTimelineStyles() {
-  if (document.getElementById(SCROLL_TIMELINE_STYLES_ID)) return;
-  const style = document.createElement('style');
-  style.id = SCROLL_TIMELINE_STYLES_ID;
-  style.textContent = `
+    if (document.getElementById(SCROLL_TIMELINE_STYLES_ID)) return;
+    const style = document.createElement("style");
+    style.id = SCROLL_TIMELINE_STYLES_ID;
+    style.textContent = `
     @keyframes scroll-thumb-move {
       0% { transform: translate(0, 0); }
       100% { transform: translate(var(--thumb-x, 0), var(--thumb-y, 0)); }
     }
   `;
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 }
 
-export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.shop-scroller', options = {}) {
-  const { orientation = 'vertical' } = options;
-  const isVertical = orientation === 'vertical';
-
-  const scroller = overlayEl?.querySelector(scrollerSelector);
-  if (!scroller || scroller.__customScroll) return;
-
-  const bar = document.createElement('div');
-  bar.className = `shop-scrollbar${isVertical ? '' : ' is-horizontal'}`;
-  const thumb = document.createElement('div');
-  thumb.className = 'shop-scrollbar__thumb';
-  bar.appendChild(thumb);
-  sheetEl.appendChild(bar);
-
-  scroller.__customScroll = { bar, thumb };
-
-  const FADE_SCROLL_MS = 150;
-  const FADE_DRAG_MS = 120;
-  const supportsScrollEnd = 'onscrollend' in window;
-
-  // --- Scroll-Driven Animation Support Check ---
-  const supportsTimelineScope = CSS.supports('timeline-scope', 'none');
-  const useCssTimeline = supportsTimelineScope && CSS.supports('animation-timeline', 'scroll()');
-
-  if (useCssTimeline) {
-    injectScrollTimelineStyles();
-    const uniqueId = Math.random().toString(36).slice(2, 8);
-    const timelineName = `--custom-scroll-${uniqueId}`;
-    
-    sheetEl.style.timelineScope = timelineName;
-    scroller.style.scrollTimelineName = timelineName;
-    scroller.style.scrollTimelineAxis = isVertical ? 'block' : 'inline';
-    
-    thumb.style.animationName = 'scroll-thumb-move';
-    thumb.style.animationTimeline = timelineName;
-    thumb.style.animationDuration = '1ms'; // Required syntax, though driven by timeline
-    thumb.style.animationTimingFunction = 'linear';
-    thumb.style.animationFillMode = 'both';
-  }
-
-  // --- Cached Metrics to Avoid Layout Thrashing ---
-  let cachedMetrics = {
-    scrollSize: 0,
-    clientSize: 0,
-    barSize: 0,
-    thumbSize: 0,
-    maxScroll: 1,
-    range: 0,
-    visibleRatio: 1
-  };
-
-  let lastShadow = null;
-  
-  // rAF loop state
-  let scrollTimeout = null;
-
-  const updateBounds = () => {
-    if (!scroller.isConnected || !sheetEl.isConnected) return;
-    const scrollerRect = scroller.getBoundingClientRect();
-    const sheetRect = sheetEl.getBoundingClientRect();
-    
-    if (isVertical) {
-      const top = Math.max(0, scrollerRect.top - sheetRect.top);
-      const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
-      bar.style.top = top + 'px';
-      bar.style.bottom = bottom + 'px';
-      bar.style.left = ''; bar.style.right = ''; 
-    } else {
-      const left = Math.max(0, scrollerRect.left - sheetRect.left);
-      const right = Math.max(0, sheetRect.right - scrollerRect.right);
-      bar.style.left = left + 'px';
-      bar.style.right = right + 'px';
-      bar.style.top = ''; bar.style.bottom = '';
-      bar.style.height = '';
-    }
-  };
-
-  const updateMetrics = () => {
-    const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
-    const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
-    // Use clientSize as barSize fallback, assuming bar matches scroller dim
-    const barSize = isVertical ? (bar.clientHeight || clientSize) : (bar.clientWidth || clientSize);
-    
-    const visibleRatio = clientSize / Math.max(1, scrollSize);
-    const thumbSize = Math.max(28, Math.round(barSize * visibleRatio));
-    const maxScroll = Math.max(1, scrollSize - clientSize);
-    const range = Math.max(0, barSize - thumbSize);
-
-    cachedMetrics = { scrollSize, clientSize, barSize, thumbSize, maxScroll, range, visibleRatio };
-    
-    if (isVertical) {
-      thumb.style.height = thumbSize + 'px';
-      thumb.style.width = '100%';
-    } else {
-      thumb.style.width = thumbSize + 'px';
-      thumb.style.height = '100%';
-    }
-
+export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".shop-scroller", options = {}) {
+    const { orientation = "vertical" } = options;
+    const isVertical = orientation === "vertical";
+    const scroller = overlayEl?.querySelector(scrollerSelector);
+    if (!scroller || scroller.__customScroll) return;
+    const bar = document.createElement("div");
+    bar.className = `shop-scrollbar${isVertical ? "" : " is-horizontal"}`;
+    const thumb = document.createElement("div");
+    thumb.className = "shop-scrollbar__thumb";
+    bar.appendChild(thumb);
+    sheetEl.appendChild(bar);
+    scroller.__customScroll = { bar, thumb };
+    const FADE_SCROLL_MS = 150;
+    const FADE_DRAG_MS = 120;
+    const supportsScrollEnd = "onscrollend" in window;
+    // --- Scroll-Driven Animation Support Check ---
+    const supportsTimelineScope = CSS.supports("timeline-scope", "none");
+    const useCssTimeline = supportsTimelineScope && CSS.supports("animation-timeline", "scroll()");
     if (useCssTimeline) {
-      if (isVertical) {
-        thumb.style.setProperty('--thumb-y', `${range}px`);
-        thumb.style.setProperty('--thumb-x', '0px');
-      } else {
-        thumb.style.setProperty('--thumb-x', `${range}px`);
-        thumb.style.setProperty('--thumb-y', '0px');
-      }
+        injectScrollTimelineStyles();
+        const uniqueId = Math.random().toString(36).slice(2, 8);
+        const timelineName = `--custom-scroll-${uniqueId}`;
+        sheetEl.style.timelineScope = timelineName;
+        scroller.style.scrollTimelineName = timelineName;
+        scroller.style.scrollTimelineAxis = isVertical ? "block" : "inline";
+        thumb.style.animationName = "scroll-thumb-move";
+        thumb.style.animationTimeline = timelineName;
+        thumb.style.animationDuration = "1ms"; // Required syntax, though driven by timeline
+        thumb.style.animationTimingFunction = "linear";
+        thumb.style.animationFillMode = "both";
     }
+    // --- Cached Metrics to Avoid Layout Thrashing ---
+    let cachedMetrics = {
+        scrollSize: 0,
+        clientSize: 0,
+        barSize: 0,
+        thumbSize: 0,
+        maxScroll: 1,
+        range: 0,
+        visibleRatio: 1,
+    };
 
-    const hasOverflow = (scrollSize > clientSize + 1);
-    bar.style.display = hasOverflow ? '' : 'none';
-    sheetEl?.classList.toggle('has-active-scrollbar', hasOverflow);
-    
-    // Force immediate visual update on metric change
-    performScrollUpdate(); 
-  };
-
-  const performScrollUpdate = () => {
-    const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
-    
-    // 1. Shadow
-    const hasShadow = (scrollPos || 0) > 0;
-    if (lastShadow !== hasShadow) {
-      lastShadow = hasShadow;
-      sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
-    }
-
-    // 2. Thumb Position (if not using CSS Timeline)
-    if (!useCssTimeline) {
-        const { maxScroll, range } = cachedMetrics;
-        const rawPos = (scrollPos / maxScroll) * range;
-        const pos = IS_MOBILE ? rawPos : Math.round(rawPos);
+    let lastShadow = null;
+    // rAF loop state
+    let scrollTimeout = null;
+    const updateBounds = () => {
+        if (!scroller.isConnected || !sheetEl.isConnected) return;
+        const scrollerRect = scroller.getBoundingClientRect();
+        const sheetRect = sheetEl.getBoundingClientRect();
         if (isVertical) {
-          thumb.style.transform = `translateY(${pos}px)`;
+            const top = Math.max(0, scrollerRect.top - sheetRect.top);
+            const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
+            bar.style.top = top + "px";
+            bar.style.bottom = bottom + "px";
+            bar.style.left = "";
+            bar.style.right = "";
         } else {
-          thumb.style.transform = `translateX(${pos}px)`;
+            const left = Math.max(0, scrollerRect.left - sheetRect.left);
+            const right = Math.max(0, sheetRect.right - scrollerRect.right);
+            bar.style.left = left + "px";
+            bar.style.right = right + "px";
+            bar.style.top = "";
+            bar.style.bottom = "";
+            bar.style.height = "";
         }
+    };
+
+    const updateMetrics = () => {
+        const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
+        const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
+        // Use clientSize as barSize fallback, assuming bar matches scroller dim
+        const barSize = isVertical ? bar.clientHeight || clientSize : bar.clientWidth || clientSize;
+        const visibleRatio = clientSize / Math.max(1, scrollSize);
+        const thumbSize = Math.max(28, Math.round(barSize * visibleRatio));
+        const maxScroll = Math.max(1, scrollSize - clientSize);
+        const range = Math.max(0, barSize - thumbSize);
+        cachedMetrics = { scrollSize, clientSize, barSize, thumbSize, maxScroll, range, visibleRatio };
+        if (isVertical) {
+            thumb.style.height = thumbSize + "px";
+            thumb.style.width = "100%";
+        } else {
+            thumb.style.width = thumbSize + "px";
+            thumb.style.height = "100%";
+        }
+        if (useCssTimeline) {
+            if (isVertical) {
+                thumb.style.setProperty("--thumb-y", `${range}px`);
+                thumb.style.setProperty("--thumb-x", "0px");
+            } else {
+                thumb.style.setProperty("--thumb-x", `${range}px`);
+                thumb.style.setProperty("--thumb-y", "0px");
+            }
+        }
+
+        const hasOverflow = scrollSize > clientSize + 1;
+        bar.style.display = hasOverflow ? "" : "none";
+        sheetEl?.classList.toggle("has-active-scrollbar", hasOverflow);
+        // Force immediate visual update on metric change
+        performScrollUpdate();
+    };
+
+    const performScrollUpdate = () => {
+        const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+        // 1. Shadow
+        const hasShadow = (scrollPos || 0) > 0;
+        if (lastShadow !== hasShadow) {
+            lastShadow = hasShadow;
+            sheetEl?.classList.toggle("has-scroll-shadow", hasShadow);
+        }
+        // 2. Thumb Position (if not using CSS Timeline)
+        if (!useCssTimeline) {
+            const { maxScroll, range } = cachedMetrics;
+            const rawPos = (scrollPos / maxScroll) * range;
+            const pos = IS_MOBILE ? rawPos : Math.round(rawPos);
+            if (isVertical) {
+                thumb.style.transform = `translateY(${pos}px)`;
+            } else {
+                thumb.style.transform = `translateX(${pos}px)`;
+            }
+        }
+    };
+
+    const updateAll = () => {
+        updateBounds();
+        updateMetrics();
+    };
+    if (scroller.__customScroll) scroller.__customScroll.update = updateAll;
+    // Debounce for mutation observer to prevent layout thrashing on frequent updates
+    let debounceTimer;
+    const debouncedUpdateAll = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(updateAll, 100);
+    };
+    if (typeof MutationObserver !== "undefined") {
+        const obs = new MutationObserver(() => debouncedUpdateAll());
+        obs.observe(scroller, { childList: true, subtree: true, characterData: true });
     }
-    
-  };
+    // Drag logic
+    let dragging = false;
+    let dragStartPos = 0;
+    let startScrollPos = 0;
+    const showBar = () => {
+        if (!IS_MOBILE) return;
+        sheetEl.classList.add("is-scrolling");
+        clearTimeout(scroller.__fadeTimer);
+    };
 
-  const updateAll = () => { updateBounds(); updateMetrics(); };
-  if (scroller.__customScroll) scroller.__customScroll.update = updateAll;
+    const scheduleHide = (delay) => {
+        if (!IS_MOBILE || dragging) return;
+        clearTimeout(scroller.__fadeTimer);
+        scroller.__fadeTimer = setTimeout(() => {
+            sheetEl.classList.remove("is-scrolling");
+        }, delay);
+    };
 
-  // Debounce for mutation observer to prevent layout thrashing on frequent updates
-  let debounceTimer;
-  const debouncedUpdateAll = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(updateAll, 100);
-  };
+    const onScroll = () => {
+        if (!scrollingElements.has(scroller)) {
+            scrollingElements.add(scroller);
+        }
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            if (scrollingElements.has(scroller)) {
+                scrollingElements.delete(scroller);
+                window.dispatchEvent(new CustomEvent("menu:scrollStop"));
+            }
+        }, 150);
+        if (IS_MOBILE) showBar();
+        performScrollUpdate();
+        scheduleHide(FADE_SCROLL_MS);
+    };
 
-  if (typeof MutationObserver !== 'undefined') {
-      const obs = new MutationObserver(() => debouncedUpdateAll());
-      obs.observe(scroller, { childList: true, subtree: true, characterData: true });
-  }
+    const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    if (supportsScrollEnd) scroller.addEventListener("scrollend", onScrollEnd, { passive: true });
+    const ro = new ResizeObserver(() => {
+        updateAll();
+    });
+    ro.observe(scroller);
+    window.addEventListener("resize", updateAll);
+    requestAnimationFrame(updateAll); // Initial kick
+    // Drag logic moved up
+    const startDrag = (e) => {
+        dragging = true;
+        dragStartPos = isVertical ? e.clientY : e.clientX;
+        startScrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+        thumb.classList.add("dragging");
+        showBar();
+        try {
+            thumb.setPointerCapture(e.pointerId);
+        } catch {}
+        e.preventDefault();
+    };
 
-  // Drag logic
-  let dragging = false;
-  let dragStartPos = 0;
-  let startScrollPos = 0;
+    const onDragMove = (e) => {
+        if (!dragging) return;
+        const { range, maxScroll } = cachedMetrics;
+        if (range <= 0) return;
+        const currentPos = isVertical ? e.clientY : e.clientX;
+        const delta = currentPos - dragStartPos;
+        const newPos = startScrollPos + (delta / range) * maxScroll;
+        if (isVertical) scroller.scrollTop = newPos;
+        else scroller.scrollLeft = newPos;
+    };
 
-  const showBar = () => { if (!IS_MOBILE) return; sheetEl.classList.add('is-scrolling'); clearTimeout(scroller.__fadeTimer); };
-  const scheduleHide = (delay) => { if (!IS_MOBILE || dragging) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
-  
-  const onScroll = () => { 
-      if (!scrollingElements.has(scroller)) {
-          scrollingElements.add(scroller);
-      }
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-          if (scrollingElements.has(scroller)) {
-              scrollingElements.delete(scroller);
-              window.dispatchEvent(new CustomEvent('menu:scrollStop'));
-          }
-      }, 150);
-
-      if (IS_MOBILE) showBar();
-      performScrollUpdate();
-      scheduleHide(FADE_SCROLL_MS); 
-  };
-  const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
-
-  scroller.addEventListener('scroll', onScroll, { passive: true });
-  if (supportsScrollEnd) scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
-
-  const ro = new ResizeObserver(() => {
-     updateAll(); 
-  });
-  ro.observe(scroller);
-  window.addEventListener('resize', updateAll);
-  requestAnimationFrame(updateAll); // Initial kick
-
-  // Drag logic moved up
-  
-  const startDrag = (e) => { 
-    dragging = true; 
-    dragStartPos = isVertical ? e.clientY : e.clientX; 
-    startScrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft; 
-    thumb.classList.add('dragging'); 
-    showBar(); 
-    try { thumb.setPointerCapture(e.pointerId); } catch {} 
-    e.preventDefault(); 
-  };
-  
-  const onDragMove = (e) => { 
-    if (!dragging) return; 
-    const { range, maxScroll } = cachedMetrics;
-    if (range <= 0) return;
-    
-    const currentPos = isVertical ? e.clientY : e.clientX;
-    const delta = currentPos - dragStartPos; 
-    
-    const newPos = startScrollPos + (delta / range) * maxScroll;
-    if (isVertical) scroller.scrollTop = newPos;
-    else scroller.scrollLeft = newPos;
-  };
-  
-  const endDrag = (e) => { 
-    if (!dragging) return; 
-    dragging = false; 
-    thumb.classList.remove('dragging'); 
-    scheduleHide(FADE_DRAG_MS); 
-    try { thumb.releasePointerCapture(e.pointerId); } catch {} 
-  };
-  
-  thumb.addEventListener('pointerdown', startDrag);
-  window.addEventListener('pointermove', onDragMove, { passive: true });
-  window.addEventListener('pointerup', endDrag);
-  window.addEventListener('pointercancel', endDrag);
-  
-  bar.addEventListener('pointerdown', (e) => { 
-    if (e.target === thumb) return; 
-    const rect = bar.getBoundingClientRect(); 
-    const clickPos = isVertical ? (e.clientY - rect.top) : (e.clientX - rect.left); 
-    const { thumbSize, range, maxScroll } = cachedMetrics;
-    
-    const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range)); 
-    
-    const newScroll = (targetPos / Math.max(1, range)) * maxScroll;
-    if (isVertical) scroller.scrollTop = newScroll;
-    else scroller.scrollLeft = newScroll;
-    
-    showBar(); 
-    scheduleHide(FADE_SCROLL_MS); 
-  });
-
-  updateAll();
+    const endDrag = (e) => {
+        if (!dragging) return;
+        dragging = false;
+        thumb.classList.remove("dragging");
+        scheduleHide(FADE_DRAG_MS);
+        try {
+            thumb.releasePointerCapture(e.pointerId);
+        } catch {}
+    };
+    thumb.addEventListener("pointerdown", startDrag);
+    window.addEventListener("pointermove", onDragMove, { passive: true });
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    bar.addEventListener("pointerdown", (e) => {
+        if (e.target === thumb) return;
+        const rect = bar.getBoundingClientRect();
+        const clickPos = isVertical ? e.clientY - rect.top : e.clientX - rect.left;
+        const { thumbSize, range, maxScroll } = cachedMetrics;
+        const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range));
+        const newScroll = (targetPos / Math.max(1, range)) * maxScroll;
+        if (isVertical) scroller.scrollTop = newScroll;
+        else scroller.scrollLeft = newScroll;
+        showBar();
+        scheduleHide(FADE_SCROLL_MS);
+    });
+    updateAll();
 }
-
 // --- Logic Helpers ---
 const affordableCache = new Map();
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('saveSlot:change', () => affordableCache.clear());
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => affordableCache.clear());
 }
 
 function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
-  if (!upg) return BigNum.fromInt(0);
-  const capBn = upg.lvlCapBn?.clone?.() ?? (Number.isFinite(upg.lvlCap) ? BigNum.fromAny(upg.lvlCap) : null);
-  if (!capBn) return BigNum.fromInt(0);
-  if (capBn.isInfinite?.()) return BigNum.fromAny('Infinity');
-
-  let lvlBn;
-  try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumber ?? 0); } 
-  catch { const fallback = Math.max(0, Math.floor(Number(currentLevelNumber) || 0)); lvlBn = BigNum.fromInt(fallback); }
-  
-  if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
-  try {
-    const capPlain = capBn.inf || capBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : capBn.toPlainIntegerString?.();
-    const lvlPlain = lvlBn.inf || lvlBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : lvlBn.toPlainIntegerString?.();
-    if (capPlain === 'Infinity') return BigNum.fromAny('Infinity');
-    if (capPlain && lvlPlain && capPlain !== 'Infinity' && lvlPlain !== 'Infinity') {
-      const delta = Number(capPlain) - Number(lvlPlain);
-      if (delta > 0) return BigNum.fromAny(delta.toString());
-      return BigNum.fromInt(0);
+    if (!upg) return BigNum.fromInt(0);
+    const capBn = upg.lvlCapBn?.clone?.() ?? (Number.isFinite(upg.lvlCap) ? BigNum.fromAny(upg.lvlCap) : null);
+    if (!capBn) return BigNum.fromInt(0);
+    if (capBn.isInfinite?.()) return BigNum.fromAny("Infinity");
+    let lvlBn;
+    try {
+        lvlBn =
+            currentLevelBn instanceof BigNum
+                ? currentLevelBn
+                : BigNum.fromAny(currentLevelBn ?? currentLevelNumber ?? 0);
+    } catch {
+        const fallback = Math.max(0, Math.floor(Number(currentLevelNumber) || 0));
+        lvlBn = BigNum.fromInt(fallback);
     }
-  } catch {}
-  
-  const capNumber = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap)) : Infinity;
-  if (!Number.isFinite(capNumber)) return BigNum.fromAny('Infinity');
-  const lvlNumber = Math.max(0, Math.floor(Number(currentLevelNumber) || 0));
-  const room = Math.max(0, capNumber - lvlNumber);
-  return BigNum.fromInt(room);
+    if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
+    try {
+        const capPlain = capBn.inf || capBn.e >= BigNum.DEFAULT_PRECISION ? "Infinity" : capBn.toPlainIntegerString?.();
+        const lvlPlain = lvlBn.inf || lvlBn.e >= BigNum.DEFAULT_PRECISION ? "Infinity" : lvlBn.toPlainIntegerString?.();
+        if (capPlain === "Infinity") return BigNum.fromAny("Infinity");
+        if (capPlain && lvlPlain && capPlain !== "Infinity" && lvlPlain !== "Infinity") {
+            const delta = Number(capPlain) - Number(lvlPlain);
+            if (delta > 0) return BigNum.fromAny(delta.toString());
+            return BigNum.fromInt(0);
+        }
+    } catch {}
+    const capNumber = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap)) : Infinity;
+    if (!Number.isFinite(capNumber)) return BigNum.fromAny("Infinity");
+    const lvlNumber = Math.max(0, Math.floor(Number(currentLevelNumber) || 0));
+    const room = Math.max(0, capNumber - lvlNumber);
+    return BigNum.fromInt(room);
 }
 
 export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
-  let lvlBn;
-  try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumeric ?? 0); }
-  catch { const fallback = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0)); lvlBn = BigNum.fromInt(fallback); }
-  if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
-
-  const lvl = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0));
-  const cap = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap)) : Infinity;
-
-  const walletEntry = bank[upg.costType];
-  const walletValue = walletEntry?.value;
-  const walletBn = walletValue instanceof BigNum ? walletValue : BigNum.fromAny(walletValue ?? 0);
-  if (walletBn.isZero?.()) return BigNum.fromInt(0);
-
-  const cacheKey = upg.id;
-  const lvlStr = typeof lvlBn.toStorage === 'function' ? lvlBn.toStorage() : lvlBn.toString();
-  const walletStr = typeof walletBn.toStorage === 'function' ? walletBn.toStorage() : walletBn.toString();
-  const capStr = upg.lvlCap instanceof BigNum 
-    ? (typeof upg.lvlCap.toStorage === 'function' ? upg.lvlCap.toStorage() : upg.lvlCap.toString()) 
-    : (upg.lvlCap?.toString() ?? 'Infinity');
-
-  if (cacheKey !== undefined) {
-    const cached = affordableCache.get(cacheKey);
-    if (cached && cached.lvlStr === lvlStr && cached.walletStr === walletStr && cached.capStr === capStr) {
-      return cached.result;
-    }
-  }
-
-  let resultBn = BigNum.fromInt(0);
-
-  if (walletBn.isInfinite?.()) {
-    const isHmType = upg?.upgType === 'HM';
-    const maxed = Number.isFinite(cap) && lvl >= cap;
-    if ((isHmType && !maxed) || !Number.isFinite(cap)) {
-      resultBn = BigNum.fromAny('Infinity');
-    } else {
-      resultBn = levelsRemainingToCap(upg, lvlBn, currentLevelNumeric);
-    }
-  } else if (Number.isFinite(cap) && lvl >= cap) {
-    resultBn = BigNum.fromInt(0);
-  } else {
-    let computed = false;
+    let lvlBn;
     try {
-      if (typeof upg.costAtLevel === 'function') {
-          const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-          
-          if (walletBn.cmp(c0) < 0) {
-              resultBn = BigNum.fromInt(0);
-              computed = true;
-          } else {
-              const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
-              const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
-              const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
-              const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
-
-              if (isTrulyFlat) {
-                const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
-                const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor((remainingBn.inf ? Infinity : (remainingBn.sig * Math.pow(10, remainingBn.e))))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
-                let lo = 0, hi = Math.max(0, room);
-                while (lo < hi) {
-                  const mid = Math.floor((lo + hi + 1) / 2);
-                  const midBn = BigNum.fromInt(mid);
-                  const total = typeof c0.mulBigNumInteger === 'function' ? c0.mulBigNumInteger(midBn) : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
-                  if (total.cmp(walletBn) <= 0) lo = mid; else hi = mid - 1;
-                }
-                resultBn = BigNum.fromInt(lo);
-                computed = true;
-              }
-          }
-      }
-    } catch {}
-    
-    if (!computed) {
-      const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
-      const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: false });
-      resultBn = count ?? BigNum.fromInt(0);
+        lvlBn =
+            currentLevelBn instanceof BigNum
+                ? currentLevelBn
+                : BigNum.fromAny(currentLevelBn ?? currentLevelNumeric ?? 0);
+    } catch {
+        const fallback = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0));
+        lvlBn = BigNum.fromInt(fallback);
     }
-  }
+    if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
+    const lvl = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0));
+    const cap = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap)) : Infinity;
+    const walletEntry = bank[upg.costType];
+    const walletValue = walletEntry?.value;
+    const walletBn = walletValue instanceof BigNum ? walletValue : BigNum.fromAny(walletValue ?? 0);
+    if (walletBn.isZero?.()) return BigNum.fromInt(0);
+    const cacheKey = upg.id;
+    const lvlStr = typeof lvlBn.toStorage === "function" ? lvlBn.toStorage() : lvlBn.toString();
+    const walletStr = typeof walletBn.toStorage === "function" ? walletBn.toStorage() : walletBn.toString();
+    const capStr =
+        upg.lvlCap instanceof BigNum
+            ? typeof upg.lvlCap.toStorage === "function"
+                ? upg.lvlCap.toStorage()
+                : upg.lvlCap.toString()
+            : (upg.lvlCap?.toString() ?? "Infinity");
+    if (cacheKey !== undefined) {
+        const cached = affordableCache.get(cacheKey);
+        if (cached && cached.lvlStr === lvlStr && cached.walletStr === walletStr && cached.capStr === capStr) {
+            return cached.result;
+        }
+    }
 
-  if (cacheKey !== undefined) {
-    affordableCache.set(cacheKey, { lvlStr, walletStr, capStr, result: resultBn });
-  }
-
-  return resultBn;
+    let resultBn = BigNum.fromInt(0);
+    if (walletBn.isInfinite?.()) {
+        const isHmType = upg?.upgType === "HM";
+        const maxed = Number.isFinite(cap) && lvl >= cap;
+        if ((isHmType && !maxed) || !Number.isFinite(cap)) {
+            resultBn = BigNum.fromAny("Infinity");
+        } else {
+            resultBn = levelsRemainingToCap(upg, lvlBn, currentLevelNumeric);
+        }
+    } else if (Number.isFinite(cap) && lvl >= cap) {
+        resultBn = BigNum.fromInt(0);
+    } else {
+        let computed = false;
+        try {
+            if (typeof upg.costAtLevel === "function") {
+                const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
+                if (walletBn.cmp(c0) < 0) {
+                    resultBn = BigNum.fromInt(0);
+                    computed = true;
+                } else {
+                    const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1));
+                    const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
+                    const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
+                    const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+                    if (isTrulyFlat) {
+                        const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
+                        const room = Number.isFinite(upg.lvlCap)
+                            ? Math.min(
+                                  Math.max(
+                                      0,
+                                      Math.floor(
+                                          remainingBn.inf ? Infinity : remainingBn.sig * Math.pow(10, remainingBn.e),
+                                      ),
+                                  ),
+                                  Number.MAX_SAFE_INTEGER - 2,
+                              )
+                            : Number.MAX_SAFE_INTEGER;
+                        let lo = 0,
+                            hi = Math.max(0, room);
+                        while (lo < hi) {
+                            const mid = Math.floor((lo + hi + 1) / 2);
+                            const midBn = BigNum.fromInt(mid);
+                            const total =
+                                typeof c0.mulBigNumInteger === "function"
+                                    ? c0.mulBigNumInteger(midBn)
+                                    : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
+                            if (total.cmp(walletBn) <= 0) lo = mid;
+                            else hi = mid - 1;
+                        }
+                        resultBn = BigNum.fromInt(lo);
+                        computed = true;
+                    }
+                }
+            }
+        } catch {}
+        if (!computed) {
+            const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
+            const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: false });
+            resultBn = count ?? BigNum.fromInt(0);
+        }
+    }
+    if (cacheKey !== undefined) {
+        affordableCache.set(cacheKey, { lvlStr, walletStr, capStr, result: resultBn });
+    }
+    return resultBn;
 }
-
 // --- Shop Instance Class ---
-
 class ShopInstance {
     constructor(mode) {
         this.mode = mode;
@@ -709,7 +716,6 @@ class ShopInstance {
         this.renderPending = false;
         this.updateHandler = this.queueUpdate.bind(this);
     }
-    
     queueUpdate() {
         if (this.renderPending) return;
         this.renderPending = true;
@@ -718,70 +724,59 @@ class ShopInstance {
             if (this.isOpen) this.update();
         });
     }
-
     get adapter() {
         return getAdapter(this.mode);
     }
-    
     get delveButtonVisible() {
         return this.adapter.delveButtonVisible;
     }
-    
     updateDelveGlow() {
-        if (!this.delveBtnEl || this.mode !== 'standard') return;
-                const met = getCurrentAreaKey() === AREA_KEYS.STARTER_COVE ? hasMetMerchant() : hasMetMiner();
+        if (!this.delveBtnEl || this.mode !== "standard") return;
+        const met = getCurrentAreaKey() === AREA_KEYS.STARTER_COVE ? hasMetMerchant() : hasMetMiner();
         let shouldGlow = !met;
-        
         const slot = getActiveSlot();
-        if (slot != null && localStorage.getItem(`ccc:tsunami:labPending:${slot}`) === '1') {
+        if (slot != null && localStorage.getItem(`ccc:tsunami:labPending:${slot}`) === "1") {
             shouldGlow = true;
         }
-        
-        this.delveBtnEl.classList.toggle('is-new', shouldGlow);
+        this.delveBtnEl.classList.toggle("is-new", shouldGlow);
     }
-
     buildUpgradesData() {
         this.upgrades = this.adapter.getUiData();
     }
-    
     render() {
-        const grid = this.overlayEl?.querySelector('.shop-grid');
+        const grid = this.overlayEl?.querySelector(".shop-grid");
         if (!grid) return;
-        
         const seenIds = new Set();
-        
         for (const key in this.upgrades) {
             const upg = this.upgrades[key];
             seenIds.add(String(upg.id));
-            
             let btn = grid.querySelector(`.shop-upgrade[data-upg-id="${upg.id}"]`);
             if (!btn) {
-                btn = document.createElement('button');
-                btn.className = 'shop-upgrade';
-                btn.setAttribute('data-upgid', upg.id);
-                btn.type = 'button';
-                btn.setAttribute('role', 'gridcell');
+                btn = document.createElement("button");
+                btn.className = "shop-upgrade";
+                btn.setAttribute("data-upgid", upg.id);
+                btn.type = "button";
+                btn.setAttribute("role", "gridcell");
                 btn.dataset.upgId = String(upg.id);
-                
-                const tile = document.createElement('div');
-                tile.className = 'shop-tile';
-                const baseImg = document.createElement('img');
-                baseImg.className = 'base';
-                baseImg.alt = '';
-                const iconImg = document.createElement('img');
-                iconImg.className = 'icon';
-                iconImg.alt = '';
-                iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
-                
+                const tile = document.createElement("div");
+                tile.className = "shop-tile";
+                const baseImg = document.createElement("img");
+                baseImg.className = "base";
+                baseImg.alt = "";
+                const iconImg = document.createElement("img");
+                iconImg.className = "icon";
+                iconImg.alt = "";
+                iconImg.addEventListener("error", () => {
+                    iconImg.src = TRANSPARENT_PX;
+                });
                 tile.appendChild(baseImg);
                 tile.appendChild(iconImg);
                 btn.appendChild(tile);
                 grid.appendChild(btn);
-                
                 // Listeners
-                btn.addEventListener('click', (event) => {
+                btn.addEventListener("click", (event) => {
                     const el = event.currentTarget;
-                    if (el.disabled || el.dataset.lockedPlain === '1') {
+                    if (el.disabled || el.dataset.lockedPlain === "1") {
                         event.preventDefault();
                         event.stopImmediatePropagation();
                         return;
@@ -791,16 +786,13 @@ class ShopInstance {
                         event.stopImmediatePropagation();
                         return;
                     }
-
                     if (event.shiftKey || event.ctrlKey) {
                         event.preventDefault();
                         event.stopImmediatePropagation();
                         if (!el.upgMeta) return;
-
                         const id = el.upgMeta.id;
-                        const isHM = el.upgMeta.upgType === 'HM';
+                        const isHM = el.upgMeta.upgType === "HM";
                         const isExcludedCheap = isBuyCheapExcluded(el.upgMeta);
-
                         // Shift + Click -> Buy Cheap
                         if (event.shiftKey) {
                             if (isHM || !isExcludedCheap) {
@@ -820,13 +812,14 @@ class ShopInstance {
                             if (!boughtBn.isZero?.()) {
                                 playPurchaseSfx();
                                 if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
-                                    try { unlockMerchantTabs(['reset']); } catch {}
+                                    try {
+                                        unlockMerchantTabs(["reset"]);
+                                    } catch {}
                                 }
                                 this.update();
                             }
                             return;
                         }
-
                         // Ctrl + Click -> Buy Next (HM only)
                         if (event.ctrlKey) {
                             if (isHM) {
@@ -837,21 +830,51 @@ class ShopInstance {
                                         if (target && model.lvlBn && target.cmp(model.lvlBn) > 0) {
                                             let deltaNum = 0;
                                             try {
-                                                const diffBn = target.sub(model.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.();
-                                                deltaNum = Math.max(0, Math.floor((diffPlain && diffPlain !== 'Infinity') ? Number(diffPlain) : (diffBn.inf ? Infinity : (diffBn.sig * Math.pow(10, diffBn.e)))));
+                                                const diffBn = target.sub(model.lvlBn);
+                                                const diffPlain =
+                                                    diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION
+                                                        ? "Infinity"
+                                                        : diffBn.toPlainIntegerString?.();
+                                                deltaNum = Math.max(
+                                                    0,
+                                                    Math.floor(
+                                                        diffPlain && diffPlain !== "Infinity"
+                                                            ? Number(diffPlain)
+                                                            : diffBn.inf
+                                                              ? Infinity
+                                                              : diffBn.sig * Math.pow(10, diffBn.e),
+                                                    ),
+                                                );
                                             } catch {}
-
                                             const walletRaw = bank[model.upg.costType]?.value;
-                                            const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw ?? 0);
-                                            const evalResult = evaluateBulkPurchase(model.upg, model.lvlBn, walletBn, deltaNum);
+                                            const walletBn =
+                                                walletRaw instanceof BigNum
+                                                    ? walletRaw
+                                                    : BigNum.fromAny(walletRaw ?? 0);
+                                            const evalResult = evaluateBulkPurchase(
+                                                model.upg,
+                                                model.lvlBn,
+                                                walletBn,
+                                                deltaNum,
+                                            );
                                             const count = evalResult.count;
-
                                             let reachable = false;
-                                            try { const plain = count?.inf || count?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain && plain !== 'Infinity') ? Number(plain) >= deltaNum : Number(count ?? 0) >= deltaNum; } catch {}
-
+                                            try {
+                                                const plain =
+                                                    count?.inf || count?.e >= BigNum.DEFAULT_PRECISION
+                                                        ? "Infinity"
+                                                        : count?.toPlainIntegerString?.();
+                                                reachable =
+                                                    plain && plain !== "Infinity"
+                                                        ? Number(plain) >= deltaNum
+                                                        : Number(count ?? 0) >= deltaNum;
+                                            } catch {}
                                             if (reachable) {
                                                 const purchase = this.adapter.buyNext(id, deltaNum);
-                                                const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought ?? 0);
+                                                const boughtBn =
+                                                    purchase.bought instanceof BigNum
+                                                        ? purchase.bought
+                                                        : BigNum.fromAny(purchase.bought ?? 0);
                                                 if (!boughtBn.isZero?.()) {
                                                     playPurchaseSfx();
                                                     this.update();
@@ -862,32 +885,38 @@ class ShopInstance {
                                     }
                                 }
                             }
-
                             // Fallback to Buy Max
                             const { bought } = this.adapter.buyMax(id);
                             const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
                             if (!boughtBn.isZero?.()) {
                                 playPurchaseSfx();
                                 if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
-                                    try { unlockMerchantTabs(['reset']); } catch {}
+                                    try {
+                                        unlockMerchantTabs(["reset"]);
+                                    } catch {}
                                 }
                                 this.update();
                             }
                             return;
                         }
                     }
-
-                    if (IS_MOBILE && settingsManager.get('upgrade_insta_max')) {
+                    if (IS_MOBILE && settingsManager.get("upgrade_insta_max")) {
                         if (el.upgMeta) {
                             const model = this.adapter.getUiModel(el.upgMeta.id);
-                            const capReached = model?.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model?.upg?.lvlCap) ? model?.lvl >= model?.upg?.lvlCap : false);
+                            const capReached = model?.lvlBn?.isInfinite?.()
+                                ? true
+                                : Number.isFinite(model?.upg?.lvlCap)
+                                  ? model?.lvl >= model?.upg?.lvlCap
+                                  : false;
                             if (!model?.hmReadyToEvolve && !capReached) {
                                 const { bought } = this.adapter.buyMax(el.upgMeta.id);
                                 const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
                                 if (!boughtBn.isZero?.()) {
                                     playPurchaseSfx();
                                     if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
-                                        try { unlockMerchantTabs(['reset']); } catch {}
+                                        try {
+                                            unlockMerchantTabs(["reset"]);
+                                        } catch {}
                                     }
                                     this.update();
                                 }
@@ -895,19 +924,15 @@ class ShopInstance {
                             }
                         }
                     }
-
                     if (el.upgMeta) openUpgradeOverlay(el.upgMeta, this.mode);
                 });
-                
-                btn.addEventListener('contextmenu', (e) => {
+                btn.addEventListener("contextmenu", (e) => {
                     if (IS_MOBILE) return;
                     const el = e.currentTarget;
-                    if (el.dataset.locked === '1') return;
+                    if (el.dataset.locked === "1") return;
                     e.preventDefault();
                     e.stopPropagation();
-                    
                     if (!el.upgMeta) return;
-					
                     const model = this.adapter.getUiModel(el.upgMeta.id);
                     if (model?.hmReadyToEvolve) {
                         const { evolved } = this.adapter.evolve(el.upgMeta.id);
@@ -917,89 +942,106 @@ class ShopInstance {
                         }
                         return;
                     }
-					
+
                     const { bought } = this.adapter.buyMax(el.upgMeta.id);
                     const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-                    
                     if (!boughtBn.isZero?.()) {
                         playPurchaseSfx();
                         if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
-                            try { unlockMerchantTabs(['reset']); } catch {}
+                            try {
+                                unlockMerchantTabs(["reset"]);
+                            } catch {}
                         }
                         this.update();
                     }
                 });
             }
-            
             // Update Meta
             btn.upgMeta = upg.meta;
-            
             // Logic derived from original renderShopGrid...
             const locked = !!upg.locked;
             const lockIcon = upg.lockState?.iconOverride;
-            const hasMysteriousIcon = typeof lockIcon === 'string' && lockIcon.includes('mysterious');
+            const hasMysteriousIcon = typeof lockIcon === "string" && lockIcon.includes("mysterious");
             const isMysterious = locked && (upg.lockState?.hidden || hasMysteriousIcon);
             const isPlainLocked = locked && !isMysterious;
-
-            btn.classList.toggle('is-locked', locked);
-            btn.classList.toggle('is-locked-plain', isPlainLocked);
+            btn.classList.toggle("is-locked", locked);
+            btn.classList.toggle("is-locked-plain", isPlainLocked);
             btn.disabled = isPlainLocked;
             if (isPlainLocked) {
-              btn.setAttribute('aria-disabled', 'true');
-              btn.setAttribute('tabindex', '-1');
+                btn.setAttribute("aria-disabled", "true");
+                btn.setAttribute("tabindex", "-1");
             } else {
-              btn.removeAttribute('aria-disabled');
-              btn.removeAttribute('tabindex');
+                btn.removeAttribute("aria-disabled");
+                btn.removeAttribute("tabindex");
             }
-            btn.dataset.locked = locked ? '1' : '0';
-            btn.dataset.lockedPlain = isPlainLocked ? '1' : '0';
-            btn.dataset.mysterious = isMysterious ? '1' : '0';
-
-            const isHM = upg.meta?.upgType === 'HM';
+            btn.dataset.locked = locked ? "1" : "0";
+            btn.dataset.lockedPlain = isPlainLocked ? "1" : "0";
+            btn.dataset.mysterious = isMysterious ? "1" : "0";
+            const isHM = upg.meta?.upgType === "HM";
             const evolveReady = isHM && upg.hmReady && !upg.level?.isInfinite?.();
-            btn.classList.toggle('hm-evolve-ready', evolveReady);
-            
+            btn.classList.toggle("hm-evolve-ready", evolveReady);
             const isAutomatedFlag = !locked && isUpgradeAutomated(upg.meta);
-            const canPlusBn = locked ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
+            const canPlusBn = locked
+                ? BigNum.fromInt(0)
+                : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
             const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
             const levelHtml = formatNumber(upg.level);
             const levelPlain = stripTags(levelHtml);
             const plusHtml = formatNumber(plusBn);
             const plusPlain = stripTags(plusHtml);
             const hasPlus = !plusBn.isZero?.();
-            
-            const rawCap = Number.isFinite(upg.lvlCap) ? upg.lvlCap : (Number.isFinite(upg.meta?.lvlCap) ? upg.meta.lvlCap : Infinity);
+            const rawCap = Number.isFinite(upg.lvlCap)
+                ? upg.lvlCap
+                : Number.isFinite(upg.meta?.lvlCap)
+                  ? upg.meta.lvlCap
+                  : Infinity;
             const capNumber = Number.isFinite(rawCap) ? Math.max(0, Math.floor(rawCap)) : Infinity;
             const levelNumber = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
-            const capReached = evolveReady ? false : (upg.level?.isInfinite?.() ? true : (Number.isFinite(capNumber) && Number.isFinite(levelNumber) ? levelNumber >= capNumber : false));
-            
+            const capReached = evolveReady
+                ? false
+                : upg.level?.isInfinite?.()
+                  ? true
+                  : Number.isFinite(capNumber) && Number.isFinite(levelNumber)
+                    ? levelNumber >= capNumber
+                    : false;
             const isSingleLevelCap = Number.isFinite(capNumber) && capNumber === 1;
             const isUnlockUpgrade = !!upg.meta?.unlockUpgrade;
             const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached;
             const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
-
-            let badgeHtml, badgePlain, needsTwoLines = false, isTextBadge = false;
-
+            let badgeHtml,
+                badgePlain,
+                needsTwoLines = false,
+                isTextBadge = false;
             if (locked) {
-                badgeHtml = ''; badgePlain = '';
-                const reason = isMysterious ? (upg.lockState?.reason || '').trim() : '';
+                badgeHtml = "";
+                badgePlain = "";
+                const reason = isMysterious ? (upg.lockState?.reason || "").trim() : "";
                 const ariaLabel = reason ? `${upg.title} (Locked, ${reason})` : `${upg.title} (Locked)`;
-                btn.setAttribute('aria-label', ariaLabel);
+                btn.setAttribute("aria-label", ariaLabel);
             } else {
                 if (showUnlockableBadge || showUnlockedBadge) {
-                    badgeHtml = showUnlockableBadge ? 'Unlockable' : 'Unlocked';
+                    badgeHtml = showUnlockableBadge ? "Unlockable" : "Unlocked";
                     badgePlain = badgeHtml;
                     isTextBadge = true;
                 } else if (!locked && isSingleLevelCap && !isUnlockUpgrade) {
-                    if (capReached) { badgeHtml = 'Owned'; badgePlain = 'Owned'; }
-                    else if (hasPlus) { badgeHtml = 'Purchasable'; badgePlain = 'Purchasable'; }
-                    else { badgeHtml = 'Not Owned'; badgePlain = 'Not Owned'; }
+                    if (capReached) {
+                        badgeHtml = "Owned";
+                        badgePlain = "Owned";
+                    } else if (hasPlus) {
+                        badgeHtml = "Purchasable";
+                        badgePlain = "Purchasable";
+                    } else {
+                        badgeHtml = "Not Owned";
+                        badgePlain = "Not Owned";
+                    }
                     isTextBadge = true;
                 } else {
                     const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
-                    const plainDigits = String(levelPlain || '').replace(/,/g, '');
+                    const plainDigits = String(levelPlain || "").replace(/,/g, "");
                     const isInf = /∞|Infinity/i.test(plainDigits);
-                    const over999 = Number.isFinite(numericLevel) ? numericLevel >= 1000 : (isInf || /^\d{4,}$/.test(plainDigits));
+                    const over999 = Number.isFinite(numericLevel)
+                        ? numericLevel >= 1000
+                        : isInf || /^\d{4,}$/.test(plainDigits);
                     needsTwoLines = hasPlus && over999;
                     if (needsTwoLines) {
                         badgeHtml = `<span class="badge-lvl">${levelHtml}</span><span class="badge-plus">(+${plusHtml})</span>`;
@@ -1009,141 +1051,136 @@ class ShopInstance {
                         badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
                     }
                 }
-                btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
+                btn.setAttribute("aria-label", `${upg.title}, ${badgePlain}`);
             }
-            
-            if (locked) btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
-            else if (upg.meta?.unlockUpgrade) btn.title = 'Left-click: Details • Right-click: Unlock';
-            else btn.title = 'Left-click: Details • Right-click: Buy Max';
-            
+            if (locked) btn.title = isMysterious ? "Hidden Upgrade" : "Locked Upgrade";
+            else if (upg.meta?.unlockUpgrade) btn.title = "Left-click: Details • Right-click: Unlock";
+            else btn.title = "Left-click: Details • Right-click: Buy Max";
             // DOM Structure Update
             const tileEl = btn.firstElementChild;
-            const baseImgEl = tileEl.querySelector('.base');
-            const iconImgEl = tileEl.querySelector('.icon');
-            
-            const costType = upg.meta?.costType || 'coins';
+            const baseImgEl = tileEl.querySelector(".base");
+            const iconImgEl = tileEl.querySelector(".icon");
+            const costType = upg.meta?.costType || "coins";
             const useLockedBase = upg.useLockedBase || locked;
-            let baseSrc = useLockedBase ? LOCKED_BASE_ICON_SRC : (upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
+            let baseSrc = useLockedBase
+                ? LOCKED_BASE_ICON_SRC
+                : upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
             let rawIcon = upg.icon;
-            
-            if (rawIcon === 'img/misc/mysterious.webp' && baseSrc === LOCKED_BASE_ICON_SRC) {
-                baseSrc = 'img/misc/mysterious_plus_base.webp';
+            if (rawIcon === "img/misc/mysterious.webp" && baseSrc === LOCKED_BASE_ICON_SRC) {
+                baseSrc = "img/misc/mysterious_plus_base.webp";
                 rawIcon = null; // Hide the separate icon since it's now in the base
-            } else if (rawIcon === 'img/misc/locked.webp' && baseSrc === LOCKED_BASE_ICON_SRC) {
-                baseSrc = 'img/misc/locked_plus_base.webp';
+            } else if (rawIcon === "img/misc/locked.webp" && baseSrc === LOCKED_BASE_ICON_SRC) {
+                baseSrc = "img/misc/locked_plus_base.webp";
                 rawIcon = null; // Hide the separate icon since it's now in the base
             }
-
             if (baseImgEl.src !== baseSrc) baseImgEl.src = baseSrc;
             if (!rawIcon) {
                 if (!iconImgEl.hidden) iconImgEl.hidden = true;
             } else {
                 if (iconImgEl.hidden) iconImgEl.hidden = false;
                 const iconSrc = rawIcon;
-                if (iconImgEl._lastSrc !== iconSrc) { iconImgEl.src = iconSrc; iconImgEl._lastSrc = iconSrc; }
+                if (iconImgEl._lastSrc !== iconSrc) {
+                    iconImgEl.src = iconSrc;
+                    iconImgEl._lastSrc = iconSrc;
+                }
             }
-            
-            let maxedOverlay = tileEl.querySelector('.maxed-overlay');
+
+            let maxedOverlay = tileEl.querySelector(".maxed-overlay");
             const isAutomated = isAutomatedFlag;
             const showMaxed = !locked && capReached;
             const showEvolveReady = !locked && evolveReady;
             const showAutomated = !locked && !capReached && !evolveReady && isAutomated;
-
             if (showEvolveReady || showMaxed || showAutomated) {
                 if (!maxedOverlay) {
-                    maxedOverlay = document.createElement('img');
-                    maxedOverlay.className = 'maxed-overlay';
-                    maxedOverlay.alt = '';
+                    maxedOverlay = document.createElement("img");
+                    maxedOverlay.className = "maxed-overlay";
+                    maxedOverlay.alt = "";
                     tileEl.insertBefore(maxedOverlay, iconImgEl);
                 }
-				const targetSrc = showEvolveReady ? EVOLVE_READY_OVERLAY_SRC : (showMaxed ? MAXED_BASE_OVERLAY_SRC : AUTOMATED_OVERLAY_SRC);
+
+                const targetSrc = showEvolveReady
+                    ? EVOLVE_READY_OVERLAY_SRC
+                    : showMaxed
+                      ? MAXED_BASE_OVERLAY_SRC
+                      : AUTOMATED_OVERLAY_SRC;
                 if (maxedOverlay.src !== targetSrc) maxedOverlay.src = targetSrc;
             } else if (maxedOverlay) maxedOverlay.remove();
-            
-            let badge = tileEl.querySelector('.level-badge');
+            let badge = tileEl.querySelector(".level-badge");
             if (!locked) {
-                if (!badge) { badge = document.createElement('span'); badge.className = 'level-badge'; tileEl.appendChild(badge); }
-                badge.className = 'level-badge';
-                if (isTextBadge) badge.classList.add('text-badge');
-                if (needsTwoLines) badge.classList.add('two-line');
-                if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
-                if (capReached) badge.classList.add('is-maxed');
-                if (badgeHtml === badgePlain) { if (badge.textContent !== badgeHtml) badge.textContent = badgeHtml; }
-                else { setHtmlOrText(badge, badgeHtml); }
+                if (!badge) {
+                    badge = document.createElement("span");
+                    badge.className = "level-badge";
+                    tileEl.appendChild(badge);
+                }
+                badge.className = "level-badge";
+                if (isTextBadge) badge.classList.add("text-badge");
+                if (needsTwoLines) badge.classList.add("two-line");
+                if (hasPlus || showUnlockableBadge) badge.classList.add("can-buy");
+                if (capReached) badge.classList.add("is-maxed");
+                if (badgeHtml === badgePlain) {
+                    if (badge.textContent !== badgeHtml) badge.textContent = badgeHtml;
+                } else {
+                    setHtmlOrText(badge, badgeHtml);
+                }
             } else if (badge) badge.remove();
-            
-            if (settingsManager.get('hide_maxed_upgrades') && capReached && !showEvolveReady) {
-                btn.style.display = 'none';
+            if (settingsManager.get("hide_maxed_upgrades") && capReached && !showEvolveReady) {
+                btn.style.display = "none";
             } else {
-                btn.style.display = '';
+                btn.style.display = "";
             }
         }
-        
         // Cleanup stale
-        Array.from(grid.children).forEach(child => {
+        Array.from(grid.children).forEach((child) => {
             if (child.dataset.upgId && !seenIds.has(child.dataset.upgId)) child.remove();
         });
     }
-
     ensureOverlay() {
         if (this.overlayEl) return;
-        
-        this.overlayEl = document.createElement('div');
-        this.overlayEl.className = 'shop-overlay';
-        if (this.mode === 'automation') {
-            this.overlayEl.classList.add('automation-shop-overlay');
+        this.overlayEl = document.createElement("div");
+        this.overlayEl.className = "shop-overlay";
+        if (this.mode === "automation") {
+            this.overlayEl.classList.add("automation-shop-overlay");
             // Unique ID not strictly required by CSS but useful
-            this.overlayEl.id = 'automation-shop-overlay'; 
-        } else if (this.mode === 'dna') {
-            this.overlayEl.classList.add('dna-shop-overlay');
-            this.overlayEl.id = 'dna-shop-overlay';
+            this.overlayEl.id = "automation-shop-overlay";
+        } else if (this.mode === "dna") {
+            this.overlayEl.classList.add("dna-shop-overlay");
+            this.overlayEl.id = "dna-shop-overlay";
         } else {
-            this.overlayEl.id = 'shop-overlay';
+            this.overlayEl.id = "shop-overlay";
         }
-        
-        this.sheetEl = document.createElement('div');
-        this.sheetEl.className = 'shop-sheet';
-        this.sheetEl.setAttribute('role', 'dialog');
-        
-        const grabber = document.createElement('div');
-        grabber.className = 'shop-grabber';
+        this.sheetEl = document.createElement("div");
+        this.sheetEl.className = "shop-sheet";
+        this.sheetEl.setAttribute("role", "dialog");
+        const grabber = document.createElement("div");
+        grabber.className = "shop-grabber";
         grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
-        
-        const content = document.createElement('div');
-        content.className = 'shop-content';
-        
-        const header = document.createElement('header');
-        header.className = 'shop-header';
+        const content = document.createElement("div");
+        content.className = "shop-content";
+        const header = document.createElement("header");
+        header.className = "shop-header";
         header.innerHTML = `<div class="shop-title">${this.adapter.title}</div><div class="shop-line" aria-hidden="true"></div>`;
-        
-        const grid = document.createElement('div');
-        grid.className = 'shop-grid';
-        if (this.mode === 'standard') grid.id = 'shop-grid'; // backwards compat for ID query
-        grid.setAttribute('role', 'grid');
-        
-        const scroller = document.createElement('div');
-        scroller.className = 'shop-scroller';
+        const grid = document.createElement("div");
+        grid.className = "shop-grid";
+        if (this.mode === "standard") grid.id = "shop-grid"; // backwards compat for ID query
+        grid.setAttribute("role", "grid");
+        const scroller = document.createElement("div");
+        scroller.className = "shop-scroller";
         scroller.appendChild(grid);
-        
         content.append(header, scroller);
-        ensureCustomScrollbar(this.overlayEl, this.sheetEl, '.shop-scroller');
-        
-        const actions = document.createElement('div');
-        actions.className = 'shop-actions';
-        
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'shop-close';
-        closeBtn.textContent = 'Close';
-        
+        ensureCustomScrollbar(this.overlayEl, this.sheetEl, ".shop-scroller");
+        const actions = document.createElement("div");
+        actions.className = "shop-actions";
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.className = "shop-close";
+        closeBtn.textContent = "Close";
         actions.appendChild(closeBtn);
-        
         if (this.delveButtonVisible) {
-            const delveBtn = document.createElement('button');
-            delveBtn.type = 'button';
-            delveBtn.className = 'shop-delve';
-            delveBtn.textContent = 'Delve';
-                                    delveBtn.addEventListener('click', (e) => {
+            const delveBtn = document.createElement("button");
+            delveBtn.type = "button";
+            delveBtn.className = "shop-delve";
+            delveBtn.textContent = "Delve";
+            delveBtn.addEventListener("click", (e) => {
                 if (e && e.isTrusted && shouldSkipGhostTap(delveBtn)) return;
                 primeTypingSfx();
                 const area = getCurrentAreaKey();
@@ -1159,133 +1196,146 @@ class ShopInstance {
             this.updateDelveGlow();
             actions.append(delveBtn);
         }
-        
         this.sheetEl.append(grabber, content, actions);
         this.overlayEl.appendChild(this.sheetEl);
         document.body.appendChild(this.overlayEl);
-        
         // Listeners
-        this.overlayEl.addEventListener('pointerdown', (e) => {
-            if (e.pointerType === 'mouse') return;
-            this.postOpenPointer = true;
-        }, { capture: true, passive: true });
-        
-        this.overlayEl.addEventListener('touchstart', (e) => {
-             this.postOpenPointer = true;
-        }, { capture: true, passive: true });
-        
-        this.overlayEl.addEventListener('click', (e) => {
-            if (!IS_MOBILE) return;
-            if (!this.postOpenPointer) {
-                e.preventDefault(); e.stopImmediatePropagation();
-                return;
-            }
-        }, { capture: true });
-        
-        closeBtn.addEventListener('click', () => {
-             if (IS_MOBILE) blockInteraction(80);
-             this.close();
-        }, { passive: true });
-        
-        setupDragToClose(grabber, this.sheetEl, () => this.isOpen, () => {
-             this.isOpen = false;
-             const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 150;
-             this.closeTimer = setTimeout(() => {
-                 this.closeTimer = null;
-                 this.close(true);
-             }, delay);
-        });
-        
+        this.overlayEl.addEventListener(
+            "pointerdown",
+            (e) => {
+                if (e.pointerType === "mouse") return;
+                this.postOpenPointer = true;
+            },
+            { capture: true, passive: true },
+        );
+        this.overlayEl.addEventListener(
+            "touchstart",
+            (e) => {
+                this.postOpenPointer = true;
+            },
+            { capture: true, passive: true },
+        );
+        this.overlayEl.addEventListener(
+            "click",
+            (e) => {
+                if (!IS_MOBILE) return;
+                if (!this.postOpenPointer) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    return;
+                }
+            },
+            { capture: true },
+        );
+        closeBtn.addEventListener(
+            "click",
+            () => {
+                if (IS_MOBILE) blockInteraction(80);
+                this.close();
+            },
+            { passive: true },
+        );
+        setupDragToClose(
+            grabber,
+            this.sheetEl,
+            () => this.isOpen,
+            () => {
+                this.isOpen = false;
+                const delay = document.body.classList.contains("no-overlay-transitions") ? 0 : 150;
+                this.closeTimer = setTimeout(() => {
+                    this.closeTimer = null;
+                    this.close(true);
+                }, delay);
+            },
+        );
         this.update(true);
     }
-    
     open() {
         this.ensureOverlay();
-        
-        if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
-        
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
         // Bind events if needed
         if (!this.eventsBound) {
-            this.adapter.events.forEach(evt => window.addEventListener(evt, this.updateHandler));
-            if (this.mode === 'standard') {
-                document.addEventListener('ccc:upgrades:changed', this.updateHandler);
+            this.adapter.events.forEach((evt) => window.addEventListener(evt, this.updateHandler));
+            if (this.mode === "standard") {
+                document.addEventListener("ccc:upgrades:changed", this.updateHandler);
             }
             this.eventsBound = true;
         }
-        
         this.update(true);
         if (this.isOpen) return;
-        
         this.isOpen = true;
-
-        if (this.mode === 'standard') {
+        if (this.mode === "standard") {
             const slot = getActiveSlot();
-            if (slot != null && localStorage.getItem(`ccc:tsunami:dialoguePending:${slot}`) === '1') {
+            if (slot != null && localStorage.getItem(`ccc:tsunami:dialoguePending:${slot}`) === "1") {
                 runPostTsunamiShopDialogue(() => {
-                    try { localStorage.removeItem(`ccc:tsunami:dialoguePending:${slot}`); } catch {}
-                    try { localStorage.setItem(`ccc:tsunami:labPending:${slot}`, '1'); } catch {}
+                    try {
+                        lsRemoveItem(`ccc:tsunami:dialoguePending:${slot}`);
+                    } catch {}
+                    try {
+                        lsSetItem(`ccc:tsunami:labPending:${slot}`, "1");
+                    } catch {}
                     this.update(true);
                 });
             }
         }
-
-        this.sheetEl.style.transition = 'none';
-        this.sheetEl.style.transform = 'translateY(100%)';
-        this.overlayEl.style.pointerEvents = 'auto';
-        
+        this.sheetEl.style.transition = "none";
+        this.sheetEl.style.transform = "translateY(100%)";
+        this.overlayEl.style.pointerEvents = "auto";
         void this.sheetEl.offsetHeight;
-        
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                this.sheetEl.style.transition = '';
-                this.sheetEl.style.transform = '';
-                this.overlayEl.classList.add('is-open');
+                this.sheetEl.style.transition = "";
+                this.sheetEl.style.transform = "";
+                this.overlayEl.classList.add("is-open");
                 this.postOpenPointer = false;
-                
                 if (IS_MOBILE) {
-                    try { setTimeout(() => suppressNextGhostTap(240), 120); } catch {}
+                    try {
+                        setTimeout(() => suppressNextGhostTap(240), 120);
+                    } catch {}
                 }
-                
                 blockInteraction(10);
                 ensureCustomScrollbar(this.overlayEl, this.sheetEl);
-                
-                const focusable = this.overlayEl.querySelector('.shop-upgrade') || this.overlayEl.querySelector('.shop-grid');
+                const focusable =
+                    this.overlayEl.querySelector(".shop-upgrade") || this.overlayEl.querySelector(".shop-grid");
                 if (focusable) focusable.focus();
             });
         });
     }
-    
     close(force = false) {
         const forceClose = force === true;
-        const overlayOpen = this.overlayEl?.classList?.contains('is-open');
-        
+        const overlayOpen = this.overlayEl?.classList?.contains("is-open");
         if (!forceClose && !this.isOpen && !overlayOpen) {
-            if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
+            if (this.closeTimer) {
+                clearTimeout(this.closeTimer);
+                this.closeTimer = null;
+            }
             return;
         }
-        
-        if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
-        
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
         this.isOpen = false;
         if (this.sheetEl) {
-            this.sheetEl.style.transition = '';
-            this.sheetEl.style.transform = '';
+            this.sheetEl.style.transition = "";
+            this.sheetEl.style.transform = "";
         }
         if (this.overlayEl) {
-            this.overlayEl.classList.remove('is-open');
-            this.overlayEl.style.pointerEvents = 'none';
+            this.overlayEl.classList.remove("is-open");
+            this.overlayEl.style.pointerEvents = "none";
         }
         this.postOpenPointer = false;
-        
         if (this.eventsBound) {
-             this.adapter.events.forEach(evt => window.removeEventListener(evt, this.updateHandler));
-             if (this.mode === 'standard') {
-                 document.removeEventListener('ccc:upgrades:changed', this.updateHandler);
-             }
-             this.eventsBound = false;
+            this.adapter.events.forEach((evt) => window.removeEventListener(evt, this.updateHandler));
+            if (this.mode === "standard") {
+                document.removeEventListener("ccc:upgrades:changed", this.updateHandler);
+            }
+            this.eventsBound = false;
         }
     }
-    
     update(force = false) {
         if (!force && !this.isOpen) return;
         if (!force && isAnyMenuScrolling()) return;
@@ -1294,1230 +1344,1389 @@ class ShopInstance {
         this.updateDelveGlow();
     }
 }
-
 if (typeof window !== "undefined") {
     window.addEventListener("menu:scrollStop", () => {
         updateShopOverlay(true);
     });
 }
-
 // --- Static Instances ---
 const shops = {
-    standard: new ShopInstance('standard'),
-    automation: new ShopInstance('automation'),
-    dna: new ShopInstance('dna')
+    standard: new ShopInstance("standard"),
+    automation: new ShopInstance("automation"),
+    dna: new ShopInstance("dna"),
 };
 
-export function openShop(mode = 'standard') {
+export function openShop(mode = "standard") {
     const instance = shops[mode] || shops.standard;
     instance.open();
 }
 
 export function closeShop(force = false) {
     // Attempt to close all open shops
-    Object.values(shops).forEach(s => s.close(force));
+    Object.values(shops).forEach((s) => s.close(force));
 }
 
 export function closeDelveSpecificOverlays() {
     Object.entries(shops).forEach(([key, shop]) => {
-        if (key !== 'standard') {
+        if (key !== "standard") {
             shop.close();
         }
     });
-
-    if (upgOpen && currentUpgradeMode !== 'standard') {
+    if (upgOpen && currentUpgradeMode !== "standard") {
         closeUpgradeMenu();
-        const existing = document.querySelector('.hm-milestones-overlay');
+        const existing = document.querySelector(".hm-milestones-overlay");
         if (existing) existing.remove();
     }
-
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('ccc:close-delve-overlays'));
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("ccc:close-delve-overlays"));
     }
 }
 
 export function updateShopOverlay(force = false) {
     // Update all open shops
-    Object.values(shops).forEach(s => s.update(force));
+    Object.values(shops).forEach((s) => s.update(force));
 }
 
-export function setUpgradeCount() { updateShopOverlay(true); }
+export function setUpgradeCount() {
+    updateShopOverlay(true);
+}
 
-export function getUpgrades() { 
+export function getUpgrades() {
     return shops.standard.upgrades;
 }
-
 // --- Upgrade Overlay (Shared) ---
 let upgOverlayEl = null;
 let upgSheetEl = null;
 let upgOpen = false;
 let upgOverlayCleanup = null;
-let currentUpgradeMode = 'standard';
-
+let currentUpgradeMode = "standard";
 function ensureUpgradeOverlay() {
-  if (upgOverlayEl) return;
-  upgOverlayEl = document.createElement('div');
-  upgOverlayEl.className = 'upg-overlay';
-
-  upgSheetEl = document.createElement('div');
-  upgSheetEl.className = 'upg-sheet';
-  upgSheetEl.setAttribute('role', 'dialog');
-  upgSheetEl.setAttribute('aria-modal', 'false');
-  upgSheetEl.setAttribute('aria-label', 'Upgrade');
-
-  const grab = document.createElement('div');
-  grab.className = 'upg-grabber';
-  grab.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
-
-  const header = document.createElement('header');
-  header.className = 'upg-header';
-
-  const content = document.createElement('div');
-  content.className = 'upg-content';
-
-  const milestones = document.createElement('div');
-  milestones.className = 'upg-milestones';
-
-  const actions = document.createElement('div');
-  actions.className = 'upg-actions';
-
-  upgSheetEl.append(grab, header, content, milestones, actions);
-  upgOverlayEl.appendChild(upgSheetEl);
-  document.body.appendChild(upgOverlayEl);
-
-  upgOverlayEl.addEventListener('pointerdown', (e) => {
-    if (!IS_MOBILE) return;
-    if (e.pointerType === 'mouse') return;
-    if (e.target === upgOverlayEl) { e.preventDefault(); e.stopPropagation(); }
-  }, true);
-  upgOverlayEl.addEventListener('click', (e) => {
-    if (!IS_MOBILE) return;
-    if (e.target === upgOverlayEl) { e.preventDefault(); e.stopImmediatePropagation(); }
-  }, true);
-
-  let drag = null;
-  function onDragStart(e) {
-    if (!upgOpen) return;
-    const y = typeof e.clientY === 'number' ? e.clientY : (e.touches?.[0]?.clientY || 0);
-    drag = { startY: y, lastY: y, moved: 0 };
-    upgSheetEl.style.transition = 'none';
-    window.addEventListener('pointermove', onDragMove);
-    window.addEventListener('pointerup', onDragEnd);
-    window.addEventListener('pointercancel', onDragEnd);
-  }
-  function onDragMove(e) {
-    if (!drag) return;
-    const y = e.clientY;
-    if (typeof y !== 'number') return;
-    const dy = Math.max(0, y - drag.startY);
-    drag.lastY = y;
-    drag.moved = dy;
-    upgSheetEl.style.transform = `translateY(${dy}px)`;
-  }
-  function onDragEnd(e) {
-    if (!drag) return;
-    const shouldClose = drag.moved > 140;
-    upgSheetEl.style.transition = 'transform 160ms ease';
-    upgSheetEl.style.transform = shouldClose ? 'translateY(100%)' : 'translateY(0)';
-    if (shouldClose) {
-      if (IS_MOBILE && (!e || e.pointerType !== 'mouse')) try { blockInteraction(120); } catch {}
-      const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 160;
-      setTimeout(closeUpgradeMenu, delay);
+    if (upgOverlayEl) return;
+    upgOverlayEl = document.createElement("div");
+    upgOverlayEl.className = "upg-overlay";
+    upgSheetEl = document.createElement("div");
+    upgSheetEl.className = "upg-sheet";
+    upgSheetEl.setAttribute("role", "dialog");
+    upgSheetEl.setAttribute("aria-modal", "false");
+    upgSheetEl.setAttribute("aria-label", "Upgrade");
+    const grab = document.createElement("div");
+    grab.className = "upg-grabber";
+    grab.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
+    const header = document.createElement("header");
+    header.className = "upg-header";
+    const content = document.createElement("div");
+    content.className = "upg-content";
+    const milestones = document.createElement("div");
+    milestones.className = "upg-milestones";
+    const actions = document.createElement("div");
+    actions.className = "upg-actions";
+    upgSheetEl.append(grab, header, content, milestones, actions);
+    upgOverlayEl.appendChild(upgSheetEl);
+    document.body.appendChild(upgOverlayEl);
+    upgOverlayEl.addEventListener(
+        "pointerdown",
+        (e) => {
+            if (!IS_MOBILE) return;
+            if (e.pointerType === "mouse") return;
+            if (e.target === upgOverlayEl) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        },
+        true,
+    );
+    upgOverlayEl.addEventListener(
+        "click",
+        (e) => {
+            if (!IS_MOBILE) return;
+            if (e.target === upgOverlayEl) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+        },
+        true,
+    );
+    let drag = null;
+    function onDragStart(e) {
+        if (!upgOpen) return;
+        const y = typeof e.clientY === "number" ? e.clientY : e.touches?.[0]?.clientY || 0;
+        drag = { startY: y, lastY: y, moved: 0 };
+        upgSheetEl.style.transition = "none";
+        window.addEventListener("pointermove", onDragMove);
+        window.addEventListener("pointerup", onDragEnd);
+        window.addEventListener("pointercancel", onDragEnd);
     }
-    drag = null;
-    window.removeEventListener('pointermove', onDragMove);
-    window.removeEventListener('pointerup', onDragEnd);
-    window.removeEventListener('pointercancel', onDragEnd);
-  }
-  grab.addEventListener('pointerdown', onDragStart, { passive: true });
+
+    function onDragMove(e) {
+        if (!drag) return;
+        const y = e.clientY;
+        if (typeof y !== "number") return;
+        const dy = Math.max(0, y - drag.startY);
+        drag.lastY = y;
+        drag.moved = dy;
+        upgSheetEl.style.transform = `translateY(${dy}px)`;
+    }
+
+    function onDragEnd(e) {
+        if (!drag) return;
+        const shouldClose = drag.moved > 140;
+        upgSheetEl.style.transition = "transform 160ms ease";
+        upgSheetEl.style.transform = shouldClose ? "translateY(100%)" : "translateY(0)";
+        if (shouldClose) {
+            if (IS_MOBILE && (!e || e.pointerType !== "mouse"))
+                try {
+                    blockInteraction(120);
+                } catch {}
+            const delay = document.body.classList.contains("no-overlay-transitions") ? 0 : 160;
+            setTimeout(closeUpgradeMenu, delay);
+        }
+        drag = null;
+        window.removeEventListener("pointermove", onDragMove);
+        window.removeEventListener("pointerup", onDragEnd);
+        window.removeEventListener("pointercancel", onDragEnd);
+    }
+    grab.addEventListener("pointerdown", onDragStart, { passive: true });
 }
 
 function closeUpgradeMenu() {
-  if (IS_MOBILE) try { blockInteraction(160); } catch {}
-  if (typeof upgOverlayCleanup === 'function') { const fn = upgOverlayCleanup; upgOverlayCleanup = null; try { fn(); } catch {} }
-  upgOpen = false;
-  if (!upgOverlayEl || !upgSheetEl) return;
-  upgSheetEl.style.transition = '';
-  upgSheetEl.style.transform = '';
-  upgOverlayEl.classList.remove('is-open');
-  upgOverlayEl.style.pointerEvents = 'none';
+    if (IS_MOBILE)
+        try {
+            blockInteraction(160);
+        } catch {}
+    if (typeof upgOverlayCleanup === "function") {
+        const fn = upgOverlayCleanup;
+        upgOverlayCleanup = null;
+        try {
+            fn();
+        } catch {}
+    }
+    upgOpen = false;
+    if (!upgOverlayEl || !upgSheetEl) return;
+    upgSheetEl.style.transition = "";
+    upgSheetEl.style.transform = "";
+    upgOverlayEl.classList.remove("is-open");
+    upgOverlayEl.style.pointerEvents = "none";
 }
 
 function openValcDialog(model) {
-  const existing = document.querySelector('.hm-valc-overlay');
-  if (existing) existing.remove();
-  const overlay = document.createElement('div');
-  overlay.className = 'hm-milestones-overlay hm-valc-overlay';
-  overlay.setAttribute('role', 'dialog');
-  const dialog = document.createElement('div');
-  dialog.className = 'hm-milestones-dialog hm-valc-dialog';
-  dialog.style.border = '1px solid rgba(230, 190, 50, 0.75)';
-  
-  const title = document.createElement('h3');
-  title.className = 'hm-milestones-title';
-  title.textContent = 'View Arbitrary Level Cost';
-  title.style.whiteSpace = 'nowrap';
-  title.style.color = 'rgb(245, 230, 160)';
-  
-  const content = document.createElement('div');
-  content.className = 'valc-content';
-  content.style.marginTop = '1rem';
-  content.style.marginBottom = '1rem';
-  
-  const toggleRow = document.createElement('div');
-  toggleRow.style.display = 'flex';
-  toggleRow.style.alignItems = 'center';
-  toggleRow.style.justifyContent = 'center';
-  toggleRow.style.gap = '0.5rem';
-  toggleRow.style.marginBottom = '1rem';
-  
-  const targetModeCheck = document.createElement('input');
-  targetModeCheck.type = 'checkbox';
-  targetModeCheck.id = 'valc-target-mode';
-  targetModeCheck.style.cursor = 'pointer';
-  
-  const targetModeLabel = document.createElement('label');
-  targetModeLabel.htmlFor = 'valc-target-mode';
-  targetModeLabel.textContent = 'Target mode';
-  targetModeLabel.style.cursor = 'pointer';
-  
-  toggleRow.append(targetModeCheck, targetModeLabel);
-  
-  const inputsContainer = document.createElement('div');
-  inputsContainer.style.display = 'flex';
-  inputsContainer.style.flexDirection = 'column';
-  inputsContainer.style.gap = '0.5rem';
-  inputsContainer.style.marginBottom = '1rem';
-  
-  const createInputRow = (labelText) => {
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.alignItems = 'center';
-      row.style.justifyContent = 'center';
-      row.style.gap = '0.5rem';
-      
-      const label = document.createElement('label');
-      label.textContent = labelText;
-      
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.style.background = 'rgba(0,0,0,0.4)';
-      input.style.border = '1px solid rgba(255,255,255,0.2)';
-      input.style.color = 'white';
-      input.style.padding = '4px 8px';
-      input.style.borderRadius = '4px';
-      input.style.fontFamily = 'inherit';
-      input.style.fontSize = '1.1em';
-      input.style.width = '100px';
-      input.style.textAlign = 'center';
-      input.style.outline = 'none';
-      input.style.transition = 'border-color 0.15s';
-      input.addEventListener('focus', () => {
-          if (input.style.borderColor !== 'rgb(255, 68, 68)' && input.style.borderColor !== '#ff4444') {
-              input.style.borderColor = 'rgba(230, 190, 50, 0.75)';
-          }
-      });
-      
-      const afterSlot = document.createElement('div');
-      afterSlot.style.opacity = '0.7';
-      afterSlot.style.whiteSpace = 'nowrap';
-      
-      row.append(label, input, afterSlot);
-      return { row, label, input, afterSlot };
-  };
-  
-  const startRowObj = createInputRow('Starting Level:');
-  const targetRowObj = createInputRow('Target Level:');
-  
-  const { row: startRow, input: startInput, afterSlot: startAfter } = startRowObj;
-  const { row: targetRow, label: targetLabel, input: targetInput, afterSlot: targetAfter } = targetRowObj;
-  
-  startInput.value = formatNumber(BigNum.fromAny(model.lvl));
-  targetInput.value = formatNumber(BigNum.fromAny(model.lvl));
-  
-  const cap = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
-  const capText = cap === Infinity ? '' : ` / ${formatNumber(BigNum.fromAny(cap))}`;
-  
-  startAfter.textContent = capText;
-  targetAfter.textContent = capText;
-  
-  inputsContainer.append(startRow, targetRow);
-  
-  content.append(toggleRow, inputsContainer);
-  
-  const costAtDisplay = document.createElement('div');
-  costAtDisplay.style.marginBottom = '0.5rem';
-  costAtDisplay.style.textAlign = 'center';
-  
-  const costToDisplay = document.createElement('div');
-  costToDisplay.style.marginBottom = '1rem';
-  costToDisplay.style.textAlign = 'center';
-  
-  const parseLevel = (val) => {
-      const v = String(val).trim().replace(/,/g, '');
-      if (!v) return 0;
-      const parsedBn = parseBigNumInput(v);
-      if (!parsedBn || parsedBn.isNaN?.()) return -1;
-      let num = Math.floor(parsedBn.toNumber?.() ?? Number(parsedBn));
-      if (isNaN(num)) {
-          if (parsedBn.isInfinite?.() || num === Infinity) num = cap === Infinity ? Infinity : cap;
-          else return -1;
-      }
-      num = Math.max(0, num);
-      if (cap !== Infinity && num > cap) num = cap;
-      return num;
-  };
-  
-  const getRetroactiveCostAt = (level) => {
-      if (model.upg.upgType !== 'HM') {
-          try { return BigNum.fromAny(model.upg.costAtLevel(level)); } catch { return BigNum.fromInt(0); }
-      }
-      
-      const origEvol = model.upg.activeEvolutions;
-      const origScaling = model.upg.scaling;
-      try {
-          model.upg.activeEvolutions = Math.floor(level / 1000);
-          delete model.upg.scaling;
-          return BigNum.fromAny(model.upg.costAtLevel(level));
-      } catch {
-          return BigNum.fromInt(0);
-      } finally {
-          model.upg.activeEvolutions = origEvol;
-          model.upg.scaling = origScaling;
-      }
-  };
-  
-  const getRetroactiveCost = (start, end) => {
-      if (model.upg.upgType !== 'HM') {
-          return evaluateBulkPurchase(model.upg, BigNum.fromInt(start), BigNum.fromAny('Infinity'), BigNum.fromInt(end - start)).spent;
-      }
-      
-      const origEvol = model.upg.activeEvolutions;
-      const origScaling = model.upg.scaling;
-      
-      let totalSpent = BigNum.fromInt(0);
-      let currentStart = start;
-      
-      try {
-          while (currentStart < end) {
-              const currentEvol = Math.floor(currentStart / 1000);
-              const nextBoundary = (currentEvol + 1) * 1000;
-              const currentEnd = Math.min(end, nextBoundary);
-              
-              model.upg.activeEvolutions = currentEvol;
-              delete model.upg.scaling;
-              
-              const { spent } = evaluateBulkPurchase(model.upg, BigNum.fromInt(currentStart), BigNum.fromAny('Infinity'), BigNum.fromInt(currentEnd - currentStart));
-              totalSpent = totalSpent.add(spent);
-              
-              currentStart = currentEnd;
-          }
-      } finally {
-          model.upg.activeEvolutions = origEvol;
-          model.upg.scaling = origScaling;
-      }
-      return totalSpent;
-  };
-  
-  let isFirstEditInTargetMode = false;
-  
-  const updateDisplays = () => {
-      const isTargetMode = targetModeCheck.checked;
-      
-      startRow.style.display = isTargetMode ? 'flex' : 'none';
-      
-      targetLabel.textContent = isTargetMode ? 'Target Level:' : 'Level:';
-      
-      let startLvl = parseLevel(startInput.value);
-      let targetLvl = parseLevel(targetInput.value);
-      
-      const isStartInvalid = startLvl === -1;
-      const isTargetInvalid = targetLvl === -1;
-      
-      if (isTargetInvalid || (isTargetMode && isStartInvalid)) {
-          costAtDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Enter valid ${isTargetMode ? 'levels' : 'level'} to view cost</span>`;
-          costToDisplay.style.display = 'none';
-          return;
-      }
-      
-      costToDisplay.style.display = isTargetMode ? 'block' : 'none';
-      
-      const safeStart = startLvl;
-      const safeTarget = targetLvl;
-      let effectiveTarget = safeTarget;
-      
-      let costAt = getRetroactiveCostAt(effectiveTarget);
-      const costAtLabel = getCurrencyLabel(model.upg.costType, costAt);
-      
-      let cumulative = BigNum.fromInt(0);
-      if (isTargetMode && effectiveTarget > safeStart) {
-          cumulative = getRetroactiveCost(safeStart, effectiveTarget);
-      }
-      const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
-      
-      const targetStr = formatNumber(BigNum.fromAny(effectiveTarget));
-      
-      let costAtStr;
-      if (effectiveTarget >= cap) {
-          costAtStr = 'None (Maxed)';
-      } else {
-          costAtStr = `${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
-      }
-      
-      costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
-      costToDisplay.innerHTML = `Cost to level ${targetStr}: ${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
-  };
-  
-  const formatOnBlur = (inputEl) => {
-      let val = inputEl.value;
-      const finalNum = parseLevel(val);
-      if (finalNum === -1) {
-          inputEl.style.borderColor = '#ff4444';
-          return;
-      }
-      
-      inputEl.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-      inputEl.value = formatNumber(BigNum.fromAny(finalNum));
-      
-      if (isFirstEditInTargetMode) {
-          isFirstEditInTargetMode = false;
-          if (inputEl === startInput) {
-              targetInput.value = inputEl.value;
-              targetInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          } else if (inputEl === targetInput) {
-              startInput.value = inputEl.value;
-              startInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          }
-      } else {
-          let sLvl = parseLevel(startInput.value);
-          let tLvl = parseLevel(targetInput.value);
-          if (sLvl !== -1 && tLvl !== -1) {
-              if (inputEl === startInput && sLvl > tLvl) {
-                  targetInput.value = inputEl.value;
-                  targetInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-              } else if (inputEl === targetInput && tLvl < sLvl) {
-                  startInput.value = inputEl.value;
-                  startInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-              }
-          }
-      }
-      
-      updateDisplays();
-  };
-  
-  startInput.addEventListener('blur', () => formatOnBlur(startInput));
-  targetInput.addEventListener('blur', () => formatOnBlur(targetInput));
-  
-  const handleInputKeydown = (e, inputEl) => {
-      if (e.key === 'Enter') {
-          e.preventDefault();
-          inputEl.blur();
-      }
-  };
-  startInput.addEventListener('keydown', (e) => handleInputKeydown(e, startInput));
-  targetInput.addEventListener('keydown', (e) => handleInputKeydown(e, targetInput));
-  
-  startInput.addEventListener('click', () => startInput.select());
-  targetInput.addEventListener('click', () => targetInput.select());
-  
-  targetModeCheck.addEventListener('change', () => {
-      if (targetModeCheck.checked) {
-          startInput.value = '-';
-          targetInput.value = '-';
-          startInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          targetInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          isFirstEditInTargetMode = true;
-      } else {
-          isFirstEditInTargetMode = false;
-      }
-      updateDisplays();
-  });
-  
-  content.append(costAtDisplay, costToDisplay);
-  
-  const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
-  if (model.upg.upgType === 'HM' && evolutions > 0) {
-      const hmNote = document.createElement('div');
-      hmNote.textContent = '(Evolution scaling is retroactively regressed every 1000 levels to be informative)';
-      hmNote.style.color = 'rgb(245, 230, 160)';
-      hmNote.style.fontSize = '0.8em';
-      hmNote.style.opacity = '0.7';
-      hmNote.style.marginTop = '0.5rem';
-      hmNote.style.textAlign = 'center';
-      content.append(hmNote);
-  }
-  
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'hm-milestones-close';
-  closeBtn.textContent = 'Close';
-  closeBtn.style.color = 'rgb(245, 230, 160)';
-  closeBtn.style.border = '1px solid rgba(230, 190, 50, 0.45)';
-  closeBtn.style.background = 'rgba(230, 190, 50, 0.15)';
-  closeBtn.addEventListener('mouseenter', () => closeBtn.style.background = 'rgba(230, 190, 50, 0.22)');
-  closeBtn.addEventListener('mouseleave', () => closeBtn.style.background = 'rgba(230, 190, 50, 0.15)');
-  
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKeydown); };
-  const onKeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); close(); } };
-  overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
-  closeBtn.addEventListener('click', close);
-  document.addEventListener('keydown', onKeydown);
-  
-  dialog.append(title, content, closeBtn);
-  overlay.appendChild(dialog);
-  document.body.appendChild(overlay);
-  if (typeof closeBtn.focus === 'function') closeBtn.focus({ preventScroll: true });
-  
-  updateDisplays();
+    const existing = document.querySelector(".hm-valc-overlay");
+    if (existing) existing.remove();
+    const overlay = document.createElement("div");
+    overlay.className = "hm-milestones-overlay hm-valc-overlay";
+    overlay.setAttribute("role", "dialog");
+    const dialog = document.createElement("div");
+    dialog.className = "hm-milestones-dialog hm-valc-dialog";
+    dialog.style.border = "1px solid rgba(230, 190, 50, 0.75)";
+    const title = document.createElement("h3");
+    title.className = "hm-milestones-title";
+    title.textContent = "View Arbitrary Level Cost";
+    title.style.whiteSpace = "nowrap";
+    title.style.color = "rgb(245, 230, 160)";
+    const content = document.createElement("div");
+    content.className = "valc-content";
+    content.style.marginTop = "1rem";
+    content.style.marginBottom = "1rem";
+    const toggleRow = document.createElement("div");
+    toggleRow.style.display = "flex";
+    toggleRow.style.alignItems = "center";
+    toggleRow.style.justifyContent = "center";
+    toggleRow.style.gap = "0.5rem";
+    toggleRow.style.marginBottom = "1rem";
+    const targetModeCheck = document.createElement("input");
+    targetModeCheck.type = "checkbox";
+    targetModeCheck.id = "valc-target-mode";
+    targetModeCheck.style.cursor = "pointer";
+    const targetModeLabel = document.createElement("label");
+    targetModeLabel.htmlFor = "valc-target-mode";
+    targetModeLabel.textContent = "Target mode";
+    targetModeLabel.style.cursor = "pointer";
+    toggleRow.append(targetModeCheck, targetModeLabel);
+    const inputsContainer = document.createElement("div");
+    inputsContainer.style.display = "flex";
+    inputsContainer.style.flexDirection = "column";
+    inputsContainer.style.gap = "0.5rem";
+    inputsContainer.style.marginBottom = "1rem";
+    const createInputRow = (labelText) => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.justifyContent = "center";
+        row.style.gap = "0.5rem";
+        const label = document.createElement("label");
+        label.textContent = labelText;
+        const input = document.createElement("input");
+        input.type = "text";
+        input.style.background = "rgba(0,0,0,0.4)";
+        input.style.border = "1px solid rgba(255,255,255,0.2)";
+        input.style.color = "white";
+        input.style.padding = "4px 8px";
+        input.style.borderRadius = "4px";
+        input.style.fontFamily = "inherit";
+        input.style.fontSize = "1.1em";
+        input.style.width = "100px";
+        input.style.textAlign = "center";
+        input.style.outline = "none";
+        input.style.transition = "border-color 0.15s";
+        input.addEventListener("focus", () => {
+            if (input.style.borderColor !== "rgb(255, 68, 68)" && input.style.borderColor !== "#ff4444") {
+                input.style.borderColor = "rgba(230, 190, 50, 0.75)";
+            }
+        });
+        const afterSlot = document.createElement("div");
+        afterSlot.style.opacity = "0.7";
+        afterSlot.style.whiteSpace = "nowrap";
+        row.append(label, input, afterSlot);
+        return { row, label, input, afterSlot };
+    };
+
+    const startRowObj = createInputRow("Starting Level:");
+    const targetRowObj = createInputRow("Target Level:");
+    const { row: startRow, input: startInput, afterSlot: startAfter } = startRowObj;
+    const { row: targetRow, label: targetLabel, input: targetInput, afterSlot: targetAfter } = targetRowObj;
+    startInput.value = formatNumber(BigNum.fromAny(model.lvl));
+    targetInput.value = formatNumber(BigNum.fromAny(model.lvl));
+    const cap = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
+    const capText = cap === Infinity ? "" : ` / ${formatNumber(BigNum.fromAny(cap))}`;
+    startAfter.textContent = capText;
+    targetAfter.textContent = capText;
+    inputsContainer.append(startRow, targetRow);
+    content.append(toggleRow, inputsContainer);
+    const costAtDisplay = document.createElement("div");
+    costAtDisplay.style.marginBottom = "0.5rem";
+    costAtDisplay.style.textAlign = "center";
+    const costToDisplay = document.createElement("div");
+    costToDisplay.style.marginBottom = "1rem";
+    costToDisplay.style.textAlign = "center";
+    const parseLevel = (val) => {
+        const v = String(val).trim().replace(/,/g, "");
+        if (!v) return 0;
+        const parsedBn = parseBigNumInput(v);
+        if (!parsedBn || parsedBn.isNaN?.()) return -1;
+        let num = Math.floor(parsedBn.toNumber?.() ?? Number(parsedBn));
+        if (isNaN(num)) {
+            if (parsedBn.isInfinite?.() || num === Infinity) num = cap === Infinity ? Infinity : cap;
+            else return -1;
+        }
+        num = Math.max(0, num);
+        if (cap !== Infinity && num > cap) num = cap;
+        return num;
+    };
+
+    const getRetroactiveCostAt = (level) => {
+        if (model.upg.upgType !== "HM") {
+            try {
+                return BigNum.fromAny(model.upg.costAtLevel(level));
+            } catch {
+                return BigNum.fromInt(0);
+            }
+        }
+
+        const origEvol = model.upg.activeEvolutions;
+        const origScaling = model.upg.scaling;
+        try {
+            model.upg.activeEvolutions = Math.floor(level / 1000);
+            delete model.upg.scaling;
+            return BigNum.fromAny(model.upg.costAtLevel(level));
+        } catch {
+            return BigNum.fromInt(0);
+        } finally {
+            model.upg.activeEvolutions = origEvol;
+            model.upg.scaling = origScaling;
+        }
+    };
+
+    const getRetroactiveCost = (start, end) => {
+        if (model.upg.upgType !== "HM") {
+            return evaluateBulkPurchase(
+                model.upg,
+                BigNum.fromInt(start),
+                BigNum.fromAny("Infinity"),
+                BigNum.fromInt(end - start),
+            ).spent;
+        }
+
+        const origEvol = model.upg.activeEvolutions;
+        const origScaling = model.upg.scaling;
+        let totalSpent = BigNum.fromInt(0);
+        let currentStart = start;
+        try {
+            while (currentStart < end) {
+                const currentEvol = Math.floor(currentStart / 1000);
+                const nextBoundary = (currentEvol + 1) * 1000;
+                const currentEnd = Math.min(end, nextBoundary);
+                model.upg.activeEvolutions = currentEvol;
+                delete model.upg.scaling;
+                const { spent } = evaluateBulkPurchase(
+                    model.upg,
+                    BigNum.fromInt(currentStart),
+                    BigNum.fromAny("Infinity"),
+                    BigNum.fromInt(currentEnd - currentStart),
+                );
+                totalSpent = totalSpent.add(spent);
+                currentStart = currentEnd;
+            }
+        } finally {
+            model.upg.activeEvolutions = origEvol;
+            model.upg.scaling = origScaling;
+        }
+        return totalSpent;
+    };
+
+    let isFirstEditInTargetMode = false;
+    const updateDisplays = () => {
+        const isTargetMode = targetModeCheck.checked;
+        startRow.style.display = isTargetMode ? "flex" : "none";
+        targetLabel.textContent = isTargetMode ? "Target Level:" : "Level:";
+        let startLvl = parseLevel(startInput.value);
+        let targetLvl = parseLevel(targetInput.value);
+        const isStartInvalid = startLvl === -1;
+        const isTargetInvalid = targetLvl === -1;
+        if (isTargetInvalid || (isTargetMode && isStartInvalid)) {
+            costAtDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Enter valid ${isTargetMode ? "levels" : "level"} to view cost</span>`;
+            costToDisplay.style.display = "none";
+            return;
+        }
+        costToDisplay.style.display = isTargetMode ? "block" : "none";
+        const safeStart = startLvl;
+        const safeTarget = targetLvl;
+        let effectiveTarget = safeTarget;
+        let costAt = getRetroactiveCostAt(effectiveTarget);
+        const costAtLabel = getCurrencyLabel(model.upg.costType, costAt);
+        let cumulative = BigNum.fromInt(0);
+        if (isTargetMode && effectiveTarget > safeStart) {
+            cumulative = getRetroactiveCost(safeStart, effectiveTarget);
+        }
+
+        const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
+        const targetStr = formatNumber(BigNum.fromAny(effectiveTarget));
+        let costAtStr;
+        if (effectiveTarget >= cap) {
+            costAtStr = "None (Maxed)";
+        } else {
+            costAtStr = `${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
+        }
+        costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
+        costToDisplay.innerHTML = `Cost to level ${targetStr}: ${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
+    };
+
+    const formatOnBlur = (inputEl) => {
+        let val = inputEl.value;
+        const finalNum = parseLevel(val);
+        if (finalNum === -1) {
+            inputEl.style.borderColor = "#ff4444";
+            return;
+        }
+        inputEl.style.borderColor = "rgba(255, 255, 255, 0.2)";
+        inputEl.value = formatNumber(BigNum.fromAny(finalNum));
+        if (isFirstEditInTargetMode) {
+            isFirstEditInTargetMode = false;
+            if (inputEl === startInput) {
+                targetInput.value = inputEl.value;
+                targetInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
+            } else if (inputEl === targetInput) {
+                startInput.value = inputEl.value;
+                startInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
+            }
+        } else {
+            let sLvl = parseLevel(startInput.value);
+            let tLvl = parseLevel(targetInput.value);
+            if (sLvl !== -1 && tLvl !== -1) {
+                if (inputEl === startInput && sLvl > tLvl) {
+                    targetInput.value = inputEl.value;
+                    targetInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                } else if (inputEl === targetInput && tLvl < sLvl) {
+                    startInput.value = inputEl.value;
+                    startInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                }
+            }
+        }
+        updateDisplays();
+    };
+    startInput.addEventListener("blur", () => formatOnBlur(startInput));
+    targetInput.addEventListener("blur", () => formatOnBlur(targetInput));
+    const handleInputKeydown = (e, inputEl) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            inputEl.blur();
+        }
+    };
+    startInput.addEventListener("keydown", (e) => handleInputKeydown(e, startInput));
+    targetInput.addEventListener("keydown", (e) => handleInputKeydown(e, targetInput));
+    startInput.addEventListener("click", () => startInput.select());
+    targetInput.addEventListener("click", () => targetInput.select());
+    targetModeCheck.addEventListener("change", () => {
+        if (targetModeCheck.checked) {
+            startInput.value = "-";
+            targetInput.value = "-";
+            startInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
+            targetInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
+            isFirstEditInTargetMode = true;
+        } else {
+            isFirstEditInTargetMode = false;
+        }
+        updateDisplays();
+    });
+    content.append(costAtDisplay, costToDisplay);
+    const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
+    if (model.upg.upgType === "HM" && evolutions > 0) {
+        const hmNote = document.createElement("div");
+        hmNote.textContent = "(Evolution scaling is retroactively regressed every 1000 levels to be informative)";
+        hmNote.style.color = "rgb(245, 230, 160)";
+        hmNote.style.fontSize = "0.8em";
+        hmNote.style.opacity = "0.7";
+        hmNote.style.marginTop = "0.5rem";
+        hmNote.style.textAlign = "center";
+        content.append(hmNote);
+    }
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "hm-milestones-close";
+    closeBtn.textContent = "Close";
+    closeBtn.style.color = "rgb(245, 230, 160)";
+    closeBtn.style.border = "1px solid rgba(230, 190, 50, 0.45)";
+    closeBtn.style.background = "rgba(230, 190, 50, 0.15)";
+    closeBtn.addEventListener("mouseenter", () => (closeBtn.style.background = "rgba(230, 190, 50, 0.22)"));
+    closeBtn.addEventListener("mouseleave", () => (closeBtn.style.background = "rgba(230, 190, 50, 0.15)"));
+    const close = () => {
+        overlay.remove();
+        document.removeEventListener("keydown", onKeydown);
+    };
+
+    const onKeydown = (event) => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            close();
+        }
+    };
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) close();
+    });
+    closeBtn.addEventListener("click", close);
+    document.addEventListener("keydown", onKeydown);
+    dialog.append(title, content, closeBtn);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    if (typeof closeBtn.focus === "function") closeBtn.focus({ preventScroll: true });
+    updateDisplays();
 }
 
 function openHmMilestoneDialog(lines) {
-  // ... (Re-implement logic or use existing. I will copy existing logic for brevity)
-  const existing = document.querySelector('.hm-milestones-overlay');
-  if (existing) existing.remove();
-  const overlay = document.createElement('div');
-  overlay.className = 'hm-milestones-overlay';
-  overlay.setAttribute('role', 'dialog');
-  const dialog = document.createElement('div');
-  dialog.className = 'hm-milestones-dialog';
-  const title = document.createElement('h3');
-  title.className = 'hm-milestones-title';
-  title.textContent = 'Milestones';
-  const list = document.createElement('ul');
-  list.className = 'hm-milestones-list';
-  for (const line of lines) {
-    const li = document.createElement('li');
-    const text = document.createElement('span');
-    text.className = 'hm-milestone-text';
-    if (line && typeof line === 'object') { setHtmlOrText(text, line.text ?? ''); if (line.achieved) li.classList.add('hm-milestone-achieved'); } 
-    else { setHtmlOrText(text, line); }
-    li.appendChild(text); list.appendChild(li);
-  }
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'hm-milestones-close';
-  closeBtn.textContent = 'Close';
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKeydown); };
-  const onKeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); close(); } };
-  overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
-  closeBtn.addEventListener('click', close);
-  document.addEventListener('keydown', onKeydown);
-  dialog.append(title, list, closeBtn);
-  overlay.appendChild(dialog);
-  document.body.appendChild(overlay);
-  if (typeof closeBtn.focus === 'function') closeBtn.focus({ preventScroll: true });
+    // ... (Re-implement logic or use existing. I will copy existing logic for brevity)
+    const existing = document.querySelector(".hm-milestones-overlay");
+    if (existing) existing.remove();
+    const overlay = document.createElement("div");
+    overlay.className = "hm-milestones-overlay";
+    overlay.setAttribute("role", "dialog");
+    const dialog = document.createElement("div");
+    dialog.className = "hm-milestones-dialog";
+    const title = document.createElement("h3");
+    title.className = "hm-milestones-title";
+    title.textContent = "Milestones";
+    const list = document.createElement("ul");
+    list.className = "hm-milestones-list";
+    for (const line of lines) {
+        const li = document.createElement("li");
+        const text = document.createElement("span");
+        text.className = "hm-milestone-text";
+        if (line && typeof line === "object") {
+            setHtmlOrText(text, line.text ?? "");
+            if (line.achieved) li.classList.add("hm-milestone-achieved");
+        } else {
+            setHtmlOrText(text, line);
+        }
+        li.appendChild(text);
+        list.appendChild(li);
+    }
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "hm-milestones-close";
+    closeBtn.textContent = "Close";
+    const close = () => {
+        overlay.remove();
+        document.removeEventListener("keydown", onKeydown);
+    };
+
+    const onKeydown = (event) => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            close();
+        }
+    };
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) close();
+    });
+    closeBtn.addEventListener("click", close);
+    document.addEventListener("keydown", onKeydown);
+    dialog.append(title, list, closeBtn);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    if (typeof closeBtn.focus === "function") closeBtn.focus({ preventScroll: true });
 }
 
-export function openUpgradeOverlay(upgDef, mode = 'standard') {
-  ensureUpgradeOverlay();
-  upgOpen = true;
-  currentUpgradeMode = mode;
-  let upgOpenLocal = true;
+export function openUpgradeOverlay(upgDef, mode = "standard") {
+    ensureUpgradeOverlay();
+    upgOpen = true;
+    currentUpgradeMode = mode;
+    let upgOpenLocal = true;
+    const adapter = getAdapter(mode);
+    // Initial checks
+    const initialLockState = adapter.getLockState(upgDef.id) || {};
+    const initialLocked = !!initialLockState.locked;
+    const initialMysterious =
+        initialLocked &&
+        (initialLockState.hidden ||
+            initialLockState.hideEffect ||
+            initialLockState.hideCost ||
+            (typeof initialLockState.iconOverride === "string" &&
+                initialLockState.iconOverride.includes("mysterious")));
+    if (initialLocked && !initialMysterious) {
+        upgOpen = false;
+        return;
+    }
 
-  const adapter = getAdapter(mode);
-  
-  // Initial checks
-  const initialLockState = adapter.getLockState(upgDef.id) || {};
-  const initialLocked = !!initialLockState.locked;
-  const initialMysterious = initialLocked && (initialLockState.hidden || initialLockState.hideEffect || initialLockState.hideCost || (typeof initialLockState.iconOverride === 'string' && initialLockState.iconOverride.includes('mysterious')));
-  if (initialLocked && !initialMysterious) { upgOpen = false; return; }
+    const isHM = upgDef.upgType === "HM";
+    const isTM = upgDef.upgType === "TM";
+    const isEndlessXp = upgDef.tie === UPGRADE_TIES.ENDLESS_XP;
+    const isEndlessFp = upgDef.tie === UPGRADE_TIES.ENDLESS_FP;
+    const isEndlessMaterials = upgDef.tie === UPGRADE_TIES.ENDLESS_MATERIALS;
+    const isEndlessMp = upgDef.tie === UPGRADE_TIES.ENDLESS_MP;
+    const isEndlessCoins = upgDef.tie === UPGRADE_TIES.ENDLESS_COINS;
+    const isEndlessCoins2 = upgDef.tie === UPGRADE_TIES.ENDLESS_COINS_II;
+    const isEndlessCoins3 = upgDef.tie === UPGRADE_TIES.ENDLESS_COINS_III;
+    function ensureChild(parent, className, tagName = "div") {
+        const targetClasses = className.split(" ").filter((c) => c.length > 0);
+        let el = null;
+        const extras = [];
+        for (let i = 0; i < parent.children.length; i++) {
+            const child = parent.children[i];
+            if (tagName && child.tagName.toLowerCase() !== tagName.toLowerCase()) continue;
+            if (targetClasses.every((cls) => child.classList.contains(cls))) {
+                if (!el) el = child;
+                else extras.push(child);
+            }
+        }
+        extras.forEach((e) => e.remove());
+        if (!el) {
+            el = document.createElement(tagName);
+            el.className = className;
+            parent.appendChild(el);
+        }
+        return el;
+    }
 
-  const isHM = (upgDef.upgType === 'HM');
-  const isTM = (upgDef.upgType === 'TM');
-  const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
-  const isEndlessFp = (upgDef.tie === UPGRADE_TIES.ENDLESS_FP);
-  const isEndlessMaterials = (upgDef.tie === UPGRADE_TIES.ENDLESS_MATERIALS);
-  const isEndlessMp = (upgDef.tie === UPGRADE_TIES.ENDLESS_MP);
-  const isEndlessCoins = (upgDef.tie === UPGRADE_TIES.ENDLESS_COINS);
-  const isEndlessCoins2 = (upgDef.tie === UPGRADE_TIES.ENDLESS_COINS_II);
-  const isEndlessCoins3 = (upgDef.tie === UPGRADE_TIES.ENDLESS_COINS_III);
-  
-  function ensureChild(parent, className, tagName = 'div') {
-      const targetClasses = className.split(' ').filter(c => c.length > 0);
-      let el = null; const extras = [];
-      for (let i = 0; i < parent.children.length; i++) {
-          const child = parent.children[i];
-          if (tagName && child.tagName.toLowerCase() !== tagName.toLowerCase()) continue;
-          if (targetClasses.every(cls => child.classList.contains(cls))) { if (!el) el = child; else extras.push(child); }
-      }
-      extras.forEach(e => e.remove());
-      if (!el) { el = document.createElement(tagName); el.className = className; parent.appendChild(el); }
-      return el;
-  }
-  const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
-  
-  
-  let initialRender = true;
-  
-  const rerender = () => {
-      const model = adapter.getUiModel(upgDef.id);
-      if (!model) return;
-      
-      const lockState = model.lockState || adapter.getLockState(upgDef.id);
-      const locked = !!lockState?.locked;
-      const isHiddenUpgrade = locked && (lockState?.hidden || lockState?.hideEffect || lockState?.hideCost);
-      const isUnlockVisible = !!model.unlockUpgrade && !isHiddenUpgrade;
-      
-      upgSheetEl.classList.toggle('is-locked-hidden', isHiddenUpgrade);
-      
-      const header = upgSheetEl.querySelector('.upg-header');
-      const title = ensureChild(header, 'upg-title');
-      if (title.textContent !== (model.displayTitle || model.upg.title)) title.textContent = model.displayTitle || model.upg.title;
+    const makeLine = (html) => {
+        const d = document.createElement("div");
+        d.className = "upg-line";
+        d.innerHTML = html;
+        return d;
+    };
 
-      
-      const evolveReady = !!model.hmReadyToEvolve && !model.lvlBn?.isInfinite?.();
-      const capReached = evolveReady ? false : (model.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model.upg.lvlCap) ? model.lvl >= model.upg.lvlCap : false));
-      
-      const level = ensureChild(header, 'upg-level');
-      const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
-      const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
-      let levelHtml = evolveReady ? `Level ${model.lvlFmtHtml} / ${capHtml} (EVOLVE READY)` : (capReached ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)` : `Level ${model.lvlFmtHtml} / ${capHtml}`);
-      if (mode === 'rainbow_gem_shop') {
-          levelHtml = capReached ? 'Owned' : 'Not Owned';
-      }
-      const levelPlain = stripTags(levelHtml);
-      setHtmlOrText(level, levelHtml);
-      if (level.getAttribute('aria-label') !== levelPlain) level.setAttribute('aria-label', levelPlain);
-      level.hidden = isHiddenUpgrade;
-      if (!isHiddenUpgrade) level.removeAttribute('aria-hidden');
-      
-      upgSheetEl.classList.toggle('is-maxed', capReached);
-      upgSheetEl.classList.toggle('hm-evolve-ready', evolveReady);
-      upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
-      upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
-      upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
-	  upgSheetEl.classList.toggle('is-endless-fp', isEndlessFp);
-	  upgSheetEl.classList.toggle('is-endless-materials', isEndlessMaterials);
-      upgSheetEl.classList.toggle('is-endless-mp', isEndlessMp);
-      upgSheetEl.classList.toggle('is-endless-coins', isEndlessCoins);
-      upgSheetEl.classList.toggle('is-endless-coins-2', isEndlessCoins2);
-      upgSheetEl.classList.toggle('is-endless-coins-3', isEndlessCoins3);
-      upgSheetEl.classList.toggle('is-magnet-upgrade', upgDef.tie === UPGRADE_TIES.MAGNET);
-      upgSheetEl.classList.toggle('is-coin-value-iv', upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
-      upgSheetEl.classList.toggle('is-xp-value-iv', upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
-	  upgSheetEl.classList.toggle('is-no-effect', !model.effect);
+    let initialRender = true;
+    const rerender = () => {
+        const model = adapter.getUiModel(upgDef.id);
+        if (!model) return;
+        const lockState = model.lockState || adapter.getLockState(upgDef.id);
+        const locked = !!lockState?.locked;
+        const isHiddenUpgrade = locked && (lockState?.hidden || lockState?.hideEffect || lockState?.hideCost);
+        const isUnlockVisible = !!model.unlockUpgrade && !isHiddenUpgrade;
+        upgSheetEl.classList.toggle("is-locked-hidden", isHiddenUpgrade);
+        const header = upgSheetEl.querySelector(".upg-header");
+        const title = ensureChild(header, "upg-title");
+        if (title.textContent !== (model.displayTitle || model.upg.title))
+            title.textContent = model.displayTitle || model.upg.title;
+        const evolveReady = !!model.hmReadyToEvolve && !model.lvlBn?.isInfinite?.();
+        const capReached = evolveReady
+            ? false
+            : model.lvlBn?.isInfinite?.()
+              ? true
+              : Number.isFinite(model.upg.lvlCap)
+                ? model.lvl >= model.upg.lvlCap
+                : false;
+        const level = ensureChild(header, "upg-level");
+        const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
+        const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
+        let levelHtml = evolveReady
+            ? `Level ${model.lvlFmtHtml} / ${capHtml} (EVOLVE READY)`
+            : capReached
+              ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)`
+              : `Level ${model.lvlFmtHtml} / ${capHtml}`;
+        if (mode === "rainbow_gem_shop") {
+            levelHtml = capReached ? "Owned" : "Not Owned";
+        }
 
-            // --- Automation Toggle Logic ---
-      let autoToggleWrapper = header.querySelector('.auto-toggle-wrapper');
+        const levelPlain = stripTags(levelHtml);
+        setHtmlOrText(level, levelHtml);
+        if (level.getAttribute("aria-label") !== levelPlain) level.setAttribute("aria-label", levelPlain);
+        level.hidden = isHiddenUpgrade;
+        if (!isHiddenUpgrade) level.removeAttribute("aria-hidden");
+        upgSheetEl.classList.toggle("is-maxed", capReached);
+        upgSheetEl.classList.toggle("hm-evolve-ready", evolveReady);
+        upgSheetEl.classList.toggle("is-unlock-upgrade", isUnlockVisible);
+        upgSheetEl.classList.toggle("is-hm-upgrade", isHM && !isHiddenUpgrade);
+        upgSheetEl.classList.toggle("is-endless-xp", isEndlessXp);
+        upgSheetEl.classList.toggle("is-endless-fp", isEndlessFp);
+        upgSheetEl.classList.toggle("is-endless-materials", isEndlessMaterials);
+        upgSheetEl.classList.toggle("is-endless-mp", isEndlessMp);
+        upgSheetEl.classList.toggle("is-endless-coins", isEndlessCoins);
+        upgSheetEl.classList.toggle("is-endless-coins-2", isEndlessCoins2);
+        upgSheetEl.classList.toggle("is-endless-coins-3", isEndlessCoins3);
+        upgSheetEl.classList.toggle("is-magnet-upgrade", upgDef.tie === UPGRADE_TIES.MAGNET);
+        upgSheetEl.classList.toggle("is-coin-value-iv", upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
+        upgSheetEl.classList.toggle("is-xp-value-iv", upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
+        upgSheetEl.classList.toggle("is-no-effect", !model.effect);
+        // --- Automation Toggle Logic ---
+        let autoToggleWrapper = header.querySelector(".auto-toggle-wrapper");
+        // Check for Master Upgrade logic in Automation Shop
+        const masterCostType = mode === "automation" ? MASTER_AUTOBUY_IDS[upgDef.id] : null;
+        // Also check for Workshop Level Master Switch (ID 6 in automation shop)
+        const isWorkshopMaster = mode === "automation" && upgDef.id === AUTOBUY_WORKSHOP_LEVELS_ID;
+        // Check for Auto-Evolve Upgrades Master Switch (ID 8 in automation shop)
+        const isEvolveMaster = mode === "automation" && upgDef.id === AUTOBUY_EVOLVE_UPGRADES_ID;
+        const isAutomationMaster = !!masterCostType;
+        // Check for Standard Upgrade logic in Standard Shop
+        const standardAutobuyId =
+            mode === "standard" || mode === "dna" || mode === "delve" ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
+        let autobuyLevel = 0;
+        if (standardAutobuyId) {
+            autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, standardAutobuyId);
+        } else if (isAutomationMaster || isWorkshopMaster || isEvolveMaster) {
+            // If viewing the master upgrade itself, we check its own level
+            autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, upgDef.id);
+        }
 
-      // Check for Master Upgrade logic in Automation Shop
-      const masterCostType = (mode === 'automation') ? MASTER_AUTOBUY_IDS[upgDef.id] : null;
-      // Also check for Workshop Level Master Switch (ID 6 in automation shop)
-      const isWorkshopMaster = (mode === 'automation' && upgDef.id === AUTOBUY_WORKSHOP_LEVELS_ID);
-      // Check for Auto-Evolve Upgrades Master Switch (ID 8 in automation shop)
-      const isEvolveMaster = (mode === 'automation' && upgDef.id === AUTOBUY_EVOLVE_UPGRADES_ID);
+        const hasAutobuyer = autobuyLevel > 0;
+        const isOwnedTM = isTM && getLevelNumber(upgDef.area, upgDef.id) > 0;
+        const showAutoToggle =
+            (hasAutobuyer &&
+                (isAutomationMaster || standardAutobuyId || isWorkshopMaster || isEvolveMaster) &&
+                !isHiddenUpgrade) ||
+            (isOwnedTM && !isHiddenUpgrade);
+        if (!autoToggleWrapper) {
+            autoToggleWrapper = document.createElement("div");
+            autoToggleWrapper.className = "auto-toggle-wrapper hm-view-milestones-row";
+            header.appendChild(autoToggleWrapper);
+        }
 
-      const isAutomationMaster = !!masterCostType;
-      
-      // Check for Standard Upgrade logic in Standard Shop
-      const standardAutobuyId = (mode === 'standard' || mode === 'dna' || mode === 'delve') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
-
-      let autobuyLevel = 0;
-      if (standardAutobuyId) {
-          autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, standardAutobuyId);
-      } else if (isAutomationMaster || isWorkshopMaster || isEvolveMaster) {
-          // If viewing the master upgrade itself, we check its own level
-          autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, upgDef.id);
-      }
-
-      const hasAutobuyer = autobuyLevel > 0;
-      const isOwnedTM = isTM && (getLevelNumber(upgDef.area, upgDef.id) > 0);
-      const showAutoToggle = (hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster || isEvolveMaster) && !isHiddenUpgrade) || (isOwnedTM && !isHiddenUpgrade);
-
-      if (!autoToggleWrapper) {
-          autoToggleWrapper = document.createElement('div');
-          autoToggleWrapper.className = 'auto-toggle-wrapper hm-view-milestones-row';
-          header.appendChild(autoToggleWrapper);
-      }
-      
-      let toggleBtn = autoToggleWrapper.querySelector('button');
-      if (!toggleBtn) {
-          toggleBtn = document.createElement('button');
-          toggleBtn.type = 'button';
-          toggleBtn.style.padding = '10px 14px';
-          toggleBtn.style.fontSize = '16px';
-          toggleBtn.style.width = 'auto';
-          toggleBtn.style.minWidth = '180px';
-          
-          toggleBtn.addEventListener('click', (e) => {
-              if (typeof toggleBtn._onClick === 'function') toggleBtn._onClick(e);
-          });
-          
-          autoToggleWrapper.appendChild(toggleBtn);
-      }
-      
-      if (showAutoToggle) {
-         toggleBtn.style.visibility = '';
-         toggleBtn.style.pointerEvents = 'auto';
-
-         const activeSlot = getActiveSlot();
-         const slotSuffix = activeSlot != null ? `:${activeSlot}` : '';
-
-         let isEnabled = true;
-         let collectiveState = null;
-         if (isAutomationMaster) {
-             collectiveState = getCollectiveAutobuyerState(masterCostType);
-             isEnabled = collectiveState > 0;
-         } else {
-             // Standard or Workshop Master
-             const val = getAutobuyerToggle(upgDef.area, upgDef.id);
-             isEnabled = val !== '0';
-         }
-
-         if (isOwnedTM) {
-             const activeModSettingKey = 'active_' + upgDef.modType + '_mod';
-             const isModActive = settingsManager.get(activeModSettingKey) === upgDef.id;
-
-             if (isModActive) {
-                 toggleBtn.className = 'shop-delve';
-                 toggleBtn.textContent = 'Toggle: ON';
-                 toggleBtn.style.backgroundColor = '';
-                 toggleBtn.style.color = '';
-             } else {
-                 toggleBtn.className = 'shop-close';
-                 toggleBtn.textContent = 'Toggle: OFF';
-                 toggleBtn.style.backgroundColor = '';
-                 toggleBtn.style.color = '';
-             }
-             
-             toggleBtn._onClick = (e) => {
-                 e.preventDefault(); e.stopPropagation();
-                 if (IS_MOBILE) blockInteraction(50);
-                 
-                 if (isModActive) {
-                     settingsManager.set(activeModSettingKey, 0); // Turn off
-                 } else {
-                     settingsManager.set(activeModSettingKey, upgDef.id); // Turn on
-                 }
-                 document.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
-                 rerender();
-             };
-         } else {
-             if (isAutomationMaster && collectiveState === 0.5) {
-                 toggleBtn.className = 'shop-sort-of';
-                 toggleBtn.textContent = 'Automation: Sort of ON';
-                 toggleBtn.style.color = ''; 
-                 toggleBtn.style.backgroundColor = ''; 
-             } else if (isEnabled) {
-                 toggleBtn.className = 'shop-delve';
-                 toggleBtn.textContent = 'Automation: ON';
-                 toggleBtn.style.backgroundColor = '';
-                 toggleBtn.style.color = '';
-             } else {
-                 toggleBtn.className = 'shop-close';
-                 toggleBtn.textContent = 'Automation: OFF';
-                 toggleBtn.style.backgroundColor = '';
-                 toggleBtn.style.color = '';
-             }
-             
-             toggleBtn._onClick = (e) => {
-                 e.preventDefault(); e.stopPropagation();
-                 if (IS_MOBILE) blockInteraction(50);
-                 
-                 const newState = !isEnabled;
-                 const val = newState ? '1' : '0';
-                 
-                 if (isAutomationMaster) {
-                     settingsManager.set(`currency_${masterCostType}_automated`, newState);
-                     setAllAutobuyersForCostType(masterCostType, newState);
-                 } else {
-                     setAutobuyerToggle(upgDef.area, upgDef.id, val);
-                 }
-                 window.dispatchEvent(new CustomEvent('currency:change'));
-                 document.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
-                 rerender();
-             };
-         }
-      } else {
-         toggleBtn.style.visibility = 'hidden';
-         toggleBtn.style.pointerEvents = 'none';
-         toggleBtn.className = 'shop-delve';
-         toggleBtn.textContent = 'Automation: ON'; // Dummy content for height
-         toggleBtn._onClick = null;
-      }
-      // -------------------------------
-      
-      const content = upgSheetEl.querySelector('.upg-content');
-      if (initialRender) { content.scrollTop = 0; initialRender = false; }
-      
-      const desc = ensureChild(content, 'upg-desc centered');
-      desc.classList.toggle('lock-desc', isHiddenUpgrade);
-      let rawBaseDesc = model.displayDesc || model.upg.desc || '';
-      if (typeof rawBaseDesc === 'function') rawBaseDesc = rawBaseDesc();
-      const baseDesc = String(rawBaseDesc).trim();
-      const descScale = Number(model.upg?.descScale);
-      const ignoreDescScaleAt = Number(model.upg?.ignoreDescScaleAt);
-      const viewportWidth = (typeof window !== 'undefined' && Number.isFinite(window.innerWidth))
-          ? window.innerWidth
-          : 0;
-      const shouldIgnoreDescScale = Number.isFinite(ignoreDescScaleAt)
-          && ignoreDescScaleAt > 0
-          && viewportWidth >= ignoreDescScaleAt;
-      if (evolveReady) {
-          desc.classList.add('hm-evolve-note');
-          desc.style.removeProperty('font-size');
-          if (desc.textContent !== 'Evolve this upgrade to multiply its effect by 1000x') desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
-      } else if (baseDesc) {
-          desc.classList.remove('hm-evolve-note');
-          if (!shouldIgnoreDescScale && Number.isFinite(descScale) && descScale > 0 && !isHiddenUpgrade) {
-              desc.style.fontSize = `calc((var(--upg-desc-size, clamp(32px, 4.6vw, 50px))) * ${descScale})`;
-          } else {
-              desc.style.removeProperty('font-size');
-          }
-          if (mode === 'rainbow_gem_shop' && model.upg.modType === 'font' && FONT_MAP[model.upg.id]) {
-              const fontClass = FONT_MAP[model.upg.id];
-              const fontName = model.displayTitle || model.upg.title;
-              let formattedDesc = baseDesc.replace(fontName, `<span class="${fontClass}">${fontName}</span>`);
-              formattedDesc += `<div class="${fontClass}" style="margin-top: 8px; word-break: break-all; opacity: 0.8; font-size: clamp(0.6em, 2.2vw, 1em);">0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz</div>`;
-              if (desc.innerHTML !== formattedDesc) desc.innerHTML = formattedDesc;
-          } else {
-              if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
-          }
-          desc.hidden = false;
-      } else desc.hidden = true;
-      
-      const info = ensureChild(content, 'upg-info');
-      
-      let cursor = null;
-      const placeAfterCursor = (el) => {
-          if (!cursor) {
-              if (info.firstElementChild !== el) info.prepend(el);
-          } else {
-              if (cursor.nextElementSibling !== el) info.insertBefore(el, cursor.nextSibling);
-          }
-          cursor = el;
-      };
-
-      if (locked && lockState?.reason && !isHiddenUpgrade) {
-          let rawDescText = model.displayDesc || '';
-          if (typeof rawDescText === 'function') rawDescText = rawDescText();
-          const descText = String(rawDescText).trim();
-          const reasonText = String(lockState.reason ?? '').trim();
-          if (descText !== reasonText) {
-              let wrap = info.querySelector('.lock-wrapper');
-              if (!wrap) { 
-                 wrap = document.createElement('div'); wrap.className = 'lock-wrapper';
-                 const line = document.createElement('div'); line.className = 'upg-line lock-note';
-                 wrap.append(line);
-              }
-              const children = Array.from(wrap.children);
-              for (const c of children) {
-                  if (c.tagName === 'DIV' && !c.className && c.style.height === '12px') c.remove();
-              }
-              const line = wrap.querySelector('.lock-note');
-              if (line.textContent !== lockState.reason) line.textContent = lockState.reason;
-              placeAfterCursor(wrap);
-          } else {
-              const wrap = info.querySelector('.lock-wrapper');
-              if (wrap) wrap.remove();
-          }
-      } else {
-          const wrap = info.querySelector('.lock-wrapper');
-          if (wrap) wrap.remove();
-      }
-
-      if (model.effect && !(locked && lockState?.hideEffect)) {
-          let wrap = info.querySelector('.effect-wrapper');
-          if (!wrap) {
-               wrap = document.createElement('div'); wrap.className = 'effect-wrapper';
-               const line = document.createElement('div'); line.className = 'upg-line';
-               wrap.append(line);
-          }
-          const children = Array.from(wrap.children);
-          for (const c of children) {
-              if (c.tagName === 'DIV' && !c.className && c.style.height === '12px') c.remove();
-          }
-          const line = wrap.querySelector('.upg-line');
-          const html = `<span class="bonus-line">${model.effect}</span>`;
-          setHtmlOrText(line, html);
-          placeAfterCursor(wrap);
-      } else {
-          const wrap = info.querySelector('.effect-wrapper');
-          if (wrap) wrap.remove();
-      }
-      
-      const iconHTML = currencyIconHTML(model.upg.costType);
-      const nextPriceBn = model.nextPrice instanceof BigNum ? model.nextPrice : BigNum.fromAny(model.nextPrice || 0);
-      const stopBuying = capReached || evolveReady;
-      
-      if (!model.unlockUpgrade && !stopBuying && (!locked || !lockState?.hideCost)) {
-          const costs = ensureChild(info, 'upg-costs');
-          placeAfterCursor(costs);
-          
-          const costLabel = getCurrencyLabel(model.upg.costType, nextPriceBn);
-          let formattedCost = bank[model.upg.costType].fmt(nextPriceBn);
-          if (formattedCost.includes('infinity-symbol')) {
-              formattedCost = formattedCost.replace('class="infinity-symbol"', 'class="infinity-symbol" style="position:relative; top:-1px;"');
-          }
-          const costHtml = `Cost: ${iconHTML} ${formattedCost} ${costLabel}`;
-          
-          const lineCost = ensureChild(costs, 'cost-line', 'div');
-          if (!lineCost.className.includes('upg-line')) lineCost.className = 'upg-line cost-line';
-          setHtmlOrText(lineCost, costHtml);
-          
-          if (isHM) {
-             const lineMilestone = ensureChild(costs, 'milestone-line', 'div');
-             if (!lineMilestone.className.includes('upg-line')) lineMilestone.className = 'upg-line milestone-line';
-
-             let milestoneCost = '—';
-             let milestoneLabel = '';
-             const isAutomated = isUpgradeAutomated(model.upg);
-             try {
-                if (model.hmNextMilestone && model.hmNextMilestone.cmp(model.lvlBn) > 0) {
-                    if (isAutomated) {
-                        const targetLevelBn = model.hmNextMilestone.sub(BigNum.fromInt(1));
-                        let targetLevelNum = 0;
-                        try {
-                            const s = targetLevelBn.inf || targetLevelBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : targetLevelBn.toPlainIntegerString?.();
-                            if (s && s !== 'Infinity') targetLevelNum = Number(s);
-                            else targetLevelNum = (targetLevelBn.inf ? Infinity : (targetLevelBn.sig * Math.pow(10, targetLevelBn.e)));
-                        } catch { targetLevelNum = 0; }
-                        
-                        let costAt = BigNum.fromInt(0);
-                        try {
-                            costAt = BigNum.fromAny(model.upg.costAtLevel(targetLevelNum));
-                        } catch {}
-                        
-                        milestoneCost = bank[model.upg.costType].fmt(costAt);
-                        milestoneLabel = getCurrencyLabel(model.upg.costType, costAt);
-                    } else {
-                        const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
-                        const { spent } = evaluateBulkPurchase(model.upg, model.lvlBn, BigNum.fromAny('Infinity'), deltaBn);
-                        milestoneCost = bank[model.upg.costType].fmt(spent);
-                        milestoneLabel = getCurrencyLabel(model.upg.costType, spent);
-                    }
+        let toggleBtn = autoToggleWrapper.querySelector("button");
+        if (!toggleBtn) {
+            toggleBtn = document.createElement("button");
+            toggleBtn.type = "button";
+            toggleBtn.style.padding = "10px 14px";
+            toggleBtn.style.fontSize = "16px";
+            toggleBtn.style.width = "auto";
+            toggleBtn.style.minWidth = "180px";
+            toggleBtn.addEventListener("click", (e) => {
+                if (typeof toggleBtn._onClick === "function") toggleBtn._onClick(e);
+            });
+            autoToggleWrapper.appendChild(toggleBtn);
+        }
+        if (showAutoToggle) {
+            toggleBtn.style.visibility = "";
+            toggleBtn.style.pointerEvents = "auto";
+            const activeSlot = getActiveSlot();
+            const slotSuffix = activeSlot != null ? `:${activeSlot}` : "";
+            let isEnabled = true;
+            let collectiveState = null;
+            if (isAutomationMaster) {
+                collectiveState = getCollectiveAutobuyerState(masterCostType);
+                isEnabled = collectiveState > 0;
+            } else {
+                // Standard or Workshop Master
+                const val = getAutobuyerToggle(upgDef.area, upgDef.id);
+                isEnabled = val !== "0";
+            }
+            if (isOwnedTM) {
+                const activeModSettingKey = "active_" + upgDef.modType + "_mod";
+                const isModActive = settingsManager.get(activeModSettingKey) === upgDef.id;
+                if (isModActive) {
+                    toggleBtn.className = "shop-delve";
+                    toggleBtn.textContent = "Toggle: ON";
+                    toggleBtn.style.backgroundColor = "";
+                    toggleBtn.style.color = "";
+                } else {
+                    toggleBtn.className = "shop-close";
+                    toggleBtn.textContent = "Toggle: OFF";
+                    toggleBtn.style.backgroundColor = "";
+                    toggleBtn.style.color = "";
                 }
-             } catch {}
-             const prefix = isAutomated ? 'Cost at next milestone:' : 'Cost to next milestone:';
-             const milestoneHtml = `${prefix} ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
-             setHtmlOrText(lineMilestone, milestoneHtml);
-          } else {
-             const lineMilestone = costs.querySelector('.milestone-line');
-             if (lineMilestone) lineMilestone.remove();
-          }
-          
-          const haveLabel = getCurrencyLabel(model.upg.costType, model.have);
-          const haveHtml = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)} ${haveLabel}`;
-          
-          const lineHave = ensureChild(costs, 'have-line', 'div');
-          if (!lineHave.className.includes('upg-line')) lineHave.className = 'upg-line have-line';
-          setHtmlOrText(lineHave, haveHtml);
-      } else {
-          const costs = info.querySelector('.upg-costs');
-          if (costs) costs.remove();
-      }
-      
-      // Milestones Row
-      const milestonesContainer = upgSheetEl.querySelector('.upg-milestones');
-      let milestonesRow = milestonesContainer.querySelector('.hm-view-milestones-row');
-      
-      if (!milestonesRow) {
-          milestonesRow = document.createElement('div'); 
-          milestonesRow.className = 'hm-view-milestones-row';
-          milestonesRow.style.display = 'flex';
-          milestonesRow.style.gap = '0.5rem';
-          milestonesRow.style.justifyContent = 'center';
-          
-          const valcBtn = document.createElement('button');
-          valcBtn.type = 'button';
-          valcBtn.className = 'hm-valc-button';
-          valcBtn.textContent = 'Use V.A.L.C.';
-          valcBtn.style.border = '1px solid rgba(230, 190, 50, 0.75)';
-          valcBtn.style.background = 'rgba(230, 190, 50, 0.15)';
-          valcBtn.style.color = 'rgb(245, 230, 160)';
-          valcBtn.style.padding = '10px 14px';
-          valcBtn.style.width = '160px';
-          valcBtn.style.transition = 'background 100ms ease, transform 100ms ease';
-          valcBtn.addEventListener('click', (e) => {
-              if (valcBtn._onClick) valcBtn._onClick(e);
-          });
-          milestonesRow.appendChild(valcBtn);
+                toggleBtn._onClick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (IS_MOBILE) blockInteraction(50);
+                    if (isModActive) {
+                        settingsManager.set(activeModSettingKey, 0); // Turn off
+                    } else {
+                        settingsManager.set(activeModSettingKey, upgDef.id); // Turn on
+                    }
+                    document.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+                    rerender();
+                };
+            } else {
+                if (isAutomationMaster && collectiveState === 0.5) {
+                    toggleBtn.className = "shop-sort-of";
+                    toggleBtn.textContent = "Automation: Sort of ON";
+                    toggleBtn.style.color = "";
+                    toggleBtn.style.backgroundColor = "";
+                } else if (isEnabled) {
+                    toggleBtn.className = "shop-delve";
+                    toggleBtn.textContent = "Automation: ON";
+                    toggleBtn.style.backgroundColor = "";
+                    toggleBtn.style.color = "";
+                } else {
+                    toggleBtn.className = "shop-close";
+                    toggleBtn.textContent = "Automation: OFF";
+                    toggleBtn.style.backgroundColor = "";
+                    toggleBtn.style.color = "";
+                }
+                toggleBtn._onClick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (IS_MOBILE) blockInteraction(50);
+                    const newState = !isEnabled;
+                    const val = newState ? "1" : "0";
+                    if (isAutomationMaster) {
+                        settingsManager.set(`currency_${masterCostType}_automated`, newState);
+                        setAllAutobuyersForCostType(masterCostType, newState);
+                    } else {
+                        setAutobuyerToggle(upgDef.area, upgDef.id, val);
+                    }
+                    window.dispatchEvent(new CustomEvent("currency:change"));
+                    document.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+                    rerender();
+                };
+            }
+        } else {
+            toggleBtn.style.visibility = "hidden";
+            toggleBtn.style.pointerEvents = "none";
+            toggleBtn.className = "shop-delve";
+            toggleBtn.textContent = "Automation: ON"; // Dummy content for height
+            toggleBtn._onClick = null;
+        }
+        // -------------------------------
+        const content = upgSheetEl.querySelector(".upg-content");
+        if (initialRender) {
+            content.scrollTop = 0;
+            initialRender = false;
+        }
 
-          const btn = document.createElement('button'); 
-          btn.type='button'; 
-          btn.className='hm-view-milestones'; 
-          btn.textContent='View Milestones';
-          btn.style.width = '160px';
-          btn.addEventListener('click', (e) => {
-              // Use _onClick pattern
-              if (btn._onClick) btn._onClick(e);
-          });
-          milestonesRow.appendChild(btn); 
-          
-          milestonesContainer.appendChild(milestonesRow);
-      }
-      
-      const milestoneBtn = milestonesRow.querySelector('.hm-view-milestones');
-      const valcBtn = milestonesRow.querySelector('.hm-valc-button');
+        const desc = ensureChild(content, "upg-desc centered");
+        desc.classList.toggle("lock-desc", isHiddenUpgrade);
+        let rawBaseDesc = model.displayDesc || model.upg.desc || "";
+        if (typeof rawBaseDesc === "function") rawBaseDesc = rawBaseDesc();
+        const baseDesc = String(rawBaseDesc).trim();
+        const descScale = Number(model.upg?.descScale);
+        const ignoreDescScaleAt = Number(model.upg?.ignoreDescScaleAt);
+        const viewportWidth =
+            typeof window !== "undefined" && Number.isFinite(window.innerWidth) ? window.innerWidth : 0;
+        const shouldIgnoreDescScale =
+            Number.isFinite(ignoreDescScaleAt) && ignoreDescScaleAt > 0 && viewportWidth >= ignoreDescScaleAt;
+        if (evolveReady) {
+            desc.classList.add("hm-evolve-note");
+            desc.style.removeProperty("font-size");
+            if (desc.textContent !== "Evolve this upgrade to multiply its effect by 1000x")
+                desc.textContent = "Evolve this upgrade to multiply its effect by 1000x";
+        } else if (baseDesc) {
+            desc.classList.remove("hm-evolve-note");
+            if (!shouldIgnoreDescScale && Number.isFinite(descScale) && descScale > 0 && !isHiddenUpgrade) {
+                desc.style.fontSize = `calc((var(--upg-desc-size, clamp(32px, 4.6vw, 50px))) * ${descScale})`;
+            } else {
+                desc.style.removeProperty("font-size");
+            }
+            if (mode === "rainbow_gem_shop" && model.upg.modType === "font" && FONT_MAP[model.upg.id]) {
+                const fontClass = FONT_MAP[model.upg.id];
+                const fontName = model.displayTitle || model.upg.title;
+                let formattedDesc = baseDesc.replace(fontName, `<span class="${fontClass}">${fontName}</span>`);
+                formattedDesc += `<div class="${fontClass}" style="margin-top: 8px; word-break: break-all; opacity: 0.8; font-size: clamp(0.6em, 2.2vw, 1em);">0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz</div>`;
+                if (desc.innerHTML !== formattedDesc) desc.innerHTML = formattedDesc;
+            } else {
+                if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
+            }
+            desc.hidden = false;
+        } else desc.hidden = true;
+        const info = ensureChild(content, "upg-info");
+        let cursor = null;
+        const placeAfterCursor = (el) => {
+            if (!cursor) {
+                if (info.firstElementChild !== el) info.prepend(el);
+            } else {
+                if (cursor.nextElementSibling !== el) info.insertBefore(el, cursor.nextSibling);
+            }
+            cursor = el;
+        };
+        if (locked && lockState?.reason && !isHiddenUpgrade) {
+            let rawDescText = model.displayDesc || "";
+            if (typeof rawDescText === "function") rawDescText = rawDescText();
+            const descText = String(rawDescText).trim();
+            const reasonText = String(lockState.reason ?? "").trim();
+            if (descText !== reasonText) {
+                let wrap = info.querySelector(".lock-wrapper");
+                if (!wrap) {
+                    wrap = document.createElement("div");
+                    wrap.className = "lock-wrapper";
+                    const line = document.createElement("div");
+                    line.className = "upg-line lock-note";
+                    wrap.append(line);
+                }
 
-      if (isHM && !isHiddenUpgrade) {
-          milestoneBtn.style.display = '';
-          milestoneBtn.style.pointerEvents = 'auto';
-          
-          milestoneBtn._onClick = () => {
-                 const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
-                 const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
-                 const evolutionOffset = (() => { try { return Number(HM_EVOLUTION_INTERVAL) * Number(evolutions); } catch { return 0; } })();
-                 const lines = milestones.sort((a,b)=>(Number(a?.level||0)-Number(b?.level||0))).map(m => {
-                     const lvl = Math.max(0, Math.floor(Number(m?.level||0)));
-                     const milestoneLevelBn = (() => {
-                         if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
-                         try { return BigNum.fromAny((Number(lvl) + evolutionOffset).toString()); } catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
-                     })();
-                     const levelText = milestoneLevelBn?.isInfinite?.() ? '<span class="infinity-symbol">∞</span>' : formatNumber(milestoneLevelBn);
-                     const mult = formatMultForUi(m?.multiplier??m?.mult??m?.value??1);
-                     const target = `${m?.target??m?.type??'self'}`.toLowerCase();
-                     const achieved = (() => {
-                        if (model.lvlBn?.isInfinite?.()) return true;
-                        try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; } catch {}
-                        return false; 
-                     })();
-                     let text = `Level\u00A0${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
-                     if (target === 'xp') text = `Level\u00A0${levelText}: Multiplies XP value by ${mult}x`;
-                     if (target === 'coin'||target==='coins') text = `Level\u00A0${levelText}: Multiplies Coin value by ${mult}x`;
-                     if (target === 'mp') text = `Level\u00A0${levelText}: Multiplies MP value by ${mult}x`;
-                     if (target === 'scrap') text = `Level\u00A0${levelText}: Multiplies Scrap value by ${mult}x`;
-                     if (target === 'dp') text = `Level\u00A0${levelText}: Multiplies DP value by ${mult}x`;
-                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level\u00A0${levelText}: Multiplies Material value by ${mult}x`;
-                     return { text, achieved };
-                 });
-                 if (lines.length === 0) lines.push(`<span style="color:#aaa">No milestones available for this upgrade yet.</span>`);
-                 upgOpenLocal = false;
-                 openHmMilestoneDialog(lines);
-          };
-      } else {
-          milestoneBtn.style.display = 'none';
-          milestoneBtn.style.pointerEvents = 'none';
-          milestoneBtn._onClick = null;
-      }
-      
-      const isValcAllowed = !model.unlockUpgrade && model.upg.costType && model.upg.costType !== 'none';
-      if (settingsManager.get('show_valc_button') && model.upg.area !== 'rainbow_gem_shop' && !isHiddenUpgrade && isValcAllowed) {
-          valcBtn.style.display = '';
-          valcBtn.style.pointerEvents = 'auto';
-          valcBtn._onClick = () => openValcDialog(model);
-      } else {
-          valcBtn.style.display = 'none';
-          valcBtn.style.pointerEvents = 'none';
-          valcBtn._onClick = null;
-      }
-      
-      // Actions
-      const actions = upgSheetEl.querySelector('.upg-actions');
-      let closeBtn = actions.querySelector('.shop-close');
-      if (!closeBtn) {
-          closeBtn = document.createElement('button'); closeBtn.type='button'; closeBtn.className='shop-close'; closeBtn.textContent='Close';
-          closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
-          actions.appendChild(closeBtn);
-      }
-      
-      if (locked || capReached) {
-          actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
-          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement) && !document.activeElement.closest('.debug-panel') && !document.activeElement.closest('.hm-valc-dialog')) closeBtn.focus();
-      } else {
-          const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
-          const ensureButton = (className, text, onClick, index, disabled=false) => {
-              let btn = actions.querySelector(`.${className.split(' ').join('.')}`);
-              if (!btn) {
-                  btn = document.createElement('button'); btn.type='button'; btn.className=className; btn.textContent=text;
-                  
-                  const invoke = () => { if (typeof btn._onClick === 'function') btn._onClick(); };
-                  if ('PointerEvent' in window) btn.addEventListener('pointerdown', (e) => { if(e.pointerType==='mouse'||(typeof e.button==='number'&&e.button!==0))return; invoke(); e.preventDefault(); }, {passive:false});
-                  else btn.addEventListener('touchstart', (e)=>{ invoke(); e.preventDefault(); }, {passive:false});
-                  btn.addEventListener('click', ()=>{ if(IS_MOBILE)return; invoke(); });
-                  
-                  const siblings = actions.children;
-                  if (index >= siblings.length) actions.appendChild(btn); else actions.insertBefore(btn, siblings[index]);
-              }
-              btn._onClick = onClick;
-              if(btn.textContent!==text) btn.textContent=text;
-              if(btn.disabled!==disabled) btn.disabled=disabled;
-              return btn;
-          };
-          
-          if (evolveReady) {
-              actions.querySelectorAll('button:not(.shop-close):not(.hm-evolve-btn)').forEach(b => b.remove());
-              ensureButton('shop-delve hm-evolve-btn', 'Evolve', () => {
-                  const { evolved } = adapter.evolve(upgDef.id);
-                  if (evolved) { playEvolveSfx(); updateShopOverlay(); rerender(); }
-              }, 1, false);
-              return;
-          }
-          
-          if (model.unlockUpgrade) {
-               actions.querySelectorAll('button:not(.shop-close):not(.btn-unlock)').forEach(b => b.remove());
-               ensureButton('shop-delve btn-unlock', 'Unlock', () => {
-                   const { bought } = adapter.buyOne(upgDef.id);
-                   const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-                   if (!boughtBn.isZero?.()) {
-                       playPurchaseSfx();
-                       if (isForgeUnlockUpgrade(upgDef, mode)) try { unlockMerchantTabs(['reset']); } catch {}
-                       updateShopOverlay(); rerender();
-                   }
-               }, 1, !canAffordNext);
-               return;
-          }
-          
-          actions.querySelectorAll('.hm-evolve-btn, .btn-unlock').forEach(b => b.remove());
-          
-          const performBuy = () => {
-              const fresh = adapter.getUiModel(upgDef.id);
-              if (fresh.have.cmp(fresh.nextPrice instanceof BigNum ? fresh.nextPrice : BigNum.fromAny(fresh.nextPrice||0)) < 0) return;
-              const { bought } = adapter.buyOne(upgDef.id);
-              const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-              if (!boughtBn.isZero?.()) { 
-                  if (upgDef.upgType === 'TM') {
-                      settingsManager.set('active_' + upgDef.modType + '_mod', upgDef.id);
-                  }
-                  playPurchaseSfx(); 
-                  updateShopOverlay(); 
-                  rerender(); 
-              }
-          };
-          ensureButton('shop-delve btn-buy-one', 'Buy', performBuy, 1, !canAffordNext);
-          
-          const capNumber = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
-          const isSingleLevelCap = capNumber === 1;
+                const children = Array.from(wrap.children);
+                for (const c of children) {
+                    if (c.tagName === "DIV" && !c.className && c.style.height === "12px") c.remove();
+                }
 
-          if (!isSingleLevelCap) {
-              const performBuyMax = () => {
-                  const fresh = adapter.getUiModel(upgDef.id);
-                  if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
-                  const { bought } = adapter.buyMax(upgDef.id);
-                  const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-                  if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
-              };
-              ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
+                const line = wrap.querySelector(".lock-note");
+                if (line.textContent !== lockState.reason) line.textContent = lockState.reason;
+                placeAfterCursor(wrap);
+            } else {
+                const wrap = info.querySelector(".lock-wrapper");
+                if (wrap) wrap.remove();
+            }
+        } else {
+            const wrap = info.querySelector(".lock-wrapper");
+            if (wrap) wrap.remove();
+        }
+        if (model.effect && !(locked && lockState?.hideEffect)) {
+            let wrap = info.querySelector(".effect-wrapper");
+            if (!wrap) {
+                wrap = document.createElement("div");
+                wrap.className = "effect-wrapper";
+                const line = document.createElement("div");
+                line.className = "upg-line";
+                wrap.append(line);
+            }
 
-              const isExcluded = isBuyCheapExcluded(upgDef);
-              if (!isHM && !isExcluded) {
-                  const performBuyCheap = () => {
-                      const fresh = adapter.getUiModel(upgDef.id);
-                      if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
-                      const buyFn = adapter.buyCheap;
-                      if (!buyFn) return;
-                      const { bought } = buyFn(upgDef.id);
-                      const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-                      if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
-                  };
-                  ensureButton('shop-delve btn-buy-cheap', 'Buy Cheap', performBuyCheap, 3, !canAffordNext);
-              } else {
-                  const stale = actions.querySelector('.btn-buy-cheap');
-                  if (stale) stale.remove();
-              }
-          } else {
-              const stale = actions.querySelector('.btn-buy-max');
-              if (stale) stale.remove();
-              const staleCheap = actions.querySelector('.btn-buy-cheap');
-              if (staleCheap) staleCheap.remove();
-          }
-          
-          if (isHM) {
-              const performBuyNext = () => {
-                  const fresh = adapter.getUiModel(upgDef.id);
-                  if (fresh.hmReadyToEvolve) return;
-                  const target = fresh.hmNextMilestone;
-                  if (!target || !fresh.lvlBn || target.cmp(fresh.lvlBn) <= 0) {
-                      const { bought } = adapter.buyMax(upgDef.id);
-                      if ((bought instanceof BigNum ? bought : BigNum.fromAny(bought??0)).isZero?.()) return;
-                      playPurchaseSfx(); updateShopOverlay(); rerender(); return;
-                  }
-                  let deltaNum = 0;
-                  try { const diffBn = target.sub(fresh.lvlBn); const diffPlain = diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : diffBn.toPlainIntegerString?.(); deltaNum = Math.max(0, Math.floor((diffPlain&&diffPlain!=='Infinity')?Number(diffPlain):(diffBn.inf ? Infinity : (diffBn.sig * Math.pow(10, diffBn.e))))); } catch {}
-                  const walletRaw = bank[fresh.upg.costType]?.value;
-                  const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw??0);
-                  const evalResult = evaluateBulkPurchase(fresh.upg, fresh.lvlBn, walletBn, deltaNum);
-                  const count = evalResult.count;
-                  let reachable = false;
-                  try { const plain = count?.inf || count?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : count?.toPlainIntegerString?.(); reachable = (plain&&plain!=='Infinity') ? Number(plain)>=deltaNum : Number(count??0)>=deltaNum; } catch {}
-                  const purchase = reachable ? adapter.buyNext(upgDef.id, deltaNum) : adapter.buyMax(upgDef.id);
-                  const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought??0);
-                  if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
-              };
-              ensureButton('shop-delve btn-buy-next', 'Buy Next', performBuyNext, 3, model.have.cmp(BigNum.fromInt(1)) < 0);
-          } else {
-              const stale = actions.querySelector('.btn-buy-next'); if (stale) stale.remove();
-          }
-      }
-  };
-  
-  const onUpdate = () => { if (!upgOpenLocal) return; rerender(); };
-  adapter.events.forEach(evt => window.addEventListener(evt, onUpdate));
-  if (mode === 'standard') document.addEventListener('ccc:upgrades:changed', onUpdate);
-  
-  rerender();
-  upgOverlayEl.classList.add('is-open');
-  upgOverlayEl.classList.toggle('is-automation-upgrade', mode === 'automation');
-  upgOverlayEl.classList.toggle('is-effective-auto-collect', mode === 'automation' && upgDef.id === 1);
-  upgOverlayEl.classList.toggle('is-autobuy-coin-upgrades', mode === 'automation' && upgDef.id === 2);
-  upgOverlayEl.classList.toggle('is-underwater-cavern-eac', mode === 'automation' && upgDef.id === 10);
-  upgOverlayEl.classList.toggle('is-manual-material-value', mode === 'automation' && upgDef.id === 11);
-  upgOverlayEl.classList.toggle('is-effective-auto-sell', mode === 'automation' && upgDef.id === 12);
-  upgOverlayEl.style.pointerEvents = 'auto';
-  blockInteraction(140);
-  upgSheetEl.style.transition = 'none';
-  upgSheetEl.style.transform = 'translateY(100%)';
-  void upgSheetEl.offsetHeight;
-  requestAnimationFrame(() => { upgSheetEl.style.transition = ''; upgSheetEl.style.transform = ''; });
-  
-  upgOverlayCleanup = () => {
-     upgOpenLocal = false;
-     adapter.events.forEach(evt => window.removeEventListener(evt, onUpdate));
-     if (mode === 'standard') document.removeEventListener('ccc:upgrades:changed', onUpdate);
-  };
+            const children = Array.from(wrap.children);
+            for (const c of children) {
+                if (c.tagName === "DIV" && !c.className && c.style.height === "12px") c.remove();
+            }
+
+            const line = wrap.querySelector(".upg-line");
+            const html = `<span class="bonus-line">${model.effect}</span>`;
+            setHtmlOrText(line, html);
+            placeAfterCursor(wrap);
+        } else {
+            const wrap = info.querySelector(".effect-wrapper");
+            if (wrap) wrap.remove();
+        }
+
+        const iconHTML = currencyIconHTML(model.upg.costType);
+        const nextPriceBn = model.nextPrice instanceof BigNum ? model.nextPrice : BigNum.fromAny(model.nextPrice || 0);
+        const stopBuying = capReached || evolveReady;
+        if (!model.unlockUpgrade && !stopBuying && (!locked || !lockState?.hideCost)) {
+            const costs = ensureChild(info, "upg-costs");
+            placeAfterCursor(costs);
+            const costLabel = getCurrencyLabel(model.upg.costType, nextPriceBn);
+            let formattedCost = bank[model.upg.costType].fmt(nextPriceBn);
+            if (formattedCost.includes("infinity-symbol")) {
+                formattedCost = formattedCost.replace(
+                    'class="infinity-symbol"',
+                    'class="infinity-symbol" style="position:relative; top:-1px;"',
+                );
+            }
+
+            const costHtml = `Cost: ${iconHTML} ${formattedCost} ${costLabel}`;
+            const lineCost = ensureChild(costs, "cost-line", "div");
+            if (!lineCost.className.includes("upg-line")) lineCost.className = "upg-line cost-line";
+            setHtmlOrText(lineCost, costHtml);
+            if (isHM) {
+                const lineMilestone = ensureChild(costs, "milestone-line", "div");
+                if (!lineMilestone.className.includes("upg-line")) lineMilestone.className = "upg-line milestone-line";
+                let milestoneCost = "—";
+                let milestoneLabel = "";
+                const isAutomated = isUpgradeAutomated(model.upg);
+                try {
+                    if (model.hmNextMilestone && model.hmNextMilestone.cmp(model.lvlBn) > 0) {
+                        if (isAutomated) {
+                            const targetLevelBn = model.hmNextMilestone.sub(BigNum.fromInt(1));
+                            let targetLevelNum = 0;
+                            try {
+                                const s =
+                                    targetLevelBn.inf || targetLevelBn.e >= BigNum.DEFAULT_PRECISION
+                                        ? "Infinity"
+                                        : targetLevelBn.toPlainIntegerString?.();
+                                if (s && s !== "Infinity") targetLevelNum = Number(s);
+                                else
+                                    targetLevelNum = targetLevelBn.inf
+                                        ? Infinity
+                                        : targetLevelBn.sig * Math.pow(10, targetLevelBn.e);
+                            } catch {
+                                targetLevelNum = 0;
+                            }
+
+                            let costAt = BigNum.fromInt(0);
+                            try {
+                                costAt = BigNum.fromAny(model.upg.costAtLevel(targetLevelNum));
+                            } catch {}
+                            milestoneCost = bank[model.upg.costType].fmt(costAt);
+                            milestoneLabel = getCurrencyLabel(model.upg.costType, costAt);
+                        } else {
+                            const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
+                            const { spent } = evaluateBulkPurchase(
+                                model.upg,
+                                model.lvlBn,
+                                BigNum.fromAny("Infinity"),
+                                deltaBn,
+                            );
+                            milestoneCost = bank[model.upg.costType].fmt(spent);
+                            milestoneLabel = getCurrencyLabel(model.upg.costType, spent);
+                        }
+                    }
+                } catch {}
+                const prefix = isAutomated ? "Cost at next milestone:" : "Cost to next milestone:";
+                const milestoneHtml = `${prefix} ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
+                setHtmlOrText(lineMilestone, milestoneHtml);
+            } else {
+                const lineMilestone = costs.querySelector(".milestone-line");
+                if (lineMilestone) lineMilestone.remove();
+            }
+
+            const haveLabel = getCurrencyLabel(model.upg.costType, model.have);
+            const haveHtml = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)} ${haveLabel}`;
+            const lineHave = ensureChild(costs, "have-line", "div");
+            if (!lineHave.className.includes("upg-line")) lineHave.className = "upg-line have-line";
+            setHtmlOrText(lineHave, haveHtml);
+        } else {
+            const costs = info.querySelector(".upg-costs");
+            if (costs) costs.remove();
+        }
+        // Milestones Row
+        const milestonesContainer = upgSheetEl.querySelector(".upg-milestones");
+        let milestonesRow = milestonesContainer.querySelector(".hm-view-milestones-row");
+        if (!milestonesRow) {
+            milestonesRow = document.createElement("div");
+            milestonesRow.className = "hm-view-milestones-row";
+            milestonesRow.style.display = "flex";
+            milestonesRow.style.gap = "0.5rem";
+            milestonesRow.style.justifyContent = "center";
+            const valcBtn = document.createElement("button");
+            valcBtn.type = "button";
+            valcBtn.className = "hm-valc-button";
+            valcBtn.textContent = "Use V.A.L.C.";
+            valcBtn.style.border = "1px solid rgba(230, 190, 50, 0.75)";
+            valcBtn.style.background = "rgba(230, 190, 50, 0.15)";
+            valcBtn.style.color = "rgb(245, 230, 160)";
+            valcBtn.style.padding = "10px 14px";
+            valcBtn.style.width = "160px";
+            valcBtn.style.transition = "background 100ms ease, transform 100ms ease";
+            valcBtn.addEventListener("click", (e) => {
+                if (valcBtn._onClick) valcBtn._onClick(e);
+            });
+            milestonesRow.appendChild(valcBtn);
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "hm-view-milestones";
+            btn.textContent = "View Milestones";
+            btn.style.width = "160px";
+            btn.addEventListener("click", (e) => {
+                // Use _onClick pattern
+                if (btn._onClick) btn._onClick(e);
+            });
+            milestonesRow.appendChild(btn);
+            milestonesContainer.appendChild(milestonesRow);
+        }
+
+        const milestoneBtn = milestonesRow.querySelector(".hm-view-milestones");
+        const valcBtn = milestonesRow.querySelector(".hm-valc-button");
+        if (isHM && !isHiddenUpgrade) {
+            milestoneBtn.style.display = "";
+            milestoneBtn.style.pointerEvents = "auto";
+            milestoneBtn._onClick = () => {
+                const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
+                const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
+                const evolutionOffset = (() => {
+                    try {
+                        return Number(HM_EVOLUTION_INTERVAL) * Number(evolutions);
+                    } catch {
+                        return 0;
+                    }
+                })();
+                const lines = milestones
+                    .sort((a, b) => Number(a?.level || 0) - Number(b?.level || 0))
+                    .map((m) => {
+                        const lvl = Math.max(0, Math.floor(Number(m?.level || 0)));
+                        const milestoneLevelBn = (() => {
+                            if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny("Infinity");
+                            try {
+                                return BigNum.fromAny((Number(lvl) + evolutionOffset).toString());
+                            } catch {
+                                return BigNum.fromAny(lvl + HM_EVOLUTION_INTERVAL * evolutions);
+                            }
+                        })();
+                        const levelText = milestoneLevelBn?.isInfinite?.()
+                            ? '<span class="infinity-symbol">∞</span>'
+                            : formatNumber(milestoneLevelBn);
+                        const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
+                        const target = `${m?.target ?? m?.type ?? "self"}`.toLowerCase();
+                        const achieved = (() => {
+                            if (model.lvlBn?.isInfinite?.()) return true;
+                            try {
+                                return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0;
+                            } catch {}
+                            return false;
+                        })();
+                        let text = `Level\u00A0${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
+                        if (target === "xp") text = `Level\u00A0${levelText}: Multiplies XP value by ${mult}x`;
+                        if (target === "coin" || target === "coins")
+                            text = `Level\u00A0${levelText}: Multiplies Coin value by ${mult}x`;
+                        if (target === "mp") text = `Level\u00A0${levelText}: Multiplies MP value by ${mult}x`;
+                        if (target === "scrap") text = `Level\u00A0${levelText}: Multiplies Scrap value by ${mult}x`;
+                        if (target === "dp") text = `Level\u00A0${levelText}: Multiplies DP value by ${mult}x`;
+                        if (target === "allmaterials" || target === "allMaterials")
+                            text = `Level\u00A0${levelText}: Multiplies Material value by ${mult}x`;
+                        return { text, achieved };
+                    });
+                if (lines.length === 0)
+                    lines.push(`<span style="color:#aaa">No milestones available for this upgrade yet.</span>`);
+                upgOpenLocal = false;
+                openHmMilestoneDialog(lines);
+            };
+        } else {
+            milestoneBtn.style.display = "none";
+            milestoneBtn.style.pointerEvents = "none";
+            milestoneBtn._onClick = null;
+        }
+
+        const isValcAllowed = !model.unlockUpgrade && model.upg.costType && model.upg.costType !== "none";
+        if (
+            settingsManager.get("show_valc_button") &&
+            model.upg.area !== "rainbow_gem_shop" &&
+            !isHiddenUpgrade &&
+            isValcAllowed
+        ) {
+            valcBtn.style.display = "";
+            valcBtn.style.pointerEvents = "auto";
+            valcBtn._onClick = () => openValcDialog(model);
+        } else {
+            valcBtn.style.display = "none";
+            valcBtn.style.pointerEvents = "none";
+            valcBtn._onClick = null;
+        }
+        // Actions
+        const actions = upgSheetEl.querySelector(".upg-actions");
+        let closeBtn = actions.querySelector(".shop-close");
+        if (!closeBtn) {
+            closeBtn = document.createElement("button");
+            closeBtn.type = "button";
+            closeBtn.className = "shop-close";
+            closeBtn.textContent = "Close";
+            closeBtn.addEventListener("click", () => {
+                upgOpenLocal = false;
+                closeUpgradeMenu();
+            });
+            actions.appendChild(closeBtn);
+        }
+        if (locked || capReached) {
+            actions.querySelectorAll("button:not(.shop-close)").forEach((btn) => btn.remove());
+            if (
+                document.activeElement &&
+                document.activeElement !== closeBtn &&
+                !actions.contains(document.activeElement) &&
+                !document.activeElement.closest(".debug-panel") &&
+                !document.activeElement.closest(".hm-valc-dialog")
+            )
+                closeBtn.focus();
+        } else {
+            const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
+            const ensureButton = (className, text, onClick, index, disabled = false) => {
+                let btn = actions.querySelector(`.${className.split(" ").join(".")}`);
+                if (!btn) {
+                    btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = className;
+                    btn.textContent = text;
+                    const invoke = () => {
+                        if (typeof btn._onClick === "function") btn._onClick();
+                    };
+                    if ("PointerEvent" in window)
+                        btn.addEventListener(
+                            "pointerdown",
+                            (e) => {
+                                if (e.pointerType === "mouse" || (typeof e.button === "number" && e.button !== 0))
+                                    return;
+                                invoke();
+                                e.preventDefault();
+                            },
+                            { passive: false },
+                        );
+                    else
+                        btn.addEventListener(
+                            "touchstart",
+                            (e) => {
+                                invoke();
+                                e.preventDefault();
+                            },
+                            { passive: false },
+                        );
+                    btn.addEventListener("click", () => {
+                        if (IS_MOBILE) return;
+                        invoke();
+                    });
+                    const siblings = actions.children;
+                    if (index >= siblings.length) actions.appendChild(btn);
+                    else actions.insertBefore(btn, siblings[index]);
+                }
+                btn._onClick = onClick;
+                if (btn.textContent !== text) btn.textContent = text;
+                if (btn.disabled !== disabled) btn.disabled = disabled;
+                return btn;
+            };
+            if (evolveReady) {
+                actions.querySelectorAll("button:not(.shop-close):not(.hm-evolve-btn)").forEach((b) => b.remove());
+                ensureButton(
+                    "shop-delve hm-evolve-btn",
+                    "Evolve",
+                    () => {
+                        const { evolved } = adapter.evolve(upgDef.id);
+                        if (evolved) {
+                            playEvolveSfx();
+                            updateShopOverlay();
+                            rerender();
+                        }
+                    },
+                    1,
+                    false,
+                );
+                return;
+            }
+            if (model.unlockUpgrade) {
+                actions.querySelectorAll("button:not(.shop-close):not(.btn-unlock)").forEach((b) => b.remove());
+                ensureButton(
+                    "shop-delve btn-unlock",
+                    "Unlock",
+                    () => {
+                        const { bought } = adapter.buyOne(upgDef.id);
+                        const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                        if (!boughtBn.isZero?.()) {
+                            playPurchaseSfx();
+                            if (isForgeUnlockUpgrade(upgDef, mode))
+                                try {
+                                    unlockMerchantTabs(["reset"]);
+                                } catch {}
+                            updateShopOverlay();
+                            rerender();
+                        }
+                    },
+                    1,
+                    !canAffordNext,
+                );
+                return;
+            }
+            actions.querySelectorAll(".hm-evolve-btn, .btn-unlock").forEach((b) => b.remove());
+            const performBuy = () => {
+                const fresh = adapter.getUiModel(upgDef.id);
+                if (
+                    fresh.have.cmp(
+                        fresh.nextPrice instanceof BigNum ? fresh.nextPrice : BigNum.fromAny(fresh.nextPrice || 0),
+                    ) < 0
+                )
+                    return;
+                const { bought } = adapter.buyOne(upgDef.id);
+                const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                if (!boughtBn.isZero?.()) {
+                    if (upgDef.upgType === "TM") {
+                        settingsManager.set("active_" + upgDef.modType + "_mod", upgDef.id);
+                    }
+                    playPurchaseSfx();
+                    updateShopOverlay();
+                    rerender();
+                }
+            };
+            ensureButton("shop-delve btn-buy-one", "Buy", performBuy, 1, !canAffordNext);
+            const capNumber = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
+            const isSingleLevelCap = capNumber === 1;
+            if (!isSingleLevelCap) {
+                const performBuyMax = () => {
+                    const fresh = adapter.getUiModel(upgDef.id);
+                    if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
+                    const { bought } = adapter.buyMax(upgDef.id);
+                    const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                    if (!boughtBn.isZero?.()) {
+                        playPurchaseSfx();
+                        updateShopOverlay();
+                        rerender();
+                    }
+                };
+                ensureButton("shop-delve btn-buy-max", "Buy Max", performBuyMax, 2, !canAffordNext);
+                const isExcluded = isBuyCheapExcluded(upgDef);
+                if (!isHM && !isExcluded) {
+                    const performBuyCheap = () => {
+                        const fresh = adapter.getUiModel(upgDef.id);
+                        if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
+                        const buyFn = adapter.buyCheap;
+                        if (!buyFn) return;
+                        const { bought } = buyFn(upgDef.id);
+                        const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                        if (!boughtBn.isZero?.()) {
+                            playPurchaseSfx();
+                            updateShopOverlay();
+                            rerender();
+                        }
+                    };
+                    ensureButton("shop-delve btn-buy-cheap", "Buy Cheap", performBuyCheap, 3, !canAffordNext);
+                } else {
+                    const stale = actions.querySelector(".btn-buy-cheap");
+                    if (stale) stale.remove();
+                }
+            } else {
+                const stale = actions.querySelector(".btn-buy-max");
+                if (stale) stale.remove();
+                const staleCheap = actions.querySelector(".btn-buy-cheap");
+                if (staleCheap) staleCheap.remove();
+            }
+            if (isHM) {
+                const performBuyNext = () => {
+                    const fresh = adapter.getUiModel(upgDef.id);
+                    if (fresh.hmReadyToEvolve) return;
+                    const target = fresh.hmNextMilestone;
+                    if (!target || !fresh.lvlBn || target.cmp(fresh.lvlBn) <= 0) {
+                        const { bought } = adapter.buyMax(upgDef.id);
+                        if ((bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0)).isZero?.()) return;
+                        playPurchaseSfx();
+                        updateShopOverlay();
+                        rerender();
+                        return;
+                    }
+
+                    let deltaNum = 0;
+                    try {
+                        const diffBn = target.sub(fresh.lvlBn);
+                        const diffPlain =
+                            diffBn.inf || diffBn.e >= BigNum.DEFAULT_PRECISION
+                                ? "Infinity"
+                                : diffBn.toPlainIntegerString?.();
+                        deltaNum = Math.max(
+                            0,
+                            Math.floor(
+                                diffPlain && diffPlain !== "Infinity"
+                                    ? Number(diffPlain)
+                                    : diffBn.inf
+                                      ? Infinity
+                                      : diffBn.sig * Math.pow(10, diffBn.e),
+                            ),
+                        );
+                    } catch {}
+                    const walletRaw = bank[fresh.upg.costType]?.value;
+                    const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw ?? 0);
+                    const evalResult = evaluateBulkPurchase(fresh.upg, fresh.lvlBn, walletBn, deltaNum);
+                    const count = evalResult.count;
+                    let reachable = false;
+                    try {
+                        const plain =
+                            count?.inf || count?.e >= BigNum.DEFAULT_PRECISION
+                                ? "Infinity"
+                                : count?.toPlainIntegerString?.();
+                        reachable =
+                            plain && plain !== "Infinity" ? Number(plain) >= deltaNum : Number(count ?? 0) >= deltaNum;
+                    } catch {}
+                    const purchase = reachable ? adapter.buyNext(upgDef.id, deltaNum) : adapter.buyMax(upgDef.id);
+                    const boughtBn =
+                        purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought ?? 0);
+                    if (!boughtBn.isZero?.()) {
+                        playPurchaseSfx();
+                        updateShopOverlay();
+                        rerender();
+                    }
+                };
+                ensureButton(
+                    "shop-delve btn-buy-next",
+                    "Buy Next",
+                    performBuyNext,
+                    3,
+                    model.have.cmp(BigNum.fromInt(1)) < 0,
+                );
+            } else {
+                const stale = actions.querySelector(".btn-buy-next");
+                if (stale) stale.remove();
+            }
+        }
+    };
+
+    const onUpdate = () => {
+        if (!upgOpenLocal) return;
+        rerender();
+    };
+    adapter.events.forEach((evt) => window.addEventListener(evt, onUpdate));
+    if (mode === "standard") document.addEventListener("ccc:upgrades:changed", onUpdate);
+    rerender();
+    upgOverlayEl.classList.add("is-open");
+    upgOverlayEl.classList.toggle("is-automation-upgrade", mode === "automation");
+    upgOverlayEl.classList.toggle("is-effective-auto-collect", mode === "automation" && upgDef.id === 1);
+    upgOverlayEl.classList.toggle("is-autobuy-coin-upgrades", mode === "automation" && upgDef.id === 2);
+    upgOverlayEl.classList.toggle("is-underwater-cavern-eac", mode === "automation" && upgDef.id === 10);
+    upgOverlayEl.classList.toggle("is-manual-material-value", mode === "automation" && upgDef.id === 11);
+    upgOverlayEl.classList.toggle("is-effective-auto-sell", mode === "automation" && upgDef.id === 12);
+    upgOverlayEl.style.pointerEvents = "auto";
+    blockInteraction(140);
+    upgSheetEl.style.transition = "none";
+    upgSheetEl.style.transform = "translateY(100%)";
+    void upgSheetEl.offsetHeight;
+    requestAnimationFrame(() => {
+        upgSheetEl.style.transition = "";
+        upgSheetEl.style.transform = "";
+    });
+    upgOverlayCleanup = () => {
+        upgOpenLocal = false;
+        adapter.events.forEach((evt) => window.removeEventListener(evt, onUpdate));
+        if (mode === "standard") document.removeEventListener("ccc:upgrades:changed", onUpdate);
+    };
 }
 
 export function setupDragToClose(grabberEl, sheetEl, isOpenFn, performCloseFn) {
-  let drag = null;
-  function onDragStart(e) {
-    if (!isOpenFn()) return;
-    const clientY = typeof e.clientY === 'number' ? e.clientY : (e.touches?.[0]?.clientY || 0);
-    drag = { startY: clientY, lastY: clientY, startT: performance.now(), moved: 0, canceled: false };
-    sheetEl.style.transition = 'none';
-    window.addEventListener('pointermove', onDragMove);
-    window.addEventListener('pointerup', onDragEnd);
-    window.addEventListener('pointercancel', onDragEnd);
-  }
-  function onDragMove(e) {
-    if (!drag || drag.canceled) return;
-    const y = e.clientY;
-    if (typeof y !== 'number') return;
-    const dy = Math.max(0, y - drag.startY);
-    drag.lastY = y;
-    drag.moved = dy;
-    sheetEl.style.transform = `translateY(${dy}px)`;
-  }
-  function onDragEnd() {
-    if (!drag || drag.canceled) return cleanupDrag();
-    const dt = Math.max(1, performance.now() - drag.startT);
-    const dy = drag.moved;
-    const velocity = dy / dt;
-    const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
-    if (shouldClose) {
-      suppressNextGhostTap(100);
-      blockInteraction(80);
-      sheetEl.style.transition = 'transform 140ms ease-out';
-      sheetEl.style.transform = 'translateY(100%)';
-      performCloseFn();
-    } else {
-      sheetEl.style.transition = 'transform 180ms ease';
-      sheetEl.style.transform = 'translateY(0)';
+    let drag = null;
+    function onDragStart(e) {
+        if (!isOpenFn()) return;
+        const clientY = typeof e.clientY === "number" ? e.clientY : e.touches?.[0]?.clientY || 0;
+        drag = { startY: clientY, lastY: clientY, startT: performance.now(), moved: 0, canceled: false };
+        sheetEl.style.transition = "none";
+        window.addEventListener("pointermove", onDragMove);
+        window.addEventListener("pointerup", onDragEnd);
+        window.addEventListener("pointercancel", onDragEnd);
     }
-    cleanupDrag();
-  }
-  function onDragCancel() {
-    if (!drag) return;
-    drag.canceled = true;
-    sheetEl.style.transition = 'transform 180ms ease';
-    sheetEl.style.transform = 'translateY(0)';
-    cleanupDrag();
-  }
-  function cleanupDrag() {
-    window.removeEventListener('pointermove', onDragMove);
-    window.removeEventListener('pointerup', onDragEnd);
-    window.removeEventListener('pointercancel', onDragEnd);
-    drag = null;
-  }
-  grabberEl.addEventListener('pointerdown', onDragStart);
-  grabberEl.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+
+    function onDragMove(e) {
+        if (!drag || drag.canceled) return;
+        const y = e.clientY;
+        if (typeof y !== "number") return;
+        const dy = Math.max(0, y - drag.startY);
+        drag.lastY = y;
+        drag.moved = dy;
+        sheetEl.style.transform = `translateY(${dy}px)`;
+    }
+
+    function onDragEnd() {
+        if (!drag || drag.canceled) return cleanupDrag();
+        const dt = Math.max(1, performance.now() - drag.startT);
+        const dy = drag.moved;
+        const velocity = dy / dt;
+        const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
+        if (shouldClose) {
+            suppressNextGhostTap(100);
+            blockInteraction(80);
+            sheetEl.style.transition = "transform 140ms ease-out";
+            sheetEl.style.transform = "translateY(100%)";
+            performCloseFn();
+        } else {
+            sheetEl.style.transition = "transform 180ms ease";
+            sheetEl.style.transform = "translateY(0)";
+        }
+        cleanupDrag();
+    }
+
+    function onDragCancel() {
+        if (!drag) return;
+        drag.canceled = true;
+        sheetEl.style.transition = "transform 180ms ease";
+        sheetEl.style.transform = "translateY(0)";
+        cleanupDrag();
+    }
+
+    function cleanupDrag() {
+        window.removeEventListener("pointermove", onDragMove);
+        window.removeEventListener("pointerup", onDragEnd);
+        window.removeEventListener("pointercancel", onDragEnd);
+        drag = null;
+    }
+    grabberEl.addEventListener("pointerdown", onDragStart);
+    grabberEl.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
 }
