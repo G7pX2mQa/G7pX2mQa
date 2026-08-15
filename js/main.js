@@ -143,23 +143,13 @@ function isTrustedStorageStack(stack) {
   const lines = stack.split('\n').map(l => l.trim()).filter(l => l.startsWith('at '));
   
   const isCheat = lines.some(l => {
-      // Only inspect frames that look like console/eval execution
-      if (!l.includes('<anonymous>') && !l.includes('eval') && !l.match(/\bVM\d+/)) return false;
+      // Catch Chrome snippet/VM executions
+      if (l.match(/\bVM\d+/)) return true;
       
-      const lastColon = l.lastIndexOf(':');
-      if (lastColon === -1) return false;
-      const secondLastColon = l.lastIndexOf(':', lastColon - 1);
-      if (secondLastColon === -1) return false;
+      // Catch direct Chrome console executions e.g. "at <anonymous>:1:14" or eval ending in "<anonymous>:1:14)"
+      if (l.match(/<anonymous>:\d+(:\d+)?\)?$/)) return true;
       
-      let filePart = l.substring(0, secondLastColon);
-      filePart = filePart.split('?')[0].split('#')[0];
-      
-      // If it originated from a legitimate file, it's fine
-      if (filePart.endsWith('.js') || filePart.endsWith('.html') || filePart.endsWith('.mjs')) {
-          return false;
-      }
-      
-      return true;
+      return false;
   });
   
   return !isCheat;
