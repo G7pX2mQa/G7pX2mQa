@@ -98,12 +98,6 @@ function updateMerchantNameInUI() {
                 modalName.textContent = name;
             }
         });
-        const mainTitles = merchantOverlayEl.querySelectorAll(".merchant-title");
-        mainTitles.forEach((mainTitle) => {
-            if (mainTitle && (mainTitle.textContent === "Merchant" || mainTitle.textContent === "Jeff")) {
-                mainTitle.textContent = name;
-            }
-        });
     }
 }
 
