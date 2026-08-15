@@ -398,7 +398,7 @@ export const MERCHANT_DIALOGUES = {
     m4a: { type: 'line', say: 'Yes I did.', next: 'c3a' },
     m4b: { type: 'line', say: 'Like what?', next: 'c4a' },
     m4c: { type: 'line', say: '3.', next: 'c5a' },
-    m4d: { type: 'line', say: 'Okay you caught me, I\’m actually a fraud, my Magic is fake, nothing I say can be trusted, the Coins are made of plastic, my name\’s not even Merchant it’s Jeff.', next: 'c4b' },
+    m4d: { type: 'line', say: 'Okay you caught me, I\’m actually a fraud, my Magic is fake, nothing I say can be trusted, the Coins are made of plastic, my name\’s not even Merchant it\’s Jeff.', sayJeff: 'I give up. Why must you torment me with these questions? What pleasure does it bring you? Do you think this is some game? Do you think my feelings don\'t matter? Why must you press on with such malevolent intent? Do you wish to see me suffer? Don\'t you have better things to do with your time? You should be collecting Coins, not insistently pestering me with these meaningless questions. How would you feel if you found out one day that none of your own aspirations matter, that your only purpose is to get the <span style="color:#00e5ff">Player</span> to collect enough Coins to fulfill the greater goal, to... Well, I\'m rambling a bit aren\'t I?', next: 'c4b' },
     m4e: { type: 'line', say: 'No.', next: 'c5a' },
 
     c4a: { type: 'choice', options: [
