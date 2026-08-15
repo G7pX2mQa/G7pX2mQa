@@ -1,47 +1,46 @@
 // js/game/mutationSystem.js
-
-import { BigNum } from '../util/bigNum.js';
-import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
-import { applyStatMultiplierOverride } from '../util/debugPanel.js';
-import { formatNumber } from '../util/numFormat.js';
-import { approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
+import { lsSetItem } from "../main.js";
+import { BigNum } from "../util/bigNum.js";
+import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from "../util/storage.js";
+import { applyStatMultiplierOverride } from "../util/debugPanel.js";
+import { formatNumber } from "../util/numFormat.js";
+import { approxLog10BigNum, bigNumFromLog10 } from "../util/bigNum.js";
 import { settingsManager, MAX_MUTATION_VISUAL } from "./settingsManager.js";
-import { syncXpMpHudLayout } from '../ui/hudLayout.js';
-import { setHtmlOrText } from '../util/uiHelpers.js';
-
-const KEY_PREFIX = 'ccc:mutation';
+import { syncXpMpHudLayout } from "../ui/hudLayout.js";
+import { setHtmlOrText } from "../util/uiHelpers.js";
+const KEY_PREFIX = "ccc:mutation";
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 const KEY_HIGHEST_LEVEL = (slot) => `${KEY_PREFIX}:highest_level:${slot}`;
-
 const BN = BigNum;
 const bnZero = () => BN.fromInt(0);
 const bnOne = () => BN.fromInt(1);
-
 const MP_LOG10_BASE = Math.log10(2);
 const CONST_RATIO = (10 - 1) / (Math.pow(1.12, 50) - 1);
-
 function toStorageSafe(value) {
-  try { return value?.toStorage?.(); }
-  catch { return null; }
+    try {
+        return value?.toStorage?.();
+    } catch {
+        return null;
+    }
 }
 
 const mutationState = {
-  unlocked: false,
-  level: bnZero(),
-  progress: bnZero(),
-  requirement: bnZero(),
-  highestLevel: bnZero(),
-  slot: null,
+    unlocked: false,
+    level: bnZero(),
+    progress: bnZero(),
+    requirement: bnZero(),
+    highestLevel: bnZero(),
+    slot: null,
 };
 
 const hudRefs = {
-  container: null,
-  bar: null,
-  fill: null,
-  levelValue: null,
-  progress: null,
+    container: null,
+    bar: null,
+    fill: null,
+    levelValue: null,
+    progress: null,
 };
 
 const listeners = new Set();
@@ -50,1094 +49,1137 @@ let watchersBoundSlot = null;
 let initialized = false;
 let unregisterCoinMultiplierProvider = null;
 let unregisterXpGainMultiplierProvider = null;
-
 const mutationGainMultiplierProviders = new Set();
 let externalMutationGainMultiplierProvider = null;
-
-
 function applyMutationMultipliers(amount) {
-  let inc = amount;
-  if (!inc.isZero?.()) {
-    const providers = mutationGainMultiplierProviders.size > 0
-      ? Array.from(mutationGainMultiplierProviders)
-      : (typeof externalMutationGainMultiplierProvider === 'function' ? [externalMutationGainMultiplierProvider] : []);
-    for (const provider of providers) {
-      if (typeof provider !== 'function') continue;
-      try {
-        const maybe = provider({
-          baseGain: inc.clone?.() ?? inc,
-          mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
-          mutationUnlocked: mutationState.unlocked,
-        });
-        if (maybe instanceof BN) {
-          inc = maybe.clone?.() ?? maybe;
-        } else if (maybe != null) {
-          inc = BigNum.fromAny(maybe);
+    let inc = amount;
+    if (!inc.isZero?.()) {
+        const providers =
+            mutationGainMultiplierProviders.size > 0
+                ? Array.from(mutationGainMultiplierProviders)
+                : typeof externalMutationGainMultiplierProvider === "function"
+                  ? [externalMutationGainMultiplierProvider]
+                  : [];
+        for (const provider of providers) {
+            if (typeof provider !== "function") continue;
+            try {
+                const maybe = provider({
+                    baseGain: inc.clone?.() ?? inc,
+                    mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
+                    mutationUnlocked: mutationState.unlocked,
+                });
+                if (maybe instanceof BN) {
+                    inc = maybe.clone?.() ?? maybe;
+                } else if (maybe != null) {
+                    inc = BigNum.fromAny(maybe);
+                }
+            } catch {}
         }
-      } catch {}
     }
-  }
-  return inc;
+    return inc;
 }
 
 function ensureExternalMultiplierProviders() {
-  if (typeof unregisterCoinMultiplierProvider === 'function') {
-    try { unregisterCoinMultiplierProvider(); } catch {}
-    unregisterCoinMultiplierProvider = null;
-  }
-  if (typeof unregisterXpGainMultiplierProvider === 'function') {
-    try { unregisterXpGainMultiplierProvider(); } catch {}
-    unregisterXpGainMultiplierProvider = null;
-  }
+    if (typeof unregisterCoinMultiplierProvider === "function") {
+        try {
+            unregisterCoinMultiplierProvider();
+        } catch {}
+        unregisterCoinMultiplierProvider = null;
+    }
+    if (typeof unregisterXpGainMultiplierProvider === "function") {
+        try {
+            unregisterXpGainMultiplierProvider();
+        } catch {}
+        unregisterXpGainMultiplierProvider = null;
+    }
 }
 
 function cloneBigNum(value) {
-  if (value instanceof BN) {
-    try { return value.clone?.() ?? BigNum.fromAny(value); }
-    catch { return bnZero(); }
-  }
-  try { return BigNum.fromAny(value ?? 0); }
-  catch { return bnZero(); }
+    if (value instanceof BN) {
+        try {
+            return value.clone?.() ?? BigNum.fromAny(value);
+        } catch {
+            return bnZero();
+        }
+    }
+    try {
+        return BigNum.fromAny(value ?? 0);
+    } catch {
+        return bnZero();
+    }
 }
 
 function quantizeRequirement(value) {
-  if (!value || typeof value !== 'object') return bnZero();
-  if (value.isInfinite?.()) return value.clone?.() ?? value;
-  const sci = typeof value.toScientific === 'function' ? value.toScientific(BigNum.DEFAULT_PRECISION) : '';
-  if (!sci || sci === 'Infinity') return value.clone?.() ?? value;
-  const match = sci.match(/^(\d+(?:\.\d+)?)e([+-]?\d+)$/i);
-  if (!match) return value.clone?.() ?? value;
-  const exp = parseInt(match[2], 10);
-  const digits = exp + 1;
-  if (digits <= BigNum.DEFAULT_PRECISION) {
-    const floored = value.floorToInteger?.() ?? value.clone?.() ?? value;
-    const plain = floored.toPlainIntegerString?.();
-    if (!plain || plain === 'Infinity') return floored;
-    try {
-      const quant = Math.floor(Number(plain) / 100) * 100;
-      if (quant <= 0) return BN.fromInt(100);
-      return BigNum.fromAny(quant.toString());
-    } catch {
-      return floored;
+    if (!value || typeof value !== "object") return bnZero();
+    if (value.isInfinite?.()) return value.clone?.() ?? value;
+    const sci = typeof value.toScientific === "function" ? value.toScientific(BigNum.DEFAULT_PRECISION) : "";
+    if (!sci || sci === "Infinity") return value.clone?.() ?? value;
+    const match = sci.match(/^(\d+(?:\.\d+)?)e([+-]?\d+)$/i);
+    if (!match) return value.clone?.() ?? value;
+    const exp = parseInt(match[2], 10);
+    const digits = exp + 1;
+    if (digits <= BigNum.DEFAULT_PRECISION) {
+        const floored = value.floorToInteger?.() ?? value.clone?.() ?? value;
+        const plain = floored.toPlainIntegerString?.();
+        if (!plain || plain === "Infinity") return floored;
+        try {
+            const quant = Math.floor(Number(plain) / 100) * 100;
+            if (quant <= 0) return BN.fromInt(100);
+            return BigNum.fromAny(quant.toString());
+        } catch {
+            return floored;
+        }
     }
-  }
-  return value.clone?.() ?? value;
+    return value.clone?.() ?? value;
 }
 
 export function levelToNumber(level) {
-  if (!level || typeof level !== 'object') return 0;
-  if (level.isInfinite?.()) return Number.POSITIVE_INFINITY;
-  try {
-    const plain = level.toPlainIntegerString?.();
-    if (plain && plain !== 'Infinity' && plain.length <= 15) {
-      const num = Number(plain);
-      if (Number.isFinite(num)) return num;
-    }
-  } catch {}
-  const approxLog = approxLog10BigNum(level);
-  if (!Number.isFinite(approxLog)) return Number.POSITIVE_INFINITY;
-  if (approxLog > 308) return Number.POSITIVE_INFINITY;
-  return Math.pow(10, approxLog);
+    if (!level || typeof level !== "object") return 0;
+    if (level.isInfinite?.()) return Number.POSITIVE_INFINITY;
+    try {
+        const plain = level.toPlainIntegerString?.();
+        if (plain && plain !== "Infinity" && plain.length <= 15) {
+            const num = Number(plain);
+            if (Number.isFinite(num)) return num;
+        }
+    } catch {}
+    const approxLog = approxLog10BigNum(level);
+    if (!Number.isFinite(approxLog)) return Number.POSITIVE_INFINITY;
+    if (approxLog > 308) return Number.POSITIVE_INFINITY;
+    return Math.pow(10, approxLog);
 }
 
 function computeRequirement(levelBn) {
-  // Original requirement curve, returning log10(requirement)
-  function baseRequirementLog10(baseLevel) {
-    const m = Math.max(0, baseLevel + 1);
-    const tail = Math.max(0, m - 10);
+    // Original requirement curve, returning log10(requirement)
+    function baseRequirementLog10(baseLevel) {
+        const m = Math.max(0, baseLevel + 1);
+        const tail = Math.max(0, m - 10);
+        const poly =
+            -0.0022175354763501742 * m * m +
+            0.20449967884058884 * m +
+            2.016778189084622 +
+            0.20418426693226513 * Math.pow(tail, 1.6418337930413576);
+        if (!Number.isFinite(poly)) {
+            return Number.POSITIVE_INFINITY;
+        }
 
-    const poly = -0.0022175354763501742 * m * m
-      + 0.20449967884058884 * m
-      + 2.016778189084622
-      + 0.20418426693226513 * Math.pow(tail, 1.6418337930413576);
-    if (!Number.isFinite(poly)) {
-      return Number.POSITIVE_INFINITY;
+        let factor = 1;
+        if (m > 10) {
+            const powTerm = Math.pow(1.12, m - 10);
+            if (!Number.isFinite(powTerm)) {
+                return Number.POSITIVE_INFINITY;
+            }
+            factor += CONST_RATIO * (powTerm - 1);
+            if (!Number.isFinite(factor)) {
+                return Number.POSITIVE_INFINITY;
+            }
+        }
+
+        const totalLog10 = poly * factor;
+        if (!Number.isFinite(totalLog10)) {
+            return Number.POSITIVE_INFINITY;
+        }
+        return totalLog10;
     }
 
-    let factor = 1;
-    if (m > 10) {
-      const powTerm = Math.pow(1.12, m - 10);
-      if (!Number.isFinite(powTerm)) {
-        return Number.POSITIVE_INFINITY;
-      }
-      factor += CONST_RATIO * (powTerm - 1);
-      if (!Number.isFinite(factor)) {
-        return Number.POSITIVE_INFINITY;
-      }
+    const levelNum = levelToNumber(levelBn);
+    if (!Number.isFinite(levelNum)) {
+        // Infinite / NaN level → infinite requirement
+        return BigNum.fromAny("Infinity");
     }
 
-    const totalLog10 = poly * factor;
-    if (!Number.isFinite(totalLog10)) {
-      return Number.POSITIVE_INFINITY;
-    }
-    return totalLog10;
-  }
-
-  const levelNum = levelToNumber(levelBn);
-  if (!Number.isFinite(levelNum)) {
-    // Infinite / NaN level → infinite requirement
-    return BigNum.fromAny('Infinity');
-  }
-
-  const baseLevel = Math.max(0, levelNum);
-
-  // Hard wall: mutation 100+ is impossible
-  if (baseLevel >= 100) {
-    return BigNum.fromAny('Infinity');
-  }
-
-  let totalLog10;
-
-  if (baseLevel <= 9) {
-    // 0–9: original scaling
-    totalLog10 = baseRequirementLog10(baseLevel);
-  } else if (baseLevel <= 49) {
-    // 10-49: "Harsher" Exponential Transition
-    //
-    // We want to smoothly (but rapidly) transition from:
-    //   Level 9: log10(req) ≈ 3.83 (calculated via baseRequirementLog10(9))
-    // To:
-    //   Level 49: log10(req) = 363,000 (Target set by user)
-    //
-    // Model: log10(req) = B * R^(baseLevel - 9)
-    //
-    // B = 3.83
-    // R^(49 - 9) = 363000 / 3.83
-    // R^40 ≈ 94778.06
-    // R = 94778.06 ^ (1/40) ≈ 1.33235...
-
-    const startVal = baseRequirementLog10(9); // ~3.83
-    const endVal = 500000;
-    const steps = 49 - 9; // 40
-
-    // Safety check for startVal
-    const safeStart = Math.max(1, startVal);
-
-    const ratio = Math.pow(endVal / safeStart, 1 / steps);
-    const exponent = baseLevel - 9;
-
-    totalLog10 = safeStart * Math.pow(ratio, exponent);
-  } else {
-    // 50–99: The New Insanity Zone
-    //
-    // Targets:
-    //   Level 50: 1,000,000 zeros (log10 = 1e6)
-    //     => secondExp = log10(1e6) = 6
-    //   Level 99: Original target (log10 = 1e303)
-    //     => secondExp = log10(1e303) = 303
-    //
-    // Interpolation: Quadratic on secondExp
-    //   x = baseLevel - 49 (ranges from 1 to 50)
-    //   L50 (x=1)  => y=6
-    //   L99 (x=50) => y=303
-    
-    const x = baseLevel - 49; // 1..50
-    
-    // y = A*x^2 + B
-    // 6 = A*1 + B
-    // 303 = A*2500 + B
-    //
-    // 303 - 6 = 2499*A
-    // 297 = 2499*A
-    // A = 297 / 2499
-    // B = 6 - A
-
-    const A = 297 / 2499;
-    const B = 6 - A;
-    
-    const secondExp = A * x * x + B;
-    if (!Number.isFinite(secondExp)) {
-      return BigNum.fromAny('Infinity');
+    const baseLevel = Math.max(0, levelNum);
+    // Hard wall: mutation 100+ is impossible
+    if (baseLevel >= 100) {
+        return BigNum.fromAny("Infinity");
     }
 
-    // log10(requirement) = 10 ^ secondExp, nudged up slightly to avoid hitting exact thresholds
-    // Make sure level 99 hits EXACTLY 1e303
-    let baseLog10;
-    if (baseLevel === 99) {
-      baseLog10 = 1e303;
-      totalLog10 = baseLog10;
+    let totalLog10;
+    if (baseLevel <= 9) {
+        // 0–9: original scaling
+        totalLog10 = baseRequirementLog10(baseLevel);
+    } else if (baseLevel <= 49) {
+        // 10-49: "Harsher" Exponential Transition
+        //
+        // We want to smoothly (but rapidly) transition from:
+        //   Level 9: log10(req) ≈ 3.83 (calculated via baseRequirementLog10(9))
+        // To:
+        //   Level 49: log10(req) = 363,000 (Target set by user)
+        //
+        // Model: log10(req) = B * R^(baseLevel - 9)
+        //
+        // B = 3.83
+        // R^(49 - 9) = 363000 / 3.83
+        // R^40 ≈ 94778.06
+        // R = 94778.06 ^ (1/40) ≈ 1.33235...
+        const startVal = baseRequirementLog10(9); // ~3.83
+        const endVal = 500000;
+        const steps = 49 - 9; // 40
+        // Safety check for startVal
+        const safeStart = Math.max(1, startVal);
+        const ratio = Math.pow(endVal / safeStart, 1 / steps);
+        const exponent = baseLevel - 9;
+        totalLog10 = safeStart * Math.pow(ratio, exponent);
     } else {
-      baseLog10 = Math.pow(10, secondExp);
-      totalLog10 = baseLog10 * 1.00001;
+        // 50–99: The New Insanity Zone
+        //
+        // Targets:
+        //   Level 50: 1,000,000 zeros (log10 = 1e6)
+        //     => secondExp = log10(1e6) = 6
+        //   Level 99: Original target (log10 = 1e303)
+        //     => secondExp = log10(1e303) = 303
+        //
+        // Interpolation: Quadratic on secondExp
+        //   x = baseLevel - 49 (ranges from 1 to 50)
+        //   L50 (x=1)  => y=6
+        //   L99 (x=50) => y=303
+        const x = baseLevel - 49; // 1..50
+        // y = A*x^2 + B
+        // 6 = A*1 + B
+        // 303 = A*2500 + B
+        //
+        // 303 - 6 = 2499*A
+        // 297 = 2499*A
+        // A = 297 / 2499
+        // B = 6 - A
+        const A = 297 / 2499;
+        const B = 6 - A;
+        const secondExp = A * x * x + B;
+        if (!Number.isFinite(secondExp)) {
+            return BigNum.fromAny("Infinity");
+        }
+        // log10(requirement) = 10 ^ secondExp, nudged up slightly to avoid hitting exact thresholds
+        // Make sure level 99 hits EXACTLY 1e303
+        let baseLog10;
+        if (baseLevel === 99) {
+            baseLog10 = 1e303;
+            totalLog10 = baseLog10;
+        } else {
+            baseLog10 = Math.pow(10, secondExp);
+            totalLog10 = baseLog10 * 1.00001;
+        }
     }
-  }
+    if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
+        return BigNum.fromAny("Infinity");
+    }
 
-  if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
-    return BigNum.fromAny('Infinity');
-  }
-
-  const raw = bigNumFromLog10(totalLog10);
-  return quantizeRequirement(raw);
+    const raw = bigNumFromLog10(totalLog10);
+    return quantizeRequirement(raw);
 }
 
 function ensureRequirement() {
-  const lvl = mutationState.level;
+    const lvl = mutationState.level;
+    const levelIsInf = !!(
+        lvl &&
+        typeof lvl === "object" &&
+        (lvl.isInfinite?.() || (typeof lvl.isInfinite === "function" && lvl.isInfinite()))
+    );
+    if (levelIsInf) {
+        if (enforceMutationInfinityInvariant()) return;
+        return;
+    }
 
-  const levelIsInf = !!(
-    lvl &&
-    typeof lvl === 'object' &&
-    (lvl.isInfinite?.() || (typeof lvl.isInfinite === 'function' && lvl.isInfinite()))
-  );
-
-  if (levelIsInf) {
-    if (enforceMutationInfinityInvariant()) return;
-    return;
-  }
-
-  const req = computeRequirement(mutationState.level);
-  mutationState.requirement = req;
+    const req = computeRequirement(mutationState.level);
+    mutationState.requirement = req;
 }
 
-
 function progressRatio(progressBn, requirement) {
-  if (!requirement || typeof requirement !== 'object') return 0;
-  if (!progressBn || typeof progressBn !== 'object') return 0;
+    if (!requirement || typeof requirement !== "object") return 0;
+    if (!progressBn || typeof progressBn !== "object") return 0;
+    const reqInf = requirement.isInfinite?.();
+    const progInf = progressBn.isInfinite?.();
+    // If both are infinite, treat the bar as "full".
+    if (reqInf) {
+        if (progInf) return 1;
+        return 0;
+    }
 
-  const reqInf = requirement.isInfinite?.();
-  const progInf = progressBn.isInfinite?.();
+    const reqZero = requirement.isZero?.();
+    if (reqZero) return 0;
+    const progZero = progressBn.isZero?.();
+    if (progZero) return 0;
+    const logProg = approxLog10BigNum(progressBn);
+    const logReq = approxLog10BigNum(requirement);
+    if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
+        return logProg >= logReq ? 1 : 0;
+    }
 
-  // If both are infinite, treat the bar as "full".
-  if (reqInf) {
-    if (progInf) return 1;
-    return 0;
-  }
-
-  const reqZero = requirement.isZero?.();
-  if (reqZero) return 0;
-
-  const progZero = progressBn.isZero?.();
-  if (progZero) return 0;
-
-  const logProg = approxLog10BigNum(progressBn);
-  const logReq = approxLog10BigNum(requirement);
-  if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
-    return logProg >= logReq ? 1 : 0;
-  }
-
-  const diff = logProg - logReq;
-  const ratio = Math.pow(10, diff);
-  if (!Number.isFinite(ratio)) {
-    return diff >= 0 ? 1 : 0;
-  }
-  if (ratio <= 0) return 0;
-  if (ratio >= 1) return 1;
-  return ratio;
+    const diff = logProg - logReq;
+    const ratio = Math.pow(10, diff);
+    if (!Number.isFinite(ratio)) {
+        return diff >= 0 ? 1 : 0;
+    }
+    if (ratio <= 0) return 0;
+    if (ratio >= 1) return 1;
+    return ratio;
 }
 
 function ensureHudRefs() {
-  if (hudRefs.container && hudRefs.container.isConnected) return true;
-  hudRefs.container = document.querySelector('[data-mp-hud].mp-counter');
-  if (!hudRefs.container) return false;
-  hudRefs.bar = hudRefs.container.querySelector('.mp-bar');
-  hudRefs.fill = hudRefs.container.querySelector('.mp-bar__fill');
-  hudRefs.levelValue = hudRefs.container.querySelector('.mp-level-value');
-  hudRefs.progress = hudRefs.container.querySelector('[data-mp-progress]');
-  return true;
+    if (hudRefs.container && hudRefs.container.isConnected) return true;
+    hudRefs.container = document.querySelector("[data-mp-hud].mp-counter");
+    if (!hudRefs.container) return false;
+    hudRefs.bar = hudRefs.container.querySelector(".mp-bar");
+    hudRefs.fill = hudRefs.container.querySelector(".mp-bar__fill");
+    hudRefs.levelValue = hudRefs.container.querySelector(".mp-level-value");
+    hudRefs.progress = hudRefs.container.querySelector("[data-mp-progress]");
+    return true;
 }
 
 function formatBn(bn) {
-  try { return formatNumber(bn); }
-  catch {
-    try { return bn.toPlainIntegerString?.() ?? String(bn); }
-    catch { return '0'; }
-  }
+    try {
+        return formatNumber(bn);
+    } catch {
+        try {
+            return bn.toPlainIntegerString?.() ?? String(bn);
+        } catch {
+            return "0";
+        }
+    }
 }
 
 function updateHud() {
-  if (!ensureHudRefs()) return;
-  const { container, bar, fill, levelValue, progress } = hudRefs;
-  if (!container) return;
-  if (!container.closest('.area-cove')) {
-    container.setAttribute('hidden', '');
-    syncXpMpHudLayout();
-    return;
-  }
-  if (!mutationState.unlocked) {
-    container.setAttribute('hidden', '');
-    if (fill) {
-      fill.style.setProperty('--mp-fill', '0%');
-      fill.style.width = '0%';
+    if (!ensureHudRefs()) return;
+    const { container, bar, fill, levelValue, progress } = hudRefs;
+    if (!container) return;
+    if (!container.closest(".area-cove")) {
+        container.setAttribute("hidden", "");
+        syncXpMpHudLayout();
+        return;
     }
-    if (levelValue) setHtmlOrText(levelValue, '0');
+    if (!mutationState.unlocked) {
+        container.setAttribute("hidden", "");
+        if (fill) {
+            fill.style.setProperty("--mp-fill", "0%");
+            fill.style.width = "0%";
+        }
+        if (levelValue) setHtmlOrText(levelValue, "0");
+        if (progress) {
+            const reqHtml = formatBn(mutationState.requirement);
+            progress.innerHTML = `0<span class="mp-progress-separator">/</span><span class="mp-progress-required">${reqHtml}</span><span class="mp-progress-suffix">MP</span>`;
+        }
+        if (bar) {
+            bar.setAttribute("aria-valuenow", "0");
+            const reqPlain = formatBn(mutationState.requirement).replace(/<[^>]*>/g, "");
+            bar.setAttribute("aria-valuetext", `0 / ${reqPlain || "10"} MP`);
+        }
+        syncXpMpHudLayout();
+        return;
+    }
+    container.removeAttribute("hidden");
+    const req = mutationState.requirement;
+    const ratio = progressRatio(mutationState.progress, req);
+    const pct = `${(ratio * 100).toFixed(2)}%`;
+    if (fill) {
+        fill.style.setProperty("--mp-fill", pct);
+        fill.style.width = pct;
+    }
+    if (levelValue) {
+        setHtmlOrText(levelValue, formatBn(mutationState.level));
+    }
     if (progress) {
-      const reqHtml = formatBn(mutationState.requirement);
-      progress.innerHTML = `0<span class="mp-progress-separator">/</span><span class="mp-progress-required">${reqHtml}</span><span class="mp-progress-suffix">MP</span>`;
+        const currentHtml = formatBn(mutationState.progress);
+        const reqHtml = formatBn(req);
+        progress.innerHTML = `<span class="mp-progress-current">${currentHtml}</span><span class="mp-progress-separator">/</span><span class="mp-progress-required">${reqHtml}</span><span class="mp-progress-suffix">MP</span>`;
     }
     if (bar) {
-      bar.setAttribute('aria-valuenow', '0');
-      const reqPlain = formatBn(mutationState.requirement).replace(/<[^>]*>/g, '');
-      bar.setAttribute('aria-valuetext', `0 / ${reqPlain || '10'} MP`);
+        bar.setAttribute("aria-valuenow", (ratio * 100).toFixed(2));
+        const currPlain = formatBn(mutationState.progress).replace(/<[^>]*>/g, "");
+        const reqPlain = formatBn(req).replace(/<[^>]*>/g, "");
+        bar.setAttribute("aria-valuetext", `${currPlain} / ${reqPlain} MP`);
     }
     syncXpMpHudLayout();
-    return;
-  }
-
-  container.removeAttribute('hidden');
-  const req = mutationState.requirement;
-  const ratio = progressRatio(mutationState.progress, req);
-  const pct = `${(ratio * 100).toFixed(2)}%`;
-  if (fill) {
-    fill.style.setProperty('--mp-fill', pct);
-    fill.style.width = pct;
-  }
-  if (levelValue) {
-    setHtmlOrText(levelValue, formatBn(mutationState.level));
-  }
-  if (progress) {
-    const currentHtml = formatBn(mutationState.progress);
-    const reqHtml = formatBn(req);
-    progress.innerHTML = `<span class="mp-progress-current">${currentHtml}</span><span class="mp-progress-separator">/</span><span class="mp-progress-required">${reqHtml}</span><span class="mp-progress-suffix">MP</span>`;
-  }
-  if (bar) {
-    bar.setAttribute('aria-valuenow', (ratio * 100).toFixed(2));
-    const currPlain = formatBn(mutationState.progress).replace(/<[^>]*>/g, '');
-    const reqPlain = formatBn(req).replace(/<[^>]*>/g, '');
-    bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} MP`);
-  }
-  syncXpMpHudLayout();
 }
 
-function emitChange(reason = 'update', extraDetail = {}) {
-  const snapshot = getMutationState();
-  const detail = {
-    ...snapshot,
-    slot: mutationState.slot ?? getActiveSlot(),
-    changeType: reason,
-    ...extraDetail,
-  };
-
-  listeners.forEach((cb) => {
-    try { cb(snapshot, reason); } catch {}
-  });
-
-  if (typeof window !== 'undefined') {
-    try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'mp', delta: detail.delta, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'mp', level: detail.level, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getMutationProgressRatio() } })); } catch {}
-  }
-
-  return detail;
+function emitChange(reason = "update", extraDetail = {}) {
+    const snapshot = getMutationState();
+    const detail = {
+        ...snapshot,
+        slot: mutationState.slot ?? getActiveSlot(),
+        changeType: reason,
+        ...extraDetail,
+    };
+    listeners.forEach((cb) => {
+        try {
+            cb(snapshot, reason);
+        } catch {}
+    });
+    if (typeof window !== "undefined") {
+        try {
+            window.dispatchEvent(new CustomEvent("mutation:change", { detail }));
+            window.dispatchEvent(
+                new CustomEvent("stat:change", {
+                    detail: { key: "mp", delta: detail.delta, progress: detail.progress },
+                }),
+            );
+            window.dispatchEvent(
+                new CustomEvent("level:change", {
+                    detail: {
+                        prefix: "mp",
+                        level: detail.level,
+                        progress: detail.progress,
+                        requirement: detail.requirement,
+                        isUnlocked: detail.unlocked,
+                        ratio: getMutationProgressRatio(),
+                    },
+                }),
+            );
+        } catch {}
+    }
+    return detail;
 }
 
 function persistState() {
-  let slot = mutationState.slot;
-  if (slot == null) {
-    slot = getActiveSlot();
-    if (slot != null) {
-      mutationState.slot = slot;
+    let slot = mutationState.slot;
+    if (slot == null) {
+        slot = getActiveSlot();
+        if (slot != null) {
+            mutationState.slot = slot;
+        }
     }
-  }
-  if (slot == null) return;
-  try { localStorage.setItem(KEY_UNLOCK(slot), mutationState.unlocked ? '1' : '0'); }
-  catch {}
-  try { localStorage.setItem(KEY_LEVEL(slot), mutationState.level.toStorage()); }
-  catch {}
-  try { localStorage.setItem(KEY_PROGRESS(slot), mutationState.progress.toStorage()); }
-  catch {}
-  try { localStorage.setItem(KEY_HIGHEST_LEVEL(slot), mutationState.highestLevel.toStorage()); }
-  catch {}
-  primeStorageWatcherSnapshot(KEY_UNLOCK(slot));
-  primeStorageWatcherSnapshot(KEY_LEVEL(slot));
-  primeStorageWatcherSnapshot(KEY_PROGRESS(slot));
-  primeStorageWatcherSnapshot(KEY_HIGHEST_LEVEL(slot));
-
-  // If storage writes are being blocked (e.g., via the Debug Panel lock toggle),
-  // fall back to the persisted values so in-memory state doesn't keep drifting
-  // away from the locked snapshot during gameplay.
-  const persisted = (() => {
-    let unlocked = mutationState.unlocked;
-    let level = mutationState.level;
-    let progress = mutationState.progress;
-    let highestLevel = mutationState.highestLevel;
-    try { unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === '1'; }
-    catch {}
+    if (slot == null) return;
     try {
-      const rawLevel = localStorage.getItem(KEY_LEVEL(slot));
-      if (rawLevel) level = BigNum.fromAny(rawLevel);
+        lsSetItem(KEY_UNLOCK(slot), mutationState.unlocked ? "1" : "0");
     } catch {}
     try {
-      const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
-      if (rawProgress) progress = BigNum.fromAny(rawProgress);
+        lsSetItem(KEY_LEVEL(slot), mutationState.level.toStorage());
     } catch {}
     try {
-      const rawHighestLevel = localStorage.getItem(KEY_HIGHEST_LEVEL(slot));
-      if (rawHighestLevel) highestLevel = BigNum.fromAny(rawHighestLevel);
+        lsSetItem(KEY_PROGRESS(slot), mutationState.progress.toStorage());
     } catch {}
-    return { unlocked, level, progress, highestLevel };
-  })();
-
-  const persistedLevelRaw = toStorageSafe(persisted.level);
-  const persistedProgressRaw = toStorageSafe(persisted.progress);
-  const expectedLevelRaw = toStorageSafe(mutationState.level);
-  const expectedProgressRaw = toStorageSafe(mutationState.progress);
-
-  const unlockMismatch = persisted.unlocked !== mutationState.unlocked;
-  const levelMismatch = persistedLevelRaw != null && expectedLevelRaw != null && persistedLevelRaw !== expectedLevelRaw;
-  const progressMismatch = persistedProgressRaw != null && expectedProgressRaw != null && persistedProgressRaw !== expectedProgressRaw;
-  const highestLevelMismatch = toStorageSafe(persisted.highestLevel) != null && toStorageSafe(mutationState.highestLevel) != null && toStorageSafe(persisted.highestLevel) !== toStorageSafe(mutationState.highestLevel);
-
-  if (unlockMismatch || levelMismatch || progressMismatch || highestLevelMismatch) {
-    applyState(persisted, { skipPersist: true });
-  }
+    try {
+        lsSetItem(KEY_HIGHEST_LEVEL(slot), mutationState.highestLevel.toStorage());
+    } catch {}
+    primeStorageWatcherSnapshot(KEY_UNLOCK(slot));
+    primeStorageWatcherSnapshot(KEY_LEVEL(slot));
+    primeStorageWatcherSnapshot(KEY_PROGRESS(slot));
+    primeStorageWatcherSnapshot(KEY_HIGHEST_LEVEL(slot));
+    // If storage writes are being blocked (e.g., via the Debug Panel lock toggle),
+    // fall back to the persisted values so in-memory state doesn't keep drifting
+    // away from the locked snapshot during gameplay.
+    const persisted = (() => {
+        let unlocked = mutationState.unlocked;
+        let level = mutationState.level;
+        let progress = mutationState.progress;
+        let highestLevel = mutationState.highestLevel;
+        try {
+            unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === "1";
+        } catch {}
+        try {
+            const rawLevel = localStorage.getItem(KEY_LEVEL(slot));
+            if (rawLevel) level = BigNum.fromAny(rawLevel);
+        } catch {}
+        try {
+            const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
+            if (rawProgress) progress = BigNum.fromAny(rawProgress);
+        } catch {}
+        try {
+            const rawHighestLevel = localStorage.getItem(KEY_HIGHEST_LEVEL(slot));
+            if (rawHighestLevel) highestLevel = BigNum.fromAny(rawHighestLevel);
+        } catch {}
+        return { unlocked, level, progress, highestLevel };
+    })();
+    const persistedLevelRaw = toStorageSafe(persisted.level);
+    const persistedProgressRaw = toStorageSafe(persisted.progress);
+    const expectedLevelRaw = toStorageSafe(mutationState.level);
+    const expectedProgressRaw = toStorageSafe(mutationState.progress);
+    const unlockMismatch = persisted.unlocked !== mutationState.unlocked;
+    const levelMismatch =
+        persistedLevelRaw != null && expectedLevelRaw != null && persistedLevelRaw !== expectedLevelRaw;
+    const progressMismatch =
+        persistedProgressRaw != null && expectedProgressRaw != null && persistedProgressRaw !== expectedProgressRaw;
+    const highestLevelMismatch =
+        toStorageSafe(persisted.highestLevel) != null &&
+        toStorageSafe(mutationState.highestLevel) != null &&
+        toStorageSafe(persisted.highestLevel) !== toStorageSafe(mutationState.highestLevel);
+    if (unlockMismatch || levelMismatch || progressMismatch || highestLevelMismatch) {
+        applyState(persisted, { skipPersist: true });
+    }
 }
 
 function isKeyLocked(key) {
-  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
-    return window.__cccLockedStorageKeys.has(key);
-  }
-  return false;
+    if (typeof window !== "undefined" && window.__cccLockedStorageKeys) {
+        return window.__cccLockedStorageKeys.has(key);
+    }
+    return false;
 }
-
 // Ensure it's available earlier
 isKeyLocked.defined = true;
-
-
 function enforceMutationInfinityInvariant() {
-  const levelIsInf = !!(mutationState.level && mutationState.level.isInfinite?.());
-  const progIsInf = !!(mutationState.progress && mutationState.progress.isInfinite?.());
-  if (!levelIsInf && !progIsInf) return false;
-
-  const inf = BigNum.fromAny('Infinity');
-  const slot = mutationState.slot ?? getActiveSlot();
-  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
-  const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
-
-  if (!levelLocked) {
-    try { mutationState.level = inf.clone?.() ?? inf; } catch {}
-  }
-  if (!progressLocked) {
-    try { mutationState.progress = inf.clone?.() ?? inf; } catch {}
-  }
-  try { mutationState.requirement = inf.clone?.() ?? inf; } catch {}
-  return true;
+    const levelIsInf = !!(mutationState.level && mutationState.level.isInfinite?.());
+    const progIsInf = !!(mutationState.progress && mutationState.progress.isInfinite?.());
+    if (!levelIsInf && !progIsInf) return false;
+    const inf = BigNum.fromAny("Infinity");
+    const slot = mutationState.slot ?? getActiveSlot();
+    const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+    const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+    if (!levelLocked) {
+        try {
+            mutationState.level = inf.clone?.() ?? inf;
+        } catch {}
+    }
+    if (!progressLocked) {
+        try {
+            mutationState.progress = inf.clone?.() ?? inf;
+        } catch {}
+    }
+    try {
+        mutationState.requirement = inf.clone?.() ?? inf;
+    } catch {}
+    return true;
 }
 
 function normalizeProgress() {
-  if (enforceMutationInfinityInvariant()) return;
-  if (!mutationState.unlocked) return;
-
-  const slot = mutationState.slot ?? getActiveSlot();
-  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
-
-  if (levelLocked) {
-    // Level locked: ensure requirement is current but do not consume progress to level up
-    ensureRequirement();
-    return;
-  }
-
-  ensureRequirement();
-  let currentReq = mutationState.requirement;
-  if (!currentReq || typeof currentReq !== 'object') return;
-
-  // If the requirement is infinite, you can keep stacking MP forever,
-  // but you'll never spend it to gain more levels.
-  if (currentReq.isInfinite?.()) {
-    return;
-  }
-
-  const currentProgressLog = approxLog10BigNum(mutationState.progress);
-  if (currentProgressLog - approxLog10BigNum(currentReq) > 2) {
-    let currentLevelNum;
-    try {
-      const s = mutationState.level.toPlainIntegerString?.() ?? mutationState.level.toString();
-      currentLevelNum = (s && s !== 'Infinity') ? Number(s) : Infinity;
-    } catch {
-      currentLevelNum = 0;
-    }
-    
-    if (Number.isFinite(currentLevelNum)) {
-      let low = currentLevelNum;
-      let high = Math.max(currentLevelNum, 4500000000000);
-      let best = currentLevelNum;
-
-      for (let i = 0; i < 60; i++) {
-        const mid = Math.floor((low + high) / 2);
-        const midReq = computeRequirement(BigNum.fromAny(mid.toString()));
-        const midLog = approxLog10BigNum(midReq);
-        if (midLog <= currentProgressLog) {
-            best = mid;
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-        if (midLog === Number.POSITIVE_INFINITY) break;
-      }
-      
-      const estimatedGain = best - currentLevelNum;
-      if (estimatedGain > 10) {
-        const safeGain = Math.max(0, estimatedGain - 5);
-        if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
-          const safeGainBn = BigNum.fromAny(safeGain.toString());
-          mutationState.level = mutationState.level.add(safeGainBn);
-          ensureRequirement();
-          currentReq = mutationState.requirement;
-        }
-      }
-    }
-  }
-
-  let guard = 0;
-  const limit = 100000;
-
-  while (mutationState.progress.cmp?.(currentReq) >= 0 && guard < limit) {
-    if (currentReq.isInfinite?.() || mutationState.progress.isInfinite?.()) break;
+    if (enforceMutationInfinityInvariant()) return;
+    if (!mutationState.unlocked) return;
+    const slot = mutationState.slot ?? getActiveSlot();
     const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
-    if (levelLocked) break;
-    // Spend MP to gain a level
-    mutationState.progress = mutationState.progress.sub(currentReq);
-    mutationState.level = mutationState.level.add(bnOne());
-
-    // Recompute requirement for the new level
-    ensureRequirement();
-    currentReq = mutationState.requirement;
-
-    if (!currentReq || typeof currentReq !== 'object') {
-      mutationState.progress = bnZero();
-      break;
+    if (levelLocked) {
+        // Level locked: ensure requirement is current but do not consume progress to level up
+        ensureRequirement();
+        return;
     }
-
-    // If the requirement becomes infinite while levelling up,
-    // stop levelling, but KEEP the leftover progress instead of nuking it.
+    ensureRequirement();
+    let currentReq = mutationState.requirement;
+    if (!currentReq || typeof currentReq !== "object") return;
+    // If the requirement is infinite, you can keep stacking MP forever,
+    // but you'll never spend it to gain more levels.
     if (currentReq.isInfinite?.()) {
-      break;
+        return;
     }
 
-    guard += 1;
-  }
+    const currentProgressLog = approxLog10BigNum(mutationState.progress);
+    if (currentProgressLog - approxLog10BigNum(currentReq) > 2) {
+        let currentLevelNum;
+        try {
+            const s = mutationState.level.toPlainIntegerString?.() ?? mutationState.level.toString();
+            currentLevelNum = s && s !== "Infinity" ? Number(s) : Infinity;
+        } catch {
+            currentLevelNum = 0;
+        }
+        if (Number.isFinite(currentLevelNum)) {
+            let low = currentLevelNum;
+            let high = Math.max(currentLevelNum, 4500000000000);
+            let best = currentLevelNum;
+            for (let i = 0; i < 60; i++) {
+                const mid = Math.floor((low + high) / 2);
+                const midReq = computeRequirement(BigNum.fromAny(mid.toString()));
+                const midLog = approxLog10BigNum(midReq);
+                if (midLog <= currentProgressLog) {
+                    best = mid;
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
+                }
+                if (midLog === Number.POSITIVE_INFINITY) break;
+            }
 
-  // Safety: if we somehow loop too much, just bail and zero progress
-  if (guard >= limit) {
-    mutationState.progress = bnZero();
-  }
+            const estimatedGain = best - currentLevelNum;
+            if (estimatedGain > 10) {
+                const safeGain = Math.max(0, estimatedGain - 5);
+                if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
+                    const safeGainBn = BigNum.fromAny(safeGain.toString());
+                    mutationState.level = mutationState.level.add(safeGainBn);
+                    ensureRequirement();
+                    currentReq = mutationState.requirement;
+                }
+            }
+        }
+    }
 
-  if (!levelLocked && mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
-    mutationState.level = BigNum.fromAny('Infinity');
-    ensureRequirement();
-  }
-
-  if (false) {
-    mutationState.progress = bnZero();
-  }
+    let guard = 0;
+    const limit = 100000;
+    while (mutationState.progress.cmp?.(currentReq) >= 0 && guard < limit) {
+        if (currentReq.isInfinite?.() || mutationState.progress.isInfinite?.()) break;
+        const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+        if (levelLocked) break;
+        // Spend MP to gain a level
+        mutationState.progress = mutationState.progress.sub(currentReq);
+        mutationState.level = mutationState.level.add(bnOne());
+        // Recompute requirement for the new level
+        ensureRequirement();
+        currentReq = mutationState.requirement;
+        if (!currentReq || typeof currentReq !== "object") {
+            mutationState.progress = bnZero();
+            break;
+        }
+        // If the requirement becomes infinite while levelling up,
+        // stop levelling, but KEEP the leftover progress instead of nuking it.
+        if (currentReq.isInfinite?.()) {
+            break;
+        }
+        guard += 1;
+    }
+    // Safety: if we somehow loop too much, just bail and zero progress
+    if (guard >= limit) {
+        mutationState.progress = bnZero();
+    }
+    if (
+        !levelLocked &&
+        mutationState.level &&
+        typeof mutationState.level.cmp === "function" &&
+        mutationState.level.cmp(4500000000000) >= 0
+    ) {
+        mutationState.level = BigNum.fromAny("Infinity");
+        ensureRequirement();
+    }
+    if (false) {
+        mutationState.progress = bnZero();
+    }
 }
 
 function applyState(newState, { skipPersist = false } = {}) {
-  mutationState.unlocked = !!newState.unlocked;
-  mutationState.level = cloneBigNum(newState.level);
-  
-  const slot = mutationState.slot ?? getActiveSlot();
-  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
-
-  if (!levelLocked && mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
-    mutationState.level = BigNum.fromAny('Infinity');
-  }
-  mutationState.progress = cloneBigNum(newState.progress);
-  mutationState.highestLevel = cloneBigNum(newState.highestLevel ?? mutationState.highestLevel);
-  if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
-    mutationState.highestLevel = cloneBigNum(mutationState.level);
-  }
-  if (!mutationState.unlocked) {
-    mutationState.level = bnZero();
-    mutationState.progress = bnZero();
-  }
-  ensureRequirement();
-  if (!skipPersist) persistState();
-  updateHud();
-  emitChange('load');
+    mutationState.unlocked = !!newState.unlocked;
+    mutationState.level = cloneBigNum(newState.level);
+    const slot = mutationState.slot ?? getActiveSlot();
+    const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+    if (
+        !levelLocked &&
+        mutationState.level &&
+        typeof mutationState.level.cmp === "function" &&
+        mutationState.level.cmp(4500000000000) >= 0
+    ) {
+        mutationState.level = BigNum.fromAny("Infinity");
+    }
+    mutationState.progress = cloneBigNum(newState.progress);
+    mutationState.highestLevel = cloneBigNum(newState.highestLevel ?? mutationState.highestLevel);
+    if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+        mutationState.highestLevel = cloneBigNum(mutationState.level);
+    }
+    if (!mutationState.unlocked) {
+        mutationState.level = bnZero();
+        mutationState.progress = bnZero();
+    }
+    ensureRequirement();
+    if (!skipPersist) persistState();
+    updateHud();
+    emitChange("load");
 }
 
 function readStateFromStorage(slot) {
-  const targetSlot = slot ?? getActiveSlot();
-  if (targetSlot == null) {
-    applyState({ unlocked: false, level: bnZero(), progress: bnZero(), highestLevel: bnZero() }, { skipPersist: true });
-    mutationState.slot = null;
-    return;
-  }
-  let unlocked = false;
-  let level = bnZero();
-  let progress = bnZero();
-  let highestLevel = bnZero();
-  try { unlocked = localStorage.getItem(KEY_UNLOCK(targetSlot)) === '1'; }
-  catch {}
-  try {
-    const rawLvl = localStorage.getItem(KEY_LEVEL(targetSlot));
-    if (rawLvl) level = BigNum.fromAny(rawLvl);
-  } catch {}
-  try {
-    const rawProg = localStorage.getItem(KEY_PROGRESS(targetSlot));
-    if (rawProg) progress = BigNum.fromAny(rawProg);
-  } catch {}
-  try {
-    const rawHigh = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
-    if (rawHigh) highestLevel = BigNum.fromAny(rawHigh);
-  } catch {}
-  if (level.cmp(highestLevel) > 0) {
-    highestLevel = level.clone?.() ?? level;
-  }
-  mutationState.slot = targetSlot;
-  applyState({ unlocked, level, progress, highestLevel }, { skipPersist: true });
+    const targetSlot = slot ?? getActiveSlot();
+    if (targetSlot == null) {
+        applyState(
+            { unlocked: false, level: bnZero(), progress: bnZero(), highestLevel: bnZero() },
+            { skipPersist: true },
+        );
+        mutationState.slot = null;
+        return;
+    }
+
+    let unlocked = false;
+    let level = bnZero();
+    let progress = bnZero();
+    let highestLevel = bnZero();
+    try {
+        unlocked = localStorage.getItem(KEY_UNLOCK(targetSlot)) === "1";
+    } catch {}
+    try {
+        const rawLvl = localStorage.getItem(KEY_LEVEL(targetSlot));
+        if (rawLvl) level = BigNum.fromAny(rawLvl);
+    } catch {}
+    try {
+        const rawProg = localStorage.getItem(KEY_PROGRESS(targetSlot));
+        if (rawProg) progress = BigNum.fromAny(rawProg);
+    } catch {}
+    try {
+        const rawHigh = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
+        if (rawHigh) highestLevel = BigNum.fromAny(rawHigh);
+    } catch {}
+    if (level.cmp(highestLevel) > 0) {
+        highestLevel = level.clone?.() ?? level;
+    }
+    mutationState.slot = targetSlot;
+    applyState({ unlocked, level, progress, highestLevel }, { skipPersist: true });
 }
 
 function cleanupWatchers() {
-  while (watcherCleanups.length) {
-    const stop = watcherCleanups.pop();
-    try { stop?.(); } catch {}
-  }
+    while (watcherCleanups.length) {
+        const stop = watcherCleanups.pop();
+        try {
+            stop?.();
+        } catch {}
+    }
 }
 
 function bindStorageWatchers(slot) {
-  if (watchersBoundSlot === slot) return;
-  cleanupWatchers();
-  watchersBoundSlot = slot;
-  if (slot == null) return;
-  watcherCleanups.push(watchStorageKey(KEY_UNLOCK(slot), {
-    onChange(value) {
-      const nextUnlocked = value === '1';
-      if (mutationState.unlocked !== nextUnlocked) {
-        mutationState.unlocked = nextUnlocked;
-        if (!nextUnlocked) {
-          mutationState.level = bnZero();
-          mutationState.progress = bnZero();
-        }
-        ensureRequirement();
-        updateHud();
-        emitChange('storage');
-      }
-    },
-  }));
-  watcherCleanups.push(watchStorageKey(KEY_LEVEL(slot), {
-    onChange(value) {
-      if (!value) return;
-      try {
-        const next = BigNum.fromAny(value);
-        if (mutationState.level.cmp?.(next) !== 0) {
-          mutationState.level = next;
-          ensureRequirement();
-          updateHud();
-          emitChange('storage');
-        }
-      } catch {}
-    },
-  }));
-  watcherCleanups.push(watchStorageKey(KEY_PROGRESS(slot), {
-    onChange(value) {
-      if (!value) return;
-      try {
-        const next = BigNum.fromAny(value);
-        if (mutationState.progress.cmp?.(next) !== 0) {
-          mutationState.progress = next;
-          ensureRequirement();
-          updateHud();
-          emitChange('storage');
-        }
-      } catch {}
-    },
-  }));
+    if (watchersBoundSlot === slot) return;
+    cleanupWatchers();
+    watchersBoundSlot = slot;
+    if (slot == null) return;
+    watcherCleanups.push(
+        watchStorageKey(KEY_UNLOCK(slot), {
+            onChange(value) {
+                const nextUnlocked = value === "1";
+                if (mutationState.unlocked !== nextUnlocked) {
+                    mutationState.unlocked = nextUnlocked;
+                    if (!nextUnlocked) {
+                        mutationState.level = bnZero();
+                        mutationState.progress = bnZero();
+                    }
+                    ensureRequirement();
+                    updateHud();
+                    emitChange("storage");
+                }
+            },
+        }),
+    );
+    watcherCleanups.push(
+        watchStorageKey(KEY_LEVEL(slot), {
+            onChange(value) {
+                if (!value) return;
+                try {
+                    const next = BigNum.fromAny(value);
+                    if (mutationState.level.cmp?.(next) !== 0) {
+                        mutationState.level = next;
+                        ensureRequirement();
+                        updateHud();
+                        emitChange("storage");
+                    }
+                } catch {}
+            },
+        }),
+    );
+    watcherCleanups.push(
+        watchStorageKey(KEY_PROGRESS(slot), {
+            onChange(value) {
+                if (!value) return;
+                try {
+                    const next = BigNum.fromAny(value);
+                    if (mutationState.progress.cmp?.(next) !== 0) {
+                        mutationState.progress = next;
+                        ensureRequirement();
+                        updateHud();
+                        emitChange("storage");
+                    }
+                } catch {}
+            },
+        }),
+    );
 }
 
 export function initMutationSystem({ forceReload = false } = {}) {
-  ensureExternalMultiplierProviders();
-  if (initialized) {
-    const activeSlot = getActiveSlot();
-    const slotChanged = activeSlot !== mutationState.slot;
-    if (slotChanged || forceReload) {
-      readStateFromStorage(activeSlot);
+    ensureExternalMultiplierProviders();
+    if (initialized) {
+        const activeSlot = getActiveSlot();
+        const slotChanged = activeSlot !== mutationState.slot;
+        if (slotChanged || forceReload) {
+            readStateFromStorage(activeSlot);
+        }
+        bindStorageWatchers(activeSlot);
+        ensureHudRefs();
+        updateHud();
+        return getMutationState();
     }
-    bindStorageWatchers(activeSlot);
+    initialized = true;
     ensureHudRefs();
+    const slot = getActiveSlot();
+    mutationState.slot = slot;
+    readStateFromStorage(slot);
+    bindStorageWatchers(slot);
     updateHud();
+    if (typeof window !== "undefined") {
+        window.addEventListener("saveSlot:change", () => {
+            const nextSlot = getActiveSlot();
+            mutationState.slot = nextSlot;
+            readStateFromStorage(nextSlot);
+            bindStorageWatchers(nextSlot);
+            updateHud();
+            emitChange("slot");
+        });
+    }
     return getMutationState();
-  }
-  initialized = true;
-  ensureHudRefs();
-  const slot = getActiveSlot();
-  mutationState.slot = slot;
-  readStateFromStorage(slot);
-  bindStorageWatchers(slot);
-  updateHud();
-  if (typeof window !== 'undefined') {
-    window.addEventListener('saveSlot:change', () => {
-      const nextSlot = getActiveSlot();
-      mutationState.slot = nextSlot;
-      readStateFromStorage(nextSlot);
-      bindStorageWatchers(nextSlot);
-      updateHud();
-      emitChange('slot');
-    });
-  }
-  return getMutationState();
 }
 
 export function getMutationProgressRatio() {
-  return progressRatio(mutationState.progress, mutationState.requirement);
+    return progressRatio(mutationState.progress, mutationState.requirement);
 }
 
 export function getMutationState() {
-  const slot = mutationState.slot ?? getActiveSlot();
-  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
-
-  if (!levelLocked && mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0 && !mutationState.level.isInfinite?.()) {
-    mutationState.level = BigNum.fromAny('Infinity');
-  }
-  enforceMutationInfinityInvariant();
-  return {
-    unlocked: mutationState.unlocked,
-    level: cloneBigNum(mutationState.level),
-    progress: cloneBigNum(mutationState.progress),
-    requirement: cloneBigNum(mutationState.requirement),
-  };
+    const slot = mutationState.slot ?? getActiveSlot();
+    const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+    if (
+        !levelLocked &&
+        mutationState.level &&
+        typeof mutationState.level.cmp === "function" &&
+        mutationState.level.cmp(4500000000000) >= 0 &&
+        !mutationState.level.isInfinite?.()
+    ) {
+        mutationState.level = BigNum.fromAny("Infinity");
+    }
+    enforceMutationInfinityInvariant();
+    return {
+        unlocked: mutationState.unlocked,
+        level: cloneBigNum(mutationState.level),
+        progress: cloneBigNum(mutationState.progress),
+        requirement: cloneBigNum(mutationState.requirement),
+    };
 }
 
 export function isMutationUnlocked() {
-  return !!mutationState.unlocked;
+    return !!mutationState.unlocked;
 }
 
 export function unlockMutationSystem() {
-  initMutationSystem();
-  if (mutationState.unlocked) return false;
-  mutationState.unlocked = true;
-  ensureRequirement();
-  persistState();
-  updateHud();
-  emitChange('unlock');
-  return true;
+    initMutationSystem();
+    if (mutationState.unlocked) return false;
+    mutationState.unlocked = true;
+    ensureRequirement();
+    persistState();
+    updateHud();
+    emitChange("unlock");
+    return true;
 }
 
 export function setMutationUnlockedForDebug(unlocked) {
-  initMutationSystem();
-  const nextUnlocked = !!unlocked;
-  applyState({
-    unlocked: nextUnlocked,
-    level: nextUnlocked ? mutationState.level : bnZero(),
-    progress: nextUnlocked ? mutationState.progress : bnZero(),
-  });
+    initMutationSystem();
+    const nextUnlocked = !!unlocked;
+    applyState({
+        unlocked: nextUnlocked,
+        level: nextUnlocked ? mutationState.level : bnZero(),
+        progress: nextUnlocked ? mutationState.progress : bnZero(),
+    });
 }
 
 export function addMutationPower(amount) {
-  initMutationSystem();
-  const slot = mutationState.slot ?? getActiveSlot();
+    initMutationSystem();
+    const slot = mutationState.slot ?? getActiveSlot();
+    // If Progress is locked, we cannot accumulate MP without causing lag/reverts.
+    if (slot != null && isKeyLocked(KEY_PROGRESS(slot))) {
+        return getMutationState();
+    }
+    if (!mutationState.unlocked) return getMutationState();
+    const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+    const wasLevelInf = !!mutationState.level?.isInfinite?.();
+    const wasProgInf = !!mutationState.progress?.isInfinite?.();
+    if (wasLevelInf && wasProgInf) {
+        let inc;
+        try {
+            if (amount instanceof BigNum) {
+                inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
+            } else {
+                inc = BigNum.fromAny(amount ?? 0);
+            }
+        } catch {
+            inc = bnZero();
+        }
+        inc = applyMutationMultipliers(inc);
+        inc = applyStatMultiplierOverride("mutation", inc);
+        if (!inc.isZero?.()) {
+            try {
+                window.dispatchEvent(
+                    new CustomEvent("stat:change", {
+                        detail: { key: "mp", delta: inc, progress: mutationState.progress },
+                    }),
+                );
+            } catch {}
+        }
 
-  // If Progress is locked, we cannot accumulate MP without causing lag/reverts.
-  if (slot != null && isKeyLocked(KEY_PROGRESS(slot))) {
-    return getMutationState();
-  }
+        const detail = {
+            delta: inc,
+            levelsGained: bnZero(),
+            level: mutationState.level.clone?.() ?? mutationState.level,
+            progress: mutationState.progress.clone?.() ?? mutationState.progress,
+            requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
+            previousLevel: mutationState.level.clone?.() ?? mutationState.level,
+            previousProgress: mutationState.progress.clone?.() ?? mutationState.progress,
+        };
+        if (typeof window !== "undefined") {
+            try {
+                window.dispatchEvent(new CustomEvent("mutation:change", { detail }));
+                window.dispatchEvent(
+                    new CustomEvent("level:change", {
+                        detail: {
+                            prefix: "mp",
+                            level: detail.level,
+                            progress: detail.progress,
+                            requirement: detail.requirement,
+                            isUnlocked: detail.unlocked ?? true,
+                            ratio: getMutationProgressRatio(),
+                        },
+                    }),
+                );
+            } catch {}
+        }
+        return detail;
+    }
 
-  if (!mutationState.unlocked) return getMutationState();
-
-  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
-
-  const wasLevelInf = !!mutationState.level?.isInfinite?.();
-  const wasProgInf = !!mutationState.progress?.isInfinite?.();
-
-  if (wasLevelInf && wasProgInf) {
     let inc;
     try {
-      if (amount instanceof BigNum) {
-        inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
-      } else {
-        inc = BigNum.fromAny(amount ?? 0);
-      }
+        inc = amount instanceof BN ? amount : BigNum.fromAny(amount ?? 0);
     } catch {
-      inc = bnZero();
+        inc = bnZero();
     }
-    
     inc = applyMutationMultipliers(inc);
-    inc = applyStatMultiplierOverride('mutation', inc);
-
-    if (!inc.isZero?.()) {
-      try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'mp', delta: inc, progress: mutationState.progress } })); } catch {}
+    inc = applyStatMultiplierOverride("mutation", inc);
+    if (inc.isZero?.()) return getMutationState();
+    const incClone = inc.clone?.() ?? inc;
+    const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
+    const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
+    // Add MP
+    mutationState.progress = mutationState.progress.add(incClone);
+    // If MP overflows to BigNum Infinity, treat that as reaching mutation Infinity.
+    const levelIsInf = !!mutationState.level?.isInfinite?.();
+    const progInf = !!mutationState.progress?.isInfinite?.();
+    const justBecameInf = (levelIsInf && !wasLevelInf) || (progInf && !wasProgInf);
+    if (justBecameInf) {
+        enforceMutationInfinityInvariant();
+        if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+            mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
+        }
+    } else {
+        // Normal levelling logic (now friendly to ∞ requirements)
+        normalizeProgress();
+    }
+    if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+        mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
+    }
+    persistState();
+    updateHud();
+    const levelsGained = mutationState.level.sub(prevLevel);
+    if (!levelsGained.isZero?.()) {
+        if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+            mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
+        }
     }
 
-    const detail = {
-      delta: inc,
-      levelsGained: bnZero(),
-      level: mutationState.level.clone?.() ?? mutationState.level,
-      progress: mutationState.progress.clone?.() ?? mutationState.progress,
-      requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
-      previousLevel: mutationState.level.clone?.() ?? mutationState.level,
-      previousProgress: mutationState.progress.clone?.() ?? mutationState.progress,
-    };
-    if (typeof window !== 'undefined') {
-      try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'mp', level: detail.level, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked ?? true, ratio: getMutationProgressRatio() } })); } catch {}
-    }
+    const detail = emitChange("progress", {
+        delta: incClone.clone?.() ?? incClone,
+        levelsGained: levelsGained.clone?.() ?? levelsGained,
+        level: mutationState.level.clone?.() ?? mutationState.level,
+        progress: mutationState.progress.clone?.() ?? mutationState.progress,
+        requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
+        previousLevel: prevLevel.clone?.() ?? prevLevel,
+        previousProgress: prevProgress.clone?.() ?? prevProgress,
+    });
     return detail;
-  }
-
-  let inc;
-  try {
-    inc = amount instanceof BN ? amount : BigNum.fromAny(amount ?? 0);
-  } catch {
-    inc = bnZero();
-  }
-
-  inc = applyMutationMultipliers(inc);
-  inc = applyStatMultiplierOverride('mutation', inc);
-
-  if (inc.isZero?.()) return getMutationState();
-
-  const incClone = inc.clone?.() ?? inc;
-  const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
-  const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
-
-  // Add MP
-  mutationState.progress = mutationState.progress.add(incClone);
-
-  // If MP overflows to BigNum Infinity, treat that as reaching mutation Infinity.
-  const levelIsInf = !!mutationState.level?.isInfinite?.();
-  const progInf = !!mutationState.progress?.isInfinite?.();
-  
-  const justBecameInf = (levelIsInf && !wasLevelInf) || (progInf && !wasProgInf);
-  
-  if (justBecameInf) {
-    enforceMutationInfinityInvariant();
-    if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
-      mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
-    }
-  } else {
-    // Normal levelling logic (now friendly to ∞ requirements)
-    normalizeProgress();
-  }
-
-  if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
-    mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
-  }
-
-  persistState();
-  updateHud();
-
-  const levelsGained = mutationState.level.sub(prevLevel);
-  if (!levelsGained.isZero?.()) {
-    if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
-      mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
-    }
-  }
-
-  const detail = emitChange('progress', {
-    delta: incClone.clone?.() ?? incClone,
-    levelsGained: levelsGained.clone?.() ?? levelsGained,
-    level: mutationState.level.clone?.() ?? mutationState.level,
-    progress: mutationState.progress.clone?.() ?? mutationState.progress,
-    requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
-    previousLevel: prevLevel.clone?.() ?? prevLevel,
-    previousProgress: prevProgress.clone?.() ?? prevProgress,
-  });
-
-  return detail;
 }
 
 export function broadcastMutationChange(detailOverrides = {}) {
-  initMutationSystem();
-  const reason = detailOverrides.changeType ?? 'manual';
-  return emitChange(reason, detailOverrides);
+    initMutationSystem();
+    const reason = detailOverrides.changeType ?? "manual";
+    return emitChange(reason, detailOverrides);
 }
 
 export function computeMutationMultiplierForLevel(levelValue) {
-  let levelBn;
-  if (levelValue instanceof BN) {
-    try { levelBn = levelValue.clone?.() ?? levelValue; }
-    catch { levelBn = bnZero(); }
-  } else {
-    try { levelBn = BigNum.fromAny(levelValue ?? 0); }
-    catch { levelBn = bnZero(); }
-  }
+    let levelBn;
+    if (levelValue instanceof BN) {
+        try {
+            levelBn = levelValue.clone?.() ?? levelValue;
+        } catch {
+            levelBn = bnZero();
+        }
+    } else {
+        try {
+            levelBn = BigNum.fromAny(levelValue ?? 0);
+        } catch {
+            levelBn = bnZero();
+        }
+    }
+    // If the stored mutation itself is infinite, every multiplier that
+    // depends on it becomes infinite as well.
+    if (levelBn && levelBn.isInfinite?.()) {
+        try {
+            return BigNum.fromAny("Infinity");
+        } catch {
+            return bnOne();
+        }
+    }
 
-  // If the stored mutation itself is infinite, every multiplier that
-  // depends on it becomes infinite as well.
-  if (levelBn && levelBn.isInfinite?.()) {
-    try { return BigNum.fromAny('Infinity'); }
-    catch { return bnOne(); }
-  }
-
-  const levelNum = levelToNumber(levelBn);
-
-  // If levelToNumber can't represent this cleanly (NaN / Infinity), also
-  // treat that as infinite multiplier.
-  if (!Number.isFinite(levelNum)) {
-    try { return BigNum.fromAny('Infinity'); }
-    catch { return bnOne(); }
-  }
-
-  if (levelNum <= 0) return bnOne();
-
-  const log10 = levelNum * MP_LOG10_BASE;
-  return bigNumFromLog10(log10);
+    const levelNum = levelToNumber(levelBn);
+    // If levelToNumber can't represent this cleanly (NaN / Infinity), also
+    // treat that as infinite multiplier.
+    if (!Number.isFinite(levelNum)) {
+        try {
+            return BigNum.fromAny("Infinity");
+        } catch {
+            return bnOne();
+        }
+    }
+    if (levelNum <= 0) return bnOne();
+    const log10 = levelNum * MP_LOG10_BASE;
+    return bigNumFromLog10(log10);
 }
 
 export function computeMutationRequirementForLevel(levelValue) {
-  let levelBn;
-  try { levelBn = levelValue instanceof BN ? levelValue : BigNum.fromAny(levelValue ?? 0); }
-  catch { levelBn = bnZero(); }
-  try { return computeRequirement(levelBn); }
-  catch { return bnZero(); }
+    let levelBn;
+    try {
+        levelBn = levelValue instanceof BN ? levelValue : BigNum.fromAny(levelValue ?? 0);
+    } catch {
+        levelBn = bnZero();
+    }
+    try {
+        return computeRequirement(levelBn);
+    } catch {
+        return bnZero();
+    }
 }
 
 export function getMutationMultiplier() {
-  initMutationSystem();
-  if (!mutationState.unlocked) return bnOne();
-  try { return computeMutationMultiplierForLevel(mutationState.level); }
-  catch { return bnOne(); }
+    initMutationSystem();
+    if (!mutationState.unlocked) return bnOne();
+    try {
+        return computeMutationMultiplierForLevel(mutationState.level);
+    } catch {
+        return bnOne();
+    }
 }
 
 export function getMutationGainMultiplier() {
-  let mult = BigNum.fromInt(1);
-  if (mutationGainMultiplierProviders.size > 0 || externalMutationGainMultiplierProvider) {
-    const providers = mutationGainMultiplierProviders.size > 0
-      ? Array.from(mutationGainMultiplierProviders)
-      : (typeof externalMutationGainMultiplierProvider === 'function' ? [externalMutationGainMultiplierProvider] : []);
-    for (const provider of providers) {
-      if (typeof provider !== 'function') continue;
-      try {
-        const maybe = provider({
-          baseGain: mult.clone?.() ?? mult,
-          mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
-          mutationUnlocked: mutationState.unlocked,
-        });
-        if (maybe instanceof BN) {
-          mult = maybe.clone?.() ?? maybe;
-        } else if (maybe != null) {
-          mult = BigNum.fromAny(maybe);
+    let mult = BigNum.fromInt(1);
+    if (mutationGainMultiplierProviders.size > 0 || externalMutationGainMultiplierProvider) {
+        const providers =
+            mutationGainMultiplierProviders.size > 0
+                ? Array.from(mutationGainMultiplierProviders)
+                : typeof externalMutationGainMultiplierProvider === "function"
+                  ? [externalMutationGainMultiplierProvider]
+                  : [];
+        for (const provider of providers) {
+            if (typeof provider !== "function") continue;
+            try {
+                const maybe = provider({
+                    baseGain: mult.clone?.() ?? mult,
+                    mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
+                    mutationUnlocked: mutationState.unlocked,
+                });
+                if (maybe instanceof BN) {
+                    mult = maybe.clone?.() ?? maybe;
+                } else if (maybe != null) {
+                    mult = BigNum.fromAny(maybe);
+                }
+            } catch {}
         }
-      } catch {}
     }
-  }
-  return mult;
+    return mult;
 }
-
 
 let cachedHighestLevelRef = null;
 let cachedHighestVisual = 0;
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('saveSlot:change', () => {
-    cachedHighestLevelRef = null;
-    cachedHighestVisual = 0;
-  });
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => {
+        cachedHighestLevelRef = null;
+        cachedHighestVisual = 0;
+    });
 }
 
 export function getRandomMutationCoinId() {
-  const hLevel = getHighestMutationLevel();
-  if (hLevel !== cachedHighestLevelRef) {
-    cachedHighestLevelRef = hLevel;
-    let highest = 0;
-    try {
-      if (hLevel) {
-        const levelNum = levelToNumber(hLevel);
-        if (!Number.isFinite(levelNum)) {
-          highest = MAX_MUTATION_VISUAL;
-        } else {
-          highest = Math.floor(levelNum);
-        }
-      }
-    } catch (e) {}
-    cachedHighestVisual = Math.min(highest, MAX_MUTATION_VISUAL);
-  }
-  
-  return Math.floor(Math.random() * (cachedHighestVisual + 1));
+    const hLevel = getHighestMutationLevel();
+    if (hLevel !== cachedHighestLevelRef) {
+        cachedHighestLevelRef = hLevel;
+        let highest = 0;
+        try {
+            if (hLevel) {
+                const levelNum = levelToNumber(hLevel);
+                if (!Number.isFinite(levelNum)) {
+                    highest = MAX_MUTATION_VISUAL;
+                } else {
+                    highest = Math.floor(levelNum);
+                }
+            }
+        } catch (e) {}
+        cachedHighestVisual = Math.min(highest, MAX_MUTATION_VISUAL);
+    }
+    return Math.floor(Math.random() * (cachedHighestVisual + 1));
 }
 
 export function getRandomMutationCoinSprite() {
-  const randIdx = getRandomMutationCoinId();
-  if (randIdx === 0) return 'img/currencies/coin/coin.webp';
-  return `img/mutations/m${randIdx}.webp`;
+    const randIdx = getRandomMutationCoinId();
+    if (randIdx === 0) return "img/currencies/coin/coin.webp";
+    return `img/mutations/m${randIdx}.webp`;
 }
 
 export function getMutationCoinSprite() {
-  const visualSetting = settingsManager.get('coin_mutation_visual');
-
-  if (visualSetting !== 'Default') {
-    if (visualSetting === 'Random') {
-      return 'RANDOM';
+    const visualSetting = settingsManager.get("coin_mutation_visual");
+    if (visualSetting !== "Default") {
+        if (visualSetting === "Random") {
+            return "RANDOM";
+        }
+        // Exact option like "M5", "M20" etc.
+        if (visualSetting && visualSetting.startsWith("M")) {
+            const num = parseInt(visualSetting.substring(1), 10);
+            if (!isNaN(num)) {
+                if (num === 0) return "img/currencies/coin/coin.webp";
+                return `img/mutations/m${num}.webp`;
+            }
+        }
     }
-    
-    // Exact option like "M5", "M20" etc.
-    if (visualSetting && visualSetting.startsWith('M')) {
-      const num = parseInt(visualSetting.substring(1), 10);
-      if (!isNaN(num)) {
-        if (num === 0) return 'img/currencies/coin/coin.webp';
-        return `img/mutations/m${num}.webp`;
-      }
+    if (!mutationState.unlocked || mutationState.level.isZero?.()) {
+        return "img/currencies/coin/coin.webp";
     }
-  }
 
-  if (!mutationState.unlocked || mutationState.level.isZero?.()) {
-    return 'img/currencies/coin/coin.webp';
-  }
+    const levelNum = levelToNumber(mutationState.level);
+    if (!Number.isFinite(levelNum)) {
+        return `img/mutations/m${MAX_MUTATION_VISUAL}.webp`;
+    }
 
-  const levelNum = levelToNumber(mutationState.level);
-  if (!Number.isFinite(levelNum)) {
-    return `img/mutations/m${MAX_MUTATION_VISUAL}.webp`;
-  }
-  const idx = Math.max(1, Math.min(MAX_MUTATION_VISUAL, Math.floor(levelNum)));
-
-  return `img/mutations/m${idx}.webp`;
+    const idx = Math.max(1, Math.min(MAX_MUTATION_VISUAL, Math.floor(levelNum)));
+    return `img/mutations/m${idx}.webp`;
 }
 
 export function onMutationChange(callback) {
-  if (typeof callback !== 'function') return () => {};
-  listeners.add(callback);
-  return () => { listeners.delete(callback); };
+    if (typeof callback !== "function") return () => {};
+    listeners.add(callback);
+    return () => {
+        listeners.delete(callback);
+    };
 }
 
 export function addExternalMutationGainMultiplierProvider(fn) {
-  if (typeof fn !== 'function') return () => {};
-  mutationGainMultiplierProviders.add(fn);
-  return () => {
-    mutationGainMultiplierProviders.delete(fn);
-  };
+    if (typeof fn !== "function") return () => {};
+    mutationGainMultiplierProviders.add(fn);
+    return () => {
+        mutationGainMultiplierProviders.delete(fn);
+    };
 }
-
-if (typeof window !== 'undefined') {
-  window.mutationSystem = window.mutationSystem || {};
-  Object.assign(window.mutationSystem, {
-    initMutationSystem,
-    unlockMutationSystem,
-    addMutationPower,
-    getMutationState,
-    getMutationMultiplier,
-    isMutationUnlocked,
-    getTotalCumulativeMp,
-    addExternalMutationGainMultiplierProvider,
-    getMutationGainMultiplier,
-  });
+if (typeof window !== "undefined") {
+    window.mutationSystem = window.mutationSystem || {};
+    Object.assign(window.mutationSystem, {
+        initMutationSystem,
+        unlockMutationSystem,
+        addMutationPower,
+        getMutationState,
+        getMutationMultiplier,
+        isMutationUnlocked,
+        getTotalCumulativeMp,
+        addExternalMutationGainMultiplierProvider,
+        getMutationGainMultiplier,
+    });
 }
 
 export function getTotalCumulativeMp() {
-  initMutationSystem();
-  if (!mutationState.unlocked) return bnZero();
-  
-  if (mutationState.level.isInfinite?.() || mutationState.progress.isInfinite?.()) {
-    return BigNum.fromAny('Infinity');
-  }
-
-  const currentLvlNum = levelToNumber(mutationState.level);
-  
-  // If Mutation is > 100, do NOT sum previous tiers. Just use current progress.
-  // This is a safety cap to prevent freezing or imbalance for hacked/super-high levels.
-  if (Number.isFinite(currentLvlNum) && currentLvlNum > 100) {
-    return mutationState.progress.clone?.() ?? mutationState.progress;
-  }
-
-  let total = mutationState.progress.clone?.() ?? mutationState.progress;
-  
-  if (Number.isFinite(currentLvlNum)) {
-    // Normal summing up to the cap
-    const limit = currentLvlNum; 
-    for (let i = 0; i < limit; i++) {
-      const req = computeRequirement(BigNum.fromInt(i));
-      if (req.isInfinite?.()) {
-        return BigNum.fromAny('Infinity');
-      }
-      total = total.add(req);
+    initMutationSystem();
+    if (!mutationState.unlocked) return bnZero();
+    if (mutationState.level.isInfinite?.() || mutationState.progress.isInfinite?.()) {
+        return BigNum.fromAny("Infinity");
     }
-  }
 
-  return total;
+    const currentLvlNum = levelToNumber(mutationState.level);
+    // If Mutation is > 100, do NOT sum previous tiers. Just use current progress.
+    // This is a safety cap to prevent freezing or imbalance for hacked/super-high levels.
+    if (Number.isFinite(currentLvlNum) && currentLvlNum > 100) {
+        return mutationState.progress.clone?.() ?? mutationState.progress;
+    }
+
+    let total = mutationState.progress.clone?.() ?? mutationState.progress;
+    if (Number.isFinite(currentLvlNum)) {
+        // Normal summing up to the cap
+        const limit = currentLvlNum;
+        for (let i = 0; i < limit; i++) {
+            const req = computeRequirement(BigNum.fromInt(i));
+            if (req.isInfinite?.()) {
+                return BigNum.fromAny("Infinity");
+            }
+            total = total.add(req);
+        }
+    }
+    return total;
 }
 
 export function getHighestMutationLevel() {
-  return mutationState.highestLevel;
+    return mutationState.highestLevel;
 }
-
-if (typeof window !== 'undefined') {
-  window.mpSystem = window.mpSystem || {};
-  Object.assign(window.mpSystem, {
-    getMpMultiplier: getMutationGainMultiplier
-  });
+if (typeof window !== "undefined") {
+    window.mpSystem = window.mpSystem || {};
+    Object.assign(window.mpSystem, {
+        getMpMultiplier: getMutationGainMultiplier,
+    });
 }
