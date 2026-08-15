@@ -1661,11 +1661,11 @@ function openValcDialog(model) {
       if (effectiveTarget >= cap) {
           costAtStr = 'None (Maxed)';
       } else {
-          costAtStr = `${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
+          costAtStr = `${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
       }
       
       costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
-      costToDisplay.innerHTML = `Cost to level ${targetStr}: ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
+      costToDisplay.innerHTML = `Cost to level ${targetStr}: ${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
   };
   
   const formatOnBlur = (inputEl) => {
