@@ -1440,7 +1440,7 @@ function formatBigNumForInput(value) {
     }
 }
 
-function parseBigNumInput(raw) {
+export function parseBigNumInput(raw) {
     let trimmed = String(raw ?? '').trim();
     if (!trimmed) return BigNum.fromInt(0);
 
