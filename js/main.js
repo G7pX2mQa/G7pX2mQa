@@ -70,11 +70,6 @@ HTMLCanvasElement.prototype.getContext = function (contextType, contextAttribute
     return originalGetContext.call(this, contextType, contextAttributes);
 };
 
-const originalSetItem = localStorage.setItem.bind(localStorage);
-const originalRemoveItem = localStorage.removeItem.bind(localStorage);
-window.originalRemoveItem = originalRemoveItem;
-const originalGetItem = localStorage.getItem.bind(localStorage);
-
 export let activeStorageKeys = null;
 let localStorageBuffer = null;
 const REMOVED_SYMBOL = Symbol("REMOVED");
@@ -105,9 +100,9 @@ export function flushLocalStorageBuffer() {
         window.__isFlushing = true;
         entries.forEach(([key, value]) => {
             if (value === REMOVED_SYMBOL) {
-                originalRemoveItem(key);
+                Storage.prototype.removeItem.call(localStorage, key);
             } else {
-                originalSetItem(key, value);
+                Storage.prototype.setItem.call(localStorage, key, value);
             }
         });
         window.__isFlushing = false;
@@ -124,14 +119,21 @@ if (typeof window !== "undefined") {
     });
 }
 
-localStorage.getItem = function (key) {
+export function lsGetItem(key) {
     ensureStorageInitialized();
+    if (IS_MOBILE) return Storage.prototype.getItem.call(localStorage, key);
     if (localStorageBuffer.has(key)) {
         const val = localStorageBuffer.get(key);
         return val === REMOVED_SYMBOL ? null : val;
     }
-    return originalGetItem(key);
-};
+    return Storage.prototype.getItem.call(localStorage, key);
+}
+
+if (!IS_MOBILE) {
+    localStorage.getItem = function (key) {
+        return lsGetItem(key);
+    };
+}
 
 export let _debugIsStorageKeyLocked = null;
 export function setDebugStorageLockChecker(fn) {
@@ -145,6 +147,14 @@ export function lsSetItem(key, value) {
 
 export function lsSetItemForce(key, value) {
     ensureStorageInitialized();
+    if (IS_MOBILE) {
+        let finalValue = String(value);
+        Storage.prototype.setItem.call(localStorage, key, finalValue);
+        try {
+            window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
+        } catch {}
+        return;
+    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
@@ -163,6 +173,13 @@ export function lsRemoveItem(key) {
 
 export function lsRemoveItemForce(key) {
     ensureStorageInitialized();
+    if (IS_MOBILE) {
+        Storage.prototype.removeItem.call(localStorage, key);
+        try {
+            window.dispatchEvent(new CustomEvent("saveIntegrity:slotRemove", { detail: { key } }));
+        } catch {}
+        return;
+    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
@@ -173,40 +190,42 @@ export function lsRemoveItemForce(key) {
     } catch {}
 }
 
-localStorage.setItem = function (key, value) {
-    const strKey = String(key);
-    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-        const slotMatch = strKey.match(/:(\d+)$/);
-        if (slotMatch) {
-            const slot = parseInt(slotMatch[1], 10);
-            if (Number.isFinite(slot) && slot > 0) {
-                if (strKey === `ccc:slotMod:${slot}`) {
-                    value = "1";
-                } else {
-                    markSaveSlotModified(slot);
+if (!IS_MOBILE) {
+    localStorage.setItem = function (key, value) {
+        const strKey = String(key);
+        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+            const slotMatch = strKey.match(/:(\d+)$/);
+            if (slotMatch) {
+                const slot = parseInt(slotMatch[1], 10);
+                if (Number.isFinite(slot) && slot > 0) {
+                    if (strKey === `ccc:slotMod:${slot}`) {
+                        value = "1";
+                    } else {
+                        markSaveSlotModified(slot);
+                    }
                 }
             }
         }
-    }
-    originalSetItem(key, String(value));
-};
+        Storage.prototype.setItem.call(localStorage, key, String(value));
+    };
 
-localStorage.removeItem = function (key) {
-    const strKey = String(key);
-    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-        const slotMatch = strKey.match(/:(\d+)$/);
-        if (slotMatch) {
-            const slot = parseInt(slotMatch[1], 10);
-            if (Number.isFinite(slot) && slot > 0) {
-                markSaveSlotModified(slot);
-                if (strKey === `ccc:slotMod:${slot}`) {
-                    return;
+    localStorage.removeItem = function (key) {
+        const strKey = String(key);
+        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+            const slotMatch = strKey.match(/:(\d+)$/);
+            if (slotMatch) {
+                const slot = parseInt(slotMatch[1], 10);
+                if (Number.isFinite(slot) && slot > 0) {
+                    markSaveSlotModified(slot);
+                    if (strKey === `ccc:slotMod:${slot}`) {
+                        return;
+                    }
                 }
             }
         }
-    }
-    originalRemoveItem(key);
-};
+        Storage.prototype.removeItem.call(localStorage, key);
+    };
+}
 
 if (IS_MOBILE) {
     document.documentElement.classList.add("is-mobile");
