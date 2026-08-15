@@ -50,6 +50,7 @@ import {
 import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
 import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
 import { setHtmlOrText } from '../util/uiHelpers.js';
+import { parseBigNumInput } from '../util/debugPanel.js';
 import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 // --- Shared State ---
@@ -1442,6 +1443,322 @@ function closeUpgradeMenu() {
   upgOverlayEl.style.pointerEvents = 'none';
 }
 
+function openValcDialog(model) {
+  const existing = document.querySelector('.hm-valc-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'hm-milestones-overlay hm-valc-overlay';
+  overlay.setAttribute('role', 'dialog');
+  const dialog = document.createElement('div');
+  dialog.className = 'hm-milestones-dialog hm-valc-dialog';
+  dialog.style.border = '1px solid rgba(230, 190, 50, 0.75)';
+  
+  const title = document.createElement('h3');
+  title.className = 'hm-milestones-title';
+  title.textContent = 'View Arbitrary Level Cost';
+  title.style.whiteSpace = 'nowrap';
+  title.style.color = 'rgb(245, 230, 160)';
+  
+  const content = document.createElement('div');
+  content.className = 'valc-content';
+  content.style.marginTop = '1rem';
+  content.style.marginBottom = '1rem';
+  
+  const toggleRow = document.createElement('div');
+  toggleRow.style.display = 'flex';
+  toggleRow.style.alignItems = 'center';
+  toggleRow.style.justifyContent = 'center';
+  toggleRow.style.gap = '0.5rem';
+  toggleRow.style.marginBottom = '1rem';
+  
+  const targetModeCheck = document.createElement('input');
+  targetModeCheck.type = 'checkbox';
+  targetModeCheck.id = 'valc-target-mode';
+  targetModeCheck.style.cursor = 'pointer';
+  
+  const targetModeLabel = document.createElement('label');
+  targetModeLabel.htmlFor = 'valc-target-mode';
+  targetModeLabel.textContent = 'Target mode';
+  targetModeLabel.style.cursor = 'pointer';
+  
+  toggleRow.append(targetModeCheck, targetModeLabel);
+  
+  const inputsContainer = document.createElement('div');
+  inputsContainer.style.display = 'flex';
+  inputsContainer.style.flexDirection = 'column';
+  inputsContainer.style.gap = '0.5rem';
+  inputsContainer.style.marginBottom = '1rem';
+  inputsContainer.style.alignItems = 'center';
+  
+  const createInputRow = (labelText) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '0.5rem';
+      
+      const label = document.createElement('label');
+      label.textContent = labelText;
+      label.style.width = '100px';
+      label.style.textAlign = 'right';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.style.background = 'rgba(0,0,0,0.4)';
+      input.style.border = '1px solid rgba(255,255,255,0.2)';
+      input.style.color = 'white';
+      input.style.padding = '4px 8px';
+      input.style.borderRadius = '4px';
+      input.style.fontFamily = 'inherit';
+      input.style.fontSize = '1.1em';
+      input.style.width = '100px';
+      input.style.textAlign = 'center';
+      input.style.outline = 'none';
+      input.style.transition = 'border-color 0.2s';
+      input.addEventListener('focus', () => {
+          if (input.style.borderColor !== 'rgb(255, 68, 68)' && input.style.borderColor !== '#ff4444') {
+              input.style.borderColor = 'rgba(230, 190, 50, 0.75)';
+          }
+      });
+      
+      row.append(label, input);
+      return { row, label, input };
+  };
+  
+  const startRowObj = createInputRow('Starting Level:');
+  const targetRowObj = createInputRow('Target Level:');
+  
+  const { row: startRow, input: startInput } = startRowObj;
+  const { row: targetRow, label: targetLabel, input: targetInput } = targetRowObj;
+  
+  startInput.value = formatNumber(BigNum.fromAny(model.lvl));
+  targetInput.value = formatNumber(BigNum.fromAny(model.lvl));
+  
+  const cap = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
+  const capLabel = document.createElement('span');
+  capLabel.textContent = cap === Infinity ? '' : ` / ${formatNumber(BigNum.fromAny(cap))}`;
+  capLabel.style.opacity = '0.7';
+  targetRow.append(capLabel);
+  
+  inputsContainer.append(startRow, targetRow);
+  content.append(toggleRow, inputsContainer);
+  
+  const costAtDisplay = document.createElement('div');
+  costAtDisplay.style.marginBottom = '0.5rem';
+  
+  const costToDisplay = document.createElement('div');
+  costToDisplay.style.marginBottom = '1rem';
+  
+  const parseLevel = (val) => {
+      const v = String(val).trim().replace(/,/g, '');
+      if (!v) return 0;
+      const parsedBn = parseBigNumInput(v);
+      if (!parsedBn || parsedBn.isNaN?.()) return -1;
+      let num = Math.floor(parsedBn.toNumber?.() ?? Number(parsedBn));
+      if (isNaN(num)) {
+          if (parsedBn.isInfinite?.() || num === Infinity) num = cap === Infinity ? Infinity : cap;
+          else return -1;
+      }
+      num = Math.max(0, num);
+      if (cap !== Infinity && num > cap) num = cap;
+      return num;
+  };
+  
+  const getRetroactiveCostAt = (level) => {
+      if (model.upg.upgType !== 'HM' || !model.hmEvolutions) {
+          try { return BigNum.fromAny(model.upg.costAtLevel(level)); } catch { return BigNum.fromInt(0); }
+      }
+      
+      const origEvol = model.upg.activeEvolutions;
+      const origScaling = model.upg.scaling;
+      try {
+          model.upg.activeEvolutions = Math.floor(level / 1000);
+          delete model.upg.scaling;
+          return BigNum.fromAny(model.upg.costAtLevel(level));
+      } catch {
+          return BigNum.fromInt(0);
+      } finally {
+          model.upg.activeEvolutions = origEvol;
+          model.upg.scaling = origScaling;
+      }
+  };
+  
+  const getRetroactiveCost = (start, end) => {
+      if (model.upg.upgType !== 'HM' || !model.hmEvolutions) {
+          return evaluateBulkPurchase(model.upg, BigNum.fromInt(start), BigNum.fromAny('Infinity'), BigNum.fromInt(end - start)).spent;
+      }
+      
+      const origEvol = model.upg.activeEvolutions;
+      const origScaling = model.upg.scaling;
+      
+      let totalSpent = BigNum.fromInt(0);
+      let currentStart = start;
+      
+      try {
+          while (currentStart < end) {
+              const currentEvol = Math.floor(currentStart / 1000);
+              const nextBoundary = (currentEvol + 1) * 1000;
+              const currentEnd = Math.min(end, nextBoundary);
+              
+              model.upg.activeEvolutions = currentEvol;
+              delete model.upg.scaling;
+              
+              const { spent } = evaluateBulkPurchase(model.upg, BigNum.fromInt(currentStart), BigNum.fromAny('Infinity'), BigNum.fromInt(currentEnd - currentStart));
+              totalSpent = totalSpent.add(spent);
+              
+              currentStart = currentEnd;
+          }
+      } finally {
+          model.upg.activeEvolutions = origEvol;
+          model.upg.scaling = origScaling;
+      }
+      return totalSpent;
+  };
+  
+  let isFirstEditInTargetMode = false;
+  
+  const updateDisplays = () => {
+      const isTargetMode = targetModeCheck.checked;
+      startRow.style.display = isTargetMode ? 'flex' : 'none';
+      targetLabel.textContent = isTargetMode ? 'Target Level:' : 'Level:';
+      costToDisplay.style.display = isTargetMode ? 'block' : 'none';
+      
+      let startLvl = parseLevel(startInput.value);
+      let targetLvl = parseLevel(targetInput.value);
+      
+      const isStartInvalid = startLvl === -1;
+      const isTargetInvalid = targetLvl === -1;
+      
+      if (isTargetMode && (isTargetInvalid || isStartInvalid)) {
+          costAtDisplay.innerHTML = `Input level numbers for this to work`;
+          costToDisplay.innerHTML = ``;
+          return;
+      }
+      
+      const safeStart = isStartInvalid ? 0 : startLvl;
+      const safeTarget = isTargetInvalid ? 0 : targetLvl;
+      let effectiveTarget = safeTarget;
+      
+      let costAt = getRetroactiveCostAt(effectiveTarget);
+      const costAtLabel = getCurrencyLabel(model.upg.costType, costAt);
+      
+      let cumulative = BigNum.fromInt(0);
+      if (isTargetMode && !isTargetInvalid && !isStartInvalid && effectiveTarget > safeStart) {
+          cumulative = getRetroactiveCost(safeStart, effectiveTarget);
+      }
+      const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
+      
+      const iconHTML = `<img alt="" src="${CURRENCY_ICON_SRC[model.upg.costType] || CURRENCY_ICON_SRC.coins}" class="currency-ico" style="height: 0.9em; width: auto; vertical-align: -0.14em; margin: 0 0.2em; position: relative; top: -0.5px;">`;
+      
+      const targetStr = isTargetInvalid ? '-' : formatNumber(BigNum.fromAny(effectiveTarget));
+      const costAtStr = isTargetInvalid ? '-' : `${iconHTML} ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
+      const costToStr = (isTargetMode && (isTargetInvalid || isStartInvalid)) ? '-' : `${iconHTML} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
+      
+      costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
+      costToDisplay.innerHTML = `Cost to level ${targetStr}: ${costToStr}`;
+  };
+  
+  const formatOnBlur = (inputEl) => {
+      let val = inputEl.value;
+      const finalNum = parseLevel(val);
+      if (finalNum === -1) {
+          inputEl.style.borderColor = '#ff4444';
+          return;
+      }
+      
+      inputEl.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+      inputEl.value = formatNumber(BigNum.fromAny(finalNum));
+      
+      if (isFirstEditInTargetMode) {
+          isFirstEditInTargetMode = false;
+          if (inputEl === startInput) {
+              targetInput.value = inputEl.value;
+              targetInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+          } else if (inputEl === targetInput) {
+              startInput.value = inputEl.value;
+              startInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+          }
+      } else {
+          let sLvl = parseLevel(startInput.value);
+          let tLvl = parseLevel(targetInput.value);
+          if (sLvl !== -1 && tLvl !== -1) {
+              if (inputEl === startInput && sLvl > tLvl) {
+                  targetInput.value = inputEl.value;
+                  targetInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+              } else if (inputEl === targetInput && tLvl < sLvl) {
+                  startInput.value = inputEl.value;
+                  startInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+              }
+          }
+      }
+      
+      updateDisplays();
+  };
+  
+  startInput.addEventListener('blur', () => formatOnBlur(startInput));
+  targetInput.addEventListener('blur', () => formatOnBlur(targetInput));
+  
+  const handleInputKeydown = (e, inputEl) => {
+      if (e.key === 'Enter') {
+          e.preventDefault();
+          inputEl.blur();
+      }
+  };
+  startInput.addEventListener('keydown', (e) => handleInputKeydown(e, startInput));
+  targetInput.addEventListener('keydown', (e) => handleInputKeydown(e, targetInput));
+  
+  startInput.addEventListener('click', () => startInput.select());
+  targetInput.addEventListener('click', () => targetInput.select());
+  
+  targetModeCheck.addEventListener('change', () => {
+      if (targetModeCheck.checked) {
+          startInput.value = '-';
+          targetInput.value = '-';
+          startInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+          targetInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+          isFirstEditInTargetMode = true;
+      } else {
+          isFirstEditInTargetMode = false;
+      }
+      updateDisplays();
+  });
+  
+  content.append(costAtDisplay, costToDisplay);
+  
+  if (model.upg.upgType === 'HM' && model.hmEvolutions > 0) {
+      const hmNote = document.createElement('div');
+      hmNote.textContent = '(Evolution scaling is retroactively regressed every 1000 levels to be informative)';
+      hmNote.style.color = 'rgb(245, 230, 160)';
+      hmNote.style.fontSize = '0.8em';
+      hmNote.style.opacity = '0.7';
+      hmNote.style.marginTop = '0.5rem';
+      hmNote.style.textAlign = 'center';
+      content.append(hmNote);
+  }
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'hm-milestones-close';
+  closeBtn.textContent = 'Close';
+  closeBtn.style.color = 'rgb(245, 230, 160)';
+  closeBtn.style.border = '1px solid rgba(230, 190, 50, 0.45)';
+  closeBtn.style.background = 'rgba(230, 190, 50, 0.15)';
+  closeBtn.addEventListener('mouseenter', () => closeBtn.style.background = 'rgba(230, 190, 50, 0.22)');
+  closeBtn.addEventListener('mouseleave', () => closeBtn.style.background = 'rgba(230, 190, 50, 0.15)');
+  
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKeydown); };
+  const onKeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); close(); } };
+  overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', onKeydown);
+  
+  dialog.append(title, content, closeBtn);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  if (typeof closeBtn.focus === 'function') closeBtn.focus({ preventScroll: true });
+  
+  updateDisplays();
+}
+
 function openHmMilestoneDialog(lines) {
   // ... (Re-implement logic or use existing. I will copy existing logic for brevity)
   const existing = document.querySelector('.hm-milestones-overlay');
@@ -1885,22 +2202,44 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       if (!milestonesRow) {
           milestonesRow = document.createElement('div'); 
           milestonesRow.className = 'hm-view-milestones-row';
+          milestonesRow.style.display = 'flex';
+          milestonesRow.style.gap = '0.5rem';
+          milestonesRow.style.justifyContent = 'center';
+          
+          const valcBtn = document.createElement('button');
+          valcBtn.type = 'button';
+          valcBtn.className = 'hm-valc-button';
+          valcBtn.textContent = 'Use V.A.L.C.';
+          valcBtn.style.border = '1px solid rgba(230, 190, 50, 0.75)';
+          valcBtn.style.background = 'rgba(230, 190, 50, 0.15)';
+          valcBtn.style.color = 'rgb(245, 230, 160)';
+          valcBtn.style.padding = '10px 14px';
+          valcBtn.style.width = '160px';
+          valcBtn.style.transition = 'background 100ms ease, transform 100ms ease';
+          valcBtn.addEventListener('click', (e) => {
+              if (valcBtn._onClick) valcBtn._onClick(e);
+          });
+          milestonesRow.appendChild(valcBtn);
+
           const btn = document.createElement('button'); 
           btn.type='button'; 
-          btn.className='shop-delve hm-view-milestones'; 
+          btn.className='hm-view-milestones'; 
           btn.textContent='View Milestones';
+          btn.style.width = '160px';
           btn.addEventListener('click', (e) => {
               // Use _onClick pattern
               if (btn._onClick) btn._onClick(e);
           });
           milestonesRow.appendChild(btn); 
+          
           milestonesContainer.appendChild(milestonesRow);
       }
       
-      const milestoneBtn = milestonesRow.querySelector('button');
+      const milestoneBtn = milestonesRow.querySelector('.hm-view-milestones');
+      const valcBtn = milestonesRow.querySelector('.hm-valc-button');
 
       if (isHM && !isHiddenUpgrade) {
-          milestoneBtn.style.visibility = '';
+          milestoneBtn.style.display = '';
           milestoneBtn.style.pointerEvents = 'auto';
           
           milestoneBtn._onClick = () => {
@@ -1930,12 +2269,25 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                      if (target === 'allmaterials' || target === 'allMaterials') text = `Level\u00A0${levelText}: Multiplies Material value by ${mult}x`;
                      return { text, achieved };
                  });
+                 if (lines.length === 0) lines.push(`<span style="color:#aaa">No milestones available for this upgrade yet.</span>`);
+                 upgOpenLocal = false;
                  openHmMilestoneDialog(lines);
           };
       } else {
-          milestoneBtn.style.visibility = 'hidden';
+          milestoneBtn.style.display = 'none';
           milestoneBtn.style.pointerEvents = 'none';
           milestoneBtn._onClick = null;
+      }
+      
+      const isValcAllowed = !model.unlockUpgrade && model.upg.costType && model.upg.costType !== 'none';
+      if (settingsManager.get('show_valc_button') && model.upg.area !== 'rainbow_gem_shop' && !isHiddenUpgrade && isValcAllowed) {
+          valcBtn.style.display = '';
+          valcBtn.style.pointerEvents = 'auto';
+          valcBtn._onClick = () => openValcDialog(model);
+      } else {
+          valcBtn.style.display = 'none';
+          valcBtn.style.pointerEvents = 'none';
+          valcBtn._onClick = null;
       }
       
       // Actions
