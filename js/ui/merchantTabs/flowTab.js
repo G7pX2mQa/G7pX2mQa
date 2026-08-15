@@ -1,26 +1,23 @@
-import { setHtmlOrText } from '../../util/uiHelpers.js';
-import { BigNum } from '../../util/bigNum.js';
-import { formatNumber } from '../../util/numFormat.js';
-import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
-import { registerTick, registerUiFrame, FIXED_STEP } from '../../game/gameLoop.js';
-import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from '../../game/xpSystem.js';
-import { trackBinaryFlowSequence } from '../../game/secretAchievements.js';
-import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
-import { syncCurrencyMultipliersFromUpgrades } from '../../game/upgradeEffects.js';
-import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
+import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { setHtmlOrText } from "../../util/uiHelpers.js";
+import { BigNum } from "../../util/bigNum.js";
+import { formatNumber } from "../../util/numFormat.js";
+import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from "../../util/storage.js";
+import { registerTick, registerUiFrame, FIXED_STEP } from "../../game/gameLoop.js";
+import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from "../../game/xpSystem.js";
+import { trackBinaryFlowSequence } from "../../game/secretAchievements.js";
+import { applyStatMultiplierOverride } from "../../util/debugPanel.js";
+import { syncCurrencyMultipliersFromUpgrades } from "../../game/upgradeEffects.js";
+import { WaterwheelRenderer } from "../../game/webgl/waterwheelRenderer.js";
 import { getSurgeBarLevel, predictSurgeLevel, resetState } from "./resetTab.js";
-import { isNodeLocked } from '../mapOverlay.js';
-import { settingsManager } from '../../game/settingsManager.js';
-
+import { isNodeLocked } from "../mapOverlay.js";
+import { settingsManager } from "../../game/settingsManager.js";
 /* =========================================
    CONSTANTS & KEYS
    ========================================= */
-
-const KEY_PREFIX = 'ccc:flow'; 
+const KEY_PREFIX = "ccc:flow";
 const KEY_WATERWHEEL = (id, slot) => `${KEY_PREFIX}:${id}:${slot}`;
-
 const EFFECT_PERCENTAGE = 100;
-
 const FLOW_EXPLAINER_TEXT_DEFAULT = `
         <!--
 		Commenting out this old poem that used to be here
@@ -44,65 +41,67 @@ const FLOW_EXPLAINER_TEXT_DEFAULT = `
         The FP value is incredibly important for these Waterwheels.<br>
         Unlock new Waterwheels by progressing further in the game.
     `;
-
 const bnZero = () => BigNum.fromInt(0);
-
 const WATERWHEELS = {
-    COIN: 'coin',
-    XP: 'xp',
-    GOLD: 'gold',
-    MAGIC: 'magic',
-    SCRAP: 'scrap'
+    COIN: "coin",
+    XP: "xp",
+    GOLD: "gold",
+    MAGIC: "magic",
+    SCRAP: "scrap",
 };
 
 export const WATERWHEEL_DEFS = {
     [WATERWHEELS.COIN]: {
         id: WATERWHEELS.COIN,
-        name: 'Coin Waterwheel',
-        image: 'img/waterwheels/waterwheel_coin.webp',
+        name: "Coin Waterwheel",
+        image: "img/waterwheels/waterwheel_coin.webp",
         baseReq: 10,
         unlocked: true,
-        styleKey: 'coins'
+        styleKey: "coins",
     },
     [WATERWHEELS.XP]: {
         id: WATERWHEELS.XP,
-        name: 'XP Waterwheel',
-        image: 'img/waterwheels/waterwheel_xp.webp',
+        name: "XP Waterwheel",
+        image: "img/waterwheels/waterwheel_xp.webp",
         baseReq: 1000,
         unlocked: false,
         prev: WATERWHEELS.COIN,
         unlockReq: 1000,
-        styleKey: 'xp'
+        styleKey: "xp",
     },
     [WATERWHEELS.GOLD]: {
         id: WATERWHEELS.GOLD,
-        name: 'Gold Waterwheel',
-        image: 'img/waterwheels/waterwheel_gold.webp',
+        name: "Gold Waterwheel",
+        image: "img/waterwheels/waterwheel_gold.webp",
         baseReq: 1e7,
         unlocked: false,
         prev: WATERWHEELS.XP,
         unlockReq: 1e5,
-        styleKey: 'gold'
+        styleKey: "gold",
     },
-        [WATERWHEELS.MAGIC]: {
+    [WATERWHEELS.MAGIC]: {
         id: WATERWHEELS.MAGIC,
-        name: 'Magic Waterwheel',
-        image: 'img/waterwheels/waterwheel_magic.webp',
+        name: "Magic Waterwheel",
+        image: "img/waterwheels/waterwheel_magic.webp",
         baseReq: 1e16,
         unlocked: false,
         prev: WATERWHEELS.GOLD,
         unlockReq: 1e9,
-        styleKey: 'magic'
+        styleKey: "magic",
     },
     [WATERWHEELS.SCRAP]: {
         id: WATERWHEELS.SCRAP,
-        name: 'Scrap Waterwheel',
-        image: 'img/waterwheels/waterwheel_scrap.webp',
+        name: "Scrap Waterwheel",
+        image: "img/waterwheels/waterwheel_scrap.webp",
         baseReq: 1e24,
         unlocked: false,
-        styleKey: 'scrap',
+        styleKey: "scrap",
         customUnlockCheck: () => {
-            try { return !isNodeLocked('cavern', true); } catch { return false; }
+            try {
+                return !isNodeLocked("cavern", true);
+            } catch {
+                return false;
+            }
         },
         customUnlockText: () => {
             try {
@@ -116,16 +115,15 @@ export const WATERWHEEL_DEFS = {
                 if (!cleared) return "???";
             } catch {}
             return "Unlock the Underwater Cavern area";
-        }
-    }
+        },
+    },
 };
-
 
 export function isWaterwheelMysteriousCleared(id) {
     const slot = getActiveSlot();
     if (slot == null) return false;
     try {
-        return localStorage.getItem(`ccc:flow:mysteriousCleared:${id}:${slot}`) === '1';
+        return localStorage.getItem(`ccc:flow:mysteriousCleared:${id}:${slot}`) === "1";
     } catch {
         return false;
     }
@@ -136,10 +134,10 @@ export function setWaterwheelMysteriousCleared(id, value) {
     if (slot == null) return;
     const key = `ccc:flow:mysteriousCleared:${id}:${slot}`;
     try {
-        const nextValue = value ? '1' : '0';
+        const nextValue = value ? "1" : "0";
         const prevValue = localStorage.getItem(key);
         if (prevValue === nextValue) return;
-        localStorage.setItem(key, nextValue);
+        lsSetItem(key, nextValue);
         if (flowTabInitialized && flowPanel) updateFlowTab();
     } catch {}
 }
@@ -150,11 +148,13 @@ function shouldAutoClearScrapMysterious() {
         if (slot == null) return false;
         const currentWaves = bank.waves?.value ?? bnZero();
         let barLevel = 0;
-        try { barLevel = getSurgeBarLevel(slot); } catch {}
+        try {
+            barLevel = getSurgeBarLevel(slot);
+        } catch {}
         const pending = resetState.pendingWaves || bnZero();
-        const potentialLevel = typeof predictSurgeLevel === 'function' ? predictSurgeLevel(barLevel, currentWaves, pending) : 0;
-        return potentialLevel === Infinity
-            || (typeof potentialLevel === 'number' && potentialLevel >= 125);
+        const potentialLevel =
+            typeof predictSurgeLevel === "function" ? predictSurgeLevel(barLevel, currentWaves, pending) : 0;
+        return potentialLevel === Infinity || (typeof potentialLevel === "number" && potentialLevel >= 125);
     } catch {
         return false;
     }
@@ -163,37 +163,35 @@ function shouldAutoClearScrapMysterious() {
 /* =========================================
    STATE
    ========================================= */
-
 const fpMultiplierProviders = new Set();
 const waterwheelRenderer = new WaterwheelRenderer();
-
 let flowSystemInitialized = false;
 let flowTabInitialized = false;
 let flowPanel = null;
 let flowDomCache = null;
 let unwatchMysteriousCleared = null;
 let watchedMysteriousSlot = null;
-
 function refreshMysteriousWatcher() {
     const slot = getActiveSlot();
     if (watchedMysteriousSlot === slot && unwatchMysteriousCleared) return;
-
     if (unwatchMysteriousCleared) {
-        try { unwatchMysteriousCleared(); } catch {}
+        try {
+            unwatchMysteriousCleared();
+        } catch {}
         unwatchMysteriousCleared = null;
     }
     watchedMysteriousSlot = slot;
     if (slot == null) return;
-
     const key = `ccc:flow:mysteriousCleared:${WATERWHEELS.SCRAP}:${slot}`;
     unwatchMysteriousCleared = watchStorageKey(key, {
         onChange: () => {
             if (flowTabInitialized && flowPanel) updateFlowTab();
-        }
+        },
     });
-    try { primeStorageWatcherSnapshot(key); } catch {}
+    try {
+        primeStorageWatcherSnapshot(key);
+    } catch {}
 }
-
 
 const animatedWaterwheels = new Map();
 let visualPool = [];
@@ -203,30 +201,33 @@ for (const key in WATERWHEEL_DEFS) {
     waterwheelImages[key].src = WATERWHEEL_DEFS[key].image;
 }
 
-export const WATERWHEEL_ORDER = [WATERWHEELS.COIN, WATERWHEELS.XP, WATERWHEELS.GOLD, WATERWHEELS.MAGIC, WATERWHEELS.SCRAP];
-
+export const WATERWHEEL_ORDER = [
+    WATERWHEELS.COIN,
+    WATERWHEELS.XP,
+    WATERWHEELS.GOLD,
+    WATERWHEELS.MAGIC,
+    WATERWHEELS.SCRAP,
+];
 function syncWaterwheelDecorations(container) {
     if (!container) return;
     let entry = animatedWaterwheels.get(container);
-
-    let canvas = container.querySelector('canvas.flow-ww-bg-canvas');
+    let canvas = container.querySelector("canvas.flow-ww-bg-canvas");
     if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.classList.add('flow-ww-bg-canvas');
-        canvas.style.position = 'absolute';
-        canvas.style.top = '0';
-        canvas.style.left = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.pointerEvents = 'none';
-        canvas.style.userSelect = 'none';
-        canvas.style.zIndex = '0';
+        canvas = document.createElement("canvas");
+        canvas.classList.add("flow-ww-bg-canvas");
+        canvas.style.position = "absolute";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.pointerEvents = "none";
+        canvas.style.userSelect = "none";
+        canvas.style.zIndex = "0";
         container.appendChild(canvas);
     }
 
     const rect = container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-
     if (!entry) {
         entry = {
             wheels: [],
@@ -234,7 +235,7 @@ function syncWaterwheelDecorations(container) {
             height: rect.height,
             needsDistribution: !rect.width || !rect.height,
             canvas: canvas,
-            ctx: canvas.getContext('2d', { alpha: true })
+            ctx: canvas.getContext("2d", { alpha: true }),
         };
         canvas.width = Math.round(rect.width * dpr);
         canvas.height = Math.round(rect.height * dpr);
@@ -243,17 +244,15 @@ function syncWaterwheelDecorations(container) {
     } else {
         if (!entry.canvas) {
             entry.canvas = canvas;
-            entry.ctx = canvas.getContext('2d', { alpha: true });
+            entry.ctx = canvas.getContext("2d", { alpha: true });
             entry.ctx.scale(dpr, dpr);
         }
     }
-
     if (rect.width > 0 && rect.height > 0) {
         entry.width = rect.width;
         entry.height = rect.height;
         const targetWidth = Math.round(rect.width * dpr);
         const targetHeight = Math.round(rect.height * dpr);
-
         if (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight) {
             entry.canvas.width = targetWidth;
             entry.canvas.height = targetHeight;
@@ -268,9 +267,8 @@ function syncWaterwheelDecorations(container) {
         let count = 0;
         if (lvl.cmp(0) > 0) {
             let numLvl = 0;
-            if (lvl.cmp(BigNum.fromAny('1e30')) > 0) numLvl = 1e30; 
+            if (lvl.cmp(BigNum.fromAny("1e30")) > 0) numLvl = 1e30;
             else numLvl = lvl.inf || lvl.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(lvl.toPlainIntegerString());
-            
             // Formula: Log10(Level * 10), max 10 per type
             const logVal = Math.floor(Math.log10(numLvl * 10));
             count = Math.max(0, Math.min(logVal, 10));
@@ -278,19 +276,16 @@ function syncWaterwheelDecorations(container) {
         targetCounts[key] = count;
         totalWheels += count;
     }
-
     // Adjust borders
     if (totalWheels === 0) {
-        container.style.border = 'none';
+        container.style.border = "none";
     } else {
-        container.style.border = '2px solid rgba(72, 209, 204, 0.4)';
+        container.style.border = "2px solid rgba(72, 209, 204, 0.4)";
     }
-
     // Update visualPool based on targetCounts
     for (const type of WATERWHEEL_ORDER) {
         const targetCount = targetCounts[type];
-        let currentCount = visualPool.filter(t => t === type).length;
-        
+        let currentCount = visualPool.filter((t) => t === type).length;
         if (targetCount > currentCount) {
             for (let i = 0; i < targetCount - currentCount; i++) {
                 visualPool.push(type);
@@ -304,24 +299,20 @@ function syncWaterwheelDecorations(container) {
             }
         }
     }
-
     // Reconcile wheels
     const newWheels = [];
     const minSize = 48;
     const maxSize = 128;
-
     for (let i = 0; i < visualPool.length; i++) {
         const type = visualPool[i];
         const typeIndex = WATERWHEEL_ORDER.indexOf(type);
-        
         // Size logic for the waterwheels
         let size = minSize;
         if (WATERWHEEL_ORDER.length > 1) {
             size = minSize + typeIndex * ((maxSize - minSize) / (WATERWHEEL_ORDER.length - 1));
         }
-
         // Keep existing wheels of this type
-        const existingIdx = entry.wheels.findIndex(w => w.type === type && !w._reused);
+        const existingIdx = entry.wheels.findIndex((w) => w.type === type && !w._reused);
         if (existingIdx !== -1) {
             const w = entry.wheels[existingIdx];
             w._reused = true;
@@ -339,29 +330,27 @@ function syncWaterwheelDecorations(container) {
             } else {
                 entry.needsDistribution = true;
             }
+
             const angle = Math.random() * Math.PI * 2;
             const speed = 40 + Math.random() * 40;
             const dx = Math.cos(angle) * speed;
             const dy = Math.sin(angle) * speed;
             const rotation = Math.random() * 360;
             const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 60);
-
             newWheels.push({ type, x, y, dx, dy, rotation, rotationSpeed, size, _reused: true });
         }
     }
-    
     // Clean up _reused flags
     for (const w of newWheels) {
         delete w._reused;
     }
-
     entry.wheels = newWheels;
 }
 
 const syncFlowLayout = () => {
     if (flowPanel && flowPanel.isConnected) {
-        const left = flowPanel.querySelector('.flow-side-left');
-        const right = flowPanel.querySelector('.flow-side-right');
+        const left = flowPanel.querySelector(".flow-side-left");
+        const right = flowPanel.querySelector(".flow-side-right");
         syncWaterwheelDecorations(left);
         syncWaterwheelDecorations(right);
         const updateBounds = (col) => {
@@ -374,7 +363,6 @@ const syncFlowLayout = () => {
                 entry.height = rect.height;
                 const targetWidth = Math.round(rect.width * dpr);
                 const targetHeight = Math.round(rect.height * dpr);
-
                 if (entry.canvas && (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight)) {
                     entry.canvas.width = targetWidth;
                     entry.canvas.height = targetHeight;
@@ -395,9 +383,8 @@ const syncFlowLayout = () => {
         updateBounds(right);
     }
 };
-
-if (typeof window !== 'undefined') {
-    window.addEventListener('resize', syncFlowLayout);
+if (typeof window !== "undefined") {
+    window.addEventListener("resize", syncFlowLayout);
 }
 
 const state = {
@@ -406,73 +393,72 @@ const state = {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
-            unlocked: true
+            unlocked: true,
         },
         [WATERWHEELS.XP]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
-            unlocked: false
+            unlocked: false,
         },
         [WATERWHEELS.GOLD]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
-            unlocked: false
+            unlocked: false,
         },
-                [WATERWHEELS.MAGIC]: {
+        [WATERWHEELS.MAGIC]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
-            unlocked: false
+            unlocked: false,
         },
         [WATERWHEELS.SCRAP]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
-            unlocked: false
-        }
+            unlocked: false,
+        },
     },
     visuals: {
         [WATERWHEELS.COIN]: {
             rotation: 0,
             speed: 0,
-            isMax: false
+            isMax: false,
         },
         [WATERWHEELS.XP]: {
             rotation: 0,
             speed: 0,
-            isMax: false
+            isMax: false,
         },
         [WATERWHEELS.GOLD]: {
             rotation: 0,
             speed: 0,
-            isMax: false
+            isMax: false,
         },
-                [WATERWHEELS.MAGIC]: {
+        [WATERWHEELS.MAGIC]: {
             rotation: 0,
             speed: 0,
-            isMax: false
+            isMax: false,
         },
         [WATERWHEELS.SCRAP]: {
             rotation: 0,
             speed: 0,
-            isMax: false
-        }
-    }
+            isMax: false,
+        },
+    },
 };
 
 /* =========================================
    PERSISTENCE
    ========================================= */
-
 function getSlot() {
     return getActiveSlot();
 }
 
 function getWaterwheelUnlockRequirementText(def) {
-    if (!def) return 'Locked';
-    if (typeof def.customUnlockText === 'function') {
+    if (!def) return "Locked";
+    if (typeof def.customUnlockText === "function") {
         try {
             const customText = def.customUnlockText();
             if (customText) return String(customText);
@@ -485,13 +471,12 @@ function getWaterwheelUnlockRequirementText(def) {
         } catch {}
         return `Level ${reqStr} in prev.`;
     }
-    return 'Locked';
+    return "Locked";
 }
 
 function loadState() {
     const slot = getSlot();
     if (slot == null) return;
-
     // Load Flow Data
     try {
         const vpKey = `${KEY_PREFIX}:visualPool:${slot}`;
@@ -505,11 +490,9 @@ function loadState() {
         } else {
             visualPool = [];
         }
-
         // Migration: Check for old single-object key
         const oldKey = `${KEY_PREFIX}:data:${slot}`;
         const oldDataRaw = localStorage.getItem(oldKey);
-        
         if (oldDataRaw) {
             // Migration Path
             try {
@@ -518,7 +501,7 @@ function loadState() {
                     if (state.waterwheels[id]) {
                         state.waterwheels[id].level = BigNum.fromAny(parsed[id].level || 0);
                         const fpRaw = parsed[id].fp || 0;
-                        if (typeof fpRaw === 'string' && fpRaw.includes(':')) {
+                        if (typeof fpRaw === "string" && fpRaw.includes(":")) {
                             state.waterwheels[id].fp = BigNum.fromAny(fpRaw);
                         } else {
                             state.waterwheels[id].fp = Number(fpRaw);
@@ -529,7 +512,7 @@ function loadState() {
                 // Save to new individual keys
                 saveState();
                 // Clean up old key
-                localStorage.removeItem(oldKey);
+                lsRemoveItem(oldKey);
             } catch (e) {
                 console.warn("Migration failed for flow data", e);
             }
@@ -542,13 +525,14 @@ function loadState() {
                     const parsed = JSON.parse(dataRaw);
                     state.waterwheels[id].level = BigNum.fromAny(parsed.level || 0);
                     const fpRaw = parsed.fp || 0;
-                    if (typeof fpRaw === 'string' && fpRaw.includes(':')) {
+                    if (typeof fpRaw === "string" && fpRaw.includes(":")) {
                         state.waterwheels[id].fp = BigNum.fromAny(fpRaw);
                     } else {
                         state.waterwheels[id].fp = Number(fpRaw);
                     }
                     state.waterwheels[id].active = !!parsed.active;
-                    state.waterwheels[id].unlocked = parsed.unlocked !== undefined ? !!parsed.unlocked : (WATERWHEEL_DEFS[id]?.unlocked || false);
+                    state.waterwheels[id].unlocked =
+                        parsed.unlocked !== undefined ? !!parsed.unlocked : WATERWHEEL_DEFS[id]?.unlocked || false;
                 } else {
                     state.waterwheels[id].level = BigNum.fromInt(0);
                     state.waterwheels[id].fp = 0;
@@ -560,7 +544,6 @@ function loadState() {
     } catch (e) {
         console.warn("Failed to load flow data", e);
     }
-    
     // Ensure only one is active (safety check)
     let activeCount = 0;
     for (const ch of Object.values(state.waterwheels)) {
@@ -581,19 +564,17 @@ function loadState() {
 function saveState() {
     const slot = getSlot();
     if (slot == null) return;
-
     for (const [id, ch] of Object.entries(state.waterwheels)) {
         const dataToSave = {
             level: ch.level.toStorage(),
-            fp: (ch.fp instanceof BigNum) ? ch.fp.toStorage() : ch.fp,
+            fp: ch.fp instanceof BigNum ? ch.fp.toStorage() : ch.fp,
             active: ch.active,
-            unlocked: ch.unlocked
+            unlocked: ch.unlocked,
         };
-        localStorage.setItem(KEY_WATERWHEEL(id, slot), JSON.stringify(dataToSave));
+        lsSetItem(KEY_WATERWHEEL(id, slot), JSON.stringify(dataToSave));
     }
-    
     // Save visual pool
-    localStorage.setItem(`${KEY_PREFIX}:visualPool:${slot}`, JSON.stringify(visualPool));
+    lsSetItem(`${KEY_PREFIX}:visualPool:${slot}`, JSON.stringify(visualPool));
 }
 
 let saveTimeout = null;
@@ -608,15 +589,12 @@ function scheduleSave() {
 /* =========================================
    LOGIC
    ========================================= */
-
 export function toggleWaterwheel(waterwheelId) {
     const ch = state.waterwheels[waterwheelId];
     if (!ch) return;
     if (!ch.unlocked) return; // Prevent toggling if locked
-
     const wasActive = ch.active;
     trackBinaryFlowSequence(waterwheelId);
-
     // If turning ON, deactivate all others first
     if (!wasActive) {
         for (const id in state.waterwheels) {
@@ -645,13 +623,11 @@ export function toggleWaterwheel(waterwheelId) {
             state.visuals[waterwheelId].isMax = false;
         }
     }
-    
     saveState();
     updateFlowTab();
 }
 
 let cachedFlowUnlockStates = {};
-
 export function getFlowUnlockState() {
     const slot = getSlot();
     if (slot == null) return false;
@@ -662,20 +638,18 @@ export function getFlowUnlockState() {
     let result = false;
     try {
         const val = localStorage.getItem(`ccc:unlock:flow:${slot}`);
-        if (val === '1') {
+        if (val === "1") {
             cachedFlowUnlockStates[slot] = true;
             return true;
         }
-        if (val === '0') {
+        if (val === "0") {
             cachedFlowUnlockStates[slot] = false;
             return false;
         }
     } catch {}
-
     if (_unlockChecker) {
         result = _unlockChecker(20);
     }
-    
     cachedFlowUnlockStates[slot] = result;
     return result;
 }
@@ -689,15 +663,14 @@ export function setFlowUnlockChecker(fn) {
     _unlockChecker = fn;
     cachedFlowUnlockStates = {};
 }
-
-if (typeof window !== 'undefined') {
-    const invalidateFlowCache = () => { cachedFlowUnlockStates = {}; };
-    window.addEventListener('saveSlot:change', invalidateFlowCache);
-    window.addEventListener('unlock:change', invalidateFlowCache);
-    window.addEventListener('surge:level:change', invalidateFlowCache);
+if (typeof window !== "undefined") {
+    const invalidateFlowCache = () => {
+        cachedFlowUnlockStates = {};
+    };
+    window.addEventListener("saveSlot:change", invalidateFlowCache);
+    window.addEventListener("unlock:change", invalidateFlowCache);
+    window.addEventListener("surge:level:change", invalidateFlowCache);
 }
-
-
 
 export function getWaterwheelCoinMultiplier({ baseMultiplier }) {
     const level = state.waterwheels[WATERWHEELS.COIN]?.level || BigNum.fromInt(0);
@@ -716,30 +689,24 @@ export function getWaterwheelXpMultiplier({ baseGain }) {
 export function getWaterwheelGoldMultiplier(baseValue) {
     const level = state.waterwheels[WATERWHEELS.GOLD]?.level || BigNum.fromInt(0);
     const mult = BigNum.fromInt(1).add(level);
-    
     // Support being called with BigNum directly or property object depending on how it's integrated
     let val = baseValue;
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
-    
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
-    
     return val.mulBigNumInteger(mult);
 }
 
 export function getWaterwheelMagicMultiplier(baseValue) {
     const level = state.waterwheels[WATERWHEELS.MAGIC]?.level || BigNum.fromInt(0);
     const mult = BigNum.fromInt(1).add(level);
-    
     let val = baseValue;
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
-    
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
-    
     return val.mulBigNumInteger(mult);
 }
 
 export function addExternalFpMultiplierProvider(fn) {
-    if (typeof fn === 'function') fpMultiplierProviders.add(fn);
+    if (typeof fn === "function") fpMultiplierProviders.add(fn);
 }
 
 export function getFpMultiplier() {
@@ -748,14 +715,12 @@ export function getFpMultiplier() {
         try {
             const res = provider(mult.clone());
             if (res instanceof BigNum) mult = res;
-            else if (typeof res === 'number') mult = BigNum.fromAny(res);
+            else if (typeof res === "number") mult = BigNum.fromAny(res);
         } catch {}
     }
     return mult;
 }
-
 // --- Debug Panel Helpers ---
-
 export function getWaterwheelLevel(id) {
     return state.waterwheels[id]?.level || BigNum.fromInt(0);
 }
@@ -765,7 +730,7 @@ export function setWaterwheelLevel(id, val) {
     state.waterwheels[id].level = val instanceof BigNum ? val : BigNum.fromAny(val);
     saveState();
     updateFlowTab();
-    window.dispatchEvent(new CustomEvent('flow:change', { detail: { id, type: 'level' } }));
+    window.dispatchEvent(new CustomEvent("flow:change", { detail: { id, type: "level" } }));
 }
 
 export function getWaterwheelFp(id) {
@@ -774,76 +739,63 @@ export function getWaterwheelFp(id) {
 
 export function setWaterwheelFp(id, val) {
     if (!state.waterwheels[id]) return;
-    state.waterwheels[id].fp = val; 
+    state.waterwheels[id].fp = val;
     saveState();
     updateFlowTab();
-    window.dispatchEvent(new CustomEvent('flow:change', { detail: { id, type: 'fp' } }));
+    window.dispatchEvent(new CustomEvent("flow:change", { detail: { id, type: "fp" } }));
 }
 
 export function calculateWaterwheelOffline(seconds) {
     if (!isFlowUnlocked()) return {};
-
     const fpMult = getFpMultiplier();
     const result = {};
     // Base rate 1 FP/sec
     let totalGainBn = BigNum.fromAny(seconds);
     totalGainBn = totalGainBn.mulBigNumInteger(fpMult);
-    totalGainBn = applyStatMultiplierOverride('fp', totalGainBn);
-
+    totalGainBn = applyStatMultiplierOverride("fp", totalGainBn);
     if (totalGainBn.isZero()) return {};
-
     for (const id in state.waterwheels) {
         const ch = state.waterwheels[id];
         if (!ch.active) continue;
-
         const req = WATERWHEEL_DEFS[id]?.baseReq || 10;
-        
         let currentFpBn;
         if (ch.fp instanceof BigNum) currentFpBn = ch.fp.clone();
         else currentFpBn = BigNum.fromAny(ch.fp);
-        
         let finalFpBn = currentFpBn.add(totalGainBn);
         let levelsGained = BigNum.fromInt(0);
-
         if (finalFpBn.isInfinite()) {
-             // Infinite FP means this wheel would gain infinite levels while offline.
-             levelsGained = BigNum.fromAny('infinity');
-             finalFpBn = BigNum.zero();
+            // Infinite FP means this wheel would gain infinite levels while offline.
+            levelsGained = BigNum.fromAny("infinity");
+            finalFpBn = BigNum.zero();
         } else {
-             const reqBn = BigNum.fromInt(req);
-             const levels = finalFpBn.div(reqBn).floorToInteger();
-             
-             if (!levels.isZero()) {
-                 levelsGained = levels;
-                 finalFpBn = finalFpBn.sub(levels.mulSmall(req));
-             }
+            const reqBn = BigNum.fromInt(req);
+            const levels = finalFpBn.div(reqBn).floorToInteger();
+            if (!levels.isZero()) {
+                levelsGained = levels;
+                finalFpBn = finalFpBn.sub(levels.mulSmall(req));
+            }
         }
-        
         // Return result if there was any gain (levels or just fp progress)
         result[id] = {
             levels: levelsGained,
             fp: finalFpBn,
-            name: WATERWHEEL_DEFS[id]?.name || id
+            name: WATERWHEEL_DEFS[id]?.name || id,
         };
     }
-    
     return result;
 }
 
 export function applyWaterwheelOffline(offlineData) {
     if (!offlineData) return;
     let changes = false;
-    
     for (const id in offlineData) {
         const data = offlineData[id];
         const ch = state.waterwheels[id];
         if (!ch) continue;
-        
         if (data.levels && !data.levels.isZero()) {
-             ch.level = ch.level.add(data.levels);
-             changes = true;
+            ch.level = ch.level.add(data.levels);
+            changes = true;
         }
-        
         if (data.fp !== undefined) {
             // Convert to number if small enough, consistent with onTick
             if (data.fp instanceof BigNum) {
@@ -858,48 +810,54 @@ export function applyWaterwheelOffline(offlineData) {
             }
         }
     }
-    
     if (changes) {
         saveState();
         updateFlowTab();
-        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try {
+            syncCurrencyMultipliersFromUpgrades();
+        } catch {}
     }
 }
 
 /* =========================================
    GAME LOOP
    ========================================= */
+export function simulateFlowTick(dt) {
+    onTick(dt);
+}
 
-export function simulateFlowTick(dt) { onTick(dt); }
 function onTick(dt) {
     if (!isFlowUnlocked()) return;
-
     let changes = false;
     let visualUpdate = false;
     let uiTextChanged = false;
-
     // dt is in seconds
     // Requirement: 1 FP/sec for active waterwheel * FP Multiplier
-    
     const fpMult = getFpMultiplier();
     const slot = getSlot();
-
     if (!isWaterwheelMysteriousCleared(WATERWHEELS.SCRAP) && shouldAutoClearScrapMysterious()) {
         setWaterwheelMysteriousCleared(WATERWHEELS.SCRAP, true);
         uiTextChanged = true;
     }
-    
     // Unlock Logic
     // Check XP unlock condition: Coin Waterwheel Level >= 1000
     // We do this check before processing gains, so it updates dynamically
     // Generic Unlock Logic check (future proofing)
     for (const id in WATERWHEEL_DEFS) {
         const def = WATERWHEEL_DEFS[id];
-        if (typeof def.customUnlockCheck === 'function') {
+        if (typeof def.customUnlockCheck === "function") {
             let shouldUnlock = false;
-            try { shouldUnlock = !!def.customUnlockCheck(); } catch {}
-            if (shouldUnlock && typeof isWaterwheelMysteriousCleared === 'function' && !isWaterwheelMysteriousCleared(id)) {
-                try { setWaterwheelMysteriousCleared(id, true); } catch {}
+            try {
+                shouldUnlock = !!def.customUnlockCheck();
+            } catch {}
+            if (
+                shouldUnlock &&
+                typeof isWaterwheelMysteriousCleared === "function" &&
+                !isWaterwheelMysteriousCleared(id)
+            ) {
+                try {
+                    setWaterwheelMysteriousCleared(id, true);
+                } catch {}
             }
             if (state.waterwheels[id].unlocked !== shouldUnlock) {
                 state.waterwheels[id].unlocked = shouldUnlock;
@@ -923,20 +881,17 @@ function onTick(dt) {
             if (prevCh) {
                 const threshold = BigNum.fromInt(def.unlockReq);
                 const shouldUnlock = prevCh.level.cmp(threshold) >= 0;
-                
                 if (state.waterwheels[id].unlocked !== shouldUnlock) {
                     state.waterwheels[id].unlocked = shouldUnlock;
                     changes = true;
-                    
                     if (!shouldUnlock) {
                         // Reset progress
                         state.waterwheels[id].level = BigNum.fromInt(0);
                         state.waterwheels[id].fp = 0;
-
                         if (state.waterwheels[id].active) {
                             state.waterwheels[id].active = false;
                             // Reset visuals for this one
-                             if (state.visuals[id]) {
+                            if (state.visuals[id]) {
                                 state.visuals[id].speed = 0;
                                 state.visuals[id].isMax = false;
                             }
@@ -946,41 +901,33 @@ function onTick(dt) {
             }
         }
     }
-
     for (const id in state.waterwheels) {
         const ch = state.waterwheels[id];
         // Ensure visual state exists
         if (!state.visuals[id]) state.visuals[id] = { rotation: 0, speed: 0, isMax: false };
-        
         if (!ch.active) {
             state.visuals[id].speed = 0;
             state.visuals[id].isMax = false;
             continue;
         }
-
         // Debug Locking
-        const fpLocked = typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(`ccc:flow:fp:${id}:${slot}`);
-        const levelLocked = typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(`ccc:flow:level:${id}:${slot}`);
-
+        const fpLocked =
+            typeof window !== "undefined" && window.__cccLockedStorageKeys?.has(`ccc:flow:fp:${id}:${slot}`);
+        const levelLocked =
+            typeof window !== "undefined" && window.__cccLockedStorageKeys?.has(`ccc:flow:level:${id}:${slot}`);
         if (fpLocked) {
             state.visuals[id].speed = 0;
             state.visuals[id].isMax = false;
             continue;
         }
-
         // Base rate 1 FP/sec
         let gainBn = BigNum.fromAny(dt);
-        
         // Apply FP Multiplier
         gainBn = gainBn.mulBigNumInteger(fpMult);
-        
         // Apply Debug Override
-        gainBn = applyStatMultiplierOverride('fp', gainBn);
-        
+        gainBn = applyStatMultiplierOverride("fp", gainBn);
         if (!gainBn.isZero()) visualUpdate = true;
-        
         const req = WATERWHEEL_DEFS[id]?.baseReq;
-
         // --- Visual Speed Calculation ---
         const reqBn = BigNum.fromInt(req);
         // If gain per tick >= requirement, bar is filling instantly every tick -> Max Speed
@@ -989,35 +936,36 @@ function onTick(dt) {
             state.visuals[id].speed = 20;
         } else {
             state.visuals[id].isMax = false;
-            // gainBn is gain per tick (approx 0.05s). 
+            // gainBn is gain per tick (approx 0.05s).
             // gainPerSec = gainBn / dt
             // speed = gainPerSec / req = (gainBn / dt) / req
             let gainVal = 0;
             try {
                 gainVal = Number(gainBn.toScientific(5));
-            } catch { gainVal = 0; }
-            
+            } catch {
+                gainVal = 0;
+            }
             // Avoid division by zero
             if (dt > 0 && req > 0) {
-                state.visuals[id].speed = (gainVal / dt) / req;
+                state.visuals[id].speed = gainVal / dt / req;
             } else {
                 state.visuals[id].speed = 0;
             }
         }
-        
         if (gainBn.cmp(1e15) > 0) {
             let currentFpBn = ch.fp instanceof BigNum ? ch.fp.clone() : BigNum.fromAny(ch.fp);
             currentFpBn = currentFpBn.add(gainBn);
-            
             if (!currentFpBn.isInfinite()) {
                 const reqBn = BigNum.fromInt(req);
                 const levels = currentFpBn.div(reqBn).floorToInteger();
-                
                 if (!levels.isZero()) {
                     if (!levelLocked) {
                         ch.level = ch.level.add(levels);
                         currentFpBn = currentFpBn.sub(levels.mulSmall(req));
-                        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: levels } }));
+                        if (typeof window !== "undefined")
+                            window.dispatchEvent(
+                                new CustomEvent("waterwheel:change", { detail: { id, levelsGained: levels } }),
+                            );
                     } else {
                         // Max out the FP visually if the level is locked
                         currentFpBn = BigNum.fromInt(req);
@@ -1025,39 +973,49 @@ function onTick(dt) {
                     changes = true;
                 }
             } else if (!levelLocked) {
-                ch.level = BigNum.fromAny('Infinity');
-                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromAny('Infinity') } }));
+                ch.level = BigNum.fromAny("Infinity");
+                if (typeof window !== "undefined")
+                    window.dispatchEvent(
+                        new CustomEvent("waterwheel:change", {
+                            detail: { id, levelsGained: BigNum.fromAny("Infinity") },
+                        }),
+                    );
                 changes = true;
             }
-            
+
             const val = Number(currentFpBn.toScientific(5));
             if (Number.isFinite(val) && val < 1e15) {
                 ch.fp = val;
             } else {
                 ch.fp = currentFpBn;
             }
-            
             // We should mark changes = true if we gained FP even without leveling up, so the UI updates the bar.
             // But visually it updates every frame anyway. To save state:
             changes = true;
         } else {
             const gain = Number(gainBn.toScientific(10));
-            
             if (ch.fp instanceof BigNum) {
                 if (ch.fp.isInfinite()) {
                     if (!levelLocked) {
-                        ch.level = BigNum.fromAny('Infinity');
-                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromAny('Infinity') } }));
+                        ch.level = BigNum.fromAny("Infinity");
+                        if (typeof window !== "undefined")
+                            window.dispatchEvent(
+                                new CustomEvent("waterwheel:change", {
+                                    detail: { id, levelsGained: BigNum.fromAny("Infinity") },
+                                }),
+                            );
                         changes = true;
                     }
                 } else {
                     ch.fp = ch.fp.add(gain);
                     let levels = ch.fp.div(req).floorToInteger();
-                    
                     if (!levels.isZero()) {
                         if (!levelLocked) {
                             ch.level = ch.level.add(levels);
-                            if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: levels } }));
+                            if (typeof window !== "undefined")
+                                window.dispatchEvent(
+                                    new CustomEvent("waterwheel:change", { detail: { id, levelsGained: levels } }),
+                                );
                         }
                         ch.fp = ch.fp.sub(levels.mulSmall(req));
                         changes = true;
@@ -1065,21 +1023,30 @@ function onTick(dt) {
                 }
             } else {
                 ch.fp += gain;
-                
                 if (!Number.isFinite(ch.fp)) {
-                     ch.fp = BigNum.fromAny(ch.fp);
-                     if (!levelLocked) {
-                         ch.level = BigNum.fromAny('Infinity');
-                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromAny('Infinity') } }));
-                         changes = true;
-                     }
+                    ch.fp = BigNum.fromAny(ch.fp);
+                    if (!levelLocked) {
+                        ch.level = BigNum.fromAny("Infinity");
+                        if (typeof window !== "undefined")
+                            window.dispatchEvent(
+                                new CustomEvent("waterwheel:change", {
+                                    detail: { id, levelsGained: BigNum.fromAny("Infinity") },
+                                }),
+                            );
+                        changes = true;
+                    }
                 } else {
                     if (ch.fp >= req) {
                         const levels = Math.floor(ch.fp / req);
                         if (levels > 0) {
                             if (!levelLocked) {
                                 ch.level = ch.level.add(BigNum.fromInt(levels));
-                                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('waterwheel:change', { detail: { id, levelsGained: BigNum.fromInt(levels) } }));
+                                if (typeof window !== "undefined")
+                                    window.dispatchEvent(
+                                        new CustomEvent("waterwheel:change", {
+                                            detail: { id, levelsGained: BigNum.fromInt(levels) },
+                                        }),
+                                    );
                             }
                             ch.fp -= levels * req;
                             changes = true;
@@ -1089,15 +1056,15 @@ function onTick(dt) {
             }
         }
     }
-
     if (flowTabInitialized && flowPanel) {
         updateWaterwheelVisuals();
     }
-
     if (changes || uiTextChanged) {
         updateFlowTab();
         scheduleSave();
-        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try {
+            syncCurrencyMultipliersFromUpgrades();
+        } catch {}
         // The event with type 'tick' is not actually listened to anywhere useful, removing to save overhead
     } else if (visualUpdate) {
         if (flowTabInitialized && flowPanel) {
@@ -1109,62 +1076,58 @@ function onTick(dt) {
 
 function onFrame(time, dt) {
     if (!flowTabInitialized || !flowPanel) return;
-
-    if (!flowPanel.classList.contains('is-active')) return;
-    if (!flowPanel.closest('.merchant-overlay.is-open')) return;
-    
+    if (!flowPanel.classList.contains("is-active")) return;
+    if (!flowPanel.closest(".merchant-overlay.is-open")) return;
     // --- Render WebGL Waterwheels ---
     waterwheelRenderer.render(dt);
-
     // Render Side Column Waterwheels
     const dpr = window.devicePixelRatio || 1;
     for (const [container, data] of animatedWaterwheels) {
         if (!container.isConnected) continue;
         const { wheels, width, height, ctx } = data;
         if (!width || !height || !ctx) continue;
-        
         ctx.clearRect(0, 0, width, height);
-
         for (const w of wheels) {
             const img = waterwheelImages[w.type];
             if (!img.complete || img.naturalWidth === 0) continue;
-
             w.x += w.dx * dt;
             w.y += w.dy * dt;
-            if (w.x < 0) { w.x = 0; w.dx = -w.dx; }
-            else if (w.x + w.size > width) { w.x = width - w.size; w.dx = -w.dx; }
-            if (w.y < 0) { w.y = 0; w.dy = -w.dy; }
-            else if (w.y + w.size > height) { w.y = height - w.size; w.dy = -w.dy; }
+            if (w.x < 0) {
+                w.x = 0;
+                w.dx = -w.dx;
+            } else if (w.x + w.size > width) {
+                w.x = width - w.size;
+                w.dx = -w.dx;
+            }
+            if (w.y < 0) {
+                w.y = 0;
+                w.dy = -w.dy;
+            } else if (w.y + w.size > height) {
+                w.y = height - w.size;
+                w.dy = -w.dy;
+            }
             w.rotation += w.rotationSpeed * dt;
-
             if (w.x + w.size < 0 || w.x > width || w.y + w.size < 0 || w.y > height) continue;
-            
             const cx = w.x + w.size / 2;
             const cy = w.y + w.size / 2;
-            
-            const rad = w.rotation * Math.PI / 180; 
-            const cos = Math.cos(rad); 
-            const sin = Math.sin(rad); 
-         
+            const rad = (w.rotation * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
             // Integer math for faster drawImage and avoiding matrix scaling
             const dx = Math.round(cx * dpr);
             const dy = Math.round(cy * dpr);
             const sw = Math.round(w.size * dpr);
             const hsw = Math.round(-sw / 2);
-            
-            ctx.setTransform(cos, sin, -sin, cos, dx, dy); 
-            ctx.drawImage(img, hsw, hsw, sw, sw); 
+            ctx.setTransform(cos, sin, -sin, cos, dx, dy);
+            ctx.drawImage(img, hsw, hsw, sw, sw);
         }
-        
         // Reset global transform back to devicePixelRatio scale
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); 
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-
     for (const id in state.waterwheels) {
         if (!state.visuals[id]) continue;
         const v = state.visuals[id];
         const ch = state.waterwheels[id];
-        
         if (ch && !ch.unlocked) {
             if (v.rotation !== 0 || v.speed !== 0) {
                 v.rotation = 0;
@@ -1174,18 +1137,14 @@ function onFrame(time, dt) {
             }
             continue;
         }
-
         if (v.speed > 0 || v.rotation > 0) {
             let speed = v.speed;
             if (v.isMax || speed > 20) speed = 20;
-
             v.rotation -= speed * 360 * dt;
             v.rotation %= 360;
-
             const el = flowDomCache ? flowDomCache[id]?.icon : document.getElementById(`flow-icon-${id}`);
             if (el) {
                 let transform = `translateY(-50%) rotate(${v.rotation}deg)`;
-                
                 if (v.isMax) {
                     // Shake effect at max speed
                     // Random offset between -2px and 2px
@@ -1193,7 +1152,6 @@ function onFrame(time, dt) {
                     const dy = (Math.random() - 0.5) * 4;
                     transform = `translate(${dx}px, calc(-50% + ${dy}px)) rotate(${v.rotation}deg)`;
                 }
-                
                 if (el.style.transform !== transform) {
                     el.style.transform = transform;
                 }
@@ -1205,17 +1163,16 @@ function onFrame(time, dt) {
 /* =========================================
    UI
    ========================================= */
-
-function createWaterwheelHTML(extraClass = '') {
+function createWaterwheelHTML(extraClass = "") {
     // 4 Layers for double-sided faces:
     // 1: Front (Bright)
     // 2: Back of Front (Dark)
     // 3: Front of Back (Dark)
     // 4: Back (Bright)
-    const layers = Array(4).fill(0).map((_, i) => 
-        `<img src="" class="flow-ww-img flow-ww-layer" alt="">`
-    ).join('');
-
+    const layers = Array(4)
+        .fill(0)
+        .map((_, i) => `<img src="" class="flow-ww-img flow-ww-layer" alt="">`)
+        .join("");
     return `
         <div class="flow-ww-wrapper ${extraClass}">
              ${layers}
@@ -1224,62 +1181,49 @@ function createWaterwheelHTML(extraClass = '') {
 }
 
 function buildUI(panel) {
-    panel.innerHTML = '';
-    
-    const wrapper = document.createElement('div');
-    wrapper.className = 'flow-tab';
-
-    const sideLeft = document.createElement('div');
-    sideLeft.className = 'flow-side-col flow-side-left';
-    
-    const sideRight = document.createElement('div');
-    sideRight.className = 'flow-side-col flow-side-right';
-    
-    const centerCol = document.createElement('div');
-    centerCol.className = 'flow-center-col';
-
+    panel.innerHTML = "";
+    const wrapper = document.createElement("div");
+    wrapper.className = "flow-tab";
+    const sideLeft = document.createElement("div");
+    sideLeft.className = "flow-side-col flow-side-left";
+    const sideRight = document.createElement("div");
+    sideRight.className = "flow-side-col flow-side-right";
+    const centerCol = document.createElement("div");
+    centerCol.className = "flow-center-col";
     // Header
-    const header = document.createElement('div');
-    header.className = 'flow-header';
-    
-    
-    const explainer = document.createElement('div');
-    explainer.className = 'flow-explainer';
-    
+    const header = document.createElement("div");
+    header.className = "flow-header";
+    const explainer = document.createElement("div");
+    explainer.className = "flow-explainer";
     // REPLACE: Create Canvases instead of divs
-    const minisLeft = document.createElement('div');
-    minisLeft.className = 'flow-minis-col';
+    const minisLeft = document.createElement("div");
+    minisLeft.className = "flow-minis-col";
     // Use canvas elements
-    minisLeft.innerHTML = Array(4).fill(null).map(() => 
-        `<canvas class="flow-ww-canvas" width="80" height="80" style="width: 80px; height: 80px;"></canvas>`
-    ).join('');
-    
-    const text = document.createElement('div');
-    text.className = 'flow-explainer-text';
+    minisLeft.innerHTML = Array(4)
+        .fill(null)
+        .map(() => `<canvas class="flow-ww-canvas" width="80" height="80" style="width: 80px; height: 80px;"></canvas>`)
+        .join("");
+    const text = document.createElement("div");
+    text.className = "flow-explainer-text";
     text.innerHTML = FLOW_EXPLAINER_TEXT_DEFAULT;
-
-    const minisRight = document.createElement('div');
-    minisRight.className = 'flow-minis-col';
+    const minisRight = document.createElement("div");
+    minisRight.className = "flow-minis-col";
     // Use canvas elements
-    minisRight.innerHTML = Array(4).fill(null).map(() => 
-        `<canvas class="flow-ww-canvas" width="80" height="80" style="width: 80px; height: 80px;"></canvas>`
-    ).join('');
-
+    minisRight.innerHTML = Array(4)
+        .fill(null)
+        .map(() => `<canvas class="flow-ww-canvas" width="80" height="80" style="width: 80px; height: 80px;"></canvas>`)
+        .join("");
     explainer.appendChild(minisLeft);
     explainer.appendChild(text);
     explainer.appendChild(minisRight);
-
-
     header.appendChild(explainer);
     centerCol.appendChild(header);
-
     // List
-    const list = document.createElement('div');
-    list.className = 'flow-list';
-    
+    const list = document.createElement("div");
+    list.className = "flow-list";
     // Header Row
-    const listHeader = document.createElement('div');
-    listHeader.className = 'flow-list-header';
+    const listHeader = document.createElement("div");
+    listHeader.className = "flow-list-header";
     listHeader.innerHTML = `
         <div class="list-head-name">Waterwheel</div>
         <div class="list-head-level">Level</div>
@@ -1287,11 +1231,10 @@ function buildUI(panel) {
         <div class="list-head-state">Flow State</div>
     `;
     list.appendChild(listHeader);
-    
     // Rows
     for (const [id, def] of Object.entries(WATERWHEEL_DEFS)) {
-        const item = document.createElement('div');
-        item.className = 'flow-row';
+        const item = document.createElement("div");
+        item.className = "flow-row";
         item.innerHTML = `
             <div class="flow-bar-container">
                  <img src="${def.image}" class="flow-icon-overlay" id="flow-icon-${id}" alt="">
@@ -1305,11 +1248,8 @@ function buildUI(panel) {
                      <div class="setting-info-tooltip" id="flow-tooltip-${id}"></div>
                  </div>
             </div>
-            
             <div class="flow-level-val" id="flow-lvl-${id}">0</div>
-            
             <div class="flow-effect-val" id="flow-effect-${id}">+0%</div>
-            
             <div class="flow-row-controls" id="flow-controls-${id}">
                 <button class="flow-toggle-btn" data-id="${id}">OFF</button>
             </div>
@@ -1321,15 +1261,13 @@ function buildUI(panel) {
     wrapper.appendChild(centerCol);
     wrapper.appendChild(sideRight);
     panel.appendChild(wrapper);
-
     // Bind Events
-    wrapper.querySelectorAll('.flow-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    wrapper.querySelectorAll(".flow-toggle-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
             const id = e.target.dataset.id;
             toggleWaterwheel(id);
         });
     });
-    
     flowDomCache = {};
     for (const id in WATERWHEEL_DEFS) {
         const fillEl = wrapper.querySelector(`#flow-fill-${id}`);
@@ -1344,35 +1282,31 @@ function buildUI(panel) {
             fill: fillEl,
             innerBar: innerBar,
             tooltip: tooltip,
-            row: fillEl ? fillEl.closest('.flow-row') : null,
-            toggleBtn: wrapper.querySelector(`.flow-toggle-btn[data-id="${id}"]`)
+            row: fillEl ? fillEl.closest(".flow-row") : null,
+            toggleBtn: wrapper.querySelector(`.flow-toggle-btn[data-id="${id}"]`),
         };
-
         if (innerBar && tooltip) {
             innerBar.addEventListener("mouseenter", () => {
                 const ch = state.waterwheels[id];
                 if (!ch || !ch.unlocked) return;
-                
                 tooltip.style.visibility = "hidden";
                 tooltip.style.display = "block";
                 tooltip.style.opacity = "0";
                 tooltip.style.maxHeight = "none";
                 tooltip.classList.remove("is-upwards");
-                
                 const tooltipHeight = tooltip.scrollHeight;
                 const rect = innerBar.getBoundingClientRect();
-                
                 let scrollContainer = innerBar.parentElement;
                 let containerRect = null;
                 while (scrollContainer && scrollContainer !== document.body) {
                     const style = window.getComputedStyle(scrollContainer);
-                    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                    if (style.overflowY === "auto" || style.overflowY === "scroll") {
                         containerRect = scrollContainer.getBoundingClientRect();
                         break;
                     }
                     scrollContainer = scrollContainer.parentElement;
                 }
-                
+
                 let viewportBottom, viewportTop;
                 if (containerRect) {
                     viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
@@ -1381,13 +1315,11 @@ function buildUI(panel) {
                     viewportBottom = window.innerHeight;
                     viewportTop = 0;
                 }
-                
+
                 const spaceBelow = viewportBottom - rect.bottom - 10;
                 const spaceAbove = rect.top - viewportTop - 10;
-                
                 // Always render upwards (rightside up variant)
                 tooltip.classList.add("is-upwards");
-                
                 tooltip.style.maxHeight = "";
                 tooltip.style.overflowY = "";
                 tooltip.style.visibility = "";
@@ -1395,7 +1327,6 @@ function buildUI(panel) {
                 tooltip.style.opacity = "";
                 tooltip.classList.add("is-visible");
             });
-
             innerBar.addEventListener("mouseleave", () => {
                 tooltip.style.display = "";
                 tooltip.classList.remove("is-visible");
@@ -1406,51 +1337,45 @@ function buildUI(panel) {
 
 export function updateFlowTab() {
     if (!flowTabInitialized || !flowPanel) return;
-    
-    const showSideContainers = settingsManager.get('show_side_containers');
-    const leftCol = flowPanel.querySelector('.flow-side-left');
-    const rightCol = flowPanel.querySelector('.flow-side-right');
-    if (leftCol) leftCol.style.display = showSideContainers ? '' : 'none';
-    if (rightCol) rightCol.style.display = showSideContainers ? '' : 'none';
-
-    
-    const explainerTextEl = flowPanel.querySelector('.flow-explainer-text');
+    const showSideContainers = settingsManager.get("show_side_containers");
+    const leftCol = flowPanel.querySelector(".flow-side-left");
+    const rightCol = flowPanel.querySelector(".flow-side-right");
+    if (leftCol) leftCol.style.display = showSideContainers ? "" : "none";
+    if (rightCol) rightCol.style.display = showSideContainers ? "" : "none";
+    const explainerTextEl = flowPanel.querySelector(".flow-explainer-text");
     if (explainerTextEl) {
         let hwMode = false;
-        try { hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${getActiveSlot()}`) === 'true'; } catch(e) {}
-        
+        try {
+            hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${getActiveSlot()}`) === "true";
+        } catch (e) {}
         if (hwMode) {
             explainerTextEl.innerHTML = `<strong><span style="color: #00fffa;">Waterwheel Hotkey mode is active</span></strong>`;
         } else {
             explainerTextEl.innerHTML = FLOW_EXPLAINER_TEXT_DEFAULT;
         }
     }
-updateFlowVisuals();
+    updateFlowVisuals();
     syncFlowLayout();
-
     // Update Buttons
     for (const id in WATERWHEEL_DEFS) {
         const ch = state.waterwheels[id];
         const cache = flowDomCache && flowDomCache[id];
         const btn = cache ? cache.toggleBtn : flowPanel.querySelector(`.flow-toggle-btn[data-id="${id}"]`);
-        
         if (btn) {
             if (ch.active) {
                 if (btn.textContent !== "ON") btn.textContent = "ON";
-                if (!btn.classList.contains('is-active')) btn.classList.add('is-active');
+                if (!btn.classList.contains("is-active")) btn.classList.add("is-active");
             } else {
                 if (btn.textContent !== "OFF") btn.textContent = "OFF";
-                if (btn.classList.contains('is-active')) btn.classList.remove('is-active');
+                if (btn.classList.contains("is-active")) btn.classList.remove("is-active");
             }
         }
     }
-
     debouncedAlignFlowColumns();
 }
 
 function updateWaterwheelVisuals() {
     if (!flowPanel) return;
-    
     const unlocked = [];
     for (const id in state.waterwheels) {
         if (state.waterwheels[id].unlocked) {
@@ -1458,18 +1383,14 @@ function updateWaterwheelVisuals() {
             if (def && def.image) unlocked.push(def);
         }
     }
-    
     if (unlocked.length === 0) return;
-    
     // Change every 180 degrees (PI radians)
     const index = Math.floor((waterwheelRenderer.rotation - Math.PI / 2) / Math.PI) % unlocked.length;
     const currentDef = unlocked[index];
-    
     // Update WebGL Texture
     waterwheelRenderer.setImage(currentDef.image);
-    
-    const imgs = flowPanel.querySelectorAll('.flow-ww-img');
-    imgs.forEach(img => {
+    const imgs = flowPanel.querySelectorAll(".flow-ww-img");
+    imgs.forEach((img) => {
         // Only update if src is different to avoid flicker/reload
         if (!img.src || img.src.indexOf(currentDef.image) === -1) {
             img.src = currentDef.image;
@@ -1489,81 +1410,73 @@ function debouncedAlignFlowColumns() {
 
 function alignFlowColumns() {
     if (!flowPanel || !flowPanel.isConnected) return;
-    
-    const header = flowPanel.querySelector('.flow-list-header');
-    
+    const header = flowPanel.querySelector(".flow-list-header");
     // We need to collect elements to clear transforms regardless of header visibility
-    const rows = Array.from(flowPanel.querySelectorAll('.flow-row'));
+    const rows = Array.from(flowPanel.querySelectorAll(".flow-row"));
     const levelEls = [];
     const effectEls = [];
     const stateEls = [];
-    
     if (header && header.children.length >= 4) {
         levelEls.push(header.children[1]);
         effectEls.push(header.children[2]);
         stateEls.push(header.children[3]);
     }
-    
-    rows.forEach(row => {
-        const l = row.querySelector('.flow-level-val');
-        const e = row.querySelector('.flow-effect-val');
-        const s = row.querySelector('.flow-row-controls');
+    rows.forEach((row) => {
+        const l = row.querySelector(".flow-level-val");
+        const e = row.querySelector(".flow-effect-val");
+        const s = row.querySelector(".flow-row-controls");
         if (l) levelEls.push(l);
         if (e) effectEls.push(e);
         if (s) stateEls.push(s);
     });
-
     // If we are on mobile/tablet, we don't apply the desktop alignment logic
     if (typeof window !== "undefined" && window.innerWidth <= 900) {
-        levelEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
-        effectEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
-        stateEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
+        levelEls.forEach((el) => {
+            if (el.style.transform !== "") el.style.transform = "";
+        });
+        effectEls.forEach((el) => {
+            if (el.style.transform !== "") el.style.transform = "";
+        });
+        stateEls.forEach((el) => {
+            if (el.style.transform !== "") el.style.transform = "";
+        });
         return;
     }
-    
     if (!header || header.offsetParent === null) return; // Hidden or not rendered
     if (header.children.length < 4) return;
-
     // 1. Reset Transforms (Batch Write)
-    levelEls.forEach(el => el.style.transform = '');
-    effectEls.forEach(el => el.style.transform = '');
-    stateEls.forEach(el => el.style.transform = '');
-
+    levelEls.forEach((el) => (el.style.transform = ""));
+    effectEls.forEach((el) => (el.style.transform = ""));
+    stateEls.forEach((el) => (el.style.transform = ""));
     // 2. Measure Centers (Batch Read)
     const getCenter = (el) => {
         const rect = el.getBoundingClientRect();
         return rect.left + rect.width / 2;
     };
-    
-    let maxLevelCenter = 0;
-    levelEls.forEach(el => maxLevelCenter = Math.max(maxLevelCenter, getCenter(el)));
-    
-    let maxEffectCenter = 0;
-    effectEls.forEach(el => maxEffectCenter = Math.max(maxEffectCenter, getCenter(el)));
-    
-    let maxStateCenter = 0;
-    stateEls.forEach(el => maxStateCenter = Math.max(maxStateCenter, getCenter(el)));
 
+    let maxLevelCenter = 0;
+    levelEls.forEach((el) => (maxLevelCenter = Math.max(maxLevelCenter, getCenter(el))));
+    let maxEffectCenter = 0;
+    effectEls.forEach((el) => (maxEffectCenter = Math.max(maxEffectCenter, getCenter(el))));
+    let maxStateCenter = 0;
+    stateEls.forEach((el) => (maxStateCenter = Math.max(maxStateCenter, getCenter(el))));
     // 3. Apply Transforms (Batch Write)
     const alignGroup = (els, targetCenter, headerOffset = 0) => {
         els.forEach((el, index) => {
             const rect = el.getBoundingClientRect();
             const center = rect.left + rect.width / 2;
             let diff = targetCenter - center;
-            
-            // Only the first element in each array is the header if header exists, 
+            // Only the first element in each array is the header if header exists,
             // but we need to check if the first element is actually a header child.
             // Let's just use the logic from the original code which assumes index 0 is header.
-            if (index === 0 && header && header.contains(els[0])) { 
+            if (index === 0 && header && header.contains(els[0])) {
                 diff += headerOffset;
             }
-
             if (Math.abs(diff) > 0.5) {
                 el.style.transform = `translateX(${diff}px)`;
             }
         });
     };
-    
     alignGroup(levelEls, maxLevelCenter);
     alignGroup(effectEls, maxEffectCenter);
     alignGroup(stateEls, maxStateCenter, -1);
@@ -1571,16 +1484,12 @@ function alignFlowColumns() {
 
 function updateFlowVisuals() {
     if (!flowTabInitialized || !flowPanel || !flowDomCache) return;
-
     const fpMult = getFpMultiplier();
-
     for (const id in WATERWHEEL_DEFS) {
         const ch = state.waterwheels[id];
         const def = WATERWHEEL_DEFS[id];
-        
         const cache = flowDomCache[id];
         if (!cache) continue;
-        
         const elIcon = cache.icon;
         const elLvl = cache.lvl;
         const elEffect = cache.effect;
@@ -1588,111 +1497,103 @@ function updateFlowVisuals() {
         const elName = cache.name;
         const elFill = cache.fill;
         const elRow = cache.row;
-        
         if (!ch.unlocked) {
             // Locked State
             if (elIcon) {
-                if (elIcon.getAttribute('src') !== 'img/misc/locked.webp') {
-                    elIcon.src = 'img/misc/locked.webp';
+                if (elIcon.getAttribute("src") !== "img/misc/locked.webp") {
+                    elIcon.src = "img/misc/locked.webp";
                 }
             }
-            if (elRow) elRow.classList.add('is-locked');
-            if (elLvl) elLvl.style.display = 'none';
-            if (elEffect) elEffect.style.display = 'none';
-            if (elControls) elControls.style.display = 'none';
-            
+            if (elRow) elRow.classList.add("is-locked");
+            if (elLvl) elLvl.style.display = "none";
+            if (elEffect) elEffect.style.display = "none";
+            if (elControls) elControls.style.display = "none";
             if (elName) {
                 const newText = getWaterwheelUnlockRequirementText(def);
                 if (elName.innerHTML !== newText) {
                     elName.innerHTML = newText;
-                    elName.classList.add('flow-locked-text');
+                    elName.classList.add("flow-locked-text");
                 }
             }
-            
-            if (elFill && elFill.style.width !== '0%') {
-                elFill.style.width = '0%';
+            if (elFill && elFill.style.width !== "0%") {
+                elFill.style.width = "0%";
             }
-            
         } else {
             // Unlocked State
             if (elIcon) {
                 // Check against def.image or relative path, let's just use def.image
-                if (elIcon.getAttribute('src') !== def.image) {
+                if (elIcon.getAttribute("src") !== def.image) {
                     elIcon.src = def.image;
                 }
             }
             if (elRow) {
-                if (elRow.classList.contains('is-locked')) elRow.classList.remove('is-locked');
+                if (elRow.classList.contains("is-locked")) elRow.classList.remove("is-locked");
             }
             if (elLvl) {
-                 if (elLvl.style.display === 'none') elLvl.style.display = '';
-                 const newText = formatNumber(ch.level);
-                 setHtmlOrText(elLvl, newText);
+                if (elLvl.style.display === "none") elLvl.style.display = "";
+                const newText = formatNumber(ch.level);
+                setHtmlOrText(elLvl, newText);
             }
             if (elEffect) {
-                if (elEffect.style.display === 'none') elEffect.style.display = '';
+                if (elEffect.style.display === "none") elEffect.style.display = "";
                 const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
                 const newText = `+${formatNumber(effectVal)}%`;
                 setHtmlOrText(elEffect, newText);
             }
             if (elControls) {
-                if (elControls.style.display === 'none') elControls.style.display = '';
+                if (elControls.style.display === "none") elControls.style.display = "";
             }
-            
             if (elName) {
                 if (elName.innerHTML !== def.name) {
                     elName.innerHTML = def.name;
-                    elName.classList.remove('flow-locked-text');
+                    elName.classList.remove("flow-locked-text");
                 }
             }
-            
+
             const req = def?.baseReq;
-            
             let pct = 0;
             let isMaxed = false;
             let isInfiniteLevel = false;
-
             if (ch.level instanceof BigNum && ch.level.isInfinite()) {
                 isMaxed = true;
                 isInfiniteLevel = true;
             }
-            
             if (!isMaxed && ch.active) {
-                const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
+                const safeFixedStep = typeof FIXED_STEP === "number" && FIXED_STEP > 0 ? FIXED_STEP : 0.05;
                 const threshold = req / safeFixedStep;
-                
                 let effectiveRate = BigNum.fromInt(1);
                 if (fpMult && !fpMult.isZero()) {
-                     effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
+                    effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
                 }
-                effectiveRate = applyStatMultiplierOverride('fp', effectiveRate);
-                
+                effectiveRate = applyStatMultiplierOverride("fp", effectiveRate);
                 if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
                     isMaxed = true;
                 }
             }
-            
+
             let fpValForTooltip = ch.fp;
             if (isMaxed) {
                 pct = 100;
             } else {
                 let fpVal = ch.fp;
                 if (fpVal instanceof BigNum) {
-                     if (fpVal.isInfinite()) fpVal = Infinity;
-                     else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
+                    if (fpVal.isInfinite()) fpVal = Infinity;
+                    else
+                        try {
+                            fpVal = Number(fpVal.toScientific(5));
+                        } catch {
+                            fpVal = 0;
+                        }
                 }
                 fpValForTooltip = fpVal;
-                
                 if (req > 0) {
                     pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
                 }
             }
-
             if (elFill) {
                 const newWidth = `${pct}%`;
                 if (elFill.style.width !== newWidth) elFill.style.width = newWidth;
             }
-            
             if (cache.tooltip) {
                 if (isInfiniteLevel) {
                     cache.tooltip.innerText = "wow";
@@ -1703,18 +1604,16 @@ function updateFlowVisuals() {
                     let flooredReq = req;
                     if (flooredCurrent instanceof BigNum) {
                         flooredCurrent = flooredCurrent.floor();
-                    } else if (typeof flooredCurrent === 'number') {
+                    } else if (typeof flooredCurrent === "number") {
                         flooredCurrent = Math.floor(flooredCurrent);
                     }
                     if (flooredReq instanceof BigNum) {
                         flooredReq = flooredReq.floor();
-                    } else if (typeof flooredReq === 'number') {
+                    } else if (typeof flooredReq === "number") {
                         flooredReq = Math.floor(flooredReq);
                     }
-                    
                     if (!(flooredCurrent instanceof BigNum)) flooredCurrent = BigNum.fromAny(flooredCurrent);
                     if (!(flooredReq instanceof BigNum)) flooredReq = BigNum.fromAny(flooredReq);
-                    
                     const currentStr = formatNumber(flooredCurrent);
                     const reqStr = formatNumber(flooredReq);
                     cache.tooltip.innerText = `Current progress: ${currentStr} / ${reqStr} FP`;
@@ -1727,19 +1626,16 @@ function updateFlowVisuals() {
 /* =========================================
    INITIALIZATION
    ========================================= */
-
 export function initFlowSystem() {
     if (flowSystemInitialized) return;
     flowSystemInitialized = true;
-    if (typeof window !== 'undefined') {
-        window.addEventListener('flow:hotkeyModeToggled', () => {
+    if (typeof window !== "undefined") {
+        window.addEventListener("flow:hotkeyModeToggled", () => {
             if (flowTabInitialized && flowPanel) updateFlowTab();
         });
-        
-        window.addEventListener('flow:triggerHotkey', (e) => {
+        window.addEventListener("flow:triggerHotkey", (e) => {
             const num = e.detail?.num;
             if (num === undefined) return;
-            
             let lastUnlockedId = null;
             let unlockedCount = 0;
             for (const key of WATERWHEEL_ORDER) {
@@ -1748,9 +1644,7 @@ export function initFlowSystem() {
                     unlockedCount++;
                 }
             }
-
             if (unlockedCount === 0) return;
-
             if (num === 9 || num >= unlockedCount) {
                 if (lastUnlockedId) {
                     toggleWaterwheel(lastUnlockedId);
@@ -1765,73 +1659,61 @@ export function initFlowSystem() {
             }
         });
     }
-
-
-    if (typeof window !== 'undefined') {
-        window.addEventListener('saveSlot:change', () => {
+    if (typeof window !== "undefined") {
+        window.addEventListener("saveSlot:change", () => {
             loadState();
             refreshMysteriousWatcher();
             updateFlowTab();
         });
-        window.addEventListener('setting:changed', (e) => {
-            if (e.detail && e.detail.key === 'show_side_containers') { updateFlowTab(); }
+        window.addEventListener("setting:changed", (e) => {
+            if (e.detail && e.detail.key === "show_side_containers") {
+                updateFlowTab();
+            }
         });
     }
     loadState();
     refreshMysteriousWatcher();
-
     registerTick((dt) => onTick(dt));
     registerUiFrame((time, dt) => onFrame(time, dt));
-
     addExternalCoinMultiplierProvider((params) => getWaterwheelCoinMultiplier(params));
     addExternalXpGainMultiplierProvider((params) => getWaterwheelXpMultiplier(params));
 }
 
 export function initFlowTab(panelEl) {
     if (flowTabInitialized) return;
-    
     initFlowSystem();
-
     flowPanel = panelEl;
     buildUI(panelEl);
-
     // Initialize WebGL Canvases
-    const canvases = flowPanel.querySelectorAll('.flow-ww-canvas');
+    const canvases = flowPanel.querySelectorAll(".flow-ww-canvas");
     waterwheelRenderer.clear();
-    canvases.forEach(c => waterwheelRenderer.addCanvas(c));
-
+    canvases.forEach((c) => waterwheelRenderer.addCanvas(c));
     flowTabInitialized = true;
     refreshMysteriousWatcher();
     updateFlowTab();
     syncFlowLayout();
-    
-    if (typeof ResizeObserver !== 'undefined') {
+    if (typeof ResizeObserver !== "undefined") {
         const ro = new ResizeObserver(syncFlowLayout);
-        const leftCol = flowPanel.querySelector('.flow-side-left');
-        const rightCol = flowPanel.querySelector('.flow-side-right');
+        const leftCol = flowPanel.querySelector(".flow-side-left");
+        const rightCol = flowPanel.querySelector(".flow-side-right");
         if (leftCol) ro.observe(leftCol);
         if (rightCol) ro.observe(rightCol);
     }
-    
     setTimeout(alignFlowColumns, 0);
-    window.addEventListener('resize', alignFlowColumns);
+    window.addEventListener("resize", alignFlowColumns);
 }
 
 export function getWaterwheelScrapMultiplier(baseValue) {
     const level = state.waterwheels[WATERWHEELS.SCRAP]?.level || BigNum.fromInt(0);
     const mult = BigNum.fromInt(1).add(level);
-    
     let val = baseValue;
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
-    
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
-    
-    if (typeof applyStatMultiplierOverride === 'function') {
-        val = applyStatMultiplierOverride('scrap', val);
+    if (typeof applyStatMultiplierOverride === "function") {
+        val = applyStatMultiplierOverride("scrap", val);
     }
     return val.mulBigNumInteger(mult);
 }
-
 
 export function stopAllWaterwheels() {
     let changed = false;
@@ -1848,13 +1730,12 @@ export function stopAllWaterwheels() {
     if (changed) {
         saveState();
         updateFlowTab();
-        window.dispatchEvent(new CustomEvent('flow:change', { detail: { id: 'all', type: 'active' } }));
+        window.dispatchEvent(new CustomEvent("flow:change", { detail: { id: "all", type: "active" } }));
     }
 }
-
-if (typeof window !== 'undefined') {
-  window.waterwheelLevelsSystem = window.waterwheelLevelsSystem || {};
-  Object.assign(window.waterwheelLevelsSystem, {
-    getWaterwheelLevelsMultiplier: getFpMultiplier
-  });
+if (typeof window !== "undefined") {
+    window.waterwheelLevelsSystem = window.waterwheelLevelsSystem || {};
+    Object.assign(window.waterwheelLevelsSystem, {
+        getWaterwheelLevelsMultiplier: getFpMultiplier,
+    });
 }
