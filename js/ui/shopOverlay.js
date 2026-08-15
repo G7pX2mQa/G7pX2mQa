@@ -1511,7 +1511,7 @@ function openValcDialog(model) {
       input.style.width = '100px';
       input.style.textAlign = 'center';
       input.style.outline = 'none';
-      input.style.transition = 'border-color 0.2s';
+      input.style.transition = 'border-color 0.15s';
       input.addEventListener('focus', () => {
           if (input.style.borderColor !== 'rgb(255, 68, 68)' && input.style.borderColor !== '#ff4444') {
               input.style.borderColor = 'rgba(230, 190, 50, 0.75)';
@@ -1656,7 +1656,15 @@ function openValcDialog(model) {
       const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
       
       const targetStr = formatNumber(BigNum.fromAny(effectiveTarget));
-      costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
+      
+      let costAtStr;
+      if (effectiveTarget >= cap) {
+          costAtStr = 'None (Maxed)';
+      } else {
+          costAtStr = `${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
+      }
+      
+      costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
       costToDisplay.innerHTML = `Cost to level ${targetStr}: ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
   };
   
@@ -1727,7 +1735,8 @@ function openValcDialog(model) {
   
   content.append(costAtDisplay, costToDisplay);
   
-  if (model.upg.upgType === 'HM') {
+  const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
+  if (model.upg.upgType === 'HM' && evolutions > 0) {
       const hmNote = document.createElement('div');
       hmNote.textContent = '(Evolution scaling is retroactively regressed every 1000 levels to be informative)';
       hmNote.style.color = 'rgb(245, 230, 160)';
@@ -2304,7 +2313,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       if (locked || capReached) {
           actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
-          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement) && !document.activeElement.closest('.debug-panel')) closeBtn.focus();
+          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement) && !document.activeElement.closest('.debug-panel') && !document.activeElement.closest('.hm-valc-dialog')) closeBtn.focus();
       } else {
           const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
           const ensureButton = (className, text, onClick, index, disabled=false) => {
