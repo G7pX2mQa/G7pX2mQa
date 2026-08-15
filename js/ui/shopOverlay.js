@@ -1488,18 +1488,16 @@ function openValcDialog(model) {
   inputsContainer.style.flexDirection = 'column';
   inputsContainer.style.gap = '0.5rem';
   inputsContainer.style.marginBottom = '1rem';
-  inputsContainer.style.alignItems = 'center';
   
   const createInputRow = (labelText) => {
       const row = document.createElement('div');
       row.style.display = 'flex';
       row.style.alignItems = 'center';
+      row.style.justifyContent = 'center';
       row.style.gap = '0.5rem';
       
       const label = document.createElement('label');
       label.textContent = labelText;
-      label.style.width = '100px';
-      label.style.textAlign = 'right';
       
       const input = document.createElement('input');
       input.type = 'text';
@@ -1520,33 +1518,40 @@ function openValcDialog(model) {
           }
       });
       
-      row.append(label, input);
-      return { row, label, input };
+      const afterSlot = document.createElement('div');
+      afterSlot.style.opacity = '0.7';
+      afterSlot.style.whiteSpace = 'nowrap';
+      
+      row.append(label, input, afterSlot);
+      return { row, label, input, afterSlot };
   };
   
   const startRowObj = createInputRow('Starting Level:');
   const targetRowObj = createInputRow('Target Level:');
   
-  const { row: startRow, input: startInput } = startRowObj;
-  const { row: targetRow, label: targetLabel, input: targetInput } = targetRowObj;
+  const { row: startRow, input: startInput, afterSlot: startAfter } = startRowObj;
+  const { row: targetRow, label: targetLabel, input: targetInput, afterSlot: targetAfter } = targetRowObj;
   
   startInput.value = formatNumber(BigNum.fromAny(model.lvl));
   targetInput.value = formatNumber(BigNum.fromAny(model.lvl));
   
   const cap = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
-  const capLabel = document.createElement('span');
-  capLabel.textContent = cap === Infinity ? '' : ` / ${formatNumber(BigNum.fromAny(cap))}`;
-  capLabel.style.opacity = '0.7';
-  targetRow.append(capLabel);
+  const capText = cap === Infinity ? '' : ` / ${formatNumber(BigNum.fromAny(cap))}`;
+  
+  startAfter.textContent = capText;
+  targetAfter.textContent = capText;
   
   inputsContainer.append(startRow, targetRow);
+  
   content.append(toggleRow, inputsContainer);
   
   const costAtDisplay = document.createElement('div');
   costAtDisplay.style.marginBottom = '0.5rem';
+  costAtDisplay.style.textAlign = 'center';
   
   const costToDisplay = document.createElement('div');
   costToDisplay.style.marginBottom = '1rem';
+  costToDisplay.style.textAlign = 'center';
   
   const parseLevel = (val) => {
       const v = String(val).trim().replace(/,/g, '');
@@ -1564,7 +1569,7 @@ function openValcDialog(model) {
   };
   
   const getRetroactiveCostAt = (level) => {
-      if (model.upg.upgType !== 'HM' || !model.hmEvolutions) {
+      if (model.upg.upgType !== 'HM') {
           try { return BigNum.fromAny(model.upg.costAtLevel(level)); } catch { return BigNum.fromInt(0); }
       }
       
@@ -1583,7 +1588,7 @@ function openValcDialog(model) {
   };
   
   const getRetroactiveCost = (start, end) => {
-      if (model.upg.upgType !== 'HM' || !model.hmEvolutions) {
+      if (model.upg.upgType !== 'HM') {
           return evaluateBulkPurchase(model.upg, BigNum.fromInt(start), BigNum.fromAny('Infinity'), BigNum.fromInt(end - start)).spent;
       }
       
@@ -1618,9 +1623,10 @@ function openValcDialog(model) {
   
   const updateDisplays = () => {
       const isTargetMode = targetModeCheck.checked;
+      
       startRow.style.display = isTargetMode ? 'flex' : 'none';
+      
       targetLabel.textContent = isTargetMode ? 'Target Level:' : 'Level:';
-      costToDisplay.style.display = isTargetMode ? 'block' : 'none';
       
       let startLvl = parseLevel(startInput.value);
       let targetLvl = parseLevel(targetInput.value);
@@ -1628,33 +1634,30 @@ function openValcDialog(model) {
       const isStartInvalid = startLvl === -1;
       const isTargetInvalid = targetLvl === -1;
       
-      if (isTargetMode && (isTargetInvalid || isStartInvalid)) {
-          costAtDisplay.innerHTML = `Input level numbers for this to work`;
-          costToDisplay.innerHTML = ``;
+      if (isTargetInvalid || (isTargetMode && isStartInvalid)) {
+          costAtDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Enter valid ${isTargetMode ? 'levels' : 'level'} to view cost</span>`;
+          costToDisplay.style.display = 'none';
           return;
       }
       
-      const safeStart = isStartInvalid ? 0 : startLvl;
-      const safeTarget = isTargetInvalid ? 0 : targetLvl;
+      costToDisplay.style.display = isTargetMode ? 'block' : 'none';
+      
+      const safeStart = startLvl;
+      const safeTarget = targetLvl;
       let effectiveTarget = safeTarget;
       
       let costAt = getRetroactiveCostAt(effectiveTarget);
       const costAtLabel = getCurrencyLabel(model.upg.costType, costAt);
       
       let cumulative = BigNum.fromInt(0);
-      if (isTargetMode && !isTargetInvalid && !isStartInvalid && effectiveTarget > safeStart) {
+      if (isTargetMode && effectiveTarget > safeStart) {
           cumulative = getRetroactiveCost(safeStart, effectiveTarget);
       }
       const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
       
-      const iconHTML = `<img alt="" src="${CURRENCY_ICON_SRC[model.upg.costType] || CURRENCY_ICON_SRC.coins}" class="currency-ico" style="height: 0.9em; width: auto; vertical-align: -0.14em; margin: 0 0.2em; position: relative; top: -0.5px;">`;
-      
-      const targetStr = isTargetInvalid ? '-' : formatNumber(BigNum.fromAny(effectiveTarget));
-      const costAtStr = isTargetInvalid ? '-' : `${iconHTML} ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
-      const costToStr = (isTargetMode && (isTargetInvalid || isStartInvalid)) ? '-' : `${iconHTML} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
-      
-      costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
-      costToDisplay.innerHTML = `Cost to level ${targetStr}: ${costToStr}`;
+      const targetStr = formatNumber(BigNum.fromAny(effectiveTarget));
+      costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
+      costToDisplay.innerHTML = `Cost to level ${targetStr}: ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
   };
   
   const formatOnBlur = (inputEl) => {
@@ -1724,7 +1727,7 @@ function openValcDialog(model) {
   
   content.append(costAtDisplay, costToDisplay);
   
-  if (model.upg.upgType === 'HM' && model.hmEvolutions > 0) {
+  if (model.upg.upgType === 'HM') {
       const hmNote = document.createElement('div');
       hmNote.textContent = '(Evolution scaling is retroactively regressed every 1000 levels to be informative)';
       hmNote.style.color = 'rgb(245, 230, 160)';
