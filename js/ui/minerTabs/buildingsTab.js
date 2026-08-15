@@ -1,459 +1,436 @@
-import { getActiveSlot } from '../../util/storage.js';
-import { getDpState } from '../../game/dpSystem.js';
-import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
-import { setupDragToClose } from '../shopOverlay.js';
-import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
-import { levelBigNumToNumber } from '../../game/upgrades.js';
-import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
-import { setHtmlOrText } from '../../util/uiHelpers.js';
-import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
-import { playPurchaseSfx } from '../shopOverlay.js';
-import { IS_MOBILE } from '../../util/platformChecker.js';
-import { settingsManager } from '../../game/settingsManager.js';
-
-
-const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
-const BUILDING_ITEM_UNLOCKED_KEY_BASE = 'ccc:buildingItemUnlocked';
-const BUILDING_LEVEL_KEY_BASE = 'ccc:buildingLevel';
-
+import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { getActiveSlot } from "../../util/storage.js";
+import { getDpState } from "../../game/dpSystem.js";
+import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
+import { setupDragToClose } from "../shopOverlay.js";
+import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../../util/bigNum.js";
+import { levelBigNumToNumber } from "../../game/upgrades.js";
+import { formatMultForUi, formatNumber } from "../../util/numFormat.js";
+import { setHtmlOrText } from "../../util/uiHelpers.js";
+import { RESOURCE_REGISTRY } from "../../game/offlinePanel.js";
+import { playPurchaseSfx } from "../shopOverlay.js";
+import { IS_MOBILE } from "../../util/platformChecker.js";
+import { settingsManager } from "../../game/settingsManager.js";
+const BUILDINGS_UNLOCKED_KEY_BASE = "ccc:buildingsUnlocked";
+const BUILDING_ITEM_UNLOCKED_KEY_BASE = "ccc:buildingItemUnlocked";
+const BUILDING_LEVEL_KEY_BASE = "ccc:buildingLevel";
 export const BUILDING_IDS = [
-    'core', 'crystal', 'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
-    'emerald', 'ruby', 'sapphire', 'unobtainium', 'prismatium'
+    "core",
+    "crystal",
+    "stone",
+    "copper",
+    "iron",
+    "pure_gold",
+    "diamond",
+    "emerald",
+    "ruby",
+    "sapphire",
+    "unobtainium",
+    "prismatium",
 ];
-
 export function isBuildingUnlocked(id) {
-  if (id === 'crystal') {
-    return window.resetSystem?.isCompressUnlocked?.() ?? false;
-  }
-  const slotKey = String(getActiveSlot() ?? 'default');
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    return localStorage.getItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === '1';
-  } catch {
-    return false;
-  }
+    if (id === "crystal") {
+        return window.resetSystem?.isCompressUnlocked?.() ?? false;
+    }
+
+    const slotKey = String(getActiveSlot() ?? "default");
+    if (typeof localStorage === "undefined") return false;
+    try {
+        return localStorage.getItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === "1";
+    } catch {
+        return false;
+    }
 }
 
 export function setBuildingUnlocked(id, value, slot = getActiveSlot()) {
-  const slotKey = String(slot ?? 'default');
-  if (typeof localStorage !== 'undefined') {
-    try {
-      if (value) {
-        localStorage.setItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`, '1');
-      } else {
-        localStorage.removeItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`);
-      }
-    } catch {}
-  }
+    const slotKey = String(slot ?? "default");
+    if (typeof localStorage !== "undefined") {
+        try {
+            if (value) {
+                lsSetItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`, "1");
+            } else {
+                lsRemoveItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`);
+            }
+        } catch {}
+    }
 }
 
 let cachedBuildingsUnlockedStates = {};
-
 export function isBuildingsUnlocked() {
- const slot = getActiveSlot();
-  if (slot == null) return false;
-  if (cachedBuildingsUnlockedStates[slot] !== undefined && cachedBuildingsUnlockedStates[slot] !== null) return cachedBuildingsUnlockedStates[slot];
-  const slotKey = String(slot);
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    const result = localStorage.getItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
-   cachedBuildingsUnlockedStates[slot] = result;
-    return result;
-  } catch {
-    return false;
-  }
+    const slot = getActiveSlot();
+    if (slot == null) return false;
+    if (cachedBuildingsUnlockedStates[slot] !== undefined && cachedBuildingsUnlockedStates[slot] !== null)
+        return cachedBuildingsUnlockedStates[slot];
+    const slotKey = String(slot);
+    if (typeof localStorage === "undefined") return false;
+    try {
+        const result = localStorage.getItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === "1";
+        cachedBuildingsUnlockedStates[slot] = result;
+        return result;
+    } catch {
+        return false;
+    }
 }
 
 export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
-  const slotKey = String(slot ?? 'default');
-  if (slot != null) {
-    cachedBuildingsUnlockedStates[slot] = !!value;
-  }
-  if (typeof localStorage !== 'undefined') {
-    try {
-      if (value) {
-        localStorage.setItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`, '1');
-      } else {
-        localStorage.removeItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`);
-        
-        // Reset all building levels and individual unlock states when the tab is locked
-        BUILDING_IDS.forEach(id => {
-          localStorage.removeItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
-          localStorage.removeItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`);
-        });
-      }
-      window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "buildings", slot } }));
-    } catch {}
-  }
+    const slotKey = String(slot ?? "default");
+    if (slot != null) {
+        cachedBuildingsUnlockedStates[slot] = !!value;
+    }
+    if (typeof localStorage !== "undefined") {
+        try {
+            if (value) {
+                lsSetItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`, "1");
+            } else {
+                lsRemoveItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`);
+                // Reset all building levels and individual unlock states when the tab is locked
+                BUILDING_IDS.forEach((id) => {
+                    lsRemoveItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
+                    lsRemoveItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`);
+                });
+            }
+            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "buildings", slot } }));
+        } catch {}
+    }
 }
-
-if (typeof window !== 'undefined') {
-  const invalidateBuildingsCache = () => { cachedBuildingsUnlockedStates = {}; };
-  window.addEventListener('saveSlot:change', invalidateBuildingsCache);
-  window.addEventListener('unlock:change', invalidateBuildingsCache);
+if (typeof window !== "undefined") {
+    const invalidateBuildingsCache = () => {
+        cachedBuildingsUnlockedStates = {};
+    };
+    window.addEventListener("saveSlot:change", invalidateBuildingsCache);
+    window.addEventListener("unlock:change", invalidateBuildingsCache);
 }
 
 function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText, level, plusLevel) {
-    const btn = document.createElement('button');
-    btn.className = 'shop-upgrade';
+    const btn = document.createElement("button");
+    btn.className = "shop-upgrade";
     if (isLocked) {
-        btn.classList.add('is-locked');
+        btn.classList.add("is-locked");
     }
-    btn.type = 'button';
+    btn.type = "button";
     btn.dataset.buildingId = id;
-
-    const tile = document.createElement('div');
-    tile.className = 'shop-tile';
-
-    const baseImg = document.createElement('img');
-    baseImg.className = 'base';
-    baseImg.src = isLocked ? 'img/misc/mysterious_plus_base.webp' : baseSrc;
-    baseImg.alt = '';
+    const tile = document.createElement("div");
+    tile.className = "shop-tile";
+    const baseImg = document.createElement("img");
+    baseImg.className = "base";
+    baseImg.src = isLocked ? "img/misc/mysterious_plus_base.webp" : baseSrc;
+    baseImg.alt = "";
     baseImg.draggable = false;
-
-    const iconImg = document.createElement('img');
-    iconImg.className = 'icon';
+    const iconImg = document.createElement("img");
+    iconImg.className = "icon";
     // If it's locked, just no icon, because base covers it
-    iconImg.src = isLocked ? '' : iconSrc;
-    iconImg.alt = '';
+    iconImg.src = isLocked ? "" : iconSrc;
+    iconImg.alt = "";
     iconImg.draggable = false;
-    
     if (isLocked || !iconSrc) {
-        iconImg.style.display = 'none';
-        iconImg.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // Transparent 1x1 gif
+        iconImg.style.display = "none";
+        iconImg.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="; // Transparent 1x1 gif
     } else {
-        iconImg.style.display = '';
+        iconImg.style.display = "";
     }
-    
     tile.appendChild(baseImg);
     tile.appendChild(iconImg);
-
     const levelBn = getBuildingLevel(id);
     const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
-
     if (isInfiniteLevel) {
-        const maxedOverlay = document.createElement('img');
-        maxedOverlay.className = 'maxed-overlay';
-        maxedOverlay.src = 'img/misc/maxed.webp';
-        maxedOverlay.alt = '';
+        const maxedOverlay = document.createElement("img");
+        maxedOverlay.className = "maxed-overlay";
+        maxedOverlay.src = "img/misc/maxed.webp";
+        maxedOverlay.alt = "";
         maxedOverlay.draggable = false;
         tile.appendChild(maxedOverlay);
     }
-
     if (!isLocked && level !== undefined) {
-        const badge = document.createElement('div');
-        badge.className = 'level-badge';
-        
+        const badge = document.createElement("div");
+        badge.className = "level-badge";
         let hasPlus = false;
         if (!isInfiniteLevel) {
-            if (plusLevel && typeof plusLevel.isZero === 'function') {
-                 hasPlus = !plusLevel.isZero();
+            if (plusLevel && typeof plusLevel.isZero === "function") {
+                hasPlus = !plusLevel.isZero();
             } else if (plusLevel) {
-                 hasPlus = true;
+                hasPlus = true;
             }
         }
+
         let needsTwoLines = false;
         if (hasPlus) {
-            badge.classList.add('can-buy');
+            badge.classList.add("can-buy");
             let plusOver999 = false;
-            if (plusLevel && typeof plusLevel.cmp === 'function') {
+            if (plusLevel && typeof plusLevel.cmp === "function") {
                 plusOver999 = plusLevel.cmp(BigNum.fromInt(999)) > 0;
-            } else if (typeof plusLevel === 'number') {
+            } else if (typeof plusLevel === "number") {
                 plusOver999 = plusLevel > 999;
             }
-            
+
             let levelOver999 = false;
-            if (levelBn && typeof levelBn.cmp === 'function') {
+            if (levelBn && typeof levelBn.cmp === "function") {
                 levelOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
-            } else if (typeof levelBn === 'number') {
+            } else if (typeof levelBn === "number") {
                 levelOver999 = levelBn > 999;
             }
-            
             needsTwoLines = plusOver999 || levelOver999;
         }
-        
         if (isInfiniteLevel) {
             setHtmlOrText(badge, formatNumber(levelBn));
         } else {
             if (needsTwoLines) {
-                badge.classList.add('two-line');
-                setHtmlOrText(badge, `<span class="badge-lvl">${level}</span><span class="badge-plus">(+${formatNumber(plusLevel)})</span>`);
+                badge.classList.add("two-line");
+                setHtmlOrText(
+                    badge,
+                    `<span class="badge-lvl">${level}</span><span class="badge-plus">(+${formatNumber(plusLevel)})</span>`,
+                );
             } else if (hasPlus) {
                 badge.textContent = `${level} (+${formatNumber(plusLevel)})`;
             } else {
                 badge.textContent = level;
             }
         }
-        
         tile.appendChild(badge);
     }
-
     btn.appendChild(tile);
-
     return { btn, baseImg, iconImg };
 }
 
 export function renderBuildingsGrid(gridEl) {
-    gridEl.innerHTML = '';
-
+    gridEl.innerHTML = "";
     let highestDepth = 0;
     try {
         const dpState = getDpState();
-        if (dpState && dpState.dpLevel) highestDepth = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
+        if (dpState && dpState.dpLevel)
+            highestDepth = dpState.dpLevel.inf ? Infinity : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e);
     } catch {}
-
     const buildings = [];
-    
     // 1. Core Building
-    if (!isBuildingUnlocked('core')) setBuildingUnlocked('core', true);
+    if (!isBuildingUnlocked("core")) setBuildingUnlocked("core", true);
     buildings.push({
-        id: 'core',
-        title: 'Black Hole',
-        iconSrc: '',
-        baseSrc: 'img/currencies/core/core_plus_base.webp',
+        id: "core",
+        title: "Black Hole",
+        iconSrc: "",
+        baseSrc: "img/currencies/core/core_plus_base.webp",
         isLocked: false,
-        mysteriousText: '',
+        mysteriousText: "",
         level: formatNumber(getBuildingLevel("core")),
-        plusLevel: getAffordableBuildingLevels("core")
+        plusLevel: getAffordableBuildingLevels("core"),
     });
-
     // 2. Crystal Building
     let crystalLocked = true;
-    if (isBuildingUnlocked('crystal')) {
+    if (isBuildingUnlocked("crystal")) {
         crystalLocked = false;
     } else {
         if (highestDepth >= 101) {
-            setBuildingUnlocked('crystal', true);
+            setBuildingUnlocked("crystal", true);
             crystalLocked = false;
         }
     }
-    
     buildings.push({
-        id: 'crystal',
-        title: 'Crystal Building',
-        iconSrc: '',
-        baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
+        id: "crystal",
+        title: "Crystal Building",
+        iconSrc: "",
+        baseSrc: "img/currencies/crystal/crystal_plus_base.webp",
         isLocked: crystalLocked,
-        mysteriousText: 'Unlock a certain upgrade to reveal this Building',
+        mysteriousText: "Unlock a certain upgrade to reveal this Building",
         level: formatNumber(getBuildingLevel("crystal")),
-        plusLevel: getAffordableBuildingLevels("crystal")
+        plusLevel: getAffordableBuildingLevels("crystal"),
     });
-
     // 3-12. Material Buildings (Stone to Prismatium)
-    const baseIconStr = 'img/currencies/scrap/scrap_base.webp';
+    const baseIconStr = "img/currencies/scrap/scrap_base.webp";
     for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
         const mat = UC_MATERIAL_DATA[i];
         let isLocked = true;
-        
         if (isBuildingUnlocked(mat.name)) {
             isLocked = false;
         } else {
-            const conditionMet = mat.name === 'stone' ? true : highestDepth >= mat.start;
+            const conditionMet = mat.name === "stone" ? true : highestDepth >= mat.start;
             if (conditionMet) {
                 setBuildingUnlocked(mat.name, true);
                 isLocked = false;
             }
         }
-
         buildings.push({
             id: mat.name,
-            title: mat.name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Building',
+            title:
+                mat.name
+                    .split("_")
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ") + " Building",
             iconSrc: `img/materials/${mat.name}.webp`,
             baseSrc: baseIconStr,
             isLocked: isLocked,
             mysteriousText: `Reach Depth: ${mat.start}m to reveal this Building`,
             level: formatNumber(getBuildingLevel(mat.name)),
-            plusLevel: getAffordableBuildingLevels(mat.name)
+            plusLevel: getAffordableBuildingLevels(mat.name),
         });
     }
-
-    buildings.forEach(b => {
-        const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText, b.level, b.plusLevel);
-        
+    buildings.forEach((b) => {
+        const card = createBuildingCard(
+            b.id,
+            b.title,
+            b.iconSrc,
+            b.baseSrc,
+            b.isLocked,
+            b.mysteriousText,
+            b.level,
+            b.plusLevel,
+        );
         if (b.isLocked) {
-            card.btn.title = 'Hidden Building';
-            card.btn.addEventListener('click', () => {
+            card.btn.title = "Hidden Building";
+            card.btn.addEventListener("click", () => {
                 openMysteriousBuildingOverlay(b.mysteriousText);
             });
         } else {
-            card.btn.title = 'Left-click: View Building • Right-click: Buy Max';
-            card.btn.addEventListener('click', (e) => {
+            card.btn.title = "Left-click: View Building • Right-click: Buy Max";
+            card.btn.addEventListener("click", (e) => {
                 if (e.shiftKey) {
                     currentBuildingId = b.id;
-                    handlePurchase('cheap');
+                    handlePurchase("cheap");
                     currentBuildingId = null;
                     return;
                 }
                 if (e.ctrlKey) {
                     currentBuildingId = b.id;
-                    handlePurchase('next');
+                    handlePurchase("next");
                     currentBuildingId = null;
                     return;
                 }
-                
-                if (IS_MOBILE && settingsManager.get('building_insta_max')) {
+                if (IS_MOBILE && settingsManager.get("building_insta_max")) {
                     const affordableBn = getAffordableBuildingLevels(b.id);
                     if (affordableBn && (affordableBn.isInfinite?.() || affordableBn.cmp(0) > 0)) {
                         currentBuildingId = b.id;
-                        handlePurchase('max');
+                        handlePurchase("max");
                         currentBuildingId = null;
                         return;
                     }
                 }
-                openBuildingDetailOverlay(b.id); 
+                openBuildingDetailOverlay(b.id);
             });
-            card.btn.addEventListener('contextmenu', (e) => {
+            card.btn.addEventListener("contextmenu", (e) => {
                 e.preventDefault();
                 currentBuildingId = b.id;
-                handlePurchase('max');
+                handlePurchase("max");
                 currentBuildingId = null;
             });
-
-            
         }
-        
         gridEl.appendChild(card.btn);
     });
 }
 
 export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl) {
-  const tabBtn = document.createElement('button');
-  tabBtn.type = 'button';
-  tabBtn.className = 'merchant-tab';
-  tabBtn.dataset.tab = 'buildings';
-  tabBtn.textContent = 'Buildings';
-  tabBtn.title = 'Buildings';
-  
-  const panel = document.createElement('section');
-  panel.className = 'merchant-panel buildings-tab';
-  panel.id = 'miner-panel-buildings';
-  
-  const scroller = document.createElement('div');
-  scroller.className = 'shop-scroller';
-  scroller.style.height = '100%';
-  scroller.style.position = 'relative';
-
-  const grid = document.createElement('div');
-  grid.className = 'shop-grid';
-  grid.id = 'buildings-grid';
-  grid.setAttribute('role', 'grid');
-
-  scroller.appendChild(grid);
-  panel.appendChild(scroller);
-  
-  tabsEl.appendChild(tabBtn);
-  panelsWrapEl.appendChild(panel);
-  
-  tabBtn.addEventListener('click', () => {
-    const allTabs = tabsEl.querySelectorAll('.merchant-tab');
-    const allPanels = panelsWrapEl.querySelectorAll('.merchant-panel');
-    allTabs.forEach(t => t.classList.remove('is-active'));
-    allPanels.forEach(p => p.classList.remove('is-active'));
-    tabBtn.classList.add('is-active');
-    panel.classList.add('is-active');
-    
-    // re-render the grid when the tab is clicked, just in case depth changed
-    renderBuildingsGrid(grid);
-  });
-  
-  updateBuildingsPanelVisibility(minerSheetEl);
-  
-  // Render grid immediately if unlocked, though typically it happens on click
-  if (isBuildingsUnlocked()) {
-      renderBuildingsGrid(grid);
-  }
-
-  document.addEventListener('ccc:buildings:changed', () => {
-    if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
-      renderBuildingsGrid(grid);
-    }
-    // Update the building overlay if it is open
-    if (currentBuildingId) {
-        updateOverlayUi();
-    }
-  });
-
-  window.addEventListener('currency:change', () => {
-    // Update the building overlay if it is open
-    if (currentBuildingId) {
-        updateOverlayUi();
-    }
-  });
-
-  window.addEventListener('unlock:change', (e) => {
-    if (e.detail?.key === 'compress') {
-      if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
+    const tabBtn = document.createElement("button");
+    tabBtn.type = "button";
+    tabBtn.className = "merchant-tab";
+    tabBtn.dataset.tab = "buildings";
+    tabBtn.textContent = "Buildings";
+    tabBtn.title = "Buildings";
+    const panel = document.createElement("section");
+    panel.className = "merchant-panel buildings-tab";
+    panel.id = "miner-panel-buildings";
+    const scroller = document.createElement("div");
+    scroller.className = "shop-scroller";
+    scroller.style.height = "100%";
+    scroller.style.position = "relative";
+    const grid = document.createElement("div");
+    grid.className = "shop-grid";
+    grid.id = "buildings-grid";
+    grid.setAttribute("role", "grid");
+    scroller.appendChild(grid);
+    panel.appendChild(scroller);
+    tabsEl.appendChild(tabBtn);
+    panelsWrapEl.appendChild(panel);
+    tabBtn.addEventListener("click", () => {
+        const allTabs = tabsEl.querySelectorAll(".merchant-tab");
+        const allPanels = panelsWrapEl.querySelectorAll(".merchant-panel");
+        allTabs.forEach((t) => t.classList.remove("is-active"));
+        allPanels.forEach((p) => p.classList.remove("is-active"));
+        tabBtn.classList.add("is-active");
+        panel.classList.add("is-active");
+        // re-render the grid when the tab is clicked, just in case depth changed
         renderBuildingsGrid(grid);
-      }
+    });
+    updateBuildingsPanelVisibility(minerSheetEl);
+    // Render grid immediately if unlocked, though typically it happens on click
+    if (isBuildingsUnlocked()) {
+        renderBuildingsGrid(grid);
     }
-  });
-
-  // Listen for depth changes and check if any new building unlocks
-  window.addEventListener('dp:change', () => {
-    if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
-      let highestDepth = 0;
-      try {
-        const dpState = getDpState();
-        if (dpState && dpState.dpLevel) highestDepth = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
-      } catch {}
-
-      let newlyUnlocked = false;
-
-      // Check materials for unlock
-      for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
-        const mat = UC_MATERIAL_DATA[i];
-        if (!isBuildingUnlocked(mat.name)) {
-          const conditionMet = mat.name === 'stone' ? true : highestDepth >= mat.start;
-          if (conditionMet) {
-            setBuildingUnlocked(mat.name, true);
-            newlyUnlocked = true;
-          }
+    document.addEventListener("ccc:buildings:changed", () => {
+        if (panel.classList.contains("is-active") && isBuildingsUnlocked()) {
+            renderBuildingsGrid(grid);
         }
-      }
-      
-
-
-      if (newlyUnlocked) {
-        renderBuildingsGrid(grid);
-      }
+        // Update the building overlay if it is open
+        if (currentBuildingId) {
+            updateOverlayUi();
+        }
+    });
+    window.addEventListener("currency:change", () => {
+        // Update the building overlay if it is open
+        if (currentBuildingId) {
+            updateOverlayUi();
+        }
+    });
+    window.addEventListener("unlock:change", (e) => {
+        if (e.detail?.key === "compress") {
+            if (panel.classList.contains("is-active") && isBuildingsUnlocked()) {
+                renderBuildingsGrid(grid);
+            }
+        }
+    });
+    // Listen for depth changes and check if any new building unlocks
+    window.addEventListener("dp:change", () => {
+        if (panel.classList.contains("is-active") && isBuildingsUnlocked()) {
+            let highestDepth = 0;
+            try {
+                const dpState = getDpState();
+                if (dpState && dpState.dpLevel)
+                    highestDepth = dpState.dpLevel.inf
+                        ? Infinity
+                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e);
+            } catch {}
+            let newlyUnlocked = false;
+            // Check materials for unlock
+            for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
+                const mat = UC_MATERIAL_DATA[i];
+                if (!isBuildingUnlocked(mat.name)) {
+                    const conditionMet = mat.name === "stone" ? true : highestDepth >= mat.start;
+                    if (conditionMet) {
+                        setBuildingUnlocked(mat.name, true);
+                        newlyUnlocked = true;
+                    }
+                }
+            }
+            if (newlyUnlocked) {
+                renderBuildingsGrid(grid);
+            }
+        }
+    });
+    let animationFrameId;
+    function updateLoop() {
+        if (panel.classList.contains("is-active") && isBuildingsUnlocked()) {
+            updateBuildingGridBadges(grid);
+        }
+        animationFrameId = requestAnimationFrame(updateLoop);
     }
-  });
-
-  let animationFrameId;
-  function updateLoop() {
-    if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
-      updateBuildingGridBadges(grid);
-    }
-    animationFrameId = requestAnimationFrame(updateLoop);
-  }
-  updateLoop();
+    updateLoop();
 }
 
 function updateBuildingGridBadges(gridEl) {
     if (!gridEl) return;
-    const cards = gridEl.querySelectorAll('.shop-upgrade:not(.is-locked)');
-    cards.forEach(card => {
+    const cards = gridEl.querySelectorAll(".shop-upgrade:not(.is-locked)");
+    cards.forEach((card) => {
         const id = card.dataset.buildingId;
         if (!id) return;
-        
         const levelBn = getBuildingLevel(id);
         const plusLevelBn = getAffordableBuildingLevels(id);
-        
-
         let levelStr = formatNumber(levelBn);
         let plusLevelStr = formatNumber(plusLevelBn);
-        
         const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
-
-        const tile = card.querySelector('.shop-tile');
+        const tile = card.querySelector(".shop-tile");
         if (tile) {
-            let maxedOverlay = tile.querySelector('.maxed-overlay');
+            let maxedOverlay = tile.querySelector(".maxed-overlay");
             if (isInfiniteLevel) {
                 if (!maxedOverlay) {
-                    maxedOverlay = document.createElement('img');
-                    maxedOverlay.className = 'maxed-overlay';
-                    maxedOverlay.src = 'img/misc/maxed.webp';
-                    maxedOverlay.alt = '';
+                    maxedOverlay = document.createElement("img");
+                    maxedOverlay.className = "maxed-overlay";
+                    maxedOverlay.src = "img/misc/maxed.webp";
+                    maxedOverlay.alt = "";
                     maxedOverlay.draggable = false;
                     tile.appendChild(maxedOverlay);
                 }
@@ -466,50 +443,49 @@ function updateBuildingGridBadges(gridEl) {
 
         let hasPlus = false;
         if (!isInfiniteLevel) {
-            if (plusLevelBn && typeof plusLevelBn.isZero === 'function') {
-                 hasPlus = !plusLevelBn.isZero();
+            if (plusLevelBn && typeof plusLevelBn.isZero === "function") {
+                hasPlus = !plusLevelBn.isZero();
             } else if (plusLevelBn) {
-                 hasPlus = true;
+                hasPlus = true;
             }
         }
 
         let needsTwoLines = false;
         if (hasPlus) {
             let plusOver999 = false;
-            if (plusLevelBn && typeof plusLevelBn.cmp === 'function') {
+            if (plusLevelBn && typeof plusLevelBn.cmp === "function") {
                 plusOver999 = plusLevelBn.cmp(BigNum.fromInt(999)) > 0;
-            } else if (typeof plusLevelBn === 'number') {
+            } else if (typeof plusLevelBn === "number") {
                 plusOver999 = plusLevelBn > 999;
             }
-            
+
             let levelOver999 = false;
-            if (levelBn && typeof levelBn.cmp === 'function') {
+            if (levelBn && typeof levelBn.cmp === "function") {
                 levelOver999 = levelBn.cmp(BigNum.fromInt(999)) > 0;
-            } else if (typeof levelBn === 'number') {
+            } else if (typeof levelBn === "number") {
                 levelOver999 = levelBn > 999;
             }
-            
             needsTwoLines = plusOver999 || levelOver999;
         }
 
-
-        let badge = card.querySelector('.level-badge');
+        let badge = card.querySelector(".level-badge");
         if (!badge) {
-            badge = document.createElement('div');
-            badge.className = 'level-badge';
-            const tile = card.querySelector('.shop-tile');
+            badge = document.createElement("div");
+            badge.className = "level-badge";
+            const tile = card.querySelector(".shop-tile");
             if (tile) tile.appendChild(badge);
         }
-        
-        badge.className = 'level-badge'; // reset class
-        if (needsTwoLines) badge.classList.add('two-line');
-        if (hasPlus) badge.classList.add('can-buy');
-
+        badge.className = "level-badge"; // reset class
+        if (needsTwoLines) badge.classList.add("two-line");
+        if (hasPlus) badge.classList.add("can-buy");
         if (isInfiniteLevel) {
             setHtmlOrText(badge, levelStr);
         } else {
             if (needsTwoLines) {
-                setHtmlOrText(badge, `<span class="badge-lvl">${levelStr}</span><span class="badge-plus">(+${plusLevelStr})</span>`);
+                setHtmlOrText(
+                    badge,
+                    `<span class="badge-lvl">${levelStr}</span><span class="badge-plus">(+${plusLevelStr})</span>`,
+                );
             } else if (hasPlus) {
                 setHtmlOrText(badge, `${levelStr} (+${plusLevelStr})`);
             } else {
@@ -520,283 +496,246 @@ function updateBuildingGridBadges(gridEl) {
 }
 
 export function updateBuildingsPanelVisibility(minerSheetEl) {
-  if (!minerSheetEl) {
-    minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
-  }
-  if (!minerSheetEl) return;
+    if (!minerSheetEl) {
+        minerSheetEl = document.querySelector(".merchant-overlay.is-miner .merchant-sheet");
+    }
+    if (!minerSheetEl) return;
+    const tabsEl = minerSheetEl.querySelector(".merchant-tabs");
+    if (!tabsEl) return;
+    const tabBtn = tabsEl.querySelector('[data-tab="buildings"]');
+    if (!tabBtn) return;
+    const unlocked = isBuildingsUnlocked();
+    const targetText = unlocked ? "Buildings" : "???";
+    const targetTitle = unlocked ? "Buildings" : "???";
+    const targetDisabled = !unlocked;
+    if (tabBtn.textContent !== targetText) {
+        tabBtn.textContent = targetText;
+    }
+    if (tabBtn.title !== targetTitle) {
+        tabBtn.title = targetTitle;
+    }
+    if (tabBtn.disabled !== targetDisabled) {
+        tabBtn.disabled = targetDisabled;
+    }
 
-  const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
-  if (!tabsEl) return;
-  const tabBtn = tabsEl.querySelector('[data-tab="buildings"]');
-  if (!tabBtn) return;
-  
-  const unlocked = isBuildingsUnlocked();
-  const targetText = unlocked ? 'Buildings' : '???';
-  const targetTitle = unlocked ? 'Buildings' : '???';
-  const targetDisabled = !unlocked;
-
-  if (tabBtn.textContent !== targetText) {
-    tabBtn.textContent = targetText;
-  }
-  if (tabBtn.title !== targetTitle) {
-    tabBtn.title = targetTitle;
-  }
-  if (tabBtn.disabled !== targetDisabled) {
-    tabBtn.disabled = targetDisabled;
-  }
-  const hasLocked = tabBtn.classList.contains('is-locked');
-  if (hasLocked !== targetDisabled) {
-    tabBtn.classList.toggle('is-locked', targetDisabled);
-  }
-
-  if (!unlocked && tabBtn.classList.contains('is-active')) {
-    const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
-    if (dlgTab) dlgTab.click();
-  }
+    const hasLocked = tabBtn.classList.contains("is-locked");
+    if (hasLocked !== targetDisabled) {
+        tabBtn.classList.toggle("is-locked", targetDisabled);
+    }
+    if (!unlocked && tabBtn.classList.contains("is-active")) {
+        const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
+        if (dlgTab) dlgTab.click();
+    }
 }
-
-window.onBuildingsUpgradeUnlocked = function() {
-  setBuildingsUnlocked(true);
-  const minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
-  if (minerSheetEl) {
-      updateBuildingsPanelVisibility(minerSheetEl);
-  }
+window.onBuildingsUpgradeUnlocked = function () {
+    setBuildingsUnlocked(true);
+    const minerSheetEl = document.querySelector(".merchant-overlay.is-miner .merchant-sheet");
+    if (minerSheetEl) {
+        updateBuildingsPanelVisibility(minerSheetEl);
+    }
 };
-
-if (typeof window !== 'undefined') {
-  window.resetSystem = window.resetSystem || {};
-  Object.assign(window.resetSystem, {
-    updateBuildingsPanelVisibility,
-    updateBuildingsOverlayUi: updateOverlayUi,
-  });
+if (typeof window !== "undefined") {
+    window.resetSystem = window.resetSystem || {};
+    Object.assign(window.resetSystem, {
+        updateBuildingsPanelVisibility,
+        updateBuildingsOverlayUi: updateOverlayUi,
+    });
 }
 
 const BUILDING_OVERLAY_CLOSE_MS = 120;
-const BUILDING_OVERLAY_OPEN_TRANSITION = 'transform var(--shop-anim)';
+const BUILDING_OVERLAY_OPEN_TRANSITION = "transform var(--shop-anim)";
 const BUILDING_OVERLAY_CLOSE_TRANSITION = `transform ${BUILDING_OVERLAY_CLOSE_MS}ms ease-out`;
-
-
-
-
 let onlyBuildingPopupEl = null;
 let onlyBuildingMobileBtn = null;
-
 // We will check which overlay is open inside the subscriber
 function applyBuildingOnlyMode(enabled) {
     let overlayType = null;
-    let overlay = document.getElementById('building-detail-overlay');
-    if (overlay && overlay.classList.contains('is-open')) overlayType = 'detail';
+    let overlay = document.getElementById("building-detail-overlay");
+    if (overlay && overlay.classList.contains("is-open")) overlayType = "detail";
     else {
-        overlay = document.getElementById('mysterious-building-overlay');
-        if (overlay && overlay.classList.contains('is-open')) overlayType = 'mysterious';
+        overlay = document.getElementById("mysterious-building-overlay");
+        if (overlay && overlay.classList.contains("is-open")) overlayType = "mysterious";
     }
-    
     // If we're toggling ON but no overlay is open, just skip
     // BUT we need to handle toggling OFF even if overlay is closing
     if (enabled && !overlayType) return;
-    
-    
-
     if (!overlay) {
         if (!enabled) {
-            if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
-            if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = 'none';
+            if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = "none";
+            if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = "none";
         }
         return;
     }
 
-    let sheet = overlay.querySelector('.upg-sheet');
-    let contentEl = overlay.querySelector('.upg-content');
-    
+    let sheet = overlay.querySelector(".upg-sheet");
+    let contentEl = overlay.querySelector(".upg-content");
     if (enabled) {
         // Hide elements instead of removing them
-        const header = overlay.querySelector('.upg-header');
-        const actions = overlay.querySelector('.upg-actions');
-        
+        const header = overlay.querySelector(".upg-header");
+        const actions = overlay.querySelector(".upg-actions");
         if (header) {
-            header.style.visibility = 'hidden';
+            header.style.visibility = "hidden";
         }
         if (actions) {
-            actions.style.setProperty('visibility', 'hidden', 'important');
+            actions.style.setProperty("visibility", "hidden", "important");
         }
-        
-        const grabHandle = overlay.querySelector('.grab-handle');
+
+        const grabHandle = overlay.querySelector(".grab-handle");
         if (grabHandle) {
-            grabHandle.style.opacity = '0';
+            grabHandle.style.opacity = "0";
         }
-        
-        const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
-        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = 'hidden';
-        
-        overlay.style.cursor = 'none';
-        
-        if (overlayType === 'detail') {
-            const textContainer = overlay ? overlay.querySelector('.upg-costs') : null;
-            const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
-            const bonusRow = document.getElementById('building-detail-bonus-row');
-            const costRow = document.getElementById('building-detail-cost-row');
-            const walletRow = document.getElementById('building-detail-wallet-row');
-            
-            if (textContainer) textContainer.style.visibility = 'hidden';
-            if (levelTextContainer) levelTextContainer.style.visibility = 'hidden';
-            if (bonusRow) bonusRow.style.visibility = 'hidden';
-            if (costRow) costRow.style.visibility = 'hidden';
-            if (walletRow) walletRow.style.visibility = 'hidden';
-            
-            const btnBuy = document.getElementById('building-btn-buy');
-            const btnBuyMax = document.getElementById('building-btn-buy-max');
-            const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-            if (btnBuy) btnBuy.style.visibility = 'hidden';
-            if (btnBuyMax) btnBuyMax.style.visibility = 'hidden';
-            if (btnBuyCheap) btnBuyCheap.style.visibility = 'hidden';
-        } else if (overlayType === 'mysterious') {
-            const desc = contentEl ? contentEl.querySelector('.upg-desc') : null;
+
+        const onlyBuildingBtn = overlay.querySelector(".only-building-btn");
+        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = "hidden";
+        overlay.style.cursor = "none";
+        if (overlayType === "detail") {
+            const textContainer = overlay ? overlay.querySelector(".upg-costs") : null;
+            const levelTextContainer = contentEl ? contentEl.querySelector("#building-detail-level-text") : null;
+            const bonusRow = document.getElementById("building-detail-bonus-row");
+            const costRow = document.getElementById("building-detail-cost-row");
+            const walletRow = document.getElementById("building-detail-wallet-row");
+            if (textContainer) textContainer.style.visibility = "hidden";
+            if (levelTextContainer) levelTextContainer.style.visibility = "hidden";
+            if (bonusRow) bonusRow.style.visibility = "hidden";
+            if (costRow) costRow.style.visibility = "hidden";
+            if (walletRow) walletRow.style.visibility = "hidden";
+            const btnBuy = document.getElementById("building-btn-buy");
+            const btnBuyMax = document.getElementById("building-btn-buy-max");
+            const btnBuyCheap = document.getElementById("building-btn-buy-cheap");
+            if (btnBuy) btnBuy.style.visibility = "hidden";
+            if (btnBuyMax) btnBuyMax.style.visibility = "hidden";
+            if (btnBuyCheap) btnBuyCheap.style.visibility = "hidden";
+        } else if (overlayType === "mysterious") {
+            const desc = contentEl ? contentEl.querySelector(".upg-desc") : null;
             if (desc) {
-                desc.style.visibility = 'hidden';
+                desc.style.visibility = "hidden";
             }
         }
-
         if (!onlyBuildingPopupEl) {
-          onlyBuildingPopupEl = document.createElement('div');
-          onlyBuildingPopupEl.className = 'hide-ui-popup is-visible';
-          onlyBuildingPopupEl.style.zIndex = '999999';
-          onlyBuildingPopupEl.style.pointerEvents = 'auto';
-
-          const card = document.createElement('div');
-          card.className = 'hide-ui-popup__card';
-          card.setAttribute('role', 'dialog');
-          const row = document.createElement('div');
-          row.className = 'hide-ui-popup__row';
-
-          const text = document.createElement('div');
-          text.className = 'hide-ui-popup__text';
-          text.style.textAlign = 'center';
-          text.style.width = '100%';
-          text.style.fontSize = '1.2em';
-
-          if (IS_MOBILE) {
-            text.innerHTML = 'Press the button in the bottom right corner or refresh the tab to unhide non-Building elements';
-          } else {
-            text.innerHTML = 'Press "B" on your keyboard or refresh the tab to unhide non-Building elements';
-          }
-          row.appendChild(text);
-
-          const popupActions = document.createElement('div');
-          popupActions.className = 'hide-ui-popup__choices sas-actions';
-          
-          const closeBtn = document.createElement('button');
-          closeBtn.className = 'sas-close';
-          closeBtn.textContent = 'Close';
-          closeBtn.type = 'button';
-          closeBtn.style.minWidth = '180px';
-          closeBtn.addEventListener('click', () => {
-            if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
-          });
-          
-          popupActions.appendChild(closeBtn);
-          
-          card.appendChild(row);
-          card.appendChild(popupActions);
-          onlyBuildingPopupEl.appendChild(card);
-          document.body.appendChild(onlyBuildingPopupEl);
-        }
-        onlyBuildingPopupEl.style.display = '';
-
-        if (IS_MOBILE) {
-          if (!onlyBuildingMobileBtn) {
-            onlyBuildingMobileBtn = document.createElement('button');
-            onlyBuildingMobileBtn.textContent = 'X';
-            onlyBuildingMobileBtn.style.position = 'fixed';
-            onlyBuildingMobileBtn.style.bottom = '20px';
-            onlyBuildingMobileBtn.style.right = '20px';
-            onlyBuildingMobileBtn.style.width = '50px';
-            onlyBuildingMobileBtn.style.height = '50px';
-            onlyBuildingMobileBtn.style.borderRadius = '50%';
-            onlyBuildingMobileBtn.style.backgroundColor = '#d9534f';
-            onlyBuildingMobileBtn.style.color = 'white';
-            onlyBuildingMobileBtn.style.fontSize = '24px';
-            onlyBuildingMobileBtn.style.fontWeight = 'bold';
-            onlyBuildingMobileBtn.style.border = '2px solid white';
-            onlyBuildingMobileBtn.style.zIndex = '999998';
-            onlyBuildingMobileBtn.addEventListener('click', () => {
-              settingsManager.set('only_show_building', false);
+            onlyBuildingPopupEl = document.createElement("div");
+            onlyBuildingPopupEl.className = "hide-ui-popup is-visible";
+            onlyBuildingPopupEl.style.zIndex = "999999";
+            onlyBuildingPopupEl.style.pointerEvents = "auto";
+            const card = document.createElement("div");
+            card.className = "hide-ui-popup__card";
+            card.setAttribute("role", "dialog");
+            const row = document.createElement("div");
+            row.className = "hide-ui-popup__row";
+            const text = document.createElement("div");
+            text.className = "hide-ui-popup__text";
+            text.style.textAlign = "center";
+            text.style.width = "100%";
+            text.style.fontSize = "1.2em";
+            if (IS_MOBILE) {
+                text.innerHTML =
+                    "Press the button in the bottom right corner or refresh the tab to unhide non-Building elements";
+            } else {
+                text.innerHTML = 'Press "B" on your keyboard or refresh the tab to unhide non-Building elements';
+            }
+            row.appendChild(text);
+            const popupActions = document.createElement("div");
+            popupActions.className = "hide-ui-popup__choices sas-actions";
+            const closeBtn = document.createElement("button");
+            closeBtn.className = "sas-close";
+            closeBtn.textContent = "Close";
+            closeBtn.type = "button";
+            closeBtn.style.minWidth = "180px";
+            closeBtn.addEventListener("click", () => {
+                if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = "none";
             });
-            document.body.appendChild(onlyBuildingMobileBtn);
-          }
-          onlyBuildingMobileBtn.style.display = '';
+            popupActions.appendChild(closeBtn);
+            card.appendChild(row);
+            card.appendChild(popupActions);
+            onlyBuildingPopupEl.appendChild(card);
+            document.body.appendChild(onlyBuildingPopupEl);
+        }
+        onlyBuildingPopupEl.style.display = "";
+        if (IS_MOBILE) {
+            if (!onlyBuildingMobileBtn) {
+                onlyBuildingMobileBtn = document.createElement("button");
+                onlyBuildingMobileBtn.textContent = "X";
+                onlyBuildingMobileBtn.style.position = "fixed";
+                onlyBuildingMobileBtn.style.bottom = "20px";
+                onlyBuildingMobileBtn.style.right = "20px";
+                onlyBuildingMobileBtn.style.width = "50px";
+                onlyBuildingMobileBtn.style.height = "50px";
+                onlyBuildingMobileBtn.style.borderRadius = "50%";
+                onlyBuildingMobileBtn.style.backgroundColor = "#d9534f";
+                onlyBuildingMobileBtn.style.color = "white";
+                onlyBuildingMobileBtn.style.fontSize = "24px";
+                onlyBuildingMobileBtn.style.fontWeight = "bold";
+                onlyBuildingMobileBtn.style.border = "2px solid white";
+                onlyBuildingMobileBtn.style.zIndex = "999998";
+                onlyBuildingMobileBtn.addEventListener("click", () => {
+                    settingsManager.set("only_show_building", false);
+                });
+                document.body.appendChild(onlyBuildingMobileBtn);
+            }
+            onlyBuildingMobileBtn.style.display = "";
         }
     } else {
         // Restore elements
-        const header = overlay.querySelector('.upg-header');
-        const actions = overlay.querySelector('.upg-actions');
-        
+        const header = overlay.querySelector(".upg-header");
+        const actions = overlay.querySelector(".upg-actions");
         if (header) {
-            header.style.visibility = '';
+            header.style.visibility = "";
         }
         if (actions) {
-            actions.style.removeProperty('visibility');
+            actions.style.removeProperty("visibility");
         }
-        
-        const grabHandle = overlay.querySelector('.grab-handle');
+
+        const grabHandle = overlay.querySelector(".grab-handle");
         if (grabHandle) {
-            grabHandle.style.opacity = '1';
+            grabHandle.style.opacity = "1";
         }
-        
-        const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
-        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = '';
-        
-        overlay.style.cursor = '';
-        
-        if (overlayType === 'detail') {
-            const textContainer = overlay ? overlay.querySelector('.upg-costs') : null;
-            const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
-            const bonusRow = document.getElementById('building-detail-bonus-row');
-            const costRow = document.getElementById('building-detail-cost-row');
-            const walletRow = document.getElementById('building-detail-wallet-row');
-            
-            if (textContainer) textContainer.style.visibility = '';
-            if (levelTextContainer) levelTextContainer.style.visibility = '';
-            if (bonusRow) bonusRow.style.visibility = '';
-            if (costRow) costRow.style.visibility = '';
-            if (walletRow) walletRow.style.visibility = '';
-            
-            const btnBuy = document.getElementById('building-btn-buy');
-            const btnBuyMax = document.getElementById('building-btn-buy-max');
-            const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-            if (btnBuy) btnBuy.style.visibility = '';
-            if (btnBuyMax) btnBuyMax.style.visibility = '';
-            if (btnBuyCheap) btnBuyCheap.style.visibility = '';
-        } else if (overlayType === 'mysterious') {
-            const desc = contentEl ? contentEl.querySelector('.upg-desc') : null;
+
+        const onlyBuildingBtn = overlay.querySelector(".only-building-btn");
+        if (onlyBuildingBtn) onlyBuildingBtn.style.visibility = "";
+        overlay.style.cursor = "";
+        if (overlayType === "detail") {
+            const textContainer = overlay ? overlay.querySelector(".upg-costs") : null;
+            const levelTextContainer = contentEl ? contentEl.querySelector("#building-detail-level-text") : null;
+            const bonusRow = document.getElementById("building-detail-bonus-row");
+            const costRow = document.getElementById("building-detail-cost-row");
+            const walletRow = document.getElementById("building-detail-wallet-row");
+            if (textContainer) textContainer.style.visibility = "";
+            if (levelTextContainer) levelTextContainer.style.visibility = "";
+            if (bonusRow) bonusRow.style.visibility = "";
+            if (costRow) costRow.style.visibility = "";
+            if (walletRow) walletRow.style.visibility = "";
+            const btnBuy = document.getElementById("building-btn-buy");
+            const btnBuyMax = document.getElementById("building-btn-buy-max");
+            const btnBuyCheap = document.getElementById("building-btn-buy-cheap");
+            if (btnBuy) btnBuy.style.visibility = "";
+            if (btnBuyMax) btnBuyMax.style.visibility = "";
+            if (btnBuyCheap) btnBuyCheap.style.visibility = "";
+        } else if (overlayType === "mysterious") {
+            const desc = contentEl ? contentEl.querySelector(".upg-desc") : null;
             if (desc) {
-                desc.style.visibility = '';
+                desc.style.visibility = "";
             }
         }
-        
-        if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
-        if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = 'none';
+        if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = "none";
+        if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = "none";
     }
 }
-
 // Subscribe
 // Delay initialization slightly so settingsManager is ready
 setTimeout(() => {
-    settingsManager.subscribe('only_show_building', applyBuildingOnlyMode);
+    settingsManager.subscribe("only_show_building", applyBuildingOnlyMode);
 }, 100);
-
-window.addEventListener('keydown', (e) => {
-    if ((e.key === 'b' || e.key === 'B') && settingsManager.get('only_show_building')) {
-        const detailOverlay = document.getElementById('building-detail-overlay');
-        const mysteryOverlay = document.getElementById('mysterious-building-overlay');
-        if ((detailOverlay && detailOverlay.classList.contains('is-open')) ||
-            (mysteryOverlay && mysteryOverlay.classList.contains('is-open'))) {
-            settingsManager.set('only_show_building', false);
+window.addEventListener("keydown", (e) => {
+    if ((e.key === "b" || e.key === "B") && settingsManager.get("only_show_building")) {
+        const detailOverlay = document.getElementById("building-detail-overlay");
+        const mysteryOverlay = document.getElementById("mysterious-building-overlay");
+        if (
+            (detailOverlay && detailOverlay.classList.contains("is-open")) ||
+            (mysteryOverlay && mysteryOverlay.classList.contains("is-open"))
+        ) {
+            settingsManager.set("only_show_building", false);
         }
     }
 });
-
-
-
 function applyBuildingOverlayTransition(sheet, transition = BUILDING_OVERLAY_OPEN_TRANSITION) {
     if (!sheet) return;
     sheet.style.transition = transition;
@@ -805,116 +744,94 @@ function applyBuildingOverlayTransition(sheet, transition = BUILDING_OVERLAY_OPE
 function openBuildingOverlaySheet(overlay, sheet) {
     if (!overlay || !sheet) return;
     applyBuildingOverlayTransition(sheet);
-    overlay.classList.add('is-open');
-    overlay.style.pointerEvents = 'auto';
-    sheet.style.transform = 'translateY(100%)';
+    overlay.classList.add("is-open");
+    overlay.style.pointerEvents = "auto";
+    sheet.style.transform = "translateY(100%)";
     void sheet.offsetHeight;
-    sheet.style.transform = 'translateY(0)';
+    sheet.style.transform = "translateY(0)";
 }
 
 function finishBuildingOverlayClose(overlay, onClosed) {
-    const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : BUILDING_OVERLAY_CLOSE_MS;
+    const delay = document.body.classList.contains("no-overlay-transitions") ? 0 : BUILDING_OVERLAY_CLOSE_MS;
     setTimeout(() => {
-        overlay.classList.remove('is-open');
-        if (typeof onClosed === 'function') onClosed();
+        overlay.classList.remove("is-open");
+        if (typeof onClosed === "function") onClosed();
     }, delay);
 }
 
 function ensureMysteriousBuildingOverlay() {
-    if (document.getElementById('mysterious-building-overlay')) return;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'mysterious-building-overlay';
-    overlay.className = 'upg-overlay';
-    
-    const sheet = document.createElement('div');
-    sheet.className = 'upg-sheet';
+    if (document.getElementById("mysterious-building-overlay")) return;
+    const overlay = document.createElement("div");
+    overlay.id = "mysterious-building-overlay";
+    overlay.className = "upg-overlay";
+    const sheet = document.createElement("div");
+    sheet.className = "upg-sheet";
     applyBuildingOverlayTransition(sheet);
-    sheet.style.display = 'flex';
-    sheet.style.flexDirection = 'column';
-    
-
-    const grabber = document.createElement('div');
-    grabber.className = 'upg-grabber';
+    sheet.style.display = "flex";
+    sheet.style.flexDirection = "column";
+    const grabber = document.createElement("div");
+    grabber.className = "upg-grabber";
     grabber.innerHTML = `<div class="grab-handle"></div>`;
-    grabber.style.zIndex = '1';
-    
-    const header = document.createElement('header');
-    header.className = 'upg-header';
-    header.style.zIndex = '1';
-    header.style.background = 'transparent';
-    header.style.borderBottom = 'none';
-    
-    const content = document.createElement('div');
-
-    content.className = 'upg-content';
-    
-    const actions = document.createElement('div');
-    actions.className = 'upg-actions';
-    
+    grabber.style.zIndex = "1";
+    const header = document.createElement("header");
+    header.className = "upg-header";
+    header.style.zIndex = "1";
+    header.style.background = "transparent";
+    header.style.borderBottom = "none";
+    const content = document.createElement("div");
+    content.className = "upg-content";
+    const actions = document.createElement("div");
+    actions.className = "upg-actions";
     sheet.append(grabber, header, content, actions);
     overlay.appendChild(sheet);
     document.body.appendChild(overlay);
-    
-    overlay.addEventListener('pointerdown', (e) => {
+    overlay.addEventListener("pointerdown", (e) => {
         if (e.target === overlay) {
             if (Date.now() - lastMysteriousOpenTime < 300) return;
             closeMysteriousBuildingOverlay();
         }
     });
-    
-    setupDragToClose(grabber, sheet, 
-        () => overlay.classList.contains('is-open'), 
-        closeMysteriousBuildingOverlay
-    );
+    setupDragToClose(grabber, sheet, () => overlay.classList.contains("is-open"), closeMysteriousBuildingOverlay);
 }
 
 function openMysteriousBuildingOverlay(mysteriousText) {
-    const existingOverlay = document.getElementById('mysterious-building-overlay');
-    if (existingOverlay && existingOverlay.classList.contains('is-open')) return;
+    const existingOverlay = document.getElementById("mysterious-building-overlay");
+    if (existingOverlay && existingOverlay.classList.contains("is-open")) return;
     lastMysteriousOpenTime = Date.now();
     ensureMysteriousBuildingOverlay();
-    const overlay = document.getElementById('mysterious-building-overlay');
-    const sheet = overlay.querySelector('.upg-sheet');
-    const header = overlay.querySelector('.upg-header');
-    const content = overlay.querySelector('.upg-content');
-    const actions = overlay.querySelector('.upg-actions');
-    
+    const overlay = document.getElementById("mysterious-building-overlay");
+    const sheet = overlay.querySelector(".upg-sheet");
+    const header = overlay.querySelector(".upg-header");
+    const content = overlay.querySelector(".upg-content");
+    const actions = overlay.querySelector(".upg-actions");
     header.innerHTML = `
         <div class="upg-title">Hidden Building</div>
     `;
-
     content.innerHTML = `
         <div class="upg-desc centered lock-desc">${mysteriousText}</div>
     `;
-
     actions.innerHTML = `
         <button type="button" class="shop-close">Close</button>
     `;
-    
-    const closeBtn = actions.querySelector('.shop-close');
-    closeBtn.addEventListener('click', closeMysteriousBuildingOverlay);
-
+    const closeBtn = actions.querySelector(".shop-close");
+    closeBtn.addEventListener("click", closeMysteriousBuildingOverlay);
     openBuildingOverlaySheet(overlay, sheet);
 }
 
 function closeMysteriousBuildingOverlay() {
-    const overlay = document.getElementById('mysterious-building-overlay');
+    const overlay = document.getElementById("mysterious-building-overlay");
     if (!overlay) return;
-    if (overlay.style.pointerEvents === 'none') return;
-    overlay.style.pointerEvents = 'none';
-    const sheet = overlay.querySelector('.upg-sheet');
+    if (overlay.style.pointerEvents === "none") return;
+    overlay.style.pointerEvents = "none";
+    const sheet = overlay.querySelector(".upg-sheet");
     applyBuildingOverlayTransition(sheet);
-    sheet.style.transform = 'translateY(100%)';
+    sheet.style.transform = "translateY(100%)";
     finishBuildingOverlayClose(overlay);
 }
-
-
 // ----------------- Building Math & State ----------------- //
-
 export function getBuildingLevel(id) {
-    const slotKey = String(getActiveSlot() ?? 'default');
-    if (typeof localStorage === 'undefined') return BigNum.fromInt(0);
+    const slotKey = String(getActiveSlot() ?? "default");
+    if (typeof localStorage === "undefined") return BigNum.fromInt(0);
     try {
         const val = localStorage.getItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
         if (!val) return BigNum.fromInt(0);
@@ -925,10 +842,13 @@ export function getBuildingLevel(id) {
 }
 
 export function setBuildingLevel(id, levelBn) {
-    const slotKey = String(getActiveSlot() ?? 'default');
-    if (typeof localStorage === 'undefined') return;
+    const slotKey = String(getActiveSlot() ?? "default");
+    if (typeof localStorage === "undefined") return;
     try {
-        localStorage.setItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`, levelBn.toStorage ? levelBn.toStorage() : String(levelBn));
+        lsSetItem(
+            `${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`,
+            levelBn.toStorage ? levelBn.toStorage() : String(levelBn),
+        );
     } catch {}
 }
 
@@ -940,29 +860,26 @@ export function addBuildingLevel(id, amountToAddBn) {
 }
 
 export function getBuildingRatio(id) {
-    if (id === 'core' || id === 'crystal') return 1.56;
+    if (id === "core" || id === "crystal") return 1.56;
     let idx = BUILDING_IDS.indexOf(id);
-    if (idx <= 2) return 1.20;
-    return 1.20 + ((idx - 2) * 0.04);
+    if (idx <= 2) return 1.2;
+    return 1.2 + (idx - 2) * 0.04;
 }
 
 export function getBuildingCostLog10AtLevel(id, levelBn) {
     const ratio = getBuildingRatio(id);
     const levelNum = levelBigNumToNumber(levelBn);
-    
     const softcapStart = 1_000_000_000;
-    
     if (levelNum > softcapStart) {
         const delta = levelNum - softcapStart;
         const startRatioLog10 = Math.log10(ratio);
-        const MAX_LOG10 = 1.7976931348623157e+308;
+        const MAX_LOG10 = 1.7976931348623157e308;
         const targetRatioLog10 = MAX_LOG10 / 4000990000000;
-		const baseStartRatioLog10 = Math.log10(ratio);
+        const baseStartRatioLog10 = Math.log10(ratio);
         const rate = Math.log(targetRatioLog10 / baseStartRatioLog10) / (4000990000000 - softcapStart);
         const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
-        return levelNum * ratioLog10; 
+        return levelNum * ratioLog10;
     }
-    
     return levelNum * Math.log10(ratio);
 }
 
@@ -984,13 +901,10 @@ function getPrecalcCeil100() {
 
 export function getBuildingBonus(id, levelBn) {
     if (!levelBn || levelBn.isZero?.()) return BigNum.fromInt(1);
-    
     const levelNum = levelBigNumToNumber(levelBn);
-    
-    if (id === 'crystal') {
+    if (id === "crystal") {
         return bigNumFromLog10(levelNum); // because the bonus scales 10x which in log is exactly 1 (levelNum * 1 is redundant)
     }
-    
     if (levelNum <= 100) {
         let val = 1;
         for (let i = 0; i < levelNum; i++) {
@@ -1005,42 +919,44 @@ export function getBuildingBonus(id, levelBn) {
         return base100.mulBigNumInteger(excessMult);
     }
 }
-
 // ----------------- Building Overlay ----------------- //
-
 let overlayEl = null;
 let currentBuildingId = null;
 let lastBuildingOpenTime = 0;
 let lastMysteriousOpenTime = 0;
-
 export const BUILDING_NAMES = {
-    core: 'Black Hole', crystal: 'Prism', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
-    pure_gold: 'Vault', diamond: 'Oil Drilling Rig', emerald: 'Greenhouse', ruby: 'Reactor',
-    sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Tesseract'
+    core: "Black Hole",
+    crystal: "Prism",
+    stone: "Foundry",
+    copper: "Charger",
+    iron: "Refinery",
+    pure_gold: "Vault",
+    diamond: "Oil Drilling Rig",
+    emerald: "Greenhouse",
+    ruby: "Reactor",
+    sapphire: "Centrifuge",
+    unobtainium: "Beacon",
+    prismatium: "Tesseract",
 };
-
 
 function getBuildingTotalCostLog10(ratio, startLevel, count) {
     if (count <= 0) return Number.NEGATIVE_INFINITY;
-
     const lastLevel = startLevel + count - 1;
-    
     const softcapStart = 1_000_000_000;
     const startRatioLog10 = Math.log10(ratio);
-    const MAX_LOG10 = 1.7976931348623157e+308;
+    const MAX_LOG10 = 1.7976931348623157e308;
     const targetRatioLog10 = MAX_LOG10 / 4000990000000;
     const baseStartRatioLog10 = Math.log10(ratio);
     const rate = Math.log(targetRatioLog10 / baseStartRatioLog10) / (4000990000000 - softcapStart);
-    
     let lastCostLog10;
     if (lastLevel > softcapStart) {
         const delta = lastLevel - softcapStart;
         const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
-        lastCostLog10 = lastLevel * ratioLog10; 
+        lastCostLog10 = lastLevel * ratioLog10;
     } else {
         lastCostLog10 = lastLevel * startRatioLog10;
     }
-    
+
     const delta = Math.max(0, lastLevel - softcapStart);
     let localRatioLog10;
     if (delta > 0) {
@@ -1048,15 +964,13 @@ function getBuildingTotalCostLog10(ratio, startLevel, count) {
     } else {
         localRatioLog10 = startRatioLog10;
     }
-    
+
     const r = Math.pow(10, localRatioLog10);
     if (r <= 1) return lastCostLog10 + Math.log10(count);
-
     const invR = 1 / r;
     const term1 = Math.log1p(-Math.pow(invR, count));
     const term2 = Math.log1p(-invR);
     const LN10 = Math.LN10;
-    
     const adjustment = (term1 - term2) / LN10;
     return lastCostLog10 + adjustment;
 }
@@ -1065,22 +979,19 @@ function evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, maxLevels, rat
     const startLevelNum = levelBigNumToNumber(startLevelBn);
     const walletLog10 = approxLog10BigNum(walletBn);
     let lo = 0;
-    let hi = typeof maxLevels === 'number' && isFinite(maxLevels) ? maxLevels : 1e12;
+    let hi = typeof maxLevels === "number" && isFinite(maxLevels) ? maxLevels : 1e12;
     let best = 0;
-    
     if (walletLog10 === Number.POSITIVE_INFINITY) {
         // 1e12 is used as a sentinel for "unbounded" max purchase in many places.
         // For "next", maxLevels will be a smaller number (like 10, 25, etc. up to 1000).
-        if (typeof maxLevels === 'number' && maxLevels !== 1e12 && isFinite(maxLevels)) {
+        if (typeof maxLevels === "number" && maxLevels !== 1e12 && isFinite(maxLevels)) {
             return { count: BigNum.fromAny(maxLevels), spent: BigNum.fromInt(0) };
         }
-        return { count: BigNum.fromAny('Infinity'), spent: BigNum.fromInt(0) };
+        return { count: BigNum.fromAny("Infinity"), spent: BigNum.fromInt(0) };
     }
-
     if (getBuildingCostLog10AtLevel(id, startLevelBn) > walletLog10) {
         return { count: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
     }
-    
     if (hi === 1e12) {
         hi = 1;
         while (getBuildingTotalCostLog10(ratio, startLevelNum, hi) <= walletLog10) {
@@ -1092,7 +1003,6 @@ function evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, maxLevels, rat
             }
         }
     }
-
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
         const costLog10 = getBuildingTotalCostLog10(ratio, startLevelNum, mid);
@@ -1103,140 +1013,146 @@ function evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, maxLevels, rat
             hi = mid - 1;
         }
     }
-    
     return {
         count: BigNum.fromAny(best),
-        spent: bigNumFromLog10(getBuildingTotalCostLog10(ratio, startLevelNum, best))
+        spent: bigNumFromLog10(getBuildingTotalCostLog10(ratio, startLevelNum, best)),
     };
 }
 
 function getAffordableBuildingLevels(id) {
-    if (typeof window === 'undefined' || !window.bank) return BigNum.fromInt(0);
+    if (typeof window === "undefined" || !window.bank) return BigNum.fromInt(0);
     const currencyKey = BUILDING_CURRENCY_KEYS[id];
     if (!currencyKey) return BigNum.fromInt(0);
     const walletHandle = window.bank[currencyKey];
     if (!walletHandle) return BigNum.fromInt(0);
-    
     let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
     if (walletBn.isZero?.()) return BigNum.fromInt(0);
-    
     let startLevelBn = getBuildingLevel(id);
-    
     const ratio = getBuildingRatio(id);
     const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
     let count = outcome.count;
-    if (typeof count === 'number') count = BigNum.fromAny(count);
+    if (typeof count === "number") count = BigNum.fromAny(count);
     return count || BigNum.fromInt(0);
 }
 
 const BUILDING_BONUS_TEXTS = {
-    core: "Next level's DP value bonus", crystal: "Next level's Coin value bonus", stone: "Next level's Scrap value bonus",
-    copper: "Next level's Stone value bonus", iron: "Next level's Copper value bonus",
-    pure_gold: "Next level's Iron value bonus", diamond: "Next level's Pure Gold value bonus",
-    emerald: "Next level's Diamond value bonus", ruby: "Next level's Emerald value bonus",
-    sapphire: "Next level's Ruby value bonus", unobtainium: "Next level's Sapphire value bonus",
-    prismatium: "Next level's Unobtainium value bonus"
+    core: "Next level's DP value bonus",
+    crystal: "Next level's Coin value bonus",
+    stone: "Next level's Scrap value bonus",
+    copper: "Next level's Stone value bonus",
+    iron: "Next level's Copper value bonus",
+    pure_gold: "Next level's Iron value bonus",
+    diamond: "Next level's Pure Gold value bonus",
+    emerald: "Next level's Diamond value bonus",
+    ruby: "Next level's Emerald value bonus",
+    sapphire: "Next level's Ruby value bonus",
+    unobtainium: "Next level's Sapphire value bonus",
+    prismatium: "Next level's Unobtainium value bonus",
 };
 
 const BUILDING_CURRENCY_IMAGES = {
-    core: 'img/currencies/core/core.webp', crystal: 'img/currencies/crystal/crystal.webp',
-    stone: 'img/materials/stone.webp', copper: 'img/materials/copper.webp', iron: 'img/materials/iron.webp',
-    pure_gold: 'img/materials/pure_gold.webp', diamond: 'img/materials/diamond.webp',
-    emerald: 'img/materials/emerald.webp', ruby: 'img/materials/ruby.webp',
-    sapphire: 'img/materials/sapphire.webp', unobtainium: 'img/materials/unobtainium.webp',
-    prismatium: 'img/materials/prismatium.webp'
+    core: "img/currencies/core/core.webp",
+    crystal: "img/currencies/crystal/crystal.webp",
+    stone: "img/materials/stone.webp",
+    copper: "img/materials/copper.webp",
+    iron: "img/materials/iron.webp",
+    pure_gold: "img/materials/pure_gold.webp",
+    diamond: "img/materials/diamond.webp",
+    emerald: "img/materials/emerald.webp",
+    ruby: "img/materials/ruby.webp",
+    sapphire: "img/materials/sapphire.webp",
+    unobtainium: "img/materials/unobtainium.webp",
+    prismatium: "img/materials/prismatium.webp",
 };
 
 const BUILDING_CURRENCY_KEYS = {
-    core: 'cores', crystal: 'crystals', stone: 'stone', copper: 'copper', iron: 'iron',
-    pure_gold: 'pure_gold', diamond: 'diamond', emerald: 'emerald', ruby: 'ruby',
-    sapphire: 'sapphire', unobtainium: 'unobtainium', prismatium: 'prismatium'
+    core: "cores",
+    crystal: "crystals",
+    stone: "stone",
+    copper: "copper",
+    iron: "iron",
+    pure_gold: "pure_gold",
+    diamond: "diamond",
+    emerald: "emerald",
+    ruby: "ruby",
+    sapphire: "sapphire",
+    unobtainium: "unobtainium",
+    prismatium: "prismatium",
 };
 
 export function initBuildingOverlay() {
-    if (document.getElementById('building-detail-overlay')) return;
-
-    overlayEl = document.createElement('div');
-    overlayEl.id = 'building-detail-overlay';
-    overlayEl.className = 'upg-overlay';
-    overlayEl.style.zIndex = '9999';
-
-    const sheet = document.createElement('div');
-    sheet.className = 'upg-sheet';
+    if (document.getElementById("building-detail-overlay")) return;
+    overlayEl = document.createElement("div");
+    overlayEl.id = "building-detail-overlay";
+    overlayEl.className = "upg-overlay";
+    overlayEl.style.zIndex = "9999";
+    const sheet = document.createElement("div");
+    sheet.className = "upg-sheet";
     applyBuildingOverlayTransition(sheet);
-    sheet.style.display = 'flex';
-    sheet.style.flexDirection = 'column';
-
-    const canvasContainer = document.createElement('div');
-    canvasContainer.style.position = 'absolute';
-    canvasContainer.style.top = '0';
-    canvasContainer.style.left = '0';
-    canvasContainer.style.width = '100%';
-    canvasContainer.style.height = '100%';
-    canvasContainer.style.zIndex = '0';
-    canvasContainer.style.pointerEvents = 'auto';
-    
-    const canvas = document.createElement('canvas');
-    canvas.id = 'building-detail-canvas';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
+    sheet.style.display = "flex";
+    sheet.style.flexDirection = "column";
+    const canvasContainer = document.createElement("div");
+    canvasContainer.style.position = "absolute";
+    canvasContainer.style.top = "0";
+    canvasContainer.style.left = "0";
+    canvasContainer.style.width = "100%";
+    canvasContainer.style.height = "100%";
+    canvasContainer.style.zIndex = "0";
+    canvasContainer.style.pointerEvents = "auto";
+    const canvas = document.createElement("canvas");
+    canvas.id = "building-detail-canvas";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.display = "block";
     canvasContainer.appendChild(canvas);
-	
-    const keypadCanvas = document.createElement('canvas');
-    keypadCanvas.id = 'building-keypad-canvas';
-    keypadCanvas.style.position = 'absolute';
-    keypadCanvas.style.top = '0';
-    keypadCanvas.style.left = '0';
-    keypadCanvas.style.width = '100%';
-    keypadCanvas.style.height = '100%';
-    keypadCanvas.style.display = 'block';
-    keypadCanvas.style.pointerEvents = 'none';
-    keypadCanvas.style.zIndex = '999999';
+    const keypadCanvas = document.createElement("canvas");
+    keypadCanvas.id = "building-keypad-canvas";
+    keypadCanvas.style.position = "absolute";
+    keypadCanvas.style.top = "0";
+    keypadCanvas.style.left = "0";
+    keypadCanvas.style.width = "100%";
+    keypadCanvas.style.height = "100%";
+    keypadCanvas.style.display = "block";
+    keypadCanvas.style.pointerEvents = "none";
+    keypadCanvas.style.zIndex = "999999";
     canvasContainer.appendChild(keypadCanvas);
-    
     sheet.appendChild(canvasContainer);
-    
-    const onlyBuildingBtn = document.createElement('button');
-    onlyBuildingBtn.className = 'only-building-btn';
-    onlyBuildingBtn.textContent = 'Only show Building';
-    onlyBuildingBtn.style.position = 'absolute';
-    onlyBuildingBtn.style.top = '8px';
-    onlyBuildingBtn.style.right = '8px';
-    onlyBuildingBtn.style.zIndex = '9999';
-    onlyBuildingBtn.style.backgroundColor = '#808080';
-    onlyBuildingBtn.style.color = '#fff';
-    onlyBuildingBtn.style.border = '2px solid black';
-    onlyBuildingBtn.style.padding = '4px 8px';
-    onlyBuildingBtn.style.borderRadius = '4px';
-    onlyBuildingBtn.style.cursor = 'pointer';
-    onlyBuildingBtn.style.fontSize = '12px';
-    onlyBuildingBtn.addEventListener('click', () => {
-        settingsManager.set('only_show_building', true);
+    const onlyBuildingBtn = document.createElement("button");
+    onlyBuildingBtn.className = "only-building-btn";
+    onlyBuildingBtn.textContent = "Only show Building";
+    onlyBuildingBtn.style.position = "absolute";
+    onlyBuildingBtn.style.top = "8px";
+    onlyBuildingBtn.style.right = "8px";
+    onlyBuildingBtn.style.zIndex = "9999";
+    onlyBuildingBtn.style.backgroundColor = "#808080";
+    onlyBuildingBtn.style.color = "#fff";
+    onlyBuildingBtn.style.border = "2px solid black";
+    onlyBuildingBtn.style.padding = "4px 8px";
+    onlyBuildingBtn.style.borderRadius = "4px";
+    onlyBuildingBtn.style.cursor = "pointer";
+    onlyBuildingBtn.style.fontSize = "12px";
+    onlyBuildingBtn.addEventListener("click", () => {
+        settingsManager.set("only_show_building", true);
     });
     sheet.appendChild(onlyBuildingBtn);
-
-    const grabber = document.createElement('div');
-    grabber.className = 'upg-grabber';
+    const grabber = document.createElement("div");
+    grabber.className = "upg-grabber";
     grabber.innerHTML = `<div class="grab-handle"></div>`;
-    grabber.style.zIndex = '1';
-    
-    const header = document.createElement('header');
-    header.className = 'upg-header';
-    header.style.zIndex = '1';
-    header.style.background = 'transparent';
-    header.style.borderBottom = 'none';
-    
-    const content = document.createElement('div');
-    content.className = 'upg-content';
-    content.style.flex = '1';
-    content.style.display = 'flex';
-    content.style.flexDirection = 'column';
-    content.style.justifyContent = 'flex-end';
-    content.style.zIndex = '1';
-    content.style.position = 'relative';
-    content.style.pointerEvents = 'none';
-    
+    grabber.style.zIndex = "1";
+    const header = document.createElement("header");
+    header.className = "upg-header";
+    header.style.zIndex = "1";
+    header.style.background = "transparent";
+    header.style.borderBottom = "none";
+    const content = document.createElement("div");
+    content.className = "upg-content";
+    content.style.flex = "1";
+    content.style.display = "flex";
+    content.style.flexDirection = "column";
+    content.style.justifyContent = "flex-end";
+    content.style.zIndex = "1";
+    content.style.position = "relative";
+    content.style.pointerEvents = "none";
     const levelTextContainer = document.createElement("div");
     levelTextContainer.style.textAlign = "center";
     levelTextContainer.style.marginBottom = "10px";
@@ -1244,16 +1160,13 @@ export function initBuildingOverlay() {
     levelTextContainer.style.fontWeight = "bold";
     levelTextContainer.style.textShadow = "0 2px 4px rgba(0,0,0,0.8)";
     levelTextContainer.id = "building-detail-level-text";
-    
     content.appendChild(levelTextContainer);
-
     const buildingHitbox = document.createElement("div");
     buildingHitbox.style.width = "300px";
     buildingHitbox.style.height = "5px";
     buildingHitbox.style.margin = "0 auto";
     buildingHitbox.style.pointerEvents = "none";
     content.appendChild(buildingHitbox);
-
     const bonusRow = document.createElement("div");
     bonusRow.id = "building-detail-bonus-row";
     bonusRow.style.margin = "0";
@@ -1262,7 +1175,6 @@ export function initBuildingOverlay() {
     bonusRow.style.lineHeight = "0.9";
     bonusRow.style.textAlign = "center";
     bonusRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-    
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
     costRow.style.margin = "0";
@@ -1272,7 +1184,6 @@ export function initBuildingOverlay() {
     costRow.style.lineHeight = "0.9";
     costRow.style.textAlign = "center";
     costRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-
     const walletRow = document.createElement("div");
     walletRow.id = "building-detail-wallet-row";
     walletRow.style.margin = "0";
@@ -1282,18 +1193,14 @@ export function initBuildingOverlay() {
     walletRow.style.lineHeight = "0.9";
     walletRow.style.textAlign = "center";
     walletRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-
     const textContainer = document.createElement("div");
     textContainer.className = "upg-costs";
     textContainer.style.gap = "0px";
     textContainer.style.justifyContent = "center";
     textContainer.style.pointerEvents = "auto";
-    
-    
     textContainer.appendChild(bonusRow);
     textContainer.appendChild(costRow);
     textContainer.appendChild(walletRow);
-
     // Position absolutely from its center to prevent drifting when shrunk
     textContainer.style.position = "absolute";
     textContainer.style.bottom = "177px";
@@ -1301,24 +1208,19 @@ export function initBuildingOverlay() {
     textContainer.style.width = "100%";
     textContainer.style.transform = "translateY(50%)";
     textContainer.style.zIndex = "2";
-
     sheet.appendChild(textContainer);
-    
     const btnBuyCheap = document.createElement("button");
     btnBuyCheap.className = "shop-delve";
     btnBuyCheap.id = "building-btn-buy-cheap";
     btnBuyCheap.textContent = "Buy Cheap";
-    
     const btnBuyMax = document.createElement("button");
     btnBuyMax.className = "shop-delve";
     btnBuyMax.id = "building-btn-buy-max";
     btnBuyMax.textContent = "Buy Max";
-    
     const btnBuy = document.createElement("button");
     btnBuy.className = "shop-delve";
     btnBuy.id = "building-btn-buy";
     btnBuy.textContent = "Buy";
-
     const actions = document.createElement("div");
     actions.className = "upg-actions";
     actions.style.zIndex = "1";
@@ -1326,12 +1228,10 @@ export function initBuildingOverlay() {
     actions.style.gap = "10px";
     actions.style.flexWrap = "wrap";
     actions.style.justifyContent = "center";
-    
     const btnClose = document.createElement("button");
     btnClose.type = "button";
     btnClose.className = "shop-close";
     btnClose.textContent = "Close";
-
     actions.appendChild(btnClose);
     actions.appendChild(btnBuy);
     actions.appendChild(btnBuyMax);
@@ -1339,11 +1239,9 @@ export function initBuildingOverlay() {
     sheet.append(grabber, header, content, actions);
     overlayEl.appendChild(sheet);
     document.body.appendChild(overlayEl);
-
     const actionsObserver = new ResizeObserver(() => {
-        const btns = Array.from(actions.children).filter(b => window.getComputedStyle(b).display !== 'none');
+        const btns = Array.from(actions.children).filter((b) => window.getComputedStyle(b).display !== "none");
         if (btns.length === 0) return;
-        
         let wrapped = false;
         if (btns.length > 1) {
             const firstRect = btns[0].getBoundingClientRect();
@@ -1352,90 +1250,85 @@ export function initBuildingOverlay() {
                 wrapped = true;
             }
         }
-        
+
         const actionsHeight = actions.offsetHeight || 130;
-        
         if (wrapped) {
-            costRow.style.setProperty('margin-top', '4px', 'important');
-            walletRow.style.setProperty('margin-top', '0px', 'important');
-            textContainer.style.setProperty('bottom', (actionsHeight + 29) + 'px', 'important');
+            costRow.style.setProperty("margin-top", "4px", "important");
+            walletRow.style.setProperty("margin-top", "0px", "important");
+            textContainer.style.setProperty("bottom", actionsHeight + 29 + "px", "important");
         } else {
-            costRow.style.setProperty('margin-top', 'calc(52px - 0.9em)', 'important');
-            walletRow.style.setProperty('margin-top', 'calc(39px - 0.9em)', 'important');
-            textContainer.style.setProperty('bottom', '177px', 'important');
+            costRow.style.setProperty("margin-top", "calc(52px - 0.9em)", "important");
+            walletRow.style.setProperty("margin-top", "calc(39px - 0.9em)", "important");
+            textContainer.style.setProperty("bottom", "177px", "important");
         }
     });
     actionsObserver.observe(actions);
-    
-    overlayEl.addEventListener('pointerdown', (e) => {
+    overlayEl.addEventListener("pointerdown", (e) => {
         if (e.target === overlayEl) {
             if (Date.now() - lastBuildingOpenTime < 300) return;
             closeBuildingDetailOverlay();
         }
     });
-    
-    setupDragToClose(grabber, sheet, 
+    setupDragToClose(
+        grabber,
+        sheet,
         () => {
-            if (currentBuildingId === 'pure_gold') {
-                const isVaultMuted = typeof window !== 'undefined' && window.isMutedByVault && window.isMutedByVault();
-                const isCollected = typeof window !== 'undefined' && window.isVaultCoinCollected && window.isVaultCoinCollected();
+            if (currentBuildingId === "pure_gold") {
+                const isVaultMuted = typeof window !== "undefined" && window.isMutedByVault && window.isMutedByVault();
+                const isCollected =
+                    typeof window !== "undefined" && window.isVaultCoinCollected && window.isVaultCoinCollected();
                 if (isVaultMuted && !isCollected) {
                     return false;
                 }
             }
-            return overlayEl.classList.contains('is-open');
-        }, 
-        closeBuildingDetailOverlay
+            return overlayEl.classList.contains("is-open");
+        },
+        closeBuildingDetailOverlay,
     );
-    
-    const closeBtn = actions.querySelector('.shop-close');
-    closeBtn.addEventListener('click', closeBuildingDetailOverlay);
-    
-    btnBuy.addEventListener('click', () => handlePurchase('buy'));
-    btnBuyMax.addEventListener('click', () => handlePurchase('max'));
-    btnBuyCheap.addEventListener('click', () => handlePurchase('cheap'));
+    const closeBtn = actions.querySelector(".shop-close");
+    closeBtn.addEventListener("click", closeBuildingDetailOverlay);
+    btnBuy.addEventListener("click", () => handlePurchase("buy"));
+    btnBuyMax.addEventListener("click", () => handlePurchase("max"));
+    btnBuyCheap.addEventListener("click", () => handlePurchase("cheap"));
 }
 
 export function openBuildingDetailOverlay(id) {
-    if (overlayEl && overlayEl.classList.contains('is-open') && currentBuildingId === id) return;
+    if (overlayEl && overlayEl.classList.contains("is-open") && currentBuildingId === id) return;
     lastBuildingOpenTime = Date.now();
     initBuildingOverlay();
     currentBuildingId = id;
-    
-    const sheet = overlayEl.querySelector('.upg-sheet');
-    const header = overlayEl.querySelector('.upg-header');
-    
-    let properName = id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    let buildingName = BUILDING_NAMES[id] || 'Building';
-    
+    const sheet = overlayEl.querySelector(".upg-sheet");
+    const header = overlayEl.querySelector(".upg-header");
+    let properName = id
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    let buildingName = BUILDING_NAMES[id] || "Building";
     header.innerHTML = `<div class="upg-title">${properName} Building: ${buildingName}</div>`;
-    
     updateOverlayUi();
-
     openBuildingOverlaySheet(overlayEl, sheet);
-    
-
-    import('../../misc/buildingVisuals.js').then(module => {
-        module.startCanvasLoop(id, overlayEl.querySelector('#building-detail-canvas'));
+    import("../../misc/buildingVisuals.js").then((module) => {
+        module.startCanvasLoop(id, overlayEl.querySelector("#building-detail-canvas"));
     });
 }
 
 function closeBuildingDetailOverlay() {
     if (!overlayEl) return;
-    if (currentBuildingId === 'pure_gold') {
-        const isVaultMuted = typeof window !== 'undefined' && window.isMutedByVault && window.isMutedByVault();
-        const isCollected = typeof window !== 'undefined' && window.isVaultCoinCollected && window.isVaultCoinCollected();
+    if (currentBuildingId === "pure_gold") {
+        const isVaultMuted = typeof window !== "undefined" && window.isMutedByVault && window.isMutedByVault();
+        const isCollected =
+            typeof window !== "undefined" && window.isVaultCoinCollected && window.isVaultCoinCollected();
         if (isVaultMuted && !isCollected) {
             return;
         }
     }
-    if (overlayEl.style.pointerEvents === 'none') return;
-    overlayEl.style.pointerEvents = 'none';
-    const sheet = overlayEl.querySelector('.upg-sheet');
+    if (overlayEl.style.pointerEvents === "none") return;
+    overlayEl.style.pointerEvents = "none";
+    const sheet = overlayEl.querySelector(".upg-sheet");
     applyBuildingOverlayTransition(sheet);
-    sheet.style.transform = 'translateY(100%)';
+    sheet.style.transform = "translateY(100%)";
     finishBuildingOverlayClose(overlayEl, () => {
-        import('../../misc/buildingVisuals.js').then(module => {
+        import("../../misc/buildingVisuals.js").then((module) => {
             module.stopCanvasLoop();
         });
         currentBuildingId = null;
@@ -1444,186 +1337,206 @@ function closeBuildingDetailOverlay() {
 
 export function updateOverlayUi() {
     if (!currentBuildingId) return;
-    if (!document.getElementById('building-detail-level-text')) return;
+    if (!document.getElementById("building-detail-level-text")) return;
     const id = currentBuildingId;
-    
     const levelBn = getBuildingLevel(id);
     const nextLevelBn = levelBn.add(BigNum.fromInt(1));
     const costBn = getBuildingCost(id, levelBn);
-    
     const currencyKey = BUILDING_CURRENCY_KEYS[id];
     const walletHandle = window.bank?.[currencyKey];
     let walletBn = BigNum.fromInt(0);
     if (walletHandle) {
-         walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
+        walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
     }
-    
+
     const currentBonus = getBuildingBonus(id, levelBn);
     const nextBonus = getBuildingBonus(id, nextLevelBn);
-    
     const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle; transform: translateY(-3px); margin-right: -0.1em;">`;
-    
-    const resConfig = RESOURCE_REGISTRY.find(r => r.key === currencyKey);
-
-    setHtmlOrText(document.getElementById('building-detail-level-text'), `Building Level ${formatNumber(levelBn)}`);
-    
-    document.getElementById('building-detail-bonus-row').innerHTML = 
-        `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
-        
-    const btnBuy = document.getElementById('building-btn-buy');
-    const btnBuyMax = document.getElementById('building-btn-buy-max');
-    const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
-
+    const resConfig = RESOURCE_REGISTRY.find((r) => r.key === currencyKey);
+    setHtmlOrText(document.getElementById("building-detail-level-text"), `Building Level ${formatNumber(levelBn)}`);
+    document.getElementById("building-detail-bonus-row").innerHTML =
+        `${BUILDING_BONUS_TEXTS[id] || "Bonus"}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
+    const btnBuy = document.getElementById("building-btn-buy");
+    const btnBuyMax = document.getElementById("building-btn-buy-max");
+    const btnBuyCheap = document.getElementById("building-btn-buy-cheap");
     if (levelBn.isInfinite && levelBn.isInfinite()) {
-        const costRow = document.getElementById('building-detail-cost-row');
-        costRow.style.visibility = 'hidden';
+        const costRow = document.getElementById("building-detail-cost-row");
+        costRow.style.visibility = "hidden";
         costRow.innerHTML = `Cost: ${imgStr}`;
-        
-        const walletRow = document.getElementById('building-detail-wallet-row');
-        walletRow.style.visibility = 'hidden';
+        const walletRow = document.getElementById("building-detail-wallet-row");
+        walletRow.style.visibility = "hidden";
         walletRow.innerHTML = `You have: ${imgStr}`;
-
-        btnBuy.style.display = 'none';
-        btnBuyMax.style.display = 'none';
-        btnBuyCheap.style.display = 'none';
+        btnBuy.style.display = "none";
+        btnBuyMax.style.display = "none";
+        btnBuyCheap.style.display = "none";
     } else {
-        const levelNum = typeof levelBn.toNumber === 'function' ? levelBn.toNumber() : (levelBn.inf ? Infinity : (levelBn.sig * Math.pow(10, levelBn.e)));
+        const levelNum =
+            typeof levelBn.toNumber === "function"
+                ? levelBn.toNumber()
+                : levelBn.inf
+                  ? Infinity
+                  : levelBn.sig * Math.pow(10, levelBn.e);
         const next25Log10 = getBuildingTotalCostLog10(getBuildingRatio(id), levelNum, 25);
         const next25CostBn = bigNumFromLog10(next25Log10).floorToInteger();
-        const next25CostMatName = (resConfig ? (next25CostBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
-        
-        const costMatName = (resConfig ? (costBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
-        const costRow = document.getElementById('building-detail-cost-row');
-        costRow.style.visibility = '';
-        costRow.innerHTML = 
-            `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`;
-            
-        const walletMatName = (resConfig ? (walletBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
-        const walletRow = document.getElementById('building-detail-wallet-row');
-        walletRow.style.visibility = '';
-        walletRow.innerHTML = 
-            `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`;
-
-        btnBuy.style.display = '';
-        btnBuyMax.style.display = '';
-        btnBuyCheap.style.display = '';
-        
+        const next25CostMatName = resConfig
+            ? next25CostBn.cmp(BigNum.fromInt(1)) === 0
+                ? resConfig.singular
+                : resConfig.plural
+            : "Stone";
+        const costMatName = resConfig
+            ? costBn.cmp(BigNum.fromInt(1)) === 0
+                ? resConfig.singular
+                : resConfig.plural
+            : "Stone";
+        const costRow = document.getElementById("building-detail-cost-row");
+        costRow.style.visibility = "";
+        costRow.innerHTML = `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`;
+        const walletMatName = resConfig
+            ? walletBn.cmp(BigNum.fromInt(1)) === 0
+                ? resConfig.singular
+                : resConfig.plural
+            : "Stone";
+        const walletRow = document.getElementById("building-detail-wallet-row");
+        walletRow.style.visibility = "";
+        walletRow.innerHTML = `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`;
+        btnBuy.style.display = "";
+        btnBuyMax.style.display = "";
+        btnBuyCheap.style.display = "";
         btnBuy.disabled = walletBn.cmp(costBn) < 0;
         btnBuyMax.disabled = walletBn.cmp(costBn) < 0;
         btnBuyCheap.disabled = walletBn.cmp(costBn) < 0;
     }
 
-    const isVaultMuted = typeof window !== 'undefined' && window.isMutedByVault && window.isMutedByVault();
-    const isCollected = typeof window !== 'undefined' && window.isVaultCoinCollected && window.isVaultCoinCollected();
-
-    const levelText = document.getElementById('building-detail-level-text');
-    const costsText = document.querySelector('.upg-costs');
-    const bonusRow = document.getElementById('building-detail-bonus-row');
-    const costRow = document.getElementById('building-detail-cost-row');
-    const walletRow = document.getElementById('building-detail-wallet-row');
-    const grabHandle = document.querySelector('#building-detail-overlay .grab-handle');
-    const upgGrabber = document.querySelector('#building-detail-overlay .upg-grabber');
-
-    if (id === 'pure_gold' && isVaultMuted) {
+    const isVaultMuted = typeof window !== "undefined" && window.isMutedByVault && window.isMutedByVault();
+    const isCollected = typeof window !== "undefined" && window.isVaultCoinCollected && window.isVaultCoinCollected();
+    const levelText = document.getElementById("building-detail-level-text");
+    const costsText = document.querySelector(".upg-costs");
+    const bonusRow = document.getElementById("building-detail-bonus-row");
+    const costRow = document.getElementById("building-detail-cost-row");
+    const walletRow = document.getElementById("building-detail-wallet-row");
+    const grabHandle = document.querySelector("#building-detail-overlay .grab-handle");
+    const upgGrabber = document.querySelector("#building-detail-overlay .upg-grabber");
+    if (id === "pure_gold" && isVaultMuted) {
         // Hide texts
-        if (levelText) levelText.style.display = 'none';
-        if (costsText) costsText.style.display = 'none';
-        if (bonusRow) bonusRow.style.display = 'none';
-        if (costRow) costRow.style.display = 'none';
-        if (walletRow) walletRow.style.display = 'none';
-
+        if (levelText) levelText.style.display = "none";
+        if (costsText) costsText.style.display = "none";
+        if (bonusRow) bonusRow.style.display = "none";
+        if (costRow) costRow.style.display = "none";
+        if (walletRow) walletRow.style.display = "none";
         // Hide title (header) and "Only show Building" button
-        const upgHeader = document.querySelector('#building-detail-overlay .upg-header');
-        if (upgHeader) upgHeader.style.display = 'none';
-        const onlyBuildingBtn = document.querySelector('#building-detail-overlay .only-building-btn');
-        if (onlyBuildingBtn) onlyBuildingBtn.style.display = 'none';
-
+        const upgHeader = document.querySelector("#building-detail-overlay .upg-header");
+        if (upgHeader) upgHeader.style.display = "none";
+        const onlyBuildingBtn = document.querySelector("#building-detail-overlay .only-building-btn");
+        if (onlyBuildingBtn) onlyBuildingBtn.style.display = "none";
         // Hide Buy buttons
-        if (btnBuy) btnBuy.style.setProperty('display', 'none', 'important');
-        if (btnBuyMax) btnBuyMax.style.setProperty('display', 'none', 'important');
-        if (btnBuyCheap) btnBuyCheap.style.setProperty('display', 'none', 'important');
-
+        if (btnBuy) btnBuy.style.setProperty("display", "none", "important");
+        if (btnBuyMax) btnBuyMax.style.setProperty("display", "none", "important");
+        if (btnBuyCheap) btnBuyCheap.style.setProperty("display", "none", "important");
         // Hide grab handle
         if (grabHandle) {
             if (isCollected) {
-                grabHandle.style.removeProperty('display');
-                grabHandle.style.removeProperty('opacity');
+                grabHandle.style.removeProperty("display");
+                grabHandle.style.removeProperty("opacity");
             } else {
-                grabHandle.style.setProperty('display', 'none', 'important');
-                grabHandle.style.setProperty('opacity', '0', 'important');
+                grabHandle.style.setProperty("display", "none", "important");
+                grabHandle.style.setProperty("opacity", "0", "important");
             }
         }
-
         // Hide cursor over grabber container
         if (upgGrabber) {
             if (isCollected) {
-                upgGrabber.style.removeProperty('cursor');
+                upgGrabber.style.removeProperty("cursor");
             } else {
-                upgGrabber.style.setProperty('cursor', 'none', 'important');
+                upgGrabber.style.setProperty("cursor", "none", "important");
             }
         }
-
         // Show/Hide Close button based on collection status
-        const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
+        const closeBtn = document.querySelector("#building-detail-overlay .shop-close");
         if (closeBtn) {
             if (isCollected) {
-                closeBtn.style.removeProperty('display');
+                closeBtn.style.removeProperty("display");
             } else {
-                closeBtn.style.setProperty('display', 'none', 'important');
+                closeBtn.style.setProperty("display", "none", "important");
             }
         }
     } else {
-        const isOnlyBuilding = settingsManager.get('only_show_building');
-
+        const isOnlyBuilding = settingsManager.get("only_show_building");
         // Restore/Reinstate everything when not in the opening/open Vault sequence,
         // EXCEPT if "Only show Building" mode is currently active.
-        const isInfinite = levelBn && typeof levelBn.isInfinite === 'function' && levelBn.isInfinite();
+        const isInfinite = levelBn && typeof levelBn.isInfinite === "function" && levelBn.isInfinite();
+        if (levelText) {
+            levelText.style.removeProperty("display");
+            levelText.style.visibility = isOnlyBuilding ? "hidden" : "";
+        }
+        if (costsText) {
+            costsText.style.removeProperty("display");
+            costsText.style.visibility = isOnlyBuilding ? "hidden" : "";
+        }
+        if (bonusRow) {
+            bonusRow.style.removeProperty("display");
+            bonusRow.style.visibility = isOnlyBuilding ? "hidden" : "";
+        }
+        if (costRow) {
+            costRow.style.removeProperty("display");
+            costRow.style.visibility = isOnlyBuilding || isInfinite ? "hidden" : "";
+        }
+        if (walletRow) {
+            walletRow.style.removeProperty("display");
+            walletRow.style.visibility = isOnlyBuilding || isInfinite ? "hidden" : "";
+        }
 
-        if (levelText) { levelText.style.removeProperty('display'); levelText.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-        if (costsText) { costsText.style.removeProperty('display'); costsText.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-        if (bonusRow) { bonusRow.style.removeProperty('display'); bonusRow.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-        if (costRow) { costRow.style.removeProperty('display'); costRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : ''; }
-        if (walletRow) { walletRow.style.removeProperty('display'); walletRow.style.visibility = (isOnlyBuilding || isInfinite) ? 'hidden' : ''; }
+        const upgHeader = document.querySelector("#building-detail-overlay .upg-header");
+        if (upgHeader) {
+            upgHeader.style.removeProperty("display");
+            upgHeader.style.visibility = isOnlyBuilding ? "hidden" : "";
+        }
 
-        const upgHeader = document.querySelector('#building-detail-overlay .upg-header');
-        if (upgHeader) { upgHeader.style.removeProperty('display'); upgHeader.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-        const onlyBuildingBtn = document.querySelector('#building-detail-overlay .only-building-btn');
-        if (onlyBuildingBtn) { onlyBuildingBtn.style.removeProperty('display'); onlyBuildingBtn.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-
+        const onlyBuildingBtn = document.querySelector("#building-detail-overlay .only-building-btn");
+        if (onlyBuildingBtn) {
+            onlyBuildingBtn.style.removeProperty("display");
+            onlyBuildingBtn.style.visibility = isOnlyBuilding ? "hidden" : "";
+        }
         // Restore/hide grab handle based on "Only show Building" mode
         if (grabHandle) {
             if (isOnlyBuilding) {
-                grabHandle.style.setProperty('visibility', 'hidden', 'important');
-                grabHandle.style.setProperty('opacity', '0', 'important');
+                grabHandle.style.setProperty("visibility", "hidden", "important");
+                grabHandle.style.setProperty("opacity", "0", "important");
             } else {
-                grabHandle.style.removeProperty('visibility');
-                grabHandle.style.removeProperty('opacity');
+                grabHandle.style.removeProperty("visibility");
+                grabHandle.style.removeProperty("opacity");
             }
         }
-
         // Restore/hide cursor over grabber container based on "Only show Building" mode
         if (upgGrabber) {
             if (isOnlyBuilding) {
-                upgGrabber.style.setProperty('cursor', 'none', 'important');
+                upgGrabber.style.setProperty("cursor", "none", "important");
             } else {
-                upgGrabber.style.removeProperty('cursor');
+                upgGrabber.style.removeProperty("cursor");
+            }
+        }
+        // Restore Buy buttons based on standard rules (only if not infinite)
+        if (levelBn.isInfinite && levelBn.isInfinite()) {
+            if (btnBuy) btnBuy.style.display = "none"; // Keeps layout clean for infinite cost, safe as it's a fixed state
+            if (btnBuyMax) btnBuyMax.style.display = "none";
+            if (btnBuyCheap) btnBuyCheap.style.display = "none";
+        } else {
+            if (btnBuy) {
+                btnBuy.style.removeProperty("display");
+                btnBuy.style.visibility = isOnlyBuilding ? "hidden" : "";
+            }
+            if (btnBuyMax) {
+                btnBuyMax.style.removeProperty("display");
+                btnBuyMax.style.visibility = isOnlyBuilding ? "hidden" : "";
+            }
+            if (btnBuyCheap) {
+                btnBuyCheap.style.removeProperty("display");
+                btnBuyCheap.style.visibility = isOnlyBuilding ? "hidden" : "";
             }
         }
 
-        // Restore Buy buttons based on standard rules (only if not infinite)
-        if (levelBn.isInfinite && levelBn.isInfinite()) {
-            if (btnBuy) btnBuy.style.display = 'none'; // Keeps layout clean for infinite cost, safe as it's a fixed state
-            if (btnBuyMax) btnBuyMax.style.display = 'none';
-            if (btnBuyCheap) btnBuyCheap.style.display = 'none';
-        } else {
-            if (btnBuy) { btnBuy.style.removeProperty('display'); btnBuy.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-            if (btnBuyMax) { btnBuyMax.style.removeProperty('display'); btnBuyMax.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-            if (btnBuyCheap) { btnBuyCheap.style.removeProperty('display'); btnBuyCheap.style.visibility = isOnlyBuilding ? 'hidden' : ''; }
-        }
-
-        const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
+        const closeBtn = document.querySelector("#building-detail-overlay .shop-close");
         if (closeBtn) {
-            closeBtn.style.removeProperty('display');
+            closeBtn.style.removeProperty("display");
         }
     }
 }
@@ -1637,32 +1550,31 @@ export function handlePurchaseOuter(id, type) {
 function handlePurchase(type) {
     if (!currentBuildingId) return;
     const id = currentBuildingId;
-    
     const currencyKey = BUILDING_CURRENCY_KEYS[id];
     const walletHandle = window.bank?.[currencyKey];
     if (!walletHandle) return;
-    
     let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
     let startLevelBn = getBuildingLevel(id);
-    
     let costToDeduct = BigNum.fromInt(0);
     let levelsToAdd = 0;
-    
-    
-    const maxLevels = type === 'buy' ? 1 : BigNum.fromAny('Infinity');
-    
-    if (type === 'buy') {
+    const maxLevels = type === "buy" ? 1 : BigNum.fromAny("Infinity");
+    if (type === "buy") {
         const costBn = getBuildingCost(id, startLevelBn);
         if (walletBn.cmp(costBn) >= 0) {
             costToDeduct = costBn;
             levelsToAdd = 1;
         }
-    } else if (type === 'max' || type === 'cheap' || type === 'next') {
+    } else if (type === "max" || type === "cheap" || type === "next") {
         // evaluateBulkPurchase returns { count, spent }
         const ratio = getBuildingRatio(id);
         let deltaNum = 1e12;
-        if (type === 'next') {
-            const currentLevelNum = typeof startLevelBn.toNumber === 'function' ? startLevelBn.toNumber() : (startLevelBn.inf ? Infinity : (startLevelBn.sig * Math.pow(10, startLevelBn.e)));
+        if (type === "next") {
+            const currentLevelNum =
+                typeof startLevelBn.toNumber === "function"
+                    ? startLevelBn.toNumber()
+                    : startLevelBn.inf
+                      ? Infinity
+                      : startLevelBn.sig * Math.pow(10, startLevelBn.e);
             const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
             let nextTarget = 10;
             for (let t of TIERS) {
@@ -1672,41 +1584,35 @@ function handlePurchase(type) {
                 }
             }
             if (currentLevelNum >= 1000) {
-                 // fallback
+                // fallback
             } else {
-                 deltaNum = nextTarget - currentLevelNum;
+                deltaNum = nextTarget - currentLevelNum;
             }
         }
-        
-        if (type === 'cheap') {
+        if (type === "cheap") {
             const maxEval = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
             let n = maxEval.count;
-            if (typeof n !== 'number') n = n.toNumber ? n.toNumber() : (n.inf ? Infinity : (n.sig * Math.pow(10, n.e)));
-            
+            if (typeof n !== "number") n = n.toNumber ? n.toNumber() : n.inf ? Infinity : n.sig * Math.pow(10, n.e);
             if (n === Number.POSITIVE_INFINITY) {
-                levelsToAdd = BigNum.fromAny('Infinity');
+                levelsToAdd = BigNum.fromAny("Infinity");
                 costToDeduct = BigNum.fromInt(0);
             } else if (n > 0) {
                 let bestK = 0;
                 let currentSpent = maxEval.spent;
                 let currentK = n;
                 const startLevelNum = levelBigNumToNumber(startLevelBn);
-                
                 if (n < 2000) {
                     while (currentK > 0) {
                         const lastLvlIdx = startLevelNum + currentK - 1;
                         const lastCostLog10 = getBuildingCostLog10AtLevel(id, BigNum.fromAny(lastLvlIdx));
                         const lastCost = bigNumFromLog10(lastCostLog10).floorToInteger();
-                        
                         const prevSpent = currentSpent.sub(lastCost);
                         const prevRem = walletBn.sub(prevSpent);
-                        
                         const threshold = prevRem.div(10);
                         if (lastCost.cmp(threshold) <= 0) {
                             bestK = currentK;
                             break;
                         }
-                        
                         currentSpent = prevSpent;
                         currentK--;
                     }
@@ -1716,12 +1622,13 @@ function handlePurchase(type) {
                     while (lo <= hi) {
                         const mid = Math.floor((lo + hi) / 2);
                         const spentMidLog10 = getBuildingTotalCostLog10(ratio, startLevelNum, mid - 1);
-                        const prevSpent = spentMidLog10 === Number.NEGATIVE_INFINITY ? BigNum.fromInt(0) : bigNumFromLog10(spentMidLog10);
+                        const prevSpent =
+                            spentMidLog10 === Number.NEGATIVE_INFINITY
+                                ? BigNum.fromInt(0)
+                                : bigNumFromLog10(spentMidLog10);
                         const prevRem = walletBn.sub(prevSpent);
-                        
                         const lastCostLog10 = getBuildingCostLog10AtLevel(id, BigNum.fromAny(startLevelNum + mid - 1));
                         const lastCost = bigNumFromLog10(lastCostLog10).floorToInteger();
-                        
                         const threshold = prevRem.div(10);
                         if (lastCost.cmp(threshold) <= 0) {
                             bestK = mid;
@@ -1731,7 +1638,6 @@ function handlePurchase(type) {
                         }
                     }
                 }
-                
                 if (bestK > 0) {
                     levelsToAdd = BigNum.fromAny(bestK);
                     const finalSpentLog10 = getBuildingTotalCostLog10(ratio, startLevelNum, bestK);
@@ -1741,37 +1647,30 @@ function handlePurchase(type) {
         } else {
             const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, deltaNum, ratio);
             let count = outcome.count;
-            if (typeof count === 'number') count = BigNum.fromAny(count);
-            
+            if (typeof count === "number") count = BigNum.fromAny(count);
             if (count.cmp(0) > 0) {
                 levelsToAdd = count;
                 costToDeduct = outcome.spent ?? BigNum.fromInt(0);
             }
         }
     }
-    
-    const levelsToAddCmp = typeof levelsToAdd === 'number' ? levelsToAdd > 0 : levelsToAdd.cmp(0) > 0;
+
+    const levelsToAddCmp = typeof levelsToAdd === "number" ? levelsToAdd > 0 : levelsToAdd.cmp(0) > 0;
     if (levelsToAddCmp) {
         if (walletHandle.sub) walletHandle.sub(costToDeduct);
         const oldLevel = getBuildingLevel(id);
         const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
-        
         playPurchaseSfx();
-        
-        document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
-        
-        import('../../misc/buildingVisuals.js').then(module => {
+        document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+        import("../../misc/buildingVisuals.js").then((module) => {
             module.triggerLevelUpAnimation(id);
             module.checkTierUp(id, oldLevel, newLevel);
         });
-        
         updateOverlayUi();
-        
         const gridCardBadge = document.querySelector(`.shop-upgrade[data-building-id="${id}"] .level-badge`);
         if (gridCardBadge) setHtmlOrText(gridCardBadge, formatNumber(newLevel));
     }
 }
-
 window.renderBuildingsGrid = renderBuildingsGrid;
 window.getAffordableBuildingLevels = getAffordableBuildingLevels;
 window.setBuildingUnlocked = setBuildingUnlocked;
