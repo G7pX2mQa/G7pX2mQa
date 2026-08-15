@@ -77,20 +77,27 @@ const originalRemoveItem = localStorage.removeItem.bind(localStorage);
 window.originalRemoveItem = originalRemoveItem;
 const originalGetItem = localStorage.getItem.bind(localStorage);
 
-export const activeStorageKeys = new Set();
-if (typeof window !== 'undefined') {
-    window.__activeStorageKeys = activeStorageKeys;
-}
-if (typeof localStorage !== 'undefined') {
-    for (let i = 0; i < localStorage.length; i++) {
-        activeStorageKeys.add(localStorage.key(i));
+export let activeStorageKeys = null;
+let localStorageBuffer = null;
+const REMOVED_SYMBOL = Symbol('REMOVED');
+
+function ensureStorageInitialized() {
+    if (!localStorageBuffer) {
+        localStorageBuffer = new Map();
+        activeStorageKeys = new Set();
+        if (typeof window !== 'undefined') {
+            window.__activeStorageKeys = activeStorageKeys;
+        }
+        if (typeof localStorage !== 'undefined') {
+            for (let i = 0; i < localStorage.length; i++) {
+                activeStorageKeys.add(localStorage.key(i));
+            }
+        }
     }
 }
 
-const REMOVED_SYMBOL = Symbol('REMOVED');
-const localStorageBuffer = new Map();
-
 export function flushLocalStorageBuffer() {
+    ensureStorageInitialized();
     if (localStorageBuffer.size === 0) return;
     
     const entries = Array.from(localStorageBuffer.entries());
@@ -120,6 +127,7 @@ if (typeof window !== 'undefined') {
 }
 
 localStorage.getItem = function(key) {
+    ensureStorageInitialized();
     if (localStorageBuffer.has(key)) {
         const val = localStorageBuffer.get(key);
         return val === REMOVED_SYMBOL ? null : val;
@@ -129,98 +137,75 @@ localStorage.getItem = function(key) {
 
 
 
-function captureStackTrace() {
-  try {
-    throw new Error('ccc-storage-write');
-  } catch (err) {
-    return err?.stack || '';
-  }
+export let _debugIsStorageKeyLocked = null;
+export function setDebugStorageLockChecker(fn) {
+    _debugIsStorageKeyLocked = fn;
 }
 
-function isTrustedStorageStack(stack) {
-  if (typeof stack !== 'string' || stack.length === 0) return true;
-  
-  const lines = stack.split('\n').map(l => l.trim()).filter(l => l.startsWith('at '));
-  
-  const isCheat = lines.some(l => {
-      // Catch direct console executions, which typically show up as <anonymous>:L:C or VM\d+:L:C
-      // with very small line and column numbers.
-      // Legitimate mobile browsers running the game in a VM will have large line
-      // or column numbers (since the game bundle is large and often minified).
-      const match = l.match(/(?:<anonymous>|VM\d+):(\d+)(?::(\d+))?\)?$/);
-      if (match) {
-          const lineNum = parseInt(match[1], 10);
-          const colNum = match[2] ? parseInt(match[2], 10) : 0;
-          if (lineNum <= 10 && colNum <= 2000) {
-              return true;
-          }
-      }
-      return false;
-  });
-  
-  return !isCheat;
+export function lsSetItem(key, value) {
+    if (_debugIsStorageKeyLocked && _debugIsStorageKeyLocked(key)) return;
+    lsSetItemForce(key, value);
 }
 
-localStorage.setItem = function(key, value) {
+export function lsSetItemForce(key, value) {
+    ensureStorageInitialized();
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
     let finalValue = String(value);
-    
-    // Anti-cheat stack trace checking
-    const strKey = String(key);
-    if (strKey.startsWith('ccc:') && !strKey.startsWith('ccc:debug:')) {
-        const slotMatch = strKey.match(/:(\d+)$/);
-        if (slotMatch) {
-            const slot = parseInt(slotMatch[1], 10);
-            if (Number.isFinite(slot) && slot > 0) {
-                const stack = captureStackTrace();
-                if (!isTrustedStorageStack(stack)) {
-                    if (strKey === `ccc:slotMod:${slot}`) {
-                        // Thwart tampering of the flag itself and prevent infinite recursion
-                        finalValue = '1';
-                    } else {
-                        markSaveSlotModified(slot);
-                    }
-                }
-            }
-        }
-    }
-
     localStorageBuffer.set(key, finalValue);
     activeStorageKeys.add(key);
     try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotWrite', { detail: { key, value: finalValue } })); } catch {}
-};
+}
 
-localStorage.removeItem = function(key) {
+export function lsRemoveItem(key) {
+    if (_debugIsStorageKeyLocked && _debugIsStorageKeyLocked(key)) return;
+    lsRemoveItemForce(key);
+}
+
+export function lsRemoveItemForce(key) {
+    ensureStorageInitialized();
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
+    localStorageBuffer.set(key, REMOVED_SYMBOL);
+    activeStorageKeys.delete(key);
+    try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotRemove', { detail: { key } })); } catch {}
+}
 
-    // Anti-cheat stack trace checking
+localStorage.setItem = function(key, value) {
     const strKey = String(key);
     if (strKey.startsWith('ccc:') && !strKey.startsWith('ccc:debug:')) {
         const slotMatch = strKey.match(/:(\d+)$/);
         if (slotMatch) {
             const slot = parseInt(slotMatch[1], 10);
             if (Number.isFinite(slot) && slot > 0) {
-                const stack = captureStackTrace();
-                if (!isTrustedStorageStack(stack)) {
-                    if (strKey === `ccc:slotMod:${slot}`) {
-                        // They tried to delete the mod flag! Ignore the deletion, and mark the save
-                        markSaveSlotModified(slot);
-                        return; 
-                    } else {
-                        markSaveSlotModified(slot);
-                    }
+                if (strKey === `ccc:slotMod:${slot}`) {
+                    value = '1';
+                } else {
+                    markSaveSlotModified(slot);
                 }
             }
         }
     }
+    originalSetItem(key, String(value));
+};
 
-    localStorageBuffer.set(key, REMOVED_SYMBOL);
-    activeStorageKeys.delete(key);
-    try { window.dispatchEvent(new CustomEvent('saveIntegrity:slotRemove', { detail: { key } })); } catch {}
+localStorage.removeItem = function(key) {
+    const strKey = String(key);
+    if (strKey.startsWith('ccc:') && !strKey.startsWith('ccc:debug:')) {
+        const slotMatch = strKey.match(/:(\d+)$/);
+        if (slotMatch) {
+            const slot = parseInt(slotMatch[1], 10);
+            if (Number.isFinite(slot) && slot > 0) {
+                markSaveSlotModified(slot);
+                if (strKey === `ccc:slotMod:${slot}`) {
+                    return; 
+                }
+            }
+        }
+    }
+    originalRemoveItem(key);
 };
 
 if (IS_MOBILE) {
@@ -373,7 +358,7 @@ function applyPendingSlotWipe() {
     }
 
     toRemove.forEach(k => {
-      try { localStorage.removeItem(k); } catch {}
+      try { lsRemoveItem(k); } catch {}
     });
 
     if (typeof window !== 'undefined') {
@@ -382,9 +367,9 @@ function applyPendingSlotWipe() {
     }
 
     // Remove the flag so it only executes once
-    try { localStorage.removeItem('ccc:pendingSlotWipe'); } catch {}
+    try { lsRemoveItem('ccc:pendingSlotWipe'); } catch {}
   } catch {
-    try { localStorage.removeItem('ccc:pendingSlotWipe'); } catch {}
+    try { lsRemoveItem('ccc:pendingSlotWipe'); } catch {}
   }
 }
 
@@ -1606,7 +1591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const welcomeKey = `ccc:welcome_shown:${slot}`;
       const procsKey = `ccc:weekly_reminder_procs:${slot}`;
       if (!localStorage.getItem(welcomeKey)) {
-        localStorage.setItem(welcomeKey, 'true');
+        lsSetItem(welcomeKey, 'true');
         showWelcomePopup(IS_MOBILE);
       } else {
         let procs = [];
@@ -1624,7 +1609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (Date.now() - lastProc >= SEVEN_DAYS_MS) {
           procs.push(Date.now());
-          localStorage.setItem(procsKey, JSON.stringify(procs));
+          lsSetItem(procsKey, JSON.stringify(procs));
           showWeeklyReminderPopup();
         }
       }
@@ -1672,32 +1657,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         // We need to perform the exact same state wipe that applySurgeResetLogic does, directly to localStorage.
         
         // Base currencies wiped by Surge
-        localStorage.setItem(`ccc:coins:${slot}`, 'BN:zero');
-        localStorage.setItem(`ccc:books:${slot}`, 'BN:zero');
-        localStorage.setItem(`ccc:gold:${slot}`, 'BN:zero');
-        localStorage.setItem(`ccc:magic:${slot}`, 'BN:zero');
+        lsSetItem(`ccc:coins:${slot}`, 'BN:zero');
+        lsSetItem(`ccc:books:${slot}`, 'BN:zero');
+        lsSetItem(`ccc:gold:${slot}`, 'BN:zero');
+        lsSetItem(`ccc:magic:${slot}`, 'BN:zero');
         
         // XP progress wiped
-        localStorage.setItem(`ccc:xp:level:${slot}`, 'BN:zero');
-        localStorage.setItem(`ccc:xp:progress:${slot}`, 'BN:zero');
+        lsSetItem(`ccc:xp:level:${slot}`, 'BN:zero');
+        lsSetItem(`ccc:xp:progress:${slot}`, 'BN:zero');
         
         // Mutation wiped
-        localStorage.setItem(`ccc:mutation:level:${slot}`, '0');
-        localStorage.setItem(`ccc:mutation:progress:${slot}`, '0');
+        lsSetItem(`ccc:mutation:level:${slot}`, '0');
+        lsSetItem(`ccc:mutation:progress:${slot}`, '0');
         
         // Clear all base upgrades. We could iterate, but for a fallback we can just wipe all known upgrades from 1 to 50 for Starter Cove.
         // Or we can rely on the fact that if they reload, the game state reconstructs from save.
         // The safest approach to prevent the exploit is to wipe the currencies they shouldn't keep.
         
         // Reset lab level
-        localStorage.setItem(`ccc:lab:level:${slot}`, 'BN:zero');
+        lsSetItem(`ccc:lab:level:${slot}`, 'BN:zero');
         
         // Ensure tsunami is marked as completed so the nerfed multipliers apply on reload
-        localStorage.setItem(`ccc:tsunami:dialoguePending:${slot}`, '1');
-        localStorage.setItem(`ccc:permanent:tsunamiSequencePlayed:${slot}`, '1');
+        lsSetItem(`ccc:tsunami:dialoguePending:${slot}`, '1');
+        lsSetItem(`ccc:permanent:tsunamiSequencePlayed:${slot}`, '1');
         
         // And unlock lab
-        localStorage.setItem(`ccc:unlock:tsunami:${slot}`, '1');
+        lsSetItem(`ccc:unlock:tsunami:${slot}`, '1');
         
         // Force synchronous flush to disk to ensure this saves before close
         if (typeof window.flushLocalStorageBuffer === 'function') {
@@ -1874,7 +1859,7 @@ There are many ways to mark a save slot other than just using the debug panel.`)
             window.activePlaytime = activePlaytime;
             
             try {
-              localStorage.setItem(`ccc:activePlaytime:${slot}`, String(activePlaytime));
+              lsSetItem(`ccc:activePlaytime:${slot}`, String(activePlaytime));
             } catch {}
             activePlaytimeStorageAccumulator -= wholeSeconds;
           }
@@ -1885,7 +1870,7 @@ There are many ways to mark a save slot other than just using the debug panel.`)
             window.globalActivePlaytime = globalActivePlaytime;
             
             try {
-              localStorage.setItem('ccc:globalActivePlaytime', String(globalActivePlaytime));
+              lsSetItem('ccc:globalActivePlaytime', String(globalActivePlaytime));
             } catch {}
             globalActivePlaytimeStorageAccumulator -= wholeSeconds;
           }
