@@ -38,10 +38,11 @@ export const HAS_POINTER_EVENTS = typeof window !== 'undefined' && 'PointerEvent
 export const HAS_TOUCH_EVENTS = !HAS_POINTER_EVENTS && typeof window !== 'undefined' && 'ontouchstart' in window;
 
 export class DialogueEngine {
-  constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice, pauseMultiplier = 14 }) {
+  constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice, pauseMultiplier = 14, getJeffState }) {
       this.textEl = textEl;
       this.choicesEl = choicesEl;
       this.skipTargets = skipTargets;
+      this.getJeffState = getJeffState;
       this.onEnd = (info) => {
         setAudioUnderwater(false);
         if (onEnd) onEnd(info);
@@ -81,7 +82,8 @@ export class DialogueEngine {
         this._hideChoices();
       }
 
-      await typeText(this.textEl, node.say, node.msPerChar ?? 30, this.skipTargets, this.pauseMultiplier);
+      const isJeff = this.getJeffState ? this.getJeffState() : false;
+      await typeText(this.textEl, (isJeff && node.sayJeff) ? node.sayJeff : node.say, node.msPerChar ?? 30, this.skipTargets, this.pauseMultiplier);
 
       if (nextNode && nextNode.type === 'choice') {
         this.current = node.next;
