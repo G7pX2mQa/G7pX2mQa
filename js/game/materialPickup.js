@@ -1,5 +1,5 @@
 // js/game/materialPickup.js
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { bank, UC_MATERIALS, getActiveSlot } from "../util/storage.js";
 import { unlockShopUc } from "../ui/hudButtons.js";
 import { BigNum } from "../util/bigNum.js";
@@ -93,9 +93,9 @@ export function initUcPickup({
         if (activeSlot != null) {
             const SHOP_UC_UNLOCK_KEY = `ccc:unlock:shop:uc:${activeSlot}`;
             const SHOP_UC_PROGRESS_KEY = `ccc:unlock:shop:uc:progress:${activeSlot}`;
-            const p = parseInt(localStorage.getItem(SHOP_UC_PROGRESS_KEY) || "0", 10);
+            const p = parseInt(lsGetItem(SHOP_UC_PROGRESS_KEY) || "0", 10);
             lsSetItem(SHOP_UC_PROGRESS_KEY, String(p));
-            if (p >= 10 && localStorage.getItem(SHOP_UC_UNLOCK_KEY) !== "1") {
+            if (p >= 10 && lsGetItem(SHOP_UC_UNLOCK_KEY) !== "1") {
                 try {
                     unlockShopUc();
                 } catch {}
@@ -261,8 +261,8 @@ export function initUcPickup({
             if (activeSlot != null) {
                 const SHOP_UC_UNLOCK_KEY = `ccc:unlock:shop:uc:${activeSlot}`;
                 const SHOP_UC_PROGRESS_KEY = `ccc:unlock:shop:uc:progress:${activeSlot}`;
-                if (localStorage.getItem(SHOP_UC_UNLOCK_KEY) !== "1") {
-                    const current = parseInt(localStorage.getItem(SHOP_UC_PROGRESS_KEY) || "0", 10);
+                if (lsGetItem(SHOP_UC_UNLOCK_KEY) !== "1") {
+                    const current = parseInt(lsGetItem(SHOP_UC_PROGRESS_KEY) || "0", 10);
                     const next = current + collectedCount;
                     lsSetItem(SHOP_UC_PROGRESS_KEY, String(next));
                     if (next >= 10) {
