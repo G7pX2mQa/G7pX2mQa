@@ -1,5 +1,5 @@
 // js/ui/merchantTabs/workshopTab.js
-import { lsSetItem } from "../../main.js";
+import { lsSetItem, lsGetItem } from "../../main.js";
 import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { bank, CURRENCIES, getActiveSlot } from "../../util/storage.js";
@@ -71,7 +71,7 @@ export function getGenerationLevel() {
 export function loadGenerationLevel() {
     const slot = getActiveSlot();
     if (!slot) return BigNum.zero();
-    const raw = localStorage.getItem(getGenerationLevelKey(slot));
+    const raw = lsGetItem(getGenerationLevelKey(slot));
     if (!raw) return BigNum.zero();
     try {
         // Handle both legacy "123" and new "BN:..." formats
@@ -107,7 +107,7 @@ function saveGenerationLevel(level) {
     } catch {}
     let readBack = null;
     try {
-        readBack = localStorage.getItem(key);
+        readBack = lsGetItem(key);
     } catch {}
     return readBack === valStr;
 }
@@ -546,7 +546,7 @@ export function updateWorkshopTab() {
             const slot = getActiveSlot();
             const slotSuffix = slot != null ? `:${slot}` : "";
             const key = `ccc:autobuy:${AUTOMATION_AREA_KEY}:${AUTOBUY_WORKSHOP_LEVELS_ID}${slotSuffix}`;
-            isAutomated = localStorage.getItem(key) !== "0";
+            isAutomated = lsGetItem(key) !== "0";
         }
         if (isAutomated) upgradeBtn.classList.add("is-automated");
         else upgradeBtn.classList.remove("is-automated");
