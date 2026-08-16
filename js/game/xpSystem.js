@@ -1,5 +1,5 @@
 // js/game/xpSystem.js
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10, bigNumIsInfinite } from "../util/bigNum.js";
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from "../util/storage.js";
 import { registerTick } from "./gameLoop.js";
@@ -878,13 +878,13 @@ function ensureStateLoaded(force = false) {
     lastSlot = slot;
     stateLoaded = true;
     try {
-        const unlockedRaw = localStorage.getItem(KEY_UNLOCK(slot));
+        const unlockedRaw = lsGetItem(KEY_UNLOCK(slot));
         xpState.unlocked = unlockedRaw === "1";
     } catch {
         xpState.unlocked = false;
     }
     try {
-        xpState.xpLevel = BigNum.fromAny(localStorage.getItem(KEY_XP_LEVEL(slot)) ?? "0");
+        xpState.xpLevel = BigNum.fromAny(lsGetItem(KEY_XP_LEVEL(slot)) ?? "0");
         if (xpState.xpLevel && typeof xpState.xpLevel.cmp === "function" && xpState.xpLevel.cmp(4500000000000) >= 0) {
             xpState.xpLevel = BigNum.fromAny("Infinity");
         }
@@ -892,7 +892,7 @@ function ensureStateLoaded(force = false) {
         xpState.xpLevel = bnZero();
     }
     try {
-        xpState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? "0");
+        xpState.progress = BigNum.fromAny(lsGetItem(KEY_PROGRESS(slot)) ?? "0");
     } catch {
         xpState.progress = bnZero();
     }
@@ -934,14 +934,14 @@ function persistState() {
         let level = xpState.xpLevel;
         let progress = xpState.progress;
         try {
-            unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === "1";
+            unlocked = lsGetItem(KEY_UNLOCK(slot)) === "1";
         } catch {}
         try {
-            const rawLevel = localStorage.getItem(KEY_XP_LEVEL(slot));
+            const rawLevel = lsGetItem(KEY_XP_LEVEL(slot));
             if (rawLevel) level = BigNum.fromAny(rawLevel);
         } catch {}
         try {
-            const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
+            const rawProgress = lsGetItem(KEY_PROGRESS(slot));
             if (rawProgress) progress = BigNum.fromAny(rawProgress);
         } catch {}
         return { unlocked, level, progress };
