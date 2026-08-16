@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { playAudio } from "../util/audioManager.js";
 import { getActiveSlot } from "../util/storage.js";
 import { setupDragToClose, blockInteraction } from "./shopOverlay.js";
@@ -11,7 +11,7 @@ const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 export function isNodeLocked(id, defaultLocked) {
     const slot = getActiveSlot();
     if (slot == null) return defaultLocked;
-    const val = localStorage.getItem(MAP_NODE_LOCKED_KEY(id, slot));
+    const val = lsGetItem(MAP_NODE_LOCKED_KEY(id, slot));
     if (val != null) return val === "1";
     return defaultLocked;
 }
