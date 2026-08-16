@@ -1,5 +1,5 @@
 // js/ui/merchantTabs/resetTab.js
-import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { BigNum } from "../../util/bigNum.js";
 import { IS_MOBILE } from "../../util/platformChecker.js";
 import {
@@ -596,7 +596,7 @@ export function setExperimentResetCompleted(value) {
 function getForgeDebugOverride(slot = getActiveSlot()) {
     if (slot == null) return null;
     try {
-        const raw = localStorage.getItem(FORGE_DEBUG_OVERRIDE_KEY(slot));
+        const raw = lsGetItem(FORGE_DEBUG_OVERRIDE_KEY(slot));
         if (raw === "1") return true;
         if (raw === "0") return false;
     } catch {}
@@ -629,7 +629,7 @@ export function setForgeDebugOverride(value, slot = getActiveSlot()) {
 function getInfuseDebugOverride(slot = getActiveSlot()) {
     if (slot == null) return null;
     try {
-        const raw = localStorage.getItem(INFUSE_DEBUG_OVERRIDE_KEY(slot));
+        const raw = lsGetItem(INFUSE_DEBUG_OVERRIDE_KEY(slot));
         if (raw === "1") return true;
         if (raw === "0") return false;
     } catch {}
@@ -692,7 +692,7 @@ function setForgeUnlocked(value) {
 function getSurgeDebugOverride(slot = getActiveSlot()) {
     if (slot == null) return null;
     try {
-        const raw = localStorage.getItem(SURGE_DEBUG_OVERRIDE_KEY(slot));
+        const raw = lsGetItem(SURGE_DEBUG_OVERRIDE_KEY(slot));
         if (raw === "1") return true;
         if (raw === "0") return false;
     } catch {}
@@ -736,40 +736,40 @@ function readPersistentFlags(slot) {
         return;
     }
     try {
-        resetState.forgeUnlocked = localStorage.getItem(FORGE_UNLOCK_KEY(slot)) === "1";
+        resetState.forgeUnlocked = lsGetItem(FORGE_UNLOCK_KEY(slot)) === "1";
     } catch {
         resetState.forgeUnlocked = false;
     }
     resetState.forgeDebugOverride = getForgeDebugOverride(slot);
     try {
-        resetState.hasDoneForgeReset = localStorage.getItem(FORGE_COMPLETED_KEY(slot)) === "1";
+        resetState.hasDoneForgeReset = lsGetItem(FORGE_COMPLETED_KEY(slot)) === "1";
     } catch {
         resetState.hasDoneForgeReset = false;
     }
     try {
-        resetState.infuseUnlocked = localStorage.getItem(INFUSE_UNLOCK_KEY(slot)) === "1";
+        resetState.infuseUnlocked = lsGetItem(INFUSE_UNLOCK_KEY(slot)) === "1";
     } catch {
         resetState.infuseUnlocked = false;
     }
     try {
-        resetState.hasDoneInfuseReset = localStorage.getItem(INFUSE_COMPLETED_KEY(slot)) === "1";
+        resetState.hasDoneInfuseReset = lsGetItem(INFUSE_COMPLETED_KEY(slot)) === "1";
     } catch {
         resetState.hasDoneInfuseReset = false;
     }
     resetState.infuseDebugOverride = getInfuseDebugOverride(slot);
     try {
-        resetState.surgeUnlocked = localStorage.getItem(SURGE_UNLOCK_KEY(slot)) === "1";
+        resetState.surgeUnlocked = lsGetItem(SURGE_UNLOCK_KEY(slot)) === "1";
     } catch {
         resetState.surgeUnlocked = false;
     }
     resetState.surgeDebugOverride = getSurgeDebugOverride(slot);
     try {
-        resetState.hasDoneSurgeReset = localStorage.getItem(SURGE_COMPLETED_KEY(slot)) === "1";
+        resetState.hasDoneSurgeReset = lsGetItem(SURGE_COMPLETED_KEY(slot)) === "1";
     } catch {
         resetState.hasDoneSurgeReset = false;
     }
     try {
-        resetState.hasDoneExperimentReset = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === "1";
+        resetState.hasDoneExperimentReset = lsGetItem(EXPERIMENT_COMPLETED_KEY(slot)) === "1";
     } catch {
         resetState.hasDoneExperimentReset = false;
     }
@@ -1568,7 +1568,7 @@ function triggerSurgeWaveAnimation() {
 export function getSurgeBarLevel(slot) {
     let barLevel = 0;
     try {
-        const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
+        const raw = lsGetItem(SURGE_BAR_LEVEL_KEY(slot));
         if (raw) {
             if (raw === "Infinity") return Infinity;
             barLevel = Number(raw);
@@ -2441,7 +2441,7 @@ function updateSurgeCard() {
         if (resetState.hasDoneSurgeReset) {
             if (el.status.innerHTML !== "") el.status.innerHTML = "";
         } else {
-            const isWarpVisible = localStorage.getItem(`ccc:debug:toggleTheW:${ensureResetSlot()}`) === "1";
+            const isWarpVisible = lsGetItem(`ccc:debug:toggleTheW:${ensureResetSlot()}`) === "1";
             const expected = isWarpVisible
                 ? `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
