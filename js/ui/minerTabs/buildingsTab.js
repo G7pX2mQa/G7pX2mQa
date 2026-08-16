@@ -1,4 +1,4 @@
-import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { getActiveSlot } from "../../util/storage.js";
 import { getDpState } from "../../game/dpSystem.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
@@ -36,7 +36,7 @@ export function isBuildingUnlocked(id) {
     const slotKey = String(getActiveSlot() ?? "default");
     if (typeof localStorage === "undefined") return false;
     try {
-        return localStorage.getItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === "1";
+        return lsGetItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === "1";
     } catch {
         return false;
     }
@@ -64,7 +64,7 @@ export function isBuildingsUnlocked() {
     const slotKey = String(slot);
     if (typeof localStorage === "undefined") return false;
     try {
-        const result = localStorage.getItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === "1";
+        const result = lsGetItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === "1";
         cachedBuildingsUnlockedStates[slot] = result;
         return result;
     } catch {
@@ -833,7 +833,7 @@ export function getBuildingLevel(id) {
     const slotKey = String(getActiveSlot() ?? "default");
     if (typeof localStorage === "undefined") return BigNum.fromInt(0);
     try {
-        const val = localStorage.getItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
+        const val = lsGetItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
         if (!val) return BigNum.fromInt(0);
         return BigNum.fromAny(val);
     } catch {
