@@ -1,5 +1,5 @@
 // js/game/upgrades.js
-import { lsSetItem, lsRemoveItem } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { bank, getActiveSlot, primeStorageWatcherSnapshot, isStorageKeyLocked } from "../util/storage.js";
 import { BigNum, approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 } from "../util/bigNum.js";
 export { approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 };
@@ -422,7 +422,7 @@ function ensureShopRevealState(slot = getActiveSlot()) {
     let parsed = { upgrades: {} };
     if (typeof localStorage !== "undefined") {
         try {
-            const raw = localStorage.getItem(`${SHOP_REVEAL_STATE_KEY_BASE}:${slotKey}`);
+            const raw = lsGetItem(`${SHOP_REVEAL_STATE_KEY_BASE}:${slotKey}`);
             if (raw) {
                 const obj = JSON.parse(raw);
                 if (obj && typeof obj === "object") {
@@ -462,7 +462,7 @@ function ensureShopPermaUnlockState(slot = getActiveSlot()) {
     let parsed = { upgrades: {} };
     if (typeof localStorage !== "undefined") {
         try {
-            const raw = localStorage.getItem(`${SHOP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
+            const raw = lsGetItem(`${SHOP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
             if (raw) {
                 const obj = JSON.parse(raw);
                 if (obj && typeof obj === "object") {
@@ -502,7 +502,7 @@ function ensureShopPermaMystState(slot = getActiveSlot()) {
     let parsed = { upgrades: {} };
     if (typeof localStorage !== "undefined") {
         try {
-            const raw = localStorage.getItem(`${SHOP_PERMA_MYST_KEY_BASE}:${slotKey}`);
+            const raw = lsGetItem(`${SHOP_PERMA_MYST_KEY_BASE}:${slotKey}`);
             if (raw) {
                 const obj = JSON.parse(raw);
                 if (obj && typeof obj === "object") {
@@ -832,7 +832,7 @@ export function safeHasMetMiner(slot = getActiveSlot()) {
     const slotKey = String(slot ?? "default");
     if (typeof localStorage === "undefined") return false;
     try {
-        return localStorage.getItem(`ccc:minerMet:${slotKey}`) === "1";
+        return lsGetItem(`ccc:minerMet:${slotKey}`) === "1";
     } catch {
         return false;
     }
@@ -842,7 +842,7 @@ function safeHasMetMerchant(slot = getActiveSlot()) {
     const slotKey = String(slot ?? "default");
     if (typeof localStorage === "undefined") return false;
     try {
-        return localStorage.getItem(`${MERCHANT_MET_KEY_BASE}:${slotKey}`) === "1";
+        return lsGetItem(`${MERCHANT_MET_KEY_BASE}:${slotKey}`) === "1";
     } catch {
         return false;
     }
@@ -3244,7 +3244,7 @@ if (typeof window !== "undefined") {
 function migrateLegacyStorage(areaKey, slot) {
     if (typeof localStorage === "undefined") return;
     const legacyKey = keyForArea(areaKey, slot);
-    const raw = localStorage.getItem(legacyKey);
+    const raw = lsGetItem(legacyKey);
     if (!raw) return;
     try {
         const arr = JSON.parse(raw);
@@ -3256,7 +3256,7 @@ function migrateLegacyStorage(areaKey, slot) {
                     if (key) {
                         // Only write if individual key doesn't exist to prevent overwriting
                         // if migration ran partially before.
-                        if (localStorage.getItem(key) === null) {
+                        if (lsGetItem(key) === null) {
                             lsSetItem(key, JSON.stringify(rec));
                             migratedCount++;
                         }
@@ -3295,7 +3295,7 @@ function loadUpgradeFromStorage(areaKey, upgId, slot) {
         } catch {}
     }
     try {
-        const raw = localStorage.getItem(key);
+        const raw = lsGetItem(key);
         return raw ? JSON.parse(raw) : null;
     } catch {
         return null;
@@ -3846,7 +3846,7 @@ function getSafeSurgeLevel() {
     try {
         const slot = getActiveSlot();
         if (slot != null) {
-            const raw = localStorage.getItem(`ccc:reset:surge:barLevel:${slot}`);
+            const raw = lsGetItem(`ccc:reset:surge:barLevel:${slot}`);
             if (raw === "Infinity") return Infinity;
             if (raw) level = Number(raw);
         }
@@ -4051,7 +4051,7 @@ export function buyOne(areaKey, upgId) {
 export function hasEvolvedAnyUpgrade(slot = getActiveSlot()) {
     const slotKey = String(slot ?? "default");
     if (typeof localStorage === "undefined") return false;
-    return localStorage.getItem(`ccc:evolvedAnyUpgrade:${slotKey}`) === "1";
+    return lsGetItem(`ccc:evolvedAnyUpgrade:${slotKey}`) === "1";
 }
 
 function markEvolvedAnyUpgrade(slot = getActiveSlot()) {
