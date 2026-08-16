@@ -1,4 +1,4 @@
-import { lsSetItem } from "../../main.js";
+import { lsSetItem, lsGetItem } from "../../main.js";
 import { createSASOverlay } from "./sasOverlayBuilder.js";
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementState } from "../../game/achievements.js";
 import { getActiveSlot, bank } from "../../util/storage.js";
@@ -108,7 +108,7 @@ function renderAchievements(gridEl) {
 function updateDelveButton(delveBtn) {
     const slot = getActiveSlot();
     const flagKey = `ccc:achievements:delveClicked:${slot}`;
-    const isClicked = localStorage.getItem(flagKey) === "1";
+    const isClicked = lsGetItem(flagKey) === "1";
     if (isClicked) {
         delveBtn.classList.remove("is-new");
     } else {
