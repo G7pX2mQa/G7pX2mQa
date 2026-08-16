@@ -72,22 +72,18 @@ HTMLCanvasElement.prototype.getContext = function (contextType, contextAttribute
 
 export let activeStorageKeys = null;
 let localStorageBuffer = null;
-let dirtyStorageKeys = null;
 const REMOVED_SYMBOL = Symbol("REMOVED");
 
 function ensureStorageInitialized() {
     if (!localStorageBuffer) {
         localStorageBuffer = new Map();
         activeStorageKeys = new Set();
-        dirtyStorageKeys = new Set();
         if (typeof window !== "undefined") {
             window.__activeStorageKeys = activeStorageKeys;
         }
         if (typeof localStorage !== "undefined") {
             for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                activeStorageKeys.add(key);
-                localStorageBuffer.set(key, Storage.prototype.getItem.call(localStorage, key));
+                activeStorageKeys.add(localStorage.key(i));
             }
         }
     }
@@ -95,15 +91,14 @@ function ensureStorageInitialized() {
 
 export function flushLocalStorageBuffer() {
     ensureStorageInitialized();
-    if (dirtyStorageKeys.size === 0) return;
+    if (localStorageBuffer.size === 0) return;
 
-    const dirtyKeys = Array.from(dirtyStorageKeys);
-    dirtyStorageKeys.clear();
+    const entries = Array.from(localStorageBuffer.entries());
+    localStorageBuffer.clear();
 
     if (!window.__duplicateInstanceDetected && window.currentArea !== 666) {
         window.__isFlushing = true;
-        dirtyKeys.forEach((key) => {
-            const value = localStorageBuffer.get(key);
+        entries.forEach(([key, value]) => {
             if (value === REMOVED_SYMBOL) {
                 Storage.prototype.removeItem.call(localStorage, key);
             } else {
@@ -126,13 +121,19 @@ if (typeof window !== "undefined") {
 
 export function lsGetItem(key) {
     ensureStorageInitialized();
-    const val = localStorageBuffer.get(key);
-    return val === REMOVED_SYMBOL || val === undefined ? null : val;
+    if (IS_MOBILE || IS_FIREFOX) return Storage.prototype.getItem.call(localStorage, key);
+    if (localStorageBuffer.has(key)) {
+        const val = localStorageBuffer.get(key);
+        return val === REMOVED_SYMBOL ? null : val;
+    }
+    return Storage.prototype.getItem.call(localStorage, key);
 }
 
-localStorage.getItem = function (key) {
-    return lsGetItem(key);
-};
+if (!(IS_MOBILE || IS_FIREFOX)) {
+    localStorage.getItem = function (key) {
+        return lsGetItem(key);
+    };
+}
 
 export let _debugIsStorageKeyLocked = null;
 export function setDebugStorageLockChecker(fn) {
@@ -146,13 +147,20 @@ export function lsSetItem(key, value) {
 
 export function lsSetItemForce(key, value) {
     ensureStorageInitialized();
+    if (IS_MOBILE || IS_FIREFOX) {
+        let finalValue = String(value);
+        Storage.prototype.setItem.call(localStorage, key, finalValue);
+        try {
+            window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
+        } catch {}
+        return;
+    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
     let finalValue = String(value);
     localStorageBuffer.set(key, finalValue);
     activeStorageKeys.add(key);
-    dirtyStorageKeys.add(key);
     try {
         window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
     } catch {}
@@ -165,51 +173,59 @@ export function lsRemoveItem(key) {
 
 export function lsRemoveItemForce(key) {
     ensureStorageInitialized();
+    if (IS_MOBILE || IS_FIREFOX) {
+        Storage.prototype.removeItem.call(localStorage, key);
+        try {
+            window.dispatchEvent(new CustomEvent("saveIntegrity:slotRemove", { detail: { key } }));
+        } catch {}
+        return;
+    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
     localStorageBuffer.set(key, REMOVED_SYMBOL);
     activeStorageKeys.delete(key);
-    dirtyStorageKeys.add(key);
     try {
         window.dispatchEvent(new CustomEvent("saveIntegrity:slotRemove", { detail: { key } }));
     } catch {}
 }
 
-localStorage.setItem = function (key, value) {
-    const strKey = String(key);
-    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-        const slotMatch = strKey.match(/:(\d+)$/);
-        if (slotMatch) {
-            const slot = parseInt(slotMatch[1], 10);
-            if (Number.isFinite(slot) && slot > 0) {
-                if (strKey === `ccc:slotMod:${slot}`) {
-                    value = "1";
-                } else {
-                    markSaveSlotModified(slot);
+if (!(IS_MOBILE || IS_FIREFOX)) {
+    localStorage.setItem = function (key, value) {
+        const strKey = String(key);
+        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+            const slotMatch = strKey.match(/:(\d+)$/);
+            if (slotMatch) {
+                const slot = parseInt(slotMatch[1], 10);
+                if (Number.isFinite(slot) && slot > 0) {
+                    if (strKey === `ccc:slotMod:${slot}`) {
+                        value = "1";
+                    } else {
+                        markSaveSlotModified(slot);
+                    }
                 }
             }
         }
-    }
-    Storage.prototype.setItem.call(localStorage, key, String(value));
-};
+        Storage.prototype.setItem.call(localStorage, key, String(value));
+    };
 
-localStorage.removeItem = function (key) {
-    const strKey = String(key);
-    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-        const slotMatch = strKey.match(/:(\d+)$/);
-        if (slotMatch) {
-            const slot = parseInt(slotMatch[1], 10);
-            if (Number.isFinite(slot) && slot > 0) {
-                markSaveSlotModified(slot);
-                if (strKey === `ccc:slotMod:${slot}`) {
-                    return;
+    localStorage.removeItem = function (key) {
+        const strKey = String(key);
+        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+            const slotMatch = strKey.match(/:(\d+)$/);
+            if (slotMatch) {
+                const slot = parseInt(slotMatch[1], 10);
+                if (Number.isFinite(slot) && slot > 0) {
+                    markSaveSlotModified(slot);
+                    if (strKey === `ccc:slotMod:${slot}`) {
+                        return;
+                    }
                 }
             }
         }
-    }
-    Storage.prototype.removeItem.call(localStorage, key);
-};
+        Storage.prototype.removeItem.call(localStorage, key);
+    };
+}
 
 if (IS_MOBILE) {
     document.documentElement.classList.add("is-mobile");
