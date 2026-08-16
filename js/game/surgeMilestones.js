@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { formatNumber, formatMultForUi } from "../util/numFormat.js";
 import { BigNum } from "../util/bigNum.js";
 import { bigNumFromLog10 } from "../util/bigNum.js";
@@ -331,7 +331,7 @@ export const getSurge10Description = (slot) => {
 function getSurge9State(slot) {
     if (slot == null) return 0;
     try {
-        const val = localStorage.getItem(SURGE_9_STATE_KEY(slot));
+        const val = lsGetItem(SURGE_9_STATE_KEY(slot));
         return val ? parseInt(val, 10) : 0;
     } catch {
         return 0;
@@ -348,7 +348,7 @@ function saveSurge9State(slot, state) {
 function getSurge10State(slot) {
     if (slot == null) return 0;
     try {
-        const val = localStorage.getItem(SURGE_10_STATE_KEY(slot));
+        const val = lsGetItem(SURGE_10_STATE_KEY(slot));
         return val ? parseInt(val, 10) : 0;
     } catch {
         return 0;
@@ -365,7 +365,7 @@ function saveSurge10State(slot, state) {
 function getSurge14State(slot) {
     if (slot == null) return 0;
     try {
-        const val = localStorage.getItem(SURGE_14_STATE_KEY(slot));
+        const val = lsGetItem(SURGE_14_STATE_KEY(slot));
         return val ? parseInt(val, 10) : 0;
     } catch {
         return 0;
@@ -382,7 +382,7 @@ function saveSurge14State(slot, state) {
 function getSurge15State(slot) {
     if (slot == null) return 0;
     try {
-        const val = localStorage.getItem(SURGE_15_STATE_KEY(slot));
+        const val = lsGetItem(SURGE_15_STATE_KEY(slot));
         return val ? parseInt(val, 10) : 0;
     } catch {
         return 0;
@@ -474,7 +474,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
     const future = [];
     for (const m of SURGE_MILESTONES) {
         let milestone = m;
-        if (m.id === 1 && localStorage.getItem(`ccc:debug:toggleTheW:${slot}`) !== "1") {
+        if (m.id === 1 && lsGetItem(`ccc:debug:toggleTheW:${slot}`) !== "1") {
             milestone = { ...m, description: m.description.filter((d) => !d.includes("Unlocks the Warp tab")) };
         }
         if (isSurge8) {
