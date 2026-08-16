@@ -1,5 +1,5 @@
 // js/game/mutationSystem.js
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { BigNum } from "../util/bigNum.js";
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from "../util/storage.js";
 import { applyStatMultiplierOverride } from "../util/debugPanel.js";
@@ -462,18 +462,18 @@ function persistState() {
         let progress = mutationState.progress;
         let highestLevel = mutationState.highestLevel;
         try {
-            unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === "1";
+            unlocked = lsGetItem(KEY_UNLOCK(slot)) === "1";
         } catch {}
         try {
-            const rawLevel = localStorage.getItem(KEY_LEVEL(slot));
+            const rawLevel = lsGetItem(KEY_LEVEL(slot));
             if (rawLevel) level = BigNum.fromAny(rawLevel);
         } catch {}
         try {
-            const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
+            const rawProgress = lsGetItem(KEY_PROGRESS(slot));
             if (rawProgress) progress = BigNum.fromAny(rawProgress);
         } catch {}
         try {
-            const rawHighestLevel = localStorage.getItem(KEY_HIGHEST_LEVEL(slot));
+            const rawHighestLevel = lsGetItem(KEY_HIGHEST_LEVEL(slot));
             if (rawHighestLevel) highestLevel = BigNum.fromAny(rawHighestLevel);
         } catch {}
         return { unlocked, level, progress, highestLevel };
@@ -671,18 +671,18 @@ function readStateFromStorage(slot) {
     let progress = bnZero();
     let highestLevel = bnZero();
     try {
-        unlocked = localStorage.getItem(KEY_UNLOCK(targetSlot)) === "1";
+        unlocked = lsGetItem(KEY_UNLOCK(targetSlot)) === "1";
     } catch {}
     try {
-        const rawLvl = localStorage.getItem(KEY_LEVEL(targetSlot));
+        const rawLvl = lsGetItem(KEY_LEVEL(targetSlot));
         if (rawLvl) level = BigNum.fromAny(rawLvl);
     } catch {}
     try {
-        const rawProg = localStorage.getItem(KEY_PROGRESS(targetSlot));
+        const rawProg = lsGetItem(KEY_PROGRESS(targetSlot));
         if (rawProg) progress = BigNum.fromAny(rawProg);
     } catch {}
     try {
-        const rawHigh = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
+        const rawHigh = lsGetItem(KEY_HIGHEST_LEVEL(targetSlot));
         if (rawHigh) highestLevel = BigNum.fromAny(rawHigh);
     } catch {}
     if (level.cmp(highestLevel) > 0) {
