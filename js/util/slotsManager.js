@@ -1,5 +1,5 @@
 // js/util/slotsManager.js
-import { lsSetItem, lsRemoveItem } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { flushLocalStorageBuffer } from "../main.js";
 import { markSaveSlotModified } from "./storage.js";
 import { refreshSlotsView } from "./slots.js";
@@ -160,7 +160,7 @@ function getSaveDataForSlot(slot) {
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (re.test(key)) {
-            data[key] = localStorage.getItem(key);
+            data[key] = lsGetItem(key);
         }
     }
     return data;
