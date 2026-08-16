@@ -1,4 +1,4 @@
-import { lsSetItem } from "../../../main.js";
+import { lsSetItem, lsGetItem } from "../../../main.js";
 import { bank, getActiveSlot } from "../../../util/storage.js";
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState } from "../../../game/achievements.js";
 import { formatNumber } from "../../../util/numFormat.js";
@@ -10,7 +10,7 @@ const VOID_LEVEL_KEY = (slot) => `ccc:voidLevel:${slot}`;
 export function getVoidLevel(slot = getActiveSlot()) {
     const slotKey = String(slot ?? "default");
     try {
-        const valStr = localStorage.getItem(VOID_LEVEL_KEY(slotKey));
+        const valStr = lsGetItem(VOID_LEVEL_KEY(slotKey));
         if (valStr !== null && valStr !== "undefined") {
             try {
                 return BigNum.fromAny(valStr);
