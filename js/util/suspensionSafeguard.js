@@ -2,7 +2,7 @@
 // Improves local storage tracking by supplying helper functions for saveIntegrity.js,
 // And also supplies frequent IndexedDB snapshots to back up progress if
 // Local storage ever becomes corrupted (safeguard against abrupt page suspensions)
-import { activeStorageKeys, lsSetItemForce, lsRemoveItemForce } from "../main.js";
+import { activeStorageKeys, lsSetItemForce, lsRemoveItemForce, lsGetItem } from "../main.js";
 import { beforeSlotWrite, afterSlotWrite } from "./saveIntegrity.js";
 
 const DB_NAME = "ccc:safety";
@@ -106,7 +106,7 @@ function captureSnapshot() {
             if (!key || !key.startsWith("ccc:")) continue;
             let value = null;
             try {
-                value = localStorage.getItem(key);
+                value = lsGetItem(key);
             } catch {
                 value = null;
             }
@@ -451,10 +451,10 @@ export async function restoreFromBackupIfNeeded() {
         if (!hasAnyPrefixedKeys()) {
             shouldRestore = true;
         } else {
-            const activeSlot = localStorage.getItem(`ccc:saveSlot`);
+            const activeSlot = lsGetItem(`ccc:saveSlot`);
             if (activeSlot) {
                 const coinKey = `ccc:coins:${activeSlot}`;
-                if (localStorage.getItem(coinKey) == null) {
+                if (lsGetItem(coinKey) == null) {
                     shouldRestore = true;
                 }
             }
@@ -472,7 +472,7 @@ export async function restoreFromBackupIfNeeded() {
     try {
         for (const [key, value] of Object.entries(snapshot.data)) {
             if (value == null) continue;
-            if (localStorage.getItem(key) === null) {
+            if (lsGetItem(key) === null) {
                 lsSetItemForce(key, value);
                 restored = true;
             }
