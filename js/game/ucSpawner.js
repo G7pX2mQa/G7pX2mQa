@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import {
     createBaseSpawner,
     CUBIC_BEZIER,
@@ -51,7 +51,7 @@ export function getUcMaterialAccumulators() {
     if (!window._ucMaterialAccumulators) {
         try {
             const slot = getActiveSlot();
-            const stored = slot != null ? localStorage.getItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
+            const stored = slot != null ? lsGetItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
             if (stored) {
                 window._ucMaterialAccumulators = JSON.parse(stored);
             } else {
@@ -68,7 +68,7 @@ export function getUcEacMaterialAccumulators() {
     if (!window._ucEacMaterialAccumulators) {
         try {
             const slot = getActiveSlot();
-            const stored = slot != null ? localStorage.getItem(`ccc:ucEacMaterialAccumulators:${slot}`) : null;
+            const stored = slot != null ? lsGetItem(`ccc:ucEacMaterialAccumulators:${slot}`) : null;
             if (stored) {
                 window._ucEacMaterialAccumulators = JSON.parse(stored);
             } else {
@@ -465,7 +465,7 @@ export function createUcSpawner(config = {}) {
                             try {
                                 const slot = getActiveSlot();
                                 const stored =
-                                    slot != null ? localStorage.getItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
+                                    slot != null ? lsGetItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
                                 if (stored) {
                                     window._ucMaterialAccumulators = JSON.parse(stored);
                                 } else {
