@@ -1,4 +1,4 @@
-import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import {
     getActiveSlot,
@@ -480,22 +480,22 @@ function readPersistentFlags(slot) {
         return;
     }
     try {
-        resetState.combineUnlocked = localStorage.getItem(`${COMBINE_UNLOCKED_KEY_BASE}:${slot}`) === "1";
+        resetState.combineUnlocked = lsGetItem(`${COMBINE_UNLOCKED_KEY_BASE}:${slot}`) === "1";
     } catch {
         resetState.combineUnlocked = false;
     }
     try {
-        resetState.hasDoneCombineReset = localStorage.getItem(`${COMBINE_COMPLETED_KEY_BASE}:${slot}`) === "1";
+        resetState.hasDoneCombineReset = lsGetItem(`${COMBINE_COMPLETED_KEY_BASE}:${slot}`) === "1";
     } catch {
         resetState.hasDoneCombineReset = false;
     }
     try {
-        resetState.compressUnlocked = localStorage.getItem(`${COMPRESS_UNLOCKED_KEY_BASE}:${slot}`) === "1";
+        resetState.compressUnlocked = lsGetItem(`${COMPRESS_UNLOCKED_KEY_BASE}:${slot}`) === "1";
     } catch {
         resetState.compressUnlocked = false;
     }
     try {
-        resetState.hasDoneCompressReset = localStorage.getItem(`${COMPRESS_COMPLETED_KEY_BASE}:${slot}`) === "1";
+        resetState.hasDoneCompressReset = lsGetItem(`${COMPRESS_COMPLETED_KEY_BASE}:${slot}`) === "1";
     } catch {
         resetState.hasDoneCompressReset = false;
     }
