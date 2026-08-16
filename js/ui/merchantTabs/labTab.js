@@ -1,4 +1,4 @@
-import { lsSetItem } from "../../main.js";
+import { lsSetItem, lsGetItem } from "../../main.js";
 import { getActiveSlot, bank } from "../../util/storage.js";
 import { IS_MOBILE } from "../../util/platformChecker.js";
 import { BigNum } from "../../util/bigNum.js";
@@ -41,7 +41,7 @@ function reloadLabCache() {
     }
     // Load Level
     try {
-        const raw = localStorage.getItem(LAB_LEVEL_KEY(slot));
+        const raw = lsGetItem(LAB_LEVEL_KEY(slot));
         if (!raw) _cachedLabLevel = BigNum.fromInt(0);
         else _cachedLabLevel = BigNum.fromAny(raw);
     } catch {
@@ -49,7 +49,7 @@ function reloadLabCache() {
     }
     // Load Visited
     try {
-        _cachedLabIntroSeen = localStorage.getItem(LAB_INTRO_SEEN_KEY(slot)) === "1";
+        _cachedLabIntroSeen = lsGetItem(LAB_INTRO_SEEN_KEY(slot)) === "1";
     } catch {
         _cachedLabIntroSeen = false;
     }
