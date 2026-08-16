@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../util/bigNum.js";
 import { getActiveSlot, isStorageKeyLocked } from "../util/storage.js";
 import { getLabLevel, setLabLevel, getRpMult } from "../ui/merchantTabs/labTab.js";
@@ -282,7 +282,7 @@ function reloadExperimentCache() {
         return;
     }
     try {
-        _cachedExperimentCompleted = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === "1";
+        _cachedExperimentCompleted = lsGetItem(EXPERIMENT_COMPLETED_KEY(slot)) === "1";
     } catch {
         _cachedExperimentCompleted = false;
     }
@@ -303,13 +303,13 @@ function ensureNodeState(id) {
 function loadNodeState(slot, id) {
     const s = ensureNodeState(id);
     try {
-        const lvl = localStorage.getItem(NODE_LEVEL_KEY(slot, id));
+        const lvl = lsGetItem(NODE_LEVEL_KEY(slot, id));
         s.level = lvl ? parseInt(lvl, 10) : 0;
-        const rp = localStorage.getItem(NODE_RP_KEY(slot, id));
+        const rp = lsGetItem(NODE_RP_KEY(slot, id));
         s.rp = rp ? BigNum.fromAny(rp) : BigNum.fromInt(0);
-        const act = localStorage.getItem(NODE_ACTIVE_KEY(slot, id));
+        const act = lsGetItem(NODE_ACTIVE_KEY(slot, id));
         s.active = act === "1";
-        const disc = localStorage.getItem(NODE_DISCOVERED_KEY(slot, id));
+        const disc = lsGetItem(NODE_DISCOVERED_KEY(slot, id));
         s.discovered = disc === "1";
     } catch {
         s.level = 0;
