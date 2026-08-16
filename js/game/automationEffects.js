@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { registerTick, TICK_RATE } from "./gameLoop.js";
 import {
     getLevelNumber,
@@ -102,7 +102,7 @@ export function getAutobuyerToggle(area, id) {
 
     let val = "1"; // Default active
     try {
-        const stored = localStorage.getItem(key);
+        const stored = lsGetItem(key);
         if (stored !== null) val = stored;
     } catch {}
     autobuyerCache.set(key, val);
@@ -334,7 +334,7 @@ export function saveUcEacAccumulator() {
 export function loadUcEacAccumulator() {
     try {
         const slot = getActiveSlot();
-        const stored = slot != null ? localStorage.getItem(`ccc:ucEacAccumulator:${slot}`) : null;
+        const stored = slot != null ? lsGetItem(`ccc:ucEacAccumulator:${slot}`) : null;
         let acc = stored ? Number(stored) : 0;
         if (!Number.isFinite(acc)) acc = 0;
         const sys = passiveRegistry.find((s) => s.id === "uc_eac");
