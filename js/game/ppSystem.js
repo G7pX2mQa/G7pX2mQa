@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { BigNum, bigNumIsInfinite, approxLog10BigNum as approxLog10, bigNumFromLog10 } from "../util/bigNum.js";
 import { getActiveSlot } from "../util/storage.js";
 import { formatNumber } from "../util/numFormat.js";
@@ -84,16 +84,16 @@ function ensureStateLoaded(force = false) {
     stateLoaded = true;
     ppState.unlocked = false;
     try {
-        const rawUnlocked = localStorage.getItem(KEY_UNLOCK(slot));
+        const rawUnlocked = lsGetItem(KEY_UNLOCK(slot));
         if (rawUnlocked === "1") ppState.unlocked = true;
     } catch {}
     try {
-        ppState.ppLevel = BigNum.fromAny(localStorage.getItem(KEY_PP_LEVEL(slot)) ?? "0");
+        ppState.ppLevel = BigNum.fromAny(lsGetItem(KEY_PP_LEVEL(slot)) ?? "0");
     } catch {
         ppState.ppLevel = bnZero();
     }
     try {
-        ppState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? "0");
+        ppState.progress = BigNum.fromAny(lsGetItem(KEY_PROGRESS(slot)) ?? "0");
     } catch {
         ppState.progress = bnZero();
     }
