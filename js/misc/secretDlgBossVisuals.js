@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { playAudio, muteSpawnVesselSounds } from "../util/audioManager.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import { getActiveSlot } from "../util/storage.js";
@@ -339,7 +339,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${slot}`;
     if (!IS_MOBILE) {
         // Desktop arrows logic
-        const knowsHowToMove = localStorage.getItem(knowHowToMoveKey) === "1";
+        const knowsHowToMove = lsGetItem(knowHowToMoveKey) === "1";
         if (!knowsHowToMove) {
             desktopArrows = [];
             // Define custom style for blinking and tooltip
