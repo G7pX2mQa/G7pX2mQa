@@ -1,8 +1,9 @@
-import { getActiveSlot } from '../../../util/storage.js';
-import { formatNumber } from '../../../util/numFormat.js';
-import { BigNum } from '../../../util/bigNum.js';
-import { formatTimeCompact } from '../../../game/offlinePanel.js';
-import { setHtmlOrText } from '../../../util/uiHelpers.js';
+import { lsGetItem } from "../../../main.js";
+import { getActiveSlot } from "../../../util/storage.js";
+import { formatNumber } from "../../../util/numFormat.js";
+import { BigNum } from "../../../util/bigNum.js";
+import { formatTimeCompact } from "../../../game/offlinePanel.js";
+import { setHtmlOrText } from "../../../util/uiHelpers.js";
 
 export function initMiscStatsTab(panel) {
     if (!panel || panel.__msInit) return;
@@ -16,45 +17,45 @@ export function initMiscStatsTab(panel) {
     `;
 
     setInterval(() => {
-        const overlay = document.getElementById('achievement-extras-overlay');
-        if (!overlay || !overlay.classList.contains('is-open')) return;
-        
-        const currentPanel = document.getElementById('ae-panel-misc');
-        if (!currentPanel || !currentPanel.classList.contains('is-active')) return;
-        
+        const overlay = document.getElementById("achievement-extras-overlay");
+        if (!overlay || !overlay.classList.contains("is-open")) return;
+
+        const currentPanel = document.getElementById("ae-panel-misc");
+        if (!currentPanel || !currentPanel.classList.contains("is-active")) return;
+
         updateMiscStatsTab();
     }, 200);
 }
 
 export function updateMiscStatsTab() {
-    const panel = document.getElementById('ae-panel-misc');
+    const panel = document.getElementById("ae-panel-misc");
     if (!panel) return;
-    const container = panel.querySelector('.misc-stats-container');
+    const container = panel.querySelector(".misc-stats-container");
     if (!container) return;
 
     const slot = getActiveSlot();
-    
+
     const statsData = [];
 
     statsData.push({
-        label: 'Active playtime',
-        value: formatTimeCompact((window.activePlaytime || 0) * 1000)
+        label: "Active playtime",
+        value: formatTimeCompact((window.activePlaytime || 0) * 1000),
     });
 
     statsData.push({
-        label: 'Coins collected',
-        value: formatNumber(BigNum.fromAny(window.coinsCollected || 0))
+        label: "Coins collected",
+        value: formatNumber(BigNum.fromAny(window.coinsCollected || 0)),
     });
 
     let list = [];
     try {
-        const listRaw = localStorage.getItem(`ccc:stats:performedResets:${slot}`);
+        const listRaw = lsGetItem(`ccc:stats:performedResets:${slot}`);
         if (listRaw) list = JSON.parse(listRaw);
     } catch {}
 
     const getStat = (name) => {
         try {
-            const val = localStorage.getItem(`ccc:stats:${name}Resets:${slot}`);
+            const val = lsGetItem(`ccc:stats:${name}Resets:${slot}`);
             if (val) return BigNum.fromAny(val);
         } catch {}
         return BigNum.fromInt(0);
@@ -66,7 +67,7 @@ export function updateMiscStatsTab() {
             const capitalizedResetName = resetName.charAt(0).toUpperCase() + resetName.slice(1);
             statsData.push({
                 label: `${capitalizedResetName} resets performed`,
-                value: formatNumber(val)
+                value: formatNumber(val),
             });
         }
     }
@@ -75,20 +76,20 @@ export function updateMiscStatsTab() {
     for (let i = 0; i < statsData.length; i++) {
         const stat = statsData[i];
         const isLast = i === statsData.length - 1;
-        
+
         let row = children[i];
         if (!row) {
-            row = document.createElement('div');
+            row = document.createElement("div");
             row.innerHTML = `<span class="stat-label" style="opacity: 0.9;"></span><span class="stat-value" style="font-weight: 500;"></span>`;
             container.appendChild(row);
         }
-        
-        row.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; ${!isLast ? 'border-bottom: 1px dashed rgba(255, 255, 255, 0.3);' : ''}`;
-        
-        const labelSpan = row.querySelector('.stat-label');
+
+        row.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; ${!isLast ? "border-bottom: 1px dashed rgba(255, 255, 255, 0.3);" : ""}`;
+
+        const labelSpan = row.querySelector(".stat-label");
         setHtmlOrText(labelSpan, stat.label);
-        
-        const valueSpan = row.querySelector('.stat-value');
+
+        const valueSpan = row.querySelector(".stat-value");
         setHtmlOrText(valueSpan, stat.value);
     }
 
