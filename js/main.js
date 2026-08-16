@@ -121,7 +121,6 @@ if (typeof window !== "undefined") {
 
 export function lsGetItem(key) {
     ensureStorageInitialized();
-    if (IS_MOBILE || IS_FIREFOX) return Storage.prototype.getItem.call(localStorage, key);
     if (localStorageBuffer.has(key)) {
         const val = localStorageBuffer.get(key);
         return val === REMOVED_SYMBOL ? null : val;
@@ -129,11 +128,9 @@ export function lsGetItem(key) {
     return Storage.prototype.getItem.call(localStorage, key);
 }
 
-if (!(IS_MOBILE || IS_FIREFOX)) {
-    localStorage.getItem = function (key) {
-        return lsGetItem(key);
-    };
-}
+localStorage.getItem = function (key) {
+    return lsGetItem(key);
+};
 
 export let _debugIsStorageKeyLocked = null;
 export function setDebugStorageLockChecker(fn) {
@@ -147,14 +144,6 @@ export function lsSetItem(key, value) {
 
 export function lsSetItemForce(key, value) {
     ensureStorageInitialized();
-    if (IS_MOBILE || IS_FIREFOX) {
-        let finalValue = String(value);
-        Storage.prototype.setItem.call(localStorage, key, finalValue);
-        try {
-            window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
-        } catch {}
-        return;
-    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
@@ -173,13 +162,6 @@ export function lsRemoveItem(key) {
 
 export function lsRemoveItemForce(key) {
     ensureStorageInitialized();
-    if (IS_MOBILE || IS_FIREFOX) {
-        Storage.prototype.removeItem.call(localStorage, key);
-        try {
-            window.dispatchEvent(new CustomEvent("saveIntegrity:slotRemove", { detail: { key } }));
-        } catch {}
-        return;
-    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
@@ -190,42 +172,40 @@ export function lsRemoveItemForce(key) {
     } catch {}
 }
 
-if (!(IS_MOBILE || IS_FIREFOX)) {
-    localStorage.setItem = function (key, value) {
-        const strKey = String(key);
-        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-            const slotMatch = strKey.match(/:(\d+)$/);
-            if (slotMatch) {
-                const slot = parseInt(slotMatch[1], 10);
-                if (Number.isFinite(slot) && slot > 0) {
-                    if (strKey === `ccc:slotMod:${slot}`) {
-                        value = "1";
-                    } else {
-                        markSaveSlotModified(slot);
-                    }
-                }
-            }
-        }
-        Storage.prototype.setItem.call(localStorage, key, String(value));
-    };
-
-    localStorage.removeItem = function (key) {
-        const strKey = String(key);
-        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-            const slotMatch = strKey.match(/:(\d+)$/);
-            if (slotMatch) {
-                const slot = parseInt(slotMatch[1], 10);
-                if (Number.isFinite(slot) && slot > 0) {
+localStorage.setItem = function (key, value) {
+    const strKey = String(key);
+    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+        const slotMatch = strKey.match(/:(\d+)$/);
+        if (slotMatch) {
+            const slot = parseInt(slotMatch[1], 10);
+            if (Number.isFinite(slot) && slot > 0) {
+                if (strKey === `ccc:slotMod:${slot}`) {
+                    value = "1";
+                } else {
                     markSaveSlotModified(slot);
-                    if (strKey === `ccc:slotMod:${slot}`) {
-                        return;
-                    }
                 }
             }
         }
-        Storage.prototype.removeItem.call(localStorage, key);
-    };
-}
+    }
+    Storage.prototype.setItem.call(localStorage, key, String(value));
+};
+
+localStorage.removeItem = function (key) {
+    const strKey = String(key);
+    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+        const slotMatch = strKey.match(/:(\d+)$/);
+        if (slotMatch) {
+            const slot = parseInt(slotMatch[1], 10);
+            if (Number.isFinite(slot) && slot > 0) {
+                markSaveSlotModified(slot);
+                if (strKey === `ccc:slotMod:${slot}`) {
+                    return;
+                }
+            }
+        }
+    }
+    Storage.prototype.removeItem.call(localStorage, key);
+};
 
 if (IS_MOBILE) {
     document.documentElement.classList.add("is-mobile");
