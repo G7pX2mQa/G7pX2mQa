@@ -1,4 +1,4 @@
-import { lsRemoveItem } from "../main.js";
+import { lsRemoveItem, lsGetItem } from "../main.js";
 import {
     getLastSaveTime,
     getActiveSlot,
@@ -1267,7 +1267,7 @@ export async function processOfflineProgress() {
     if (diff < 1000) return; // Ignore gaps < 1s
     let wasInterrupted = false;
     try {
-        if (localStorage.getItem(`ccc:simInterrupted:${slot}`) === "1") {
+        if (lsGetItem(`ccc:simInterrupted:${slot}`) === "1") {
             wasInterrupted = true;
             lsRemoveItem(`ccc:simInterrupted:${slot}`);
         }
