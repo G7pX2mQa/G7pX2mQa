@@ -1,5 +1,5 @@
 // js/ui/minerTabs/dlgTab.js
-import { lsSetItem } from "../../main.js";
+import { lsSetItem, lsGetItem } from "../../main.js";
 import { getActiveSlot } from "../../util/storage.js";
 import { MINER_DIALOGUES } from "../../misc/minerDialogues.js";
 import { updateShopOverlay, setupDragToClose } from "../shopOverlay.js";
@@ -21,7 +21,7 @@ export const MINER_MET_EVENT = "ccc:miner:met";
 const sk = (base) => base + ":" + (getActiveSlot() ?? "default");
 export function hasMetMiner() {
     try {
-        return localStorage.getItem(sk(MINER_MET_KEY_BASE)) === "1";
+        return lsGetItem(sk(MINER_MET_KEY_BASE)) === "1";
     } catch {
         return false;
     }
@@ -224,7 +224,7 @@ export function openMiner() {
     // renderDialogueList();
     let met = false;
     try {
-        met = localStorage.getItem(sk(MINER_MET_KEY_BASE)) === "1";
+        met = lsGetItem(sk(MINER_MET_KEY_BASE)) === "1";
     } catch {
         met = false;
     }
