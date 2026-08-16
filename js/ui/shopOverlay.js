@@ -1,5 +1,5 @@
 // js/ui/shopOverlay.js
-import { lsSetItem, lsRemoveItem } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { bank, getActiveSlot } from "../util/storage.js";
 import { BigNum } from "../util/bigNum.js";
 import { formatNumber } from "../util/numFormat.js";
@@ -735,7 +735,7 @@ class ShopInstance {
         const met = getCurrentAreaKey() === AREA_KEYS.STARTER_COVE ? hasMetMerchant() : hasMetMiner();
         let shouldGlow = !met;
         const slot = getActiveSlot();
-        if (slot != null && localStorage.getItem(`ccc:tsunami:labPending:${slot}`) === "1") {
+        if (slot != null && lsGetItem(`ccc:tsunami:labPending:${slot}`) === "1") {
             shouldGlow = true;
         }
         this.delveBtnEl.classList.toggle("is-new", shouldGlow);
@@ -1269,7 +1269,7 @@ class ShopInstance {
         this.isOpen = true;
         if (this.mode === "standard") {
             const slot = getActiveSlot();
-            if (slot != null && localStorage.getItem(`ccc:tsunami:dialoguePending:${slot}`) === "1") {
+            if (slot != null && lsGetItem(`ccc:tsunami:dialoguePending:${slot}`) === "1") {
                 runPostTsunamiShopDialogue(() => {
                     try {
                         lsRemoveItem(`ccc:tsunami:dialoguePending:${slot}`);
