@@ -1,4 +1,4 @@
-import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
@@ -123,7 +123,7 @@ export function isWaterwheelMysteriousCleared(id) {
     const slot = getActiveSlot();
     if (slot == null) return false;
     try {
-        return localStorage.getItem(`ccc:flow:mysteriousCleared:${id}:${slot}`) === "1";
+        return lsGetItem(`ccc:flow:mysteriousCleared:${id}:${slot}`) === "1";
     } catch {
         return false;
     }
@@ -135,7 +135,7 @@ export function setWaterwheelMysteriousCleared(id, value) {
     const key = `ccc:flow:mysteriousCleared:${id}:${slot}`;
     try {
         const nextValue = value ? "1" : "0";
-        const prevValue = localStorage.getItem(key);
+        const prevValue = lsGetItem(key);
         if (prevValue === nextValue) return;
         lsSetItem(key, nextValue);
         if (flowTabInitialized && flowPanel) updateFlowTab();
@@ -480,7 +480,7 @@ function loadState() {
     // Load Flow Data
     try {
         const vpKey = `${KEY_PREFIX}:visualPool:${slot}`;
-        const vpRaw = localStorage.getItem(vpKey);
+        const vpRaw = lsGetItem(vpKey);
         if (vpRaw) {
             try {
                 visualPool = JSON.parse(vpRaw);
@@ -492,7 +492,7 @@ function loadState() {
         }
         // Migration: Check for old single-object key
         const oldKey = `${KEY_PREFIX}:data:${slot}`;
-        const oldDataRaw = localStorage.getItem(oldKey);
+        const oldDataRaw = lsGetItem(oldKey);
         if (oldDataRaw) {
             // Migration Path
             try {
@@ -520,7 +520,7 @@ function loadState() {
             // Standard Load from individual keys
             for (const id in state.waterwheels) {
                 const key = KEY_WATERWHEEL(id, slot);
-                const dataRaw = localStorage.getItem(key);
+                const dataRaw = lsGetItem(key);
                 if (dataRaw) {
                     const parsed = JSON.parse(dataRaw);
                     state.waterwheels[id].level = BigNum.fromAny(parsed.level || 0);
@@ -637,7 +637,7 @@ export function getFlowUnlockState() {
 
     let result = false;
     try {
-        const val = localStorage.getItem(`ccc:unlock:flow:${slot}`);
+        const val = lsGetItem(`ccc:unlock:flow:${slot}`);
         if (val === "1") {
             cachedFlowUnlockStates[slot] = true;
             return true;
@@ -1346,7 +1346,7 @@ export function updateFlowTab() {
     if (explainerTextEl) {
         let hwMode = false;
         try {
-            hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${getActiveSlot()}`) === "true";
+            hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${getActiveSlot()}`) === "true";
         } catch (e) {}
         if (hwMode) {
             explainerTextEl.innerHTML = `<strong><span style="color: #00fffa;">Waterwheel Hotkey mode is active</span></strong>`;
