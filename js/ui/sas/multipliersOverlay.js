@@ -1,4 +1,4 @@
-import { lsSetItem } from "../../main.js";
+import { lsSetItem, lsGetItem } from "../../main.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { createSASOverlay } from "./sasOverlayBuilder.js";
 import { RESOURCE_REGISTRY, RESOURCE_REGISTRY_EXTRAS } from "../../game/offlinePanel.js";
@@ -43,7 +43,7 @@ function isMultiplierEverUnlocked(key) {
     }
 
     const storageKey = `ccc:multiplier_unlocked:${key}:${slot}`;
-    if (localStorage.getItem(storageKey) === "true") {
+    if (lsGetItem(storageKey) === "true") {
         _unlockedCache.add(key);
         return true;
     }
