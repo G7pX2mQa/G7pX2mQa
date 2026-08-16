@@ -1,5 +1,5 @@
 // js/game/settingsManager.js
-import { lsSetItem, lsRemoveItem } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { getActiveSlot, CURRENCIES } from "../util/storage.js";
 import { PALETTES } from "./mutationColorPalettes.js";
 import { isLabUnlocked } from "./surgeEffects.js";
@@ -199,7 +199,7 @@ export const SETTING_DEFINITIONS = {
         unlockCondition: () => {
             try {
                 const slot = getActiveSlot();
-                if (slot != null && localStorage.getItem(`ccc:debug:toggleTheW:${slot}`) !== "1") {
+                if (slot != null && lsGetItem(`ccc:debug:toggleTheW:${slot}`) !== "1") {
                     return false;
                 }
                 return hasDoneSurgeReset();
@@ -230,7 +230,7 @@ export const SETTING_DEFINITIONS = {
                 if (typeof isLabUnlocked === "function") {
                     labUnlocked = isLabUnlocked();
                 } else {
-                    labUnlocked = localStorage.getItem(`ccc:unlock:lab:${slot}`) === "1";
+                    labUnlocked = lsGetItem(`ccc:unlock:lab:${slot}`) === "1";
                 }
                 return labUnlocked && IS_MOBILE;
             } catch {
@@ -622,7 +622,7 @@ class SettingsManager {
             }
 
             const storageKey = this._getKey(key);
-            const stored = localStorage.getItem(storageKey);
+            const stored = lsGetItem(storageKey);
             if (stored !== null) {
                 this.settings[key] = JSON.parse(stored);
                 this._isDefault[key] = false;
@@ -686,7 +686,7 @@ class SettingsManager {
         });
         dynamicKeysToCheck.forEach((key) => {
             const storageKey = `${SETTINGS_KEY_PREFIX}${key}${suffix}`;
-            const raw = localStorage.getItem(storageKey);
+            const raw = lsGetItem(storageKey);
             if (raw !== null) {
                 try {
                     this.settings[key] = JSON.parse(raw);
