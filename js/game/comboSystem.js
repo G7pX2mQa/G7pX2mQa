@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { getActiveSlot } from "../util/storage.js";
 // Configuration
 const DECAY_WINDOW_SEC = 60;
@@ -41,7 +41,7 @@ function loadComboState() {
     const slot = getActiveSlot();
     if (slot == null) return 0;
     try {
-        const val = localStorage.getItem(COMBO_STORAGE_KEY(slot));
+        const val = lsGetItem(COMBO_STORAGE_KEY(slot));
         if (val) {
             const num = parseFloat(val);
             return Number.isFinite(num) ? num : 0;
