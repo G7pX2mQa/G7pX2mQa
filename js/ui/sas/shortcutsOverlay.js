@@ -1,4 +1,4 @@
-import { lsSetItem } from "../../main.js";
+import { lsSetItem, lsGetItem } from "../../main.js";
 import { createSASOverlay } from "./sasOverlayBuilder.js";
 import { isLabUnlocked } from "../../game/surgeEffects.js";
 import { getLifetimeBossBeaten } from "../../game/secretAchievements.js";
@@ -21,7 +21,7 @@ function ensureShortcutsPermaUnlockState(slot = getActiveSlot()) {
     let parsed = { entries: {} };
     if (typeof localStorage !== "undefined") {
         try {
-            const raw = localStorage.getItem(`${SHORTCUTS_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
+            const raw = lsGetItem(`${SHORTCUTS_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
             if (raw) {
                 const obj = JSON.parse(raw);
                 if (obj && typeof obj === "object") {
