@@ -1,4 +1,4 @@
-import { lsSetItem } from "../../../main.js";
+import { lsSetItem, lsGetItem } from "../../../main.js";
 import { getActiveSlot, bank } from "../../../util/storage.js";
 import { IS_MOBILE } from "../../../util/platformChecker.js";
 import { BigNum } from "../../../util/bigNum.js";
@@ -63,7 +63,7 @@ function syncVoidTabUnlockState() {
     if (slot == null) return;
     const unlockKey = `ccc:unlock:voidGemAltar:${slot}`;
     try {
-        if (localStorage.getItem(unlockKey) === "1") {
+        if (lsGetItem(unlockKey) === "1") {
             unlocked = true;
         } else {
             if (bank.voidGems && bank.voidGems.value && bank.voidGems.value.cmp(0) > 0) {
@@ -286,7 +286,7 @@ export function openAchievementExtras() {
     isOpen = true;
     let last = "rainbow";
     try {
-        last = localStorage.getItem(sk(TAB_KEY_BASE)) || "rainbow";
+        last = lsGetItem(sk(TAB_KEY_BASE)) || "rainbow";
     } catch {}
     selectTab(last);
     sheetEl.style.transition = "none";
