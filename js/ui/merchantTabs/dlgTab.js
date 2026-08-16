@@ -1,5 +1,5 @@
 // js/ui/merchantTabs/dlgTab.js
-import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { setDelveElements, setTypingActive, openDelveOverlay } from "../delveCore.js";
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from "../../util/storage.js";
 import { BigNum } from "../../util/bigNum.js";
@@ -59,7 +59,7 @@ export const MERCHANT_MET_EVENT = "ccc:merchant:met";
 const sk = (base) => `${base}:${getActiveSlot() ?? "default"}`;
 export function hasMetMerchant() {
     try {
-        return localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === "1";
+        return lsGetItem(sk(MERCHANT_MET_KEY_BASE)) === "1";
     } catch {
         return false;
     }
@@ -68,7 +68,7 @@ export function hasMetMerchant() {
 const JEFF_UNLOCK_KEY_BASE = "ccc:unlock:jeff";
 export function isJeffUnlocked() {
     try {
-        return localStorage.getItem(sk(JEFF_UNLOCK_KEY_BASE)) === "1";
+        return lsGetItem(sk(JEFF_UNLOCK_KEY_BASE)) === "1";
     } catch {
         return false;
     }
@@ -212,7 +212,7 @@ function syncWarpTabUnlockState() {
     let unlocked = false;
     try {
         const slot = getActiveSlot();
-        if (slot != null && localStorage.getItem(`ccc:debug:toggleTheW:${slot}`) === "1") {
+        if (slot != null && lsGetItem(`ccc:debug:toggleTheW:${slot}`) === "1") {
             unlocked = true;
         }
     } catch {}
@@ -232,7 +232,7 @@ export function isLabUnlockedLocal() {
             return true;
         }
 
-        const result = localStorage.getItem(LAB_UNLOCK_KEY(slot)) === "1";
+        const result = lsGetItem(LAB_UNLOCK_KEY(slot)) === "1";
         cachedLabUnlockedLocalStates[slot] = result;
         return result;
     } catch {
@@ -651,7 +651,7 @@ export const DLG_CATALOG = {
 
 export function loadDlgState() {
     try {
-        return JSON.parse(localStorage.getItem(sk(MERCHANT_DLG_STATE_KEY_BASE)) || "{}");
+        return JSON.parse(lsGetItem(sk(MERCHANT_DLG_STATE_KEY_BASE)) || "{}");
     } catch {
         return {};
     }
@@ -864,7 +864,7 @@ function openDialogueModal(id, meta) {
         let initialChoice = 3;
         try {
             const slot = getActiveSlot();
-            const stored = slot != null ? localStorage.getItem(`ccc:merchant:initialChoice:${slot}`) : null;
+            const stored = slot != null ? lsGetItem(`ccc:merchant:initialChoice:${slot}`) : null;
             if (stored) {
                 initialChoice = parseInt(stored, 10);
             } else {
@@ -1665,7 +1665,7 @@ export function openMerchant() {
     let forcedDialogueTab = false;
     if (slot != null) {
         const pendingKey = `ccc:tsunami:labPending:${slot}`;
-        if (localStorage.getItem(pendingKey) === "1") {
+        if (lsGetItem(pendingKey) === "1") {
             try {
                 lsRemoveItem(pendingKey);
             } catch {}
@@ -1683,7 +1683,7 @@ export function openMerchant() {
     // Check whether this is the very first time we’re meeting the Merchant
     let met = false;
     try {
-        met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === "1";
+        met = lsGetItem(sk(MERCHANT_MET_KEY_BASE)) === "1";
     } catch {
         met = false;
     }
@@ -1694,7 +1694,7 @@ export function openMerchant() {
     // Restore last tab (MOVED UP)
     let last = "dialogue";
     try {
-        last = localStorage.getItem(sk(MERCHANT_TAB_KEY_BASE)) || "dialogue";
+        last = lsGetItem(sk(MERCHANT_TAB_KEY_BASE)) || "dialogue";
     } catch {}
     if (forcedDialogueTab) {
         last = "dialogue";
