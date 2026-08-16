@@ -1,4 +1,4 @@
-import { lsSetItem } from "../../main.js";
+import { lsSetItem, lsGetItem } from "../../main.js";
 import { getActiveSlot } from "../../util/storage.js";
 import {
     formatTimeCompact,
@@ -23,9 +23,9 @@ function getWarpState(slot) {
     let charges = 24;
     let lastCharge = Date.now();
     try {
-        const c = localStorage.getItem(WARP_CHARGES_KEY(slot));
+        const c = lsGetItem(WARP_CHARGES_KEY(slot));
         if (c !== null) charges = parseInt(c, 10);
-        const l = localStorage.getItem(WARP_LAST_CHARGE_KEY(slot));
+        const l = lsGetItem(WARP_LAST_CHARGE_KEY(slot));
         if (l !== null) lastCharge = parseInt(l, 10);
         else if (c === null) {
             // First time init: 24 charges.
@@ -158,7 +158,7 @@ export function updateWarpTab(skipRechargeCheck = false) {
 
     const warningContainer = warpTabPanel.querySelector(".warp-warning-container");
     if (warningContainer) {
-        const ack = localStorage.getItem("ccc:warp:warningAck:" + slot) === "true";
+        const ack = lsGetItem("ccc:warp:warningAck:" + slot) === "true";
         if (settingsManager.get("warp_vfx") && !ack) {
             warningContainer.style.display = "block";
         } else {
