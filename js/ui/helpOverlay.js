@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from "./shopOverlay.js";
 import { suppressNextGhostTap, shouldSkipGhostTap } from "../util/ghostTapGuard.js";
@@ -24,7 +24,7 @@ function ensureHelpPermaUnlockState(slot = getActiveSlot()) {
     let parsed = { entries: {} };
     if (typeof localStorage !== "undefined") {
         try {
-            const raw = localStorage.getItem(`${HELP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
+            const raw = lsGetItem(`${HELP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
             if (raw) {
                 const obj = JSON.parse(raw);
                 if (obj && typeof obj === "object") {
