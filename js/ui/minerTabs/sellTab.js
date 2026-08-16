@@ -1,4 +1,4 @@
-import { lsSetItem, lsRemoveItem } from "../../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { CURRENCIES, getActiveSlot, UC_MATERIALS, bank, getCurrencyMultiplierScaledBN } from "../../util/storage.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { RESOURCE_REGISTRY } from "../../game/offlinePanel.js";
@@ -20,7 +20,7 @@ export function hasViewedSellTab() {
     if (cachedViewedState[slotKey] !== undefined) return cachedViewedState[slotKey];
     if (typeof localStorage === "undefined") return false;
     try {
-        const val = localStorage.getItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`) === "1";
+        const val = lsGetItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`) === "1";
         cachedViewedState[slotKey] = val;
         return val;
     } catch {
@@ -54,7 +54,7 @@ export function isSellUnlocked() {
     const slotKey = String(slot);
     if (typeof localStorage === "undefined") return false;
     try {
-        const result = localStorage.getItem(`${SELL_UNLOCKED_KEY_BASE}:${slotKey}`) === "1";
+        const result = lsGetItem(`${SELL_UNLOCKED_KEY_BASE}:${slotKey}`) === "1";
         cachedSellUnlockedStates[slot] = result;
         return result;
     } catch {
@@ -423,7 +423,7 @@ export function updateSellTab() {
     if (!seenMaterials) {
         seenMaterials = [];
         try {
-            const stored = localStorage.getItem(`ccc:sellSeenMaterials:${slotKey}`);
+            const stored = lsGetItem(`ccc:sellSeenMaterials:${slotKey}`);
             if (stored) {
                 seenMaterials = JSON.parse(stored);
             }
@@ -606,7 +606,7 @@ function createSellRow(matKey, index) {
     const colSell = document.createElement("div");
     colSell.className = "sell-col-sell";
     const slot = getActiveSlot() ?? "default";
-    const initVal = localStorage.getItem(`ccc:sellAmount:${slot}:${matKey}`) || "100%";
+    const initVal = lsGetItem(`ccc:sellAmount:${slot}:${matKey}`) || "100%";
     const dropdownObj = createDropdown({
         getOptions: () => DROPDOWN_OPTIONS,
         getValue: () => {
@@ -697,7 +697,7 @@ function createSellRow(matKey, index) {
         ownedEl: colOwned,
         valEl: colVal,
         dropdownWrapper: dropdownWrap,
-        localSellAmount: localStorage.getItem(`ccc:sellAmount:${getActiveSlot() ?? "default"}:${matKey}`) || "100%",
+        localSellAmount: lsGetItem(`ccc:sellAmount:${getActiveSlot() ?? "default"}:${matKey}`) || "100%",
     };
 }
 
