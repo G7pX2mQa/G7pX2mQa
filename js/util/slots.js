@@ -1,4 +1,4 @@
-import { lsSetItem, lsRemoveItem } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { PALETTES } from "../game/mutationColorPalettes.js";
 import { BigNum } from "./bigNum.js";
 import { formatNumber } from "./numFormat.js";
@@ -13,14 +13,14 @@ import {
 } from "./storage.js";
 // A slot is considered "used" once it has a coins key at all (even if 0)
 function hasSlotData(slot) {
-    return localStorage.getItem(`ccc:coins:${slot}`) !== null;
+    return lsGetItem(`ccc:coins:${slot}`) !== null;
 }
 
 function coinsTextFor(slot) {
     if (!hasSlotData(slot)) return "No Save Data";
     try {
         const bn = peekCurrency(slot, "coins"); // BigNum
-        const notation = localStorage.getItem(`ccc:setting:number_notation:${slot}`);
+        const notation = lsGetItem(`ccc:setting:number_notation:${slot}`);
         return formatNumber(bn, notation ? JSON.parse(notation) : "Standard");
     } catch {
         return "0";
@@ -48,7 +48,7 @@ function renderSlotCards() {
             existingMeta.remove();
         }
         if (hasSlotData(slot)) {
-            let creationTime = localStorage.getItem(`ccc:creationTime:${slot}`);
+            let creationTime = lsGetItem(`ccc:creationTime:${slot}`);
             if (!creationTime) {
                 creationTime = Date.now().toString();
                 lsSetItem(`ccc:creationTime:${slot}`, creationTime);
@@ -59,7 +59,7 @@ function renderSlotCards() {
             metaEl.textContent = `Created on: ${formatCreationDate(creationTime)}`;
             btn.appendChild(metaEl);
             let actualHighest = 0;
-            const highestLevelRaw = localStorage.getItem(`ccc:mutation:highest_level:${slot}`);
+            const highestLevelRaw = lsGetItem(`ccc:mutation:highest_level:${slot}`);
             if (highestLevelRaw) {
                 try {
                     const bn = BigNum.fromAny(highestLevelRaw);
@@ -72,7 +72,7 @@ function renderSlotCards() {
                 } catch (e) {}
             }
 
-            const tintSettingRaw = localStorage.getItem(`ccc:setting:save_slot_tint:${slot}`);
+            const tintSettingRaw = lsGetItem(`ccc:setting:save_slot_tint:${slot}`);
             let tintSetting = "Default";
             if (tintSettingRaw) {
                 try {
@@ -112,7 +112,7 @@ function renderSlotCards() {
         }
         btn.dataset.slot = String(slot);
         btn.classList.remove(...ALL_FONT_CLASSES, "custom-font-active");
-        const fontModStr = localStorage.getItem(`ccc:setting:active_font_mod:${slot}`);
+        const fontModStr = lsGetItem(`ccc:setting:active_font_mod:${slot}`);
         if (fontModStr) {
             try {
                 const fontMod = parseInt(JSON.parse(fontModStr), 10);
@@ -135,7 +135,7 @@ export function initSlots(onSelect) {
             // Switch to this slot and seed its defaults the first time it’s opened
             setActiveSlot(slotNum);
             if (window.__duplicateInstanceDetected) return;
-            let creationTime = localStorage.getItem(`ccc:creationTime:${slotNum}`);
+            let creationTime = lsGetItem(`ccc:creationTime:${slotNum}`);
             if (!creationTime) {
                 // Clean slate: Wipe any leftover keys from a poorly deleted old save
                 const suffix = `:${slotNum}`;
