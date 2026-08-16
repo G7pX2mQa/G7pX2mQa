@@ -121,7 +121,7 @@ if (typeof window !== "undefined") {
 
 export function lsGetItem(key) {
     ensureStorageInitialized();
-    if (IS_MOBILE) return Storage.prototype.getItem.call(localStorage, key);
+    if (IS_MOBILE || IS_FIREFOX) return Storage.prototype.getItem.call(localStorage, key);
     if (localStorageBuffer.has(key)) {
         const val = localStorageBuffer.get(key);
         return val === REMOVED_SYMBOL ? null : val;
@@ -129,7 +129,7 @@ export function lsGetItem(key) {
     return Storage.prototype.getItem.call(localStorage, key);
 }
 
-if (!IS_MOBILE) {
+if (!(IS_MOBILE || IS_FIREFOX)) {
     localStorage.getItem = function (key) {
         return lsGetItem(key);
     };
@@ -147,7 +147,7 @@ export function lsSetItem(key, value) {
 
 export function lsSetItemForce(key, value) {
     ensureStorageInitialized();
-    if (IS_MOBILE) {
+    if (IS_MOBILE || IS_FIREFOX) {
         let finalValue = String(value);
         Storage.prototype.setItem.call(localStorage, key, finalValue);
         try {
@@ -173,7 +173,7 @@ export function lsRemoveItem(key) {
 
 export function lsRemoveItemForce(key) {
     ensureStorageInitialized();
-    if (IS_MOBILE) {
+    if (IS_MOBILE || IS_FIREFOX) {
         Storage.prototype.removeItem.call(localStorage, key);
         try {
             window.dispatchEvent(new CustomEvent("saveIntegrity:slotRemove", { detail: { key } }));
@@ -190,7 +190,7 @@ export function lsRemoveItemForce(key) {
     } catch {}
 }
 
-if (!IS_MOBILE) {
+if (!(IS_MOBILE || IS_FIREFOX)) {
     localStorage.setItem = function (key, value) {
         const strKey = String(key);
         if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
