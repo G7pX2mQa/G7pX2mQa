@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { isForgeUnlocked, isInfuseUnlocked, isSurgeUnlocked, getCurrentSurgeLevel } from "./merchantTabs/resetTab.js";
 import { getActiveSlot } from "../util/storage.js";
 import { getXpState } from "../game/xpSystem.js";
@@ -22,12 +22,12 @@ const GOALS = [
         target: 10,
         getCurrent: () => {
             const slot = getActiveSlot();
-            const progressRaw = localStorage.getItem(`ccc:unlock:shop:progress:${slot}`);
+            const progressRaw = lsGetItem(`ccc:unlock:shop:progress:${slot}`);
             return parseInt(progressRaw || "0", 10);
         },
         isComplete: () => {
             const slot = getActiveSlot();
-            return localStorage.getItem(`ccc:unlock:shop:${slot}`) === "1";
+            return lsGetItem(`ccc:unlock:shop:${slot}`) === "1";
         },
     },
     {
@@ -206,12 +206,12 @@ const GOALS = [
         target: 10,
         getCurrent: () => {
             const slot = getActiveSlot();
-            const progressRaw = localStorage.getItem(`ccc:unlock:shop:uc:progress:${slot}`);
+            const progressRaw = lsGetItem(`ccc:unlock:shop:uc:progress:${slot}`);
             return parseInt(progressRaw || "0", 10);
         },
         isComplete: () => {
             const slot = getActiveSlot();
-            return localStorage.getItem(`ccc:unlock:shop:uc:${slot}`) === "1";
+            return lsGetItem(`ccc:unlock:shop:uc:${slot}`) === "1";
         },
     },
 ];
@@ -249,13 +249,13 @@ export function updateGameProgressBar() {
     for (const goal of GOALS) {
         const compKey = `ccc:goal:completed:${goal.id}:${slot}`;
         const notifKey = `ccc:goal:notified:${goal.id}:${slot}`;
-        let isComp = localStorage.getItem(compKey) === "1" || localStorage.getItem(notifKey) === "1";
+        let isComp = lsGetItem(compKey) === "1" || lsGetItem(notifKey) === "1";
         if (!isComp && goal.isComplete()) {
             isComp = true;
             lsSetItem(compKey, "1");
         }
         if (isComp) {
-            if (!localStorage.getItem(notifKey)) {
+            if (!lsGetItem(notifKey)) {
                 let notifText = "Goal complete!";
                 if (goal.unlocksHelpText) {
                     notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
