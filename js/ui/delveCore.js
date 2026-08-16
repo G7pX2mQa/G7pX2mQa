@@ -1,5 +1,5 @@
 // js/ui/delveCore.js
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { playAudio, setAudioUnderwater } from "../util/audioManager.js";
 import { shouldSkipGhostTap, suppressNextGhostTap } from "../util/ghostTapGuard.js";
 import { blockInteraction } from "./shopOverlay.js";
@@ -768,7 +768,7 @@ export function openDelveOverlay(overlayEl, sheetEl) {
                         });
                     }
                     // Restore tab
-                    const savedTab = localStorage.getItem(tabKey);
+                    const savedTab = lsGetItem(tabKey);
                     if (savedTab) {
                         const targetTab = sheetEl.querySelector(`.merchant-tab[data-tab="${savedTab}"]`);
                         // Find the matching panel by checking dataset or id
@@ -824,7 +824,7 @@ export function bindDelveTabHotkey(sheetEl) {
                     const slot = getActiveSlot();
                     let hwMode = false;
                     try {
-                        hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${slot}`) === "true";
+                        hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${slot}`) === "true";
                     } catch (e) {}
                     hwMode = !hwMode;
                     try {
@@ -842,7 +842,7 @@ export function bindDelveTabHotkey(sheetEl) {
                 // Check if we are in Flow tab and hotkey mode is active
                 let hwMode = false;
                 try {
-                    hwMode = localStorage.getItem(`ccc:waterwheelHotkeyMode:${slot}`) === "true";
+                    hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${slot}`) === "true";
                 } catch (e) {}
                 const flowTab = sheetEl.querySelector('.merchant-tab[data-tab="flow"]');
                 const isFlowTabActive = flowTab && flowTab.classList.contains("is-active");
