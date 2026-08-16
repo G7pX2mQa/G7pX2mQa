@@ -1,9 +1,9 @@
-import { lsGetItem } from "../main.js";
 // js/util/saveIntegrity.js
 // If a player modifies their save file manually (e.g., console commands, local storage editing, JSON tampering),
 // A one-way flag, `hasModifiedSave`, will become true and turn the shop button's color brown,
 // Which I like to call the poop-shop of shame.
 // Used to detect cheaters.
+import { lsGetItem } from "../main.js";
 import { getActiveSlot, markSaveSlotModified, getSlotModifiedFlagKey, hasModifiedSave } from "./storage.js";
 import { showWideNotification } from "../ui/notifications.js";
 
