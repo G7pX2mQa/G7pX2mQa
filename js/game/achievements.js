@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { getActiveSlot } from "../util/storage.js";
 import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from "../ui/merchantTabs/resetTab.js";
 import { isLabUnlocked, getMapSequenceSeen } from "./surgeEffects.js";
@@ -68,7 +68,7 @@ const _rawAchievements = [
         checkCondition: () => {
             if (typeof localStorage !== "undefined") {
                 const slot = getActiveSlot();
-                return localStorage.getItem(`ccc:unlock:flow:${slot}`) === "1";
+                return lsGetItem(`ccc:unlock:flow:${slot}`) === "1";
             }
             return false;
         },
@@ -111,7 +111,7 @@ const achievementStateCache = new Map();
 function isMapNodeUnlocked(id, defaultLocked = true, slot = getActiveSlot()) {
     if (slot == null || typeof localStorage === "undefined") return !defaultLocked;
     try {
-        const val = localStorage.getItem(MAP_NODE_LOCKED_KEY(id, slot));
+        const val = lsGetItem(MAP_NODE_LOCKED_KEY(id, slot));
         if (val != null) return val !== "1";
     } catch {}
     return !defaultLocked;
@@ -126,7 +126,7 @@ function ensureAchievementState(slot = getActiveSlot()) {
     let parsed = {};
     if (typeof localStorage !== "undefined") {
         try {
-            const raw = localStorage.getItem(`${ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`);
+            const raw = lsGetItem(`${ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`);
             if (raw) {
                 const obj = JSON.parse(raw);
                 if (obj && typeof obj === "object") {
