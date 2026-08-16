@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { BigNum } from "../util/bigNum.js";
 import { bank, getActiveSlot, isStorageKeyLocked } from "../util/storage.js";
 import {
@@ -36,7 +36,7 @@ export function getMapSequenceSeen(nodeId) {
     const slot = getActiveSlot();
     if (slot == null) return false;
     try {
-        return localStorage.getItem(MAP_SEEN_KEY(slot, nodeId)) === "1";
+        return lsGetItem(MAP_SEEN_KEY(slot, nodeId)) === "1";
     } catch {
         return false;
     }
@@ -59,7 +59,7 @@ export function getTsunamiSequencePlayed() {
     const slot = getActiveSlot();
     if (slot == null) return false;
     try {
-        return localStorage.getItem(TSUNAMI_PLAYED_KEY(slot)) === "1";
+        return lsGetItem(TSUNAMI_PLAYED_KEY(slot)) === "1";
     } catch {
         return false;
     }
@@ -81,7 +81,7 @@ export function isLabUnlocked() {
     if (cachedLabUnlockedStates[slot] !== undefined && cachedLabUnlockedStates[slot] !== null)
         return cachedLabUnlockedStates[slot];
     try {
-        const result = localStorage.getItem(TSUNAMI_UNLOCKED_KEY(slot)) === "1";
+        const result = lsGetItem(TSUNAMI_UNLOCKED_KEY(slot)) === "1";
         cachedLabUnlockedStates[slot] = result;
         return result;
     } catch {
@@ -853,7 +853,7 @@ function onTick(dt) {
 
 function loadTsunamiNerf(slot) {
     if (slot == null) return;
-    const stored = localStorage.getItem(TSUNAMI_NERF_KEY(slot));
+    const stored = lsGetItem(TSUNAMI_NERF_KEY(slot));
     if (stored !== null) {
         baseTsunamiExponent = Number(stored);
         // Ensure validity on load
