@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { getActiveSlot } from "../util/storage.js";
 import { showNotification } from "../ui/notifications.js";
 import { formatNumber } from "../util/numFormat.js";
@@ -19,7 +19,7 @@ function getSizeCoinsCollectedKey(size, slot) {
 export function getLifetimeSizeCoinsCollected(size, slot = getActiveSlot()) {
     if (slot == null) return 0;
     try {
-        const val = localStorage.getItem(getSizeCoinsCollectedKey(size, slot));
+        const val = lsGetItem(getSizeCoinsCollectedKey(size, slot));
         if (val) {
             const num = parseInt(val, 10);
             return Number.isFinite(num) ? num : 0;
@@ -39,7 +39,7 @@ export function incrementLifetimeSizeCoinsCollected(size, slot = getActiveSlot()
 export function getLifetimeUselessExperiment(slot = getActiveSlot()) {
     if (slot == null) return false;
     try {
-        const val = localStorage.getItem(`ccc:secretAchievements:uselessExperiment:${slot}`);
+        const val = lsGetItem(`ccc:secretAchievements:uselessExperiment:${slot}`);
         return val === "1";
     } catch {}
     return false;
@@ -55,7 +55,7 @@ export function setLifetimeUselessExperiment(slot = getActiveSlot()) {
 export function getLifetimeBossBeaten(slot = getActiveSlot()) {
     if (slot == null) return false;
     try {
-        const val = localStorage.getItem(`ccc:secretAchievements:bossBeaten:${slot}`);
+        const val = lsGetItem(`ccc:secretAchievements:bossBeaten:${slot}`);
         return val === "1";
     } catch {}
     return false;
@@ -73,7 +73,7 @@ export function trackBinaryFlowSequence(waterwheelId, slot = getActiveSlot()) {
     try {
         if (waterwheelId !== "coin" && waterwheelId !== "xp") return;
         const key = `ccc:secretAchievements:binaryFlowSequence:${slot}`;
-        let seq = localStorage.getItem(key) || "";
+        let seq = lsGetItem(key) || "";
         seq += waterwheelId === "xp" ? "1" : "0";
         if (seq.length > 32) {
             seq = seq.slice(-32);
@@ -86,7 +86,7 @@ export function trackBinaryFlowSequence(waterwheelId, slot = getActiveSlot()) {
 export function getBinaryFlowSequence(slot = getActiveSlot()) {
     if (slot == null) return "";
     try {
-        return localStorage.getItem(`ccc:secretAchievements:binaryFlowSequence:${slot}`) || "";
+        return lsGetItem(`ccc:secretAchievements:binaryFlowSequence:${slot}`) || "";
     } catch {}
     return "";
 }
@@ -94,7 +94,7 @@ export function getBinaryFlowSequence(slot = getActiveSlot()) {
 export function getVaultSequence(slot = getActiveSlot()) {
     if (slot == null) return "";
     try {
-        return localStorage.getItem(`ccc:secretAchievements:vaultSequence:${slot}`) || "";
+        return lsGetItem(`ccc:secretAchievements:vaultSequence:${slot}`) || "";
     } catch {}
     return "";
 }
@@ -109,7 +109,7 @@ export function setVaultSequence(seq, slot = getActiveSlot()) {
 export function getVaultCoinCollected(slot = getActiveSlot()) {
     if (slot == null) return false;
     try {
-        return localStorage.getItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`) === "true";
+        return lsGetItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`) === "true";
     } catch {}
     return false;
 }
@@ -270,7 +270,7 @@ function ensureSecretAchievementState(slot = getActiveSlot()) {
     let parsed = {};
     if (typeof localStorage !== "undefined") {
         try {
-            const raw = localStorage.getItem(`${SECRET_ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`);
+            const raw = lsGetItem(`${SECRET_ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`);
             if (raw) {
                 const obj = JSON.parse(raw);
                 if (obj && typeof obj === "object") {
