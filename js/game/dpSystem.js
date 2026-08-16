@@ -1,4 +1,4 @@
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { safeMultiplyBigNum } from "./upgrades.js";
 import { getBuildingLevel, getBuildingBonus } from "../ui/minerTabs/buildingsTab.js";
 import { BigNum, bigNumIsInfinite, approxLog10BigNum as approxLog10, bigNumFromLog10 } from "../util/bigNum.js";
@@ -434,16 +434,16 @@ function ensureStateLoaded(force = false) {
     stateLoaded = true;
     dpState.unlocked = false;
     try {
-        const rawUnlocked = localStorage.getItem(KEY_UNLOCK(slot));
+        const rawUnlocked = lsGetItem(KEY_UNLOCK(slot));
         if (rawUnlocked === "1") dpState.unlocked = true;
     } catch {}
     try {
-        dpState.dpLevel = BigNum.fromAny(localStorage.getItem(KEY_DP_LEVEL(slot)) ?? "0");
+        dpState.dpLevel = BigNum.fromAny(lsGetItem(KEY_DP_LEVEL(slot)) ?? "0");
     } catch {
         dpState.dpLevel = bnZero();
     }
     try {
-        dpState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? "0");
+        dpState.progress = BigNum.fromAny(lsGetItem(KEY_PROGRESS(slot)) ?? "0");
     } catch {
         dpState.progress = bnZero();
     }
@@ -478,14 +478,14 @@ function persistState() {
         let level = dpState.dpLevel;
         let progress = dpState.progress;
         try {
-            unlocked = localStorage.getItem(KEY_UNLOCK(slot)) !== "0";
+            unlocked = lsGetItem(KEY_UNLOCK(slot)) !== "0";
         } catch {}
         try {
-            const rawLevel = localStorage.getItem(KEY_DP_LEVEL(slot));
+            const rawLevel = lsGetItem(KEY_DP_LEVEL(slot));
             if (rawLevel) level = BigNum.fromAny(rawLevel);
         } catch {}
         try {
-            const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
+            const rawProgress = lsGetItem(KEY_PROGRESS(slot));
             if (rawProgress) progress = BigNum.fromAny(rawProgress);
         } catch {}
         return { unlocked, level, progress };
