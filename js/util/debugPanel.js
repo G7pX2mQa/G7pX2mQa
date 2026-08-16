@@ -1,6 +1,6 @@
 // js/util/debugPanel.js// Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
-import { lsSetItem, lsRemoveItem, lsSetItemForce, lsRemoveItemForce, setDebugStorageLockChecker } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsSetItemForce, lsRemoveItemForce, setDebugStorageLockChecker, lsGetItem } from "../main.js";
 import { settingsManager } from "../game/settingsManager.js";
 import { BigNum } from "./bigNum.js";
 import { formatNumber } from "./numFormat.js";
@@ -836,7 +836,7 @@ function buildOverrideKey(slot, key) {
 function loadCurrencyMultiplierOverrideFromStorage(currencyKey, slot = getActiveSlot()) {
     const storageKey = getCurrencyMultiplierOverrideStorageKey(currencyKey, slot);
     if (!storageKey || typeof localStorage === "undefined") return null;
-    const raw = localStorage.getItem(storageKey);
+    const raw = lsGetItem(storageKey);
     if (!raw) return null;
     try {
         return BigNum.fromAny(raw);
@@ -1009,7 +1009,7 @@ export function getGameStatMultiplier(statKey) {
 function loadStatMultiplierOverrideFromStorage(statKey, slot = getActiveSlot()) {
     const storageKey = getStatMultiplierStorageKey(statKey, slot);
     if (!storageKey || typeof localStorage === "undefined") return null;
-    const raw = localStorage.getItem(storageKey);
+    const raw = lsGetItem(storageKey);
     if (!raw) return null;
     try {
         return BigNum.fromAny(raw);
@@ -1626,7 +1626,7 @@ function getCurrentActionLog(slot = getActiveSlot()) {
 
     let raw = null;
     try {
-        raw = localStorage.getItem(key);
+        raw = lsGetItem(key);
     } catch {}
     if (!raw) return [];
 
@@ -1734,7 +1734,7 @@ function loadDialogueState(slot = getActiveSlot()) {
     const key = dialogueStateStorageKey(slot);
     if (!key) return {};
     try {
-        const raw = localStorage.getItem(key);
+        const raw = lsGetItem(key);
         return raw ? JSON.parse(raw) : {};
     } catch {
         return {};
@@ -3072,7 +3072,7 @@ function buildAreaStats(container, area) {
             if (genLevelKey) {
                 const getLevel = () => {
                     try {
-                        const raw = localStorage.getItem(genLevelKey);
+                        const raw = lsGetItem(genLevelKey);
                         const bn = BigNum.fromAny(raw || "0");
                         if (bn.isInfinite()) return Infinity;
                         try {
@@ -3135,7 +3135,7 @@ function buildAreaStats(container, area) {
                         onLockChange: () => {
                             let newVal = 0;
                             try {
-                                const r = localStorage.getItem(genLevelKey);
+                                const r = lsGetItem(genLevelKey);
                                 const bn = BigNum.fromAny(r || "0");
                                 if (bn.isInfinite()) newVal = Infinity;
                                 else newVal = Number(bn.toScientific(20));
@@ -3154,7 +3154,7 @@ function buildAreaStats(container, area) {
                         if (slot !== getActiveSlot()) return;
                         let newVal = 0;
                         try {
-                            const r = localStorage.getItem(genLevelKey);
+                            const r = lsGetItem(genLevelKey);
                             const bn = BigNum.fromAny(r || "0");
                             if (bn.isInfinite()) newVal = Infinity;
                             else newVal = Number(bn.toScientific(20));
@@ -3169,7 +3169,7 @@ function buildAreaStats(container, area) {
             if (surgeLevelKey) {
                 const getSurgeLevel = () => {
                     try {
-                        const raw = localStorage.getItem(surgeLevelKey);
+                        const raw = lsGetItem(surgeLevelKey);
                         if (raw === "Infinity") return Infinity;
                         return BigNum.fromAny(raw || "0");
                     } catch {
@@ -3290,7 +3290,7 @@ function buildAreaStats(container, area) {
                         onLockChange: (locked) => {
                             let newVal = BigNum.fromInt(0);
                             try {
-                                const r = localStorage.getItem(surgeLevelKey);
+                                const r = lsGetItem(surgeLevelKey);
                                 if (r === "Infinity") {
                                     newVal = Infinity;
                                 } else {
@@ -3309,7 +3309,7 @@ function buildAreaStats(container, area) {
                         if (slot !== getActiveSlot()) return;
                         let newVal = BigNum.fromInt(0);
                         try {
-                            const r = localStorage.getItem(surgeLevelKey);
+                            const r = lsGetItem(surgeLevelKey);
                             if (r === "Infinity") {
                                 newVal = Infinity;
                             } else {
@@ -5680,7 +5680,7 @@ function buildMiscContent(content) {
                 if (slot != null) {
                     try {
                         const key = `ccc:debug:toggleTheW:${slot}`;
-                        const current = localStorage.getItem(key) === "1";
+                        const current = lsGetItem(key) === "1";
                         const next = current ? "0" : "1";
                         lsSetItem(key, next);
                         window.dispatchEvent(
