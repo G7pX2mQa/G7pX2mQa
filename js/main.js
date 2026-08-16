@@ -72,18 +72,22 @@ HTMLCanvasElement.prototype.getContext = function (contextType, contextAttribute
 
 export let activeStorageKeys = null;
 let localStorageBuffer = null;
+let dirtyStorageKeys = null;
 const REMOVED_SYMBOL = Symbol("REMOVED");
 
 function ensureStorageInitialized() {
     if (!localStorageBuffer) {
         localStorageBuffer = new Map();
         activeStorageKeys = new Set();
+        dirtyStorageKeys = new Set();
         if (typeof window !== "undefined") {
             window.__activeStorageKeys = activeStorageKeys;
         }
         if (typeof localStorage !== "undefined") {
             for (let i = 0; i < localStorage.length; i++) {
-                activeStorageKeys.add(localStorage.key(i));
+                const key = localStorage.key(i);
+                activeStorageKeys.add(key);
+                localStorageBuffer.set(key, Storage.prototype.getItem.call(localStorage, key));
             }
         }
     }
@@ -91,14 +95,15 @@ function ensureStorageInitialized() {
 
 export function flushLocalStorageBuffer() {
     ensureStorageInitialized();
-    if (localStorageBuffer.size === 0) return;
+    if (dirtyStorageKeys.size === 0) return;
 
-    const entries = Array.from(localStorageBuffer.entries());
-    localStorageBuffer.clear();
+    const dirtyKeys = Array.from(dirtyStorageKeys);
+    dirtyStorageKeys.clear();
 
     if (!window.__duplicateInstanceDetected && window.currentArea !== 666) {
         window.__isFlushing = true;
-        entries.forEach(([key, value]) => {
+        dirtyKeys.forEach((key) => {
+            const value = localStorageBuffer.get(key);
             if (value === REMOVED_SYMBOL) {
                 Storage.prototype.removeItem.call(localStorage, key);
             } else {
@@ -121,11 +126,8 @@ if (typeof window !== "undefined") {
 
 export function lsGetItem(key) {
     ensureStorageInitialized();
-    if (localStorageBuffer.has(key)) {
-        const val = localStorageBuffer.get(key);
-        return val === REMOVED_SYMBOL ? null : val;
-    }
-    return Storage.prototype.getItem.call(localStorage, key);
+    const val = localStorageBuffer.get(key);
+    return val === REMOVED_SYMBOL || val === undefined ? null : val;
 }
 
 localStorage.getItem = function (key) {
@@ -150,6 +152,7 @@ export function lsSetItemForce(key, value) {
     let finalValue = String(value);
     localStorageBuffer.set(key, finalValue);
     activeStorageKeys.add(key);
+    dirtyStorageKeys.add(key);
     try {
         window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
     } catch {}
@@ -167,6 +170,7 @@ export function lsRemoveItemForce(key) {
     }
     localStorageBuffer.set(key, REMOVED_SYMBOL);
     activeStorageKeys.delete(key);
+    dirtyStorageKeys.add(key);
     try {
         window.dispatchEvent(new CustomEvent("saveIntegrity:slotRemove", { detail: { key } }));
     } catch {}
