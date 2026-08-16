@@ -1,5 +1,5 @@
 // js/ui/hudButtons.js
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { openHelpOverlay } from "./helpOverlay.js";
 import { openMapOverlay, ensureMapOverlay } from "./mapOverlay.js";
 import { openShop } from "./shopOverlay.js";
@@ -20,9 +20,9 @@ function slotKey(base) {
 
 function isUnlocked(base) {
     const key = slotKey(base);
-    const slotRaw = localStorage.getItem(key);
+    const slotRaw = lsGetItem(key);
     if (slotRaw != null) return slotRaw === "1";
-    return localStorage.getItem(base) === "1";
+    return lsGetItem(base) === "1";
 }
 
 export function isShopUnlocked() {
@@ -44,7 +44,7 @@ function setUnlocked(base, v) {
     const val = v ? "1" : "0";
     const key = slotKey(base);
     lsSetItem(key, val);
-    if (key !== base && localStorage.getItem(base) != null) {
+    if (key !== base && lsGetItem(base) != null) {
         lsSetItem(base, val);
     }
     try {
@@ -59,7 +59,7 @@ function setUnlocked(base, v) {
 function ensureUnlockDefaults() {
     for (const key of Object.values(BASE_KEYS)) {
         const sk = slotKey(key);
-        const hasSlot = localStorage.getItem(sk) != null;
+        const hasSlot = lsGetItem(sk) != null;
         if (!hasSlot) lsSetItem(sk, "0");
     }
 }
