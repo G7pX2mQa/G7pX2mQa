@@ -1,5 +1,5 @@
 // js/game/coinPickup.js
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import { bank, CURRENCIES, getActiveSlot, isCurrencyLocked } from "../util/storage.js";
 import { incrementLifetimeSizeCoinsCollected, checkSecretAchievements } from "./secretAchievements.js";
 import { BigNum } from "../util/bigNum.js";
@@ -478,9 +478,9 @@ export function initCoinPickup({
         if (activeSlot != null) {
             const SHOP_UNLOCK_KEY = `ccc:unlock:shop:${activeSlot}`;
             const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${activeSlot}`;
-            const p = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || "0", 10);
+            const p = parseInt(lsGetItem(SHOP_PROGRESS_KEY) || "0", 10);
             lsSetItem(SHOP_PROGRESS_KEY, String(p));
-            if (p >= 10 && localStorage.getItem(SHOP_UNLOCK_KEY) !== "1") {
+            if (p >= 10 && lsGetItem(SHOP_UNLOCK_KEY) !== "1") {
                 try {
                     unlockShop();
                 } catch {}
@@ -512,9 +512,9 @@ export function initCoinPickup({
     if (slot != null) {
         const SHOP_UNLOCK_KEY = `ccc:unlock:shop:${slot}`;
         const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${slot}`;
-        const p = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || "0", 10);
+        const p = parseInt(lsGetItem(SHOP_PROGRESS_KEY) || "0", 10);
         lsSetItem(SHOP_PROGRESS_KEY, String(p));
-        if (p >= 10 && localStorage.getItem(SHOP_UNLOCK_KEY) !== "1") {
+        if (p >= 10 && lsGetItem(SHOP_UNLOCK_KEY) !== "1") {
             try {
                 unlockShop();
             } catch {}
@@ -759,8 +759,8 @@ export function initCoinPickup({
         if (activeSlot != null) {
             const SHOP_UNLOCK_KEY = `ccc:unlock:shop:${activeSlot}`;
             const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${activeSlot}`;
-            if (localStorage.getItem(SHOP_UNLOCK_KEY) !== "1") {
-                const current = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || "0", 10);
+            if (lsGetItem(SHOP_UNLOCK_KEY) !== "1") {
+                const current = parseInt(lsGetItem(SHOP_PROGRESS_KEY) || "0", 10);
                 const next = current + collectedCount;
                 lsSetItem(SHOP_PROGRESS_KEY, String(next));
                 if (next >= 10) {
