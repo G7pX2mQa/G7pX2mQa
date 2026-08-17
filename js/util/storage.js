@@ -1,5 +1,5 @@
 // js/util/storage.js
-import { lsSetItem, lsRemoveItem } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { BigNum } from "../util/bigNum.js";
 import { formatNumber } from "../util/numFormat.js";
 export let bankAddInterceptor = null;
@@ -100,7 +100,7 @@ function runStorageWatchers() {
         if (!entries || entries.size === 0) return;
         let raw;
         try {
-            raw = localStorage.getItem(key);
+            raw = lsGetItem(key);
         } catch {
             raw = null;
         }
@@ -188,7 +188,7 @@ export function primeStorageWatcherSnapshot(key, rawValue) {
     let raw = rawValue;
     if (raw === undefined) {
         try {
-            raw = localStorage.getItem(key);
+            raw = lsGetItem(key);
         } catch {
             raw = null;
         }
@@ -331,7 +331,7 @@ export function getLastSaveTime() {
         return memoryLastSaveTime;
     }
     try {
-        const raw = localStorage.getItem(getLastSaveTimeKey(slot));
+        const raw = lsGetItem(getLastSaveTimeKey(slot));
         const val = parseInt(raw, 10);
         return Number.isFinite(val) ? val : 0;
     } catch {
@@ -447,7 +447,7 @@ let _activeSlotCache = undefined;
 const _myInstanceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 export function getActiveSlot() {
     if (_activeSlotCache !== undefined) return _activeSlotCache;
-    const raw = localStorage.getItem(KEYS.SAVE_SLOT);
+    const raw = lsGetItem(KEYS.SAVE_SLOT);
     const n = parseInt(raw, 10);
     const val = Number.isFinite(n) && n > 0 ? n : null;
     _activeSlotCache = val;
@@ -530,7 +530,7 @@ export function getSlotSignature(slot = getActiveSlot()) {
     const key = slotSignatureKey(slot);
     if (!key) return null;
     try {
-        return localStorage.getItem(key);
+        return lsGetItem(key);
     } catch {
         return null;
     }
@@ -554,7 +554,7 @@ export function hasModifiedSave(slot = getActiveSlot()) {
     const key = slotModifiedKey(slot);
     if (!key) return false;
     try {
-        return localStorage.getItem(key) === "1";
+        return lsGetItem(key) === "1";
     } catch {
         return false;
     }
@@ -607,7 +607,7 @@ for (const key of Object.values(CURRENCIES)) {
 initCurrencyStorageWatchers();
 // -------------------- SAVE-SLOT HELPERS --------------------
 export function getHasOpenedSaveSlot() {
-    return localStorage.getItem(KEYS.HAS_OPENED_SAVE_SLOT) === "true";
+    return lsGetItem(KEYS.HAS_OPENED_SAVE_SLOT) === "true";
 }
 
 export function setHasOpenedSaveSlot(value) {
@@ -621,12 +621,12 @@ export function setSavedArea(areaID, slot = getActiveSlot()) {
 
 export function getSavedArea(slot = getActiveSlot()) {
     if (slot == null) return null;
-    const raw = localStorage.getItem(`${KEYS.CURRENT_AREA}:${slot}`);
+    const raw = lsGetItem(`${KEYS.CURRENT_AREA}:${slot}`);
     return raw ? parseInt(raw, 10) : null;
 }
 // -------------------- DEFAULTS --------------------
 export function ensureStorageDefaults() {
-    if (localStorage.getItem(KEYS.HAS_OPENED_SAVE_SLOT) === null) {
+    if (lsGetItem(KEYS.HAS_OPENED_SAVE_SLOT) === null) {
         setHasOpenedSaveSlot(false);
     }
 }
@@ -636,7 +636,7 @@ export function ensureCurrencyDefaults() {
     if (slot == null) return; // only seed AFTER a slot is chosen
     for (const key of Object.values(CURRENCIES)) {
         const k = `${KEYS.CURRENCY[key]}:${slot}`;
-        if (!localStorage.getItem(k)) lsSetItem(k, "0");
+        if (!lsGetItem(k)) lsSetItem(k, "0");
     }
 }
 
@@ -645,7 +645,7 @@ export function ensureMultiplierDefaults() {
     if (slot == null) return; // only seed AFTER a slot is chosen
     for (const key of Object.values(CURRENCIES)) {
         const km = `${KEYS.MULTIPLIER[key]}:${slot}`;
-        if (!localStorage.getItem(km)) {
+        if (!lsGetItem(km)) {
             const theor = scaledFromIntBN(BigNum.fromInt(1));
             setMultiplierScaled(key, theor);
         } else {
@@ -657,7 +657,7 @@ export function ensureMultiplierDefaults() {
 export function isCurrencyUnlocked(key, slot = getActiveSlot()) {
     if (key === CURRENCIES.COINS) return true;
     const k = `ccc:currency_unlocked:${key}:${slot}`;
-    return localStorage.getItem(k) === "true";
+    return lsGetItem(k) === "true";
 }
 
 export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
@@ -676,7 +676,7 @@ export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
 export function getCurrency(key) {
     const k = keyFor(KEYS.CURRENCY[key]);
     if (!k) return BigNum.fromInt(0);
-    const raw = localStorage.getItem(k);
+    const raw = lsGetItem(k);
     if (!raw) return BigNum.fromInt(0);
     try {
         return BigNum.fromAny(raw);
@@ -714,7 +714,7 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
     } catch {}
     let persistedRaw = null;
     try {
-        persistedRaw = localStorage.getItem(k);
+        persistedRaw = lsGetItem(k);
     } catch {}
     const effectiveRaw = persistedRaw ?? expectedRaw;
     let effective = bn;
@@ -772,7 +772,7 @@ function intFromScaled(theorBN) {
 function getMultiplierScaled(key) {
     const k = keyFor(KEYS.MULTIPLIER[key]);
     if (!k) return scaledFromIntBN(BigNum.fromInt(1));
-    const raw = localStorage.getItem(k);
+    const raw = lsGetItem(k);
     if (!raw || !raw.startsWith(MULT_SCALE_TAG)) {
         const theor = scaledFromIntBN(BigNum.fromInt(1));
         setMultiplierScaled(key, theor);
@@ -794,7 +794,7 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
     if (!k) return;
     if (isDebugLocked(k)) return; // Respect debug-panel storage locks
     let prev = scaledFromIntBN(BigNum.fromInt(1));
-    const existingRaw = localStorage.getItem(k);
+    const existingRaw = lsGetItem(k);
     if (existingRaw?.startsWith?.(MULT_SCALE_TAG)) {
         try {
             prev = BigNum.fromAny(existingRaw.slice(MULT_SCALE_TAG.length));
@@ -808,7 +808,7 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
     } catch {}
     let persistedRaw = null;
     try {
-        persistedRaw = localStorage.getItem(k);
+        persistedRaw = lsGetItem(k);
     } catch {}
     const effectiveRaw = persistedRaw ?? raw;
     let effective = bn;
@@ -853,7 +853,7 @@ export function setCurrencyMultiplierBN(key, intBNValue) {
 }
 
 export function peekCurrency(slot, key) {
-    const raw = localStorage.getItem(`${KEYS.CURRENCY[key]}:${slot}`);
+    const raw = lsGetItem(`${KEYS.CURRENCY[key]}:${slot}`);
     if (!raw) return BigNum.fromInt(0);
     try {
         return BigNum.fromAny(raw);
@@ -993,14 +993,14 @@ export function incrementResetStat(resetName) {
         const slot = getActiveSlot();
         if (slot == null) return;
         const statKey = `ccc:stats:${resetName}Resets:${slot}`;
-        let count = BigNum.fromAny(localStorage.getItem(statKey) || 0);
+        let count = BigNum.fromAny(lsGetItem(statKey) || 0);
         count = count.add(1);
         // Store as BigNum string, checking for infinity explicitly to match BN representation
         const valToStore = count.inf ? "BN:infinite" : count.toString();
         lsSetItem(statKey, valToStore);
         // Add to list of performed resets
         const listKey = `ccc:stats:performedResets:${slot}`;
-        const listRaw = localStorage.getItem(listKey);
+        const listRaw = lsGetItem(listKey);
         let list = [];
         if (listRaw) {
             try {
