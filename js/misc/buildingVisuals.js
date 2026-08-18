@@ -9088,62 +9088,120 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   }
 
   // TIER 0: BASE STRUCTURE (Containment Dome and Cooling Towers)
+  // TIER 0: BASE STRUCTURE (Containment Dome and Cooling Towers)
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
     
+    // Simple grounding base line
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-260, baseY - 4, 520, 4);
+
+    // Steam Animation for Cooling Towers
+    symDraw(() => {
+        for(let i=0; i<3; i++) {
+            let pTime = (t * 0.4 + i * 0.333) % 1; 
+            let steamY = baseY - 310 - pTime * 80;
+            let steamX = -215 + Math.sin(t * 2 + i * 3) * 8;
+            let steamAlpha = (1 - pTime) * 0.5;
+            let steamSize = 12 + pTime * 20;
+            
+            ctx.fillStyle = `rgba(180, 180, 180, ${steamAlpha})`;
+            ctx.beginPath();
+            ctx.arc(steamX, steamY, steamSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+
     // Background Cooling Towers
     symDraw(() => {
-      ctx.fillStyle = fillRuby;
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(-170, baseY);
       ctx.bezierCurveTo(-170, baseY - 150, -190, baseY - 200, -180, baseY - 300);
       ctx.lineTo(-260, baseY - 300);
       ctx.bezierCurveTo(-250, baseY - 200, -270, baseY - 150, -270, baseY);
       ctx.closePath();
+      
+      ctx.fillStyle = fillRuby;
       ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#1a1a1a';
       ctx.stroke();
 
-      // Tower rim
+      // Simple rim
       ctx.fillStyle = '#111';
       ctx.fillRect(-265, baseY - 310, 90, 10);
       
-      // Tower vertical ribs
-      for(let j=0; j<4; j++) {
+      // Minimalist vertical ribs perfectly centered to suggest the hyperboloid shape
+      for(let j=1; j<3; j++) {
          ctx.beginPath();
-         let bx = -190 - j*20;
-         let tx = -196 - j*16;
-         let wx = -202 - j*12;
+         let bx = -170 - j * (100 / 3);
+         let cp1x = -170 - j * (100 / 3);
+         let cp2x = -190 - j * (60 / 3);
+         let tx = -180 - j * (80 / 3);
          ctx.moveTo(bx, baseY);
-         ctx.bezierCurveTo(bx, baseY-150, wx, baseY-200, tx, baseY-300);
-         ctx.strokeStyle = '#222';
-         ctx.lineWidth = 2;
+         ctx.bezierCurveTo(cp1x, baseY-150, cp2x, baseY-200, tx, baseY-300);
+         ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+         ctx.lineWidth = 3;
          ctx.stroke();
       }
     });
 
     // Central Containment Building (Dome shape)
-    ctx.fillStyle = fillRuby;
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(-140, baseY);
     ctx.lineTo(-140, baseY - 120);
     ctx.arc(0, baseY - 120, 140, Math.PI, 0);
     ctx.lineTo(140, baseY);
     ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
     
-    // Horizontal bands on dome
-    ctx.beginPath();
-    ctx.moveTo(-138, baseY - 80);
-    ctx.lineTo(138, baseY - 80);
-    ctx.moveTo(-140, baseY - 140);
-    ctx.lineTo(140, baseY - 140);
+    ctx.fillStyle = fillRuby;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#1a1a1a';
     ctx.stroke();
+
+    // Animated Core Window
+    ctx.beginPath();
+    ctx.arc(0, baseY - 120, 45, 0, Math.PI * 2);
+    ctx.fillStyle = '#111'; // Dark window casing
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.stroke();
+
+    // Radiation Symbol
+    ctx.save();
+    ctx.translate(0, baseY - 120);
+    ctx.rotate(t * 0.5); // Smooth, ominous spin
+
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    const radColor = `rgba(255, 0, 0, ${0.5 + 0.5 * pulse})`;
+
+    // 3 blades (60 degrees each = Math.PI/3)
+    ctx.fillStyle = radColor;
+    for(let i=0; i<3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, 32, -Math.PI/6, Math.PI/6);
+        ctx.lineTo(0,0);
+        ctx.fill();
+        ctx.rotate((Math.PI * 2) / 3);
+    }
+    
+    // Mask out the inner ring
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.fillStyle = '#111'; 
+    ctx.fill();
+
+    // Central dot
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.fillStyle = radColor;
+    ctx.fill();
+    
+    ctx.restore();
 
     ctx.restore();
   }
