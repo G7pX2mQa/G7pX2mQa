@@ -1191,7 +1191,7 @@ function applyForgeResetEffects({ resetGold = false, resetMagic = false } = {}) 
 export function performForgeReset() {
     if (!canPerformForgeReset()) return false;
     if (settingsManager.get("forge_confirmation")) {
-        if (!window.confirm("Are you sure you want to do a Forge reset?")) return false;
+        if (!window.confirm("Are you sure you want to perform a Forge reset?")) return false;
     }
 
     const finalReward = getPendingGoldWithMultiplier();
@@ -1221,7 +1221,7 @@ export function performForgeReset() {
 export function performInfuseReset() {
     if (!canPerformInfuseReset()) return false;
     if (settingsManager.get("infuse_confirmation")) {
-        if (!window.confirm("Are you sure you want to do an Infuse reset?")) return false;
+        if (!window.confirm("Are you sure you want to perform an Infuse reset?")) return false;
     }
 
     const reward = getPendingMagicWithMultiplier();
@@ -1302,7 +1302,7 @@ export function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisu
 function performExperimentReset() {
     if (!isExperimentUnlocked()) return false;
     if (settingsManager.get("experiment_confirmation")) {
-        if (!window.confirm("Are you sure you want to do an Experiment reset?")) return false;
+        if (!window.confirm("Are you sure you want to perform an Experiment reset?")) return false;
     }
     // Check Requirements
     const labLevel = getLabLevel ? getLabLevel() : bnZero();
@@ -1472,7 +1472,7 @@ export function performSurgeReset() {
     const barLevel = getSurgeBarLevel(slot);
     const potentialLevel = predictSurgeLevel(barLevel, currentWaves, reward);
     if (settingsManager.get("surge_confirmation")) {
-        if (!window.confirm("Are you sure you want to do a Surge reset?")) return false;
+        if (!window.confirm("Are you sure you want to perform a Surge reset?")) return false;
     }
 
     let isInsufficient = false;
@@ -1484,7 +1484,7 @@ export function performSurgeReset() {
     if (isInsufficient && settingsManager.get("insufficient_waves_confirmation")) {
         if (
             !window.confirm(
-                "Are you sure you want to do a Surge reset? You don't have enough pending Waves to reach the next Surge.",
+                "Are you sure you want to perform a Surge reset? You don't have enough pending Waves to reach the next Surge.",
             )
         ) {
             return false;
