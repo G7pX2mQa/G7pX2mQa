@@ -50,7 +50,8 @@
 
 /* When open -> slide in */
 .shop-overlay.is-open .shop-sheet {
-  transform: translateY(0);
+  transform: none;
+  will-change: auto;
 }
 
 /* Top grabber strip */
@@ -488,7 +489,10 @@
   pointer-events: none;
 }
 .upg-overlay.is-open { pointer-events: auto; }
-.upg-overlay.is-open .upg-sheet { transform: translateY(0); }
+.upg-overlay.is-open .upg-sheet { 
+  transform: none; 
+  will-change: auto;
+}
 
 .upg-sheet {
   --upg-spacing: 40px;
