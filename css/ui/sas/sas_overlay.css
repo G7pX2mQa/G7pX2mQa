@@ -40,7 +40,8 @@
 }
 
 .sas-overlay.is-open .sas-sheet {
-  transform: translateY(0);
+  transform: none;
+  will-change: auto;
 }
 
 .sas-grabber {
