@@ -35,7 +35,8 @@
 }
 
 .map-overlay.is-open .map-sheet {
-    transform: translateY(0);
+    transform: none;
+    will-change: auto;
 }
 
 .map-background {
