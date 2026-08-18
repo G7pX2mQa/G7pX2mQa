@@ -167,7 +167,7 @@ export function setCompressResetCompleted(value, slot = getActiveSlot()) {
 export function performCompressReset() {
     if (!isCompressUnlocked()) return false;
     if (settingsManager.get("compress_confirmation")) {
-        if (!window.confirm("Are you sure you want to do a Compress reset?")) return false;
+        if (!window.confirm("Are you sure you want to perform a Compress reset?")) return false;
     }
     if (!checkCompressRequirements()) {
         return false;
@@ -423,7 +423,7 @@ function checkCombineRequirements() {
 export function performCombineReset() {
     if (!isCombineUnlocked()) return false;
     if (settingsManager.get("combine_confirmation")) {
-        if (!window.confirm("Are you sure you want to do a Combine reset?")) return false;
+        if (!window.confirm("Are you sure you want to perform a Combine reset?")) return false;
     }
     if (!checkCombineRequirements()) {
         return false;
