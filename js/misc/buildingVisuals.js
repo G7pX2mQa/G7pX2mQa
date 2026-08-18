@@ -9092,16 +9092,12 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
-    
-    // Simple grounding base line
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(-260, baseY - 4, 520, 4);
 
     // Steam Animation for Cooling Towers
     symDraw(() => {
         for(let i=0; i<3; i++) {
             let pTime = (t * 0.4 + i * 0.333) % 1; 
-            let steamY = baseY - 310 - pTime * 80;
+            let steamY = baseY - 280 - pTime * 140;
             let steamX = -215 + Math.sin(t * 2 + i * 3) * 8;
             let steamAlpha = (1 - pTime) * 0.5;
             let steamSize = 12 + pTime * 20;
