@@ -101,6 +101,10 @@ user-select: none;
 transform: translateY(1px) scale(0.997);
 }
 
+.game-btn span {
+  transform: translateY(calc(-1 * clamp(1.28px, 0.2svh, 2.2px)));
+}
+
 /* Hide via attribute */
 .game-btn[hidden] { display: none !important; }
 
