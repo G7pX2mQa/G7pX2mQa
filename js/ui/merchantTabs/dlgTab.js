@@ -543,11 +543,11 @@ export const DLG_CATALOG = {
             }
             return {
                 status: "mysterious",
-                requirement: "Do a Forge reset to reveal this dialogue",
-                message: "Do a Forge reset to reveal this dialogue",
+                requirement: "Perform a Forge reset to reveal this dialogue",
+                message: "Perform a Forge reset to reveal this dialogue",
                 icon: MYSTERIOUS_ICON_SRC,
                 headerTitle: HIDDEN_DIALOGUE_TITLE,
-                ariaLabel: "Hidden merchant dialogue, do a Forge reset to reveal this dialogue",
+                ariaLabel: "Hidden merchant dialogue, perform a Forge reset to reveal this dialogue",
             };
         },
     },
@@ -573,11 +573,11 @@ export const DLG_CATALOG = {
             }
             return {
                 status: "mysterious",
-                requirement: "Do a Surge reset to reveal this dialogue",
-                message: "Do a Surge reset to reveal this dialogue",
+                requirement: "Perform a Surge reset to reveal this dialogue",
+                message: "Perform a Surge reset to reveal this dialogue",
                 icon: MYSTERIOUS_ICON_SRC,
                 headerTitle: HIDDEN_DIALOGUE_TITLE,
-                ariaLabel: "Hidden merchant dialogue, do a Surge reset to reveal this dialogue",
+                ariaLabel: "Hidden merchant dialogue, perform a Surge reset to reveal this dialogue",
             };
         },
     },
@@ -639,11 +639,11 @@ export const DLG_CATALOG = {
             }
             return {
                 status: "mysterious",
-                requirement: "Do an Infuse reset to reveal this dialogue",
-                message: "Do an Infuse reset to reveal this dialogue",
+                requirement: "Perform an Infuse reset to reveal this dialogue",
+                message: "Perform an Infuse reset to reveal this dialogue",
                 icon: MYSTERIOUS_ICON_SRC,
                 headerTitle: HIDDEN_DIALOGUE_TITLE,
-                ariaLabel: "Hidden merchant dialogue, do an Infuse reset to reveal this dialogue",
+                ariaLabel: "Hidden merchant dialogue, perform an Infuse reset to reveal this dialogue",
             };
         },
     },
