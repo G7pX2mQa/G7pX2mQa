@@ -73,17 +73,27 @@ HTMLCanvasElement.prototype.getContext = function (contextType, contextAttribute
 export let activeStorageKeys = null;
 let localStorageBuffer = null;
 const REMOVED_SYMBOL = Symbol("REMOVED");
+// Tracks what we last flushed to real localStorage per key.
+// Used to detect external modifications (e.g. user editing via DevTools).
+let lastFlushedState = null;
 
 function ensureStorageInitialized() {
     if (!localStorageBuffer) {
         localStorageBuffer = new Map();
         activeStorageKeys = new Set();
+        lastFlushedState = new Map();
         if (typeof window !== "undefined") {
             window.__activeStorageKeys = activeStorageKeys;
         }
         if (typeof localStorage !== "undefined") {
             for (let i = 0; i < localStorage.length; i++) {
-                activeStorageKeys.add(localStorage.key(i));
+                const k = localStorage.key(i);
+                activeStorageKeys.add(k);
+                // Seed lastFlushedState so the first flush doesn't false-positive
+                try {
+                    const v = Storage.prototype.getItem.call(localStorage, k);
+                    if (v !== null) lastFlushedState.set(k, v);
+                } catch {}
             }
         }
     }
@@ -91,6 +101,69 @@ function ensureStorageInitialized() {
 
 export function flushLocalStorageBuffer() {
     ensureStorageInitialized();
+
+    // --- Phase 1: Detect external modifications ---
+    // Before we flush our buffered writes, check if anything in real localStorage
+    // has been changed behind our back (e.g. user editing via DevTools).
+    if (lastFlushedState.size > 0) {
+        for (const [key, expectedValue] of lastFlushedState.entries()) {
+            // Skip keys that are about to be overwritten by our buffer anyway
+            if (localStorageBuffer.has(key)) continue;
+            let realValue = null;
+            try {
+                realValue = Storage.prototype.getItem.call(localStorage, key);
+            } catch { continue; }
+            if (realValue !== expectedValue) {
+                // External modification detected — import the new value into the buffer
+                // so the game sees it on the next lsGetItem call
+                if (realValue === null) {
+                    localStorageBuffer.set(key, REMOVED_SYMBOL);
+                    activeStorageKeys.delete(key);
+                    lastFlushedState.delete(key);
+                } else {
+                    localStorageBuffer.set(key, realValue);
+                    activeStorageKeys.add(key);
+                    lastFlushedState.set(key, realValue);
+                }
+                // If it's a tracked game key, flag the slot as modified
+                if (key.startsWith("ccc:") && !key.startsWith("ccc:debug:")) {
+                    const slotMatch = key.match(/:(\d+)$/);
+                    if (slotMatch) {
+                        const slot = parseInt(slotMatch[1], 10);
+                        if (Number.isFinite(slot) && slot > 0 && key !== `ccc:slotMod:${slot}`) {
+                            try { markSaveSlotModified(slot); } catch {}
+                        }
+                    }
+                }
+            }
+        }
+        // Also check for keys that appeared in real localStorage but aren't in lastFlushedState
+        // (i.e. entirely new keys added externally)
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key || lastFlushedState.has(key) || localStorageBuffer.has(key)) continue;
+                if (!key.startsWith("ccc:") || key.startsWith("ccc:debug:")) continue;
+                const slotMatch = key.match(/:(\d+)$/);
+                if (!slotMatch) continue;
+                const slot = parseInt(slotMatch[1], 10);
+                if (!Number.isFinite(slot) || slot <= 0) continue;
+                // New external key — import it and flag the slot
+                let realValue = null;
+                try { realValue = Storage.prototype.getItem.call(localStorage, key); } catch {}
+                if (realValue !== null) {
+                    localStorageBuffer.set(key, realValue);
+                    activeStorageKeys.add(key);
+                    lastFlushedState.set(key, realValue);
+                    if (key !== `ccc:slotMod:${slot}`) {
+                        try { markSaveSlotModified(slot); } catch {}
+                    }
+                }
+            }
+        } catch {}
+    }
+
+    // --- Phase 2: Flush buffered writes to real localStorage ---
     if (localStorageBuffer.size === 0) return;
 
     const entries = Array.from(localStorageBuffer.entries());
@@ -101,8 +174,10 @@ export function flushLocalStorageBuffer() {
         entries.forEach(([key, value]) => {
             if (value === REMOVED_SYMBOL) {
                 Storage.prototype.removeItem.call(localStorage, key);
+                lastFlushedState.delete(key);
             } else {
                 Storage.prototype.setItem.call(localStorage, key, value);
+                lastFlushedState.set(key, value);
             }
         });
         window.__isFlushing = false;
@@ -121,7 +196,6 @@ if (typeof window !== "undefined") {
 
 export function lsGetItem(key) {
     ensureStorageInitialized();
-    if (IS_MOBILE || IS_FIREFOX) return Storage.prototype.getItem.call(localStorage, key);
     if (localStorageBuffer.has(key)) {
         const val = localStorageBuffer.get(key);
         return val === REMOVED_SYMBOL ? null : val;
@@ -129,11 +203,9 @@ export function lsGetItem(key) {
     return Storage.prototype.getItem.call(localStorage, key);
 }
 
-if (!(IS_MOBILE || IS_FIREFOX)) {
-    localStorage.getItem = function (key) {
-        return lsGetItem(key);
-    };
-}
+localStorage.getItem = function (key) {
+    return lsGetItem(key);
+};
 
 export let _debugIsStorageKeyLocked = null;
 export function setDebugStorageLockChecker(fn) {
@@ -147,14 +219,6 @@ export function lsSetItem(key, value) {
 
 export function lsSetItemForce(key, value) {
     ensureStorageInitialized();
-    if (IS_MOBILE || IS_FIREFOX) {
-        let finalValue = String(value);
-        Storage.prototype.setItem.call(localStorage, key, finalValue);
-        try {
-            window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
-        } catch {}
-        return;
-    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
@@ -173,13 +237,6 @@ export function lsRemoveItem(key) {
 
 export function lsRemoveItemForce(key) {
     ensureStorageInitialized();
-    if (IS_MOBILE || IS_FIREFOX) {
-        Storage.prototype.removeItem.call(localStorage, key);
-        try {
-            window.dispatchEvent(new CustomEvent("saveIntegrity:slotRemove", { detail: { key } }));
-        } catch {}
-        return;
-    }
     if (window.__duplicateInstanceDetected || window.currentArea === 666) {
         return;
     }
@@ -190,42 +247,40 @@ export function lsRemoveItemForce(key) {
     } catch {}
 }
 
-if (!(IS_MOBILE || IS_FIREFOX)) {
-    localStorage.setItem = function (key, value) {
-        const strKey = String(key);
-        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-            const slotMatch = strKey.match(/:(\d+)$/);
-            if (slotMatch) {
-                const slot = parseInt(slotMatch[1], 10);
-                if (Number.isFinite(slot) && slot > 0) {
-                    if (strKey === `ccc:slotMod:${slot}`) {
-                        value = "1";
-                    } else {
-                        markSaveSlotModified(slot);
-                    }
-                }
-            }
-        }
-        Storage.prototype.setItem.call(localStorage, key, String(value));
-    };
-
-    localStorage.removeItem = function (key) {
-        const strKey = String(key);
-        if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
-            const slotMatch = strKey.match(/:(\d+)$/);
-            if (slotMatch) {
-                const slot = parseInt(slotMatch[1], 10);
-                if (Number.isFinite(slot) && slot > 0) {
+localStorage.setItem = function (key, value) {
+    const strKey = String(key);
+    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+        const slotMatch = strKey.match(/:(\d+)$/);
+        if (slotMatch) {
+            const slot = parseInt(slotMatch[1], 10);
+            if (Number.isFinite(slot) && slot > 0) {
+                if (strKey === `ccc:slotMod:${slot}`) {
+                    value = "1";
+                } else {
                     markSaveSlotModified(slot);
-                    if (strKey === `ccc:slotMod:${slot}`) {
-                        return;
-                    }
                 }
             }
         }
-        Storage.prototype.removeItem.call(localStorage, key);
-    };
-}
+    }
+    Storage.prototype.setItem.call(localStorage, key, String(value));
+};
+
+localStorage.removeItem = function (key) {
+    const strKey = String(key);
+    if (strKey.startsWith("ccc:") && !strKey.startsWith("ccc:debug:")) {
+        const slotMatch = strKey.match(/:(\d+)$/);
+        if (slotMatch) {
+            const slot = parseInt(slotMatch[1], 10);
+            if (Number.isFinite(slot) && slot > 0) {
+                markSaveSlotModified(slot);
+                if (strKey === `ccc:slotMod:${slot}`) {
+                    return;
+                }
+            }
+        }
+    }
+    Storage.prototype.removeItem.call(localStorage, key);
+};
 
 if (IS_MOBILE) {
     document.documentElement.classList.add("is-mobile");
