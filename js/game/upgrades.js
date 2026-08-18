@@ -686,7 +686,7 @@ export function determineLockState(ctx) {
             xp101 = levelBigNumToNumber(xpBn) >= 101;
         } catch {}
         if (!xp101) return { state: "locked" };
-        const revealText = "Do an Infuse reset to reveal this upgrade";
+        const revealText = "Perform an Infuse reset to reveal this upgrade";
         try {
             markUpgradePermanentlyMysterious(area, upgRef);
         } catch {}
@@ -737,7 +737,7 @@ export function determineLockState(ctx) {
         } catch {}
         if (!xp31) return { state: "locked" };
         if (isUpgradePermanentlyMysterious(area, upgRef)) {
-            const revealText = "Do a Forge reset to reveal this upgrade";
+            const revealText = "Perform a Forge reset to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         }
         try {
