@@ -434,14 +434,18 @@ export function createUcSpawner(config = {}) {
                     const chargeRatio = ratio / 0.8;
                     const easeOutCubic = 1 - Math.pow(1 - chargeRatio, 3);
                     const currentRot = pickaxe._chargeRotation * easeOutCubic;
-                    pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                    if (pickaxe.style.display !== "none") {
+                        pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                    }
                 } else {
                     // Striking phase
                     const strikeRatio = (ratio - 0.8) / 0.2;
                     const easeInCubic = strikeRatio * strikeRatio * strikeRatio;
                     const currentRot =
                         pickaxe._chargeRotation + (pickaxe._strikeRotation - pickaxe._chargeRotation) * easeInCubic;
-                    pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                    if (pickaxe.style.display !== "none") {
+                        pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                    }
                     if (ratio === 1 && !pickaxe._playedSound) {
                         playSpawnSound();
                         pickaxe._playedSound = true;
@@ -574,13 +578,14 @@ export function createUcSpawner(config = {}) {
                         }
                         try {
                             if (!window._lastUcStorageSaveTime || now - window._lastUcStorageSaveTime > 2000) {
-                                const slot = getActiveSlot();
-                                if (slot != null)
-                                    lsSetItem(
-                                        `ccc:ucMaterialAccumulators:${slot}`,
-                                        JSON.stringify(window._ucMaterialAccumulators),
-                                    );
                                 window._lastUcStorageSaveTime = now;
+                                const slot = getActiveSlot();
+                                if (slot != null) {
+                                    const dataToSave = JSON.stringify(window._ucMaterialAccumulators);
+                                    setTimeout(() => {
+                                        lsSetItem(`ccc:ucMaterialAccumulators:${slot}`, dataToSave);
+                                    }, 0);
+                                }
                             }
                         } catch {}
                         removeItem(c, i);
@@ -733,7 +738,7 @@ export function createUcSpawner(config = {}) {
             const maxY = y + searchRadius;
             for (let i = count - 1; i >= 0; i--) {
                 const c = activeItems[i];
-                if (!c || c.isRemoved) continue;
+                if (!c || c.isRemoved || c.isHiddenPreAllocated || c.isStrikePlaceholder) continue;
                 if (now < c.startTime) continue;
                 if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
                     continue;
@@ -792,7 +797,7 @@ export function createUcSpawner(config = {}) {
             const lenSq = vx * vx + vy * vy;
             for (let i = count - 1; i >= 0; i--) {
                 const c = activeItems[i];
-                if (!c || c.isRemoved) continue;
+                if (!c || c.isRemoved || c.isHiddenPreAllocated || c.isStrikePlaceholder) continue;
                 if (now < c.startTime) continue;
                 if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
                     continue;
