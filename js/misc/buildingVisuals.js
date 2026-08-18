@@ -9124,9 +9124,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       
       ctx.fillStyle = fillRuby;
       ctx.fill();
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.stroke();
 
       // Simple rim
       ctx.fillStyle = '#111';
@@ -9157,18 +9154,12 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     
     ctx.fillStyle = fillRuby;
     ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.stroke();
 
     // Animated Core Window
     ctx.beginPath();
     ctx.arc(0, baseY - 120, 45, 0, Math.PI * 2);
     ctx.fillStyle = '#111'; // Dark window casing
     ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.stroke();
 
     // Radiation Symbol
     ctx.save();
@@ -9226,7 +9217,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
         ctx.lineTo(-140, baseY - 60);
         ctx.closePath();
         ctx.fill();
-        ctx.stroke();
     });
     ctx.restore();
   }
@@ -9293,7 +9283,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
         ctx.beginPath();
         ctx.arc(-110, baseY - 90, 25, 0, Math.PI*2);
         ctx.fill();
-        ctx.stroke();
         
         ctx.fillStyle = '#222';
         ctx.beginPath();
