@@ -1,4 +1,5 @@
-// js/util/debugPanel.js// Using a debug panel is much faster and more convenient than
+// js/util/debugPanel.js
+// Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
 import { lsSetItem, lsRemoveItem, lsSetItemForce, lsRemoveItemForce, setDebugStorageLockChecker, lsGetItem } from "../main.js";
 import { settingsManager } from "../game/settingsManager.js";
@@ -5915,6 +5916,15 @@ function buildMiscContent(content) {
 
         try {
             lsRemoveItem("ccc:saveSlot");
+        } catch {}
+
+        // Flush the buffer immediately so the wipe flag reaches real localStorage
+        // before the reload. Mobile Safari doesn't reliably fire beforeunload,
+        // so without this the buffered writes would be lost.
+        try {
+            if (typeof window.flushLocalStorageBuffer === "function") {
+                window.flushLocalStorageBuffer();
+            }
         } catch {}
 
         try {
