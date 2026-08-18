@@ -366,6 +366,7 @@ export function createUcSpawner(config = {}) {
                         pickaxe.style.transformOrigin = "bottom center";
                         pickaxe.style.zIndex = "400";
                         pickaxe.style.pointerEvents = "none";
+                        pickaxe.style.willChange = "transform";
                         document.querySelector(playfieldSelector).appendChild(pickaxe);
                     }
                     // If the previous animation was interrupted before the sound could play at the end, play it now!
