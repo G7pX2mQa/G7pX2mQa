@@ -1,20 +1,20 @@
-import { isMerchantOpen } from '../../ui/merchantTabs/dlgTab.js';
-import { settingsManager } from '../settingsManager.js';
+import { isMerchantOpen } from "../../ui/merchantTabs/dlgTab.js";
+import { settingsManager } from "../settingsManager.js";
 import {
     VERTEX_SHADER,
     BACKGROUND_FRAGMENT_SHADER,
     FRAGMENT_SHADER,
     WAVE_VERTEX_SHADER,
     WAVE_BRUSH_FRAGMENT_SHADER,
-    SIMULATION_FRAGMENT_SHADER
-} from './waterShaders.js';
+    SIMULATION_FRAGMENT_SHADER,
+} from "./waterShaders.js";
 
 // --- Colors Extracted from Legacy 2D System ---
-const COLOR_DEEP = [0.2, 0.5, 0.9];          // Deep Royal Blue
-const COLOR_SHALLOW = [0.2, 0.9, 1.0];       // Bright Turquoise
+const COLOR_DEEP = [0.2, 0.5, 0.9]; // Deep Royal Blue
+const COLOR_SHALLOW = [0.2, 0.9, 1.0]; // Bright Turquoise
 // Updated to Vivid Oceanic Blue Gradient
-const COLOR_WAVE = [1.0, 1.0, 1.0];          // White Foam (Highlights)
-const COLOR_WAVE_DEEP = [0.45, 0.8, 1.0];    // Brighter Blue (Lighter for visibility)
+const COLOR_WAVE = [1.0, 1.0, 1.0]; // White Foam (Highlights)
+const COLOR_WAVE_DEEP = [0.45, 0.8, 1.0]; // Brighter Blue (Lighter for visibility)
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
@@ -22,10 +22,10 @@ function createShader(gl, type, source) {
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         const log = gl.getShaderInfoLog(shader);
-        console.error('Shader compile error:', log);
-        console.error('Source start:', source.substring(0, 100));
+        console.error("Shader compile error:", log);
+        console.error("Source start:", source.substring(0, 100));
         gl.deleteShader(shader);
-        throw new Error('Shader compile error: ' + log);
+        throw new Error("Shader compile error: " + log);
     }
     return shader;
 }
@@ -41,8 +41,8 @@ function createProgram(gl, vsSource, fsSource) {
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         const log = gl.getProgramInfoLog(program);
-        console.error('Program link error:', log);
-        throw new Error('Program link error: ' + log);
+        console.error("Program link error:", log);
+        throw new Error("Program link error: " + log);
     }
     return program;
 }
@@ -56,7 +56,7 @@ export class WaterSystem {
         this.glFg = null;
 
         // Array to hold multiple foreground layers (now just FBOs in single context)
-        this.fgLayers = []; 
+        this.fgLayers = [];
         /* Each layer object: {
              readFBO: WebGLFramebuffer,
              writeFBO: WebGLFramebuffer,
@@ -77,10 +77,10 @@ export class WaterSystem {
 
         this.width = 0;
         this.height = 0;
-        
+
         // Simulation State
         this.simRes = 512;
-        
+
         // BG Sim
         this.bgReadFBO = null;
         this.bgWriteFBO = null;
@@ -96,7 +96,7 @@ export class WaterSystem {
         this._boundResize = null;
         this._qualityUnsub = null;
         this._baseNumLayers = 1;
-        
+
         // Delve overlay optimization
         this.merchantOpenTimer = 0;
     }
@@ -104,7 +104,7 @@ export class WaterSystem {
     _applyQualitySettings() {
         if (!this.glFg || !this.glBg) return;
 
-        const quality = settingsManager.get('graphics_quality');
+        const quality = settingsManager.get("graphics_quality");
         let numLayers = this._baseNumLayers;
         let newSimRes = 512;
 
@@ -123,7 +123,7 @@ export class WaterSystem {
 
         if (simResChanged || numLayersChanged) {
             this.simRes = newSimRes;
-            
+
             this.initBgSimulation(); // Recreate background FBOs
 
             // Clear out old fg layers textures/framebuffers
@@ -133,7 +133,7 @@ export class WaterSystem {
                 if (layer.readFBO) this.glFg.deleteFramebuffer(layer.readFBO);
                 if (layer.writeFBO) this.glFg.deleteFramebuffer(layer.writeFBO);
             }
-            
+
             this.fgLayers = [];
             // Recreate Foreground Layers
             for (let i = 0; i < numLayers; i++) {
@@ -142,7 +142,7 @@ export class WaterSystem {
                     readFBO: simResRsrc.readFBO,
                     writeFBO: simResRsrc.writeFBO,
                     readTexture: simResRsrc.readTex,
-                    writeTexture: simResRsrc.writeTex
+                    writeTexture: simResRsrc.writeTex,
                 });
             }
         }
@@ -153,25 +153,31 @@ export class WaterSystem {
         this.fgLayers = [];
         this.bgCanvas = document.getElementById(backCanvasId);
         this.fgCanvas = document.getElementById(frontCanvasId);
-        
+
         if (!this.bgCanvas || !this.fgCanvas) return;
 
         // Initialize Background Context
-        this.glBg = this.bgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
-                    this.bgCanvas.getContext('experimental-webgl');
+        this.glBg =
+            this.bgCanvas.getContext("webgl", { alpha: true, depth: false }) ||
+            this.bgCanvas.getContext("experimental-webgl");
 
         if (!this.glBg) {
-            if (!settingsManager.get("disable_webgl")) { console.error('WaterSystem: WebGL not supported for BG'); }
+            if (!settingsManager.get("disable_webgl")) {
+                console.error("WaterSystem: WebGL not supported for BG");
+            }
             return;
         }
 
         // Initialize Foreground Context
-        this.fgCanvas.style.display = 'block';
-        this.glFg = this.fgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
-                    this.fgCanvas.getContext('experimental-webgl');
-        
+        this.fgCanvas.style.display = "block";
+        this.glFg =
+            this.fgCanvas.getContext("webgl", { alpha: true, depth: false }) ||
+            this.fgCanvas.getContext("experimental-webgl");
+
         if (!this.glFg) {
-            if (!settingsManager.get("disable_webgl")) { console.error('WaterSystem: WebGL not supported for FG'); }
+            if (!settingsManager.get("disable_webgl")) {
+                console.error("WaterSystem: WebGL not supported for FG");
+            }
             return;
         }
 
@@ -193,18 +199,18 @@ export class WaterSystem {
         this._applyQualitySettings(); // Initialize fgLayers and bgSimulation dynamically
 
         this.resize();
-        
+
         if (!this._boundResize) {
             this._boundResize = () => this.resize();
-            window.addEventListener('resize', this._boundResize);
+            window.addEventListener("resize", this._boundResize);
         }
 
         if (!this._qualityUnsub) {
-            this._qualityUnsub = settingsManager.subscribe('graphics_quality', () => this._applyQualitySettings());
+            this._qualityUnsub = settingsManager.subscribe("graphics_quality", () => this._applyQualitySettings());
         }
 
         if (!this._spawnVesselsUnsub) {
-            this._spawnVesselsUnsub = settingsManager.subscribe('spawn_vessels', (val) => {
+            this._spawnVesselsUnsub = settingsManager.subscribe("spawn_vessels", (val) => {
                 if (!val) {
                     this.clearSimulations();
                 }
@@ -280,13 +286,17 @@ export class WaterSystem {
         const w = this.simRes;
         const h = this.simRes;
 
-        gl.getExtension('OES_texture_float');
-        gl.getExtension('OES_texture_float_linear');
+        gl.getExtension("OES_texture_float");
+        gl.getExtension("OES_texture_float_linear");
+        gl.getExtension("WEBGL_color_buffer_float");
+        gl.getExtension("EXT_float_blend");
+
+        const initialData = new Float32Array(w * h * 4);
 
         const createTex = () => {
             const tex = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, null);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, initialData);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -300,13 +310,15 @@ export class WaterSystem {
         const readFBO = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, readFBO);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, readTex, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
 
         const writeFBO = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, writeTex, 0);
-        
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        
+
         return { readFBO, writeFBO, readTex, writeTex };
     }
 
@@ -324,7 +336,7 @@ export class WaterSystem {
             const rect = this.fgCanvas.getBoundingClientRect();
             this.width = rect.width;
             this.height = rect.height;
-            
+
             this.fgCanvas.width = rect.width * dpr;
             this.fgCanvas.height = rect.height * dpr;
             this.glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
@@ -338,7 +350,7 @@ export class WaterSystem {
 
         gl.enable(gl.BLEND);
         // Use MAX blending so newer waves cleanly overwrite older ones without additive merging.
-        const ext = gl.getExtension('EXT_blend_minmax');
+        const ext = gl.getExtension("EXT_blend_minmax");
         if (ext) {
             gl.blendEquation(ext.MAX_EXT);
         } else {
@@ -350,23 +362,39 @@ export class WaterSystem {
         const ndcX = (x / this.width) * 2 - 1;
         const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
 
-        const wX = (width / this.width);
-        const wY = (height / this.height);
-        
+        const wX = width / this.width;
+        const wY = height / this.height;
+
         // Quad vertices: x, y, u, v, alpha
         const data = new Float32Array([
-            ndcX - wX, ndcY - wY, 0, 0, 1,
-            ndcX + wX, ndcY - wY, 1, 0, 1,
-            ndcX - wX, ndcY + wY, 0, 1, 1,
-            ndcX + wX, ndcY + wY, 1, 1, 1
+            ndcX - wX,
+            ndcY - wY,
+            0,
+            0,
+            1,
+            ndcX + wX,
+            ndcY - wY,
+            1,
+            0,
+            1,
+            ndcX - wX,
+            ndcY + wY,
+            0,
+            1,
+            1,
+            ndcX + wX,
+            ndcY + wY,
+            1,
+            1,
+            1,
         ]);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
 
-        const aPos = gl.getAttribLocation(program, 'aPosition');
-        const aUv = gl.getAttribLocation(program, 'aUv');
-        const aAlpha = gl.getAttribLocation(program, 'aAlpha');
+        const aPos = gl.getAttribLocation(program, "aPosition");
+        const aUv = gl.getAttribLocation(program, "aUv");
+        const aAlpha = gl.getAttribLocation(program, "aAlpha");
 
         // Stride = 5 floats * 4 bytes = 20
         gl.enableVertexAttribArray(aPos);
@@ -390,29 +418,17 @@ export class WaterSystem {
         if (!this.glBg || !this.glFg || this.fgLayers.length === 0) return;
 
         // Optimization: Skip adding waves when Delve is open
-        if (typeof isMerchantOpen === 'function' && isMerchantOpen() && this.merchantOpenTimer > 0.15) {
+        if (typeof isMerchantOpen === "function" && isMerchantOpen() && this.merchantOpenTimer > 0.15) {
             return;
         }
 
         // 1. Apply to BG Sim (Always, for water distortion)
-        this.applyBrush(
-            this.glBg, 
-            this.bgBrushProgram, 
-            this.bgBrushBuffer, 
-            this.bgReadFBO, 
-            x, y, width, height
-        );
+        this.applyBrush(this.glBg, this.bgBrushProgram, this.bgBrushBuffer, this.bgReadFBO, x, y, width, height);
 
         // 2. Apply to ONE FG Layer
         const layer = this.fgLayers[0];
-        
-        this.applyBrush(
-            this.glFg, 
-            this.fgBrushProgram, 
-            this.fgBrushBuffer, 
-            layer.readFBO, 
-            x, y, width, height
-        );
+
+        this.applyBrush(this.glFg, this.fgBrushProgram, this.fgBrushBuffer, layer.readFBO, x, y, width, height);
     }
 
     runSimStep(gl, program, quadBuffer, readFBO, writeFBO, readTex, writeTex, dt, skipSetup = false) {
@@ -426,25 +442,25 @@ export class WaterSystem {
             gl.uniform1i(gl.getUniformLocation(program, "uLastFrame"), 0);
             gl.uniform2f(gl.getUniformLocation(program, "uResolution"), this.simRes, this.simRes);
         }
-        
+
         // Write to WriteFBO
         gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
-        
+
         // Read from ReadTexture
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, readTex);
-        gl.uniform1f(gl.getUniformLocation(program, 'uDt'), dt); // Variable timestep
+        gl.uniform1f(gl.getUniformLocation(program, "uDt"), dt); // Variable timestep
 
         // Draw Full Screen Quad
-        
+
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        
+
         // Return swapped state
         return {
             readFBO: writeFBO,
             writeFBO: readFBO,
             readTex: writeTex,
-            writeTex: readTex
+            writeTex: readTex,
         };
     }
 
@@ -454,17 +470,17 @@ export class WaterSystem {
 
     spawnRandomWave() {
         if (!this.width) return;
-        
+
         // Random X Position (0 to Width)
         const x = Math.random() * this.width;
-        
+
         // Spawn at the top
-        const y = 0; 
-        
+        const y = 0;
+
         const sizePct = 0.3 + Math.random() * 0.2;
         const width = this.width * sizePct;
         const height = width * 0.5; // Aspect ratio approx
-        
+
         this.addWave(x, y, width, height);
     }
 
@@ -478,10 +494,10 @@ export class WaterSystem {
             if (this.glBg) this.resize();
         }
         if (!this.glBg) return;
-        
+
         // Optimization: Skip rendering entirely when Delve is open
         // Delay pausing by 150ms to allow the overlay opening transition to start
-        if (typeof isMerchantOpen === 'function') {
+        if (typeof isMerchantOpen === "function") {
             if (isMerchantOpen()) {
                 this.merchantOpenTimer += dt;
                 if (this.merchantOpenTimer > 0.15) return;
@@ -489,40 +505,45 @@ export class WaterSystem {
                 this.merchantOpenTimer = 0;
             }
         }
-        
-        // totalTime is in seconds. 
-        const simTime = totalTime * 2; 
+
+        // totalTime is in seconds.
+        const simTime = totalTime * 2;
 
         // --- Hybrid Sub-stepping Logic ---
         // 1. Clamp dt to prevent spiral of death on massive lag (max 0.1s = 10fps)
         const safeDt = Math.min(dt, 0.1);
-        
+
         // 2. Define High-FPS threshold (approx 25fps = 0.04s)
         // If frame time is fast (High FPS), run 1 step with actual dt to preserve smoothness.
         // If frame time is slow (Low FPS/Lag), sub-step with 60hz chunks to preserve stability.
-        const FPS_THRESHOLD = 0.04; 
+        const FPS_THRESHOLD = 0.04;
         const SUB_STEP = 0.016; // ~60hz
-        
+
         let steps = [];
-        
+
         if (safeDt < FPS_THRESHOLD) {
-             steps.push(safeDt);
+            steps.push(safeDt);
         } else {
-             let remaining = safeDt;
-             while (remaining > 0) {
-                 let step = Math.min(remaining, SUB_STEP);
-                 steps.push(step);
-                 remaining -= step;
-             }
+            let remaining = safeDt;
+            while (remaining > 0) {
+                let step = Math.min(remaining, SUB_STEP);
+                steps.push(step);
+                remaining -= step;
+            }
         }
-        
+
         // --- 1. Simulation Step (BG) ---
         // Run gathered steps
-        steps.forEach(stepDt => {
+        steps.forEach((stepDt) => {
             const bgState = this.runSimStep(
-                this.glBg, this.bgSimProgram, this.quadBufferBg,
-                this.bgReadFBO, this.bgWriteFBO, this.bgReadTexture, this.bgWriteTexture,
-                stepDt
+                this.glBg,
+                this.bgSimProgram,
+                this.quadBufferBg,
+                this.bgReadFBO,
+                this.bgWriteFBO,
+                this.bgReadTexture,
+                this.bgWriteTexture,
+                stepDt,
             );
             this.bgReadFBO = bgState.readFBO;
             this.bgWriteFBO = bgState.writeFBO;
@@ -541,13 +562,19 @@ export class WaterSystem {
             glFg.vertexAttribPointer(aPos, 2, glFg.FLOAT, false, 0, 0);
             glFg.uniform1i(glFg.getUniformLocation(this.fgSimProgram, "uLastFrame"), 0);
             glFg.uniform2f(glFg.getUniformLocation(this.fgSimProgram, "uResolution"), this.simRes, this.simRes);
-            
-            steps.forEach(stepDt => {
-                this.fgLayers.forEach(layer => {
+
+            steps.forEach((stepDt) => {
+                this.fgLayers.forEach((layer) => {
                     const fgState = this.runSimStep(
-                        glFg, this.fgSimProgram, this.quadBufferFg,
-                        layer.readFBO, layer.writeFBO, layer.readTexture, layer.writeTexture,
-                        stepDt, true
+                        glFg,
+                        this.fgSimProgram,
+                        this.quadBufferFg,
+                        layer.readFBO,
+                        layer.writeFBO,
+                        layer.readTexture,
+                        layer.writeTexture,
+                        stepDt,
+                        true,
                     );
                     layer.readFBO = fgState.readFBO;
                     layer.writeFBO = fgState.writeFBO;
@@ -562,33 +589,37 @@ export class WaterSystem {
         glBg.bindFramebuffer(glBg.FRAMEBUFFER, null);
         glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
         glBg.useProgram(this.bgProgram);
-        
-        const quality = settingsManager.get('graphics_quality');
 
-        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorDeep'), COLOR_DEEP);
-        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorShallow'), COLOR_SHALLOW);
-        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uTime'), simTime);
-        glBg.uniform2f(glBg.getUniformLocation(this.bgProgram, 'uResolution'), this.bgCanvas.width, this.bgCanvas.height);
-        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uQuality'), quality);
+        const quality = settingsManager.get("graphics_quality");
+
+        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, "uColorDeep"), COLOR_DEEP);
+        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, "uColorShallow"), COLOR_SHALLOW);
+        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, "uTime"), simTime);
+        glBg.uniform2f(
+            glBg.getUniformLocation(this.bgProgram, "uResolution"),
+            this.bgCanvas.width,
+            this.bgCanvas.height,
+        );
+        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, "uQuality"), quality);
 
         // Bind BG Sim Texture for distortion
         glBg.activeTexture(glBg.TEXTURE0);
         glBg.bindTexture(glBg.TEXTURE_2D, this.bgReadTexture);
-        glBg.uniform1i(glBg.getUniformLocation(this.bgProgram, 'uWaveMap'), 0);
+        glBg.uniform1i(glBg.getUniformLocation(this.bgProgram, "uWaveMap"), 0);
 
         glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
-        const aPosBg = glBg.getAttribLocation(this.bgProgram, 'position');
+        const aPosBg = glBg.getAttribLocation(this.bgProgram, "position");
         glBg.enableVertexAttribArray(aPosBg);
         glBg.vertexAttribPointer(aPosBg, 2, glBg.FLOAT, false, 0, 0);
-        
+
         glBg.drawArrays(glBg.TRIANGLE_STRIP, 0, 4);
 
         // --- 4. Render Foreground Layers (Waves/Foam) ---
         if (this.glFg && this.fgCanvas) {
             const glFg = this.glFg;
-            glFg.bindFramebuffer(glFg.FRAMEBUFFER, null); 
+            glFg.bindFramebuffer(glFg.FRAMEBUFFER, null);
             glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
-            
+
             // Clear the single foreground canvas once
             glFg.clearColor(0, 0, 0, 0);
             glFg.clear(glFg.COLOR_BUFFER_BIT);
@@ -599,23 +630,27 @@ export class WaterSystem {
 
             glFg.useProgram(this.fgProgram);
 
-            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorShallow'), COLOR_SHALLOW);
-            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWave'), COLOR_WAVE); 
-            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWaveDeep'), COLOR_WAVE_DEEP);
-            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
-            glFg.uniform2f(glFg.getUniformLocation(this.fgProgram, 'uResolution'), this.fgCanvas.width, this.fgCanvas.height);
-            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uQuality'), quality);
+            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, "uColorShallow"), COLOR_SHALLOW);
+            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, "uColorWave"), COLOR_WAVE);
+            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, "uColorWaveDeep"), COLOR_WAVE_DEEP);
+            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, "uTime"), simTime);
+            glFg.uniform2f(
+                glFg.getUniformLocation(this.fgProgram, "uResolution"),
+                this.fgCanvas.width,
+                this.fgCanvas.height,
+            );
+            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, "uQuality"), quality);
 
             glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
-            const aPosFg = glFg.getAttribLocation(this.fgProgram, 'position');
+            const aPosFg = glFg.getAttribLocation(this.fgProgram, "position");
             glFg.enableVertexAttribArray(aPosFg);
             glFg.vertexAttribPointer(aPosFg, 2, glFg.FLOAT, false, 0, 0);
 
             // Draw each layer back-to-front
-            this.fgLayers.forEach(layer => {
+            this.fgLayers.forEach((layer) => {
                 glFg.activeTexture(glFg.TEXTURE0);
                 glFg.bindTexture(glFg.TEXTURE_2D, layer.readTexture); // Use FG sim result
-                glFg.uniform1i(glFg.getUniformLocation(this.fgProgram, 'uWaveMap'), 0);
+                glFg.uniform1i(glFg.getUniformLocation(this.fgProgram, "uWaveMap"), 0);
 
                 glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
             });
