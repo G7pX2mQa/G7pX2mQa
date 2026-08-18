@@ -298,7 +298,7 @@ export const UC_REGISTRY = [
                 return { state: "locked" };
             }
 
-            const revealText = "Do a Combine reset to reveal this upgrade";
+            const revealText = "Perform a Combine reset to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
         effectSummary(level) {
@@ -348,7 +348,7 @@ export const UC_REGISTRY = [
                 return { state: "locked" };
             }
 
-            const revealText = "Do a Combine reset to reveal this upgrade";
+            const revealText = "Perform a Combine reset to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
         effectSummary(level) {
@@ -408,7 +408,7 @@ export const UC_REGISTRY = [
                 return { state: "locked" };
             }
 
-            const revealText = "Do a Combine reset to reveal this upgrade";
+            const revealText = "Perform a Combine reset to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
     },
@@ -458,7 +458,7 @@ export const UC_REGISTRY = [
                 return { state: "locked" };
             }
 
-            const revealText = "Do a Combine reset to reveal this upgrade";
+            const revealText = "Perform a Combine reset to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
         effectSummary(level) {
