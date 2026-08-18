@@ -149,3 +149,14 @@
   background-repeat: repeat;
   opacity: 1;
 }
+
+/* Force hardware compositing for complex SVG filter backgrounds. 
+   Without this, Firefox repaints the SVG (feTurbulence/etc) on the CPU 
+   whenever a sibling animates or a backdrop-filter is applied over it, 
+   causing massive lag spikes. */
+.playfield::before,
+.playfield::after,
+.rubble-layer::after {
+  transform: translateZ(0);
+  will-change: transform;
+}
