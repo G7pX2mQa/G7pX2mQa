@@ -77,6 +77,12 @@
   opacity: 0.85;
 }
 
+/* Firefox optimization: mix-blend-mode with heavy SVG backgrounds causes massive lag spikes during animations */
+.is-firefox .area-cavern .playfield::before {
+  mix-blend-mode: normal !important;
+  opacity: 0.4 !important;
+}
+
 .area-cavern .playfield::after {
   content: "";
   position: absolute; inset: 0;
