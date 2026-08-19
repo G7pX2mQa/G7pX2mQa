@@ -9406,41 +9406,87 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // TIER 4: Control rods structure and scaffolding on the dome
+  // TIER 4: Ocular Core Overdrive (The "Eye")
   if (t4 > 0) {
     ctx.save();
     ctx.globalAlpha = t4;
-
-    // Dome scaffolding
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 3;
+    
+    ctx.translate(0, baseY - 120);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    
+    // 1. Blinding window background glow (kept inside the window R=45)
+    let glowRadius = 30 + 15 * pulse; 
     ctx.beginPath();
-    ctx.arc(0, baseY - 120, 150, Math.PI, 0);
-    ctx.stroke();
+    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+    let bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, glowRadius);
+    bgGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
+    bgGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
+    bgGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = bgGrad;
+    ctx.fill();
     
-    for(let i=1; i<6; i++) {
-        let angle = Math.PI - (Math.PI/6) * i;
-        let p1x = 140 * Math.cos(angle);
-        let p1y = baseY - 120 + 140 * Math.sin(angle);
-        let p2x = 160 * Math.cos(angle);
-        let p2y = baseY - 120 + 160 * Math.sin(angle);
+    // Align rotation with the Tier 0 symbol
+    ctx.rotate(t * 0.5); 
+    
+    // 2. The Central Core
+    let innerGapRadius = 12; // Static inner gap matching Tier 0
+    let dotRadius = 7 + 6 * pulse; 
+
+    // Fill the gap with an intense glow instead of black
+    ctx.beginPath();
+    ctx.arc(0, 0, innerGapRadius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`; 
+    ctx.fill();
+
+    // Dilating glowing central dot (deep red at peak)
+    ctx.beginPath();
+    ctx.arc(0, 0, dotRadius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgb(${Math.floor(150 + 105 * pulse)}, 0, 0)`; // Dark red to Pure Red
+    ctx.shadowBlur = 15 + 15 * pulse;
+    ctx.shadowColor = 'red';
+    ctx.fill();
+    ctx.shadowBlur = 0; 
+    
+    // 3. Overdrive Beams & Scaling Blade Flares
+    ctx.globalCompositeOperation = 'screen';
+    let bladeRadius = 32 + 12 * pulse; // Symbol expands but stays within R=45
+    
+    for(let i=0; i<3; i++) {
+        // Draw the expanding blades
         ctx.beginPath();
-        ctx.moveTo(p1x, p1y);
-        ctx.lineTo(p2x, p2y);
+        ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
+        ctx.lineTo(innerGapRadius * Math.cos(Math.PI/6), innerGapRadius * Math.sin(Math.PI/6));
+        ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
+        ctx.closePath();
+        
+        ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`;
+        ctx.fill();
+        
+        ctx.lineWidth = 1 + 3 * pulse;
+        ctx.strokeStyle = `rgba(255, 0, 0, ${0.9 * pulse})`;
         ctx.stroke();
-    }
-    
-    // Top control rod assembly box
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-40, baseY - 280, 80, 40);
-    ctx.fillStyle = fillRuby;
-    ctx.fillRect(-30, baseY - 300, 60, 20);
-    
-    // Glowing rods moving up and down
-    ctx.fillStyle = glowGreen;
-    for(let i=-2; i<=2; i++) {
-        let offset = 10 * Math.sin(t*2 + i);
-        ctx.fillRect(i*12 - 3, baseY - 280 + offset, 6, 20 - offset);
+
+        // Larger, more aggressive light beams shooting FROM the blades directly
+        ctx.save();
+        // Beams emit from the blade angle (0 degrees in this loop iteration)
+        
+        let beamLength = 120 + 80 * pulse;
+        let beamGrad = ctx.createLinearGradient(bladeRadius, 0, beamLength, 0);
+        beamGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
+        beamGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
+        beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(bladeRadius - 2, -12 - 8 * pulse);
+        ctx.lineTo(beamLength, -55 * pulse);
+        ctx.lineTo(beamLength, 55 * pulse);
+        ctx.lineTo(bladeRadius - 2, 12 + 8 * pulse);
+        ctx.fill();
+        
+        ctx.restore();
+        
+        ctx.rotate((Math.PI * 2) / 3);
     }
 
     ctx.restore();
