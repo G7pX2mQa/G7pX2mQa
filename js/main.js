@@ -61,7 +61,7 @@ HTMLCanvasElement.prototype.getContext = function (contextType, contextAttribute
     if (contextType === "webgl" || contextType === "experimental-webgl") {
         let isDisabled = false;
         try {
-            isDisabled = settingsManager.get("disable_webgl");
+            isDisabled = settingsManager.get("disable_webgl") || settingsManager.get("spreadsheet_mode");
         } catch (e) {}
         if (isDisabled) {
             return null;
@@ -383,6 +383,26 @@ let waterSystem;
 // Store unsubscribe functions for water system to avoid duplicate listeners
 let waterTickUnsub = null;
 let waterFrameUnsub = null;
+
+// Handle spreadsheet mode toggling
+const applySpreadsheetMode = () => {
+    try {
+        if (settingsManager.get("spreadsheet_mode")) {
+            document.body.classList.add("spreadsheet-mode");
+        } else {
+            document.body.classList.remove("spreadsheet-mode");
+        }
+    } catch (e) {}
+};
+window.addEventListener("setting:changed", (e) => {
+    if (e?.detail?.key === "spreadsheet_mode") {
+        applySpreadsheetMode();
+    }
+});
+window.addEventListener("saveSlot:change", applySpreadsheetMode);
+if (typeof document !== "undefined") {
+    document.addEventListener("DOMContentLoaded", applySpreadsheetMode);
+}
 
 export let activePlaytime = 0;
 export let coinsCollected = 0;
@@ -2075,7 +2095,7 @@ ANY modification of stats, currencies, upgrade levels, or other save data throug
 Normal gameplay is unaffected unless you choose to modify values.
 
 ⚒️ Additional Note:
-If you ever believe your save slot has been unjustly marked as modified, you may ping the owner of the game in the community Discord server to request it to be investigated. Export your save data and send it to the owner of the game. If worthy, the owner of the game can work some magic to unmark the save slot.
+If you ever believe your save slot has been unjustly marked as modified, you may ping me (the owner of the game) in the community Discord server to request it to be investigated. Export your save data and send it to me. If worthy, I can work some magic to unmark the save slot.
 
 There are many ways to mark a save slot other than just using the debug panel.`);
             window.debugPanelLogShown = true;
