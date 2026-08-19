@@ -9266,35 +9266,65 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // TIER 2: Vents and Early Energy Glows
+  // TIER 2: Auxiliary Core Sensors / Viewports
   if (t2 > 0) {
     ctx.save();
     ctx.globalAlpha = t2;
     
-    // Vents emitting soft green light
-    symDraw(() => {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(-100, baseY - 60, 40, 30);
-        
-        ctx.fillStyle = glowGreen;
-        ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3);
-        ctx.fillRect(-95, baseY - 55, 30, 5);
-        ctx.fillRect(-95, baseY - 45, 30, 5);
-        ctx.globalAlpha = t2;
-    });
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    const radColor = `rgba(255, 0, 0, ${0.5 + 0.5 * pulse})`;
 
-    // Warning hazard stripes around base
-    ctx.fillStyle = hazardYellow;
-    ctx.fillRect(-160, baseY - 10, 320, 10);
-    ctx.fillStyle = '#111';
-    for(let i=-160; i<160; i+=20) {
-       ctx.beginPath();
-       ctx.moveTo(i, baseY-10);
-       ctx.lineTo(i+10, baseY-10);
-       ctx.lineTo(i, baseY);
-       ctx.lineTo(i-10, baseY);
-       ctx.fill();
-    }
+    symDraw(() => {
+        // Structural band connecting sensors to main core
+        ctx.fillStyle = '#111';
+        ctx.fillRect(-125, baseY - 122, 80, 4);
+
+        // Inner Sensor 1 Dark Backdrop (Allows oscillation to show)
+        ctx.beginPath();
+        ctx.arc(-80, baseY - 120, 16, 0, Math.PI * 2);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+
+        // Inner Sensor 1 Glowing Core
+        ctx.beginPath();
+        ctx.arc(-80, baseY - 120, 16, 0, Math.PI * 2);
+        ctx.fillStyle = radColor;
+        ctx.fill();
+
+        // Inner Sensor 1 Ring & Crosshair
+        ctx.beginPath();
+        ctx.arc(-80, baseY - 120, 16, 0, Math.PI * 2);
+        ctx.moveTo(-96, baseY - 120);
+        ctx.lineTo(-64, baseY - 120);
+        ctx.moveTo(-80, baseY - 136);
+        ctx.lineTo(-80, baseY - 104);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        // Outer Sensor 2 Dark Backdrop (Allows oscillation to show)
+        ctx.beginPath();
+        ctx.arc(-115, baseY - 120, 10, 0, Math.PI * 2);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+
+        // Outer Sensor 2 Glowing Core
+        ctx.beginPath();
+        ctx.arc(-115, baseY - 120, 10, 0, Math.PI * 2);
+        ctx.fillStyle = radColor;
+        ctx.fill();
+        
+        // Outer Sensor 2 Ring & Crosshair
+        ctx.beginPath();
+        ctx.arc(-115, baseY - 120, 10, 0, Math.PI * 2);
+        ctx.moveTo(-125, baseY - 120);
+        ctx.lineTo(-105, baseY - 120);
+        ctx.moveTo(-115, baseY - 130);
+        ctx.lineTo(-115, baseY - 110);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+    });
     
     ctx.restore();
   }
