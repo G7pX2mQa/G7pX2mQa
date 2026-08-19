@@ -209,6 +209,10 @@ export class WaterSystem {
             this._qualityUnsub = settingsManager.subscribe("graphics_quality", () => this._applyQualitySettings());
         }
 
+        if (!this._spreadsheetUnsub) {
+            this._spreadsheetUnsub = settingsManager.subscribe("spreadsheet_mode", () => this.resize());
+        }
+
         if (!this._spawnVesselsUnsub) {
             this._spawnVesselsUnsub = settingsManager.subscribe("spawn_vessels", (val) => {
                 if (!val) {
@@ -324,11 +328,15 @@ export class WaterSystem {
 
     resize() {
         const dpr = Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1); // Cap DPR to 1.5 to save massive amounts of GPU memory
+        let isSpreadsheet = false;
+        if (typeof settingsManager !== "undefined" && settingsManager.get("spreadsheet_mode")) {
+            isSpreadsheet = true;
+        }
 
         if (this.bgCanvas && this.glBg) {
             const rect = this.bgCanvas.getBoundingClientRect();
-            this.bgCanvas.width = rect.width * dpr;
-            this.bgCanvas.height = rect.height * dpr;
+            this.bgCanvas.width = isSpreadsheet ? 1 : rect.width * dpr;
+            this.bgCanvas.height = isSpreadsheet ? 1 : rect.height * dpr;
             this.glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
         }
 
@@ -337,8 +345,8 @@ export class WaterSystem {
             this.width = rect.width;
             this.height = rect.height;
 
-            this.fgCanvas.width = rect.width * dpr;
-            this.fgCanvas.height = rect.height * dpr;
+            this.fgCanvas.width = isSpreadsheet ? 1 : rect.width * dpr;
+            this.fgCanvas.height = isSpreadsheet ? 1 : rect.height * dpr;
             this.glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
         }
     }
