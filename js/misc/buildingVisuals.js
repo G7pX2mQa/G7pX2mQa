@@ -9088,9 +9088,12 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   }
   // Shared Ring Drawing for Tier 1
   const ringPulse = 0.5 + 0.5 * Math.sin(t * 3);
-  const ringGlow = `rgba(255, 0, 0, ${0.3 + 0.7 * ringPulse})`;
-  const coreVal = Math.floor(120 + 50 * ringPulse);
+  const t4RingBoost = t4 * ringPulse; 
+  const ringGlow = `rgba(255, 0, 0, ${0.3 + 0.7 * ringPulse + 0.3 * t4RingBoost})`;
+  const coreVal = Math.floor(80 + 40 * ringPulse + 15 * t4RingBoost);
   const ringCore = `rgb(255, ${coreVal}, ${coreVal})`;
+  const baseGlowWidth = 6 + 3 * t4RingBoost;
+  const baseCoreWidth = 2.5 + 1 * t4RingBoost;
   
   const drawRings = (isBack) => {
       ctx.save();
@@ -9103,10 +9106,10 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
               ctx.ellipse(cx, baseY - yOffset, width, height, 0, 0, Math.PI, false);
           }
           ctx.lineCap = 'butt';
-          ctx.shadowBlur = isBack ? 5 : 20;
+          ctx.shadowBlur = isBack ? 5 : (20 + 8 * t4RingBoost);
           ctx.shadowColor = 'red';
           ctx.strokeStyle = ringGlow;
-          ctx.lineWidth = 6;
+          ctx.lineWidth = baseGlowWidth;
           ctx.stroke();
 
           // 2. Draw White Core
@@ -9121,7 +9124,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           ctx.lineCap = 'round';
           ctx.shadowBlur = 0;
           ctx.strokeStyle = ringCore;
-          ctx.lineWidth = 2.5;
+          ctx.lineWidth = baseCoreWidth;
           ctx.stroke();
       };
 
@@ -9291,6 +9294,15 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
         ctx.arc(-80, baseY - 120, 16, 0, Math.PI * 2);
         ctx.fillStyle = radColor;
         ctx.fill();
+        if (t4 > 0 && pulse > 0.01) {
+            ctx.beginPath();
+            ctx.arc(-80, baseY - 120, 16 + 25 * pulse * t4, 0, Math.PI * 2);
+            let sensorGrad1 = ctx.createRadialGradient(-80, baseY - 120, 16, -80, baseY - 120, 16 + 25 * pulse * t4);
+            sensorGrad1.addColorStop(0, `rgba(255, 0, 0, ${0.7 * pulse * t4})`);
+            sensorGrad1.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.fillStyle = sensorGrad1;
+            ctx.fill();
+        }
 
         // Inner Sensor 1 Ring & Crosshair
         ctx.beginPath();
@@ -9314,6 +9326,15 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
         ctx.arc(-115, baseY - 120, 10, 0, Math.PI * 2);
         ctx.fillStyle = radColor;
         ctx.fill();
+        if (t4 > 0 && pulse > 0.01) {
+            ctx.beginPath();
+            ctx.arc(-115, baseY - 120, 10 + 20 * pulse * t4, 0, Math.PI * 2);
+            let sensorGrad2 = ctx.createRadialGradient(-115, baseY - 120, 10, -115, baseY - 120, 10 + 20 * pulse * t4);
+            sensorGrad2.addColorStop(0, `rgba(255, 0, 0, ${0.7 * pulse * t4})`);
+            sensorGrad2.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.fillStyle = sensorGrad2;
+            ctx.fill();
+        }
         
         // Outer Sensor 2 Ring & Crosshair
         ctx.beginPath();
@@ -9381,8 +9402,18 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
         
         // Pure gradient from pulsing red to black
         const heatGrad = ctx.createLinearGradient(45, 0, R, 0);
-        heatGrad.addColorStop(0, `rgb(${Math.floor(155 + 100 * pulse)}, 0, 0)`);
-        heatGrad.addColorStop(1, 'rgb(0, 0, 0)');
+        let redComponent = Math.floor(155 + 100 * pulse);
+        heatGrad.addColorStop(0, `rgb(${redComponent}, 0, 0)`);
+        
+        let t4VentBoost = t4 * pulse;
+        if (t4VentBoost > 0) {
+            // Keep the bright red intensity extending strongly outward
+            heatGrad.addColorStop(0.8 * t4VentBoost, `rgb(${redComponent}, 0, 0)`);
+        }
+        
+        // Let the tip reach a solid, bright red
+        let endColorVal = Math.floor(220 * t4VentBoost);
+        heatGrad.addColorStop(1, `rgb(${endColorVal}, 0, 0)`);
         
         ctx.fillStyle = heatGrad;
         ctx.fill();
