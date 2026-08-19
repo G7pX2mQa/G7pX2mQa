@@ -1,739 +1,748 @@
 // js/ui/sas/currenciesOverlay.js
 
-import { IS_MOBILE } from '../../util/platformChecker.js';
-import { createSASOverlay } from './sasOverlayBuilder.js';
-import { CURRENCIES, UC_MATERIALS, isCurrencyUnlocked } from '../../util/storage.js';
-import { bank } from '../../util/storage.js';
-import { formatNumber } from '../../util/numFormat.js';
-import { settingsManager } from '../../game/settingsManager.js';
-import { createDropdown } from './dropdownUtils.js';
-import { createPaintbrush } from './paintbrushUtils.js';
-import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../../game/automationUpgrades.js';
-import { getLevelNumber } from '../../game/upgrades.js';
-import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
-import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
-import { BigNum } from '../../util/bigNum.js';
-import { setHtmlOrText } from '../../util/uiHelpers.js';
-
+import { IS_MOBILE } from "../../util/platformChecker.js";
+import { createSASOverlay } from "./sasOverlayBuilder.js";
+import { CURRENCIES, UC_MATERIALS, isCurrencyUnlocked } from "../../util/storage.js";
+import { bank } from "../../util/storage.js";
+import { formatNumber } from "../../util/numFormat.js";
+import { settingsManager } from "../../game/settingsManager.js";
+import { createDropdown } from "./dropdownUtils.js";
+import { createPaintbrush } from "./paintbrushUtils.js";
+import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from "../../game/automationUpgrades.js";
+import { getLevelNumber } from "../../game/upgrades.js";
+import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from "../../game/automationEffects.js";
+import { RESOURCE_REGISTRY } from "../../game/offlinePanel.js";
+import { BigNum } from "../../util/bigNum.js";
+import { setHtmlOrText } from "../../util/uiHelpers.js";
 
 // Returns a key like "currency_coins_popups"
 function getToggleKey(currency, type) {
-  return `currency_${currency}_${type}`;
+    return `currency_${currency}_${type}`;
 }
 
 // Ensures default values for these keys exist
 
 function getUnlockedCurrencies() {
-  return Object.values(CURRENCIES).filter(c => isCurrencyUnlocked(c));
+    return Object.values(CURRENCIES).filter((c) => isCurrencyUnlocked(c));
 }
 
 function ensureCurrencySettings() {
-  const currencies = getUnlockedCurrencies();
-  currencies.forEach(c => {
-    if (settingsManager.get(getToggleKey(c, 'popups')) === undefined) {
-      settingsManager.set(getToggleKey(c, 'popups'), true);
-    }
-    if (settingsManager.get(getToggleKey(c, 'automated')) === undefined) {
-      settingsManager.set(getToggleKey(c, 'automated'), true);
-    }
-    if (settingsManager.get(getToggleKey(c, 'pinned')) === undefined) {
-      settingsManager.set(getToggleKey(c, 'pinned'), false);
-    }
-  });
+    const currencies = getUnlockedCurrencies();
+    currencies.forEach((c) => {
+        if (settingsManager.get(getToggleKey(c, "popups")) === undefined) {
+            settingsManager.set(getToggleKey(c, "popups"), true);
+        }
+        if (settingsManager.get(getToggleKey(c, "automated")) === undefined) {
+            settingsManager.set(getToggleKey(c, "automated"), true);
+        }
+        if (settingsManager.get(getToggleKey(c, "pinned")) === undefined) {
+            settingsManager.set(getToggleKey(c, "pinned"), false);
+        }
+    });
 }
 
 export function hasUnlockedUcMaterials() {
-  return UC_MATERIALS.some(mat => isCurrencyUnlocked(mat));
+    return UC_MATERIALS.some((mat) => isCurrencyUnlocked(mat));
 }
 
 export function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc, amountText) {
-  const row = document.createElement('div');
-  row.className = 'currency-row' + (isUniversal ? ' universal-row' : '');
-  if (currencyId && currencyId !== 'universal') {
-    row.dataset.currency = currencyId;
-    const config = RESOURCE_REGISTRY.find(r => r.key === currencyId);
-    if (config && config.bgGradient) {
-      row.style.setProperty('background', config.bgGradient, 'important');
+    const row = document.createElement("div");
+    row.className = "currency-row" + (isUniversal ? " universal-row" : "");
+    if (currencyId && currencyId !== "universal") {
+        row.dataset.currency = currencyId;
+        const config = RESOURCE_REGISTRY.find((r) => r.key === currencyId);
+        if (config && config.bgGradient) {
+            row.style.background = config.bgGradient;
+        }
     }
-  }
-  
-  const info = document.createElement('div');
-  info.className = 'currency-info';
-  
-  const iconWrapper = document.createElement('div');
-  iconWrapper.className = 'currency-icon-wrapper';
-  
-  const iconImg = document.createElement('img');
-  iconImg.className = 'currency-base';
-  iconImg.src = baseSrc;
-  
-  iconWrapper.appendChild(iconImg);
 
-  if (iconSrc && UC_MATERIALS.includes(currencyId)) {
-    const innerIconImg = document.createElement('img');
-    innerIconImg.className = 'currency-icon';
-    innerIconImg.src = iconSrc;
-    iconWrapper.appendChild(innerIconImg);
-  }
-  
-  const amountDiv = document.createElement('div');
-  amountDiv.className = 'currency-amount';
-  
-  const amountTextDiv = document.createElement('div');
-  amountTextDiv.className = 'currency-amount-text';
-  // Use inline-block or inline-flex so that trailing text stays on the same line if needed
-  amountTextDiv.style.display = 'inline-block';
-  setHtmlOrText(amountTextDiv, amountText);
-  amountDiv.appendChild(amountTextDiv);
+    const info = document.createElement("div");
+    info.className = "currency-info";
 
-  // Add text for scrap dropdown — only when UC materials are actually unlocked
-  let scrapTextDiv = null;
-  const _hasMaterials = currencyId === 'scrap' && hasUnlockedUcMaterials();
-  if (_hasMaterials) {
-    amountDiv.style.display = 'flex';
-    amountDiv.style.flexDirection = 'column';
-    amountDiv.style.alignItems = 'flex-start';
-    amountDiv.style.justifyContent = 'center';
+    const iconWrapper = document.createElement("div");
+    iconWrapper.className = "currency-icon-wrapper";
 
-    scrapTextDiv = document.createElement('div');
-    const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-    const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
-    scrapTextDiv.textContent = isOpen
-      ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials`
-      : `${isMobileStr} this row to view Underwater Cavern Materials`;
-    scrapTextDiv.style.fontSize = '0.7em';
-    scrapTextDiv.style.webkitTextStroke = '0.7px #000';
-    scrapTextDiv.style.color = '#cccccc';
-    scrapTextDiv.style.marginTop = '2px';
-    scrapTextDiv.style.pointerEvents = 'none'; // so clicks go to info
-    amountDiv.appendChild(scrapTextDiv);
-    row.classList.add('scrap-row--has-subtext');
-  }
-  
-  info.appendChild(iconWrapper);
-  info.appendChild(amountDiv);
-  
-  row.appendChild(info);
+    const iconImg = document.createElement("img");
+    iconImg.className = "currency-base";
+    iconImg.src = baseSrc;
 
-  if (currencyId === 'scrap' && _hasMaterials) {
-    info.style.cursor = 'pointer';
-    info.addEventListener('click', (e) => {
-      // Don't toggle if clicking dropdown or paintbrush UI
-      if (e.target.closest('.currency-controls')) return;
+    iconWrapper.appendChild(iconImg);
 
-      const isOpen = !settingsManager.get('currency_scrap_materials_dropdown_open');
-      settingsManager.set('currency_scrap_materials_dropdown_open', isOpen);
+    if (iconSrc && UC_MATERIALS.includes(currencyId)) {
+        const innerIconImg = document.createElement("img");
+        innerIconImg.className = "currency-icon";
+        innerIconImg.src = iconSrc;
+        iconWrapper.appendChild(innerIconImg);
+    }
 
-      if (scrapTextDiv) {
+    const amountDiv = document.createElement("div");
+    amountDiv.className = "currency-amount";
+
+    const amountTextDiv = document.createElement("div");
+    amountTextDiv.className = "currency-amount-text";
+    // Use inline-block or inline-flex so that trailing text stays on the same line if needed
+    amountTextDiv.style.display = "inline-block";
+    setHtmlOrText(amountTextDiv, amountText);
+    amountDiv.appendChild(amountTextDiv);
+
+    // Add text for scrap dropdown — only when UC materials are actually unlocked
+    let scrapTextDiv = null;
+    const _hasMaterials = currencyId === "scrap" && hasUnlockedUcMaterials();
+    if (_hasMaterials) {
+        amountDiv.style.display = "flex";
+        amountDiv.style.flexDirection = "column";
+        amountDiv.style.alignItems = "flex-start";
+        amountDiv.style.justifyContent = "center";
+
+        scrapTextDiv = document.createElement("div");
         const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+        const isOpen = settingsManager.get("currency_scrap_materials_dropdown_open");
         scrapTextDiv.textContent = isOpen
-          ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials`
-          : `${isMobileStr} this row to view Underwater Cavern Materials`;
-      }
-
-      const overlayEl = container.closest('.sas-overlay');
-      if (overlayEl) {
-        if (isOpen) {
-           const materialsContainer = createMaterialsDropdown();
-           row.after(materialsContainer);
-        } else {
-           const nextEl = row.nextElementSibling;
-           if (nextEl && nextEl.classList.contains('materials-dropdown-container')) {
-               nextEl.remove();
-           }
-        }
-        if (paintbrush && paintbrush.isActive()) {
-          paintbrush.reinit();
-        }
-      }
-    });
-  }
-
-  // Dropdown controls
-  const controls = document.createElement('div');
-  controls.className = 'currency-controls';
-
-  const opts = [
-    { value: 'popups', label: 'Popups' },
-    { value: 'automated', label: 'Automated' },
-    { value: 'pinned', label: 'Pinned' },
-  ];
-
-  if (isUniversal && !IS_MOBILE) {
-    opts.push({ value: 'paintbrush', label: 'Enable Multi-Toggle', isButton: true, className: 'paintbrush-btn-anim' });
-  }
-
-  const getDropdownValue = () => {
-    if (!isUniversal) {
-      const selected = [];
-      if (settingsManager.get(getToggleKey(currencyId, 'popups'))) selected.push('popups');
-      
-      const collectiveState = getCollectiveAutobuyerState(currencyId);
-      let isAuto = collectiveState > 0;
-      
-      if (isAuto) selected.push('automated');
-      if (settingsManager.get(getToggleKey(currencyId, 'pinned'))) selected.push('pinned');
-      return selected;
-    } else {
-      const allCurrencies = getUnlockedCurrencies();
-      let hasVariance = false;
-      
-      ['popups', 'automated', 'pinned'].forEach(type => {
-        if (type === 'automated') {
-           const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
-           if (firstVal === 0.5) {
-               hasVariance = true;
-           }
-           for (let i = 1; i < allCurrencies.length; i++) {
-             const state = getCollectiveAutobuyerState(allCurrencies[i]);
-             if (state !== firstVal || state === 0.5) {
-               hasVariance = true;
-               break;
-             }
-           }
-        } else {
-           const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
-           for (let i = 1; i < allCurrencies.length; i++) {
-             if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
-               hasVariance = true;
-               break;
-             }
-           }
-        }
-      });
-
-      if (hasVariance) {
-        return [];
-      }
-
-      const selected = [];
-      ['popups', 'automated', 'pinned'].forEach(type => {
-        if (type === 'automated') {
-           if (allCurrencies.every(c => getCollectiveAutobuyerState(c) === 1)) {
-              selected.push(type);
-           }
-        } else {
-           if (allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
-             selected.push(type);
-           }
-        }
-      });
-      return selected;
-    }
-  };
-
-  const setDropdownValue = (newVals) => {
-    if (newVals.includes('paintbrush')) {
-      // User clicked the paintbrush button
-      openPaintbrushMode();
-      return;
+            ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials`
+            : `${isMobileStr} this row to view Underwater Cavern Materials`;
+        scrapTextDiv.style.fontSize = "0.7em";
+        scrapTextDiv.style.webkitTextStroke = "0.7px #000";
+        scrapTextDiv.style.color = "#cccccc";
+        scrapTextDiv.style.marginTop = "2px";
+        scrapTextDiv.style.pointerEvents = "none"; // so clicks go to info
+        amountDiv.appendChild(scrapTextDiv);
+        row.classList.add("scrap-row--has-subtext");
     }
 
-    const prevVals = getDropdownValue();
-    const toggledType = ['popups', 'automated', 'pinned'].find(type => 
-      prevVals.includes(type) !== newVals.includes(type)
-    );
+    info.appendChild(iconWrapper);
+    info.appendChild(amountDiv);
 
-    if (!toggledType) return;
+    row.appendChild(info);
 
-    if (!isUniversal) {
-      const newVal = newVals.includes(toggledType);
-      settingsManager.set(getToggleKey(currencyId, toggledType), newVal);
-      if (toggledType === 'pinned') {
-        window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
-      }
-      if (toggledType === 'automated') {
-        setAllAutobuyersForCostType(currencyId, newVal);
-        window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
-        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
-      }
-      const overlayEl = container.closest('.sas-overlay');
-      if (overlayEl) {
-        const universalRow = overlayEl.querySelector('.universal-row');
-        if (universalRow && universalRow._updateDropdownVisually) {
-          universalRow._updateDropdownVisually();
-        }
-      }
-    } else {
-      const allCurrencies = getUnlockedCurrencies();
-      allCurrencies.forEach(c => {
-        settingsManager.set(getToggleKey(c, 'popups'), newVals.includes('popups'));
-        settingsManager.set(getToggleKey(c, 'automated'), newVals.includes('automated'));
-        settingsManager.set(getToggleKey(c, 'pinned'), newVals.includes('pinned'));
-      });
-      
-      const isAutoEnabled = newVals.includes('automated');
-      allCurrencies.forEach(c => setAllAutobuyersForCostType(c, isAutoEnabled));
-      
-      // Update visually without full re-render
-      const overlayEl = container.closest('.sas-overlay');
-      if (overlayEl) {
-        // Update all child dropdown wrappers instead of replacing the DOM
-        const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
-        rows.forEach(row => {
-          if (row._updateDropdownVisually) {
-            row._updateDropdownVisually();
-          }
+    if (currencyId === "scrap" && _hasMaterials) {
+        info.style.cursor = "pointer";
+        info.addEventListener("click", (e) => {
+            // Don't toggle if clicking dropdown or paintbrush UI
+            if (e.target.closest(".currency-controls")) return;
+
+            const isOpen = !settingsManager.get("currency_scrap_materials_dropdown_open");
+            settingsManager.set("currency_scrap_materials_dropdown_open", isOpen);
+
+            if (scrapTextDiv) {
+                const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+                scrapTextDiv.textContent = isOpen
+                    ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials`
+                    : `${isMobileStr} this row to view Underwater Cavern Materials`;
+            }
+
+            const overlayEl = container.closest(".sas-overlay");
+            if (overlayEl) {
+                if (isOpen) {
+                    const materialsContainer = createMaterialsDropdown();
+                    row.after(materialsContainer);
+                } else {
+                    const nextEl = row.nextElementSibling;
+                    if (nextEl && nextEl.classList.contains("materials-dropdown-container")) {
+                        nextEl.remove();
+                    }
+                }
+                if (paintbrush && paintbrush.isActive()) {
+                    paintbrush.reinit();
+                }
+            }
         });
-      }
-      
-      // Always dispatch event when modifying the universal toggle to apply any pin changes
-      window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
-      
-      window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
-      window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
-    }
-  };
-
-  const getDisplayValue = (vals) => {
-    let hasAutoVariance = false;
-    if (isUniversal && !IS_MOBILE) {
-      const allCurrencies = getUnlockedCurrencies();
-      let hasVariance = false;
-      ['popups', 'automated', 'pinned'].forEach(type => {
-        if (type === 'automated') {
-           const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
-           if (firstVal === 0.5) {
-               hasVariance = true;
-               hasAutoVariance = true;
-           }
-           for (let i = 1; i < allCurrencies.length; i++) {
-             const state = getCollectiveAutobuyerState(allCurrencies[i]);
-             if (state !== firstVal || state === 0.5) {
-               hasVariance = true;
-               hasAutoVariance = true;
-               break;
-             }
-           }
-        } else {
-           const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
-           for (let i = 1; i < allCurrencies.length; i++) {
-             if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
-               hasVariance = true;
-               break;
-             }
-           }
-        }
-      });
-      if (hasVariance) {
-        const span = document.createElement("span");
-        span.textContent = "Variance within currencies detected";
-        span.style.color = "#ffaa00";
-        return span;
-      }
     }
 
-    const makeSpan = (text, isTruthy) => {
-      const span = document.createElement('span');
-      span.textContent = text;
-      span.style.color = isTruthy ? '#44ff44' : '#ff4444';
-      return span;
-    };
-    
-    const verticalBar = () => {
-      const span = document.createElement('span');
-      span.textContent = '| ';
-      span.className = 'dropdown-vertical-bar';
-      span.style.color = 'inherit';
-      return span;
-    };
+    // Dropdown controls
+    const controls = document.createElement("div");
+    controls.className = "currency-controls";
 
-    const hasPopups = vals.includes('popups');
-    const isAuto = vals.includes('automated');
-    const isPinned = vals.includes('pinned');
-
-    let isMasterUnlocked = false;
-    let collectiveState = 0;
-    if (currencyId && !isUniversal) {
-      collectiveState = getCollectiveAutobuyerState(currencyId);
-      const masterUpgIdEntry = Object.entries(MASTER_AUTOBUY_IDS).find(([id, key]) => key === currencyId);
-      if (masterUpgIdEntry) {
-        const masterId = parseInt(masterUpgIdEntry[0]);
-        if (getLevelNumber(AUTOMATION_AREA_KEY, masterId) > 0) {
-          isMasterUnlocked = true;
-        }
-      }
-    }
-
-    let autoText = '';
-    if (isUniversal && !IS_MOBILE) {
-      if (hasAutoVariance) {
-        autoText = 'Variance within currencies detected';
-      } else {
-        autoText = isAuto ? 'Is/Could be automated' : 'Is not/Wouldn\'t be automated';
-      }
-    } else {
-      if (collectiveState === 0.5) {
-        autoText = 'Is sort of automated';
-      } else {
-        if (isMasterUnlocked) {
-          autoText = collectiveState === 1 ? 'Is automated' : 'Is not automated';
-        } else {
-          autoText = collectiveState === 1 ? 'Could be automated' : 'Wouldn\'t be automated';
-        }
-      }
-    }
-
-    // Set color based on state
-    let autoSpan;
-    if (!isUniversal && collectiveState === 0.5) {
-      autoSpan = document.createElement('span');
-      autoSpan.textContent = autoText;
-      autoSpan.style.color = '#ffff44'; // Yellow for sort of
-    } else if (isUniversal && hasAutoVariance) {
-      autoSpan = document.createElement('span');
-      autoSpan.textContent = autoText;
-      autoSpan.style.color = '#ffaa00'; // Orange for variance
-    } else {
-      autoSpan = makeSpan(autoText, isUniversal ? isAuto : collectiveState === 1);
-    }
-
-    return [
-      makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
-      verticalBar(),
-      autoSpan,
-      verticalBar(),
-      makeSpan(isPinned ? 'Is pinned' : 'Is not pinned', isPinned)
+    const opts = [
+        { value: "popups", label: "Popups" },
+        { value: "automated", label: "Automated" },
+        { value: "pinned", label: "Pinned" },
     ];
-  };
 
-  const { wrapper, cleanup, updateDisplay } = createDropdown({
-    getOptions: () => opts,
-    getValue: getDropdownValue,
-    setValue: setDropdownValue,
-    isChecklist: true,
-    getDisplayValue: getDisplayValue,
-  });
+    if (isUniversal && !IS_MOBILE) {
+        opts.push({
+            value: "paintbrush",
+            label: "Enable Multi-Toggle",
+            isButton: true,
+            className: "paintbrush-btn-anim",
+        });
+    }
 
-  row._cleanupDropdown = cleanup;
-  row._updateDropdownVisually = updateDisplay;
+    const getDropdownValue = () => {
+        if (!isUniversal) {
+            const selected = [];
+            if (settingsManager.get(getToggleKey(currencyId, "popups"))) selected.push("popups");
 
-  controls.appendChild(wrapper);
-  row.appendChild(controls);
+            const collectiveState = getCollectiveAutobuyerState(currencyId);
+            let isAuto = collectiveState > 0;
 
-  container.appendChild(row);
+            if (isAuto) selected.push("automated");
+            if (settingsManager.get(getToggleKey(currencyId, "pinned"))) selected.push("pinned");
+            return selected;
+        } else {
+            const allCurrencies = getUnlockedCurrencies();
+            let hasVariance = false;
+
+            ["popups", "automated", "pinned"].forEach((type) => {
+                if (type === "automated") {
+                    const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
+                    if (firstVal === 0.5) {
+                        hasVariance = true;
+                    }
+                    for (let i = 1; i < allCurrencies.length; i++) {
+                        const state = getCollectiveAutobuyerState(allCurrencies[i]);
+                        if (state !== firstVal || state === 0.5) {
+                            hasVariance = true;
+                            break;
+                        }
+                    }
+                } else {
+                    const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
+                    for (let i = 1; i < allCurrencies.length; i++) {
+                        if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
+                            hasVariance = true;
+                            break;
+                        }
+                    }
+                }
+            });
+
+            if (hasVariance) {
+                return [];
+            }
+
+            const selected = [];
+            ["popups", "automated", "pinned"].forEach((type) => {
+                if (type === "automated") {
+                    if (allCurrencies.every((c) => getCollectiveAutobuyerState(c) === 1)) {
+                        selected.push(type);
+                    }
+                } else {
+                    if (allCurrencies.every((c) => settingsManager.get(getToggleKey(c, type)))) {
+                        selected.push(type);
+                    }
+                }
+            });
+            return selected;
+        }
+    };
+
+    const setDropdownValue = (newVals) => {
+        if (newVals.includes("paintbrush")) {
+            // User clicked the paintbrush button
+            openPaintbrushMode();
+            return;
+        }
+
+        const prevVals = getDropdownValue();
+        const toggledType = ["popups", "automated", "pinned"].find(
+            (type) => prevVals.includes(type) !== newVals.includes(type),
+        );
+
+        if (!toggledType) return;
+
+        if (!isUniversal) {
+            const newVal = newVals.includes(toggledType);
+            settingsManager.set(getToggleKey(currencyId, toggledType), newVal);
+            if (toggledType === "pinned") {
+                window.dispatchEvent(new CustomEvent("currencies:pinsChanged"));
+            }
+            if (toggledType === "automated") {
+                setAllAutobuyersForCostType(currencyId, newVal);
+                window.dispatchEvent(new CustomEvent("currency:change", { detail: { ignoreOverlayRender: true } }));
+                window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+            }
+            const overlayEl = container.closest(".sas-overlay");
+            if (overlayEl) {
+                const universalRow = overlayEl.querySelector(".universal-row");
+                if (universalRow && universalRow._updateDropdownVisually) {
+                    universalRow._updateDropdownVisually();
+                }
+            }
+        } else {
+            const allCurrencies = getUnlockedCurrencies();
+            allCurrencies.forEach((c) => {
+                settingsManager.set(getToggleKey(c, "popups"), newVals.includes("popups"));
+                settingsManager.set(getToggleKey(c, "automated"), newVals.includes("automated"));
+                settingsManager.set(getToggleKey(c, "pinned"), newVals.includes("pinned"));
+            });
+
+            const isAutoEnabled = newVals.includes("automated");
+            allCurrencies.forEach((c) => setAllAutobuyersForCostType(c, isAutoEnabled));
+
+            // Update visually without full re-render
+            const overlayEl = container.closest(".sas-overlay");
+            if (overlayEl) {
+                // Update all child dropdown wrappers instead of replacing the DOM
+                const rows = overlayEl.querySelectorAll(".currency-row:not(.universal-row)");
+                rows.forEach((row) => {
+                    if (row._updateDropdownVisually) {
+                        row._updateDropdownVisually();
+                    }
+                });
+            }
+
+            // Always dispatch event when modifying the universal toggle to apply any pin changes
+            window.dispatchEvent(new CustomEvent("currencies:pinsChanged"));
+
+            window.dispatchEvent(new CustomEvent("currency:change", { detail: { ignoreOverlayRender: true } }));
+            window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+        }
+    };
+
+    const getDisplayValue = (vals) => {
+        let hasAutoVariance = false;
+        if (isUniversal && !IS_MOBILE) {
+            const allCurrencies = getUnlockedCurrencies();
+            let hasVariance = false;
+            ["popups", "automated", "pinned"].forEach((type) => {
+                if (type === "automated") {
+                    const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
+                    if (firstVal === 0.5) {
+                        hasVariance = true;
+                        hasAutoVariance = true;
+                    }
+                    for (let i = 1; i < allCurrencies.length; i++) {
+                        const state = getCollectiveAutobuyerState(allCurrencies[i]);
+                        if (state !== firstVal || state === 0.5) {
+                            hasVariance = true;
+                            hasAutoVariance = true;
+                            break;
+                        }
+                    }
+                } else {
+                    const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
+                    for (let i = 1; i < allCurrencies.length; i++) {
+                        if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
+                            hasVariance = true;
+                            break;
+                        }
+                    }
+                }
+            });
+            if (hasVariance) {
+                const span = document.createElement("span");
+                span.textContent = "Variance within currencies detected";
+                span.style.color = "#ffaa00";
+                return span;
+            }
+        }
+
+        const makeSpan = (text, isTruthy) => {
+            const span = document.createElement("span");
+            span.textContent = text;
+            span.style.color = isTruthy ? "#44ff44" : "#ff4444";
+            return span;
+        };
+
+        const verticalBar = () => {
+            const span = document.createElement("span");
+            span.textContent = "| ";
+            span.className = "dropdown-vertical-bar";
+            span.style.color = "inherit";
+            return span;
+        };
+
+        const hasPopups = vals.includes("popups");
+        const isAuto = vals.includes("automated");
+        const isPinned = vals.includes("pinned");
+
+        let isMasterUnlocked = false;
+        let collectiveState = 0;
+        if (currencyId && !isUniversal) {
+            collectiveState = getCollectiveAutobuyerState(currencyId);
+            const masterUpgIdEntry = Object.entries(MASTER_AUTOBUY_IDS).find(([id, key]) => key === currencyId);
+            if (masterUpgIdEntry) {
+                const masterId = parseInt(masterUpgIdEntry[0]);
+                if (getLevelNumber(AUTOMATION_AREA_KEY, masterId) > 0) {
+                    isMasterUnlocked = true;
+                }
+            }
+        }
+
+        let autoText = "";
+        if (isUniversal && !IS_MOBILE) {
+            if (hasAutoVariance) {
+                autoText = "Variance within currencies detected";
+            } else {
+                autoText = isAuto ? "Is/Could be automated" : "Is not/Wouldn't be automated";
+            }
+        } else {
+            if (collectiveState === 0.5) {
+                autoText = "Is sort of automated";
+            } else {
+                if (isMasterUnlocked) {
+                    autoText = collectiveState === 1 ? "Is automated" : "Is not automated";
+                } else {
+                    autoText = collectiveState === 1 ? "Could be automated" : "Wouldn't be automated";
+                }
+            }
+        }
+
+        // Set color based on state
+        let autoSpan;
+        if (!isUniversal && collectiveState === 0.5) {
+            autoSpan = document.createElement("span");
+            autoSpan.textContent = autoText;
+            autoSpan.style.color = "#ffff44"; // Yellow for sort of
+        } else if (isUniversal && hasAutoVariance) {
+            autoSpan = document.createElement("span");
+            autoSpan.textContent = autoText;
+            autoSpan.style.color = "#ffaa00"; // Orange for variance
+        } else {
+            autoSpan = makeSpan(autoText, isUniversal ? isAuto : collectiveState === 1);
+        }
+
+        return [
+            makeSpan(hasPopups ? "Has popups" : "No popups", hasPopups),
+            verticalBar(),
+            autoSpan,
+            verticalBar(),
+            makeSpan(isPinned ? "Is pinned" : "Is not pinned", isPinned),
+        ];
+    };
+
+    const { wrapper, cleanup, updateDisplay } = createDropdown({
+        getOptions: () => opts,
+        getValue: getDropdownValue,
+        setValue: setDropdownValue,
+        isChecklist: true,
+        getDisplayValue: getDisplayValue,
+    });
+
+    row._cleanupDropdown = cleanup;
+    row._updateDropdownVisually = updateDisplay;
+
+    controls.appendChild(wrapper);
+    row.appendChild(controls);
+
+    container.appendChild(row);
 }
 function populateCurrenciesOverlay(overlayEl) {
-  const grid = overlayEl.querySelector('.currencies-grid');
-  if (!grid) return;
-  grid.innerHTML = "";
-  grid.setAttribute('role', 'grid');
-  
-  ensureCurrencySettings();
-  
-  // Universal Row
-  const uniqueCount = getUnlockedCurrencies().length;
-  createCurrencyRow(grid, true, 'universal', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', "Universal Toggle");
+    const grid = overlayEl.querySelector(".currencies-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    grid.setAttribute("role", "grid");
 
-  // Child Rows
-  const currenciesList = getUnlockedCurrencies();
-  currenciesList.forEach(currency => {
-    // Skip materials from the main grid
-    if (UC_MATERIALS.includes(currency)) return;
+    ensureCurrencySettings();
 
-    const val = bank[currency]?.value;
-    const amountStr = formatNumber(val);
-    const config = RESOURCE_REGISTRY.find(c => c.key === currency);
-    const iconSrc = config?.icon || "img/misc/mysterious.webp";
-    const baseSrc = config?.baseIcon || "img/misc/locked.webp";
-    
-    let displayName = currency === 'dna' ? 'DNA' : currency.charAt(0).toUpperCase() + currency.slice(1);
-    if (config) {
-        let isOne = false;
-        if (val instanceof BigNum) {
-            isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
-        } else {
-            isOne = (Number(val) === 1);
+    // Universal Row
+    const uniqueCount = getUnlockedCurrencies().length;
+    createCurrencyRow(
+        grid,
+        true,
+        "universal",
+        "img/misc/mysterious.webp",
+        "img/misc/locked_base.webp",
+        "Universal Toggle",
+    );
+
+    // Child Rows
+    const currenciesList = getUnlockedCurrencies();
+    currenciesList.forEach((currency) => {
+        // Skip materials from the main grid
+        if (UC_MATERIALS.includes(currency)) return;
+
+        const val = bank[currency]?.value;
+        const amountStr = formatNumber(val);
+        const config = RESOURCE_REGISTRY.find((c) => c.key === currency);
+        const iconSrc = config?.icon || "img/misc/mysterious.webp";
+        const baseSrc = config?.baseIcon || "img/misc/locked.webp";
+
+        let displayName = currency === "dna" ? "DNA" : currency.charAt(0).toUpperCase() + currency.slice(1);
+        if (config) {
+            let isOne = false;
+            if (val instanceof BigNum) {
+                isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
+            } else {
+                isOne = Number(val) === 1;
+            }
+            displayName = isOne ? config.singular : config.plural;
         }
-        displayName = isOne ? config.singular : config.plural;
-    }
 
-    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + displayName);
+        createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + " " + displayName);
 
-    if (currency === 'scrap' && settingsManager.get('currency_scrap_materials_dropdown_open')) {
-        const materialsContainer = createMaterialsDropdown();
-        grid.appendChild(materialsContainer);
-    }
-  });
+        if (currency === "scrap" && settingsManager.get("currency_scrap_materials_dropdown_open")) {
+            const materialsContainer = createMaterialsDropdown();
+            grid.appendChild(materialsContainer);
+        }
+    });
 }
 
 function createMaterialsDropdown() {
-    const materialsContainer = document.createElement('div');
-    materialsContainer.className = 'materials-dropdown-container';
-    materialsContainer.style.display = 'flex';
-    materialsContainer.style.flexDirection = 'column';
-    materialsContainer.style.gap = '10px';
-    materialsContainer.style.paddingLeft = '20px';
-    materialsContainer.style.gridColumn = '1 / -1'; // span full width if in a grid
-    materialsContainer.style.borderLeft = '2px solid #555';
-    
-    UC_MATERIALS.forEach(mat => {
+    const materialsContainer = document.createElement("div");
+    materialsContainer.className = "materials-dropdown-container";
+    materialsContainer.style.display = "flex";
+    materialsContainer.style.flexDirection = "column";
+    materialsContainer.style.gap = "10px";
+    materialsContainer.style.paddingLeft = "20px";
+    materialsContainer.style.gridColumn = "1 / -1"; // span full width if in a grid
+    materialsContainer.style.borderLeft = "2px solid #555";
+
+    UC_MATERIALS.forEach((mat) => {
         if (!isCurrencyUnlocked(mat)) return;
         const matVal = bank[mat]?.value;
         const matAmountStr = formatNumber(matVal);
-        const matConfig = RESOURCE_REGISTRY.find(c => c.key === mat);
+        const matConfig = RESOURCE_REGISTRY.find((c) => c.key === mat);
         const matIconSrc = matConfig?.icon || "img/misc/mysterious.webp";
         const matBaseSrc = matConfig?.baseIcon || "img/misc/locked.webp";
-        
+
         let matDisplayName = mat.charAt(0).toUpperCase() + mat.slice(1);
         if (matConfig) {
             let isOne = false;
             if (matVal instanceof BigNum) {
                 isOne = !matVal.isInfinite() && matVal.cmp(BigNum.fromInt(1)) === 0;
             } else {
-                isOne = (Number(matVal) === 1);
+                isOne = Number(matVal) === 1;
             }
             matDisplayName = isOne ? matConfig.singular : matConfig.plural;
         }
 
-        createCurrencyRow(materialsContainer, false, mat, matIconSrc, matBaseSrc, matAmountStr + ' ' + matDisplayName);
+        createCurrencyRow(materialsContainer, false, mat, matIconSrc, matBaseSrc, matAmountStr + " " + matDisplayName);
     });
-    
+
     return materialsContainer;
 }
 
-
 function handleOutsideClick(e) {
-  if (!currenciesOverlay.isOpen) return;
-  const overlayEl = currenciesOverlay.overlayEl;
-  if (!overlayEl) return;
-  
-  if (!e.target.closest('.setting-dropdown-wrapper')) {
-    const openMenus = overlayEl.querySelectorAll('.setting-dropdown-menu.is-open');
-    openMenus.forEach(menu => {
-      menu.classList.remove('is-open');
-    });
-  }
+    if (!currenciesOverlay.isOpen) return;
+    const overlayEl = currenciesOverlay.overlayEl;
+    if (!overlayEl) return;
+
+    if (!e.target.closest(".setting-dropdown-wrapper")) {
+        const openMenus = overlayEl.querySelectorAll(".setting-dropdown-menu.is-open");
+        openMenus.forEach((menu) => {
+            menu.classList.remove("is-open");
+        });
+    }
 }
 
-
 function handleCurrencyUnlock(e) {
-  if (!currenciesOverlay.isOpen) return;
-  const overlayEl = currenciesOverlay.overlayEl;
-  if (!overlayEl) return;
-  populateCurrenciesOverlay(overlayEl);
-  if (paintbrush && paintbrush.isActive()) {
-    updatePaintbrushIfActive();
-    
-  }
+    if (!currenciesOverlay.isOpen) return;
+    const overlayEl = currenciesOverlay.overlayEl;
+    if (!overlayEl) return;
+    populateCurrenciesOverlay(overlayEl);
+    if (paintbrush && paintbrush.isActive()) {
+        updatePaintbrushIfActive();
+    }
 }
 
 function handleUpgradesChanged(e) {
-  if (!currenciesOverlay.isOpen) return;
-  const overlayEl = currenciesOverlay.overlayEl;
-  if (!overlayEl) return;
-  const rows = overlayEl.querySelectorAll(".currency-row");
-  rows.forEach(row => {
-    if (row._updateDropdownVisually) {
-      row._updateDropdownVisually();
-    }
-  });
+    if (!currenciesOverlay.isOpen) return;
+    const overlayEl = currenciesOverlay.overlayEl;
+    if (!overlayEl) return;
+    const rows = overlayEl.querySelectorAll(".currency-row");
+    rows.forEach((row) => {
+        if (row._updateDropdownVisually) {
+            row._updateDropdownVisually();
+        }
+    });
 }
 
 function handleCurrencyChange(e) {
-  if (e.detail && e.detail.ignoreOverlayRender) return;
-  if (!currenciesOverlay.isOpen) return;
-  const overlayEl = currenciesOverlay.overlayEl;
-  if (!overlayEl) return;
-  const grid = overlayEl.querySelector('.currencies-grid');
-  if (!grid) return;
-  
-  // If specific currency changed, update only that row
-  if (e.detail && e.detail.key) {
-    const currencyId = e.detail.key;
-    const row = grid.querySelector(`.currency-row[data-currency="${currencyId}"]`);
-    if (row) {
-      const amountEl = row.querySelector('.currency-amount');
-      if (amountEl) {
-        const val = bank[currencyId]?.value;
-        
-        let displayName = currencyId === 'dna' ? 'DNA' : currencyId.charAt(0).toUpperCase() + currencyId.slice(1);
-        const config = RESOURCE_REGISTRY.find(c => c.key === currencyId);
-        if (config) {
-            let isOne = false;
-            if (val instanceof BigNum) {
-                isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
-            } else {
-                isOne = (Number(val) === 1);
+    if (e.detail && e.detail.ignoreOverlayRender) return;
+    if (!currenciesOverlay.isOpen) return;
+    const overlayEl = currenciesOverlay.overlayEl;
+    if (!overlayEl) return;
+    const grid = overlayEl.querySelector(".currencies-grid");
+    if (!grid) return;
+
+    // If specific currency changed, update only that row
+    if (e.detail && e.detail.key) {
+        const currencyId = e.detail.key;
+        const row = grid.querySelector(`.currency-row[data-currency="${currencyId}"]`);
+        if (row) {
+            const amountEl = row.querySelector(".currency-amount");
+            if (amountEl) {
+                const val = bank[currencyId]?.value;
+
+                let displayName =
+                    currencyId === "dna" ? "DNA" : currencyId.charAt(0).toUpperCase() + currencyId.slice(1);
+                const config = RESOURCE_REGISTRY.find((c) => c.key === currencyId);
+                if (config) {
+                    let isOne = false;
+                    if (val instanceof BigNum) {
+                        isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
+                    } else {
+                        isOne = Number(val) === 1;
+                    }
+                    displayName = isOne ? config.singular : config.plural;
+                }
+
+                // If it's scrap, update the inner div to not override scrapTextDiv
+                if (currencyId === "scrap") {
+                    const textContainer = amountEl.querySelector(".currency-amount-text");
+                    if (textContainer) {
+                        setHtmlOrText(textContainer, formatNumber(val) + " " + displayName);
+                    } else {
+                        // Fallback: If no textContainer found, rebuild the layout
+                        amountEl.innerHTML = "";
+                        const textContainer = document.createElement("div");
+                        textContainer.className = "currency-amount-text";
+                        textContainer.style.display = "inline-block";
+                        setHtmlOrText(textContainer, formatNumber(val) + " " + displayName);
+                        amountEl.appendChild(textContainer);
+
+                        if (hasUnlockedUcMaterials()) {
+                            const scrapTextDiv = document.createElement("div");
+                            const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+                            const isOpen = settingsManager.get("currency_scrap_materials_dropdown_open");
+                            scrapTextDiv.textContent = isOpen
+                                ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials`
+                                : `${isMobileStr} this row to view Underwater Cavern Materials`;
+                            scrapTextDiv.style.fontSize = "0.7em";
+                            scrapTextDiv.style.webkitTextStroke = "0.7px #000";
+                            scrapTextDiv.style.color = "#cccccc";
+                            scrapTextDiv.style.marginTop = "2px";
+                            scrapTextDiv.style.pointerEvents = "none";
+                            amountEl.appendChild(scrapTextDiv);
+
+                            amountEl.style.display = "flex";
+                            amountEl.style.flexDirection = "column";
+                            amountEl.style.alignItems = "flex-start";
+                            amountEl.style.justifyContent = "center";
+                        }
+                    }
+                } else {
+                    setHtmlOrText(amountEl, formatNumber(val) + " " + displayName);
+                }
             }
-            displayName = isOne ? config.singular : config.plural;
         }
-
-        // If it's scrap, update the inner div to not override scrapTextDiv
-        if (currencyId === 'scrap') {
-            const textContainer = amountEl.querySelector('.currency-amount-text');
-            if (textContainer) {
-               setHtmlOrText(textContainer, formatNumber(val) + ' ' + displayName);
-            } else {
-               // Fallback: If no textContainer found, rebuild the layout
-               amountEl.innerHTML = '';
-               const textContainer = document.createElement('div');
-               textContainer.className = 'currency-amount-text';
-               textContainer.style.display = 'inline-block';
-               setHtmlOrText(textContainer, formatNumber(val) + ' ' + displayName);
-               amountEl.appendChild(textContainer);
-
-               if (hasUnlockedUcMaterials()) {
-                 const scrapTextDiv = document.createElement('div');
-                 const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-                 const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
-                 scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern Materials` : `${isMobileStr} this row to view Underwater Cavern Materials`;
-                 scrapTextDiv.style.fontSize = '0.7em';
-                 scrapTextDiv.style.webkitTextStroke = '0.7px #000';
-                 scrapTextDiv.style.color = '#cccccc';
-                 scrapTextDiv.style.marginTop = '2px';
-                 scrapTextDiv.style.pointerEvents = 'none';
-                 amountEl.appendChild(scrapTextDiv);
-
-                 amountEl.style.display = 'flex';
-                 amountEl.style.flexDirection = 'column';
-                 amountEl.style.alignItems = 'flex-start';
-                 amountEl.style.justifyContent = 'center';
-               }
-            }
-        } else {
-            setHtmlOrText(amountEl, formatNumber(val) + ' ' + displayName);
+    } else {
+        // If no specific detail, full re-render values
+        populateCurrenciesOverlay(overlayEl);
+        if (paintbrush && paintbrush.isActive()) {
+            updatePaintbrushIfActive();
         }
-      }
     }
-  } else {
-    // If no specific detail, full re-render values
-    populateCurrenciesOverlay(overlayEl);
-    if (paintbrush && paintbrush.isActive()) {
-      updatePaintbrushIfActive();
-      
-    }
-  }
 }
 
 const currenciesOverlay = createSASOverlay({
-  id: 'currencies-overlay',
-  title: 'Currencies',
-  containerClass: 'currencies-grid',
-  focusSelector: '.currency-row, .currencies-grid',
-  onRender: (overlayEl) => {
-    populateCurrenciesOverlay(overlayEl);
-    window.addEventListener('currency:change', handleCurrencyChange);
-    window.addEventListener('currency:unlock', handleCurrencyUnlock);
-    document.addEventListener('ccc:upgrades:changed', handleUpgradesChanged);
-    document.addEventListener('click', handleOutsideClick);
-  },
-  onClose: () => {
-    window.removeEventListener('currency:change', handleCurrencyChange);
-    window.removeEventListener('currency:unlock', handleCurrencyUnlock);
-    document.removeEventListener('ccc:upgrades:changed', handleUpgradesChanged);
-    document.removeEventListener('click', handleOutsideClick);
-    // Cleanup dynamic dropdown listeners
-    if (currenciesOverlay.overlayEl) {
-      const rows = currenciesOverlay.overlayEl.querySelectorAll('.currency-row');
-      rows.forEach(row => {
-        if (row._cleanupDropdown) row._cleanupDropdown();
-      });
-    }
-    if (paintbrush) paintbrush.close();
-  }
+    id: "currencies-overlay",
+    title: "Currencies",
+    containerClass: "currencies-grid",
+    focusSelector: ".currency-row, .currencies-grid",
+    onRender: (overlayEl) => {
+        populateCurrenciesOverlay(overlayEl);
+        window.addEventListener("currency:change", handleCurrencyChange);
+        window.addEventListener("currency:unlock", handleCurrencyUnlock);
+        document.addEventListener("ccc:upgrades:changed", handleUpgradesChanged);
+        document.addEventListener("click", handleOutsideClick);
+    },
+    onClose: () => {
+        window.removeEventListener("currency:change", handleCurrencyChange);
+        window.removeEventListener("currency:unlock", handleCurrencyUnlock);
+        document.removeEventListener("ccc:upgrades:changed", handleUpgradesChanged);
+        document.removeEventListener("click", handleOutsideClick);
+        // Cleanup dynamic dropdown listeners
+        if (currenciesOverlay.overlayEl) {
+            const rows = currenciesOverlay.overlayEl.querySelectorAll(".currency-row");
+            rows.forEach((row) => {
+                if (row._cleanupDropdown) row._cleanupDropdown();
+            });
+        }
+        if (paintbrush) paintbrush.close();
+    },
 });
 
 export function openCurrenciesOverlay() {
-  currenciesOverlay.open();
+    currenciesOverlay.open();
 }
 
 export function closeCurrenciesOverlay(force = false) {
-  currenciesOverlay.close(force);
+    currenciesOverlay.close(force);
 }
 
-
-
 const paintbrush = createPaintbrush({
-  getOverlayEl: () => currenciesOverlay.overlayEl,
-  getInitialState: () => {
-    const allCurrencies = getUnlockedCurrencies();
-    let state = { popups: true, automated: true, pinned: true };
+    getOverlayEl: () => currenciesOverlay.overlayEl,
+    getInitialState: () => {
+        const allCurrencies = getUnlockedCurrencies();
+        let state = { popups: true, automated: true, pinned: true };
 
-    ['popups', 'automated', 'pinned'].forEach(type => {
-      if (type === 'automated') {
-         if (!allCurrencies.every(c => getCollectiveAutobuyerState(c) === 1)) {
-            state.automated = false;
-         }
-      } else {
-         if (!allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
-           state[type] = false;
-         }
-      }
-    });
-    return state;
-  },
-  togglesConfig: [
-    { key: 'popups', label: 'Popups' },
-    { key: 'automated', label: 'Automated' },
-    { key: 'pinned', label: 'Pinned' }
-  ],
-  descriptionText: "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply arbitrary customizations of settings to an arbitrary amount of currencies quickly. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.",
-  onApply: (affectedRows, paintbrushState) => {
-    let changedAny = false;
-    let changedPins = false;
-    let changedAuto = false;
+        ["popups", "automated", "pinned"].forEach((type) => {
+            if (type === "automated") {
+                if (!allCurrencies.every((c) => getCollectiveAutobuyerState(c) === 1)) {
+                    state.automated = false;
+                }
+            } else {
+                if (!allCurrencies.every((c) => settingsManager.get(getToggleKey(c, type)))) {
+                    state[type] = false;
+                }
+            }
+        });
+        return state;
+    },
+    togglesConfig: [
+        { key: "popups", label: "Popups" },
+        { key: "automated", label: "Automated" },
+        { key: "pinned", label: "Pinned" },
+    ],
+    descriptionText:
+        "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply arbitrary customizations of settings to an arbitrary amount of currencies quickly. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.",
+    onApply: (affectedRows, paintbrushState) => {
+        let changedAny = false;
+        let changedPins = false;
+        let changedAuto = false;
 
-    affectedRows.forEach(row => {
-      const currencyId = row.dataset.currency;
-      if (!currencyId) return;
+        affectedRows.forEach((row) => {
+            const currencyId = row.dataset.currency;
+            if (!currencyId) return;
 
-      changedAny = true;
+            changedAny = true;
 
-      const newPopups = paintbrushState.popups;
-      const newAutomated = paintbrushState.automated;
-      const newPinned = paintbrushState.pinned;
+            const newPopups = paintbrushState.popups;
+            const newAutomated = paintbrushState.automated;
+            const newPinned = paintbrushState.pinned;
 
-      if (settingsManager.get(getToggleKey(currencyId, 'popups')) !== newPopups) {
-        settingsManager.set(getToggleKey(currencyId, 'popups'), newPopups);
-      }
+            if (settingsManager.get(getToggleKey(currencyId, "popups")) !== newPopups) {
+                settingsManager.set(getToggleKey(currencyId, "popups"), newPopups);
+            }
 
-      if (settingsManager.get(getToggleKey(currencyId, 'pinned')) !== newPinned) {
-        settingsManager.set(getToggleKey(currencyId, 'pinned'), newPinned);
-        changedPins = true;
-      }
+            if (settingsManager.get(getToggleKey(currencyId, "pinned")) !== newPinned) {
+                settingsManager.set(getToggleKey(currencyId, "pinned"), newPinned);
+                changedPins = true;
+            }
 
-      const currentState = getCollectiveAutobuyerState(currencyId);
-      const isAuto = currentState > 0;
-      if (isAuto !== newAutomated) {
-        setAllAutobuyersForCostType(currencyId, newAutomated);
-        changedAuto = true;
-      }
-      
-      settingsManager.set(getToggleKey(currencyId, 'automated'), newAutomated);
-      
-      if (row._updateDropdownVisually) {
-        row._updateDropdownVisually();
-      }
-    });
+            const currentState = getCollectiveAutobuyerState(currencyId);
+            const isAuto = currentState > 0;
+            if (isAuto !== newAutomated) {
+                setAllAutobuyersForCostType(currencyId, newAutomated);
+                changedAuto = true;
+            }
 
-    if (changedAny) {
-      if (changedPins) {
-        window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
-      }
-      if (changedAuto) {
-        window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
-        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
-      }
-      
-      const overlayEl = currenciesOverlay.overlayEl;
-      if (overlayEl) {
-        const universalRow = overlayEl.querySelector('.universal-row');
-        if (universalRow && universalRow._updateDropdownVisually) {
-          universalRow._updateDropdownVisually();
+            settingsManager.set(getToggleKey(currencyId, "automated"), newAutomated);
+
+            if (row._updateDropdownVisually) {
+                row._updateDropdownVisually();
+            }
+        });
+
+        if (changedAny) {
+            if (changedPins) {
+                window.dispatchEvent(new CustomEvent("currencies:pinsChanged"));
+            }
+            if (changedAuto) {
+                window.dispatchEvent(new CustomEvent("currency:change", { detail: { ignoreOverlayRender: true } }));
+                window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+            }
+
+            const overlayEl = currenciesOverlay.overlayEl;
+            if (overlayEl) {
+                const universalRow = overlayEl.querySelector(".universal-row");
+                if (universalRow && universalRow._updateDropdownVisually) {
+                    universalRow._updateDropdownVisually();
+                }
+            }
         }
-      }
-    }
-  }
+    },
 });
 
 function openPaintbrushMode() {
-  paintbrush.open();
+    paintbrush.open();
 }
 
 // Ensure the paintbrush events are re-initialized on change if active
 function updatePaintbrushIfActive() {
-  if (paintbrush.isActive()) {
-    paintbrush.reinit();
-  }
+    if (paintbrush.isActive()) {
+        paintbrush.reinit();
+    }
 }
