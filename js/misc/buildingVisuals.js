@@ -9330,47 +9330,78 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // TIER 3: Coolant pipes and heat exchangers
+  // TIER 3: Radial Heat Sinks / Thermal Vents
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
+    
+    ctx.translate(0, baseY - 120);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    
+    // Apply clipping mask matching the dome boundary
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-140, 120);
+    ctx.lineTo(-140, 0);
+    ctx.arc(0, 0, 140, Math.PI, 0);
+    ctx.lineTo(140, 120);
+    ctx.closePath();
+    ctx.clip();
+    
+    // 18 radiating mechanical fins bleeding heat (adjusted angle to avoid rings)
+    for(let i = 0; i < 18; i++) {
+        // Skip horizontal fins (left and right) to not cover Tier 2 sensors
+        if (i === 0 || i === 9) continue;
 
-    symDraw(() => {
-        // Pipes from towers to core
-        ctx.strokeStyle = '#555';
-        ctx.lineWidth = 12;
+        ctx.save();
+        let angle = i * Math.PI / 9;
+        ctx.rotate(angle);
+        
+        // Calculate distance R to the edge of the dome for the gradient
+        let R = 140; // Default for top half (y <= 0 in local coords)
+        if (Math.sin(angle) > 0.0001) { // Bottom half (y > 0)
+            let distY = 120 / Math.sin(angle);
+            let distX = Infinity;
+            if (Math.cos(angle) > 0.0001) distX = 140 / Math.cos(angle);
+            else if (Math.cos(angle) < -0.0001) distX = 140 / -Math.cos(angle);
+            R = Math.min(distX, distY);
+        }
+        
+        // Fin path touching the core (45) and overshooting the edge slightly
+        // The clip mask will perfectly trim the tips to match the building contour
+        let overR = R + 25;
+        let overH = 5 - ((overR - 45) / (R - 45)) * 2; // Taper calculation
+        
         ctx.beginPath();
-        ctx.moveTo(-180, baseY - 40);
-        ctx.lineTo(-120, baseY - 40);
+        ctx.moveTo(45, -5);
+        ctx.lineTo(overR, -overH);
+        ctx.lineTo(overR, overH);
+        ctx.lineTo(45, 5);
+        ctx.closePath();
+        
+        // Pure gradient from pulsing red to black
+        const heatGrad = ctx.createLinearGradient(45, 0, R, 0);
+        heatGrad.addColorStop(0, `rgb(${Math.floor(155 + 100 * pulse)}, 0, 0)`);
+        heatGrad.addColorStop(1, 'rgb(0, 0, 0)');
+        
+        ctx.fillStyle = heatGrad;
+        ctx.fill();
+        
+        // Vent slats
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let d = 55; d < R - 5; d += 12) {
+            let h = 5 - ((d - 45) / (R - 45)) * 2;
+            ctx.moveTo(d, -h + 0.3); 
+            ctx.lineTo(d, h - 0.3);
+        }
         ctx.stroke();
         
-        // Inner glowing coolant
-        ctx.strokeStyle = glowGreen;
-        ctx.lineWidth = 4;
-        ctx.setLineDash([10, 10]);
-        ctx.lineDashOffset = -t * 20;
-        ctx.stroke();
-        ctx.setLineDash([]);
-        
-        // Exchanger tank
-        ctx.fillStyle = fillRuby;
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(-110, baseY - 90, 25, 0, Math.PI*2);
-        ctx.fill();
-        
-        ctx.fillStyle = '#222';
-        ctx.beginPath();
-        ctx.arc(-110, baseY - 90, 15, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = glowGreen;
-        ctx.globalAlpha = 0.7 + 0.3 * Math.sin(t*5);
-        ctx.beginPath();
-        ctx.arc(-110, baseY - 90, 10, 0, Math.PI*2);
-        ctx.fill();
-        ctx.globalAlpha = t3;
-    });
+        ctx.restore();
+    }
+    
+    ctx.restore(); // end clipping mask
 
     ctx.restore();
   }
