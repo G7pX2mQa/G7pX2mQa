@@ -1537,7 +1537,7 @@ function updateFlowVisuals() {
             if (elEffect) {
                 if (elEffect.style.display === "none") elEffect.style.display = "";
                 const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
-                const newText = `+${formatNumber(effectVal)}%`;
+                const newText = `<span>+${formatNumber(effectVal)}%</span>`;
                 setHtmlOrText(elEffect, newText);
             }
             if (elControls) {
