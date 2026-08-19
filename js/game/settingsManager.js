@@ -463,7 +463,7 @@ export const SETTING_DEFINITIONS = {
         label: "You Should Never Use This Setting",
         overlay: "performance",
         hasExtraInfo: true,
-        info: "I don't even know how to describe this setting. It makes the game barely playable. Reduces GPU usage though.",
+        info: "I don't even know how to describe this setting. It makes the game barely playable. Drastically reduces GPU usage though.",
         default: false,
         unlockCondition: () => true,
     },
