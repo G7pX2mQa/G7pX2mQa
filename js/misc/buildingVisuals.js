@@ -9086,8 +9086,73 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
   }
+  // Shared Ring Drawing for Tier 1
+  const ringPulse = 0.5 + 0.5 * Math.sin(t * 3);
+  const ringGlow = `rgba(255, 0, 0, ${0.5 + 0.5 * ringPulse})`;
+  const ringCore = '#ffaaaa';
+  
+  const drawRings = (isBack) => {
+      ctx.save();
+      const drawRing = (cx, yOffset, width, height) => {
+          // 1. Draw Red Glow
+          ctx.beginPath();
+          if (isBack) {
+              ctx.ellipse(cx, baseY - yOffset, width, height, 0, Math.PI, Math.PI * 2, false);
+          } else {
+              ctx.ellipse(cx, baseY - yOffset, width, height, 0, 0, Math.PI, false);
+          }
+          ctx.lineCap = 'butt';
+          ctx.shadowBlur = isBack ? 5 : 20;
+          ctx.shadowColor = 'red';
+          ctx.strokeStyle = ringGlow;
+          ctx.lineWidth = 6;
+          ctx.stroke();
 
-  // TIER 0: BASE STRUCTURE (Containment Dome and Cooling Towers)
+          // 2. Draw White Core
+          ctx.beginPath();
+          if (isBack) {
+              ctx.ellipse(cx, baseY - yOffset, width, height, 0, Math.PI, Math.PI * 2, false);
+          } else {
+              // Tiny overhang angle so the white core draws exactly over the red shadow bleed
+              const oh = 3.5 / width; 
+              ctx.ellipse(cx, baseY - yOffset, width, height, 0, -oh, Math.PI + oh, false);
+          }
+          ctx.lineCap = 'round';
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = ringCore;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+      };
+
+      // Dome Bottom Rings (below symbol)
+      drawRing(0, 54, 140, 18);
+      drawRing(0, 84, 140, 18);
+      
+      // Dome Top Rings (above symbol) - moved down more
+      drawRing(0, 190, 121.5, 16);
+      drawRing(0, 220, 98, 14);
+
+      // Cooling Tower Rings
+      symDraw(() => {
+          // Tower Bottom Rings
+          drawRing(-220, 54, 50, 10);
+          drawRing(-220, 84, 48, 9);
+          
+          // Tower Top Rings - moved down more
+          drawRing(-220, 225, 38.5, 8);
+          drawRing(-220, 255, 38.5, 8);
+      });
+      ctx.restore();
+  };
+
+  // Draw backside of Tier 1 rings before Tier 0 structures
+  if (t1 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t1;
+      drawRings(true);
+      ctx.restore();
+  }
+
   // TIER 0: BASE STRUCTURE (Containment Dome and Cooling Towers)
   if (t0 > 0) {
     ctx.save();
@@ -9193,27 +9258,11 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // TIER 1: Reinforcements and Base Platforms
+  // TIER 1: Red Containment Rings (Front side)
   if (t1 > 0) {
     ctx.save();
     ctx.globalAlpha = t1;
-    
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-160, baseY - 20, 320, 20);
-    ctx.fillStyle = '#444';
-    ctx.fillRect(-150, baseY - 25, 300, 5);
-
-    symDraw(() => {
-        // Supporting buttresses
-        ctx.fillStyle = '#333';
-        ctx.beginPath();
-        ctx.moveTo(-140, baseY);
-        ctx.lineTo(-170, baseY);
-        ctx.lineTo(-150, baseY - 60);
-        ctx.lineTo(-140, baseY - 60);
-        ctx.closePath();
-        ctx.fill();
-    });
+    drawRings(false);
     ctx.restore();
   }
 
