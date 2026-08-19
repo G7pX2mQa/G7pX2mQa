@@ -9125,8 +9125,8 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       };
 
       // Dome Bottom Rings (below symbol)
-      drawRing(0, 54, 140, 18);
-      drawRing(0, 84, 140, 18);
+      drawRing(0, 53.5, 140, 18);
+      drawRing(0, 83.5, 140, 18);
       
       // Dome Top Rings (above symbol) - moved down more
       drawRing(0, 190, 121.5, 16);
@@ -9135,8 +9135,8 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       // Cooling Tower Rings
       symDraw(() => {
           // Tower Bottom Rings
-          drawRing(-220, 54, 50, 10);
-          drawRing(-220, 84, 48, 9);
+          drawRing(-220, 53.5, 50, 10);
+          drawRing(-220, 83.5, 48, 9);
           
           // Tower Top Rings - moved down more
           drawRing(-220, 225, 38.5, 8);
