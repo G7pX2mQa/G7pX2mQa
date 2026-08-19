@@ -1,0 +1,80 @@
+/* css/misc/spreadsheet_mode.css */
+
+body.spreadsheet-mode:not(.menu-bg) {
+  /* Minimalist dark palette */
+  --bg-1: #000000 !important;
+  --bg-2: #000000 !important;
+  --bg-3: #000000 !important;
+  --panel: #000000 !important;
+  --card: #000000 !important;
+  --card-hover: #111111 !important;
+  --text-1: #ffffff !important;
+  --text-2: #cccccc !important;
+  --accent: #ffffff !important;
+  --accent-2: #ffffff !important;
+  --ring: #333333 !important;
+
+  /* Remove border radius */
+  --radius-lg: 0px !important;
+  --radius-md: 0px !important;
+  --radius-sm: 0px !important;
+
+  /* Remove shadows */
+  --shadow-1: none !important;
+  --shadow-2: none !important;
+
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Strip background images, shadows, and curves globally */
+body.spreadsheet-mode:not(.menu-bg) * {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  background-image: none !important; /* Removes gradients */
+}
+
+/* Hide background pattern and animations */
+body.spreadsheet-mode:not(.menu-bg)::after {
+  display: none !important;
+}
+
+/* Ensure structural elements mimic cells */
+body.spreadsheet-mode:not(.menu-bg) .menu-panel,
+body.spreadsheet-mode:not(.menu-bg) .card,
+body.spreadsheet-mode:not(.menu-bg) button,
+body.spreadsheet-mode:not(.menu-bg) .currency-row {
+  border: 1px solid #444 !important;
+  background: #000000 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+body.spreadsheet-mode:not(.menu-bg) button:hover,
+body.spreadsheet-mode:not(.menu-bg) .card:hover {
+  background-color: #111111 !important;
+}
+
+/* Only hide known fluff canvases, keeping Lab Tab and FPS Graph visible */
+body.spreadsheet-mode:not(.menu-bg) .cursor-trail-canvas,
+body.spreadsheet-mode:not(.menu-bg) .water-base,
+body.spreadsheet-mode:not(.menu-bg) #water-foreground,
+body.spreadsheet-mode:not(.menu-bg) #building-detail-canvas,
+body.spreadsheet-mode:not(.menu-bg) #building-keypad-canvas {
+  display: none !important;
+}
+
+/* Hide all images to prevent rasterization, but keep them clickable */
+body.spreadsheet-mode:not(.menu-bg) img {
+  opacity: 0 !important;
+}
+
+/* Center the building level text since the building graphics are hidden */
+body.spreadsheet-mode:not(.menu-bg) #building-detail-level-text {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+}
