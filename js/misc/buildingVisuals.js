@@ -9470,18 +9470,19 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         // Beams emit from the blade angle (0 degrees in this loop iteration)
         
-        let beamLength = 120 + 80 * pulse;
-        let beamGrad = ctx.createLinearGradient(bladeRadius, 0, beamLength, 0);
+        let beamLength = 180 + 140 * pulse;
+        let beamGrad = ctx.createRadialGradient(0, 0, bladeRadius, 0, 0, beamLength);
         beamGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
         beamGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
         beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
         
         ctx.fillStyle = beamGrad;
         ctx.beginPath();
-        ctx.moveTo(bladeRadius - 2, -12 - 8 * pulse);
-        ctx.lineTo(beamLength, -55 * pulse);
-        ctx.lineTo(beamLength, 55 * pulse);
-        ctx.lineTo(bladeRadius - 2, 12 + 8 * pulse);
+        // Trace the exact curved arc of the blade tip (tucked 1 pixel inside)
+        ctx.arc(0, 0, bladeRadius - 1, -Math.PI/6, Math.PI/6);
+        // Shoot outwards as a perfect radial wedge, giving it a curved outer edge
+        ctx.arc(0, 0, beamLength, Math.PI/6, -Math.PI/6, true);
+        ctx.closePath();
         ctx.fill();
         
         ctx.restore();
