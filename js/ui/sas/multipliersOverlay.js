@@ -97,7 +97,7 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
     row.className = "currency-row";
     row.dataset.key = key;
     if (config && config.bgGradient) {
-        row.style.setProperty("background", config.bgGradient, "important");
+        row.style.background = config.bgGradient;
     }
 
     const info = document.createElement("div");
