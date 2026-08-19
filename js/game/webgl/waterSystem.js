@@ -210,7 +210,9 @@ export class WaterSystem {
         }
 
         if (!this._spreadsheetUnsub) {
-            this._spreadsheetUnsub = settingsManager.subscribe("spreadsheet_mode", () => this.resize());
+            this._spreadsheetUnsub = settingsManager.subscribe("spreadsheet_mode", () => {
+                requestAnimationFrame(() => this.resize());
+            });
         }
 
         if (!this._spawnVesselsUnsub) {
