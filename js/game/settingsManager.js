@@ -458,6 +458,15 @@ export const SETTING_DEFINITIONS = {
         default: false,
         unlockCondition: () => true,
     },
+    spreadsheet_mode: {
+        type: "toggle",
+        label: "You Should Never Use This Setting",
+        overlay: "performance",
+        hasExtraInfo: true,
+        info: "I don't even know how to describe this setting. It makes the game barely playable. Reduces GPU usage though.",
+        default: false,
+        unlockCondition: () => true,
+    },
     graphics_quality: {
         type: "slider",
         label: "Graphics Quality",
@@ -704,7 +713,7 @@ class SettingsManager {
             this.notify(key, this.settings[key]);
         }
     }
-    get(key) {
+    get(key, raw = false) {
         if (
             !(key in SETTING_DEFINITIONS) &&
             !(
@@ -732,6 +741,17 @@ class SettingsManager {
             this.settings[key] = typeof def.default === "function" ? def.default() : def.default;
             this._isDefault[key] = true;
         }
+
+        if (
+            !raw &&
+            (key === "show_side_containers" || key === "disable_webgl") && 
+            this.settings["spreadsheet_mode"] === true
+        ) {
+            // For show_side_containers, we want it OFF (false)
+            // For disable_webgl (Reduced GPU), we want it ON (true)
+            return key === "disable_webgl" ? true : false;
+        }
+
         // For magnet_radius, we must ensure the saved value isn't greater than current max level.
         if (key === "magnet_radius") {
             const maxLvl = typeof def.max === "function" ? def.max() : def.max;
