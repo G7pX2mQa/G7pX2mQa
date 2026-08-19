@@ -9088,8 +9088,9 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   }
   // Shared Ring Drawing for Tier 1
   const ringPulse = 0.5 + 0.5 * Math.sin(t * 3);
-  const ringGlow = `rgba(255, 0, 0, ${0.5 + 0.5 * ringPulse})`;
-  const ringCore = '#ffaaaa';
+  const ringGlow = `rgba(255, 0, 0, ${0.3 + 0.7 * ringPulse})`;
+  const coreVal = Math.floor(120 + 50 * ringPulse);
+  const ringCore = `rgb(255, ${coreVal}, ${coreVal})`;
   
   const drawRings = (isBack) => {
       ctx.save();
