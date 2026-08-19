@@ -1,5 +1,5 @@
-import { createDropdown } from './dropdownUtils.js';
-import { settingsManager, SETTING_DEFINITIONS } from '../../game/settingsManager.js';
+import { createDropdown } from "./dropdownUtils.js";
+import { settingsManager, SETTING_DEFINITIONS } from "../../game/settingsManager.js";
 
 /**
  * Shared utility to render a specific subset of settings dynamically.
@@ -9,419 +9,443 @@ import { settingsManager, SETTING_DEFINITIONS } from '../../game/settingsManager
  * @param {Function[]} unsubscribers Array to store setting subscription cleanup functions
  */
 export function renderSettingsMenu(overlayEl, containerSelector, category, unsubscribers) {
-  if (!overlayEl) return;
-  const container = overlayEl.querySelector(containerSelector);
-  if (!container) return;
+    if (!overlayEl) return;
+    const container = overlayEl.querySelector(containerSelector);
+    if (!container) return;
 
-  container.innerHTML = '';
-  // Cleanup old listeners
-  while (unsubscribers.length > 0) {
-    unsubscribers.pop()();
-  }
-
-  const unlockConditionCheckers = [];
-
-  for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
-    const targetOverlay = def.overlay || "main";
-    if (def.type === "internal") continue;
-    if (targetOverlay !== category) continue;
-
-    const row = document.createElement("div");
-    row.className = "setting-row";
-    row.id = `setting_row_${key}`;
-
-    if (def.unlockCondition) {
-      if (!def.unlockCondition()) {
-        row.style.display = "none";
-      }
-      unlockConditionCheckers.push(() => {
-        if (def.unlockCondition()) {
-          row.style.display = "";
-        } else {
-          row.style.display = "none";
-        }
-      });
+    container.innerHTML = "";
+    // Cleanup old listeners
+    while (unsubscribers.length > 0) {
+        unsubscribers.pop()();
     }
 
-    if (def.type === "slider") {
-      row.classList.add("setting-row-slider");
-    } else if (def.type === "dropdown") {
-      row.classList.add("setting-row-dropdown");
-    }
+    const unlockConditionCheckers = [];
 
-    const desc = document.createElement("div");
-    desc.className = "setting-description";
-    
-    if (def.type === "toggle") {
-      const labelSpan = document.createElement("span");
-      // Use span instead of label so clicks on the empty space don't naturally trigger it.
-      // We will handle the span click manually via event listener on the row.
-      labelSpan.textContent = typeof def.label === 'function' ? def.label() : def.label;
-      labelSpan.style.cursor = "pointer";
-      labelSpan.className = "setting-text-label";
-      // This prevents the label from expanding to fill the rest of the flex container
-      labelSpan.style.flex = "0 1 auto";
-      // Explicitly set width to fit-content to be safe
-      labelSpan.style.width = "auto";
-      
-      desc.appendChild(labelSpan);
-    } else {
-      const labelSpan = document.createElement("span");
-      labelSpan.textContent = typeof def.label === 'function' ? def.label() : def.label;
-      desc.appendChild(labelSpan);
-    }
+    for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
+        const targetOverlay = def.overlay || "main";
+        if (def.type === "internal") continue;
+        if (targetOverlay !== category) continue;
 
-    if (def.hasExtraInfo && def.info) {
-      const infoIcon = document.createElement("span");
-      infoIcon.className = "setting-info-icon";
-      const infoIconImg = document.createElement("img");
-      infoIconImg.src = "img/misc/i.webp";
-      infoIconImg.style.width = "1.2em";
-      infoIconImg.style.height = "1.2em";
-      infoIconImg.style.display = "block";
-      infoIconImg.style.borderRadius = "50%";
-      infoIcon.appendChild(infoIconImg);
-      
-      const infoTooltip = document.createElement("div");
-      infoTooltip.className = "setting-info-tooltip";
-      infoTooltip.textContent = def.info;
-      
-      infoIcon.addEventListener("mouseenter", () => {
-        // Temporarily make visible to measure
-        infoTooltip.style.visibility = "hidden";
-        infoTooltip.style.display = "block";
-        infoTooltip.style.opacity = "0";
-        infoTooltip.style.maxHeight = "none";
-        infoTooltip.classList.remove("is-upwards");
-        
-        const tooltipHeight = infoTooltip.scrollHeight;
-        const rect = infoIcon.getBoundingClientRect();
-        
-        let scrollContainer = infoIcon.parentElement;
-        let containerRect = null;
-        while (scrollContainer && scrollContainer !== document.body) {
-          const style = window.getComputedStyle(scrollContainer);
-          if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-            containerRect = scrollContainer.getBoundingClientRect();
-            break;
-          }
-          scrollContainer = scrollContainer.parentElement;
+        const row = document.createElement("div");
+        row.className = "setting-row";
+        row.id = `setting_row_${key}`;
+
+        if (def.unlockCondition) {
+            if (!def.unlockCondition()) {
+                row.style.display = "none";
+            }
+            unlockConditionCheckers.push(() => {
+                if (def.unlockCondition()) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
         }
-        
-        let viewportBottom, viewportTop;
-        if (containerRect) {
-          viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
-          viewportTop = Math.max(0, containerRect.top);
+
+        if (def.type === "slider") {
+            row.classList.add("setting-row-slider");
+        } else if (def.type === "dropdown") {
+            row.classList.add("setting-row-dropdown");
+        }
+
+        const desc = document.createElement("div");
+        desc.className = "setting-description";
+
+        if (def.type === "toggle") {
+            const labelSpan = document.createElement("span");
+            // Use span instead of label so clicks on the empty space don't naturally trigger it.
+            // We will handle the span click manually via event listener on the row.
+            labelSpan.textContent = typeof def.label === "function" ? def.label() : def.label;
+            labelSpan.style.cursor = "pointer";
+            labelSpan.className = "setting-text-label";
+            // This prevents the label from expanding to fill the rest of the flex container
+            labelSpan.style.flex = "0 1 auto";
+            // Explicitly set width to fit-content to be safe
+            labelSpan.style.width = "auto";
+
+            desc.appendChild(labelSpan);
         } else {
-          viewportBottom = window.innerHeight;
-          viewportTop = 0;
-        }
-        
-        const spaceBelow = viewportBottom - rect.bottom - 10;
-        const spaceAbove = rect.top - viewportTop - 10;
-        
-        let renderUpwards = false;
-
-        if (tooltipHeight <= spaceBelow) {
-          renderUpwards = false;
-        } else if (tooltipHeight <= spaceAbove) {
-          renderUpwards = true;
-        } else {
-          if (spaceBelow >= spaceAbove) {
-            renderUpwards = false;
-          } else {
-            renderUpwards = true;
-          }
+            const labelSpan = document.createElement("span");
+            labelSpan.textContent = typeof def.label === "function" ? def.label() : def.label;
+            desc.appendChild(labelSpan);
         }
 
-        if (renderUpwards) {
-          infoTooltip.classList.add("is-upwards");
-        } else {
-          infoTooltip.classList.remove("is-upwards");
+        if (def.hasExtraInfo && def.info) {
+            const infoIcon = document.createElement("span");
+            infoIcon.className = "setting-info-icon";
+            const infoIconImg = document.createElement("img");
+            infoIconImg.src = "img/misc/i.webp";
+            infoIconImg.style.width = "1.2em";
+            infoIconImg.style.height = "1.2em";
+            infoIconImg.style.display = "block";
+            infoIconImg.style.borderRadius = "50%";
+            infoIcon.appendChild(infoIconImg);
+
+            const infoTooltip = document.createElement("div");
+            infoTooltip.className = "setting-info-tooltip";
+            infoTooltip.textContent = def.info;
+
+            infoIcon.addEventListener("mouseenter", () => {
+                // Temporarily make visible to measure
+                infoTooltip.style.visibility = "hidden";
+                infoTooltip.style.display = "block";
+                infoTooltip.style.opacity = "0";
+                infoTooltip.style.maxHeight = "none";
+                infoTooltip.classList.remove("is-upwards");
+
+                const tooltipHeight = infoTooltip.scrollHeight;
+                const rect = infoIcon.getBoundingClientRect();
+
+                let scrollContainer = infoIcon.parentElement;
+                let containerRect = null;
+                while (scrollContainer && scrollContainer !== document.body) {
+                    const style = window.getComputedStyle(scrollContainer);
+                    if (style.overflowY === "auto" || style.overflowY === "scroll") {
+                        containerRect = scrollContainer.getBoundingClientRect();
+                        break;
+                    }
+                    scrollContainer = scrollContainer.parentElement;
+                }
+
+                let viewportBottom, viewportTop;
+                if (containerRect) {
+                    viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
+                    viewportTop = Math.max(0, containerRect.top);
+                } else {
+                    viewportBottom = window.innerHeight;
+                    viewportTop = 0;
+                }
+
+                const spaceBelow = viewportBottom - rect.bottom - 10;
+                const spaceAbove = rect.top - viewportTop - 10;
+
+                let renderUpwards = false;
+
+                if (tooltipHeight <= spaceBelow) {
+                    renderUpwards = false;
+                } else if (tooltipHeight <= spaceAbove) {
+                    renderUpwards = true;
+                } else {
+                    if (spaceBelow >= spaceAbove) {
+                        renderUpwards = false;
+                    } else {
+                        renderUpwards = true;
+                    }
+                }
+
+                if (renderUpwards) {
+                    infoTooltip.classList.add("is-upwards");
+                } else {
+                    infoTooltip.classList.remove("is-upwards");
+                }
+
+                infoTooltip.style.maxHeight = "";
+                infoTooltip.style.overflowY = "";
+                infoTooltip.style.visibility = "";
+                infoTooltip.style.display = "block";
+                infoTooltip.style.opacity = "";
+                infoTooltip.classList.add("is-visible");
+                row.classList.add("has-visible-tooltip");
+            });
+
+            infoIcon.addEventListener("mouseleave", () => {
+                infoTooltip.style.display = "";
+                infoTooltip.classList.remove("is-visible");
+                row.classList.remove("has-visible-tooltip");
+            });
+
+            infoIcon.appendChild(infoTooltip);
+            desc.appendChild(infoIcon);
         }
-        
-        infoTooltip.style.maxHeight = "";
-        infoTooltip.style.overflowY = "";
-        infoTooltip.style.visibility = "";
-        infoTooltip.style.display = "block";
-        infoTooltip.style.opacity = "";
-        infoTooltip.classList.add("is-visible");
-        row.classList.add("has-visible-tooltip");
-      });
 
-      infoIcon.addEventListener("mouseleave", () => {
-        infoTooltip.style.display = "";
-        infoTooltip.classList.remove("is-visible");
-        row.classList.remove("has-visible-tooltip");
-      });
+        if (def.type === "toggle") {
+            const toggleContainer = document.createElement("div");
+            toggleContainer.className = "setting-toggle";
 
-      infoIcon.appendChild(infoTooltip);
-      desc.appendChild(infoIcon);
-    }
+            // We create a custom toggle switch
+            const toggleInput = document.createElement("input");
+            toggleInput.type = "checkbox";
+            toggleInput.className = "setting-toggle-input";
+            toggleInput.id = `setting_toggle_${key}`;
+            toggleInput.checked = settingsManager.get(key, true);
 
-    if (def.type === "toggle") {
-      const toggleContainer = document.createElement("div");
-      toggleContainer.className = "setting-toggle";
-      
-      // We create a custom toggle switch
-      const toggleInput = document.createElement("input");
-      toggleInput.type = "checkbox";
-      toggleInput.className = "setting-toggle-input";
-      toggleInput.id = `setting_toggle_${key}`;
-      toggleInput.checked = settingsManager.get(key);
+            const toggleLabel = document.createElement("label");
+            toggleLabel.htmlFor = `setting_toggle_${key}`;
+            toggleLabel.className = "setting-toggle-label";
 
-      const toggleLabel = document.createElement("label");
-      toggleLabel.htmlFor = `setting_toggle_${key}`;
-      toggleLabel.className = "setting-toggle-label";
+            toggleInput.addEventListener("change", (e) => {
+                settingsManager.set(key, e.target.checked);
+            });
 
-      toggleInput.addEventListener("change", (e) => {
-        settingsManager.set(key, e.target.checked);
-      });
+            // Optionally update input if setting changes from elsewhere while open
+            const unsub = settingsManager.subscribe(key, (newVal) => {
+                toggleInput.checked = newVal;
+            });
+            unsubscribers.push(unsub);
 
-      // Optionally update input if setting changes from elsewhere while open
-      const unsub = settingsManager.subscribe(key, (newVal) => {
-        toggleInput.checked = newVal;
-      });
-      unsubscribers.push(unsub);
+            toggleContainer.append(toggleInput, toggleLabel);
+            const clickGap = document.createElement("div");
+            clickGap.className = "setting-click-gap";
+            row.append(toggleContainer, clickGap, desc);
 
-      toggleContainer.append(toggleInput, toggleLabel);
-      const clickGap = document.createElement("div");
-      clickGap.className = "setting-click-gap";
-      row.append(toggleContainer, clickGap, desc);
+            row.style.cursor = "default";
+            desc.style.cursor = "default";
+            row.addEventListener("click", (e) => {
+                // Only allow clicking the actual row element (the gap) or the specific text label.
+                // Clicks strictly on `desc` will be ignored.
+                if (e.target === clickGap || e.target.classList.contains("setting-text-label")) {
+                    toggleInput.click();
+                }
+            });
+        } else if (def.type === "slider") {
+            const sliderWrapper = document.createElement("div");
+            sliderWrapper.className = "setting-slider-wrapper";
 
-      row.style.cursor = 'default';
-      desc.style.cursor = 'default';
-      row.addEventListener('click', (e) => {
-        // Only allow clicking the actual row element (the gap) or the specific text label.
-        // Clicks strictly on `desc` will be ignored.
-        if (e.target === clickGap || e.target.classList.contains('setting-text-label')) {
-          toggleInput.click();
-        }
-      });
-    } else if (def.type === "slider") {
-      const sliderWrapper = document.createElement("div");
-      sliderWrapper.className = "setting-slider-wrapper";
+            const sliderContainer = document.createElement("div");
+            sliderContainer.className = "setting-slider-container";
 
-      const sliderContainer = document.createElement("div");
-      sliderContainer.className = "setting-slider-container";
+            const defMin = typeof def.min === "function" ? def.min() : def.min;
+            const defMax = typeof def.max === "function" ? def.max() : def.max;
 
-      const defMin = typeof def.min === 'function' ? def.min() : def.min;
-      const defMax = typeof def.max === 'function' ? def.max() : def.max;
-      
-      const sliderInput = document.createElement("input");
-      sliderInput.type = "range";
-      sliderInput.className = "setting-slider-input";
-      sliderInput.id = `setting_slider_${key}`;
-      sliderInput.min = defMin;
-      sliderInput.max = defMax;
-      sliderInput.step = def.step;
-      sliderInput.value = settingsManager.get(key);
-      
-      // Create thumb label element first so updateSliderProgress can use it
-      const thumbLabel = document.createElement("div");
-      thumbLabel.className = "setting-slider-thumb-label";
+            const sliderInput = document.createElement("input");
+            sliderInput.type = "range";
+            sliderInput.className = "setting-slider-input";
+            sliderInput.id = `setting_slider_${key}`;
+            sliderInput.min = defMin;
+            sliderInput.max = defMax;
+            sliderInput.step = def.step;
+            sliderInput.value = settingsManager.get(key);
 
-      // Create a visual track element (since the input will be made transparent and wider)
-      const visualTrack = document.createElement("div");
-      visualTrack.className = "setting-slider-visual-track";
+            // Create thumb label element first so updateSliderProgress can use it
+            const thumbLabel = document.createElement("div");
+            thumbLabel.className = "setting-slider-thumb-label";
 
-      const updateSliderProgress = () => {
-        const val = parseFloat(sliderInput.value);
-        const min = parseFloat(sliderInput.min);
-        const max = parseFloat(sliderInput.max);
-        const percentage = ((val - min) / (max - min)) * 100;
-        
-        // Apply progress variable to the container so both track and input can use it
-        sliderContainer.style.setProperty('--slider-progress', `${percentage}%`);
-        
-        // Update the thumb label text
-        thumbLabel.textContent = val;
-        
-        // Since the input range is now wider by exactly 36px (width of thumb) 
-        // and shifted left by 18px, the center of the thumb natively travels exactly 
-        // from 0% of the *container's* width to 100% of the *container's* width.
-        // So the label just needs to follow the percentage exactly.
-        thumbLabel.style.left = `${percentage}%`; 
-        
-        let thumbColor;
-        // Hex to RGB conversion for vibrant track colors:
-        // Vibrant Red (#ff2a2a): 255, 42, 42
-        // Vibrant Yellow (#ffea00): 255, 234, 0
-        // Vibrant Green (#24e524): 36, 229, 36
-        const cRed = [255, 42, 42];
-        const cYellow = [255, 234, 0];
-        const cGreen = [36, 229, 36];
+            // Create a visual track element (since the input will be made transparent and wider)
+            const visualTrack = document.createElement("div");
+            visualTrack.className = "setting-slider-visual-track";
 
-        if (percentage <= 50) {
-          // Interpolate Red to Yellow
-          const ratio = percentage / 50;
-          const r = Math.round(cRed[0] + (cYellow[0] - cRed[0]) * ratio);
-          const g = Math.round(cRed[1] + (cYellow[1] - cRed[1]) * ratio);
-          const b = Math.round(cRed[2] + (cYellow[2] - cRed[2]) * ratio);
-          thumbColor = `rgb(${r}, ${g}, ${b})`;
-        } else {
-          // Interpolate Yellow to Green
-          const ratio = (percentage - 50) / 50;
-          const r = Math.round(cYellow[0] + (cGreen[0] - cYellow[0]) * ratio);
-          const g = Math.round(cYellow[1] + (cGreen[1] - cYellow[1]) * ratio);
-          const b = Math.round(cYellow[2] + (cGreen[2] - cYellow[2]) * ratio);
-          thumbColor = `rgb(${r}, ${g}, ${b})`;
-        }
-        sliderContainer.style.setProperty('--slider-thumb-color', thumbColor);
-      };
+            const updateSliderProgress = () => {
+                let val = parseFloat(sliderInput.value);
+                const min = parseFloat(sliderInput.min);
+                const max = parseFloat(sliderInput.max);
+                let percentage = ((val - min) / (max - min)) * 100;
 
-      sliderInput.addEventListener("input", (e) => {
-        if (key !== "graphics_quality") { settingsManager.set(key, parseFloat(e.target.value)); }
-        updateSliderProgress();
-      });
+                if (key === "graphics_quality" && settingsManager.get("spreadsheet_mode")) {
+                    val = "💀";
+                    percentage = 0;
+                    sliderInput.disabled = true;
+                    sliderInput.value = min;
+                } else {
+                    sliderInput.disabled = false;
+                }
 
-      sliderInput.addEventListener("change", (e) => {
-        settingsManager.set(key, parseFloat(e.target.value));
-        updateSliderProgress();
-      });
+                // Apply progress variable to the container so both track and input can use it
+                sliderContainer.style.setProperty("--slider-progress", `${percentage}%`);
 
-      let pointerDownPos = null;
-      sliderInput.addEventListener('pointerdown', (e) => {
-        pointerDownPos = { x: e.clientX, y: e.clientY };
-      });
-      sliderInput.addEventListener('pointerup', (e) => {
-        if (!pointerDownPos) return;
-        const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-        if (dist < 5) {
-          const rect = sliderContainer.getBoundingClientRect();
-          let pct = (e.clientX - rect.left) / rect.width;
-          pct = Math.max(0, Math.min(1, pct));
-          const min = parseFloat(sliderInput.min);
-          const max = parseFloat(sliderInput.max);
-          const step = parseFloat(sliderInput.step) || 1;
-          
-          let val = min + pct * (max - min);
-          val = min + Math.round((val - min) / step) * step;
-          val = Math.max(min, Math.min(max, val));
-          
-          if (parseFloat(sliderInput.value) !== val) {
-            sliderInput.value = val;
-            settingsManager.set(key, val);
-            updateSliderProgress();
-          }
-        }
-        pointerDownPos = null;
-      });
+                // Update the thumb label text
+                thumbLabel.textContent = val;
 
-      const labelsContainer = document.createElement("div");
-      labelsContainer.className = "setting-slider-labels";
-      
-      const minLabel = document.createElement("div");
-      minLabel.className = "slider-label slider-label-min";
-      minLabel.innerHTML = `<span>${defMin}</span>`;
-      
-      const midVal = (parseFloat(defMin) + parseFloat(defMax)) / 2;
-      const midLabel = document.createElement("div");
-      midLabel.className = "slider-label slider-label-mid";
-      midLabel.innerHTML = `<span>${midVal}</span>`;
-      
-      const maxLabel = document.createElement("div");
-      maxLabel.className = "slider-label slider-label-max";
-      maxLabel.innerHTML = `<span>${defMax}</span>`;
-      
-      labelsContainer.append(minLabel, midLabel, maxLabel);
-      
-      const unsub = settingsManager.subscribe(key, (newVal) => {
-        if (typeof def.max === 'function') {
-          const currentDefMax = def.max();
-          sliderInput.max = currentDefMax;
-          const currentDefMin = typeof def.min === 'function' ? def.min() : def.min;
-          sliderInput.min = currentDefMin;
-          const currentMidVal = (parseFloat(currentDefMin) + parseFloat(currentDefMax)) / 2;
-          
-          minLabel.innerHTML = `<span>${currentDefMin}</span>`;
-          midLabel.innerHTML = `<span>${currentMidVal}</span>`;
-          maxLabel.innerHTML = `<span>${currentDefMax}</span>`;
-        }
-        sliderInput.value = newVal;
-        updateSliderProgress();
-      });
-      unsubscribers.push(unsub);
+                // Since the input range is now wider by exactly 36px (width of thumb)
+                // and shifted left by 18px, the center of the thumb natively travels exactly
+                // from 0% of the *container's* width to 100% of the *container's* width.
+                // So the label just needs to follow the percentage exactly.
+                thumbLabel.style.left = `${percentage}%`;
 
-      const markersContainer = document.createElement("div");
-      markersContainer.className = "setting-slider-markers";
-      markersContainer.innerHTML = `
+                let thumbColor;
+                // Hex to RGB conversion for vibrant track colors:
+                // Vibrant Red (#ff2a2a): 255, 42, 42
+                // Vibrant Yellow (#ffea00): 255, 234, 0
+                // Vibrant Green (#24e524): 36, 229, 36
+                const cRed = [255, 42, 42];
+                const cYellow = [255, 234, 0];
+                const cGreen = [36, 229, 36];
+
+                if (percentage <= 50) {
+                    // Interpolate Red to Yellow
+                    const ratio = percentage / 50;
+                    const r = Math.round(cRed[0] + (cYellow[0] - cRed[0]) * ratio);
+                    const g = Math.round(cRed[1] + (cYellow[1] - cRed[1]) * ratio);
+                    const b = Math.round(cRed[2] + (cYellow[2] - cRed[2]) * ratio);
+                    thumbColor = `rgb(${r}, ${g}, ${b})`;
+                } else {
+                    // Interpolate Yellow to Green
+                    const ratio = (percentage - 50) / 50;
+                    const r = Math.round(cYellow[0] + (cGreen[0] - cYellow[0]) * ratio);
+                    const g = Math.round(cYellow[1] + (cGreen[1] - cYellow[1]) * ratio);
+                    const b = Math.round(cYellow[2] + (cGreen[2] - cYellow[2]) * ratio);
+                    thumbColor = `rgb(${r}, ${g}, ${b})`;
+                }
+                sliderContainer.style.setProperty("--slider-thumb-color", thumbColor);
+            };
+
+            sliderInput.addEventListener("input", (e) => {
+                if (key !== "graphics_quality") {
+                    settingsManager.set(key, parseFloat(e.target.value));
+                }
+                updateSliderProgress();
+            });
+
+            sliderInput.addEventListener("change", (e) => {
+                settingsManager.set(key, parseFloat(e.target.value));
+                updateSliderProgress();
+            });
+
+            let pointerDownPos = null;
+            sliderInput.addEventListener("pointerdown", (e) => {
+                pointerDownPos = { x: e.clientX, y: e.clientY };
+            });
+            sliderInput.addEventListener("pointerup", (e) => {
+                if (!pointerDownPos) return;
+                const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+                if (dist < 5) {
+                    const rect = sliderContainer.getBoundingClientRect();
+                    let pct = (e.clientX - rect.left) / rect.width;
+                    pct = Math.max(0, Math.min(1, pct));
+                    const min = parseFloat(sliderInput.min);
+                    const max = parseFloat(sliderInput.max);
+                    const step = parseFloat(sliderInput.step) || 1;
+
+                    let val = min + pct * (max - min);
+                    val = min + Math.round((val - min) / step) * step;
+                    val = Math.max(min, Math.min(max, val));
+
+                    if (parseFloat(sliderInput.value) !== val) {
+                        sliderInput.value = val;
+                        settingsManager.set(key, val);
+                        updateSliderProgress();
+                    }
+                }
+                pointerDownPos = null;
+            });
+
+            const labelsContainer = document.createElement("div");
+            labelsContainer.className = "setting-slider-labels";
+
+            const minLabel = document.createElement("div");
+            minLabel.className = "slider-label slider-label-min";
+            minLabel.innerHTML = `<span>${defMin}</span>`;
+
+            const midVal = (parseFloat(defMin) + parseFloat(defMax)) / 2;
+            const midLabel = document.createElement("div");
+            midLabel.className = "slider-label slider-label-mid";
+            midLabel.innerHTML = `<span>${midVal}</span>`;
+
+            const maxLabel = document.createElement("div");
+            maxLabel.className = "slider-label slider-label-max";
+            maxLabel.innerHTML = `<span>${defMax}</span>`;
+
+            labelsContainer.append(minLabel, midLabel, maxLabel);
+
+            const unsub = settingsManager.subscribe(key, (newVal) => {
+                if (typeof def.max === "function") {
+                    const currentDefMax = def.max();
+                    sliderInput.max = currentDefMax;
+                    const currentDefMin = typeof def.min === "function" ? def.min() : def.min;
+                    sliderInput.min = currentDefMin;
+                    const currentMidVal = (parseFloat(currentDefMin) + parseFloat(currentDefMax)) / 2;
+
+                    minLabel.innerHTML = `<span>${currentDefMin}</span>`;
+                    midLabel.innerHTML = `<span>${currentMidVal}</span>`;
+                    maxLabel.innerHTML = `<span>${currentDefMax}</span>`;
+                }
+                sliderInput.value = newVal;
+                updateSliderProgress();
+            });
+            unsubscribers.push(unsub);
+
+            const markersContainer = document.createElement("div");
+            markersContainer.className = "setting-slider-markers";
+            markersContainer.innerHTML = `
         <div class="slider-marker marker-min"></div>
         <div class="slider-marker marker-mid"></div>
         <div class="slider-marker marker-max"></div>
       `;
-      
-      sliderContainer.append(visualTrack, markersContainer, sliderInput, thumbLabel, labelsContainer);
-      sliderWrapper.appendChild(sliderContainer);
-      
-      // Space for gap layout consistency
-      const gapEl = document.createElement("div");
-      gapEl.style.width = "32px";
-      gapEl.style.height = "100%";
-      row.append(sliderWrapper, gapEl, desc);
 
-      // Initial update
-      updateSliderProgress();
-    } else if (def.type === "dropdown") {
-      const getOpts = () => {
-        if (def.getOptions) return def.getOptions();
-        return def.options || [];
-      };
+            sliderContainer.append(visualTrack, markersContainer, sliderInput, thumbLabel, labelsContainer);
+            sliderWrapper.appendChild(sliderContainer);
 
-      const { wrapper, cleanup } = createDropdown({
-        getOptions: getOpts,
-        getValue: () => settingsManager.get(key),
-        setValue: (val) => settingsManager.set(key, val),
-        subscribe: (callback) => {
-          const unsub = settingsManager.subscribe(key, callback);
-          return unsub;
+            // Space for gap layout consistency
+            const gapEl = document.createElement("div");
+            gapEl.style.width = "32px";
+            gapEl.style.height = "100%";
+            row.append(sliderWrapper, gapEl, desc);
+
+            // Initial update
+            updateSliderProgress();
+
+            if (key === "graphics_quality") {
+                const unsubSpreadsheet = settingsManager.subscribe("spreadsheet_mode", () => {
+                    sliderInput.value = settingsManager.get(key, true);
+                    updateSliderProgress();
+                });
+                unsubscribers.push(unsubSpreadsheet);
+            }
+        } else if (def.type === "dropdown") {
+            const getOpts = () => {
+                if (def.getOptions) return def.getOptions();
+                return def.options || [];
+            };
+
+            const { wrapper, cleanup } = createDropdown({
+                getOptions: getOpts,
+                getValue: () => settingsManager.get(key),
+                setValue: (val) => settingsManager.set(key, val),
+                subscribe: (callback) => {
+                    const unsub = settingsManager.subscribe(key, callback);
+                    return unsub;
+                },
+            });
+            unsubscribers.push(cleanup);
+
+            // Space for gap layout consistency
+            const gapEl = document.createElement("div");
+            gapEl.style.width = "32px";
+            gapEl.style.height = "100%";
+            row.append(wrapper, gapEl, desc);
+        } else {
+            row.append(desc);
         }
-      });
-      unsubscribers.push(cleanup);
-
-      // Space for gap layout consistency
-      const gapEl = document.createElement("div");
-      gapEl.style.width = "32px";
-      gapEl.style.height = "100%";
-      row.append(wrapper, gapEl, desc);
-    } else {
-      row.append(desc);
+        container.appendChild(row);
     }
-    container.appendChild(row);
-  }
-  const updateUnlockConditions = () => {
-    unlockConditionCheckers.forEach(fn => fn());
-  };
+    const updateUnlockConditions = () => {
+        unlockConditionCheckers.forEach((fn) => fn());
+    };
 
-  const updateEvents = [
-    "forge:completed",
-    "infuse:completed",
-    "surge:completed",
-    "unlock:change",
-    "saveSlot:change",
-    "lab:node:change",
-    "ccc:upgrades:changed"
-  ];
+    const updateEvents = [
+        "forge:completed",
+        "infuse:completed",
+        "surge:completed",
+        "unlock:change",
+        "saveSlot:change",
+        "lab:node:change",
+        "ccc:upgrades:changed",
+    ];
 
-  updateEvents.forEach(evt => { window.addEventListener(evt, updateUnlockConditions); document.addEventListener(evt, updateUnlockConditions); });
+    updateEvents.forEach((evt) => {
+        window.addEventListener(evt, updateUnlockConditions);
+        document.addEventListener(evt, updateUnlockConditions);
+    });
 
-  unsubscribers.push(() => {
-    updateEvents.forEach(evt => { window.removeEventListener(evt, updateUnlockConditions); document.removeEventListener(evt, updateUnlockConditions); });
-  });
+    unsubscribers.push(() => {
+        updateEvents.forEach((evt) => {
+            window.removeEventListener(evt, updateUnlockConditions);
+            document.removeEventListener(evt, updateUnlockConditions);
+        });
+    });
 
+    // Handle closing the dropdowns when clicking outside
+    const handleOutsideClick = (e) => {
+        if (!e.target.closest(".setting-dropdown-wrapper")) {
+            document.querySelectorAll(".setting-dropdown-menu.is-open").forEach((menu) => {
+                menu.classList.remove("is-open");
+            });
+        }
+    };
 
-  // Handle closing the dropdowns when clicking outside
-  const handleOutsideClick = (e) => {
-    if (!e.target.closest('.setting-dropdown-wrapper')) {
-      document.querySelectorAll('.setting-dropdown-menu.is-open').forEach(menu => {
-        menu.classList.remove('is-open');
-      });
-    }
-  };
-  
-  overlayEl.addEventListener('click', handleOutsideClick);
-  
-  unsubscribers.push(() => {
-    overlayEl.removeEventListener('click', handleOutsideClick);
-  });
+    overlayEl.addEventListener("click", handleOutsideClick);
+
+    unsubscribers.push(() => {
+        overlayEl.removeEventListener("click", handleOutsideClick);
+    });
 }
