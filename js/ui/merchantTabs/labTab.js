@@ -1111,8 +1111,8 @@ class LabSystem {
             setHtmlOrText(this.overlayActiveStatus, `Currently active: ${active ? "Yes" : "No"}`);
             this.overlayActiveStatus.style.color = active ? "#4f4" : "#f44";
             this.overlayActiveStatus.style.webkitTextFillColor = active ? "#4f4" : "#f44";
-            const rpFmt = rp.cmp(1e9) > 0 ? formatNumber(rp) : rp.toString();
-            const reqFmt = req.isInfinite?.() ? "Infinity" : req.cmp(1e9) > 0 ? formatNumber(req) : req.toString();
+            const rpFmt = formatNumber(rp);
+            const reqFmt = req.isInfinite?.() ? "Infinity" : formatNumber(req);
             setHtmlOrText(this.overlayProgressCurrent, rpFmt);
             setHtmlOrText(this.overlayProgressMax, reqFmt);
         }
