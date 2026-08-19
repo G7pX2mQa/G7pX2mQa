@@ -1,102 +1,100 @@
 // js/game/spawnerCore.js
-import { IS_MOBILE, IS_FIREFOX } from '../util/platformChecker.js';
-import { settingsManager } from './settingsManager.js';
+import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
+import { settingsManager } from "./settingsManager.js";
 
 export const MAX_ACTIVE_ITEMS_MOBILE = 2500;
 export const MAX_VISUALS = 15;
 
 export function easeOutCubic(t) {
-  const f = 1 - t;
-  return 1 - f * f * f;
+    const f = 1 - t;
+    return 1 - f * f * f;
 }
 
-export const CUBIC_BEZIER = 'cubic-bezier(0.215, 0.61, 0.355, 1)';
+export const CUBIC_BEZIER = "cubic-bezier(0.215, 0.61, 0.355, 1)";
 
 export function getCanvasSmoothingQuality() {
-    const quality = settingsManager.get('graphics_quality');
-    if (quality === undefined) return 'high';
-    if (quality >= 8) return 'high';
-    if (quality >= 4) return 'medium';
-    return 'low';
+    const quality = settingsManager.get("graphics_quality");
+    if (quality === undefined) return "high";
+    if (quality >= 8) return "high";
+    if (quality >= 4) return "medium";
+    return "low";
 }
 
 const imgCache = new Map();
 
 export function getImage(src) {
-  if (!src) return null;
-  let img = imgCache.get(src);
-  if (!img) {
-    img = new Image();
-    img.src = src;
-    imgCache.set(src, img);
-  }
-  return img;
+    if (!src) return null;
+    let img = imgCache.get(src);
+    if (!img) {
+        img = new Image();
+        img.src = src;
+        imgCache.set(src, img);
+    }
+    return img;
 }
-
 
 // Pre-rendered offscreen canvases for items
 const preRenderedItems = new Map();
 const preRenderedItemUrls = new Map();
-
 
 export function clearPreRenderedItems() {
     preRenderedItems.clear();
     preRenderedItemUrls.clear();
 }
 export function getPreRenderedItemUrl(src, size) {
-    if (!src || typeof document === 'undefined') return src;
-    
+    if (!src || typeof document === "undefined") return src;
+
     let resolutionScale = 1;
-    if (typeof settingsManager !== 'undefined') {
-        const quality = settingsManager.get('graphics_quality') ?? 10;
+    if (typeof settingsManager !== "undefined") {
+        const quality = settingsManager.get("graphics_quality") ?? 10;
         if (quality < 4) resolutionScale = 0.5;
         else if (quality < 8) resolutionScale = 0.75;
     }
     if (resolutionScale === 1) return src;
-    
+
     let sizeMap = preRenderedItemUrls.get(src);
     if (!sizeMap) {
         sizeMap = new Map();
         preRenderedItemUrls.set(src, sizeMap);
     }
-    
+
     let url = sizeMap.get(size);
     if (!url) {
         const canvas = getPreRenderedItem(src, size);
         if (canvas && canvas instanceof HTMLCanvasElement) {
-            url = canvas.toDataURL('image/webp');
+            url = canvas.toDataURL("image/webp");
             sizeMap.set(size, url);
         } else {
             return src; // Fallback if still loading
         }
     }
-    
+
     return url;
 }
 
 export function getPreRenderedItem(src, size) {
-    if (!src || typeof document === 'undefined') return null;
-    
+    if (!src || typeof document === "undefined") return null;
+
     let sizeMap = preRenderedItems.get(src);
     if (!sizeMap) {
         sizeMap = new Map();
         preRenderedItems.set(src, sizeMap);
     }
-    
+
     let canvas = sizeMap.get(size);
     if (!canvas) {
         const img = getImage(src);
         if (!img || !img.complete || img.naturalWidth === 0) {
             if (img && !img.complete) {
-                img.addEventListener('load', () => getPreRenderedItem(src, size), { once: true });
+                img.addEventListener("load", () => getPreRenderedItem(src, size), { once: true });
             }
-            return img; 
+            return img;
         }
-        
+
         let resolutionScale = 1;
         let isMaxQuality = false;
-        if (typeof settingsManager !== 'undefined') {
-            const quality = settingsManager.get('graphics_quality') ?? 10;
+        if (typeof settingsManager !== "undefined") {
+            const quality = settingsManager.get("graphics_quality") ?? 10;
             if (quality === 10) {
                 isMaxQuality = true;
             } else if (quality < 4) {
@@ -105,7 +103,7 @@ export function getPreRenderedItem(src, size) {
                 resolutionScale = 0.75;
             }
         }
-        
+
         let dpr;
         if (isMaxQuality) {
             const baseDpr = Math.max(Math.min(window.devicePixelRatio || 1, 2), 1);
@@ -114,39 +112,39 @@ export function getPreRenderedItem(src, size) {
             const baseDpr = Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1);
             dpr = baseDpr * resolutionScale;
         }
-        
-        canvas = document.createElement('canvas');
+
+        canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.floor(size * dpr));
         canvas.height = Math.max(1, Math.floor(size * dpr));
-        
-        const ctx = canvas.getContext('2d');
+
+        const ctx = canvas.getContext("2d");
         ctx.scale(dpr, dpr);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
-        
+
         let curWidth = img.naturalWidth;
         let curHeight = img.naturalHeight;
         let targetWidth = size * dpr;
-        
+
         if (IS_FIREFOX && curWidth > targetWidth * 2) {
-            let tempCanvas = document.createElement('canvas');
+            let tempCanvas = document.createElement("canvas");
             tempCanvas.width = curWidth;
             tempCanvas.height = curHeight;
-            let tempCtx = tempCanvas.getContext('2d');
+            let tempCtx = tempCanvas.getContext("2d");
             tempCtx.drawImage(img, 0, 0);
-            
+
             while (curWidth > targetWidth * 2) {
                 let nextWidth = Math.max(1, Math.floor(curWidth / 2));
                 let nextHeight = Math.max(1, Math.floor(curHeight / 2));
-                
-                let nextCanvas = document.createElement('canvas');
+
+                let nextCanvas = document.createElement("canvas");
                 nextCanvas.width = nextWidth;
                 nextCanvas.height = nextHeight;
-                let nextCtx = nextCanvas.getContext('2d');
+                let nextCtx = nextCanvas.getContext("2d");
                 nextCtx.imageSmoothingEnabled = true;
                 nextCtx.imageSmoothingQuality = getCanvasSmoothingQuality();
                 nextCtx.drawImage(tempCanvas, 0, 0, curWidth, curHeight, 0, 0, nextWidth, nextHeight);
-                
+
                 curWidth = nextWidth;
                 curHeight = nextHeight;
                 tempCanvas = nextCanvas;
@@ -155,18 +153,18 @@ export function getPreRenderedItem(src, size) {
         } else {
             ctx.drawImage(img, 0, 0, size, size);
         }
-        
+
         sizeMap.set(size, canvas);
     }
-    
+
     return canvas;
 }
 
 export function createBaseSpawner(config = {}) {
     const {
-        playfieldSelector = '.playfield',
-        waterSelector = '#water-background',
-        itemsHostSelector = '.coins-layer', // Generic name
+        playfieldSelector = ".playfield",
+        waterSelector = "#water-background",
+        itemsHostSelector = ".coins-layer", // Generic name
         baseItemSize = 40,
         animationDurationMs = 1500,
         itemsPerSecond = 1,
@@ -176,7 +174,7 @@ export function createBaseSpawner(config = {}) {
         itemTtlMs = 1e99,
         shouldAutoResume = () => true,
         numLayers = 7, // For z-index canvas layers
-        
+
         // Hooks
         onPlanSpawn = () => null,
         onCommitBatch = () => {},
@@ -187,18 +185,18 @@ export function createBaseSpawner(config = {}) {
         onEnsureItemVisual = () => {},
         onRemoveItem = () => {},
         onClearPlayfield = () => {},
-        onDrawHitbox = null
+        onDrawHitbox = null,
     } = config;
 
-    if (typeof onDrawHitbox !== 'function') {
-        throw new Error('[BaseSpawner] Fatal: onDrawHitbox must be defined in the spawner configuration.');
+    if (typeof onDrawHitbox !== "function") {
+        throw new Error("[BaseSpawner] Fatal: onDrawHitbox must be defined in the spawner configuration.");
     }
 
     const refs = {
         pf: document.querySelector(playfieldSelector),
         w: document.querySelector(waterSelector),
         c: document.querySelector(itemsHostSelector),
-        hud: document.getElementById('hud-bottom-wrapper') || document.getElementById('hud-bottom'),
+        hud: document.getElementById("hud-bottom-wrapper") || document.getElementById("hud-bottom"),
     };
 
     function validRefs() {
@@ -206,8 +204,10 @@ export function createBaseSpawner(config = {}) {
     }
 
     if (!validRefs()) {
-        console.warn('[BaseSpawner] Missing required nodes. Check selectors:', {
-            playfieldSelector, waterSelector, itemsHostSelector
+        console.warn("[BaseSpawner] Missing required nodes. Check selectors:", {
+            playfieldSelector,
+            waterSelector,
+            itemsHostSelector,
         });
     }
 
@@ -216,29 +216,29 @@ export function createBaseSpawner(config = {}) {
     const inMemoryCanvases = [];
     const inMemoryContexts = [];
     let staticCanvasDirty = false;
-    
+
     const _reusableStaticBuckets = [];
     const _reusableDynamicBuckets = [];
 
     if (refs.c) {
-        const canvas = document.createElement('canvas');
-        canvas.style.position = 'absolute';
-        canvas.style.inset = '0';
-        canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '10'; 
+        const canvas = document.createElement("canvas");
+        canvas.style.position = "absolute";
+        canvas.style.inset = "0";
+        canvas.style.pointerEvents = "none";
+        canvas.style.zIndex = "10";
         refs.c.appendChild(canvas);
-        
-        const ctx = canvas.getContext('2d', { alpha: true });
+
+        const ctx = canvas.getContext("2d", { alpha: true });
         canvases.push(canvas);
         contexts.push(ctx);
     }
 
     function getInMemoryContext(layer, w, h, dpr) {
         if (!inMemoryCanvases[layer]) {
-            const canvas = document.createElement('canvas');
+            const canvas = document.createElement("canvas");
             canvas.width = w;
             canvas.height = h;
-            const ctx = canvas.getContext('2d', { alpha: true });
+            const ctx = canvas.getContext("2d", { alpha: true });
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
             ctx.imageSmoothingEnabled = true;
@@ -252,20 +252,20 @@ export function createBaseSpawner(config = {}) {
     let fxCanvas = null;
     let fxCtx = null;
     if (refs.c) {
-        fxCanvas = document.createElement('canvas');
-        fxCanvas.style.position = 'absolute';
-        fxCanvas.style.inset = '0';
-        fxCanvas.style.pointerEvents = 'none';
-        fxCanvas.style.zIndex = '100'; 
+        fxCanvas = document.createElement("canvas");
+        fxCanvas.style.position = "absolute";
+        fxCanvas.style.inset = "0";
+        fxCanvas.style.pointerEvents = "none";
+        fxCanvas.style.zIndex = "100";
         refs.c.appendChild(fxCanvas);
-        fxCtx = fxCanvas.getContext('2d', { alpha: true });
+        fxCtx = fxCanvas.getContext("2d", { alpha: true });
     }
 
     let M = {
         pfRect: null,
         wRect: null,
         safeBottom: 0,
-        pfW: 0
+        pfW: 0,
     };
 
     function computeMetrics() {
@@ -278,7 +278,7 @@ export function createBaseSpawner(config = {}) {
             pfRect,
             wRect,
             safeBottom: pfRect.height - hudH,
-            pfW: pfRect.width
+            pfW: pfRect.width,
         };
 
         let dpr = Math.max(Math.min(window.devicePixelRatio || 1, 2.0), 1); // HARD CAP DPR to 2.0 to save VRAM
@@ -290,18 +290,23 @@ export function createBaseSpawner(config = {}) {
                 dpr = Math.max(0.75, dpr * 0.75);
             }
         }
-        
+
+        let isSpreadsheet = false;
+        if (typeof settingsManager !== "undefined" && settingsManager.get("spreadsheet_mode")) {
+            isSpreadsheet = true;
+        }
+
         canvases.forEach((canvas, i) => {
             if (canvas) {
-                canvas.width = pfRect.width * dpr;
-                canvas.height = pfRect.height * dpr;
-                canvas.style.width = pfRect.width + 'px';
-                canvas.style.height = pfRect.height + 'px';
-                
+                canvas.width = isSpreadsheet ? 1 : pfRect.width * dpr;
+                canvas.height = isSpreadsheet ? 1 : pfRect.height * dpr;
+                canvas.style.width = pfRect.width + "px";
+                canvas.style.height = pfRect.height + "px";
+
                 const ctx = contexts[i];
                 if (ctx) {
                     ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    ctx.scale(dpr, dpr);
+                    if (!isSpreadsheet) ctx.scale(dpr, dpr);
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
                 }
@@ -311,31 +316,31 @@ export function createBaseSpawner(config = {}) {
         for (let i = 0; i < inMemoryCanvases.length; i++) {
             const canvas = inMemoryCanvases[i];
             if (canvas) {
-                canvas.width = pfRect.width * dpr;
-                canvas.height = pfRect.height * dpr;
-                
+                canvas.width = isSpreadsheet ? 1 : pfRect.width * dpr;
+                canvas.height = isSpreadsheet ? 1 : pfRect.height * dpr;
+
                 const ctx = inMemoryContexts[i];
                 if (ctx) {
                     ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    ctx.scale(dpr, dpr);
+                    if (!isSpreadsheet) ctx.scale(dpr, dpr);
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
                 }
             }
         }
-        
+
         staticCanvasDirty = true;
 
         if (fxCanvas) {
-             fxCanvas.width = pfRect.width * dpr;
-             fxCanvas.height = pfRect.height * dpr;
-             fxCanvas.style.width = pfRect.width + 'px';
-             fxCanvas.style.height = pfRect.height + 'px';
-             
-             if (fxCtx) {
-                 fxCtx.setTransform(1, 0, 0, 1, 0, 0);
-                 fxCtx.scale(dpr, dpr);
-             }
+            fxCanvas.width = isSpreadsheet ? 1 : pfRect.width * dpr;
+            fxCanvas.height = isSpreadsheet ? 1 : pfRect.height * dpr;
+            fxCanvas.style.width = pfRect.width + "px";
+            fxCanvas.style.height = pfRect.height + "px";
+
+            if (fxCtx) {
+                fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+                if (!isSpreadsheet) fxCtx.scale(dpr, dpr);
+            }
         }
 
         return true;
@@ -343,10 +348,9 @@ export function createBaseSpawner(config = {}) {
 
     computeMetrics();
 
-    const ro = 'ResizeObserver' in window ? new ResizeObserver(() => computeMetrics()) : null;
-    if (ro && refs.pf)
-        ro.observe(refs.pf);
-    document.addEventListener('visibilitychange', () => {
+    const ro = "ResizeObserver" in window ? new ResizeObserver(() => computeMetrics()) : null;
+    if (ro && refs.pf) ro.observe(refs.pf);
+    document.addEventListener("visibilitychange", () => {
         if (!document.hidden) computeMetrics();
     });
 
@@ -358,55 +362,55 @@ export function createBaseSpawner(config = {}) {
     const activeItems = [];
     let garbageCount = 0;
     const newlySettledBuffer = [];
-    
+
     function makeItem() {
-        const el = document.createElement('div');
-        el.className = 'spawner-item'; // Maintain generic class, can be overridden by consumer
-        el.style.position = 'absolute';
-        el.style.pointerEvents = 'auto';
-        el.style.borderRadius = '50%';
-        el.style.willChange = 'transform';
-        el.style.contain = 'layout style size';
-        
-        const inner = document.createElement('img');
-        inner.className = 'item-inner';
+        const el = document.createElement("div");
+        el.className = "spawner-item"; // Maintain generic class, can be overridden by consumer
+        el.style.position = "absolute";
+        el.style.pointerEvents = "auto";
+        el.style.borderRadius = "50%";
+        el.style.willChange = "transform";
+        el.style.contain = "layout style size";
+
+        const inner = document.createElement("img");
+        inner.className = "item-inner";
         inner.draggable = false;
-        inner.alt = '';
-        inner.style.width = '100%';
-        inner.style.height = '100%';
-        inner.style.objectFit = 'contain';
-        inner.style.borderRadius = '50%';
-        
+        inner.alt = "";
+        inner.style.width = "100%";
+        inner.style.height = "100%";
+        inner.style.objectFit = "contain";
+        inner.style.borderRadius = "50%";
+
         el.appendChild(inner);
         return el;
     }
     const getItem = () => (itemPool.length ? itemPool.pop() : makeItem());
-    
-    function releaseItem(el) {
-       el.style.transition = '';
-       el.style.transform = '';
-       el.style.opacity = '1';
-       
-       el.classList.remove('item--collected');
-       for (let i = 0; i <= 6; i++) {
-           el.classList.remove(`coin--size-${i}`);
-       }
-       el.style.removeProperty('--ccc-start');
 
-       delete el.dataset.dieAt;
-       delete el.dataset.mutationLevel;
-       delete el.dataset.collected;
-       
-       el.style.willChange = 'transform';
-       
-       if (el.parentNode) el.remove();
-       if (itemPool.length < ITEM_POOL_MAX) itemPool.push(el);
+    function releaseItem(el) {
+        el.style.transition = "";
+        el.style.transform = "";
+        el.style.opacity = "1";
+
+        el.classList.remove("item--collected");
+        for (let i = 0; i <= 6; i++) {
+            el.classList.remove(`coin--size-${i}`);
+        }
+        el.style.removeProperty("--ccc-start");
+
+        delete el.dataset.dieAt;
+        delete el.dataset.mutationLevel;
+        delete el.dataset.collected;
+
+        el.style.willChange = "transform";
+
+        if (el.parentNode) el.remove();
+        if (itemPool.length < ITEM_POOL_MAX) itemPool.push(el);
     }
-    
+
     function removeItem(itemObj, knownIndex = -1) {
         if (itemObj.isRemoved) return;
         itemObj.isRemoved = true;
-        
+
         let idx = knownIndex;
         if (idx === -1 || activeItems[idx] !== itemObj) {
             if (itemObj.index !== undefined && activeItems[itemObj.index] === itemObj) {
@@ -422,14 +426,14 @@ export function createBaseSpawner(config = {}) {
                 staticCanvasDirty = true;
             }
         }
-        
+
         if (itemObj.el) {
             releaseItem(itemObj.el);
             itemObj.el = null;
         }
         onRemoveItem(itemObj);
     }
-    
+
     function detachItem(itemElOrObj) {
         const itemObj = itemElOrObj._itemObj || itemElOrObj;
         if (itemObj) {
@@ -475,24 +479,29 @@ export function createBaseSpawner(config = {}) {
             return { x: c.x, y: c.y, rot: 0, scale: 1 };
         }
         const elapsed = now - c.startTime;
-        if (elapsed < 0 && !settingsManager.get('insta_teleport')) {
+        if (elapsed < 0 && !settingsManager.get("insta_teleport")) {
             return { x: c.startX, y: c.startY, rot: -10, scale: 0.96 };
         }
         let t = elapsed / c.duration;
-        if (t >= 1 || settingsManager.get('insta_teleport')) {
-             return { x: c.endX, y: c.endY, rot: 0, scale: 1 };
+        if (t >= 1 || settingsManager.get("insta_teleport")) {
+            return { x: c.endX, y: c.endY, rot: 0, scale: 1 };
         }
         const ease = easeOutCubic(t);
         const x = c.startX + (c.endX - c.startX) * ease;
         const y = c.startY + (c.endY - c.startY) * ease;
-        const rot = -10 + (10 * ease);
-        const scale = 0.96 + (0.04 * ease);
+        const rot = -10 + 10 * ease;
+        const scale = 0.96 + 0.04 * ease;
         return { x, y, rot, scale };
     }
 
     function drawItems(now) {
         const mainCtx = contexts[0];
         if (!mainCtx) return;
+
+        if (typeof settingsManager !== "undefined" && settingsManager.get("spreadsheet_mode")) {
+            mainCtx.clearRect(0, 0, canvases[0].width, canvases[0].height);
+            return;
+        }
 
         let dpr = Math.max(Math.min(window.devicePixelRatio || 1, 2.0), 1);
         if (typeof settingsManager !== "undefined") {
@@ -538,7 +547,7 @@ export function createBaseSpawner(config = {}) {
             }
 
             const count = activeItems.length;
-            
+
             for (let i = 0; i < count; i++) {
                 const c = activeItems[i];
                 if (c && c.settled && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
@@ -551,13 +560,13 @@ export function createBaseSpawner(config = {}) {
             for (let b = 0; b < _reusableStaticBuckets.length; b++) {
                 const bucket = _reusableStaticBuckets[b];
                 if (!bucket) continue;
-                
+
                 const ctx = getInMemoryContext(b, w, h, dpr);
                 for (let i = 0; i < bucket.length; i++) {
                     onDrawSingleSettledItem(ctx, bucket[i]);
                 }
             }
-            
+
             staticCanvasDirty = false;
         }
 
@@ -572,7 +581,7 @@ export function createBaseSpawner(config = {}) {
         }
 
         const count = activeItems.length;
-        
+
         for (let i = 0; i < count; i++) {
             const c = activeItems[i];
             if (c && !c.settled && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
@@ -599,19 +608,19 @@ export function createBaseSpawner(config = {}) {
                 for (let i = 0; i < movingBucket.length; i++) {
                     const c = movingBucket[i];
                     const state = getItemState(c, now);
-                    
+
                     const origX = c.x;
                     const origY = c.y;
                     const origRot = c.rot;
                     const origScale = c.scale;
-                    
+
                     c.x = state.x;
                     c.y = state.y;
                     c.rot = state.rot;
                     c.scale = state.scale;
-                    
+
                     onDrawSingleSettledItem(mainCtx, c);
-                    
+
                     c.x = origX;
                     c.y = origY;
                     c.rot = origRot;
@@ -622,7 +631,7 @@ export function createBaseSpawner(config = {}) {
 
         if (window.__showHitboxes) {
             mainCtx.save();
-            mainCtx.strokeStyle = 'rgb(0, 255, 0)';
+            mainCtx.strokeStyle = "rgb(0, 255, 0)";
             mainCtx.lineWidth = 2;
 
             for (let i = 0; i < activeItems.length; i++) {
@@ -633,7 +642,7 @@ export function createBaseSpawner(config = {}) {
                     if (size > 0) {
                         const cx = state.x + size / 2;
                         const cy = state.y + size / 2;
-                        
+
                         onDrawHitbox(mainCtx, c, cx, cy, size);
                     }
                 }
@@ -646,84 +655,88 @@ export function createBaseSpawner(config = {}) {
     let rafId = null;
     let last = performance.now();
     let carry = 0;
-    
+
     function loop(now) {
-      if (!M.pfRect) computeMetrics();
+        if (!M.pfRect) computeMetrics();
 
-      let rawDt = now - last;
-      let dt = rawDt / 1000;
-      last = now;
-      if (dt > 0.1) dt = 0.1;
-      
-      onItemUpdate(activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState);
+        let rawDt = now - last;
+        let dt = rawDt / 1000;
+        last = now;
+        if (dt > 0.1) dt = 0.1;
 
-      carry += rate * dt;
-      let spawnCount = Math.floor(carry);
-      
-      if (spawnCount > 0) {
-          carry -= spawnCount;
-          let spawnTarget = Math.min(spawnCount, perFrameBudget);
-          
-          if (spawnTarget > 0) {
-             const t0 = performance.now();
-             const batch = [];
-             const timeBudgetMs = 5.0;
-             
-             for (let i = 0; i < spawnTarget; i++) {
-                if (performance.now() - t0 > timeBudgetMs) break;
-                const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems, batch.length);
-                if (plan) {
-                    if (Array.isArray(plan)) {
-                        batch.push(...plan);
-                    } else {
-                        batch.push(plan);
+        onItemUpdate(activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState);
+
+        carry += rate * dt;
+        let spawnCount = Math.floor(carry);
+
+        if (spawnCount > 0) {
+            carry -= spawnCount;
+            let spawnTarget = Math.min(spawnCount, perFrameBudget);
+
+            if (spawnTarget > 0) {
+                const t0 = performance.now();
+                const batch = [];
+                const timeBudgetMs = 5.0;
+
+                for (let i = 0; i < spawnTarget; i++) {
+                    if (performance.now() - t0 > timeBudgetMs) break;
+                    const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems, batch.length);
+                    if (plan) {
+                        if (Array.isArray(plan)) {
+                            batch.push(...plan);
+                        } else {
+                            batch.push(plan);
+                        }
                     }
                 }
-             }
-             if (batch.length) {
-                 onCommitBatch(batch, activeItems, getItem, refs, animationDurationMs);
-             }
-          }
-      }
+                if (batch.length) {
+                    onCommitBatch(batch, activeItems, getItem, refs, animationDurationMs);
+                }
+            }
+        }
 
-      drawItems(now);
-      if (garbageCount > Math.max(500, activeItems.length * 0.1)) {
-          onGarbageCollect(activeItems);
-          let w = 0;
-          for (let r = 0; r < activeItems.length; r++) {
-              const c = activeItems[r];
-              if (c !== null) {
-                  c.index = w;
-                  activeItems[w++] = c;
-              }
-          }
-          activeItems.length = w;
-          garbageCount = 0;
-      }
-      if (fxCtx && fxCanvas) {
-          onDrawFx(fxCtx, fxCanvas, dt, now, getItemState);
-      }
+        drawItems(now);
+        if (garbageCount > Math.max(500, activeItems.length * 0.1)) {
+            onGarbageCollect(activeItems);
+            let w = 0;
+            for (let r = 0; r < activeItems.length; r++) {
+                const c = activeItems[r];
+                if (c !== null) {
+                    c.index = w;
+                    activeItems[w++] = c;
+                }
+            }
+            activeItems.length = w;
+            garbageCount = 0;
+        }
+        if (fxCtx && fxCanvas) {
+            if (!(typeof settingsManager !== "undefined" && settingsManager.get("spreadsheet_mode"))) {
+                onDrawFx(fxCtx, fxCanvas, dt, now, getItemState);
+            } else {
+                fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+            }
+        }
 
-      rafId = requestAnimationFrame(loop);
+        rafId = requestAnimationFrame(loop);
     }
 
     function start() {
-      if (rafId) return;
-      if (typeof window !== 'undefined' && (window.__mapSequenceActive || window.__wasJustMapSequence)) return;
-      if (!validRefs()) {
-        console.warn('[BaseSpawner] start() called but required nodes are missing.');
-        return;
-      }
-      computeMetrics();
-      // Ensure metrics are accurate once layout stabilizes
-      requestAnimationFrame(() => computeMetrics());
+        if (rafId) return;
+        if (typeof window !== "undefined" && (window.__mapSequenceActive || window.__wasJustMapSequence)) return;
+        if (!validRefs()) {
+            console.warn("[BaseSpawner] start() called but required nodes are missing.");
+            return;
+        }
+        computeMetrics();
+        // Ensure metrics are accurate once layout stabilizes
+        requestAnimationFrame(() => computeMetrics());
 
-      if (initialBurst > 0 && rafId === null) {
-        spawnBurst(initialBurst);
-      }
+        if (initialBurst > 0 && rafId === null) {
+            spawnBurst(initialBurst);
+        }
 
-      last = performance.now();
-      rafId = requestAnimationFrame(loop);
+        last = performance.now();
+        rafId = requestAnimationFrame(loop);
     }
 
     function stop() {
@@ -743,7 +756,7 @@ export function createBaseSpawner(config = {}) {
 
     function clearPlayfield(resetType) {
         onClearPlayfield(activeItems, removeItem, resetType);
-        
+
         contexts.forEach((ctx, i) => {
             if (!ctx || !canvases[i]) return;
             ctx.save();
@@ -770,14 +783,14 @@ export function createBaseSpawner(config = {}) {
         }
         newlySettledBuffer.length = 0;
         staticCanvasDirty = false;
-        if (resetType !== 'underwater_cavern') {
+        if (resetType !== "underwater_cavern") {
             clearBacklog();
         }
     }
 
     function getItemTransform(elOrObj) {
         const c = elOrObj._itemObj || elOrObj;
-        if (!c) return (elOrObj.style && elOrObj.style.transform) || 'translate3d(0,0,0)';
+        if (!c) return (elOrObj.style && elOrObj.style.transform) || "translate3d(0,0,0)";
         const { x, y, rot, scale } = getItemState(c, performance.now());
         return `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg) scale(${scale})`;
     }
@@ -785,24 +798,37 @@ export function createBaseSpawner(config = {}) {
     function ensureItemVisual(c) {
         if (c.el) return c.el;
         if (c.isRemoved) return null;
-        
+
         const el = getItem();
         onEnsureItemVisual(el, c);
-        
+
         el._itemObj = c;
         c.el = el;
         refs.c.appendChild(el);
-        
+
         staticCanvasDirty = true;
         return el;
     }
 
-    document.addEventListener('visibilitychange', () => {
+    if (typeof settingsManager !== "undefined") {
+        settingsManager.subscribe("spreadsheet_mode", () => {
+            computeMetrics();
+        });
+    }
+
+    document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
-          if (typeof shouldAutoResume === 'function' && !shouldAutoResume()) return;
-          if (typeof window !== 'undefined' && (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive || window.__wasJustMapSequence)) return;
-          staticCanvasDirty = true;
-          if (!rafId) start();
+            if (typeof shouldAutoResume === "function" && !shouldAutoResume()) return;
+            if (
+                typeof window !== "undefined" &&
+                (window.__tsunamiActive ||
+                    window.__bossFightSequenceActive ||
+                    window.__mapSequenceActive ||
+                    window.__wasJustMapSequence)
+            )
+                return;
+            staticCanvasDirty = true;
+            if (!rafId) start();
         }
     });
 
@@ -820,7 +846,9 @@ export function createBaseSpawner(config = {}) {
         spawnBurst,
         getActiveItems: () => activeItems,
         getItemState,
-        forceCanvasRedraw: () => { staticCanvasDirty = true; },
+        forceCanvasRedraw: () => {
+            staticCanvasDirty = true;
+        },
         getRefs: () => refs,
     };
 }
