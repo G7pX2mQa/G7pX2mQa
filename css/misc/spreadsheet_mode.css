@@ -80,3 +80,19 @@ body.spreadsheet-mode:not(.menu-bg) #building-detail-level-text {
   transform: translate(-50%, -50%) !important;
   margin: 0 !important;
 }
+
+body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.base,
+body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.maxed-overlay,
+body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.icon {
+  clip-path: none !important;
+}
+
+/* Make the entire building cell clickable since the icons are disabled and we want the box to be clickable */
+body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-upgrade {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile {
+  pointer-events: none !important;
+}
