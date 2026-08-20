@@ -6620,116 +6620,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
           ctx.restore();
       }
 
-      // Top Drive Mechanism (motor that spins the drill, origin of the laser)
-      let topDriveH = Math.round(topDriveBottom - topDriveTop);
-      let topDriveW = Math.round(30 * widthScale);
-      let topDriveX = Math.round(-15 * widthScale);
-      
-      let tdGrad = ctx.createLinearGradient(topDriveX, 0, topDriveX + topDriveW, 0);
-      tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
-      tdGrad.addColorStop(0.15, "rgba(0,0,0,0)");
-      tdGrad.addColorStop(0.85, "rgba(0,0,0,0)");
-      tdGrad.addColorStop(1, "rgba(0,0,0,0.45)");
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
-      ctx.clip();
-      
-      // Draw moving texture to match the drill material
-      ctx.translate(spinOffsetX, spinOffsetY);
-      ctx.fillStyle = fillDiamond;
-      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 200, topDriveH + 200);
-      
-      // Mechanical bands
-      ctx.fillStyle = fillDarkDiamond; 
-      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + 5 + drillY - spinOffsetY, topDriveW + 200, 5);
-      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW + 200, 5);
-      ctx.translate(-spinOffsetX, -spinOffsetY);
-      
-      // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
-      let redAlpha = 0;
-      if (t4 > 0) {
-          let basePulse = (Math.sin(t * Math.PI) + 1) / 2;
-          // At 5x speed (Tier 8), human eyes average out the fast flicker. 
-          // We raise the minimum floor of the pulse so it stays intensely red on average.
-          let glowPulse = basePulse + (t8 * 0.5 * (1 - basePulse)); 
-          redAlpha = glowPulse * t4;
-          
-          if (redAlpha > 0) {
-              ctx.save();
-              
-              // 1. Force the underlying gray texture to be purely red, eliminating any white/gray that causes pinkness
-              ctx.globalCompositeOperation = "color";
-              ctx.fillStyle = `rgba(255, 0, 0, ${redAlpha})`;
-              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
-              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
-              
-              // 2. Add raw red luminosity to make it glow vibrantly (stays pure red because green/blue are gone)
-              ctx.globalCompositeOperation = "lighter";
-              ctx.fillStyle = `rgba(200, 0, 0, ${redAlpha})`;
-              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
-              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
-              
-              ctx.restore();
-          }
-      }
-      
-      // Edge shading
-      ctx.fillStyle = tdGrad; 
-      ctx.fillRect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
-      ctx.restore(); // Popping the clip mask
-      
-      // Cables suspending the top drive from the crown block
-      let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
-      ctx.strokeStyle = fillDiamond;
-      ctx.lineWidth = 2 * widthScale; // Increase the width (thickness) of the cables gradually
-      ctx.beginPath();
-      ctx.moveTo(-10 * cablePosScale, -200 * scale);
-      ctx.lineTo(-10 * cablePosScale, topDriveTop + drillY);
-      ctx.moveTo(10 * cablePosScale, -200 * scale);
-      ctx.lineTo(10 * cablePosScale, topDriveTop + drillY);
-      ctx.stroke();
-
-
-
-      // Tier 8 Wider Emitter
-      if (t8 > 0) {
-          ctx.save();
-          ctx.globalAlpha = t8;
-          let lensPulse = 0.5 + 0.5 * Math.sin(t * 25);
-          
-          // Wider Lens casing
-          ctx.fillStyle = fillDarkDiamond;
-          ctx.beginPath();
-          ctx.moveTo(-15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.closePath();
-          ctx.fill();
-
-          // Glowing emitter crystal
-          ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + 0.2 * lensPulse})`;
-          ctx.beginPath();
-          ctx.moveTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(6 * widthScale, topDriveBottom + drillY + 18);
-          ctx.lineTo(-6 * widthScale, topDriveBottom + drillY + 18);
-          ctx.closePath();
-          ctx.fill();
-          
-          // White hot core in the crystal
-          ctx.fillStyle = `rgba(255, 255, 255, 0.95)`;
-          ctx.beginPath();
-          ctx.moveTo(-6.75 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(6.75 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(3 * widthScale, topDriveBottom + drillY + 16);
-          ctx.lineTo(-3 * widthScale, topDriveBottom + drillY + 16);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-      }
 
       ctx.restore();
   }
@@ -7397,6 +7288,126 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
     ctx.restore();
   }
 
+
+  // --- NEW: Draw Main Drive In Front of Supports ---
+  if (t0 > 0) {
+      ctx.save();
+      // Undo scaling just like we did for the drill shaft
+      if (scale) ctx.scale(1/scale, 1/scale);
+      
+      let drillY = 0;
+      let topDriveTop = -90;
+      let topDriveBottom = -60;
+      let spinOffsetX = Math.round(t * 80) % 64;
+      let spinOffsetY = Math.round(t * 40) % 64;
+      
+      // Top Drive Mechanism (motor that spins the drill, origin of the laser)
+      let topDriveH = Math.round(topDriveBottom - topDriveTop);
+      let topDriveW = Math.round(30 * widthScale);
+      let topDriveX = Math.round(-15 * widthScale);
+      
+      let tdGrad = ctx.createLinearGradient(topDriveX, 0, topDriveX + topDriveW, 0);
+      tdGrad.addColorStop(0, "rgba(0,0,0,0.45)");
+      tdGrad.addColorStop(0.15, "rgba(0,0,0,0)");
+      tdGrad.addColorStop(0.85, "rgba(0,0,0,0)");
+      tdGrad.addColorStop(1, "rgba(0,0,0,0.45)");
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
+      ctx.clip();
+      
+      // Draw moving texture to match the drill material
+      ctx.translate(spinOffsetX, spinOffsetY);
+      ctx.fillStyle = fillDiamond;
+      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + drillY - spinOffsetY - 64, topDriveW + 200, topDriveH + 200);
+      
+      // Mechanical bands
+      ctx.fillStyle = fillDarkDiamond; 
+      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveTop + 5 + drillY - spinOffsetY, topDriveW + 200, 5);
+      ctx.fillRect(topDriveX - spinOffsetX - 100, topDriveBottom - 10 + drillY - spinOffsetY, topDriveW + 200, 5);
+      ctx.translate(-spinOffsetX, -spinOffsetY);
+      
+      // Tier 4: Red glowing oscillation for the mechanical bands (2 second interval)
+      let redAlpha = 0;
+      if (t4 > 0) {
+          let basePulse = (Math.sin(t * Math.PI) + 1) / 2;
+          let glowPulse = basePulse + (t8 * 0.5 * (1 - basePulse)); 
+          redAlpha = glowPulse * t4;
+          
+          if (redAlpha > 0) {
+              ctx.save();
+              
+              ctx.globalCompositeOperation = "color";
+              ctx.fillStyle = `rgba(255, 0, 0, ${redAlpha})`;
+              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
+              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
+              
+              ctx.globalCompositeOperation = "lighter";
+              ctx.fillStyle = `rgba(200, 0, 0, ${redAlpha})`;
+              ctx.fillRect(topDriveX - 100, topDriveTop + 5 + drillY, topDriveW + 200, 5);
+              ctx.fillRect(topDriveX - 100, topDriveBottom - 10 + drillY, topDriveW + 200, 5);
+              
+              ctx.restore();
+          }
+      }
+      
+      // Edge shading
+      ctx.fillStyle = tdGrad; 
+      ctx.fillRect(topDriveX, topDriveTop + drillY, topDriveW, topDriveH);
+      ctx.restore(); // Popping the clip mask
+      
+      // Cables suspending the top drive from the crown block
+      let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
+      ctx.strokeStyle = fillDiamond;
+      ctx.lineWidth = 2 * widthScale; // Increase the width (thickness) of the cables gradually
+      ctx.beginPath();
+      ctx.moveTo(-10 * cablePosScale, -200 * (scale || 1));
+      ctx.lineTo(-10 * cablePosScale, topDriveTop + drillY);
+      ctx.moveTo(10 * cablePosScale, -200 * (scale || 1));
+      ctx.lineTo(10 * cablePosScale, topDriveTop + drillY);
+      ctx.stroke();
+
+      // Tier 8 Wider Emitter
+      if (t8 > 0) {
+          ctx.save();
+          ctx.globalAlpha = t8;
+          let lensPulse = 0.5 + 0.5 * Math.sin(t * 25);
+          
+          // Wider Lens casing
+          ctx.fillStyle = fillDarkDiamond;
+          ctx.beginPath();
+          ctx.moveTo(-15 * widthScale, topDriveBottom + drillY);
+          ctx.lineTo(15 * widthScale, topDriveBottom + drillY);
+          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
+          ctx.closePath();
+          ctx.fill();
+
+          // Glowing emitter crystal
+          ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + 0.2 * lensPulse})`;
+          ctx.beginPath();
+          ctx.moveTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(6 * widthScale, topDriveBottom + drillY + 18);
+          ctx.lineTo(-6 * widthScale, topDriveBottom + drillY + 18);
+          ctx.closePath();
+          ctx.fill();
+          
+          // White hot core in the crystal
+          ctx.fillStyle = `rgba(255, 255, 255, 0.95)`;
+          ctx.beginPath();
+          ctx.moveTo(-6.75 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(6.75 * widthScale, topDriveBottom + drillY + 12);
+          ctx.lineTo(3 * widthScale, topDriveBottom + drillY + 16);
+          ctx.lineTo(-3 * widthScale, topDriveBottom + drillY + 16);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+      }
+      
+      ctx.restore();
+  }
 
   // --- Tier 3: Auxiliary Pumpjacks ---
   if (t3 > 0) {
