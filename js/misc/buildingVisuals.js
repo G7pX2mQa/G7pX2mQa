@@ -9784,7 +9784,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     // Left Tower
     ctx.save();
     ctx.translate(-40, 0); 
-    ctx.translate(-220, baseY - 150); 
+    ctx.translate(-220, baseY - 148); 
     ctx.scale(0.65, 0.65); 
     drawCoreSymbol(t8); 
     ctx.restore();
@@ -9792,7 +9792,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     // Right Tower (No horizontal flip, so it spins clockwise normally)
     ctx.save();
     ctx.translate(40, 0); 
-    ctx.translate(220, baseY - 150); 
+    ctx.translate(220, baseY - 148); 
     ctx.scale(0.65, 0.65); 
     drawCoreSymbol(t8); 
     ctx.restore();
