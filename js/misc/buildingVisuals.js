@@ -9048,6 +9048,24 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 }
 
 
+let cachedAshCanvas = null;
+function getAshCanvas() {
+    if (!cachedAshCanvas) {
+        cachedAshCanvas = document.createElement('canvas');
+        cachedAshCanvas.width = 16;
+        cachedAshCanvas.height = 16;
+        let pCtx = cachedAshCanvas.getContext('2d');
+        let grad = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+        grad.addColorStop(0, 'rgba(255, 150, 150, 1)'); // Intense hot core (pure red + white mix to look super bright, no orange)
+        grad.addColorStop(0.2, 'rgba(255, 0, 0, 1)');    // Pure red
+        grad.addColorStop(0.6, 'rgba(255, 0, 0, 0.4)');
+        grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        pCtx.fillStyle = grad;
+        pCtx.fillRect(0, 0, 16, 16);
+    }
+    return cachedAshCanvas;
+}
+
 function drawReactor(ctx, t, tier, prevTier, animProgress) {
   if (!rubyPattern) {
     if (activeCtx) initRubyPattern(activeCtx);
@@ -9064,6 +9082,71 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   const baseY = 0;
   const coreY = -180;
   
+  const drawAsh = (isRisingPass) => {
+      if (t6 <= 0) return;
+      
+      const numAsh = 400; // Doubled
+      const maxLifetime = 5.0; // seconds
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+      const ashImg = getAshCanvas();
+      
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      
+      for (let i = 0; i < numAsh; i++) {
+          const rand1 = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+          const rand2 = Math.abs(Math.cos(i * 78.233) * 43758.5453) % 1;
+          const rand3 = Math.abs(Math.sin(i * 39.346) * 43758.5453) % 1;
+          
+          const offset = rand1 * maxLifetime;
+          let age = (t + offset) % maxLifetime;
+          let spawnTime = t - age;
+          
+          // Initial size based on spawn oscillation
+          let spawnPulse = 0.5 + 0.5 * Math.sin(spawnTime * 3);
+          
+          let isLeft = (i % 2 === 0);
+          let startX = isLeft ? -255 : 255;
+          let startY = baseY - 290; // Spawn deep inside the tower (rim is -310 to -300)
+          
+          // Equal chance to go left or right (no outward bias)
+          let vx = (rand2 - 0.5) * (150 + 450 * spawnPulse);
+          
+          let vy = -150 - (rand3 * 150) - (250 * spawnPulse);
+          let gravity = 220; 
+          
+          let current_vy = vy + gravity * age;
+          let isRising = current_vy < 0;
+          
+          // Filter by pass to handle z-indexing (rising is behind tower, falling is in front)
+          if (isRisingPass !== isRising) continue;
+          
+          let finalX = startX + vx * (1 - Math.exp(-1.2 * age));
+          finalX += Math.sin(age * 3 + i) * 25; 
+          
+          let finalY = startY + (vy * age) + (0.5 * gravity * age * age);
+          
+          if (finalY >= baseY) continue;
+          
+          let alpha = 1.0;
+          if (age < 0.1) alpha = age / 0.1;
+          else if (age > maxLifetime - 1.0) alpha = maxLifetime - age;
+          
+          // Real-time Glow Oscillation
+          let brightness = 0.2 + (pulse * 0.8);
+          
+          // Spawn size strictly based on spawn oscillation
+          let baseSize = 3 + (rand1 * 2) + (spawnPulse * 6);
+          
+          // Peak real-time oscillation doubles the current size of the particle
+          let size = baseSize * (1.0 + 1.0 * pulse); 
+          
+          ctx.globalAlpha = t6 * alpha * (0.4 + 0.6 * brightness);
+          ctx.drawImage(ashImg, finalX - size, finalY - size, size * 2, size * 2);
+      }
+      ctx.restore();
+  };
+
   ctx.save();
   
   const symDraw = (drawFunc) => {
@@ -9111,6 +9194,10 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
   }
+
+  // Draw Rising Ash (Behind Cooling Towers)
+  drawAsh(true);
+
   // Shared Ring Drawing for Tier 1
   const ringPulse = 0.5 + 0.5 * Math.sin(t * 3);
   const t4RingBoost = t4 * ringPulse; 
@@ -9672,49 +9759,30 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   }
 
 
-  // TIER 6: Steam plumes and electric arcing
+  // TIER 6: Radioactive Crimson Fallout (Optimized Eruption)
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
     
-    // Steam from cooling towers
-    symDraw(() => {
-        ctx.save();
-        ctx.translate(-t5 * 40, 0);
-        let towerX = -215;
-        let towerY = baseY - 300;
-        ctx.globalAlpha = t6 * 0.5;
-        for(let i=0; i<12; i++) {
-           let vx = towerX + (Math.random()-0.5)*60;
-           let vy = towerY - Math.random() * 150 - (t*30)%150;
-           let size = 15 + Math.random()*30;
-           ctx.fillStyle = `rgba(200, 255, 200, ${1 - ((vy - towerY) / -150)})`; // slightly green steam
-           ctx.beginPath();
-           ctx.arc(vx, vy, size, 0, Math.PI*2);
-           ctx.fill();
-        }
-        ctx.restore();
-        ctx.globalAlpha = t6;
-    });
+    const cx = 0;
+    const cy = baseY - 120; // Center of the core
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
 
-    // High voltage electric arcing around the exposed core
-    ctx.strokeStyle = glowGreen;
-    ctx.lineWidth = 2;
-    for(let i=0; i<4; i++) {
-       if (Math.random() > 0.5) continue;
-       let startX = (Math.random()-0.5)*120;
-       let startY = baseY - 60 - Math.random()*100;
-       let endX = (Math.random()-0.5)*120;
-       let endY = baseY - 60 - Math.random()*100;
-       
-       ctx.beginPath();
-       ctx.moveTo(startX, startY);
-       let midX = (startX+endX)/2 + (Math.random()-0.5)*30;
-       let midY = (startY+endY)/2 + (Math.random()-0.5)*30;
-       ctx.lineTo(midX, midY);
-       ctx.lineTo(endX, endY);
-       ctx.stroke();
-    }
+    // 1. Ambient Toxic Radiation Haze (Fast screen overlay)
+    let hazeRadius = 400 + 200 * pulse;
+    let hazeGrad = ctx.createRadialGradient(cx, cy, 50, cx, cy, hazeRadius);
+    hazeGrad.addColorStop(0, `rgba(255, 0, 0, ${0.15 * pulse})`);
+    hazeGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.05 * pulse})`);
+    hazeGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    
+    ctx.fillStyle = hazeGrad;
+    ctx.globalCompositeOperation = 'screen';
+    ctx.beginPath();
+    ctx.arc(cx, cy, hazeRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Radioactive Erupting Fallout (Falling particles drawn in front)
+    drawAsh(false);
 
     ctx.restore();
   }
