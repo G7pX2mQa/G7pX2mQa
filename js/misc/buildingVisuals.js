@@ -3365,11 +3365,11 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
   };
 
-  const extraBaseWidth = tier4Prog * 10;
-  const prongOffset = 40 + extraBaseWidth;
+  const drawBaseStructures = (extraBaseWidth) => {
+    const prongOffset = 40 + extraBaseWidth;
 
-  // Tier 0 (Foundation)
-  if (!copperPattern && activeCtx) {
+    // Tier 0 (Foundation)
+    if (!copperPattern && activeCtx) {
     initCopperPattern(activeCtx);
   }
 
@@ -3387,7 +3387,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   // Tier 1 (Tall Coils & Glow - Drawn before base)
   if (tier1Prog > 0) {
     ctx.save();
-    ctx.globalAlpha = tier1Prog;
+    ctx.globalAlpha = ctx.globalAlpha * tier1Prog;
 
     // Large copper coils wrapping around the tall prongs
     ctx.strokeStyle = "#e99f79"; // bright copper
@@ -3471,7 +3471,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   // Tier 2 (Small Capacitor Nodes - drawn behind base)
   if (tier2Prog > 0) {
     ctx.save();
-    ctx.globalAlpha = tier2Prog;
+    ctx.globalAlpha = ctx.globalAlpha * tier2Prog;
 
     const drawCapacitor = (x, y, index) => {
       ctx.save();
@@ -3555,7 +3555,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   // Tier 3 (Tesla Nodes)
   if (tier3Prog > 0) {
     ctx.save();
-    ctx.globalAlpha = tier3Prog;
+    ctx.globalAlpha = ctx.globalAlpha * tier3Prog;
 
     const drawTeslaNode = (x, y, index) => {
       ctx.save();
@@ -3640,6 +3640,20 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       );
     }
 
+    ctx.restore();
+  }
+  }; // end of drawBaseStructures
+
+  if (tier4Prog < 1) {
+    ctx.save();
+    ctx.globalAlpha = (ctx.globalAlpha || 1) * (1 - tier4Prog);
+    drawBaseStructures(0);
+    ctx.restore();
+  }
+  if (tier4Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = (ctx.globalAlpha || 1) * tier4Prog;
+    drawBaseStructures(10);
     ctx.restore();
   }
 
