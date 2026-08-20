@@ -460,7 +460,7 @@ export const SETTING_DEFINITIONS = {
     },
     spreadsheet_mode: {
         type: "toggle",
-        label: "You Should Never Use This Setting",
+        label: "Reduced GPU Usage Mode EXTREME",
         overlay: "performance",
         hasExtraInfo: true,
         info: "I don't even know how to describe this setting. It makes the game barely playable. Drastically reduces GPU usage though.",
@@ -772,6 +772,15 @@ class SettingsManager {
             )
         )
             return;
+
+        // Mutual exclusivity logic
+        if (key === "disable_webgl" && value === true && this.settings["spreadsheet_mode"] === true) {
+            this.set("spreadsheet_mode", false);
+        }
+        if (key === "spreadsheet_mode" && value === true && this.settings["disable_webgl"] === true) {
+            this.set("disable_webgl", false);
+        }
+
         this.settings[key] = value;
         this._isDefault[key] = false;
         const storageKey = this._getKey(key);
