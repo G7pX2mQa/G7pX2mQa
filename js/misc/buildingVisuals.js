@@ -9147,6 +9147,121 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
   };
 
+  const drawCoreSymbol = (overdriveAlpha) => {
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+      const radColor = `rgba(255, 0, 0, ${0.5 + 0.5 * pulse})`;
+
+      // Dark window casing
+      ctx.beginPath();
+      ctx.arc(0, 0, 45, 0, Math.PI * 2);
+      ctx.fillStyle = '#111'; 
+      ctx.fill();
+
+      // Overdrive Background Glow
+      if (overdriveAlpha > 0) {
+          ctx.save();
+          ctx.globalAlpha = ctx.globalAlpha * overdriveAlpha;
+          let glowRadius = 30 + 15 * pulse; 
+          ctx.beginPath();
+          ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+          let bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, glowRadius);
+          bgGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
+          bgGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
+          bgGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = bgGrad;
+          ctx.fill();
+          ctx.restore();
+      }
+
+      ctx.save();
+      ctx.rotate(t * 0.5); 
+      
+      // Basic Symbol Blades
+      ctx.fillStyle = radColor;
+      for(let i=0; i<3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, 32, -Math.PI/6, Math.PI/6);
+          ctx.lineTo(0,0);
+          ctx.fill();
+          ctx.rotate((Math.PI * 2) / 3);
+      }
+      
+      // Mask out inner ring
+      let innerGapRadius = 12;
+      ctx.beginPath();
+      ctx.arc(0, 0, innerGapRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#111'; 
+      ctx.fill();
+
+      // Central Dot
+      if (overdriveAlpha > 0) {
+          ctx.save();
+          ctx.globalAlpha = ctx.globalAlpha * overdriveAlpha;
+          let dotRadius = 7 + 6 * pulse; 
+          ctx.beginPath();
+          ctx.arc(0, 0, innerGapRadius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`; 
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(0, 0, dotRadius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgb(${Math.floor(150 + 105 * pulse)}, 0, 0)`; 
+          ctx.shadowBlur = 15 + 15 * pulse;
+          ctx.shadowColor = 'red';
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.restore();
+      } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, 7, 0, Math.PI * 2);
+          ctx.fillStyle = radColor;
+          ctx.fill();
+      }
+      
+      // Overdrive Beams & Scaling Blade Flares
+      if (overdriveAlpha > 0) {
+          ctx.save();
+          ctx.globalAlpha = ctx.globalAlpha * overdriveAlpha;
+          ctx.globalCompositeOperation = 'screen';
+          let bladeRadius = 32 + 12 * pulse; 
+          
+          for(let i=0; i<3; i++) {
+              ctx.beginPath();
+              ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
+              ctx.lineTo(innerGapRadius * Math.cos(Math.PI/6), innerGapRadius * Math.sin(Math.PI/6));
+              ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
+              ctx.closePath();
+              
+              ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`;
+              ctx.fill();
+              
+              ctx.lineWidth = 1 + 3 * pulse;
+              ctx.strokeStyle = `rgba(255, 0, 0, ${0.9 * pulse})`;
+              ctx.stroke();
+
+              ctx.save();
+              let beamLength = 180 + 140 * pulse;
+              let beamGrad = ctx.createRadialGradient(0, 0, bladeRadius, 0, 0, beamLength);
+              beamGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
+              beamGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
+              beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+              
+              ctx.fillStyle = beamGrad;
+              ctx.beginPath();
+              ctx.arc(0, 0, bladeRadius - 1, -Math.PI/6, Math.PI/6);
+              ctx.arc(0, 0, beamLength, Math.PI/6, -Math.PI/6, true);
+              ctx.closePath();
+              ctx.fill();
+              
+              ctx.restore();
+              ctx.rotate((Math.PI * 2) / 3);
+          }
+          ctx.restore();
+      }
+      ctx.restore(); // Undo spin
+  };
+
   ctx.save();
   
   const symDraw = (drawFunc) => {
@@ -9298,7 +9413,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
                 let pTime = (t * 0.4 + i * 0.333) % 1; 
                 let steamY = baseY - 280 - pTime * 140;
                 let steamX = -215 + Math.sin(t * 2 + i * 3) * 8;
-                let steamAlpha = (1 - pTime) * 0.5;
+                let steamAlpha = (1 - pTime) * 0.5 * (1 - t6);
                 let steamSize = 12 + pTime * 20;
                 
                 ctx.fillStyle = `rgba(180, 180, 180, ${steamAlpha})`;
@@ -9381,43 +9496,10 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.fillStyle = fillRuby;
     ctx.fill();
 
-    // Animated Core Window
-    ctx.beginPath();
-    ctx.arc(0, baseY - 120, 45, 0, Math.PI * 2);
-    ctx.fillStyle = '#111'; // Dark window casing
-    ctx.fill();
-
-    // Radiation Symbol
+    // Core Window and Radiation Symbol (Handles Tier 4 transition internally)
     ctx.save();
     ctx.translate(0, baseY - 120);
-    ctx.rotate(t * 0.5); // Smooth, ominous spin
-
-    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-    const radColor = `rgba(255, 0, 0, ${0.5 + 0.5 * pulse})`;
-
-    // 3 blades (60 degrees each = Math.PI/3)
-    ctx.fillStyle = radColor;
-    for(let i=0; i<3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, 32, -Math.PI/6, Math.PI/6);
-        ctx.lineTo(0,0);
-        ctx.fill();
-        ctx.rotate((Math.PI * 2) / 3);
-    }
-    
-    // Mask out the inner ring
-    ctx.beginPath();
-    ctx.arc(0, 0, 12, 0, Math.PI * 2);
-    ctx.fillStyle = '#111'; 
-    ctx.fill();
-
-    // Central dot
-    ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, Math.PI * 2);
-    ctx.fillStyle = radColor;
-    ctx.fill();
-    
+    drawCoreSymbol(t4);
     ctx.restore();
 
     ctx.restore();
@@ -9671,92 +9753,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
   }
 
-  // TIER 4: Ocular Core Overdrive (The "Eye")
-  if (t4 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t4;
-    
-    ctx.translate(0, baseY - 120);
-    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-    
-    // 1. Blinding window background glow (kept inside the window R=45)
-    let glowRadius = 30 + 15 * pulse; 
-    ctx.beginPath();
-    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-    let bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, glowRadius);
-    bgGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
-    bgGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
-    bgGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = bgGrad;
-    ctx.fill();
-    
-    // Align rotation with the Tier 0 symbol
-    ctx.rotate(t * 0.5); 
-    
-    // 2. The Central Core
-    let innerGapRadius = 12; // Static inner gap matching Tier 0
-    let dotRadius = 7 + 6 * pulse; 
-
-    // Fill the gap with an intense glow instead of black
-    ctx.beginPath();
-    ctx.arc(0, 0, innerGapRadius, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`; 
-    ctx.fill();
-
-    // Dilating glowing central dot (deep red at peak)
-    ctx.beginPath();
-    ctx.arc(0, 0, dotRadius, 0, Math.PI * 2);
-    ctx.fillStyle = `rgb(${Math.floor(150 + 105 * pulse)}, 0, 0)`; // Dark red to Pure Red
-    ctx.shadowBlur = 15 + 15 * pulse;
-    ctx.shadowColor = 'red';
-    ctx.fill();
-    ctx.shadowBlur = 0; 
-    
-    // 3. Overdrive Beams & Scaling Blade Flares
-    ctx.globalCompositeOperation = 'screen';
-    let bladeRadius = 32 + 12 * pulse; // Symbol expands but stays within R=45
-    
-    for(let i=0; i<3; i++) {
-        // Draw the expanding blades
-        ctx.beginPath();
-        ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
-        ctx.lineTo(innerGapRadius * Math.cos(Math.PI/6), innerGapRadius * Math.sin(Math.PI/6));
-        ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
-        ctx.closePath();
-        
-        ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`;
-        ctx.fill();
-        
-        ctx.lineWidth = 1 + 3 * pulse;
-        ctx.strokeStyle = `rgba(255, 0, 0, ${0.9 * pulse})`;
-        ctx.stroke();
-
-        // Larger, more aggressive light beams shooting FROM the blades directly
-        ctx.save();
-        // Beams emit from the blade angle (0 degrees in this loop iteration)
-        
-        let beamLength = 180 + 140 * pulse;
-        let beamGrad = ctx.createRadialGradient(0, 0, bladeRadius, 0, 0, beamLength);
-        beamGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
-        beamGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
-        beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-        
-        ctx.fillStyle = beamGrad;
-        ctx.beginPath();
-        // Trace the exact curved arc of the blade tip (tucked 1 pixel inside)
-        ctx.arc(0, 0, bladeRadius - 1, -Math.PI/6, Math.PI/6);
-        // Shoot outwards as a perfect radial wedge, giving it a curved outer edge
-        ctx.arc(0, 0, beamLength, Math.PI/6, -Math.PI/6, true);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.restore();
-        
-        ctx.rotate((Math.PI * 2) / 3);
-    }
-
-    ctx.restore();
-  }
+  // TIER 4 (Ocular Core Overdrive) is now drawn internally by drawCoreSymbol in Tier 0
 
 
   // TIER 6: Radioactive Crimson Fallout (Optimized Eruption)
@@ -9781,7 +9778,26 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(cx, cy, hazeRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Radioactive Erupting Fallout (Falling particles drawn in front)
+    ctx.globalCompositeOperation = 'source-over';
+    
+    // 2. Cooling Tower Symbols (1 visual tier behind main dome)
+    // Left Tower
+    ctx.save();
+    ctx.translate(-40, 0); 
+    ctx.translate(-220, baseY - 150); 
+    ctx.scale(0.65, 0.65); 
+    drawCoreSymbol(t8); 
+    ctx.restore();
+
+    // Right Tower (No horizontal flip, so it spins clockwise normally)
+    ctx.save();
+    ctx.translate(40, 0); 
+    ctx.translate(220, baseY - 150); 
+    ctx.scale(0.65, 0.65); 
+    drawCoreSymbol(t8); 
+    ctx.restore();
+
+    // 3. Radioactive Erupting Fallout (Falling particles drawn in front)
     drawAsh(false);
 
     ctx.restore();
