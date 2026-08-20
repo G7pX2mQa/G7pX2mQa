@@ -9138,6 +9138,8 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
       // Cooling Tower Rings
       symDraw(() => {
+          ctx.save();
+          ctx.translate(-t5 * 40, 0);
           // Tower Bottom Rings
           drawRing(-220, 53.5, 50, 10);
           drawRing(-220, 83.5, 48, 9);
@@ -9145,6 +9147,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           // Tower Top Rings - moved down more
           drawRing(-220, 225, 38.5, 8);
           drawRing(-220, 255, 38.5, 8);
+          ctx.restore();
       });
       ctx.restore();
   };
@@ -9157,6 +9160,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
   }
 
+
   // TIER 0: BASE STRUCTURE (Containment Dome and Cooling Towers)
   if (t0 > 0) {
     ctx.save();
@@ -9164,6 +9168,8 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
     // Steam Animation for Cooling Towers
     symDraw(() => {
+        ctx.save();
+        ctx.translate(-t5 * 40, 0);
         for(let i=0; i<3; i++) {
             let pTime = (t * 0.4 + i * 0.333) % 1; 
             let steamY = baseY - 280 - pTime * 140;
@@ -9176,10 +9182,13 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
             ctx.arc(steamX, steamY, steamSize, 0, Math.PI * 2);
             ctx.fill();
         }
+        ctx.restore();
     });
 
     // Background Cooling Towers
     symDraw(() => {
+      ctx.save();
+      ctx.translate(-t5 * 40, 0);
       ctx.beginPath();
       ctx.moveTo(-170, baseY);
       ctx.bezierCurveTo(-170, baseY - 150, -190, baseY - 200, -180, baseY - 300);
@@ -9207,6 +9216,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
          ctx.lineWidth = 3;
          ctx.stroke();
       }
+      ctx.restore();
     });
 
     // Central Containment Building (Dome shape)
@@ -9437,6 +9447,79 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+  // TIER 5: Massive Steam Generator Towers (Foreground)
+  // Drawn after everything except Tier 4 so it's in front of the dome
+  if (t5 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t5;
+      
+      symDraw(() => {
+          // Centered between Dome and offset Cooling Tower (-210)
+          let tX = -175;
+          let tW = 50; // Wider
+          let tH = 260; // Height 260
+          let tY = baseY; 
+
+          // Base structure (Dark armor)
+          ctx.fillStyle = '#0a0a0a';
+          ctx.beginPath();
+          // Slightly curved top
+          ctx.moveTo(tX - tW/2, tY);
+          ctx.lineTo(tX - tW/2, tY - tH + 20);
+          ctx.quadraticCurveTo(tX, tY - tH, tX + tW/2, tY - tH + 20);
+          ctx.lineTo(tX + tW/2, tY);
+          ctx.closePath();
+          ctx.fill();
+
+          // Armor trim
+          ctx.strokeStyle = fillRuby;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Red-hot vertical vents
+          let ventW = 24; 
+          let ventX = tX - ventW/2;
+          let ventTop = tY - tH + 30; // Original vent top position
+          let ventH = tH - 40;        // Original vent height
+          
+          ctx.fillStyle = '#000'; // Original pure black background
+          ctx.fillRect(ventX, ventTop, ventW, ventH);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(ventX, ventTop, ventW, ventH);
+          ctx.clip();
+          
+          // Uniform smooth oscillation exactly matching the other tiers
+          let pulse = 0.5 + 0.5 * Math.sin(t * 3);
+          
+          // Background glow (simulating shadow blur without triggering canvas scaling jitter bugs)
+          if (pulse > 0.05) {
+              let glowGrad = ctx.createLinearGradient(ventX, 0, ventX + ventW, 0);
+              glowGrad.addColorStop(0, `rgba(255, 0, 0, 0)`);
+              glowGrad.addColorStop(0.3, `rgba(255, 0, 0, ${0.4 * pulse})`);
+              glowGrad.addColorStop(0.7, `rgba(255, 0, 0, ${0.4 * pulse})`);
+              glowGrad.addColorStop(1, `rgba(255, 0, 0, 0)`);
+              ctx.fillStyle = glowGrad;
+              ctx.fillRect(ventX, ventTop, ventW, ventH);
+          }
+          
+          // Smoothly transition from dark crimson to pure bright red
+          let r = Math.floor(100 + 155 * pulse);
+          let g = 0; // Removed the green mix so it stays strictly red instead of orange
+          let b = 0;
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          
+          // Draw horizontal coils going all the way to the top
+          // Starting EXACTLY at ventTop so there's no black gap above the first coil
+          for (let y = ventTop; y < tY; y += 8) {
+              ctx.fillRect(ventX, y, ventW, 5);
+          }
+          ctx.restore(); // end clip
+      });
+      ctx.restore();
+  }
+
   // TIER 4: Ocular Core Overdrive (The "Eye")
   if (t4 > 0) {
     ctx.save();
@@ -9524,49 +9607,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // TIER 5: The structure cracks open, revealing glowing coolant pool and core
-  if (t5 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t5;
-    
-    // Crack the front of the dome
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.moveTo(-70, baseY - 20);
-    ctx.lineTo(-60, baseY - 150);
-    ctx.quadraticCurveTo(0, baseY - 180, 60, baseY - 150);
-    ctx.lineTo(70, baseY - 20);
-    ctx.closePath();
-    ctx.fill();
-
-    // Glowing Cherenkov radiation pool
-    ctx.fillStyle = 'rgba(0, 255, 100, 0.4)';
-    ctx.fillRect(-65, baseY - 60, 130, 40);
-    ctx.fillStyle = glowGreen;
-    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(t*4);
-    ctx.fillRect(-65, baseY - 60, 130, 40);
-    
-    ctx.globalAlpha = t5;
-    
-    // Fuel rod assemblies submerged
-    ctx.strokeStyle = paleGreen;
-    ctx.lineWidth = 4;
-    for(let i=0; i<5; i++) {
-        let rx = -40 + i*20;
-        ctx.beginPath();
-        ctx.moveTo(rx, baseY - 20);
-        ctx.lineTo(rx, baseY - 160);
-        ctx.stroke();
-        
-        // Rod segments
-        for(let j=0; j<6; j++) {
-            ctx.fillStyle = '#39ff14';
-            ctx.fillRect(rx - 4, baseY - 150 + j*20, 8, 12);
-        }
-    }
-
-    ctx.restore();
-  }
 
   // TIER 6: Steam plumes and electric arcing
   if (t6 > 0) {
@@ -9575,6 +9615,8 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     
     // Steam from cooling towers
     symDraw(() => {
+        ctx.save();
+        ctx.translate(-t5 * 40, 0);
         let towerX = -215;
         let towerY = baseY - 300;
         ctx.globalAlpha = t6 * 0.5;
@@ -9587,6 +9629,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
            ctx.arc(vx, vy, size, 0, Math.PI*2);
            ctx.fill();
         }
+        ctx.restore();
         ctx.globalAlpha = t6;
     });
 
