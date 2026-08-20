@@ -9138,16 +9138,29 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
       // Cooling Tower Rings
       symDraw(() => {
-          ctx.save();
-          ctx.translate(-t5 * 40, 0);
-          // Tower Bottom Rings
-          drawRing(-220, 53.5, 50, 10);
-          drawRing(-220, 83.5, 48, 9);
-          
-          // Tower Top Rings - moved down more
-          drawRing(-220, 225, 38.5, 8);
-          drawRing(-220, 255, 38.5, 8);
-          ctx.restore();
+          const drawTRings = () => {
+              // Tower Bottom Rings
+              drawRing(-220, 53.5, 50, 10);
+              drawRing(-220, 83.5, 48, 9);
+              
+              // Tower Top Rings
+              drawRing(-220, 225, 38.5, 8);
+              drawRing(-220, 255, 38.5, 8);
+          };
+
+          if (t5 < 1) {
+              ctx.save();
+              ctx.globalAlpha = ctx.globalAlpha * (1 - t5);
+              drawTRings();
+              ctx.restore();
+          }
+          if (t5 > 0) {
+              ctx.save();
+              ctx.globalAlpha = ctx.globalAlpha * t5;
+              ctx.translate(-40, 0);
+              drawTRings();
+              ctx.restore();
+          }
       });
       ctx.restore();
   };
@@ -9168,55 +9181,81 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
     // Steam Animation for Cooling Towers
     symDraw(() => {
-        ctx.save();
-        ctx.translate(-t5 * 40, 0);
-        for(let i=0; i<3; i++) {
-            let pTime = (t * 0.4 + i * 0.333) % 1; 
-            let steamY = baseY - 280 - pTime * 140;
-            let steamX = -215 + Math.sin(t * 2 + i * 3) * 8;
-            let steamAlpha = (1 - pTime) * 0.5;
-            let steamSize = 12 + pTime * 20;
-            
-            ctx.fillStyle = `rgba(180, 180, 180, ${steamAlpha})`;
-            ctx.beginPath();
-            ctx.arc(steamX, steamY, steamSize, 0, Math.PI * 2);
-            ctx.fill();
+        const drawSteam = () => {
+            for(let i=0; i<3; i++) {
+                let pTime = (t * 0.4 + i * 0.333) % 1; 
+                let steamY = baseY - 280 - pTime * 140;
+                let steamX = -215 + Math.sin(t * 2 + i * 3) * 8;
+                let steamAlpha = (1 - pTime) * 0.5;
+                let steamSize = 12 + pTime * 20;
+                
+                ctx.fillStyle = `rgba(180, 180, 180, ${steamAlpha})`;
+                ctx.beginPath();
+                ctx.arc(steamX, steamY, steamSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        };
+
+        if (t5 < 1) {
+            ctx.save();
+            ctx.globalAlpha = ctx.globalAlpha * (1 - t5);
+            drawSteam();
+            ctx.restore();
         }
-        ctx.restore();
+        if (t5 > 0) {
+            ctx.save();
+            ctx.globalAlpha = ctx.globalAlpha * t5;
+            ctx.translate(-40, 0);
+            drawSteam();
+            ctx.restore();
+        }
     });
 
     // Background Cooling Towers
     symDraw(() => {
-      ctx.save();
-      ctx.translate(-t5 * 40, 0);
-      ctx.beginPath();
-      ctx.moveTo(-170, baseY);
-      ctx.bezierCurveTo(-170, baseY - 150, -190, baseY - 200, -180, baseY - 300);
-      ctx.lineTo(-260, baseY - 300);
-      ctx.bezierCurveTo(-250, baseY - 200, -270, baseY - 150, -270, baseY);
-      ctx.closePath();
-      
-      ctx.fillStyle = fillRuby;
-      ctx.fill();
+        const drawTowers = () => {
+            ctx.beginPath();
+            ctx.moveTo(-170, baseY);
+            ctx.bezierCurveTo(-170, baseY - 150, -190, baseY - 200, -180, baseY - 300);
+            ctx.lineTo(-260, baseY - 300);
+            ctx.bezierCurveTo(-250, baseY - 200, -270, baseY - 150, -270, baseY);
+            ctx.closePath();
+            
+            ctx.fillStyle = fillRuby;
+            ctx.fill();
 
-      // Simple rim
-      ctx.fillStyle = '#111';
-      ctx.fillRect(-265, baseY - 310, 90, 10);
-      
-      // Minimalist vertical ribs perfectly centered to suggest the hyperboloid shape
-      for(let j=1; j<3; j++) {
-         ctx.beginPath();
-         let bx = -170 - j * (100 / 3);
-         let cp1x = -170 - j * (100 / 3);
-         let cp2x = -190 - j * (60 / 3);
-         let tx = -180 - j * (80 / 3);
-         ctx.moveTo(bx, baseY);
-         ctx.bezierCurveTo(cp1x, baseY-150, cp2x, baseY-200, tx, baseY-300);
-         ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-         ctx.lineWidth = 3;
-         ctx.stroke();
-      }
-      ctx.restore();
+            // Simple rim
+            ctx.fillStyle = '#111';
+            ctx.fillRect(-265, baseY - 310, 90, 10);
+            
+            // Minimalist vertical ribs perfectly centered to suggest the hyperboloid shape
+            for(let j=1; j<3; j++) {
+               ctx.beginPath();
+               let bx = -170 - j * (100 / 3);
+               let cp1x = -170 - j * (100 / 3);
+               let cp2x = -190 - j * (60 / 3);
+               let tx = -180 - j * (80 / 3);
+               ctx.moveTo(bx, baseY);
+               ctx.bezierCurveTo(cp1x, baseY-150, cp2x, baseY-200, tx, baseY-300);
+               ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+               ctx.lineWidth = 3;
+               ctx.stroke();
+            }
+        };
+
+        if (t5 < 1) {
+            ctx.save();
+            ctx.globalAlpha = ctx.globalAlpha * (1 - t5);
+            drawTowers();
+            ctx.restore();
+        }
+        if (t5 > 0) {
+            ctx.save();
+            ctx.globalAlpha = ctx.globalAlpha * t5;
+            ctx.translate(-40, 0);
+            drawTowers();
+            ctx.restore();
+        }
     });
 
     // Central Containment Building (Dome shape)
