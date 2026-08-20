@@ -812,7 +812,7 @@ export function createBaseSpawner(config = {}) {
 
     if (typeof settingsManager !== "undefined") {
         settingsManager.subscribe("spreadsheet_mode", () => {
-            computeMetrics();
+            requestAnimationFrame(() => computeMetrics());
         });
     }
 
