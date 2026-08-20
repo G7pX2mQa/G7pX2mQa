@@ -61,7 +61,9 @@ body.spreadsheet-mode:not(.menu-bg) .cursor-trail-canvas,
 body.spreadsheet-mode:not(.menu-bg) .water-base,
 body.spreadsheet-mode:not(.menu-bg) #water-foreground,
 body.spreadsheet-mode:not(.menu-bg) #building-detail-canvas,
-body.spreadsheet-mode:not(.menu-bg) #building-keypad-canvas {
+body.spreadsheet-mode:not(.menu-bg) #building-keypad-canvas,
+body.spreadsheet-mode:not(.menu-bg) .map-background,
+body.spreadsheet-mode:not(.menu-bg) .map-bubbles-container {
   display: none !important;
 }
 
