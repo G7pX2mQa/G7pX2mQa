@@ -365,13 +365,10 @@
 
 /* Sticky tick info at bottom of rewards view */
 .sim-rewards-scroll {
-    padding-bottom: 56px;
 }
 .sim-tick-sticky {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: relative;
+    flex-shrink: 0;
     background: #020617;
     border-top: 1px solid #002329;
     padding: 8px 16px;
