@@ -1453,8 +1453,94 @@ export function enterArea(areaID, fadeDuration = 0) {
    BOOT FLOW
 ----------------------------*/
 document.addEventListener("DOMContentLoaded", async () => {
+    let easterEggHistory = [];
+    let titleElements = null;
+    let isAnagram = false;
+    
+    function triggerAnagram() {
+        const title = document.querySelector(".game-title");
+        if (title.classList.contains("is-anagramming")) return;
+        title.classList.add("is-anagramming");
+        
+        if (!titleElements) {
+            const currentCoins = Array.from(title.querySelectorAll(".coin-o"));
+            const charSet = ['C', currentCoins[0], 'i', 'n', ' ', 'C', currentCoins[1], 'l', 'l', 'e', 'c', 't', 'i', 'n', 'g', ' ', 'C', currentCoins[2], 'v', 'e'];
+            titleElements = charSet.map(char => {
+                if (typeof char === 'string') {
+                    const span = document.createElement('span');
+                    span.textContent = char;
+                    if (char === ' ') span.style.whiteSpace = 'pre';
+                    return span;
+                }
+                return char;
+            });
+        }
+        
+        title.innerHTML = '';
+        if (!isAnagram) {
+            titleElements.forEach(el => title.appendChild(el));
+        } else {
+            const targetOrder = [
+                titleElements[16], titleElements[17], titleElements[7], titleElements[9], titleElements[4],
+                titleElements[0], titleElements[6], titleElements[3], titleElements[18], titleElements[19], titleElements[10], titleElements[11], titleElements[12], titleElements[13], titleElements[14], titleElements[15],
+                titleElements[5], titleElements[1], titleElements[2], titleElements[8]
+            ];
+            targetOrder.forEach(el => title.appendChild(el));
+        }
+        
+        const firstRects = titleElements.map(el => el.getBoundingClientRect());
+        
+        let nextOrder;
+        if (!isAnagram) {
+            nextOrder = [
+                titleElements[16], titleElements[17], titleElements[7], titleElements[9], titleElements[4],
+                titleElements[0], titleElements[6], titleElements[3], titleElements[18], titleElements[19], titleElements[10], titleElements[11], titleElements[12], titleElements[13], titleElements[14], titleElements[15],
+                titleElements[5], titleElements[1], titleElements[2], titleElements[8]
+            ];
+            isAnagram = true;
+        } else {
+            nextOrder = titleElements;
+            isAnagram = false;
+        }
+        
+        title.innerHTML = '';
+        nextOrder.forEach(el => title.appendChild(el));
+        
+        const lastRects = new Map();
+        nextOrder.forEach(el => lastRects.set(el, el.getBoundingClientRect()));
+        
+        titleElements.forEach((el, index) => {
+            const first = firstRects[index];
+            const last = lastRects.get(el);
+            const deltaX = first.left - last.left;
+            const deltaY = first.top - last.top;
+            
+            const isCoin = el.tagName === 'SPAN' && el.classList.contains('coin-o');
+            if (el.tagName === 'SPAN' && !isCoin) {
+                el.style.display = 'inline-block';
+            }
+            
+            el.animate([
+                { transform: `translate(${deltaX}px, ${deltaY}px)` },
+                { transform: `translate(0px, 0px)` }
+            ], {
+                duration: 10000,
+                easing: "linear",
+                composite: "add"
+            }).onfinish = () => {
+                if (el.tagName === 'SPAN' && !isCoin) {
+                    el.style.display = '';
+                }
+            };
+        });
+        
+        setTimeout(() => {
+            title.classList.remove("is-anagramming");
+        }, 10000);
+    }
+
     const coins = document.querySelectorAll(".menu-header .coin-o");
-    coins.forEach(coin => {
+    coins.forEach((coin, index) => {
         coin.style.cursor = "pointer";
         coin.style.borderRadius = "50%";
         coin.style.position = "relative";
@@ -1481,6 +1567,27 @@ document.addEventListener("DOMContentLoaded", async () => {
                 duration: 5000,
                 easing: "cubic-bezier(0.1, 0.9, 0.2, 1)"
             });
+
+            // Get current visual index from DOM order (handles rearranged elements automatically!)
+            const currentCoins = Array.from(document.querySelectorAll(".menu-header .coin-o"));
+            const currentIndex = currentCoins.indexOf(coin);
+            
+            easterEggHistory.push(currentIndex);
+            if (easterEggHistory.length > 18) {
+                easterEggHistory.shift();
+            }
+            
+            if (easterEggHistory.length === 18) {
+                let isMatch = true;
+                for (let i = 0; i < 4; i++) if (easterEggHistory[i] !== 0) isMatch = false;
+                for (let i = 4; i < 14; i++) if (easterEggHistory[i] !== 1) isMatch = false;
+                for (let i = 14; i < 18; i++) if (easterEggHistory[i] !== 2) isMatch = false;
+                
+                if (isMatch) {
+                    triggerAnagram();
+                    easterEggHistory = []; // clear after trigger
+                }
+            }
         });
         coin.addEventListener("touchstart", (e) => {
             e.preventDefault();
