@@ -15,7 +15,6 @@ let time = 0;
 let lastDrawTime = 0;
 
 let currentLevelNum = 0;
-let levelUpAnimTimes = {};
 let tierUpAnimTime = 0;
 let previousTier = 0;
 let globalDiskAngle = 0; // Integrated angle for smooth accretion disk rotation
@@ -610,10 +609,6 @@ export function stopCanvasLoop() {
   }
 }
 
-export function triggerLevelUpAnimation(id) {
-  levelUpAnimTimes[id] = performance.now();
-}
-
 export function checkTierUp(id, oldLevelBn, newLevelBn) {
   if (id !== currentBuildingId) return;
 
@@ -929,30 +924,12 @@ function draw(ctx, keypadCtx, width, height, t) {
     );
   }
   ctx.restore();
-  const triggerTime = levelUpAnimTimes[currentBuildingId] || 0;
-  let currentBuildingFlashAlpha = 0;
-  if (triggerTime > 0) {
-    const elapsed = (performance.now() - triggerTime) / 1000;
-    if (elapsed < 1.0) {
-      currentBuildingFlashAlpha = 1.0 - elapsed;
-    }
-  }
-  if (currentBuildingFlashAlpha > 0) {
-    const alpha = Math.max(0, currentBuildingFlashAlpha);
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
-    grad.addColorStop(0.5, `rgba(255, 255, 255, ${alpha * 0.5})`);
-    grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-  }
 
   if (tierUpAnimTime > 0) {
     ctx.fillStyle = `rgba(255, 255, 255, ${shakeAlpha})`;
     ctx.fillRect(0, 0, width, height);
   }
 }
-
 function drawCavern(ctx, w, h, t) {
   if (!window.currentCavernLayout) {
     const numGems = 20 + Math.floor(Math.random() * 11);
