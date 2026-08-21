@@ -9328,14 +9328,11 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.rotate(t * 0.5); 
       ctx.scale(scale, scale);
       
-      // Screen blend mode makes it pop against the dark cavern background
-      ctx.globalCompositeOperation = 'screen';
+      // Use normal alpha blending instead of 'screen' to keep the reds deep and saturated
+      ctx.globalCompositeOperation = 'source-over';
       
       const bladeRadius = 32; // Kept constant, no extension ever
       const innerGapRadius = 12;
-
-      ctx.shadowBlur = 5;
-      ctx.shadowColor = '#ff0000';
 
       for(let i=0; i<3; i++) {
           // Hollow hologram blade path
@@ -9344,13 +9341,18 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
           ctx.closePath();
           
-          // Faint, pulsing holographic fill
-          ctx.fillStyle = `rgba(255, 0, 0, ${0.15 + 0.25 * pulse})`;
+          // 1. Deeper, richer red holographic fill
+          ctx.fillStyle = `rgba(180, 0, 0, ${0.25 + 0.25 * pulse})`;
           ctx.fill();
           
-          // Sharp hologram outline
-          ctx.lineWidth = 0.5 + 0.5 * pulse;
-          ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + 0.4 * pulse})`;
+          // 2. Simulated shadow/glow (Darker red)
+          ctx.lineWidth = 2 + 1 * pulse;
+          ctx.strokeStyle = `rgba(120, 0, 0, ${0.3 + 0.2 * pulse})`;
+          ctx.stroke();
+
+          // 3. Sharp hologram outline (Pure red, no green/blue to prevent pinkness)
+          ctx.lineWidth = 1 + 0.5 * pulse;
+          ctx.strokeStyle = `rgba(255, 0, 0, ${0.6 + 0.4 * pulse})`;
           ctx.stroke();
 
           ctx.rotate((Math.PI * 2) / 3);
@@ -9359,11 +9361,16 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       // Holographic Central Dot
       ctx.beginPath();
       ctx.arc(0, 0, 7, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 0, 0, ${0.15 + 0.25 * pulse})`;
+      
+      ctx.fillStyle = `rgba(180, 0, 0, ${0.25 + 0.25 * pulse})`;
       ctx.fill();
       
-      ctx.lineWidth = 0.5 + 0.5 * pulse;
-      ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + 0.4 * pulse})`;
+      ctx.lineWidth = 2 + 1 * pulse;
+      ctx.strokeStyle = `rgba(120, 0, 0, ${0.3 + 0.2 * pulse})`;
+      ctx.stroke();
+
+      ctx.lineWidth = 1 + 0.5 * pulse;
+      ctx.strokeStyle = `rgba(255, 0, 0, ${0.6 + 0.4 * pulse})`;
       ctx.stroke();
 
       ctx.restore();
