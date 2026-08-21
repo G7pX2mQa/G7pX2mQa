@@ -9133,23 +9133,23 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           else if (age > maxLifetime - 1.0) alpha = maxLifetime - age;
           
           // Real-time Glow Oscillation
-          let brightness = 0.2 + (pulse * 0.8);
+          let brightness = 0.2 + (pulse * 0.8) + (t8 * 0.5);
           
           // Spawn size strictly based on spawn oscillation
-          let baseSize = 3 + (rand1 * 2) + (spawnPulse * 6);
+          let baseSize = 3 + (rand1 * 2) + (spawnPulse * 6) + (t8 * 4);
           
           // Peak real-time oscillation doubles the current size of the particle
           let size = baseSize * (1.0 + 1.0 * pulse); 
           
-          ctx.globalAlpha = t6 * alpha * (0.4 + 0.6 * brightness);
+          ctx.globalAlpha = t6 * alpha * Math.min(1, 0.4 + 0.6 * brightness);
           ctx.drawImage(ashImg, finalX - size, finalY - size, size * 2, size * 2);
       }
       ctx.restore();
   };
 
-  const drawCoreSymbol = (overdriveAlpha) => {
+  const drawCoreSymbol = (overdriveAlpha, t8Alpha = 0) => {
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-      const radColor = `rgba(255, 0, 0, ${0.5 + 0.5 * pulse})`;
+      const radColor = `rgba(255, 0, 0, ${0.5 + 0.5 * pulse + 0.2 * t8Alpha})`;
 
       // Dark window casing
       ctx.beginPath();
@@ -9158,15 +9158,16 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.fill();
 
       // Overdrive Background Glow
-      if (overdriveAlpha > 0) {
+      if (overdriveAlpha > 0 || t8Alpha > 0) {
           ctx.save();
-          ctx.globalAlpha = ctx.globalAlpha * overdriveAlpha;
-          let glowRadius = 30 + 15 * pulse; 
+          const maxAlpha = Math.max(overdriveAlpha, t8Alpha);
+          ctx.globalAlpha = ctx.globalAlpha * maxAlpha;
+          let glowRadius = 30 + 15 * pulse + 15 * t8Alpha; 
           ctx.beginPath();
           ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
           let bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, glowRadius);
-          bgGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
-          bgGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
+          bgGrad.addColorStop(0, `rgba(255, 0, 0, ${Math.min(1, 0.9 * pulse + 0.5 * t8Alpha)})`);
+          bgGrad.addColorStop(0.5, `rgba(200, 0, 0, ${Math.min(1, 0.5 * pulse + 0.3 * t8Alpha)})`);
           bgGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
           ctx.fillStyle = bgGrad;
           ctx.fill();
@@ -9195,19 +9196,25 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.fill();
 
       // Central Dot
-      if (overdriveAlpha > 0) {
+      if (overdriveAlpha > 0 || t8Alpha > 0) {
           ctx.save();
-          ctx.globalAlpha = ctx.globalAlpha * overdriveAlpha;
-          let dotRadius = 7 + 6 * pulse; 
+          const maxAlpha = Math.max(overdriveAlpha, t8Alpha);
+          ctx.globalAlpha = ctx.globalAlpha * maxAlpha;
+          
+          // Cap dot radius so it never bleeds into the blades (innerGapRadius is 12)
+          let dotRadius = 6 + 3 * pulse; 
+          
           ctx.beginPath();
           ctx.arc(0, 0, innerGapRadius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`; 
+          ctx.fillStyle = `rgba(255, 0, 0, ${Math.min(1, 0.4 * pulse + 0.2 * t8Alpha)})`; 
           ctx.fill();
 
           ctx.beginPath();
           ctx.arc(0, 0, dotRadius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgb(${Math.floor(150 + 105 * pulse)}, 0, 0)`; 
-          ctx.shadowBlur = 15 + 15 * pulse;
+          
+          ctx.fillStyle = radColor;
+          
+          ctx.shadowBlur = 10 + 10 * pulse;
           ctx.shadowColor = 'red';
           ctx.fill();
           ctx.shadowBlur = 0;
@@ -9219,45 +9226,55 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           ctx.fill();
       }
       
-      // Overdrive Beams & Scaling Blade Flares
-      if (overdriveAlpha > 0) {
-          ctx.save();
-          ctx.globalAlpha = ctx.globalAlpha * overdriveAlpha;
-          ctx.globalCompositeOperation = 'screen';
-          let bladeRadius = 32 + 12 * pulse; 
-          
-          for(let i=0; i<3; i++) {
-              ctx.beginPath();
-              ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
-              ctx.lineTo(innerGapRadius * Math.cos(Math.PI/6), innerGapRadius * Math.sin(Math.PI/6));
-              ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
-              ctx.closePath();
-              
-              ctx.fillStyle = `rgba(255, 0, 0, ${0.6 * pulse})`;
-              ctx.fill();
-              
-              ctx.lineWidth = 1 + 3 * pulse;
-              ctx.strokeStyle = `rgba(255, 0, 0, ${0.9 * pulse})`;
-              ctx.stroke();
+      ctx.restore(); // Undo spin
+  };
 
-              ctx.save();
-              let beamLength = 180 + 140 * pulse;
-              let beamGrad = ctx.createRadialGradient(0, 0, bladeRadius, 0, 0, beamLength);
-              beamGrad.addColorStop(0, `rgba(255, 0, 0, ${0.9 * pulse})`);
-              beamGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.5 * pulse})`);
-              beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-              
-              ctx.fillStyle = beamGrad;
-              ctx.beginPath();
-              ctx.arc(0, 0, bladeRadius - 1, -Math.PI/6, Math.PI/6);
-              ctx.arc(0, 0, beamLength, Math.PI/6, -Math.PI/6, true);
-              ctx.closePath();
-              ctx.fill();
-              
-              ctx.restore();
-              ctx.rotate((Math.PI * 2) / 3);
-          }
+  const drawOverdriveBeams = (overdriveAlpha, t8Alpha = 0) => {
+      if (overdriveAlpha <= 0 && t8Alpha <= 0) return;
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+      const innerGapRadius = 12;
+      
+      ctx.save();
+      ctx.rotate(t * 0.5); 
+      
+      const maxAlpha = Math.max(overdriveAlpha, t8Alpha);
+      ctx.globalAlpha = ctx.globalAlpha * maxAlpha;
+      ctx.globalCompositeOperation = 'screen';
+      let bladeRadius = 32 + 12 * pulse + 8 * t8Alpha; 
+      
+      for(let i=0; i<3; i++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
+          ctx.lineTo(innerGapRadius * Math.cos(Math.PI/6), innerGapRadius * Math.sin(Math.PI/6));
+          ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
+          ctx.closePath();
+          
+          ctx.fillStyle = `rgba(255, 0, 0, ${Math.min(1, 0.6 * pulse + 0.4 * t8Alpha)})`;
+          ctx.fill();
+          
+          ctx.lineWidth = 1 + 3 * pulse + 2 * t8Alpha;
+          ctx.strokeStyle = `rgba(255, 0, 0, ${Math.min(1, 0.9 * pulse + 0.5 * t8Alpha)})`;
+          ctx.stroke();
+
+          ctx.save();
+          let beamLength = (180 + 140 * pulse) * (1 + t8Alpha);
+          let beamGrad = ctx.createRadialGradient(0, 0, bladeRadius, 0, 0, beamLength);
+          beamGrad.addColorStop(0, `rgba(255, 0, 0, ${Math.min(1, 0.9 * pulse + 0.5 * t8Alpha)})`);
+          beamGrad.addColorStop(0.5, `rgba(200, 0, 0, ${Math.min(1, 0.5 * pulse + 0.3 * t8Alpha)})`);
+          beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+          
+          ctx.fillStyle = beamGrad;
+          ctx.beginPath();
+          let beamSpread = (Math.PI/6) + (0.1 * t8Alpha); 
+          ctx.arc(0, 0, bladeRadius - 1, -beamSpread, beamSpread);
+          ctx.arc(0, 0, beamLength, beamSpread, -beamSpread, true);
+          ctx.closePath();
+          ctx.fill();
+
+          // Removed the smaller inner beam of light per user request
+          
           ctx.restore();
+          ctx.rotate((Math.PI * 2) / 3);
       }
       ctx.restore(); // Undo spin
   };
@@ -9274,41 +9291,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
-  // Neon Green theme colors
-  const glowGreen = '#39ff14';
-  const paleGreen = '#bfffbf';
-  const darkGreen = '#006600';
-  const hazardYellow = '#ffd700';
-  
-  // TIER 8 BACKGROUND GLOW
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-    const pulse = 0.5 + 0.5 * Math.sin(t * 10);
-    const radGrad = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 1000);
-    radGrad.addColorStop(0, `rgba(57, 255, 20, ${pulse})`); // Neon green core
-    radGrad.addColorStop(0.2, `rgba(0, 255, 0, ${pulse * 0.8})`);
-    radGrad.addColorStop(0.5, `rgba(0, 100, 0, ${pulse * 0.4})`);
-    radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = radGrad;
-    ctx.beginPath();
-    ctx.arc(0, coreY, 1000, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.translate(0, coreY);
-    for(let i=0; i<60; i++) {
-        let angle = (i * Math.PI / 30) + (t * (i%2==0 ? 1 : -1));
-        let dist = 100 + 400 * Math.abs(Math.sin(t * 3 + i));
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(angle)*dist, Math.sin(angle)*dist);
-        ctx.strokeStyle = i%3==0 ? '#7fff00' : '#00ff00';
-        ctx.lineWidth = 1 + 2 * Math.abs(Math.cos(t * 5 + i));
-        ctx.globalAlpha = 0.3 * Math.abs(Math.sin(t * 8 + i));
-        ctx.stroke();
-    }
-    ctx.restore();
-  }
+  // Tier 8 background glow removed
   // TIER 7 BACKGROUND MENACING SYMBOL
   if (t7 > 0) {
       ctx.save();
@@ -9342,17 +9325,17 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           ctx.closePath();
           
           // 1. Deeper, richer red holographic fill
-          ctx.fillStyle = `rgba(180, 0, 0, ${0.25 + 0.25 * pulse})`;
+          ctx.fillStyle = `rgba(180, 0, 0, ${Math.min(1, 0.15 + 0.35 * pulse + 0.2 * t8 * pulse)})`;
           ctx.fill();
           
           // 2. Simulated shadow/glow (Darker red)
           ctx.lineWidth = 2 + 1 * pulse;
-          ctx.strokeStyle = `rgba(120, 0, 0, ${0.3 + 0.2 * pulse})`;
+          ctx.strokeStyle = `rgba(120, 0, 0, ${Math.min(1, 0.15 + 0.35 * pulse + 0.2 * t8 * pulse)})`;
           ctx.stroke();
 
           // 3. Sharp hologram outline (Pure red, no green/blue to prevent pinkness)
-          ctx.lineWidth = 1 + 0.5 * pulse;
-          ctx.strokeStyle = `rgba(255, 0, 0, ${0.6 + 0.4 * pulse})`;
+          ctx.lineWidth = 1 + 0.5 * pulse + 1 * t8;
+          ctx.strokeStyle = `rgba(255, 0, 0, ${Math.min(1, 0.3 + 0.7 * pulse + 0.4 * t8 * pulse)})`;
           ctx.stroke();
 
           ctx.rotate((Math.PI * 2) / 3);
@@ -9362,15 +9345,15 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       ctx.arc(0, 0, 7, 0, Math.PI * 2);
       
-      ctx.fillStyle = `rgba(180, 0, 0, ${0.25 + 0.25 * pulse})`;
+      ctx.fillStyle = `rgba(180, 0, 0, ${Math.min(1, 0.15 + 0.35 * pulse + 0.2 * t8 * pulse)})`;
       ctx.fill();
       
       ctx.lineWidth = 2 + 1 * pulse;
-      ctx.strokeStyle = `rgba(120, 0, 0, ${0.3 + 0.2 * pulse})`;
+      ctx.strokeStyle = `rgba(120, 0, 0, ${Math.min(1, 0.15 + 0.35 * pulse + 0.2 * t8 * pulse)})`;
       ctx.stroke();
 
-      ctx.lineWidth = 1 + 0.5 * pulse;
-      ctx.strokeStyle = `rgba(255, 0, 0, ${0.6 + 0.4 * pulse})`;
+      ctx.lineWidth = 1 + 0.5 * pulse + 1 * t8;
+      ctx.strokeStyle = `rgba(255, 0, 0, ${Math.min(1, 0.3 + 0.7 * pulse + 0.4 * t8 * pulse)})`;
       ctx.stroke();
 
       ctx.restore();
@@ -9565,7 +9548,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     // Core Window and Radiation Symbol (Handles Tier 4 transition internally)
     ctx.save();
     ctx.translate(0, baseY - 120);
-    drawCoreSymbol(t4);
+    drawCoreSymbol(t4, t8);
     ctx.restore();
 
     ctx.restore();
@@ -9795,9 +9778,10 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           // Background glow (simulating shadow blur without triggering canvas scaling jitter bugs)
           if (pulse > 0.05) {
               let glowGrad = ctx.createLinearGradient(ventX, 0, ventX + ventW, 0);
+              let alpha = Math.min(1, (0.4 + 0.6 * t8) * pulse);
               glowGrad.addColorStop(0, `rgba(255, 0, 0, 0)`);
-              glowGrad.addColorStop(0.3, `rgba(255, 0, 0, ${0.4 * pulse})`);
-              glowGrad.addColorStop(0.7, `rgba(255, 0, 0, ${0.4 * pulse})`);
+              glowGrad.addColorStop(0.3, `rgba(255, 0, 0, ${alpha})`);
+              glowGrad.addColorStop(0.7, `rgba(255, 0, 0, ${alpha})`);
               glowGrad.addColorStop(1, `rgba(255, 0, 0, 0)`);
               ctx.fillStyle = glowGrad;
               ctx.fillRect(ventX, ventTop, ventW, ventH);
@@ -9871,124 +9855,34 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
 
 
-  // TIER 8: THE "TRULY CRAZY" SUPERCRITICAL BEYOND
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-    ctx.translate(0, coreY);
-    
-    ctx.globalCompositeOperation = "screen";
+  // Tier 8 logic is now handled internally by drawCoreSymbol.
 
-    // 1) Massive Spirograph Overlays in Neon Green
-    ctx.strokeStyle = 'rgba(57, 255, 20, 0.5)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i = 0; i < 300; i++) {
-        let theta = i * 0.1;
-        let R = 150;
-        let r = 52;
-        let d = 70;
-        let rx = (R - r) * Math.cos(theta) + d * Math.cos(((R - r) / r) * theta + t*2);
-        let ry = (R - r) * Math.sin(theta) - d * Math.sin(((R - r) / r) * theta + t*2);
-        if (i === 0) ctx.moveTo(rx, ry);
-        else ctx.lineTo(rx, ry);
-    }
-    ctx.stroke();
+  // Draw Overdrive Beams on top of absolutely everything else
+  if (t4 > 0 || t8 > 0) {
+      // Main core beams
+      ctx.save();
+      ctx.translate(0, baseY - 120);
+      drawOverdriveBeams(t4, t8);
+      ctx.restore();
+  }
 
-    ctx.strokeStyle = 'rgba(0, 255, 0, 0.6)';
-    ctx.beginPath();
-    for (let i = 0; i < 300; i++) {
-        let theta = i * 0.1;
-        let R = 200;
-        let r = 85;
-        let d = 110;
-        let rx = (R - r) * Math.cos(theta) + d * Math.cos(((R - r) / r) * theta - t*3);
-        let ry = (R - r) * Math.sin(theta) - d * Math.sin(((R - r) / r) * theta - t*3);
-        if (i === 0) ctx.moveTo(rx, ry);
-        else ctx.lineTo(rx, ry);
-    }
-    ctx.stroke();
+  if (t6 > 0 && t8 > 0) {
+      // Cooling tower beams
+      ctx.save();
+      ctx.globalAlpha = t6; // Fade in with tier 6
+      ctx.translate(-40, 0); 
+      ctx.translate(-220, baseY - 148); 
+      ctx.scale(0.65, 0.65); 
+      drawOverdriveBeams(t8); 
+      ctx.restore();
 
-    // 2) Lissajous Electron Storm (100+ Orbits)
-    for(let i=0; i<120; i++) {
-        let a = 3;
-        let b = 2;
-        let delta = i * Math.PI / 60;
-        let lx = 250 * Math.sin(a * t + delta);
-        let ly = 250 * Math.sin(b * t);
-        
-        let rot = t*0.5 + i*0.05;
-        let rlx = lx * Math.cos(rot) - ly * Math.sin(rot);
-        let rly = lx * Math.sin(rot) + ly * Math.cos(rot);
-
-        ctx.fillStyle = i%4===0 ? '#ffffff' : glowGreen;
-        ctx.beginPath();
-        ctx.arc(rlx, rly, i%4===0 ? 3 : 1.5, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    // 3) Orbiting Atomic Motifs
-    for (let j = 0; j < 5; j++) {
-        ctx.save();
-        let orbRad = 220;
-        let orbAngle = t*1.2 + j * Math.PI*2/5;
-        ctx.translate(orbRad * Math.cos(orbAngle), orbRad * Math.sin(orbAngle));
-        
-        ctx.strokeStyle = '#7fff00';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 3; i++) {
-          ctx.save();
-          ctx.rotate(i * Math.PI / 3 + t*4);
-          ctx.beginPath();
-          ctx.ellipse(0, 0, 25, 8, 0, 0, Math.PI * 2);
-          ctx.stroke();
-          
-          let eAngle = t*8 + i*Math.PI;
-          let ex = 25 * Math.cos(eAngle);
-          let ey = 8 * Math.sin(eAngle);
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(ex, ey, 3, 0, Math.PI*2);
-          ctx.fill();
-          ctx.restore();
-        }
-        ctx.fillStyle = glowGreen;
-        ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-    }
-
-    // 4) Massive Vertical Energy Beam piercing the heavens
-    ctx.globalCompositeOperation = "source-over";
-    let beamWidth = 50 + 25 * Math.sin(t*15);
-    let beamGrad = ctx.createLinearGradient(-beamWidth/2, 0, beamWidth/2, 0);
-    beamGrad.addColorStop(0, 'rgba(0,255,0,0)');
-    beamGrad.addColorStop(0.2, 'rgba(57,255,20,0.8)');
-    beamGrad.addColorStop(0.5, 'rgba(255,255,255,1)');
-    beamGrad.addColorStop(0.8, 'rgba(57,255,20,0.8)');
-    beamGrad.addColorStop(1, 'rgba(0,255,0,0)');
-    ctx.fillStyle = beamGrad;
-    ctx.fillRect(-beamWidth/2, -800, beamWidth, 1600); // Massive vertical beam
-    
-    // Beam particles
-    ctx.fillStyle = '#ffffff';
-    for(let i=0; i<40; i++) {
-        let px = (Math.random()-0.5)*beamWidth*1.5;
-        let py = -800 + ( (t*1200 + i*40) % 1600 );
-        ctx.beginPath();
-        ctx.arc(px, py, Math.random()*4+1, 0, Math.PI*2);
-        ctx.fill();
-    }
-    
-    // Intense base flare for the beam
-    ctx.fillStyle = '#ffffff';
-    ctx.globalAlpha = 0.8 + 0.2*Math.sin(t*20);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, beamWidth*1.5, 20, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = t6;
+      ctx.translate(40, 0); 
+      ctx.translate(220, baseY - 148); 
+      ctx.scale(0.65, 0.65); 
+      drawOverdriveBeams(t8); 
+      ctx.restore();
   }
 
   ctx.restore();
