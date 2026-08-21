@@ -2436,7 +2436,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   }
 
   // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
-  if (tier4Prog > 0 && tier8Prog < 1) {
+  if (tier4Prog > 0 && tier8Prog <= 0) {
     ctx.save();
     // Smoothly fade out alpha during tier 8 transition
     ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
@@ -2477,19 +2477,16 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   // --- Tier 8: Symmetrical Zenith ---
   if (tier8Prog > 0) {
     ctx.save();
-    ctx.globalAlpha = tier8Prog;
+    // Combined alpha: keeps beam fully visible during transition (tier4Prog is 1)
+    // and smoothly hands off from tier 4 beam to tier 8 beam in a single draw
+    ctx.globalAlpha = Math.min(tier4Prog * (1 - tier8Prog) + tier8Prog, 1);
     ctx.globalCompositeOperation = "lighter";
 
-    // Incoming massive white beams from BOTH sides (top-left, top-right)
-    // OR straight down. "massive white beams enter from both sides (or straight down)"
-    // Let's do straight down splitting into two huge rainbows perfectly symmetric
+    // Interpolate beam width from tier 4 to tier 8
+    const t4BeamW = 6 + Math.sin(t * 5) * 2;
+    const t8BeamW = 15 + Math.sin(t * 10) * 5;
+    const beamW = t4BeamW + (t8BeamW - t4BeamW) * tier8Prog;
 
-    const inAngle = -Math.PI / 2; // straight up/down
-    ctx.fillStyle = ironPattern ? ironPattern : "#1a1c23";
-
-    // Draw incoming thick white beam
-    const beamW = 15 + Math.sin(t * 10) * 5;
-    // Fix: use center.x for gradient x coordinates to align with the beam!
     ctx.fillStyle = "rgba(255, 255, 255, 1)";
 
     ctx.beginPath();
@@ -2499,13 +2496,12 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.lineTo(center.x - beamW / 2, center.y);
     ctx.fill();
 
-    // Explosive Core (smaller, pulsing)
+    // Interpolate core: starts as tier 4 impact point (radius 8),
+    // smoothly introduces tier 8 erratic pulsing
     ctx.fillStyle = "rgba(255, 255, 255, 1)";
     ctx.beginPath();
-    // Inner prism size is about iw = w * 0.45 = 13.5 * sizeMult.
-    // We want the ball to be smaller than the inner prism width but still pulse erratically.
-    const corePulse = 8 + Math.random() * 6;
-    ctx.arc(center.x, center.y, corePulse, 0, Math.PI * 2);
+    const coreR = 8 + Math.random() * 6 * tier8Prog;
+    ctx.arc(center.x, center.y, coreR, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
