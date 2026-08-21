@@ -1509,6 +1509,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const lastRects = new Map();
         nextOrder.forEach(el => lastRects.set(el, el.getBoundingClientRect()));
         
+        const currentAnimations = [];
+        
         titleElements.forEach((el, index) => {
             const first = firstRects[index];
             const last = lastRects.get(el);
@@ -1520,23 +1522,139 @@ document.addEventListener("DOMContentLoaded", async () => {
                 el.style.display = 'inline-block';
             }
             
-            el.animate([
+            const anim = el.animate([
                 { transform: `translate(${deltaX}px, ${deltaY}px)` },
                 { transform: `translate(0px, 0px)` }
             ], {
                 duration: 10000,
                 easing: "linear",
                 composite: "add"
-            }).onfinish = () => {
+            });
+            
+            anim.onfinish = () => {
                 if (el.tagName === 'SPAN' && !isCoin) {
                     el.style.display = '';
                 }
             };
+            
+            currentAnimations.push(anim);
         });
         
-        setTimeout(() => {
-            title.classList.remove("is-anagramming");
-        }, 10000);
+        const newlyAnagrammed = isAnagram;
+        
+        let isIntersecting = true;
+        const updatePlayState = () => {
+            if (document.hidden || !isIntersecting) {
+                currentAnimations.forEach(a => a.pause());
+            } else {
+                currentAnimations.forEach(a => a.play());
+            }
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                isIntersecting = entry.isIntersecting;
+                updatePlayState();
+            });
+        });
+        observer.observe(title);
+        document.addEventListener("visibilitychange", updatePlayState);
+        
+        if (currentAnimations.length > 0) {
+            currentAnimations[0].addEventListener("finish", () => {
+                observer.disconnect();
+                document.removeEventListener("visibilitychange", updatePlayState);
+                
+                title.classList.remove("is-anagramming");
+                
+                const menuRoot = document.querySelector(".menu-root");
+                const inMenu = menuRoot && menuRoot.style.display !== "none";
+                
+                if (newlyAnagrammed && inMenu) {
+                    const hasSeen = lsGetItem("ccc:globalEasterEggTitleFound");
+                    if (hasSeen !== "1") {
+                        lsSetItem("ccc:globalEasterEggTitleFound", "1");
+                        
+                        let container = document.querySelector(".notification-container");
+                        if (!container) {
+                            container = document.createElement("div");
+                            container.className = "notification-container";
+                            document.body.appendChild(container);
+                        }
+                        
+                        const el = document.createElement("div");
+                        el.className = "notification";
+                        
+                        const icon = document.createElement("img");
+                        icon.src = "img/misc/mysterious_plus_base.webp";
+                        icon.className = "notification-icon";
+                        icon.alt = "";
+                        el.appendChild(icon);
+                        
+                        const content = document.createElement("div");
+                        content.className = "notification-text";
+                        content.innerHTML = "You actually found this easter egg?";
+                        el.appendChild(content);
+                        
+                        container.appendChild(el);
+                        
+                        try {
+                            playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+                        } catch (e) {}
+                        
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                el.classList.add("is-visible");
+                            });
+                        });
+                        
+                        let timeRemaining = 10000;
+                        let lastTick = performance.now();
+                        let isDismissed = false;
+                        
+                        const dismissNotification = (instant = false) => {
+                            if (isDismissed) return;
+                            isDismissed = true;
+                            if (instant) {
+                                el.remove();
+                            } else {
+                                el.classList.remove("is-visible");
+                                el.classList.add("is-leaving");
+                                el.addEventListener("transitionend", () => el.remove());
+                            }
+                        };
+                        
+                        const tick = (now) => {
+                            if (isDismissed) return;
+                            
+                            const delta = now - lastTick;
+                            lastTick = now;
+                            
+                            const stillInMenu = menuRoot && menuRoot.style.display !== "none";
+                            if (!stillInMenu) {
+                                dismissNotification(true);
+                                return;
+                            }
+                            
+                            if (!document.hidden) {
+                                timeRemaining -= delta;
+                            }
+                            
+                            if (timeRemaining <= 0) {
+                                dismissNotification(false);
+                            } else {
+                                requestAnimationFrame(tick);
+                            }
+                        };
+                        
+                        requestAnimationFrame((now) => {
+                            lastTick = now;
+                            requestAnimationFrame(tick);
+                        });
+                    }
+                }
+            });
+        }
     }
 
     const coins = document.querySelectorAll(".menu-header .coin-o");
