@@ -9309,6 +9309,65 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
   }
+  // TIER 7 BACKGROUND MENACING SYMBOL
+  if (t7 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t7;
+      
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+      const scale = 12; // Back to 12x
+      
+      ctx.translate(0, baseY - 120); // Center on core
+
+      // 3. Clip the symbol so it doesn't draw below the ground (y = 120)
+      ctx.beginPath();
+      ctx.rect(-3000, -3000, 6000, 3000 + 120);
+      ctx.clip();
+
+      // 1. Exact same rotation as center symbol
+      ctx.rotate(t * 0.5); 
+      ctx.scale(scale, scale);
+      
+      // Screen blend mode makes it pop against the dark cavern background
+      ctx.globalCompositeOperation = 'screen';
+      
+      const bladeRadius = 32; // Kept constant, no extension ever
+      const innerGapRadius = 12;
+
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = '#ff0000';
+
+      for(let i=0; i<3; i++) {
+          // Hollow hologram blade path
+          ctx.beginPath();
+          ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
+          ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
+          ctx.closePath();
+          
+          // Faint, pulsing holographic fill
+          ctx.fillStyle = `rgba(255, 0, 0, ${0.15 + 0.25 * pulse})`;
+          ctx.fill();
+          
+          // Sharp hologram outline
+          ctx.lineWidth = 0.5 + 0.5 * pulse;
+          ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + 0.4 * pulse})`;
+          ctx.stroke();
+
+          ctx.rotate((Math.PI * 2) / 3);
+      }
+      
+      // Holographic Central Dot
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 0, 0, ${0.15 + 0.25 * pulse})`;
+      ctx.fill();
+      
+      ctx.lineWidth = 0.5 + 0.5 * pulse;
+      ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + 0.4 * pulse})`;
+      ctx.stroke();
+
+      ctx.restore();
+  }
 
   // Draw Rising Ash (Behind Cooling Towers)
   drawAsh(true);
@@ -9803,64 +9862,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // TIER 7: Heavy scaffolding, magnetic containment rings
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-    ctx.translate(0, baseY - 120);
 
-    // Giant magnetic containment rings around the exposed core
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 15;
-    for(let r=0; r<3; r++) {
-        let rad = 80 + r*25;
-        // Back of ring
-        ctx.beginPath();
-        ctx.ellipse(0, 0, rad, rad*0.3, 0, Math.PI, Math.PI*2);
-        ctx.stroke();
-    }
-    
-    // Front of ring
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 10;
-    for(let r=0; r<3; r++) {
-        let rad = 80 + r*25;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, rad, rad*0.3, 0, 0, Math.PI);
-        ctx.stroke();
-        
-        // Glowing nodes on the rings
-        ctx.fillStyle = glowGreen;
-        for(let i=0; i<5; i++) {
-            let angle = (i * Math.PI/4) + (t*2 * (r%2==0 ? 1 : -1));
-            if (angle % (Math.PI*2) > 0 && angle % (Math.PI*2) < Math.PI) {
-                let nx = rad * Math.cos(angle);
-                let ny = rad*0.3 * Math.sin(angle);
-                ctx.beginPath();
-                ctx.arc(nx, ny, 4, 0, Math.PI*2);
-                ctx.fill();
-            }
-        }
-    }
-    
-    // Heavy sci-fi scaffolding on towers
-    symDraw(() => {
-        ctx.strokeStyle = fillRuby;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(-170, 0);
-        ctx.lineTo(-215, -150);
-        ctx.lineTo(-260, 0);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(-180, -60);
-        ctx.lineTo(-250, -60);
-        ctx.stroke();
-    });
-
-    ctx.restore();
-  }
 
   // TIER 8: THE "TRULY CRAZY" SUPERCRITICAL BEYOND
   if (t8 > 0) {
