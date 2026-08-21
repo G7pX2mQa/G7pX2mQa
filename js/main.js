@@ -1453,6 +1453,40 @@ export function enterArea(areaID, fadeDuration = 0) {
    BOOT FLOW
 ----------------------------*/
 document.addEventListener("DOMContentLoaded", async () => {
+    const coins = document.querySelectorAll(".menu-header .coin-o");
+    coins.forEach(coin => {
+        coin.style.cursor = "pointer";
+        coin.style.borderRadius = "50%";
+        coin.style.position = "relative";
+        
+        const visual = document.createElement("span");
+        visual.style.position = "absolute";
+        visual.style.inset = "0";
+        visual.style.pointerEvents = "none";
+        visual.style.backgroundImage = 'url("img/currencies/coin/coin.webp")';
+        visual.style.backgroundPosition = "center";
+        visual.style.backgroundSize = "contain";
+        visual.style.backgroundRepeat = "no-repeat";
+        
+        coin.style.background = "none";
+        coin.appendChild(visual);
+
+        let animation;
+        coin.addEventListener("click", () => {
+            if (animation) animation.cancel();
+            animation = visual.animate([
+                { transform: "rotateY(0deg)" },
+                { transform: "rotateY(-1800deg)" }
+            ], {
+                duration: 5000,
+                easing: "cubic-bezier(0.1, 0.9, 0.2, 1)"
+            });
+        });
+        coin.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            coin.click();
+        }, { passive: false });
+    });
     if (IS_FIREFOX) document.documentElement.classList.add("is-firefox");
     let resolveSkip;
     const skipPromise = new Promise((resolve) => {
