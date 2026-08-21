@@ -732,12 +732,29 @@ class ShopInstance {
     }
     updateDelveGlow() {
         if (!this.delveBtnEl || this.mode !== "standard") return;
-        const met = getCurrentAreaKey() === AREA_KEYS.STARTER_COVE ? hasMetMerchant() : hasMetMiner();
-        let shouldGlow = !met;
-        const slot = getActiveSlot();
-        if (slot != null && lsGetItem(`ccc:tsunami:labPending:${slot}`) === "1") {
-            shouldGlow = true;
+
+        let shouldGlow = false;
+        const areaKey = getCurrentAreaKey();
+
+        if (areaKey === AREA_KEYS.STARTER_COVE) {
+            shouldGlow = !hasMetMerchant();
+            const slot = getActiveSlot();
+            if (slot != null && lsGetItem(`ccc:tsunami:labPending:${slot}`) === "1") {
+                shouldGlow = true;
+            }
+        } else if (areaKey === AREA_KEYS.UNDERWATER_CAVERN) {
+            shouldGlow = !hasMetMiner();
+        } else {
+            const slot = getActiveSlot();
+            const safeSlot = slot ?? "default";
+            try {
+                const met = lsGetItem(`ccc:${areaKey}Met:${safeSlot}`) === "1";
+                shouldGlow = !met;
+            } catch (e) {
+                shouldGlow = false;
+            }
         }
+
         this.delveBtnEl.classList.toggle("is-new", shouldGlow);
     }
     buildUpgradesData() {
