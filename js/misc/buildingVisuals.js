@@ -9980,7 +9980,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     // We are replacing the old isometric Tier 0 base with a massive high-tech 2D profile.
     
     // Base glow
-    drawGlow(0, 0, 300, 'rgba(255, 255, 255, 0.05)', 'transparent');
+
     
     ctx.fillStyle = fillSapphire;
     
@@ -10033,10 +10033,10 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     
     // --- High-Tech Spinning Core Element ---
     const spinnerCy = -120;
-    const coreRadius = 85;
+    const coreRadius = 75;
     
     // Huge background aura
-    drawGlow(0, spinnerCy, 150, 'rgba(255, 255, 255, 0.1)', 'transparent');
+
 
     ctx.save();
     ctx.translate(0, spinnerCy);
@@ -10102,24 +10102,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.fill();
         ctx.stroke();
         
-        // Inner blade details
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.moveTo(-5, 25);
-        ctx.lineTo(5, 25);
-        ctx.lineTo(2, coreRadius - 20);
-        ctx.lineTo(-2, coreRadius - 20);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Pulse dots on the blade
-        ctx.fillStyle = '#fff';
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(0, coreRadius - 25, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
         ctx.restore();
     }
     ctx.restore(); // end of t * 1.5 rotation
@@ -10130,10 +10112,10 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     
     // Symmetrical geometric housing and inner elements
     ctx.beginPath();
-    ctx.moveTo(-15, -15);
-    ctx.lineTo(15, -15);
-    ctx.lineTo(15, 15);
-    ctx.lineTo(-15, 15);
+    ctx.moveTo(-10, -10);
+    ctx.lineTo(10, -10);
+    ctx.lineTo(10, 10);
+    ctx.lineTo(-10, 10);
     ctx.closePath();
     ctx.fillStyle = fillSapphire;
     ctx.fill();
@@ -10145,12 +10127,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     
     ctx.restore(); // end counter-rotation
     
-    // Central energy orb
-    drawGlow(0, 0, 25, 'rgba(255, 255, 255, 1)', 'rgba(0, 200, 255, 0)');
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(0, 0, 10, 0, Math.PI * 2);
-    ctx.fill();
 
     ctx.restore(); // end spinner translate
 
