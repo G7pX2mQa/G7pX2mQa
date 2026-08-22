@@ -660,6 +660,20 @@ export function createBaseSpawner(config = {}) {
         if (!M.pfRect) computeMetrics();
 
         let rawDt = now - last;
+
+        // If rawDt is very large (e.g. > 500ms), we likely just woke up from suspension or background tab
+        // Adjust timestamps for active items so they don't instantly expire because the visual animation was paused
+        if (rawDt > 500) {
+            const pausedDuration = rawDt - (0.1 * 1000); // subtract the max allowed frame time
+            for (let i = 0; i < activeItems.length; i++) {
+                const c = activeItems[i];
+                if (c && !c.isRemoved) {
+                    if (c.startTime !== undefined) c.startTime += pausedDuration;
+                    if (c.dieAt !== undefined) c.dieAt += pausedDuration;
+                }
+            }
+        }
+
         let dt = rawDt / 1000;
         last = now;
         if (dt > 0.1) dt = 0.1;
