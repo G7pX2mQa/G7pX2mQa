@@ -1226,24 +1226,6 @@ export function enterArea(areaID, fadeDuration = 0) {
             }
 
             syncXpMpHudLayout();
-            if (typeof initMutationSystem === "function") {
-                try {
-                    initMutationSystem();
-                } catch {}
-            }
-            if (typeof initXpSystem === "function") {
-                try {
-                    initXpSystem();
-                } catch {}
-            }
-            if (typeof initDpSystem === "function") {
-                try {
-                    initDpSystem();
-                } catch {}
-                try {
-                    initPpSystem();
-                } catch {}
-            }
 
             startAreaMusic(AREAS.STARTER_COVE, "sounds/The_Cove.ogg", 1.0, fadeDuration);
 
@@ -1339,14 +1321,6 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (gRoot) {
                 gRoot.classList.remove("area-cove");
                 gRoot.classList.add("area-cavern");
-            }
-            if (typeof initDpSystem === "function") {
-                try {
-                    initDpSystem();
-                } catch {}
-                try {
-                    initPpSystem();
-                } catch {}
             }
             syncXpMpHudLayout();
 
