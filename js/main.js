@@ -1061,6 +1061,13 @@ export function enterArea(areaID, fadeDuration = 0) {
         const gameRoot = document.getElementById("game-root");
         if (gameRoot) {
             gameRoot.hidden = false;
+            if (areaID === AREAS.STARTER_COVE) {
+                gameRoot.classList.remove("area-cavern");
+                gameRoot.classList.add("area-cove");
+            } else if (areaID === AREAS.UNDERWATER_CAVERN) {
+                gameRoot.classList.remove("area-cove");
+                gameRoot.classList.add("area-cavern");
+            }
             initHudButtons();
         }
 
@@ -1219,12 +1226,6 @@ export function enterArea(areaID, fadeDuration = 0) {
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "";
 
-            const gRoot = document.getElementById("game-root");
-            if (gRoot) {
-                gRoot.classList.remove("area-cavern");
-                gRoot.classList.add("area-cove");
-            }
-
             syncXpMpHudLayout();
 
             startAreaMusic(AREAS.STARTER_COVE, "sounds/The_Cove.ogg", 1.0, fadeDuration);
@@ -1317,11 +1318,6 @@ export function enterArea(areaID, fadeDuration = 0) {
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "none";
 
-            const gRoot = document.getElementById("game-root");
-            if (gRoot) {
-                gRoot.classList.remove("area-cove");
-                gRoot.classList.add("area-cavern");
-            }
             syncXpMpHudLayout();
 
             if (menuRoot) {
