@@ -4696,7 +4696,7 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     // The Catwalk stretching across the entire width of the iron base
     const catwalkW = 340;
     const catwalkH = 10;
-    const catwalkY = baseY - 80.5;
+    const catwalkY = baseY - 115;
     const catwalkBottom = catwalkY + catwalkH; // baseY - 105
 
     // Supports for the catwalk, starting from on top of the electrical boxes
@@ -4744,7 +4744,7 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     ctx.globalAlpha = t5;
 
     // Heavy-duty metal scaffolding reinforcing the distillation column
-    const columnY = baseY - 80.5;
+    const columnY = baseY - 115;
     const columnH = 150;
     const columnW = 100;
     
@@ -4829,7 +4829,7 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t4;
 
-    const columnY = baseY - 80.5; // Starts exactly on top of catwalk
+    const columnY = baseY - 115; // Starts exactly on top of catwalk
     const columnH = 150;
     const columnW = 100;
 
@@ -5052,7 +5052,7 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t8;
 
-    const columnY = baseY - 80.5;
+    const columnY = baseY - 115;
     const columnH = 150;
     const columnW = 100;
     const columnTop = columnY - columnH;
@@ -5265,7 +5265,7 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 
     // Adjust left edge to -120 and right edge to +120 (iron base width is 240)
     // Max out height just above distillation column (column top is at baseY - 115 - 150 = baseY - 265)
-    const frameTopY = baseY - 197.4;
+    const frameTopY = baseY - 282;
     
     // Because we are overlapping Tier 2, we start the frame at baseY
     
@@ -8167,7 +8167,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Main center sprout
     ctx.save();
     // Translate slightly below ground level (-28) so the stem gets buried naturally
-     
+    ctx.translate(0, -20);     
     ctx.scale(sproutScale, sproutScale);
     
     // Organic Stem
