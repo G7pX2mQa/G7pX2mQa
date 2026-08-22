@@ -438,24 +438,40 @@ function initSapphirePattern(ctx) {
   canvas.height = size;
   const pCtx = canvas.getContext('2d');
 
-  // Deep blue base
-  pCtx.fillStyle = '#1122cc';
+  // Vibrant blue base matching the reference image
+  pCtx.fillStyle = '#2634f5';
   pCtx.fillRect(0, 0, size, size);
 
-  // Fractal-like crystal strokes
-  for (let i = 0; i < 600; i++) {
+  // Cloudy swirling patches
+  for (let i = 0; i < 400; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
-    const len = 4 + Math.random() * 10;
+    const r = 4 + Math.random() * 12;
+    
+    pCtx.fillStyle = Math.random() > 0.5
+      ? `rgba(70, 90, 255, ${0.04 + Math.random() * 0.06})`
+      : `rgba(10, 15, 180, ${0.04 + Math.random() * 0.06})`;
+
+    pCtx.beginPath();
+    pCtx.arc(x, y, r, 0, Math.PI * 2);
+    pCtx.fill();
+  }
+
+  // Small swirly curlicues to mimic the marbled texture
+  for (let i = 0; i < 800; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const r = 1 + Math.random() * 4;
+    const startAngle = Math.random() * Math.PI * 2;
+    const endAngle = startAngle + Math.PI * (0.5 + Math.random());
     
     pCtx.strokeStyle = Math.random() > 0.5
-      ? `rgba(50, 100, 255, ${0.1 + Math.random() * 0.15})`  // lighter blue/cyan strokes
-      : `rgba(5, 10, 100, ${0.1 + Math.random() * 0.15})`;   // darker blue strokes
+      ? `rgba(90, 120, 255, ${0.05 + Math.random() * 0.1})`  // lighter swirls
+      : `rgba(15, 20, 160, ${0.05 + Math.random() * 0.1})`;  // darker swirls
 
-    pCtx.lineWidth = 1 + Math.random() * 2;
+    pCtx.lineWidth = 1 + Math.random() * 1.5;
     pCtx.beginPath();
-    pCtx.moveTo(x, y);
-    pCtx.lineTo(x + len, y + len * (Math.random() > 0.5 ? 1 : -1));
+    pCtx.arc(x, y, r, startAngle, endAngle);
     pCtx.stroke();
   }
 
