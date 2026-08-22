@@ -336,6 +336,7 @@ export function addPp(amount, { silent = false } = {}) {
         ppState.progress?.isInfinite?.() ||
         (typeof ppState.progress?.isInfinite === "function" && ppState.progress.isInfinite())
     );
+    const prevLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
     if (wasLevelInf && wasProgInf) {
         if (!inc.isZero?.()) {
             try {
@@ -400,7 +401,7 @@ export function addPp(amount, { silent = false } = {}) {
         updateHud();
         const detail = {
             unlocked: true,
-            ppLevelsGained: bnZero(),
+            ppLevelsGained: ppState.ppLevel.sub(prevLevel),
             ppAdded: inc.clone?.() ?? inc,
             ppLevel: ppState.ppLevel.clone?.() ?? ppState.ppLevel,
             progress: ppState.progress.clone?.() ?? ppState.progress,
