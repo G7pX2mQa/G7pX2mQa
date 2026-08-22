@@ -705,12 +705,12 @@ export function createUcSpawner(config = {}) {
             for (let i = activeItems.length - 1; i >= 0; i--) {
                 const c = activeItems[i];
                 if (!c) continue;
-                if (resetType === "underwater_cavern" && (c.isStrikePlaceholder || c.isPreAllocatedMaterial)) continue;
+                if (resetType === "underwater_cavern" && (c.isStrikePlaceholder || (c.isPreAllocatedMaterial && c.isHiddenPreAllocated))) continue;
                 removeItem(activeItems[i], i);
             }
 
             const pickaxe = document.getElementById("uc-pickaxe");
-            if (pickaxe && pickaxe.parentNode && resetType !== "underwater_cavern") {
+            if (pickaxe && pickaxe.parentNode && resetType === "leave_area") {
                 pickaxe.parentNode.removeChild(pickaxe);
                 window._ucPickaxeElement = null;
             }
