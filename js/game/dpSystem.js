@@ -723,6 +723,7 @@ export function addDp(amount, { silent = false } = {}) {
         dpState.progress?.isInfinite?.() ||
         (typeof dpState.progress?.isInfinite === "function" && dpState.progress.isInfinite())
     );
+    const prevLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
     if (wasLevelInf && wasProgInf) {
         if (!inc.isZero?.()) {
             try {
@@ -788,7 +789,7 @@ export function addDp(amount, { silent = false } = {}) {
         updateHud();
         const detail = {
             unlocked: true,
-            dpLevelsGained: bnZero(),
+            dpLevelsGained: dpState.dpLevel.sub(prevLevel),
             dpAdded: inc.clone?.() ?? inc,
             dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
             progress: dpState.progress.clone?.() ?? dpState.progress,
