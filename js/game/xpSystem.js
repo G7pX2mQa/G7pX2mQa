@@ -1163,6 +1163,7 @@ export function addXp(amount, { silent = false } = {}) {
 
     const wasLevelInf = bigNumIsInfinite(xpState.xpLevel);
     const wasProgInf = bigNumIsInfinite(xpState.progress);
+    const prevLevel = xpState.xpLevel.clone?.() ?? xpState.xpLevel;
     // If both were already infinite, return early immediately.
     if (wasLevelInf && wasProgInf) {
         let inc;
@@ -1280,7 +1281,7 @@ export function addXp(amount, { silent = false } = {}) {
         syncCoinMultiplierWithXpLevel(true);
         const detail = {
             unlocked: true,
-            xpLevelsGained: bnZero(),
+            xpLevelsGained: xpState.xpLevel.sub(prevLevel),
             xpAdded: inc.clone?.() ?? inc,
             xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
             progress: xpState.progress.clone?.() ?? xpState.progress,
