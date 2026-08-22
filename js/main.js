@@ -2677,7 +2677,6 @@ window.addEventListener("duplicateInstanceDetected", () => {
         });
 
         const textSpan = document.createElement("span");
-        textSpan.style.opacity = "0.9";
         textSpan.innerHTML =
             "Duplicate instance detected. Please only play on one instance at a time. The current instance has been terminated.";
         dupScreen.appendChild(textSpan);
