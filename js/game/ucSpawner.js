@@ -423,7 +423,29 @@ export function createUcSpawner(config = {}) {
             if (pickaxe && pickaxe._elapsedTime !== undefined) {
                 const currentCycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
                 if (pickaxe._cycleMs !== currentCycleMs) {
+                    const oldCycleMs = pickaxe._cycleMs;
+                    const currentRatio = oldCycleMs > 0 ? pickaxe._elapsedTime / oldCycleMs : 0;
                     pickaxe._cycleMs = currentCycleMs;
+                    pickaxe._elapsedTime = currentRatio * currentCycleMs;
+                    
+                    // The time remaining to the strike was `oldCycleMs - (currentRatio * oldCycleMs)`
+                    // The new time remaining is `currentCycleMs - pickaxe._elapsedTime`
+                    // The net shift in the scheduled future timestamp is the difference between these.
+                    const shiftMs = (currentCycleMs - pickaxe._elapsedTime) - (oldCycleMs - (currentRatio * oldCycleMs));
+
+                    // Also adjust any pending placeholders so they don't expire or trigger early/late
+                    for (let i = 0; i < activeItems.length; i++) {
+                        const item = activeItems[i];
+                        if (item && !item.isRemoved && !item.settled) {
+                            if (item.isStrikePlaceholder || item.isPreAllocatedMaterial) {
+                                const timeRemainingBefore = item.startTime - now;
+                                if (timeRemainingBefore > 0) {
+                                     item.startTime += shiftMs;
+                                     item.dieAt += shiftMs;
+                                }
+                            }
+                        }
+                    }
                 }
                 pickaxe._elapsedTime += dt * 1000;
                 // elapsed line replaced
