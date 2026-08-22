@@ -1301,7 +1301,7 @@ export function enterArea(areaID, fadeDuration = 0) {
             }
             if (ucSpawner) {
                 ucSpawner.stop();
-                if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield();
+                if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield("leave_area");
             }
             break;
         }
@@ -1405,7 +1405,7 @@ export function enterArea(areaID, fadeDuration = 0) {
             }
             if (ucSpawner) {
                 ucSpawner.stop();
-                if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield();
+                if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield("leave_area");
             }
 
             if (typeof pauseNotifications === "function") {
