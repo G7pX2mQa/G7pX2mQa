@@ -9986,10 +9986,10 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     
     // Wide futuristic ground base
     ctx.beginPath();
-    ctx.moveTo(-270, 0);
-    ctx.lineTo(270, 0);
-    ctx.lineTo(240, -25);
-    ctx.lineTo(-240, -25);
+    ctx.moveTo(-280, 0);
+    ctx.lineTo(280, 0);
+    ctx.lineTo(250, -25);
+    ctx.lineTo(-250, -25);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = 'transparent';
@@ -9998,10 +9998,10 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
     // Secondary elevated platform
     ctx.beginPath();
-    ctx.moveTo(-240, -25);
-    ctx.lineTo(240, -25);
-    ctx.lineTo(180, -60);
-    ctx.lineTo(-180, -60);
+    ctx.moveTo(-250, -25);
+    ctx.lineTo(250, -25);
+    ctx.lineTo(190, -60);
+    ctx.lineTo(-190, -60);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -10010,7 +10010,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.strokeStyle = 'transparent';
     ctx.lineWidth = 1;
-    for(let i = -240; i <= 240; i += 20) {
+    for(let i = -250; i <= 250; i += 20) {
         ctx.beginPath();
         ctx.moveTo(i, -25);
         ctx.lineTo(i * 0.9, -60);
@@ -10023,17 +10023,17 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     // Tiers 1-8 usually start around -100 to -200.
     // We will build a solid column up to -100 to anchor them.
     ctx.beginPath();
-    ctx.moveTo(-180, -60);
-    ctx.lineTo(180, -60);
-    ctx.lineTo(120, -180);
-    ctx.lineTo(-120, -180);
+    ctx.moveTo(-190, -60);
+    ctx.lineTo(190, -60);
+    ctx.lineTo(130, -180);
+    ctx.lineTo(-130, -180);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
     
     // --- High-Tech Spinning Core Element ---
     const spinnerCy = -120;
-    const coreRadius = 75;
+    const coreRadius = 80;
     
     // Huge background aura
 
@@ -10108,7 +10108,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     
     // Inner counter-rotating core
     ctx.save();
-    ctx.rotate(-t * 0.8);
+    ctx.rotate(-t * 0.5);
     
     // Symmetrical geometric housing and inner elements
     ctx.beginPath();
