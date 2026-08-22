@@ -1286,7 +1286,7 @@ class ShopInstance {
         this.isOpen = true;
         if (this.mode === "standard") {
             const slot = getActiveSlot();
-            if (slot != null && lsGetItem(`ccc:tsunami:dialoguePending:${slot}`) === "1") {
+            if (slot != null && lsGetItem(`ccc:tsunami:dialoguePending:${slot}`) === "1" && getCurrentAreaKey() === AREA_KEYS.STARTER_COVE) {
                 runPostTsunamiShopDialogue(() => {
                     try {
                         lsRemoveItem(`ccc:tsunami:dialoguePending:${slot}`);
