@@ -8167,7 +8167,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Main center sprout
     ctx.save();
     // Translate slightly below ground level (-28) so the stem gets buried naturally
-    ctx.translate(0, -20); 
+     
     ctx.scale(sproutScale, sproutScale);
     
     // Organic Stem
@@ -9939,7 +9939,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
   ctx.save();
   // Lift everything up a bit
-  ctx.translate(0, -20);
+  
   
   // Base styling for metallic parts
   const metalGradients = {
@@ -9960,47 +9960,202 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   metalGradients.accent.addColorStop(0.5, '#004080');
   metalGradients.accent.addColorStop(1, '#001a4d');
 
-  // Ground platform (Tier 0 & Up)
+  // Tier 0: The Massive Centrifuge Foundation & Main Wheel
   if (t0 > 0) {
     ctx.save();
     ctx.globalAlpha = t0;
     
-    // Outer base plate
-    ctx.fillStyle = metalGradients.dark;
+    const neonCyan = 'transparent';
+    const drawGlow = (x, y, radius, color1, color2) => {
+        let grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        grad.addColorStop(0, color1);
+        grad.addColorStop(1, color2);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+    };
+    
+    // --- Advanced Massive Base Structure ---
+    // We are replacing the old isometric Tier 0 base with a massive high-tech 2D profile.
+    
+    // Base glow
+    drawGlow(0, 0, 300, 'rgba(255, 255, 255, 0.05)', 'transparent');
+    
+    ctx.fillStyle = fillSapphire;
+    
+    // Wide futuristic ground base
     ctx.beginPath();
-    ctx.ellipse(0, 0, 120, 30, 0, 0, Math.PI * 2);
+    ctx.moveTo(-270, 0);
+    ctx.lineTo(270, 0);
+    ctx.lineTo(240, -25);
+    ctx.lineTo(-240, -25);
+    ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = '#0ff';
+    ctx.strokeStyle = 'transparent';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Inner rotating plate
-    ctx.save();
-    ctx.rotate(t * 0.5);
-    ctx.fillStyle = metalGradients.accent;
+    // Secondary elevated platform
     ctx.beginPath();
-    // Pseudo 3D gear/plate
-    for (let i = 0; i < 12; i++) {
-        const ang = (i / 12) * Math.PI * 2;
-        const r = 90 + ((i % 2 === 0) ? 10 : 0);
-        ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * (r * 0.25));
-    }
+    ctx.moveTo(-240, -25);
+    ctx.lineTo(240, -25);
+    ctx.lineTo(180, -60);
+    ctx.lineTo(-180, -60);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
+    
+    // Grid/Tech patterns on the secondary platform
+    ctx.save();
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 1;
+    for(let i = -240; i <= 240; i += 20) {
+        ctx.beginPath();
+        ctx.moveTo(i, -25);
+        ctx.lineTo(i * 0.9, -60);
+        ctx.stroke();
+    }
+
     ctx.restore();
-    
-    // Central pedastal
-    ctx.fillStyle = metalGradients.light;
+
+    // Central pillar / housing that reaches up to support Tiers 1-8
+    // Tiers 1-8 usually start around -100 to -200.
+    // We will build a solid column up to -100 to anchor them.
     ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(40, 0);
-    ctx.lineTo(30, -40);
-    ctx.lineTo(-30, -40);
+    ctx.moveTo(-180, -60);
+    ctx.lineTo(180, -60);
+    ctx.lineTo(120, -180);
+    ctx.lineTo(-120, -180);
+    ctx.closePath();
     ctx.fill();
+    ctx.stroke();
     
+    // --- High-Tech Spinning Core Element ---
+    const spinnerCy = -120;
+    const coreRadius = 85;
+    
+    // Huge background aura
+    drawGlow(0, spinnerCy, 150, 'rgba(255, 255, 255, 0.1)', 'transparent');
+
+    ctx.save();
+    ctx.translate(0, spinnerCy);
+    
+    // Outer static casing
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius + 15, 0, Math.PI * 2);
+    ctx.fillStyle = '#051020';
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = fillSapphire;
+    ctx.stroke();
+    
+    // Complex rotating layers
+    ctx.save();
+    ctx.rotate(t * 0.5);
+    
+    // Outer gear teeth
+    ctx.fillStyle = fillSapphire;
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 12; i++) {
+        ctx.save();
+        ctx.rotate(Math.PI * 2 * (i / 12));
+        ctx.beginPath();
+        ctx.moveTo(-10, coreRadius);
+        ctx.lineTo(10, coreRadius);
+        ctx.lineTo(6, coreRadius + 12);
+        ctx.lineTo(-6, coreRadius + 12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+    }
+    
+    // Inner structural ring
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = fillSapphire;
+    ctx.stroke();
+    
+    // Energy track ring
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius - 10, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'transparent';
+    ctx.stroke();
+
+    // Advanced 4-spoke turbine
+    for (let i = 0; i < 4; i++) {
+        ctx.save();
+        ctx.rotate(Math.PI / 2 * i);
+        
+        // Blade
+        ctx.beginPath();
+        ctx.moveTo(-15, 20);
+        ctx.lineTo(15, 20);
+        ctx.lineTo(4, coreRadius - 15);
+        ctx.lineTo(-4, coreRadius - 15);
+        ctx.closePath();
+        ctx.fillStyle = fillSapphire;
+        ctx.fill();
+        ctx.stroke();
+        
+        // Inner blade details
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(-5, 25);
+        ctx.lineTo(5, 25);
+        ctx.lineTo(2, coreRadius - 20);
+        ctx.lineTo(-2, coreRadius - 20);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Pulse dots on the blade
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, coreRadius - 25, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+    ctx.restore(); // end of t * 1.5 rotation
+    
+    // Inner counter-rotating core
+    ctx.save();
+    ctx.rotate(-t * 0.8);
+    
+    // Symmetrical geometric housing and inner elements
+    ctx.beginPath();
+    ctx.moveTo(-15, -15);
+    ctx.lineTo(15, -15);
+    ctx.lineTo(15, 15);
+    ctx.lineTo(-15, 15);
+    ctx.closePath();
+    ctx.fillStyle = fillSapphire;
+    ctx.fill();
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+
+    
+    ctx.restore(); // end counter-rotation
+    
+    // Central energy orb
+    drawGlow(0, 0, 25, 'rgba(255, 255, 255, 1)', 'rgba(0, 200, 255, 0)');
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore(); // end spinner translate
+
     ctx.restore();
   }
-
   // Tier 1: Support Pillars
   if (t1 > 0) {
     ctx.save();
@@ -10043,7 +10198,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.fill();
         
         // Glass front
-        ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.beginPath();
         ctx.roundRect(tX - 15, -70, 30, 50, 5);
         ctx.fill();
@@ -10104,7 +10259,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     
     // The central sapphire gem
     ctx.save();
-    ctx.rotate(t * 1.5);
+    ctx.rotate(t * 0.5);
     ctx.fillStyle = fillSapphire;
     
     // Draw an octagon
