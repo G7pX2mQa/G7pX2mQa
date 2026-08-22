@@ -1286,17 +1286,18 @@ export function enterArea(areaID, fadeDuration = 0) {
 
                 const goalProgressBar = gameRoot.querySelector(".goal-progress-bar");
                 if (goalProgressBar) goalProgressBar.style.display = "";
-
-                if (waterSystem) {
-                    // Delay resize to ensure DOM layout is updated after unhiding
-                    requestAnimationFrame(() => waterSystem.resize());
-                }
             }
 
             const waterBg = document.getElementById("water-background");
             const waterFg = document.getElementById("water-foreground");
             if (waterBg) waterBg.style.display = "";
             if (waterFg) waterFg.style.display = "";
+
+            if (waterSystem) {
+                // Ensure resize and first render happens on frame 1 to avoid a visible flicker
+                waterSystem.resize();
+                waterSystem.render(performance.now() / 1000, 0);
+            }
 
             document.body.style.backgroundColor = "";
 
