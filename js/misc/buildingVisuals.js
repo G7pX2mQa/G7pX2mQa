@@ -87,6 +87,7 @@ let diamondPattern = null;
 let darkDiamondPattern = null;
 let emeraldPattern = null;
 let rubyPattern = null;
+let sapphirePattern = null;
 
 // for specifically the Greenhouse building:
 let cachedGrowLightNormal = null;
@@ -428,6 +429,47 @@ function initRubyPattern(ctx) {
   }
 }
 
+function initSapphirePattern(ctx) {
+  if (sapphirePattern) return;
+
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const pCtx = canvas.getContext('2d');
+
+  // Deep blue base
+  pCtx.fillStyle = '#1122cc';
+  pCtx.fillRect(0, 0, size, size);
+
+  // Fractal-like crystal strokes
+  for (let i = 0; i < 600; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const len = 4 + Math.random() * 10;
+    
+    pCtx.strokeStyle = Math.random() > 0.5
+      ? `rgba(50, 100, 255, ${0.1 + Math.random() * 0.15})`  // lighter blue/cyan strokes
+      : `rgba(5, 10, 100, ${0.1 + Math.random() * 0.15})`;   // darker blue strokes
+
+    pCtx.lineWidth = 1 + Math.random() * 2;
+    pCtx.beginPath();
+    pCtx.moveTo(x, y);
+    pCtx.lineTo(x + len, y + len * (Math.random() > 0.5 ? 1 : -1));
+    pCtx.stroke();
+  }
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      sapphirePattern = targetCtx.createPattern(canvas, 'repeat');
+    } catch (e) {
+      console.error('Failed to create sapphire pattern', e);
+    }
+  }
+}
+
+
 export function startCanvasLoop(id, canvasEl) {
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   window.currentCavernLayout = null;
@@ -446,6 +488,9 @@ export function startCanvasLoop(id, canvasEl) {
   }
   if (!rubyPattern) {
     initRubyPattern(activeCtx);
+  }
+  if (!sapphirePattern) {
+    initSapphirePattern(activeCtx);
   }
 
   if (canvasResizeObserver) {
@@ -1213,7 +1258,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "diamond") drawOilRig(ctx, globalOilRigAnimTime, tier, prevTier, animProgress, w, h, scale);
   else if (id === "emerald") drawGreenhouse(ctx, t, tier, prevTier, animProgress);
   else if (id === "ruby") drawReactor(ctx, t, tier, prevTier, animProgress);
-  else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
+  else if (id === "sapphire") drawCentrifuge(ctx, t, tier, prevTier, animProgress);
   else if (id === "unobtainium") drawBeacon(ctx, t, tier);
   else if (id === "prismatium") drawTesseract(ctx, t, tier);
 
@@ -9864,25 +9909,350 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
 
 
-function drawCentrifuge(ctx, t, tier) {
-  ctx.fillStyle = "#555";
-  ctx.fillRect(-20, -80, 40, 80);
+function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
+  if (!sapphirePattern) {
+    if (activeCtx) initSapphirePattern(activeCtx);
+    else initSapphirePattern(ctx);
+  }
+  const fillSapphire = sapphirePattern || '#1122cc';
+  
+  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
+  
+  const t0 = getProg(0), t1 = getProg(1), t2 = getProg(2), t3 = getProg(3);
+  const t4 = getProg(4), t5 = getProg(5), t6 = getProg(6), t7 = getProg(7), t8 = getProg(8);
 
   ctx.save();
-  ctx.translate(0, -40);
-  ctx.rotate(t * 5);
+  // Lift everything up a bit
+  ctx.translate(0, -20);
+  
+  // Base styling for metallic parts
+  const metalGradients = {
+    dark: ctx.createLinearGradient(-100, 0, 100, 0),
+    light: ctx.createLinearGradient(-100, 0, 100, 0),
+    accent: ctx.createLinearGradient(-100, 0, 100, 0),
+  };
+  
+  metalGradients.dark.addColorStop(0, '#111');
+  metalGradients.dark.addColorStop(0.5, '#333');
+  metalGradients.dark.addColorStop(1, '#111');
+  
+  metalGradients.light.addColorStop(0, '#555');
+  metalGradients.light.addColorStop(0.5, '#aaa');
+  metalGradients.light.addColorStop(1, '#555');
+  
+  metalGradients.accent.addColorStop(0, '#001a4d');
+  metalGradients.accent.addColorStop(0.5, '#004080');
+  metalGradients.accent.addColorStop(1, '#001a4d');
 
-  ctx.fillStyle = "#1c38d6";
-  ctx.fillRect(-60, -10, 120, 20);
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(-50, 0, 8, 0, Math.PI * 2);
-  ctx.arc(50, 0, 8, 0, Math.PI * 2);
-  ctx.fill();
+  // Ground platform (Tier 0 & Up)
+  if (t0 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t0;
+    
+    // Outer base plate
+    ctx.fillStyle = metalGradients.dark;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 120, 30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#0ff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Inner rotating plate
+    ctx.save();
+    ctx.rotate(t * 0.5);
+    ctx.fillStyle = metalGradients.accent;
+    ctx.beginPath();
+    // Pseudo 3D gear/plate
+    for (let i = 0; i < 12; i++) {
+        const ang = (i / 12) * Math.PI * 2;
+        const r = 90 + ((i % 2 === 0) ? 10 : 0);
+        ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * (r * 0.25));
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    
+    // Central pedastal
+    ctx.fillStyle = metalGradients.light;
+    ctx.beginPath();
+    ctx.moveTo(-40, 0);
+    ctx.lineTo(40, 0);
+    ctx.lineTo(30, -40);
+    ctx.lineTo(-30, -40);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+
+  // Tier 1: Support Pillars
+  if (t1 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t1;
+    ctx.fillStyle = metalGradients.dark;
+    
+    for (let i = 0; i < 4; i++) {
+        const pX = (i % 2 === 0 ? 1 : -1) * 70;
+        const pY = (i < 2 ? 1 : -1) * 10;
+        
+        ctx.fillRect(pX - 5, pY - 60, 10, 60);
+        
+        // Glowing inset
+        ctx.fillStyle = '#0ff';
+        ctx.fillRect(pX - 2, pY - 55, 4, 50);
+        ctx.fillStyle = metalGradients.dark;
+    }
+    ctx.restore();
+  }
+
+  // Tier 2: Liquid Sapphire Tanks
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    
+    for (let i = 0; i < 2; i++) {
+        const tX = i === 0 ? -90 : 90;
+        
+        // Tank back
+        ctx.fillStyle = 'rgba(10, 30, 50, 0.8)';
+        ctx.beginPath();
+        ctx.roundRect(tX - 15, -70, 30, 50, 5);
+        ctx.fill();
+        
+        // Liquid
+        ctx.fillStyle = fillSapphire;
+        const liquidLevel = 25 + Math.sin(t * 2 + i) * 10; // Bubbling liquid
+        ctx.beginPath();
+        ctx.roundRect(tX - 12, -20 - liquidLevel, 24, liquidLevel, 2);
+        ctx.fill();
+        
+        // Glass front
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+        ctx.beginPath();
+        ctx.roundRect(tX - 15, -70, 30, 50, 5);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Tier 3: Containment Ring
+  if (t3 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+    
+    ctx.translate(0, -60);
+    ctx.scale(1, 0.3); // isometric tilt
+    
+    // Spin the ring
+    ctx.rotate(-t);
+    
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = metalGradients.light;
+    ctx.beginPath();
+    ctx.arc(0, 0, 80, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Ring nodes
+    for(let i=0; i<4; i++) {
+        const ang = (i/4) * Math.PI * 2;
+        ctx.fillStyle = '#0ff';
+        ctx.beginPath();
+        ctx.arc(Math.cos(ang) * 80, Math.sin(ang) * 80, 10, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    ctx.restore();
+  }
+
+  // Tier 4: The Core Feature (Plasma Core)
+  const coreCy = -90;
+  if (t4 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t4;
+    
+    ctx.translate(0, coreCy);
+    
+    // Base glow
+    const coreGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
+    coreGlow.addColorStop(0, '#fff');
+    coreGlow.addColorStop(0.3, '#0ff');
+    coreGlow.addColorStop(1, 'rgba(0, 0, 255, 0)');
+    
+    ctx.fillStyle = coreGlow;
+    ctx.beginPath();
+    ctx.arc(0, 0, 60, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // The central sapphire gem
+    ctx.save();
+    ctx.rotate(t * 1.5);
+    ctx.fillStyle = fillSapphire;
+    
+    // Draw an octagon
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        const r = 20;
+        if (i === 0) ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r);
+        else ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    ctx.restore();
+    
+    ctx.restore();
+  }
+
+  // Tier 5: Acceleration Rails
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5;
+    
+    // Rails wrapping around the core
+    for(let dir of [-1, 1]) {
+        ctx.strokeStyle = metalGradients.accent;
+        ctx.lineWidth = 8;
+        
+        ctx.beginPath();
+        ctx.moveTo(dir * 30, -40);
+        ctx.quadraticCurveTo(dir * 120, coreCy, dir * 30, -140);
+        ctx.stroke();
+        
+        // Energy pulses along rails
+        const pulseT = (t * 2 + (dir===1?0:Math.PI)) % (Math.PI);
+        const px = dir * 30 + dir * 90 * Math.sin(pulseT);
+        const py = -40 - 100 * (pulseT / Math.PI);
+        
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = '#0ff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+    
+    ctx.restore();
+  }
+
+  // Tier 6: High-Frequency Energy Arcs
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+    
+    ctx.strokeStyle = '#0ff';
+    ctx.lineWidth = 2;
+    ctx.translate(0, coreCy);
+    
+    for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        // Randomized arcs connecting near the core
+        const startAng = t * 5 + i * (Math.PI * 2 / 3);
+        const endAng = startAng + Math.PI + (Math.random() - 0.5);
+        
+        const r1 = 30;
+        const r2 = 30;
+        
+        ctx.moveTo(Math.cos(startAng) * r1, Math.sin(startAng) * r1);
+        ctx.quadraticCurveTo(
+            (Math.random()-0.5) * 80, (Math.random()-0.5) * 80, 
+            Math.cos(endAng) * r2, Math.sin(endAng) * r2
+        );
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+  }
+
+  // Tier 7: Orbital Prisms
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    ctx.translate(0, coreCy);
+    
+    const numPrisms = 5;
+    for (let i = 0; i < numPrisms; i++) {
+        const ang = t * -2 + (i / numPrisms) * Math.PI * 2;
+        const r = 100 + Math.sin(t * 3 + i) * 10; // Pulsing orbit distance
+        
+        const px = Math.cos(ang) * r;
+        const py = Math.sin(ang) * r * 0.3; // isometric orbit
+        
+        ctx.save();
+        ctx.translate(px, py);
+        
+        // Spin the prism itself
+        ctx.rotate(t * 3);
+        
+        ctx.fillStyle = fillSapphire;
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(10, 0);
+        ctx.lineTo(0, 15);
+        ctx.lineTo(-10, 0);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // Tier 8: Overclocked Core State (Crazy Improvements)
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    
+    ctx.translate(0, coreCy);
+    
+    // Intense outer corona
+    const corona = ctx.createRadialGradient(0, 0, 40, 0, 0, 150);
+    corona.addColorStop(0, 'rgba(0, 255, 255, 0.5)');
+    corona.addColorStop(0.5, 'rgba(10, 50, 255, 0.2)');
+    corona.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    
+    ctx.fillStyle = corona;
+    ctx.beginPath();
+    // Pulsing size
+    const pSize = 150 + Math.sin(t * 10) * 20;
+    ctx.arc(0, 0, pSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Vertical Plasma Beam
+    const beam = ctx.createLinearGradient(-20, 0, 20, 0);
+    beam.addColorStop(0, 'rgba(0, 255, 255, 0)');
+    beam.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+    beam.addColorStop(0.5, '#fff');
+    beam.addColorStop(0.8, 'rgba(255, 255, 255, 0.8)');
+    beam.addColorStop(1, 'rgba(0, 255, 255, 0)');
+    
+    ctx.fillStyle = beam;
+    // Jittering width
+    const bWidth = 40 + Math.random() * 10;
+    ctx.fillRect(-bWidth/2, -600, bWidth, 600);
+    
+    // Floating Runes / Data Streams circling the beam
+    ctx.fillStyle = '#0ff';
+    ctx.font = '14px monospace';
+    for(let i = 0; i < 8; i++) {
+        const streamY = -((t * 100 + i * 50) % 500);
+        const streamX = Math.sin(t * 2 + i) * 40;
+        ctx.fillText(Math.random() > 0.5 ? '1' : '0', streamX, streamY);
+    }
+    
+    ctx.restore();
+  }
 
   ctx.restore();
 }
-
 function drawBeacon(ctx, t, tier) {
   ctx.fillStyle = "#330d58";
   ctx.beginPath();
