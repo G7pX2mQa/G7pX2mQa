@@ -1235,6 +1235,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         }
         if (bossHp <= 0 && !isBossDead) {
             isBossDead = true;
+            setLifetimeBossBeaten();
             finalTimeTaken = performance.now() - bossStartTime;
             bossDeathTime = performance.now();
             playAudio("sounds/stop_right_there.ogg", { volume: 1.0 });
@@ -1388,7 +1389,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                 document.body.appendChild(teleportOverlay);
                                 // Clean up the boss fight immediately so the DOM clears out
                                 // and the browser can switch states cleanly.
-                                setLifetimeBossBeaten();
                                 cleanup();
                                 checkSecretAchievements();
                                 if (onComplete) onComplete();
