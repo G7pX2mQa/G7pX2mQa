@@ -1260,6 +1260,7 @@ function renderDialogueList() {
             }
             if (rewardEl.style.display === "none") rewardEl.style.display = "";
         } else {
+            rewardEl.classList.remove("has-reward");
             if (rewardEl.textContent !== "") rewardEl.textContent = "";
             if (rewardEl.style.display !== "none") rewardEl.style.display = "none";
         }
