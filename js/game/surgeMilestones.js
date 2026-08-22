@@ -130,7 +130,7 @@ export const SURGE_MILESTONES = [
         surgeLevel: 13,
         affectedByTsunami: true,
         description: [
-            'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Gold every second',
+            'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Gold per second',
         ],
     },
     {
@@ -154,7 +154,7 @@ export const SURGE_MILESTONES = [
         surgeLevel: 16,
         affectedByTsunami: true,
         description: [
-            'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Magic every second',
+            'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Magic per second',
         ],
     },
     {
@@ -271,7 +271,7 @@ export const SURGE_MILESTONES = [
         surgeLevel: 80,
         affectedByTsunami: true,
         description: [
-            'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending DNA every second',
+            'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending DNA per second',
         ],
     },
     {
@@ -615,7 +615,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             const mapped = effectiveNerf * 1.5 - 0.5;
             const pct = Math.pow(100, mapped);
             const valStr = formatMultForUi(pct);
-            milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Gold every second`;
+            milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Gold per second`;
             if (m.surgeLevel <= currentLevel && pendingVals.pendingGold) {
                 try {
                     const xpState = getXpState();
@@ -668,7 +668,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             const mapped = effectiveNerf * 1.5 - 0.5;
             const pct = Math.pow(100, mapped);
             const valStr = formatMultForUi(pct);
-            milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Magic every second`;
+            milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Magic per second`;
             if (m.surgeLevel <= currentLevel && pendingVals.pendingMagic) {
                 try {
                     const mState = getMutationState();
@@ -748,7 +748,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             } else {
                 const newPct = Math.pow(parseFloat(valStr), 1 / tNerf);
                 const newValStr = Number(newPct.toFixed(6));
-                milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${newValStr}%</span> (${valStr}^(1/${tNerf.toFixed(2)})) of pending DNA every second`;
+                milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${newValStr}%</span> (${valStr}^(1/${tNerf.toFixed(2)})) of pending DNA per second`;
                 if (m.surgeLevel <= currentLevel && pendingVals.pendingDna) {
                     try {
                         const labLevel = getLabLevel();
