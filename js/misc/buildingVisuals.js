@@ -3636,10 +3636,10 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
     // Positioned hovering slightly above and corresponding to the Tier 2 capacitors
     const nodePositions = [
-      { x: -74 - extraBaseWidth, y: -45 },
-      { x: 74 + extraBaseWidth, y: -45 },
-      { x: -54 - extraBaseWidth, y: -65 },
-      { x: 54 + extraBaseWidth, y: -65 },
+      { x: -74 - extraBaseWidth, y: -46 },
+      { x: 74 + extraBaseWidth, y: -46 },
+      { x: -54 - extraBaseWidth, y: -66 },
+      { x: 54 + extraBaseWidth, y: -66 },
     ];
 
     for (let i = 0; i < nodePositions.length; i++) {
@@ -9238,9 +9238,20 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.fill();
 
       // Central Dot
-      if (overdriveAlpha > 0 || t8Alpha > 0) {
+      const maxAlpha = Math.max(overdriveAlpha, t8Alpha);
+
+      if (maxAlpha < 1) {
           ctx.save();
-          const maxAlpha = Math.max(overdriveAlpha, t8Alpha);
+          ctx.globalAlpha = ctx.globalAlpha * (1 - maxAlpha);
+          ctx.beginPath();
+          ctx.arc(0, 0, 7, 0, Math.PI * 2);
+          ctx.fillStyle = radColor;
+          ctx.fill();
+          ctx.restore();
+      }
+
+      if (maxAlpha > 0) {
+          ctx.save();
           ctx.globalAlpha = ctx.globalAlpha * maxAlpha;
           
           // Cap dot radius so it never bleeds into the blades (innerGapRadius is 12)
@@ -9261,11 +9272,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           ctx.fill();
           ctx.shadowBlur = 0;
           ctx.restore();
-      } else {
-          ctx.beginPath();
-          ctx.arc(0, 0, 7, 0, Math.PI * 2);
-          ctx.fillStyle = radColor;
-          ctx.fill();
       }
       
       ctx.restore(); // Undo spin
@@ -9384,6 +9390,9 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       }
       
       // Holographic Central Dot
+      ctx.save();
+      // Fade out for tier 8 transition
+      ctx.globalAlpha = ctx.globalAlpha * (1 - t8);
       ctx.beginPath();
       ctx.arc(0, 0, 7, 0, Math.PI * 2);
       
@@ -9397,6 +9406,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.lineWidth = 1 + 0.5 * pulse + 1 * t8;
       ctx.strokeStyle = `rgba(255, 0, 0, ${Math.min(1, 0.3 + 0.7 * pulse + 0.4 * t8 * pulse)})`;
       ctx.stroke();
+      ctx.restore();
 
       ctx.restore();
   }
