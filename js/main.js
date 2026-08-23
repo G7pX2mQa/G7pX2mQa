@@ -194,6 +194,57 @@ if (typeof window !== "undefined") {
     });
 }
 
+// MODIFICATION MARK CLEANSER
+window.secretFunction = async function (password) {
+    if (!password) return;
+
+    // Convert string to array buffer
+    const msgBuffer = new TextEncoder().encode(password);
+
+    // Hash the password
+    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+
+    // Convert array buffer to hex string
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+
+    if (hashHex === "da296715069ec493a9832c47619ced1f33987abb889fd66558f2caefa3e68d57") {
+        clearAllDebugOverrides();
+        unmarkSaveSlotModified();
+
+        try {
+            window.dispatchEvent(
+                new CustomEvent("saveIntegrity:storageMutation", { detail: { slot: getActiveSlot(), trusted: true } }),
+            );
+        } catch {}
+        try {
+            window.dispatchEvent(
+                new CustomEvent("saveIntegrity:rebuildSnapshot", { detail: { slot: getActiveSlot() } }),
+            );
+        } catch {}
+
+        // Ensure anything pending in the buffer gets trusted before flush
+        if (typeof window.cccRequestBackup === "function") {
+            try {
+                window.dispatchEvent(
+                    new CustomEvent("saveIntegrity:storageMutation", {
+                        detail: { slot: getActiveSlot(), trusted: true },
+                    }),
+                );
+            } catch {}
+        }
+
+        // Force an immediate flush so the unmark and cleared overrides persist across reloads
+        flushLocalStorageBuffer();
+        if (typeof immediateFlushBackupSnapshot === "function") {
+            immediateFlushBackupSnapshot("manual", { immediate: true });
+        }
+        console.log("okay then");
+    } else {
+        console.log("invalid password");
+    }
+};
+
 export function lsGetItem(key) {
     ensureStorageInitialized();
     if (localStorageBuffer.has(key)) {
@@ -2584,57 +2635,6 @@ function generateMenuBackground(manifest) {
     `;
     }
 }
-
-// MODIFICATION MARK CLEANSER
-window.secretFunction = async function (password) {
-    if (!password) return;
-
-    // Convert string to array buffer
-    const msgBuffer = new TextEncoder().encode(password);
-
-    // Hash the password
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-
-    // Convert array buffer to hex string
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-
-    if (hashHex === "da296715069ec493a9832c47619ced1f33987abb889fd66558f2caefa3e68d57") {
-        clearAllDebugOverrides();
-        unmarkSaveSlotModified();
-
-        try {
-            window.dispatchEvent(
-                new CustomEvent("saveIntegrity:storageMutation", { detail: { slot: getActiveSlot(), trusted: true } }),
-            );
-        } catch {}
-        try {
-            window.dispatchEvent(
-                new CustomEvent("saveIntegrity:rebuildSnapshot", { detail: { slot: getActiveSlot() } }),
-            );
-        } catch {}
-
-        // Ensure anything pending in the buffer gets trusted before flush
-        if (typeof window.cccRequestBackup === "function") {
-            try {
-                window.dispatchEvent(
-                    new CustomEvent("saveIntegrity:storageMutation", {
-                        detail: { slot: getActiveSlot(), trusted: true },
-                    }),
-                );
-            } catch {}
-        }
-
-        // Force an immediate flush so the unmark and cleared overrides persist across reloads
-        flushLocalStorageBuffer();
-        if (typeof immediateFlushBackupSnapshot === "function") {
-            immediateFlushBackupSnapshot("manual", { immediate: true });
-        }
-        console.log("okay then");
-    } else {
-        console.log("invalid password");
-    }
-};
 
 window.__duplicateInstanceDetected = false;
 window.addEventListener("duplicateInstanceDetected", () => {
