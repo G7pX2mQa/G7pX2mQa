@@ -1,105 +1,372 @@
-/* css/misc/spreadsheet_mode.css */
-
-body.spreadsheet-mode:not(.menu-bg) {
-  /* Minimalist dark palette */
-  --bg-1: #000000 !important;
-  --bg-2: #000000 !important;
-  --bg-3: #000000 !important;
-  --panel: #000000 !important;
-  --card: #000000 !important;
-  --card-hover: #111111 !important;
-  --text-1: #ffffff !important;
-  --text-2: #cccccc !important;
-  --accent: #ffffff !important;
-  --accent-2: #ffffff !important;
-  --ring: #333333 !important;
-
-  /* Remove border radius */
-  --radius-lg: 0px !important;
-  --radius-md: 0px !important;
-  --radius-sm: 0px !important;
-
-  /* Remove shadows */
-  --shadow-1: none !important;
-  --shadow-2: none !important;
-
-  background-color: #000000 !important;
-  color: #ffffff !important;
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  z-index: 2147483647;
+  opacity: 1;
+  transition: opacity .25s ease;
 }
 
-/* Strip background images, shadows, and curves globally */
-body.spreadsheet-mode:not(.menu-bg) * {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  background-image: none !important; /* Removes gradients */
-  transition: none !important;
-  animation: none !important;
+.loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
-body.spreadsheet-transition-override * {
-  transition: none !important;
-  animation: none !important;
+.loading-screen__text {
+  font-size: clamp(16px, 2.4vw, 22px);
+  letter-spacing: .04em;
+  opacity: .92;
 }
 
-/* Hide background pattern and animations */
-body.spreadsheet-mode:not(.menu-bg)::after {
-  display: none !important;
+.game-title {
+  font-size: var(--h1);
+  letter-spacing: 0.5px;
+  color: #ffeb3b;
+  -webkit-text-stroke: calc(2px * var(--stroke-mult, 1)) black;
+  -webkit-text-stroke-width: calc(2px * var(--stroke-mult, 1));
+  text-stroke: calc(2px * var(--stroke-mult, 1)) black;
+  text-stroke-width: calc(2px * var(--stroke-mult, 1));
+  user-select: none;
 }
 
-/* Ensure structural elements mimic cells */
-body.spreadsheet-mode:not(.menu-bg) .menu-panel,
-body.spreadsheet-mode:not(.menu-bg) .card,
-body.spreadsheet-mode:not(.menu-bg) button,
-body.spreadsheet-mode:not(.menu-bg) .currency-row {
-  border: 1px solid #444 !important;
-  background: #000000 !important;
-  background-color: #000000 !important;
-  color: #ffffff !important;
+@media (pointer: coarse) {
+  .game-title {
+    -webkit-text-stroke: 0;
+    text-stroke: 0;
+    text-shadow:
+      1px 1px 0 black,
+      -1px 1px 0 black,
+      1px -1px 0 black,
+      -1px -1px 0 black;
+  }
 }
 
-body.spreadsheet-mode:not(.menu-bg) button:hover,
-body.spreadsheet-mode:not(.menu-bg) .card:hover {
-  background-color: #111111 !important;
+/* Desktop: 3 across */
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
-/* Only hide known fluff canvases, keeping Lab Tab and FPS Graph visible */
-body.spreadsheet-mode:not(.menu-bg) .cursor-trail-canvas,
-body.spreadsheet-mode:not(.menu-bg) .water-base,
-body.spreadsheet-mode:not(.menu-bg) #water-foreground,
-body.spreadsheet-mode:not(.menu-bg) #building-detail-canvas,
-body.spreadsheet-mode:not(.menu-bg) #building-keypad-canvas,
-body.spreadsheet-mode:not(.menu-bg) .map-background,
-body.spreadsheet-mode:not(.menu-bg) .map-bubbles-container {
-  display: none !important;
+/* Phones (narrow): stack by default */
+@media (max-width: 1024px) {
+  .slots-grid { grid-template-columns: 1fr; }
 }
 
-/* Hide all images to prevent rasterization, but keep them clickable */
-body.spreadsheet-mode:not(.menu-bg) img {
-  opacity: 0 !important;
+/* Short viewports: 2 columns to reduce height */
+@media (max-height: 640px) and (min-width: 380px) {
+  .slots-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Center the building level text since the building graphics are hidden */
-body.spreadsheet-mode:not(.menu-bg) #building-detail-level-text {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  margin: 0 !important;
+.slot-card {
+  text-align: left;
+  /* Lighter dark-blue gradient */
+  background: #0f1626;
+  border: 1px solid rgba(66, 100, 150, 0.4);
+  border-radius: 16px;
+  padding: clamp(var(--space-5), 2vw, var(--space-6));
+  box-shadow: var(--shadow-2);
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  outline-offset: 2px;
+  min-height: clamp(96px, 16vh, 140px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.base,
-body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.maxed-overlay,
-body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.icon {
-  clip-path: none !important;
+.slot-card:hover {
+  background: #121a2e;
 }
 
-/* Make the entire building cell clickable since the icons are disabled and we want the box to be clickable */
-body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-upgrade {
-  pointer-events: auto !important;
-  cursor: pointer !important;
+.slot-card[data-has-tint="true"] {
+  background: linear-gradient(rgba(15, 22, 38, 0.75), rgba(15, 22, 38, 0.75)), var(--slot-tint-gradient);
 }
 
-body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile {
-  pointer-events: none !important;
+.slot-card[data-has-tint="true"]:hover {
+  background: linear-gradient(rgba(18, 26, 46, 0.74), rgba(18, 26, 46, 0.74)), var(--slot-tint-gradient);
+}
+
+/* Remove aspect ratio on narrow/short screens */
+@media (max-width: 900px), (max-height: 700px) {
+  .slot-card { aspect-ratio: auto; }
+}
+
+/* Extra compact for very short screens */
+@media (max-height: 560px) {
+  .slot-card {
+    min-height: clamp(84px, 14vh, 120px);
+    padding: var(--space-4);
+  }
+}
+
+.slot-header {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: var(--space-2);
+  -webkit-text-stroke: calc(0.5px * var(--stroke-mult, 1)) black;
+  -webkit-text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
+  text-stroke: calc(0.5px * var(--stroke-mult, 1)) black;
+  text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
+  line-height: 1.1;
+}
+
+.slot-card.custom-font-active .slot-header {
+  --stroke-mult: 2;
+  paint-order: stroke fill;
+}
+
+/* Fake stroke on mobile */
+@media (pointer: coarse) {
+  .slot-header {
+    -webkit-text-stroke: 0;
+    text-stroke: 0;
+    text-shadow:
+      0.5px 0.5px 0 black,
+      -0.5px 0.5px 0 black,
+      0.5px -0.5px 0 black,
+      -0.5px -0.5px 0 black;
+  }
+}
+
+.slot-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 1.1rem;
+  color: #ffeb3b !important; /* Deep yellow */
+  margin-bottom: var(--space-1);
+}
+
+.coin-slot-icon-img {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+  vertical-align: -0.15em;
+  position: relative;
+  top: 1px;
+}
+
+.slot-meta  { color: #eeeeee; font-size: .9rem; opacity: 0.8; margin-top: 2px; }
+
+/* ===== Title & Coin Styling ===== */
+.menu-header h1 {
+  font-size: clamp(2rem, 7.5vw, 6.5rem);
+  font-weight: 700;
+  color: #E5E317;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+/* ===== Coins: desktop-first, tuned for mobile via breakpoints ===== */
+.coin-o {
+  --coin-size: 0.6em;
+  display: inline-block;
+  width: var(--coin-size);
+  height: var(--coin-size);
+  background: url("img/currencies/coin/coin.webp") center/contain no-repeat;
+  transform: translateY(0.46em);
+  vertical-align: baseline;
+  margin-left: 0em;
+  margin-right: 0em;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+
+
+/* prevent wrapping artifacts near the coin */
+.coin-o::before,
+.coin-o::after {
+  content: "\2060"; /* WORD JOINER prevents awkward breaks */
+}
+
+/* ===== Mobile / Short viewports ===== */
+@media (max-width: 900px), (max-height: 420px) {
+  .menu-header h1 { line-height: 1.08; }
+
+  .coin-o {
+    transform: none;
+    vertical-align: -0.4em;
+    --coin-size: 0.6em;
+    margin-left: 0em;
+    margin-right: 0em;
+  }
+}
+
+/* Ultra-narrow portrait */
+@media (max-width: 414px) {
+  .menu-header h1 {
+    white-space: nowrap;
+    font-size: clamp(1.55rem, 6.2vw, 2.2rem);
+    letter-spacing: 0.25px;
+  }
+
+  .coin-o {
+    --coin-size: 0.58em;
+    vertical-align: -0.35em;
+    margin-left: 0em;
+    margin-right: 0em;
+  }
+}
+
+/* Target mobile landscape with coarse pointer and short height (phones) */
+@media (orientation: landscape) and (max-height: 480px) and (pointer: coarse) {
+  .menu-header .coin-o {
+    vertical-align: -0.34em;
+    --coin-size: 0.58em;
+  }
+}
+
+/* ===== Panel header (title + actions) ===== */
+.panel-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+/* small tweak to nudge the manage button up slightly (balances optical centers) */
+.panel-actions{ 
+  display:flex; 
+  align-items:center; 
+  gap: var(--space-3);
+  /* move actions up a tiny bit to better align with the title baseline */
+  transform: translateY(-0.08rem);
+}
+
+/* ===== Buttons ===== */
+.btn{
+  --btn-bg: #0f1626;
+  --btn-border: #22314a;
+  --btn-bg-hover: #141d30;
+  --btn-border-hover: #2a3b58;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height: 40px;
+  padding: 0 .9rem;
+  border-radius: 10px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--text-1);
+  font-weight: 600;
+  letter-spacing: .2px;
+  transition: background .15s ease, border-color .15s ease, transform .1s ease;
+}
+.btn:hover{ background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
+.btn:active{ transform: translateY(1px); }
+
+.btn-ghost{ opacity:.9; }
+.btn-ghost:hover{ opacity:1; }
+
+/* Mobile: stack actions under the title, make button full-width */
+@media (max-width: 900px){
+  .panel-header{ flex-direction: column; align-items: stretch; gap: var(--space-3); }
+  .panel-actions .btn{ width: 100%; }
+}
+
+/* For iPad */
+@media (hover: none) and (pointer: coarse) {
+  .menu-header .coin-o {
+    transform: translateY(0); /* neutralize the desktop push-down */
+  }
+}
+
+/* Portrait: lighter nudge */
+@media (hover: none) and (pointer: coarse)
+  and (min-width: 744px) and (min-height: 744px)
+  and (max-width: 1366px) and (max-height: 1366px)
+  and (orientation: portrait) {
+  .menu-header .coin-o {
+    vertical-align: -0.34em;
+  }
+}
+
+/* Landscape: stronger nudge */
+@media (hover: none) and (pointer: coarse)
+  and (min-width: 744px) and (min-height: 744px)
+  and (max-width: 1366px) and (max-height: 1366px)
+  and (orientation: landscape) {
+  .menu-header .coin-o {
+    vertical-align: -0.40em;
+  }
+}
+
+.menu-panel {
+  /* subtle glass look over moving background */
+  background: linear-gradient(
+    180deg,
+    rgba(14, 22, 34, 0.68),
+    rgba(10, 16, 26, 0.62)
+  );
+  border: 1px solid rgba(34, 43, 61, 0.50);
+  backdrop-filter: saturate(1.05) blur(6px);
+  -webkit-backdrop-filter: saturate(1.05) blur(6px); /* iOS */
+}
+
+@supports not ( (-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px)) ) {
+  .menu-panel {
+    background: linear-gradient(
+      180deg,
+      rgba(14, 22, 34, 0.98),
+      rgba(10, 16, 26, 0.95)
+    );
+  }
+}
+
+/* (removed override to use new blue style) */
+
+/* iPad/tablet landscape: fixes some issue with some thing */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (min-aspect-ratio: 4/3) {
+  .menu-header .coin-o { vertical-align: -0.40em; transform: translateY(0); }
+}
+
+/* Phone landscape only (exclude iPads & tablets) */
+@media (orientation: landscape) and (max-height: 550px) and (pointer: coarse) {
+  .menu-header .coin-o {
+    vertical-align: -0.33em;
+    --coin-size: 0.58em;
+    transform: translateY(0);
+  }
+}
+
+/* Default: hide Manage button until has-opened; hide title visually to prevent flash */
+.menu-panel .panel-actions { display: none; }
+.panel-title,
+#panel-title { opacity: 0; }
+
+/* When the persisted flag is present on <html> or <body> */
+:is(html.has-opened, body.has-opened) {
+  /* show Manage button */
+  .menu-panel .panel-actions { display: block; }
+
+  /* remove title from layout and keep it invisible */
+  .panel-title,
+  #panel-title { display: none; opacity: 0; }
+
+  /* left-align header and remove upward nudge on actions */
+  .panel-header { justify-content: flex-start; gap: var(--space-3); }
+  .panel-actions { transform: none; }
+}
+
+/* Mobile adjustments: keep header compact and button auto-sized */
+@media (max-width: 900px) {
+  :is(html.has-opened, body.has-opened) .panel-header { flex-direction: row; align-items: center; }
+  :is(html.has-opened, body.has-opened) .panel-actions .btn { width: auto; }
+}
+
+.menu-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(14, 22, 34, 0.68),
+    rgba(10, 16, 26, 0.62)
+  ) !important;
+  border: 1px solid rgba(34, 43, 61, 0.40) !important;
+  backdrop-filter: saturate(1.05) blur(6px);
+  -webkit-backdrop-filter: saturate(1.05) blur(6px);
 }
