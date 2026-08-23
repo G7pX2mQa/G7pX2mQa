@@ -43,7 +43,7 @@ function isMultiplierEverUnlocked(key) {
     }
 
     const storageKey = `ccc:multiplier_unlocked:${key}:${slot}`;
-    if (lsGetItem(storageKey) === "true") {
+    if (lsGetItem(storageKey) === "1") {
         _unlockedCache.add(key);
         return true;
     }
@@ -54,7 +54,7 @@ function setMultiplierEverUnlocked(key) {
     const slot = getActiveSlot();
     if (slot == null) return;
     const storageKey = `ccc:multiplier_unlocked:${key}:${slot}`;
-    lsSetItem(storageKey, "true");
+    lsSetItem(storageKey, "1");
     _unlockedCache.add(key);
 }
 
@@ -500,6 +500,7 @@ const multipliersOverlay = createSASOverlay({
         }
     },
 });
+
 export function openMultipliersOverlay() {
     multipliersOverlay.open();
 }
