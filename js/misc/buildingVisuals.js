@@ -10153,16 +10153,49 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         // Clip to the chamber window
         ctx.clip(chamberPath);
         
-        // Static Full Volume Sapphire Fill
-        const topY = -190;
+        // Liquid Sapphire Fill with animated sine waves
+        const fluidLevel = 0.6 + 0.1 * Math.sin(t * 2 + (i === 1 ? 0 : Math.PI));
+        // Calculate Y based on bounding box of chamber (approx -190 to -80, span 110)
+        const fluidY = -80 - (110 * fluidLevel);
         
-        const fluidGrad = ctx.createLinearGradient(0, topY, 0, -80);
+        const fluidGrad = ctx.createLinearGradient(0, fluidY, 0, -80);
         fluidGrad.addColorStop(0, 'rgba(100, 150, 255, 0.9)');
         fluidGrad.addColorStop(0.2, 'rgba(50, 100, 255, 0.9)');
         fluidGrad.addColorStop(1, 'rgba(10, 30, 200, 0.9)');
         
         ctx.fillStyle = fluidGrad;
-        ctx.fillRect(70, topY, 80, 110);
+        
+        ctx.beginPath();
+        // Sine wave surface
+        ctx.moveTo(70, fluidY);
+        for(let wx = 70; wx <= 150; wx += 5) {
+            const waveOffset = Math.sin(wx * 0.1 + t * 4 + (i === 1 ? 0 : Math.PI)) * 4;
+            ctx.lineTo(wx, fluidY + waveOffset);
+        }
+        ctx.lineTo(150, -80);
+        ctx.lineTo(70, -80);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Bubbles rising in the chamber
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        for(let b = 0; b < 8; b++) {
+            const bTime = (t * 1.5 + b * 2.3 + (i === 1 ? 0 : 5.1)) % 3.0;
+            if (bTime < 3.0) { // Active bubble
+                const bx = 90 + ((b * 17) % 40) + Math.sin(t * 3 + b) * 3;
+                const startY = -80;
+                const endY = fluidY;
+                // Move bubble up
+                const by = startY - (startY - endY) * (bTime / 3.0);
+                
+                // Only draw if below fluid surface
+                if (by > fluidY - 5) {
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 1.5 + (b % 2), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
         
         // Glass Reflection on the window
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
