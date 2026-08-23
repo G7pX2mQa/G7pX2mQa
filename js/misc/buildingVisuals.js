@@ -9968,6 +9968,90 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   metalGradients.accent.addColorStop(0.5, '#004080');
   metalGradients.accent.addColorStop(1, '#001a4d');
 
+
+  // Function to draw Tier 1 nodes (either front or back pass)
+  const drawTier1Nodes = (isFront) => {
+      if (t1 <= 0) return;
+      
+      ctx.save();
+      ctx.globalAlpha = t1;
+      
+      // Orbital height center
+      ctx.translate(0, -125);
+      
+      const numNodes = 4;
+      const orbitRadiusX = 230;
+      const orbitRadiusY = 57.5; // 0.25 scale of 230 for isometric perspective
+      
+      let nodes = [];
+      for (let i = 0; i < numNodes; i++) {
+          const angle = t * 1.5 + (Math.PI * 2 / numNodes) * i;
+          const x = Math.cos(angle) * orbitRadiusX;
+          const y = Math.sin(angle) * orbitRadiusY;
+          const depth = Math.sin(angle); // < 0 is back, >= 0 is front
+          nodes.push({x, y, depth, angle});
+      }
+      
+      // Sort nodes to draw from back to front
+      nodes.sort((a, b) => a.depth - b.depth);
+      
+      for (const node of nodes) {
+          const isNodeFront = node.depth >= 0;
+          if (isNodeFront !== isFront) continue;
+          
+          ctx.save();
+          
+          // Faint glowing trail behind the node, tracing the ellipse backwards
+          ctx.beginPath();
+          const trailLength = 20;
+          for (let j = 0; j <= trailLength; j++) {
+              const trailAngle = node.angle - (j * 0.04); 
+              const tx = Math.cos(trailAngle) * orbitRadiusX;
+              const ty = Math.sin(trailAngle) * orbitRadiusY;
+              if (j === 0) ctx.moveTo(tx, ty);
+              else ctx.lineTo(tx, ty);
+          }
+          // Gradient for the trail fading out
+          let trailGrad = ctx.createLinearGradient(
+              node.x, node.y, 
+              Math.cos(node.angle - trailLength * 0.04) * orbitRadiusX, 
+              Math.sin(node.angle - trailLength * 0.04) * orbitRadiusY
+          );
+          // Dark blue trail color
+          trailGrad.addColorStop(0, `rgba(0, 50, 150, ${0.4 * t1})`);
+          trailGrad.addColorStop(1, 'rgba(0, 50, 150, 0)');
+          
+          ctx.strokeStyle = trailGrad;
+          ctx.lineWidth = 6;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+
+          // Translate to node position to draw the node itself
+          ctx.translate(node.x, node.y);
+
+          // Soft white underglow
+          let whiteGlowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+          whiteGlowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+          whiteGlowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = whiteGlowGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, 15, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Crystal only - simple orb with sapphire texture
+          ctx.fillStyle = fillSapphire;
+          ctx.beginPath();
+          ctx.arc(0, 0, 8, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+      }
+      ctx.restore();
+  };
+
+  // Draw back nodes
+  drawTier1Nodes(false);
+
   // Tier 0: The Massive Centrifuge Foundation & Main Wheel
   if (t0 > 0) {
     ctx.save();
@@ -10104,86 +10188,8 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
-  // Tier 1: Plasma Acceleration Rings
-  if (t1 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t1;
-    
-    // We create two floating horizontal rings that spin in opposite directions
-    ctx.translate(0, -140);
-    
-    // 2D horizontal ring projection (ellipses)
-    const drawRing = (yOffset, scale, rotationSpeed, flip) => {
-        ctx.save();
-        ctx.translate(0, yOffset);
-        
-        // Squish the y-axis to make it look horizontal
-        ctx.scale(1, 0.25);
-        ctx.rotate(t * rotationSpeed);
-        
-        // Outer sapphire casing
-        ctx.beginPath();
-        ctx.arc(0, 0, 200 * scale, 0, Math.PI * 2);
-        ctx.arc(0, 0, 160 * scale, 0, Math.PI * 2, true); // Inner hole
-        ctx.fillStyle = fillSapphire;
-        ctx.fill();
-        
-        // Outer casing outline
-        ctx.beginPath();
-        ctx.arc(0, 0, 200 * scale, 0, Math.PI * 2);
-        ctx.strokeStyle = '#051020';
-        ctx.lineWidth = 8;
-        ctx.stroke();
-        
-        // Inner hole outline
-        ctx.beginPath();
-        ctx.arc(0, 0, 160 * scale, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // High-tech glowing plasma tracks inside the ring
-        const numTracks = 6;
-        for (let i = 0; i < numTracks; i++) {
-            ctx.save();
-            ctx.rotate((Math.PI * 2 / numTracks) * i);
-            
-            // Outer ring node
-            ctx.beginPath();
-            ctx.moveTo(170 * scale, -10 * scale);
-            ctx.lineTo(190 * scale, -10 * scale);
-            ctx.lineTo(190 * scale, 10 * scale);
-            ctx.lineTo(170 * scale, 10 * scale);
-            ctx.closePath();
-            ctx.fillStyle = metalGradients.light;
-            ctx.fill();
-            ctx.stroke();
-            
-            // Glowing energy stream
-            const pulse = 0.5 + 0.5 * Math.sin(t * 4 + i);
-            ctx.beginPath();
-            ctx.arc(180 * scale, 0, 8 * scale, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(0, 200, 255, ${0.5 + 0.5 * pulse})`;
-            ctx.fill();
-            
-            // Add plasma connection arc
-            ctx.beginPath();
-            ctx.arc(0, 0, 180 * scale, 0, Math.PI * 2 / numTracks * 0.8);
-            ctx.strokeStyle = `rgba(0, 100, 255, ${0.3 + 0.3 * pulse})`;
-            ctx.lineWidth = 4 * scale;
-            ctx.stroke();
-            
-            ctx.restore();
-        }
-        ctx.restore();
-    };
-    
-    // Bottom Ring (larger)
-    drawRing(10, 1.0, 1.2, false);
-    
-    // Top Ring (slightly smaller)
-    drawRing(-30, 0.8, -1.5, true);
-    
-    ctx.restore();
-  }
+  // Tier 1: Orbital Data Nodes (Front Pass)
+  drawTier1Nodes(true);
 
   // Tier 2: Liquid Sapphire Tanks
   if (t2 > 0) {
