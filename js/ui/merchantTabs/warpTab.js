@@ -158,7 +158,7 @@ export function updateWarpTab(skipRechargeCheck = false) {
 
     const warningContainer = warpTabPanel.querySelector(".warp-warning-container");
     if (warningContainer) {
-        const ack = lsGetItem("ccc:warp:warningAck:" + slot) === "true";
+        const ack = lsGetItem(`ccc:warp:warningAck:${slot}`) === "1";
         if (settingsManager.get("warp_vfx") && !ack) {
             warningContainer.style.display = "block";
         } else {
@@ -196,7 +196,7 @@ export function initWarpTab(panel) {
         ackBtn.addEventListener("click", () => {
             const slot = getActiveSlot();
             if (slot != null) {
-                lsSetItem("ccc:warp:warningAck:" + slot, "true");
+                lsSetItem(`ccc:warp:warningAck:${slot}`, "1");
                 updateWarpTab();
             }
         });
