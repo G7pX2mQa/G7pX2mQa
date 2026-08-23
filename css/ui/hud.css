@@ -1148,3 +1148,16 @@ body.custom-font-active .coin-amount .infinity-symbol,
 body.custom-font-active .scrap-amount .infinity-symbol {
   top: calc(-0.11em + 4px);
 }
+
+.hud-top.hide-ui,
+.hud-bottom-wrapper.hide-ui,
+.hud-bottom.hide-ui {
+    display: grid !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.hud-bottom-wrapper.hide-ui {
+    display: flex !important;
+}
