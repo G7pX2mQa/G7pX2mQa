@@ -241,6 +241,7 @@ window.sf = async function (password) {
             immediateFlushBackupSnapshot("manual", { immediate: true });
         }
         console.log("yes");
+        window.location.reload();
     } else {
         console.log("no");
     }
@@ -462,14 +463,14 @@ window.coinsCollected = coinsCollected;
 
 export let globalActivePlaytime = 0;
 try {
-    const storedGlobalPlaytime = localStorage.getItem("ccc:globalActivePlaytime");
+    const storedGlobalPlaytime = lsGetItem("ccc:globalActivePlaytime");
     globalActivePlaytime = storedGlobalPlaytime ? Number(storedGlobalPlaytime) : 0;
 } catch {}
 window.globalActivePlaytime = globalActivePlaytime;
 
 export let globalCoinsCollected = 0;
 try {
-    const storedGlobalCoins = localStorage.getItem("ccc:globalCoinsCollected");
+    const storedGlobalCoins = lsGetItem("ccc:globalCoinsCollected");
     globalCoinsCollected = storedGlobalCoins ? Number(storedGlobalCoins) : 0;
 } catch {}
 window.globalCoinsCollected = globalCoinsCollected;
@@ -485,7 +486,7 @@ const pendingPreloadedAudio = [];
 function applyPendingSlotWipe() {
     let slotStr;
     try {
-        slotStr = localStorage.getItem("ccc:pendingSlotWipe");
+        slotStr = lsGetItem("ccc:pendingSlotWipe");
     } catch {
         slotStr = null;
     }
@@ -1594,9 +1595,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const inMenu = menuRoot && menuRoot.style.display !== "none";
                 
                 if (newlyAnagrammed && inMenu) {
-                    const hasSeen = lsGetItem("ccc:globalEasterEggTitleFound");
+                    const hasSeen = lsGetItem("ccc:globalTitleEasterEggFound");
                     if (hasSeen !== "1") {
-                        lsSetItem("ccc:globalEasterEggTitleFound", "1");
+                        lsSetItem("ccc:globalTitleEasterEggFound", "1");
                         
                         let container = document.querySelector(".notification-container");
                         if (!container) {
@@ -2123,18 +2124,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (slot != null) {
             const welcomeKey = `ccc:welcome_shown:${slot}`;
             const procsKey = `ccc:weekly_reminder_procs:${slot}`;
-            if (!localStorage.getItem(welcomeKey)) {
+            if (!lsGetItem(welcomeKey)) {
                 lsSetItem(welcomeKey, "true");
                 showWelcomePopup(IS_MOBILE);
             } else {
                 let procs = [];
                 try {
-                    procs = JSON.parse(localStorage.getItem(procsKey) || "[]");
+                    procs = JSON.parse(lsGetItem(procsKey) || "[]");
                 } catch (e) {
                     procs = [];
                 }
 
-                const creationStr = localStorage.getItem(`ccc:creationTime:${slot}`);
+                const creationStr = lsGetItem(`ccc:creationTime:${slot}`);
                 const creationTime = creationStr ? parseInt(creationStr, 10) : Date.now();
 
                 const lastProc = procs.length > 0 ? procs[procs.length - 1] : creationTime;
@@ -2385,7 +2386,7 @@ There are many ways to mark a save slot other than just using the debug panel.`)
 
         const slot = getActiveSlot();
         try {
-            const stored = localStorage.getItem(`ccc:activePlaytime:${slot}`);
+            const stored = lsGetItem(`ccc:activePlaytime:${slot}`);
             activePlaytime = stored ? Number(stored) : 0;
             window.activePlaytime = activePlaytime;
         } catch {
@@ -2394,7 +2395,7 @@ There are many ways to mark a save slot other than just using the debug panel.`)
         }
 
         try {
-            const storedCoins = localStorage.getItem(`ccc:coinsCollected:${slot}`);
+            const storedCoins = lsGetItem(`ccc:coinsCollected:${slot}`);
             coinsCollected = storedCoins ? Number(storedCoins) : 0;
             window.coinsCollected = coinsCollected;
         } catch {
