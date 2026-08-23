@@ -633,7 +633,9 @@ class SettingsManager {
             const storageKey = this._getKey(key);
             const stored = lsGetItem(storageKey);
             if (stored !== null) {
-                this.settings[key] = JSON.parse(stored);
+                const defaultVal = typeof def.default === "function" ? def.default() : def.default;
+                const isBool = typeof defaultVal === "boolean";
+                this.settings[key] = isBool ? (stored === "1") : JSON.parse(stored);
                 this._isDefault[key] = false;
             } else {
                 this.settings[key] = typeof def.default === "function" ? def.default() : def.default;
@@ -643,7 +645,7 @@ class SettingsManager {
             if (key === "only_show_building" && this.settings[key] === true) {
                 this.settings[key] = false;
                 try {
-                    lsSetItem(storageKey, JSON.stringify(false));
+                    lsSetItem(storageKey, "0");
                 } catch (e) {}
             }
             // Always force user_interface to be true on load
@@ -651,7 +653,7 @@ class SettingsManager {
             if (key === "user_interface" && this.settings[key] === false) {
                 this.settings[key] = true;
                 try {
-                    lsSetItem(storageKey, JSON.stringify(true));
+                    lsSetItem(storageKey, "1");
                 } catch (e) {}
             }
             this.notify(key, this.settings[key]);
@@ -698,7 +700,9 @@ class SettingsManager {
             const raw = lsGetItem(storageKey);
             if (raw !== null) {
                 try {
-                    this.settings[key] = JSON.parse(raw);
+                    const def = SETTING_DEFINITIONS[key];
+                    const isBool = def && def.type === "toggle";
+                    this.settings[key] = isBool ? (raw === "1" ? true : (raw === "0" ? false : JSON.parse(raw))) : JSON.parse(raw);
                     this._isDefault[key] = false;
                     this.notify(key, this.settings[key]);
                 } catch (e) {
@@ -784,7 +788,7 @@ class SettingsManager {
         this.settings[key] = value;
         this._isDefault[key] = false;
         const storageKey = this._getKey(key);
-        lsSetItem(storageKey, JSON.stringify(value));
+        lsSetItem(storageKey, typeof value === "boolean" ? (value ? "1" : "0") : JSON.stringify(value));
         if (key === "number_notation") {
             setNumberNotation(value);
         }
