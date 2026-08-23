@@ -10018,8 +10018,8 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
               Math.sin(node.angle - trailLength * 0.04) * orbitRadiusY
           );
           // Dark blue trail color
-          trailGrad.addColorStop(0, `rgba(0, 50, 150, ${0.4 * t1})`);
-          trailGrad.addColorStop(1, 'rgba(0, 50, 150, 0)');
+          trailGrad.addColorStop(0, `rgba(38, 52, 245, ${0.7 * t1})`);
+          trailGrad.addColorStop(1, 'rgba(38, 52, 245, 0)');
           
           ctx.strokeStyle = trailGrad;
           ctx.lineWidth = 6;
