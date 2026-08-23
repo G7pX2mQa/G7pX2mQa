@@ -2134,7 +2134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const welcomeKey = `ccc:welcome_shown:${slot}`;
             const procsKey = `ccc:weekly_reminder_procs:${slot}`;
             if (!lsGetItem(welcomeKey)) {
-                lsSetItem(welcomeKey, "true");
+                lsSetItem(welcomeKey, "1");
                 showWelcomePopup(IS_MOBILE);
             } else {
                 let procs = [];
