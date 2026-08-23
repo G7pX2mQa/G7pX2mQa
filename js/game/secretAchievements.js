@@ -109,7 +109,7 @@ export function setVaultSequence(seq, slot = getActiveSlot()) {
 export function getVaultCoinCollected(slot = getActiveSlot()) {
     if (slot == null) return false;
     try {
-        return lsGetItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`) === "true";
+        return lsGetItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`) === "1";
     } catch {}
     return false;
 }
@@ -117,7 +117,7 @@ export function getVaultCoinCollected(slot = getActiveSlot()) {
 export function setVaultCoinCollected(val, slot = getActiveSlot()) {
     if (slot == null) return;
     try {
-        lsSetItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`, String(val));
+        lsSetItem(`ccc:secretAchievements:vaultCoinCollected:${slot}`, val ? "1" : "0");
     } catch {}
 }
 
