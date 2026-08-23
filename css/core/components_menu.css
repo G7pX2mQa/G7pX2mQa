@@ -262,7 +262,7 @@
 .btn:active{ transform: translateY(1px); }
 
 .btn-ghost{ opacity: .9; }
-.btn-ghost:hover{ opacity: 1; background: #141e33; }
+.btn-ghost:hover{ opacity: 1; background: #151f34; }
 
 /* Mobile: stack actions under the title, make button full-width */
 @media (max-width: 900px){
