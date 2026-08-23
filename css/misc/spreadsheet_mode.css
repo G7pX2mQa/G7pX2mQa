@@ -33,6 +33,13 @@ body.spreadsheet-mode:not(.menu-bg) * {
   box-shadow: none !important;
   text-shadow: none !important;
   background-image: none !important; /* Removes gradients */
+  transition: none !important;
+  animation: none !important;
+}
+
+body.spreadsheet-transition-override * {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* Hide background pattern and animations */
