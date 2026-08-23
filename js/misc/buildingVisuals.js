@@ -452,9 +452,13 @@ function initSapphirePattern(ctx) {
       ? `rgba(70, 90, 255, ${0.04 + Math.random() * 0.06})`
       : `rgba(10, 15, 180, ${0.04 + Math.random() * 0.06})`;
 
-    pCtx.beginPath();
-    pCtx.arc(x, y, r, 0, Math.PI * 2);
-    pCtx.fill();
+    for (let ox of [-size, 0, size]) {
+      for (let oy of [-size, 0, size]) {
+        pCtx.beginPath();
+        pCtx.arc(x + ox, y + oy, r, 0, Math.PI * 2);
+        pCtx.fill();
+      }
+    }
   }
 
   // Small swirly curlicues to mimic the marbled texture
@@ -470,9 +474,13 @@ function initSapphirePattern(ctx) {
       : `rgba(15, 20, 160, ${0.05 + Math.random() * 0.1})`;  // darker swirls
 
     pCtx.lineWidth = 1 + Math.random() * 1.5;
-    pCtx.beginPath();
-    pCtx.arc(x, y, r, startAngle, endAngle);
-    pCtx.stroke();
+    for (let ox of [-size, 0, size]) {
+      for (let oy of [-size, 0, size]) {
+        pCtx.beginPath();
+        pCtx.arc(x + ox, y + oy, r, startAngle, endAngle);
+        pCtx.stroke();
+      }
+    }
   }
 
   const targetCtx = activeCtx || ctx;
@@ -9979,57 +9987,21 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     // --- Advanced Massive Base Structure ---
     // We are replacing the old isometric Tier 0 base with a massive high-tech 2D profile.
     
-    // Base glow
-
-    
     ctx.fillStyle = fillSapphire;
+    ctx.strokeStyle = 'transparent';
     
-    // Wide futuristic ground base
+    // Draw the entire massive base as a single continuous polygon to prevent subpixel gaps
     ctx.beginPath();
     ctx.moveTo(-280, 0);
     ctx.lineTo(280, 0);
     ctx.lineTo(250, -25);
-    ctx.lineTo(-250, -25);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'transparent';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Secondary elevated platform
-    ctx.beginPath();
-    ctx.moveTo(-250, -25);
-    ctx.lineTo(250, -25);
-    ctx.lineTo(190, -60);
-    ctx.lineTo(-190, -60);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Grid/Tech patterns on the secondary platform
-    ctx.save();
-    ctx.strokeStyle = 'transparent';
-    ctx.lineWidth = 1;
-    for(let i = -250; i <= 250; i += 20) {
-        ctx.beginPath();
-        ctx.moveTo(i, -25);
-        ctx.lineTo(i * 0.9, -60);
-        ctx.stroke();
-    }
-
-    ctx.restore();
-
-    // Central pillar / housing that reaches up to support Tiers 1-8
-    // Tiers 1-8 usually start around -100 to -200.
-    // We will build a solid column up to -100 to anchor them.
-    ctx.beginPath();
-    ctx.moveTo(-190, -60);
     ctx.lineTo(190, -60);
     ctx.lineTo(130, -180);
     ctx.lineTo(-130, -180);
+    ctx.lineTo(-190, -60);
+    ctx.lineTo(-250, -25);
     ctx.closePath();
     ctx.fill();
-    ctx.stroke();
     
     // --- High-Tech Spinning Core Element ---
     const spinnerCy = -120;
@@ -10132,23 +10104,84 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
-  // Tier 1: Support Pillars
+  // Tier 1: Plasma Acceleration Rings
   if (t1 > 0) {
     ctx.save();
     ctx.globalAlpha = t1;
-    ctx.fillStyle = metalGradients.dark;
     
-    for (let i = 0; i < 4; i++) {
-        const pX = (i % 2 === 0 ? 1 : -1) * 70;
-        const pY = (i < 2 ? 1 : -1) * 10;
+    // We create two floating horizontal rings that spin in opposite directions
+    ctx.translate(0, -140);
+    
+    // 2D horizontal ring projection (ellipses)
+    const drawRing = (yOffset, scale, rotationSpeed, flip) => {
+        ctx.save();
+        ctx.translate(0, yOffset);
         
-        ctx.fillRect(pX - 5, pY - 60, 10, 60);
+        // Squish the y-axis to make it look horizontal
+        ctx.scale(1, 0.25);
+        ctx.rotate(t * rotationSpeed);
         
-        // Glowing inset
-        ctx.fillStyle = '#0ff';
-        ctx.fillRect(pX - 2, pY - 55, 4, 50);
-        ctx.fillStyle = metalGradients.dark;
-    }
+        // Outer sapphire casing
+        ctx.beginPath();
+        ctx.arc(0, 0, 200 * scale, 0, Math.PI * 2);
+        ctx.arc(0, 0, 160 * scale, 0, Math.PI * 2, true); // Inner hole
+        ctx.fillStyle = fillSapphire;
+        ctx.fill();
+        
+        // Outer casing outline
+        ctx.beginPath();
+        ctx.arc(0, 0, 200 * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = '#051020';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+        
+        // Inner hole outline
+        ctx.beginPath();
+        ctx.arc(0, 0, 160 * scale, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // High-tech glowing plasma tracks inside the ring
+        const numTracks = 6;
+        for (let i = 0; i < numTracks; i++) {
+            ctx.save();
+            ctx.rotate((Math.PI * 2 / numTracks) * i);
+            
+            // Outer ring node
+            ctx.beginPath();
+            ctx.moveTo(170 * scale, -10 * scale);
+            ctx.lineTo(190 * scale, -10 * scale);
+            ctx.lineTo(190 * scale, 10 * scale);
+            ctx.lineTo(170 * scale, 10 * scale);
+            ctx.closePath();
+            ctx.fillStyle = metalGradients.light;
+            ctx.fill();
+            ctx.stroke();
+            
+            // Glowing energy stream
+            const pulse = 0.5 + 0.5 * Math.sin(t * 4 + i);
+            ctx.beginPath();
+            ctx.arc(180 * scale, 0, 8 * scale, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 200, 255, ${0.5 + 0.5 * pulse})`;
+            ctx.fill();
+            
+            // Add plasma connection arc
+            ctx.beginPath();
+            ctx.arc(0, 0, 180 * scale, 0, Math.PI * 2 / numTracks * 0.8);
+            ctx.strokeStyle = `rgba(0, 100, 255, ${0.3 + 0.3 * pulse})`;
+            ctx.lineWidth = 4 * scale;
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        ctx.restore();
+    };
+    
+    // Bottom Ring (larger)
+    drawRing(10, 1.0, 1.2, false);
+    
+    // Top Ring (slightly smaller)
+    drawRing(-30, 0.8, -1.5, true);
+    
     ctx.restore();
   }
 
