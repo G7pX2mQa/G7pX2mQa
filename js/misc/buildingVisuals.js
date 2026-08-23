@@ -6398,7 +6398,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     keypadCtx.fillRect(0, 0, w, h);
 
     // Translate to center
-    keypadCtx.translate(w / 2, h / 2);
+    keypadCtx.translate(Math.floor(w / 2), Math.floor(h / 2));
     const zoomFactor = 8;
     keypadCtx.scale(zoomFactor, zoomFactor);
 
@@ -6428,8 +6428,8 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     keypadCtx.fill();
 
     // 3x3 Button grid
-    const kx = (canvasMouseX - w / 2) / zoomFactor;
-    const ky = (canvasMouseY - h / 2) / zoomFactor;
+    const kx = (canvasMouseX - Math.floor(w / 2)) / zoomFactor;
+    const ky = (canvasMouseY - Math.floor(h / 2)) / zoomFactor;
 
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
@@ -6438,9 +6438,6 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         const btnNum = r * 3 + c + 1;
 
         const isHovered = kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5;
-        if (isHovered && lastHotkeyNum !== null) {
-          lastHotkeyNum = null;
-        }
         const isHighlighted = isHovered || (lastHotkeyNum === btnNum);
         keypadCtx.fillStyle = isHighlighted ? "#656565" : "#434343";
         keypadCtx.fillRect(bx, by, 5, 5);
@@ -6452,11 +6449,22 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         }
 
         // Draw numbers
+        keypadCtx.save();
         keypadCtx.fillStyle = "#ffffff";
-        keypadCtx.font = "bold 3px sans-serif";
+        // Unscale the context to avoid minimum font size issues on mobile
+        keypadCtx.scale(1 / zoomFactor, 1 / zoomFactor);
+        keypadCtx.font = "bold 24px sans-serif";
         keypadCtx.textAlign = "center";
-        keypadCtx.textBaseline = "middle";
-        keypadCtx.fillText(String(btnNum), bx + 2.5, by + 3.0);
+        
+        const text = String(btnNum);
+        const metrics = keypadCtx.measureText(text);
+        const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        
+        const renderX = (bx + 2.5) * zoomFactor;
+        const renderY = (by + 2.5) * zoomFactor + (metrics.actualBoundingBoxAscent - textHeight / 2);
+
+        keypadCtx.fillText(text, renderX, renderY);
+        keypadCtx.restore();
       }
     }
 
@@ -10628,9 +10636,6 @@ function handleVaultCanvasClick(e) {
           const btnNum = r * 3 + c + 1;
           
           lastHotkeyNum = btnNum;
-          setTimeout(() => {
-            if (lastHotkeyNum === btnNum) lastHotkeyNum = null;
-          }, 150);
 
           const seq = getVaultSequence();
           const newSeq = (seq + btnNum).slice(-16);
