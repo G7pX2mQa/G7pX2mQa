@@ -440,11 +440,20 @@ let waterFrameUnsub = null;
 // Handle spreadsheet mode toggling
 const applySpreadsheetMode = () => {
     try {
+        document.body.classList.add("spreadsheet-transition-override");
+        
         if (settingsManager.get("spreadsheet_mode")) {
             document.body.classList.add("spreadsheet-mode");
         } else {
             document.body.classList.remove("spreadsheet-mode");
         }
+
+        // Wait two animation frames to ensure DOM has updated without transitions
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.body.classList.remove("spreadsheet-transition-override");
+            });
+        });
     } catch (e) {}
 };
 window.addEventListener("setting:changed", (e) => {
