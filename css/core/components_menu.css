@@ -261,8 +261,8 @@
 .btn:hover{ background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
 .btn:active{ transform: translateY(1px); }
 
-.btn-ghost{ opacity:.9; }
-.btn-ghost:hover{ opacity:1; }
+.btn-ghost{ opacity: .9; }
+.btn-ghost:hover{ opacity: 1; background: #141e33; }
 
 /* Mobile: stack actions under the title, make button full-width */
 @media (max-width: 900px){
