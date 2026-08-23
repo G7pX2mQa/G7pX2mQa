@@ -9981,7 +9981,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
       
       const numNodes = 4;
       const orbitRadiusX = 230;
-      const orbitRadiusY = 57.5; // 0.25 scale of 230 for isometric perspective
+      const orbitRadiusY = 140; // Exaggerated tilt so front dips low and back rises high
       
       let nodes = [];
       for (let i = 0; i < numNodes; i++) {
