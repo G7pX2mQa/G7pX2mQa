@@ -824,11 +824,11 @@ export function bindDelveTabHotkey(sheetEl) {
                     const slot = getActiveSlot();
                     let hwMode = false;
                     try {
-                        hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${slot}`) === "true";
+                        hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${slot}`) === "1";
                     } catch (e) {}
                     hwMode = !hwMode;
                     try {
-                        lsSetItem(`ccc:waterwheelHotkeyMode:${slot}`, String(hwMode));
+                        lsSetItem(`ccc:waterwheelHotkeyMode:${slot}`, hwMode ? "1" : "0");
                     } catch (e) {}
                     window.dispatchEvent(new CustomEvent("flow:hotkeyModeToggled"));
                 });
@@ -842,7 +842,7 @@ export function bindDelveTabHotkey(sheetEl) {
                 // Check if we are in Flow tab and hotkey mode is active
                 let hwMode = false;
                 try {
-                    hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${slot}`) === "true";
+                    hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${slot}`) === "1";
                 } catch (e) {}
                 const flowTab = sheetEl.querySelector('.merchant-tab[data-tab="flow"]');
                 const isFlowTabActive = flowTab && flowTab.classList.contains("is-active");
