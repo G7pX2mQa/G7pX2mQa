@@ -10105,6 +10105,106 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     ctx.closePath();
     ctx.fill();
     
+
+    // --- Tier 2: Core Cradle / Chassis Expansion (Drawn BEHIND the core) ---
+    if (t2 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t2;
+      
+      for (let i = -1; i <= 1; i += 2) {
+        ctx.save();
+        ctx.scale(i, 1); // Flip horizontally for symmetry
+        
+        // Main Chassis Arm
+        ctx.fillStyle = '#051020'; // matches outer casing of Tier 0
+        ctx.strokeStyle = fillSapphire; // bright sapphire accent
+        ctx.lineWidth = 4;
+        
+        // The path of the chassis
+        const chassisPath = new Path2D();
+        chassisPath.moveTo(170, -60);
+        chassisPath.lineTo(140, -170);
+        chassisPath.lineTo(85, -215);
+        chassisPath.lineTo(51.2, -200); // Inner tip touching casing
+        // Arc along the casing (radius 95, center 0, -120)
+        chassisPath.arc(0, -120, 95, Math.asin(-80/95), Math.asin(60/95), false);
+        chassisPath.closePath();
+        
+        ctx.fill(chassisPath);
+        ctx.stroke(chassisPath);
+
+        // --- Animated Fluid Chamber ---
+        ctx.save();
+        
+        // Define the window/chamber path
+        const chamberPath = new Path2D();
+        chamberPath.moveTo(140, -85);
+        chamberPath.lineTo(120, -160);
+        chamberPath.lineTo(90, -190);
+        chamberPath.lineTo(80, -180);
+        chamberPath.lineTo(110, -150);
+        chamberPath.lineTo(125, -80);
+        chamberPath.closePath();
+        
+        // Dark background for the chamber
+        ctx.fillStyle = '#020610';
+        ctx.fill(chamberPath);
+        
+        // Clip to the chamber window
+        ctx.clip(chamberPath);
+        
+        // Static Full Volume Sapphire Fill
+        const topY = -190;
+        
+        const fluidGrad = ctx.createLinearGradient(0, topY, 0, -80);
+        fluidGrad.addColorStop(0, 'rgba(100, 150, 255, 0.9)');
+        fluidGrad.addColorStop(0.2, 'rgba(50, 100, 255, 0.9)');
+        fluidGrad.addColorStop(1, 'rgba(10, 30, 200, 0.9)');
+        
+        ctx.fillStyle = fluidGrad;
+        ctx.fillRect(70, topY, 80, 110);
+        
+        // Glass Reflection on the window
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.beginPath();
+        ctx.moveTo(135, -85);
+        ctx.lineTo(115, -160);
+        ctx.lineTo(105, -160);
+        ctx.lineTo(125, -85);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore(); // Remove clip
+
+        // Inner frame for the chamber window
+        ctx.strokeStyle = '#1a3366';
+        ctx.lineWidth = 2;
+        ctx.stroke(chamberPath);
+
+        // Glow bolts for mechanical attachment
+        ctx.save();
+        ctx.globalAlpha = t2 * (0.8 + 0.2 * Math.cos(t * 2));
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = fillSapphire;
+        ctx.shadowBlur = 8;
+        const bolts = [
+          {x: 140, y: -70},
+          {x: 147, y: -100},
+          {x: 132, y: -165},
+          {x: 88,  y: -202}
+        ];
+        for (let bolt of bolts) {
+          ctx.beginPath();
+          ctx.arc(bolt.x, bolt.y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore(); // restores glow/shadow
+
+        ctx.restore(); // restores scale
+      }
+      ctx.restore(); // restores globalAlpha from t2 block
+    }
+
     // --- High-Tech Spinning Core Element ---
     const spinnerCy = -120;
     const coreRadius = 80;
@@ -10209,38 +10309,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   // Tier 1: Orbital Data Nodes (Front Pass)
   drawTier1Nodes(true);
 
-  // Tier 2: Liquid Sapphire Tanks
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    
-    for (let i = 0; i < 2; i++) {
-        const tX = i === 0 ? -90 : 90;
-        
-        // Tank back
-        ctx.fillStyle = 'rgba(10, 30, 50, 0.8)';
-        ctx.beginPath();
-        ctx.roundRect(tX - 15, -70, 30, 50, 5);
-        ctx.fill();
-        
-        // Liquid
-        ctx.fillStyle = fillSapphire;
-        const liquidLevel = 25 + Math.sin(t * 2 + i) * 10; // Bubbling liquid
-        ctx.beginPath();
-        ctx.roundRect(tX - 12, -20 - liquidLevel, 24, liquidLevel, 2);
-        ctx.fill();
-        
-        // Glass front
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.roundRect(tX - 15, -70, 30, 50, 5);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-    }
-    ctx.restore();
-  }
 
   // Tier 3: Containment Ring
   if (t3 > 0) {
