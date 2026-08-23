@@ -195,7 +195,8 @@ if (typeof window !== "undefined") {
 }
 
 // MODIFICATION MARK CLEANSER
-window.secretFunction = async function (password) {
+// `window.sf` is short for `window.secretFunction`
+window.sf = async function (password) {
     if (!password) return;
 
     // Convert string to array buffer
