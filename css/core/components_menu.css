@@ -70,7 +70,6 @@
   border-radius: 16px;
   padding: clamp(var(--space-5), 2vw, var(--space-6));
   box-shadow: var(--shadow-2);
-  transition: transform .15s ease, background .15s ease, border-color .15s ease;
   outline-offset: 2px;
   min-height: clamp(96px, 16vh, 140px);
   display: flex;
@@ -261,8 +260,8 @@
 .btn:hover{ background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
 .btn:active{ transform: translateY(1px); }
 
-.btn-ghost{ opacity: .9; }
-.btn-ghost:hover{ opacity: 1; background: #151f34; }
+.btn-ghost{ opacity:.9; transition: none; }
+.btn-ghost:hover{ opacity:1; background: rgba(18, 26, 46, 0.74); }
 
 /* Mobile: stack actions under the title, make button full-width */
 @media (max-width: 900px){
