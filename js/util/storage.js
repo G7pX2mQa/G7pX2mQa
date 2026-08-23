@@ -607,11 +607,11 @@ for (const key of Object.values(CURRENCIES)) {
 initCurrencyStorageWatchers();
 // -------------------- SAVE-SLOT HELPERS --------------------
 export function getHasOpenedSaveSlot() {
-    return lsGetItem(KEYS.HAS_OPENED_SAVE_SLOT) === "true";
+    return lsGetItem(KEYS.HAS_OPENED_SAVE_SLOT) === "1";
 }
 
 export function setHasOpenedSaveSlot(value) {
-    lsSetItem(KEYS.HAS_OPENED_SAVE_SLOT, value ? "true" : "false");
+    lsSetItem(KEYS.HAS_OPENED_SAVE_SLOT, value ? "1" : "0");
 }
 
 export function setSavedArea(areaID, slot = getActiveSlot()) {
@@ -657,7 +657,7 @@ export function ensureMultiplierDefaults() {
 export function isCurrencyUnlocked(key, slot = getActiveSlot()) {
     if (key === CURRENCIES.COINS) return true;
     const k = `ccc:currency_unlocked:${key}:${slot}`;
-    return lsGetItem(k) === "true";
+    return lsGetItem(k) === "1";
 }
 
 export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
@@ -665,7 +665,7 @@ export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
     const isCurrentlyUnlocked = isCurrencyUnlocked(key, slot);
     const nextValue = !!value;
     if (isCurrentlyUnlocked === nextValue) return;
-    lsSetItem(k, nextValue ? "true" : "false");
+    lsSetItem(k, nextValue ? "1" : "0");
     if (nextValue && typeof window !== "undefined") {
         try {
             window.dispatchEvent(new CustomEvent("currency:unlock", { detail: { key, slot } }));
