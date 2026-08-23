@@ -9977,11 +9977,11 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
       ctx.globalAlpha = t1;
       
       // Orbital height center
-      ctx.translate(0, -125);
+      ctx.translate(0, -90);
       
       const numNodes = 4;
       const orbitRadiusX = 230;
-      const orbitRadiusY = 140; // Exaggerated tilt so front dips low and back rises high
+      const orbitRadiusY = 76; // Finetuned tilt so front clears ground, back hides behind foundation
       
       let nodes = [];
       for (let i = 0; i < numNodes; i++) {
