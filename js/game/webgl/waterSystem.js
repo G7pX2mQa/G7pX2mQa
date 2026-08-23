@@ -148,7 +148,7 @@ export class WaterSystem {
         }
     }
 
-    init(backCanvasId, frontCanvasId, numLayers = 5) {
+    init(backCanvasId, frontCanvasId, numLayers = 1) {
         this._baseNumLayers = numLayers;
         if (this.glBg && this.glFg) {
             // Already initialized, no need to recreate the contexts and recompile shaders
