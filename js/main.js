@@ -240,9 +240,9 @@ window.sf = async function (password) {
         if (typeof immediateFlushBackupSnapshot === "function") {
             immediateFlushBackupSnapshot("manual", { immediate: true });
         }
-        console.log("okay then");
+        console.log("yes");
     } else {
-        console.log("invalid password");
+        console.log("no");
     }
 };
 
