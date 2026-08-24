@@ -10153,8 +10153,12 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         // Clip to the chamber window
         ctx.clip(chamberPath);
         
-        // Liquid Sapphire Fill with animated sine waves
-        const fluidLevel = (Math.sin(t * 0.5 + (i === 1 ? 0 : Math.PI)) + 1) / 2;
+        // Liquid Sapphire Fill with linear triangle waves for constant speed
+        const phase = t * 0.5 + (i === 1 ? 0 : Math.PI);
+        const cycle = phase / Math.PI;
+        // Math.abs produces a perfect triangle wave 0..1..0
+        const fluidLevel = 1 - Math.abs((cycle % 2 + 2) % 2 - 1);
+        
         // Calculate Y based on bounding box of chamber (approx -190 to -80, span 110)
         const fluidY = -80 - (110 * fluidLevel);
         
@@ -10166,10 +10170,11 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.fillStyle = fluidGrad;
         
         ctx.beginPath();
-        // Sine wave surface
-        ctx.moveTo(70, fluidY);
-        for(let wx = 70; wx <= 150; wx += 5) {
-            const waveOffset = Math.sin(wx * 0.1 + t * 4 + (i === 1 ? 0 : Math.PI)) * 4;
+        // Sine wave surface (reduce surface wave amplitude slightly to prevent jitter)
+        const firstWaveOffset = Math.sin(70 * 0.1 + t * 4 + (i === 1 ? 0 : Math.PI)) * 2.5;
+        ctx.moveTo(70, fluidY + firstWaveOffset);
+        for(let wx = 75; wx <= 150; wx += 5) {
+            const waveOffset = Math.sin(wx * 0.1 + t * 4 + (i === 1 ? 0 : Math.PI)) * 2.5;
             ctx.lineTo(wx, fluidY + waveOffset);
         }
         ctx.lineTo(150, -80);
