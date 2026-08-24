@@ -10216,8 +10216,8 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
         // Glow bolts for mechanical attachment
         ctx.save();
-        ctx.globalAlpha = t2 * (0.8 + 0.2 * Math.cos(t * 2));
-        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = t2;
+        ctx.fillStyle = '#888';
         ctx.shadowColor = fillSapphire;
         ctx.shadowBlur = 8;
         const bolts = [
