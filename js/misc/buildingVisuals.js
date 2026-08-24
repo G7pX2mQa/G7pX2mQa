@@ -10154,7 +10154,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.clip(chamberPath);
         
         // Liquid Sapphire Fill with animated sine waves
-        const fluidLevel = 0.6 + 0.1 * Math.sin(t * 2 + (i === 1 ? 0 : Math.PI));
+        const fluidLevel = (Math.sin(t * 0.5 + (i === 1 ? 0 : Math.PI)) + 1) / 2;
         // Calculate Y based on bounding box of chamber (approx -190 to -80, span 110)
         const fluidY = -80 - (110 * fluidLevel);
         
@@ -10198,14 +10198,14 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         }
         
         // Glass Reflection on the window
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.beginPath();
-        ctx.moveTo(135, -85);
-        ctx.lineTo(115, -160);
-        ctx.lineTo(105, -160);
-        ctx.lineTo(125, -85);
-        ctx.closePath();
-        ctx.fill();
+        const glassGrad = ctx.createLinearGradient(80, 0, 140, 0);
+        glassGrad.addColorStop(0, "rgba(255, 255, 255, 0.25)");
+        glassGrad.addColorStop(0.2, "rgba(255, 255, 255, 0.05)");
+        glassGrad.addColorStop(0.8, "rgba(255, 255, 255, 0.05)");
+        glassGrad.addColorStop(1, "rgba(255, 255, 255, 0.2)");
+        
+        ctx.fillStyle = glassGrad;
+        ctx.fill(chamberPath);
         
         ctx.restore(); // Remove clip
 
