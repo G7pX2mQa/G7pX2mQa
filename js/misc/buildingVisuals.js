@@ -10215,7 +10215,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.restore(); // Remove clip
 
         // Inner frame for the chamber window
-        ctx.strokeStyle = '#1a3366';
+        ctx.strokeStyle = fillSapphire;
         ctx.lineWidth = 2;
         ctx.stroke(chamberPath);
 
