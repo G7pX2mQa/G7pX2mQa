@@ -9987,6 +9987,100 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   metalGradients.accent.addColorStop(1, '#001a4d');
 
 
+  const drawSpinningCore = (x, y, scale, timeMult) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    
+    const coreRadius = 80;
+    
+    // Outer static casing
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius + 15, 0, Math.PI * 2);
+    ctx.fillStyle = '#051020';
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = fillSapphire;
+    ctx.stroke();
+    
+    // Complex rotating layers
+    ctx.save();
+    ctx.rotate(t * timeMult);
+    
+    // Outer gear teeth
+    ctx.fillStyle = fillSapphire;
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 12; i++) {
+        ctx.save();
+        ctx.rotate(Math.PI * 2 * (i / 12));
+        ctx.beginPath();
+        ctx.moveTo(-10, coreRadius);
+        ctx.lineTo(10, coreRadius);
+        ctx.lineTo(6, coreRadius + 12);
+        ctx.lineTo(-6, coreRadius + 12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+    }
+    
+    // Inner structural ring
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = fillSapphire;
+    ctx.stroke();
+    
+    // Energy track ring
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius - 10, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'transparent';
+    ctx.stroke();
+
+    // Advanced 4-spoke turbine
+    for (let i = 0; i < 4; i++) {
+        ctx.save();
+        ctx.rotate(Math.PI / 2 * i);
+        
+        // Blade
+        ctx.beginPath();
+        ctx.moveTo(-15, 20);
+        ctx.lineTo(15, 20);
+        ctx.lineTo(4, coreRadius - 15);
+        ctx.lineTo(-4, coreRadius - 15);
+        ctx.closePath();
+        ctx.fillStyle = fillSapphire;
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    ctx.restore();
+    
+    // Inner counter-rotating core
+    ctx.save();
+    ctx.rotate(-t * timeMult);
+    
+    // Symmetrical geometric housing and inner elements
+    ctx.beginPath();
+    ctx.moveTo(-10, -10);
+    ctx.lineTo(10, -10);
+    ctx.lineTo(10, 10);
+    ctx.lineTo(-10, 10);
+    ctx.closePath();
+    ctx.fillStyle = fillSapphire;
+    ctx.fill();
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+    
+    ctx.restore();
+  };
+
   // Function to draw Tier 1 nodes (either front or back pass)
   const drawTier1Nodes = (isFront) => {
       if (t1 <= 0) return;
@@ -10242,105 +10336,10 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
       }
       ctx.restore(); // restores globalAlpha from t2 block
     }
-
     // --- High-Tech Spinning Core Element ---
     const spinnerCy = -120;
-    const coreRadius = 80;
     
-    // Huge background aura
-
-
-    ctx.save();
-    ctx.translate(0, spinnerCy);
-    
-    // Outer static casing
-    ctx.beginPath();
-    ctx.arc(0, 0, coreRadius + 15, 0, Math.PI * 2);
-    ctx.fillStyle = '#051020';
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = fillSapphire;
-    ctx.stroke();
-    
-    // Complex rotating layers
-    ctx.save();
-    ctx.rotate(t * 0.5);
-    
-    // Outer gear teeth
-    ctx.fillStyle = fillSapphire;
-    ctx.strokeStyle = 'transparent';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 12; i++) {
-        ctx.save();
-        ctx.rotate(Math.PI * 2 * (i / 12));
-        ctx.beginPath();
-        ctx.moveTo(-10, coreRadius);
-        ctx.lineTo(10, coreRadius);
-        ctx.lineTo(6, coreRadius + 12);
-        ctx.lineTo(-6, coreRadius + 12);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-    }
-    
-    // Inner structural ring
-    ctx.beginPath();
-    ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = fillSapphire;
-    ctx.stroke();
-    
-    // Energy track ring
-    ctx.beginPath();
-    ctx.arc(0, 0, coreRadius - 10, 0, Math.PI * 2);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'transparent';
-    ctx.stroke();
-
-    // Advanced 4-spoke turbine
-    for (let i = 0; i < 4; i++) {
-        ctx.save();
-        ctx.rotate(Math.PI / 2 * i);
-        
-        // Blade
-        ctx.beginPath();
-        ctx.moveTo(-15, 20);
-        ctx.lineTo(15, 20);
-        ctx.lineTo(4, coreRadius - 15);
-        ctx.lineTo(-4, coreRadius - 15);
-        ctx.closePath();
-        ctx.fillStyle = fillSapphire;
-        ctx.fill();
-        ctx.stroke();
-        
-        ctx.restore();
-    }
-    ctx.restore(); // end of t * 1.5 rotation
-    
-    // Inner counter-rotating core
-    ctx.save();
-    ctx.rotate(-t * 0.5);
-    
-    // Symmetrical geometric housing and inner elements
-    ctx.beginPath();
-    ctx.moveTo(-10, -10);
-    ctx.lineTo(10, -10);
-    ctx.lineTo(10, 10);
-    ctx.lineTo(-10, 10);
-    ctx.closePath();
-    ctx.fillStyle = fillSapphire;
-    ctx.fill();
-    ctx.strokeStyle = 'transparent';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-
-    
-    ctx.restore(); // end counter-rotation
-    
-
-    ctx.restore(); // end spinner translate
+    drawSpinningCore(0, spinnerCy, 1.0, 0.5);
 
     ctx.restore();
   }
@@ -10348,31 +10347,18 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   drawTier1Nodes(true);
 
 
-  // Tier 3: Containment Ring
+  // Tier 3: Four Mini Centrifuges
   if (t3 > 0) {
     ctx.save();
     ctx.globalAlpha = t3;
     
-    ctx.translate(0, -60);
-    ctx.scale(1, 0.3); // isometric tilt
+    // Left side mini centrifuges
+    drawSpinningCore(-98, -31, 0.30, 0.5);
+    drawSpinningCore(-168, -31, 0.30, 0.5);
     
-    // Spin the ring
-    ctx.rotate(-t);
-    
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = metalGradients.light;
-    ctx.beginPath();
-    ctx.arc(0, 0, 80, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Ring nodes
-    for(let i=0; i<4; i++) {
-        const ang = (i/4) * Math.PI * 2;
-        ctx.fillStyle = '#0ff';
-        ctx.beginPath();
-        ctx.arc(Math.cos(ang) * 80, Math.sin(ang) * 80, 10, 0, Math.PI * 2);
-        ctx.fill();
-    }
+    // Right side mini centrifuges
+    drawSpinningCore(98, -31, 0.30, 0.5);
+    drawSpinningCore(168, -31, 0.30, 0.5);
     
     ctx.restore();
   }
