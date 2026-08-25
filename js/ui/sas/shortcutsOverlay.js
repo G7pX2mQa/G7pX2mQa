@@ -48,7 +48,7 @@ function saveShortcutsPermaUnlockState(state, slot = getActiveSlot()) {
     shortcutsPermaUnlockStateCache.set(slotKey, state);
     if (typeof localStorage === "undefined") return;
     try {
-        lsSetItem(`${SHORTCUTS_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+        lsSetItem(`${SHORTCUTS_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state, (k, v) => typeof v === 'boolean' ? (v ? 1 : 0) : v));
     } catch {}
 }
 
