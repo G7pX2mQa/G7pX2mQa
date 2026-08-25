@@ -568,8 +568,8 @@ function saveState() {
         const dataToSave = {
             level: ch.level.toStorage(),
             fp: ch.fp instanceof BigNum ? ch.fp.toStorage() : ch.fp,
-            active: ch.active,
-            unlocked: ch.unlocked,
+            active: ch.active ? 1 : 0,
+            unlocked: ch.unlocked ? 1 : 0,
         };
         lsSetItem(KEY_WATERWHEEL(id, slot), JSON.stringify(dataToSave));
     }
