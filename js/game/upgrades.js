@@ -449,7 +449,7 @@ function saveShopRevealState(state, slot = getActiveSlot()) {
     shopRevealStateCache.set(slotKey, state);
     if (typeof localStorage === "undefined") return;
     try {
-        lsSetItem(`${SHOP_REVEAL_STATE_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+        lsSetItem(`${SHOP_REVEAL_STATE_KEY_BASE}:${slotKey}`, JSON.stringify(state, (k, v) => typeof v === 'boolean' ? (v ? 1 : 0) : v));
     } catch {}
 }
 
@@ -489,7 +489,7 @@ function saveShopPermaUnlockState(state, slot = getActiveSlot()) {
     shopPermaUnlockStateCache.set(slotKey, state);
     if (typeof localStorage === "undefined") return;
     try {
-        lsSetItem(`${SHOP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+        lsSetItem(`${SHOP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state, (k, v) => typeof v === 'boolean' ? (v ? 1 : 0) : v));
     } catch {}
 }
 
@@ -525,7 +525,7 @@ function saveShopPermaMystState(state, slot = getActiveSlot()) {
     shopPermaMystStateCache.set(slotKey, state);
     if (typeof localStorage === "undefined") return;
     try {
-        lsSetItem(`${SHOP_PERMA_MYST_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+        lsSetItem(`${SHOP_PERMA_MYST_KEY_BASE}:${slotKey}`, JSON.stringify(state, (k, v) => typeof v === 'boolean' ? (v ? 1 : 0) : v));
     } catch {}
 }
 
@@ -534,7 +534,7 @@ function markUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) 
     if (!key) return;
     const state = ensureShopPermaMystState(slot);
     if (state.upgrades[key]) return;
-    state.upgrades[key] = true;
+    state.upgrades[key] = 1;
     saveShopPermaMystState(state, slot);
 }
 
@@ -551,7 +551,7 @@ export function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlo
     if (!key) return;
     const state = ensureShopPermaUnlockState(slot);
     if (state.upgrades[key]) return;
-    state.upgrades[key] = true;
+    state.upgrades[key] = 1;
     saveShopPermaUnlockState(state, slot);
 }
 
