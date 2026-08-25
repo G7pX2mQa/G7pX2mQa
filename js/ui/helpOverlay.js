@@ -51,7 +51,7 @@ function saveHelpPermaUnlockState(state, slot = getActiveSlot()) {
     helpPermaUnlockStateCache.set(slotKey, state);
     if (typeof localStorage === "undefined") return;
     try {
-        lsSetItem(`${HELP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+        lsSetItem(`${HELP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state, (k, v) => typeof v === 'boolean' ? (v ? 1 : 0) : v));
     } catch {}
 }
 
