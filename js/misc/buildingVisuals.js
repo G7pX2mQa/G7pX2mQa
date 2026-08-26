@@ -10031,7 +10031,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     ctx.lineWidth = 6;
     ctx.strokeStyle = fillSapphire;
     ctx.stroke();
-    
     // Energy track ring
     ctx.beginPath();
     ctx.arc(0, 0, coreRadius - 10, 0, Math.PI * 2);
@@ -10055,6 +10054,72 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.fill();
         ctx.stroke();
         
+        ctx.restore();
+    }
+
+    // Tier 4 Ferrofluid Aura wrapping the blades
+    if (t4 > 0) {
+        ctx.save();
+        ctx.globalAlpha = t4 * 0.75; // Semi-transparent so blades show through
+        ctx.globalCompositeOperation = 'screen';
+        
+        // Main volatile ferrofluid blob with energy concentrated at the center
+        ctx.beginPath();
+        const numPoints = 120;
+        for (let i = 0; i <= numPoints; i++) {
+            const angle = (i / numPoints) * Math.PI * 2;
+            
+            let r = 15; 
+            
+            // 4 main centrifugal spikes that stretch along the blades
+            const spikeBase = Math.max(0, Math.cos(angle * 4));
+            const spike = Math.pow(spikeBase, 2) * 50; 
+            
+            // Violent high-frequency ripples
+            const ripple = Math.sin(angle * 20 - t * 25) * 4 + Math.cos(angle * 35 + t * 40) * 3;
+            const pulse = Math.sin(t * 10 + angle * 3) * 6;
+            
+            r += spike + ripple + pulse;
+            r = Math.min(r, coreRadius - 15); 
+            
+            const px = Math.cos(angle) * r;
+            const py = Math.sin(angle) * r;
+            
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        
+        const fluidGrad = ctx.createRadialGradient(0, 0, 5, 0, 0, coreRadius - 15);
+        fluidGrad.addColorStop(0, '#aaddff'); // intense bright core (concentrated energy)
+        fluidGrad.addColorStop(0.3, '#2244ff'); // rich, violent sapphire
+        fluidGrad.addColorStop(0.7, 'rgba(10, 26, 136, 0.8)'); // deep dark blue
+        fluidGrad.addColorStop(1, 'rgba(2, 4, 18, 0)'); // fades out
+        
+        ctx.fillStyle = fluidGrad;
+        ctx.strokeStyle = '#4466ff'; 
+        ctx.lineWidth = 1.0;
+        
+        ctx.fill();
+        ctx.stroke();
+        
+        // Detached droplets swirling violently
+        ctx.fillStyle = '#1122cc';
+        for (let d = 0; d < 80; d++) {
+            const dAngle = t * (3 + (d % 4)) + (d * 0.1);
+            const baseDR = 30 + (d % 30);
+            const dR = baseDR + Math.sin(t * 20 + d) * 10;
+            
+            if (dR > 30 && dR < coreRadius - 12) {
+                const dropX = Math.cos(dAngle) * dR;
+                const dropY = Math.sin(dAngle) * dR;
+                const dropSize = 0.5 + (d % 2);
+                
+                ctx.beginPath();
+                ctx.arc(dropX, dropY, dropSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
         ctx.restore();
     }
     ctx.restore();
@@ -10183,6 +10248,77 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     // --- Advanced Massive Base Structure ---
     // We are replacing the old isometric Tier 0 base with a massive high-tech 2D profile.
     
+    // --- Tier 4: Massive Structure Aura ---
+    if (t4 > 0) {
+        ctx.save();
+        
+        // Prevent aura from bleeding into the ground (which is y > 0)
+        ctx.beginPath();
+        ctx.rect(-1000, -1000, 2000, 1000); // Only allow drawing above y = 0
+        ctx.clip();
+        
+        ctx.globalAlpha = t4 * 0.8;
+        
+        // Volumetric organic energy rising from the structure
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const auraGrad = ctx.createLinearGradient(0, 0, 0, -350);
+        auraGrad.addColorStop(0, 'rgba(17, 34, 204, 0.25)');
+        auraGrad.addColorStop(0.5, 'rgba(10, 26, 136, 0.1)');
+        auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = auraGrad;
+        
+        for (let j = 0; j < 4; j++) {
+            ctx.beginPath();
+            ctx.moveTo(-260, 0);
+            
+            // Left side going up
+            for (let y = 0; y >= -350; y -= 25) {
+                const prog = -y / 350;
+                const width = 260 - (100 * prog);
+                const sway = Math.sin(t * 1.5 + prog * 5 + j * 2) * 40 * prog;
+                ctx.lineTo(-width + sway, y);
+            }
+            
+            // Right side coming down
+            for (let y = -350; y <= 0; y += 25) {
+                const prog = -y / 350;
+                const width = 260 - (100 * prog);
+                const sway = Math.sin(t * 1.7 + prog * 5 + j * 2 + 1) * 40 * prog;
+                ctx.lineTo(width + sway, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Massive pulsating dark-energy aura tracing the base
+        ctx.shadowColor = '#1122cc';
+        ctx.shadowBlur = 50 + Math.sin(t * 5) * 20;
+        
+        ctx.beginPath();
+        ctx.moveTo(-280, 0);
+        ctx.lineTo(280, 0);
+        ctx.lineTo(250, -25);
+        ctx.lineTo(190, -60);
+        ctx.lineTo(130, -180);
+        ctx.lineTo(-130, -180);
+        ctx.lineTo(-190, -60);
+        ctx.lineTo(-250, -25);
+        ctx.closePath();
+        
+        ctx.lineWidth = 15;
+        ctx.strokeStyle = 'rgba(10, 26, 136, 0.6)';
+        ctx.stroke();
+        
+        // Inner intense edge aura
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#2233ee';
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
     ctx.fillStyle = fillSapphire;
     ctx.strokeStyle = 'transparent';
     
@@ -10363,47 +10499,8 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Tier 4: The Core Feature (Plasma Core)
+  // Tier 4: Integrated into drawSpinningCore
   const coreCy = -90;
-  if (t4 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t4;
-    
-    ctx.translate(0, coreCy);
-    
-    // Base glow
-    const coreGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
-    coreGlow.addColorStop(0, '#fff');
-    coreGlow.addColorStop(0.3, '#0ff');
-    coreGlow.addColorStop(1, 'rgba(0, 0, 255, 0)');
-    
-    ctx.fillStyle = coreGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, 60, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // The central sapphire gem
-    ctx.save();
-    ctx.rotate(t * 0.5);
-    ctx.fillStyle = fillSapphire;
-    
-    // Draw an octagon
-    ctx.beginPath();
-    for (let i = 0; i < 8; i++) {
-        const ang = (i / 8) * Math.PI * 2;
-        const r = 20;
-        if (i === 0) ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r);
-        else ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#fff';
-    ctx.stroke();
-    ctx.restore();
-    
-    ctx.restore();
-  }
 
   // Tier 5: Acceleration Rails
   if (t5 > 0) {
