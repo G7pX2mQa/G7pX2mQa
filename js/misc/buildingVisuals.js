@@ -10288,12 +10288,12 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         
         for (let j = 0; j < 4; j++) {
             ctx.beginPath();
-            ctx.moveTo(-260, 0);
+            ctx.moveTo(-290, 0);
             
             // Left side going up
             for (let y = 0; y >= -350; y -= 25) {
                 const prog = -y / 350;
-                const width = 260 - (100 * prog);
+                const width = 290 - (100 * prog);
                 const sway = Math.sin(t * 1.5 + prog * 5 + j * 2) * 40 * prog;
                 ctx.lineTo(-width + sway, y);
             }
@@ -10301,7 +10301,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
             // Right side coming down
             for (let y = -350; y <= 0; y += 25) {
                 const prog = -y / 350;
-                const width = 260 - (100 * prog);
+                const width = 290 - (100 * prog);
                 const sway = Math.sin(t * 1.7 + prog * 5 + j * 2 + 1) * 40 * prog;
                 ctx.lineTo(width + sway, y);
             }
