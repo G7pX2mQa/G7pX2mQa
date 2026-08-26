@@ -10497,8 +10497,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
-  // Tier 1: Orbital Data Nodes (Front Pass)
-  drawTier1Nodes(true);
 
 
   // Tier 3: Four Mini Centrifuges
@@ -10661,6 +10659,9 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     
     ctx.restore();
   }
+
+  // Tier 1: Orbital Data Nodes (Front Pass)
+  drawTier1Nodes(true);
 
   ctx.restore();
 }
