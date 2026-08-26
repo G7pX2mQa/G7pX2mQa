@@ -263,6 +263,54 @@
 .btn-ghost{ opacity:.9; transition: none; }
 .btn-ghost:hover{ opacity:1; background: rgba(18, 26, 46, 0.74); }
 
+#manage-saves {
+  position: relative;
+  border: 1px solid transparent !important;
+  background-color: var(--btn-bg); /* fallback to avoid gaps */
+  
+  --manage-overlay: rgba(15, 22, 38, 0.75);
+  --border-overlay: rgba(34, 49, 74, 0.75);
+  --btn-bg-current: var(--btn-bg);
+  --border-empty: var(--btn-border);
+  
+  background-image: 
+    var(--s1-body, linear-gradient(var(--btn-bg-current), var(--btn-bg-current)), linear-gradient(var(--btn-bg-current), var(--btn-bg-current))),
+    var(--s2-body, linear-gradient(var(--btn-bg-current), var(--btn-bg-current)), linear-gradient(var(--btn-bg-current), var(--btn-bg-current))),
+    var(--s3-body, linear-gradient(var(--btn-bg-current), var(--btn-bg-current)), linear-gradient(var(--btn-bg-current), var(--btn-bg-current))),
+    var(--s1-border, linear-gradient(var(--border-empty), var(--border-empty)), linear-gradient(var(--border-empty), var(--border-empty))),
+    var(--s2-border, linear-gradient(var(--border-empty), var(--border-empty)), linear-gradient(var(--border-empty), var(--border-empty))),
+    var(--s3-border, linear-gradient(var(--border-empty), var(--border-empty)), linear-gradient(var(--border-empty), var(--border-empty)));
+    
+  background-size: 
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%,
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%,
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%,
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%,
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%,
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%;
+    
+  background-position: 
+    0% 0%, 0% 0%, 50% 0%, 50% 0%, 100% 0%, 100% 0%,
+    0% 0%, 0% 0%, 50% 0%, 50% 0%, 100% 0%, 100% 0%;
+    
+  background-clip: 
+    padding-box, padding-box, padding-box, padding-box, padding-box, padding-box,
+    border-box, border-box, border-box, border-box, border-box, border-box;
+    
+  background-origin: 
+    border-box, border-box, border-box, border-box, border-box, border-box,
+    border-box, border-box, border-box, border-box, border-box, border-box;
+    
+  background-repeat: no-repeat;
+}
+
+#manage-saves:hover {
+  --manage-overlay: rgba(18, 26, 46, 0.74);
+  --btn-bg-current: var(--btn-bg-hover);
+}
+
+
+
 /* Mobile: stack actions under the title, make button full-width */
 @media (max-width: 900px){
   .panel-header{ flex-direction: column; align-items: stretch; gap: var(--space-3); }
