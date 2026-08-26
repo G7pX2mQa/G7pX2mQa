@@ -81,8 +81,13 @@ export function formatTimeCompact(ms) {
         let days = 0;
         try {
             const daysBn = remainingMs.div(BigNum.fromInt(ONE_DAY)).floorToInteger();
-            days =
-                daysBn.inf || daysBn.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(daysBn.toPlainIntegerString());
+            if (daysBn.cmp(365) >= 0 || daysBn.cmp(0) < 0) {
+                // If remaining days exceed a year or are negative, it's a precision artifact from subtracting huge numbers
+                days = 0;
+            } else {
+                days =
+                    daysBn.inf || daysBn.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(daysBn.toPlainIntegerString());
+            }
         } catch {
             days = 0;
         }
