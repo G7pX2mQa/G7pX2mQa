@@ -10065,22 +10065,37 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         
         // Main volatile ferrofluid blob with energy concentrated at the center
         ctx.beginPath();
-        const numPoints = 120;
+        const numPoints = 360;
         for (let i = 0; i <= numPoints; i++) {
             const angle = (i / numPoints) * Math.PI * 2;
             
             let r = 15; 
             
-            // 4 main centrifugal spikes that stretch along the blades
+            // Distance to the closest blade tip angle (0, 90, 180, 270)
+            const distToTip = Math.abs((angle + Math.PI/4) % (Math.PI/2) - Math.PI/4);
+            
+            // The physical 8px tip is 0.061 radians wide. Keep the math 100% stable out to 0.065 rads.
+            let stabilityFade = (distToTip - 0.065) / 0.05;
+            stabilityFade = Math.max(0, Math.min(1, Math.pow(stabilityFade, 2)));
+            
+            // A high exponent (6) ensures the star is sleek and stays safely inside the blade walls.
+            // The multiplier 60 mathematically guarantees it reaches the tips.
             const spikeBase = Math.max(0, Math.cos(angle * 4));
-            const spike = Math.pow(spikeBase, 2) * 50; 
+            const spike = Math.pow(spikeBase, 6) * 60; 
             
             // Violent high-frequency ripples
             const ripple = Math.sin(angle * 20 - t * 25) * 4 + Math.cos(angle * 35 + t * 40) * 3;
             const pulse = Math.sin(t * 10 + angle * 3) * 6;
             
-            r += spike + ripple + pulse;
-            r = Math.min(r, coreRadius - 15); 
+            r += spike + (ripple + pulse) * stabilityFade;
+            
+            // STRICT GEOMETRIC CLAMP: Mathematically prevents the energy from EVER breaching the physical blade
+            const slope = -4.0909; 
+            const yIntercept = 81.3636; 
+            const bladeLimit = (yIntercept - 0.5) / (Math.cos(distToTip) - slope * Math.sin(distToTip));
+            
+            // -0.5 accounts perfectly for the 1.0 stroke width, keeping the outline flush with the blade
+            r = Math.min(r, coreRadius - 15 - 0.5, bladeLimit);
             
             const px = Math.cos(angle) * r;
             const py = Math.sin(angle) * r;
