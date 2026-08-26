@@ -10319,8 +10319,15 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.lineTo(280, 0);
         ctx.lineTo(250, -25);
         ctx.lineTo(190, -60);
-        ctx.lineTo(130, -180);
-        ctx.lineTo(-130, -180);
+        ctx.lineTo(146, -148);
+        ctx.lineTo(140, -170);
+        ctx.lineTo(85, -215);
+        ctx.lineTo(51.2, -200);
+        ctx.arc(0, -120, 95, Math.atan2(-80, 51.2), Math.atan2(-80, -51.2), true);
+        ctx.lineTo(-51.2, -200);
+        ctx.lineTo(-85, -215);
+        ctx.lineTo(-140, -170);
+        ctx.lineTo(-146, -148);
         ctx.lineTo(-190, -60);
         ctx.lineTo(-250, -25);
         ctx.closePath();
