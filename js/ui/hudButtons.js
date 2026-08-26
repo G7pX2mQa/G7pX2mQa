@@ -57,6 +57,7 @@ function setUnlocked(base, v) {
 }
 
 function ensureUnlockDefaults() {
+    if (getActiveSlot() == null) return;
     for (const key of Object.values(BASE_KEYS)) {
         const sk = slotKey(key);
         const hasSlot = lsGetItem(sk) != null;
