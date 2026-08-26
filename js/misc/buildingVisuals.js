@@ -10056,10 +10056,33 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         
         ctx.restore();
     }
+    
+    ctx.restore(); // Close the forward rotation group
+
+    // Inner counter-rotating core
+    ctx.save();
+    ctx.rotate(-t * timeMult);
+    
+    // Symmetrical geometric housing and inner elements
+    ctx.beginPath();
+    ctx.moveTo(-10, -10);
+    ctx.lineTo(10, -10);
+    ctx.lineTo(10, 10);
+    ctx.lineTo(-10, 10);
+    ctx.closePath();
+    ctx.fillStyle = fillSapphire;
+    ctx.fill();
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
 
     // Tier 4 Ferrofluid Aura wrapping the blades
     if (t4 > 0) {
         ctx.save();
+        ctx.rotate(t * timeMult); // Re-apply forward rotation for the aura
+        
         ctx.globalAlpha = t4 * 0.75; // Semi-transparent so blades show through
         ctx.globalCompositeOperation = 'screen';
         
@@ -10137,26 +10160,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         }
         ctx.restore();
     }
-    ctx.restore();
-    
-    // Inner counter-rotating core
-    ctx.save();
-    ctx.rotate(-t * timeMult);
-    
-    // Symmetrical geometric housing and inner elements
-    ctx.beginPath();
-    ctx.moveTo(-10, -10);
-    ctx.lineTo(10, -10);
-    ctx.lineTo(10, 10);
-    ctx.lineTo(-10, 10);
-    ctx.closePath();
-    ctx.fillStyle = fillSapphire;
-    ctx.fill();
-    ctx.strokeStyle = 'transparent';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.restore();
     
     ctx.restore();
   };
