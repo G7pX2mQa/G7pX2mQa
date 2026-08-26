@@ -34,6 +34,7 @@ function formatCreationDate(timestamp) {
 }
 
 function renderSlotCards() {
+    const manageBtn = document.getElementById("manage-saves");
     const cards = document.querySelectorAll(".slot-card");
     cards.forEach((btn, idx) => {
         const slot = idx + 1;
@@ -102,13 +103,25 @@ function renderSlotCards() {
                         : `linear-gradient(135deg, ${colors.join(", ")})`;
                 btn.style.setProperty("--slot-tint-gradient", colorString);
                 btn.dataset.hasTint = "true";
+                if (manageBtn) {
+                    manageBtn.style.setProperty(`--s${slot}-body`, `linear-gradient(var(--manage-overlay), var(--manage-overlay)), ${colorString}`);
+                    manageBtn.style.setProperty(`--s${slot}-border`, `linear-gradient(var(--border-overlay), var(--border-overlay)), ${colorString}`);
+                }
             } else {
                 btn.dataset.hasTint = "false";
                 btn.style.removeProperty("--slot-tint-gradient");
+                if (manageBtn) {
+                    manageBtn.style.removeProperty(`--s${slot}-body`);
+                    manageBtn.style.removeProperty(`--s${slot}-border`);
+                }
             }
         } else {
             btn.dataset.hasTint = "false";
             btn.style.removeProperty("--slot-tint-gradient");
+            if (manageBtn) {
+                manageBtn.style.removeProperty(`--s${slot}-body`);
+                manageBtn.style.removeProperty(`--s${slot}-border`);
+            }
         }
         btn.dataset.slot = String(slot);
         btn.classList.remove(...ALL_FONT_CLASSES, "custom-font-active");
