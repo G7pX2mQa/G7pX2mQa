@@ -10525,33 +10525,131 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   // Tier 4: Integrated into drawSpinningCore
   const coreCy = -90;
 
-  // Tier 5: Acceleration Rails
+  // Tier 5: Perimeter Windmill Generators
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
     
-    // Rails wrapping around the core
-    for(let dir of [-1, 1]) {
-        ctx.strokeStyle = metalGradients.accent;
-        ctx.lineWidth = 8;
+    // Cache the aerodynamic, pointy blade path
+    const bladePath = new Path2D();
+    bladePath.moveTo(-4, 18); // Starts slightly inside the core radius (20) to look attached
+    bladePath.lineTo(4, 18);
+    bladePath.quadraticCurveTo(8, 60, 0, 95); // Sleek, swept point
+    bladePath.quadraticCurveTo(-6, 60, -4, 18);
+    bladePath.closePath();
+    
+    // Draw 2 massive windmill generators pushed away from the building
+    for (let dir of [-1, 1]) {
+        const tx = dir * 350; // Pushed out past the foundation
+        const tyBase = 0; // Resting perfectly flat on the y=0 ground line
+        const tyTop = -210; // Taller tower
+        
+        ctx.save();
+        ctx.translate(tx, 0);
+        
+        // --- Tower Structure ---
+        // Base plate (sleek, faceted to match Tier 0 main foundation style)
+        ctx.fillStyle = '#051020'; 
+        ctx.strokeStyle = fillSapphire; 
+        ctx.lineWidth = 2;
         
         ctx.beginPath();
-        ctx.moveTo(dir * 30, -40);
-        ctx.quadraticCurveTo(dir * 120, coreCy, dir * 30, -140);
+        ctx.moveTo(-35, tyBase);
+        ctx.lineTo(35, tyBase);
+        ctx.lineTo(25, tyBase - 10);
+        ctx.lineTo(18, tyBase - 25);
+        ctx.lineTo(-18, tyBase - 25);
+        ctx.lineTo(-25, tyBase - 10);
+        ctx.closePath();
+        ctx.fill();
         ctx.stroke();
         
-        // Energy pulses along rails
-        const pulseT = (t * 2 + (dir===1?0:Math.PI)) % (Math.PI);
-        const px = dir * 30 + dir * 90 * Math.sin(pulseT);
-        const py = -40 - 100 * (pulseT / Math.PI);
-        
-        ctx.fillStyle = '#fff';
-        ctx.shadowColor = '#0ff';
-        ctx.shadowBlur = 10;
+        // Main Shaft (Tapered)
+        ctx.fillStyle = '#051020'; // Matching centrifuge chassis background
+        ctx.strokeStyle = fillSapphire;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.moveTo(-18, tyBase - 25);
+        ctx.lineTo(18, tyBase - 25);
+        ctx.lineTo(8, tyTop);
+        ctx.lineTo(-8, tyTop);
+        ctx.closePath();
         ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.stroke();
+        
+        // --- Sapphire Texture Strip down the Shaft ---
+        ctx.fillStyle = fillSapphire;
+        ctx.beginPath();
+        ctx.moveTo(-6, tyBase - 25);
+        ctx.lineTo(6, tyBase - 25);
+        ctx.lineTo(3, tyTop);
+        ctx.lineTo(-3, tyTop);
+        ctx.closePath();
+        ctx.fill();
+        
+        
+        // --- Top Windmill Turbine ---
+        ctx.save();
+        ctx.translate(0, tyTop);
+        
+        // Sleek Motor Nacelle (Octagonal housing, drawn behind blades)
+        ctx.fillStyle = '#051020';
+        ctx.strokeStyle = fillSapphire;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-12, -20);
+        ctx.lineTo(12, -20);
+        ctx.lineTo(20, -5);
+        ctx.lineTo(20, 5);
+        ctx.lineTo(12, 20);
+        ctx.lineTo(-12, 20);
+        ctx.lineTo(-20, 5);
+        ctx.lineTo(-20, -5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // Spin the windmill blades at EXACTLY the same speed AND direction as the core
+        // (t * 0.5 rotates clockwise, matching all other Tier 3 centrifuges)
+        ctx.rotate(t * 0.5); 
+        
+        ctx.fillStyle = '#051020'; 
+        ctx.strokeStyle = fillSapphire; 
+        ctx.lineWidth = 2;
+        
+        for (let i = 0; i < 4; i++) {
+            ctx.save();
+            ctx.rotate(Math.PI / 2 * i);
+            
+            ctx.fill(bladePath);
+            ctx.stroke(bladePath);
+            
+            // Tapered sapphire texture strip running down the center of each blade
+            ctx.fillStyle = fillSapphire;
+            ctx.beginPath();
+            ctx.moveTo(-2.5, 20);
+            ctx.lineTo(2.5, 20);
+            ctx.lineTo(0, 88); // Tapers to a point just shy of the blade tip
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        ctx.restore(); // Restore turbine rotation (back to just tyTop translation)
+        
+        // --- Miniature Centrifuge Spinner Core ---
+        // Same as Tier 3, sits perfectly in the center of the blades
+        ctx.save();
+        ctx.translate(0, tyTop);
+        
+        // Draw the mini centrifuge (scale 0.25, timeMult 0.5)
+        // No horizontal flipping needed, it spins clockwise perfectly in sync with the blades
+        drawSpinningCore(0, 0, 0.25, 0.5); 
+        
+        ctx.restore(); // Restore core translation
+        
+        ctx.restore(); // Restore tower translation
     }
     
     ctx.restore();
