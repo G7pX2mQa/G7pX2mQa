@@ -36,6 +36,8 @@ function formatCreationDate(timestamp) {
 function renderSlotCards() {
     const manageBtn = document.getElementById("manage-saves");
     const cards = document.querySelectorAll(".slot-card");
+    const slotTints = ["empty", "empty", "empty"];
+    
     cards.forEach((btn, idx) => {
         const slot = idx + 1;
         const titleEl = btn.querySelector(".slot-title");
@@ -101,6 +103,7 @@ function renderSlotCards() {
                     colors.length === 1
                         ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]})`
                         : `linear-gradient(135deg, ${colors.join(", ")})`;
+                slotTints[idx] = colorString;
                 btn.style.setProperty("--slot-tint-gradient", colorString);
                 btn.dataset.hasTint = "true";
                 if (manageBtn) {
@@ -108,6 +111,7 @@ function renderSlotCards() {
                     manageBtn.style.setProperty(`--s${slot}-border`, `linear-gradient(var(--border-overlay), var(--border-overlay)), ${colorString}`);
                 }
             } else {
+                slotTints[idx] = "empty";
                 btn.dataset.hasTint = "false";
                 btn.style.removeProperty("--slot-tint-gradient");
                 if (manageBtn) {
@@ -116,6 +120,7 @@ function renderSlotCards() {
                 }
             }
         } else {
+            slotTints[idx] = "empty";
             btn.dataset.hasTint = "false";
             btn.style.removeProperty("--slot-tint-gradient");
             if (manageBtn) {
@@ -135,6 +140,17 @@ function renderSlotCards() {
             } catch (e) {}
         }
     });
+
+    if (manageBtn) {
+        manageBtn.classList.remove("coalesce-all", "coalesce-1-2", "coalesce-2-3");
+        if (slotTints[0] === slotTints[1] && slotTints[1] === slotTints[2]) {
+            manageBtn.classList.add("coalesce-all");
+        } else if (slotTints[0] === slotTints[1]) {
+            manageBtn.classList.add("coalesce-1-2");
+        } else if (slotTints[1] === slotTints[2]) {
+            manageBtn.classList.add("coalesce-2-3");
+        }
+    }
 }
 
 export function initSlots(onSelect) {
