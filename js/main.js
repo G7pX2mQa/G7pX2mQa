@@ -103,6 +103,27 @@ export function flushLocalStorageBuffer() {
     ensureStorageInitialized();
 
     // --- Phase 1: Detect external modifications ---
+    // If the entire localStorage was wiped out externally, do not flag individual slots.
+    // We just clear our buffers to reflect the empty state.
+    if (typeof localStorage !== "undefined" && localStorage.length === 0 && lastFlushedState.size > 0) {
+        localStorageBuffer.clear();
+        activeStorageKeys.clear();
+        lastFlushedState.clear();
+        
+        // Also clear any cached slot integrity to prevent false mismatches later
+        try {
+            window.dispatchEvent(new CustomEvent("saveSlot:change"));
+        } catch {}
+
+        if (window.currentArea !== 0 && window.currentArea !== 666) {
+            try {
+                window.dispatchEvent(new CustomEvent("localStorageWiped"));
+            } catch {}
+        }
+
+        return;
+    }
+
     // Before we flush our buffered writes, check if anything in real localStorage
     // has been changed behind our back (e.g. user editing via DevTools).
     if (lastFlushedState.size > 0) {
@@ -2648,6 +2669,48 @@ function generateMenuBackground(manifest) {
 }
 
 window.__duplicateInstanceDetected = false;
+
+window.addEventListener("localStorageWiped", () => {
+    if (typeof enterArea === "function") enterArea(AREAS.JAIL);
+    if (typeof stopGameLoop === "function") {
+        stopGameLoop();
+    }
+
+    Array.from(document.body.children).forEach((child) => {
+        if (child.id !== "wiped-instance-screen" && child.tagName !== "SCRIPT") {
+            child.style.display = "none";
+        }
+    });
+
+    let wipeScreen = document.getElementById("wiped-instance-screen");
+    if (!wipeScreen) {
+        wipeScreen = document.createElement("div");
+        wipeScreen.id = "wiped-instance-screen";
+        Object.assign(wipeScreen.style, {
+            position: "fixed",
+            inset: "0",
+            background: "#000",
+            color: "#fff",
+            display: "grid",
+            placeItems: "center",
+            fontSize: "clamp(20px, 2.8vw, 26px)",
+            zIndex: "2147483647",
+            textAlign: "center",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            padding: "20px",
+            cursor: "none",
+        });
+
+        const textSpan = document.createElement("span");
+        textSpan.innerHTML =
+            "It has been detected that all of localStorage has been completely obliterated. You must refresh the tab now to return to the menu.";
+        wipeScreen.appendChild(textSpan);
+        document.body.appendChild(wipeScreen);
+    }
+    wipeScreen.style.display = "grid";
+});
+
 window.addEventListener("duplicateInstanceDetected", () => {
     if (typeof enterArea === "function") enterArea(AREAS.JAIL);
     window.__duplicateInstanceDetected = true;
