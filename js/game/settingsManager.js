@@ -1,5 +1,6 @@
 // js/game/settingsManager.js
-import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
+import { lsSetItem, lsRemoveItem, lsGetItem, activeStorageKeys } from "../main.js";
+import { showNotification } from "../ui/notifications.js";
 import { getActiveSlot, CURRENCIES } from "../util/storage.js";
 import { PALETTES } from "./mutationColorPalettes.js";
 import { isLabUnlocked } from "./surgeEffects.js";
@@ -711,6 +712,7 @@ class SettingsManager {
             }
         });
         setNumberNotation(this.settings["number_notation"] || "Standard");
+        this.checkRandomTintEasterEgg();
     }
     refresh(key) {
         if (this.settings[key] !== undefined) {
@@ -796,7 +798,49 @@ class SettingsManager {
         if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("setting:changed", { detail: { key, value } }));
         }
+
+        if (key === "save_slot_tint") {
+            this.checkRandomTintEasterEgg();
+        }
     }
+
+    checkRandomTintEasterEgg() {
+        const slotsWithRandom = [];
+
+        if (activeStorageKeys) {
+            for (const k of activeStorageKeys) {
+                if (k && k.startsWith("ccc:setting:save_slot_tint:")) {
+                    const val = lsGetItem(k);
+                    if (val === '"Random"' || val === "Random") {
+                        const slotMatch = k.match(/:(\d+)$/);
+                        if (slotMatch) {
+                            slotsWithRandom.push(parseInt(slotMatch[1], 10));
+                        }
+                    }
+                }
+            }
+        }
+
+        slotsWithRandom.sort((a, b) => a - b);
+
+        if (slotsWithRandom.length >= 1) {
+            lsSetItem("ccc:globalSlotsWithRandomTint", JSON.stringify(slotsWithRandom));
+        } else {
+            lsRemoveItem("ccc:globalSlotsWithRandomTint");
+        }
+
+        if (slotsWithRandom.length >= 3) {
+            if (!lsGetItem("ccc:globalRandomTintEasterEggFound")) {
+                lsSetItem("ccc:globalRandomTintEasterEggFound", "1");
+                showNotification(
+                    'Colorful, are we? Nice job finding this easter egg (3 save slots with "Random" tint).',
+                    "img/misc/mysterious_plus_base.webp",
+                    10000
+                );
+            }
+        }
+    }
+
     toggle(key) {
         const newVal = !this.get(key);
         this.set(key, newVal);
