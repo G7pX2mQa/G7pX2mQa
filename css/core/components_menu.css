@@ -304,6 +304,33 @@
   background-repeat: no-repeat;
 }
 
+#manage-saves.coalesce-all {
+  background-size: 
+    100% 100%, 100% 100%, 0% 0%, 0% 0%, 0% 0%, 0% 0%,
+    100% 100%, 100% 100%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  background-position: 
+    0% 0%, 0% 0%, 50% 0%, 50% 0%, 100% 0%, 100% 0%,
+    0% 0%, 0% 0%, 50% 0%, 50% 0%, 100% 0%, 100% 0%;
+}
+
+#manage-saves.coalesce-1-2 {
+  background-size: 
+    calc(200% / 3 + 1px) 100%, calc(200% / 3 + 1px) 100%, 0% 0%, 0% 0%, calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%,
+    calc(200% / 3 + 1px) 100%, calc(200% / 3 + 1px) 100%, 0% 0%, 0% 0%, calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%;
+  background-position: 
+    0% 0%, 0% 0%, 50% 0%, 50% 0%, 100% 0%, 100% 0%,
+    0% 0%, 0% 0%, 50% 0%, 50% 0%, 100% 0%, 100% 0%;
+}
+
+#manage-saves.coalesce-2-3 {
+  background-size: 
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%, calc(200% / 3 + 1px) 100%, calc(200% / 3 + 1px) 100%, 0% 0%, 0% 0%,
+    calc(100% / 3 + 1px) 100%, calc(100% / 3 + 1px) 100%, calc(200% / 3 + 1px) 100%, calc(200% / 3 + 1px) 100%, 0% 0%, 0% 0%;
+  background-position: 
+    0% 0%, 0% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%,
+    0% 0%, 0% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%;
+}
+
 #manage-saves:hover {
   --manage-overlay: rgba(18, 26, 46, 0.74);
   --btn-bg-current: var(--btn-bg-hover);
