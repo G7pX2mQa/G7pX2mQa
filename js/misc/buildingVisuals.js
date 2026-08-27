@@ -10667,8 +10667,14 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
             const cp2X = -tx * 0.6; 
             const cp2Y = -400; // Reduced height
             
-            const endX = -tx; // Hit the EXACT center directly
-            const endY = coreCy - 29;
+            const bolts = [
+              {x: 140, y: -70},
+              {x: 147, y: -100},
+              {x: 132, y: -165},
+              {x: 88,  y: -202}
+            ];
+            const endX = (dir * bolts[i].x) - tx; // Track to each bolt of tier 2
+            const endY = bolts[i].y + 1;
             
             ctx.beginPath();
             ctx.moveTo(tipX, tipY);
