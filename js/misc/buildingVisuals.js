@@ -9229,10 +9229,11 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       
       // Basic Symbol Blades
       ctx.fillStyle = radColor;
+      let coreSpread = (Math.PI/6) + (0.1 * t8Alpha) + 0.05;
       for(let i=0; i<3; i++) {
           ctx.beginPath();
           ctx.moveTo(0, 0);
-          ctx.arc(0, 0, 32, -Math.PI/6, Math.PI/6);
+          ctx.arc(0, 0, 32, -coreSpread, coreSpread);
           ctx.lineTo(0,0);
           ctx.fill();
           ctx.rotate((Math.PI * 2) / 3);
@@ -9297,12 +9298,14 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.globalAlpha = ctx.globalAlpha * maxAlpha;
       ctx.globalCompositeOperation = 'screen';
       let bladeRadius = 32 + 12 * pulse + 8 * t8Alpha; 
+      let starterSpread = (Math.PI/6) + (0.1 * t8Alpha);
+      let beamSpread = starterSpread + 0.05;
       
       for(let i=0; i<3; i++) {
           ctx.beginPath();
-          ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
-          ctx.lineTo(innerGapRadius * Math.cos(Math.PI/6), innerGapRadius * Math.sin(Math.PI/6));
-          ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
+          ctx.arc(0, 0, bladeRadius, -starterSpread, starterSpread);
+          ctx.lineTo(innerGapRadius * Math.cos(starterSpread), innerGapRadius * Math.sin(starterSpread));
+          ctx.arc(0, 0, innerGapRadius, starterSpread, -starterSpread, true);
           ctx.closePath();
           
           ctx.fillStyle = `rgba(255, 0, 0, ${Math.min(1, 0.6 * pulse + 0.4 * t8Alpha)})`;
@@ -9321,7 +9324,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           
           ctx.fillStyle = beamGrad;
           ctx.beginPath();
-          let beamSpread = (Math.PI/6) + (0.1 * t8Alpha); 
           ctx.arc(0, 0, bladeRadius - 1, -beamSpread, beamSpread);
           ctx.arc(0, 0, beamLength, beamSpread, -beamSpread, true);
           ctx.closePath();
@@ -9372,12 +9374,13 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       
       const bladeRadius = 32; // Kept constant, no extension ever
       const innerGapRadius = 12;
+      let t7Spread = (Math.PI/6) + (0.1 * t8) + 0.05;
 
       for(let i=0; i<3; i++) {
           // Hollow hologram blade path
           ctx.beginPath();
-          ctx.arc(0, 0, bladeRadius, -Math.PI/6, Math.PI/6);
-          ctx.arc(0, 0, innerGapRadius, Math.PI/6, -Math.PI/6, true);
+          ctx.arc(0, 0, bladeRadius, -t7Spread, t7Spread);
+          ctx.arc(0, 0, innerGapRadius, t7Spread, -t7Spread, true);
           ctx.closePath();
           
           // 1. Deeper, richer red holographic fill
