@@ -1253,7 +1253,7 @@ export function initBuildingOverlay() {
 
         const actionsHeight = actions.offsetHeight || 130;
         if (wrapped) {
-            costRow.style.setProperty("margin-top", "4px", "important");
+            costRow.style.setProperty("margin-top", "3px", "important");
             walletRow.style.setProperty("margin-top", "0px", "important");
             textContainer.style.setProperty("bottom", actionsHeight + 29 + "px", "important");
         } else {
