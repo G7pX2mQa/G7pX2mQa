@@ -46,7 +46,7 @@
     </style>
 
     <script>
-      document.documentElement.classList.add('booting');
+      document.documentElement.classList.add('booting', 'js-enabled');
     </script>
 
     <link rel="stylesheet" href="./styles.css"/>
@@ -57,6 +57,41 @@
 </head>
 
   <body class="menu-bg">
+
+    <style>
+      /* Fallback UI if JavaScript does not execute */
+      html:not(.js-enabled) .menu-root, 
+      html:not(.js-enabled) .loading-screen { display: none !important; }
+      html:not(.js-enabled) body.menu-bg::before { display: none !important; }
+      
+      .noscript-fallback { display: none; }
+      
+      html:not(.js-enabled) .noscript-fallback {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: black;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        font-size: clamp(1rem, 2.5vw, 2.5rem);
+        text-align: center;
+        z-index: 2147483647;
+        margin: 0;
+        padding: 20px;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+    </style>
+    <div class="noscript-fallback">
+      JavaScript is required to play this game. Re-enable JavaScript then refresh the tab.
+    </div>
+
+
     <main class="menu-root">
       <header class="menu-header">
         <h1 class="game-title">
