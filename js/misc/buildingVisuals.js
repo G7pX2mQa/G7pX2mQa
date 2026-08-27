@@ -10078,90 +10078,95 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
 
-    // Tier 4 Ferrofluid Aura wrapping the blades
-    if (t4 > 0) {
-        ctx.save();
-        ctx.rotate(t * timeMult); // Re-apply forward rotation for the aura
-        
-        ctx.globalAlpha = t4 * 0.75; // Semi-transparent so blades show through
-        ctx.globalCompositeOperation = 'screen';
-        
-        // Main volatile ferrofluid blob with energy concentrated at the center
-        ctx.beginPath();
-        const numPoints = 360;
-        for (let i = 0; i <= numPoints; i++) {
-            const angle = (i / numPoints) * Math.PI * 2;
-            
-            let r = 15; 
-            
-            // Distance to the closest blade tip angle (0, 90, 180, 270)
-            const distToTip = Math.abs((angle + Math.PI/4) % (Math.PI/2) - Math.PI/4);
-            
-            // The physical 8px tip is 0.061 radians wide. Keep the math 100% stable out to 0.065 rads.
-            let stabilityFade = (distToTip - 0.065) / 0.05;
-            stabilityFade = Math.max(0, Math.min(1, Math.pow(stabilityFade, 2)));
-            
-            // A high exponent (6) ensures the star is sleek and stays safely inside the blade walls.
-            // The multiplier 60 mathematically guarantees it reaches the tips.
-            const spikeBase = Math.max(0, Math.cos(angle * 4));
-            const spike = Math.pow(spikeBase, 6) * 60; 
-            
-            // Violent high-frequency ripples
-            const ripple = Math.sin(angle * 20 - t * 25) * 4 + Math.cos(angle * 35 + t * 40) * 3;
-            const pulse = Math.sin(t * 10 + angle * 3) * 6;
-            
-            r += spike + (ripple + pulse) * stabilityFade;
-            
-            // STRICT GEOMETRIC CLAMP: Mathematically prevents the energy from EVER breaching the physical blade
-            const slope = -4.0909; 
-            const yIntercept = 81.3636; 
-            const bladeLimit = (yIntercept - 0.5) / (Math.cos(distToTip) - slope * Math.sin(distToTip));
-            
-            // -0.5 accounts perfectly for the 1.0 stroke width, keeping the outline flush with the blade
-            r = Math.min(r, coreRadius - 15 - 0.5, bladeLimit);
-            
-            const px = Math.cos(angle) * r;
-            const py = Math.sin(angle) * r;
-            
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        
-        const fluidGrad = ctx.createRadialGradient(0, 0, 5, 0, 0, coreRadius - 15);
-        fluidGrad.addColorStop(0, '#aaddff'); // intense bright core (concentrated energy)
-        fluidGrad.addColorStop(0.3, '#2244ff'); // rich, violent sapphire
-        fluidGrad.addColorStop(0.7, 'rgba(10, 26, 136, 0.8)'); // deep dark blue
-        fluidGrad.addColorStop(1, 'rgba(2, 4, 18, 0)'); // fades out
-        
-        ctx.fillStyle = fluidGrad;
-        ctx.strokeStyle = '#4466ff'; 
-        ctx.lineWidth = 1.0;
-        
-        ctx.fill();
-        ctx.stroke();
-        
-        // Detached droplets swirling violently
-        ctx.fillStyle = '#1122cc';
-        for (let d = 0; d < 80; d++) {
-            const dAngle = t * (3 + (d % 4)) + (d * 0.1);
-            const baseDR = 30 + (d % 30);
-            const dR = baseDR + Math.sin(t * 20 + d) * 10;
-            
-            if (dR > 30 && dR < coreRadius - 12) {
-                const dropX = Math.cos(dAngle) * dR;
-                const dropY = Math.sin(dAngle) * dR;
-                const dropSize = 0.5 + (d % 2);
-                
-                ctx.beginPath();
-                ctx.arc(dropX, dropY, dropSize, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        ctx.restore();
-    }
-    
     ctx.restore();
+  };
+  
+  // Standalone function to draw the Tier 4 Ferrofluid Aura ON TOP of other elements
+  const drawTier4Aura = (x, y, scale, timeMult) => {
+      if (t4 <= 0) return;
+      
+      const coreRadius = 80;
+      
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      
+      ctx.rotate(t * timeMult); 
+      
+      ctx.globalAlpha = t4 * 0.75; // Semi-transparent so blades show through
+      ctx.globalCompositeOperation = 'screen';
+      
+      // Main volatile ferrofluid blob with energy concentrated at the center
+      ctx.beginPath();
+      const numPoints = 360;
+      for (let i = 0; i <= numPoints; i++) {
+          const angle = (i / numPoints) * Math.PI * 2;
+          
+          let r = 15; 
+          
+          // Distance to the closest blade tip angle (0, 90, 180, 270)
+          const distToTip = Math.abs((angle + Math.PI/4) % (Math.PI/2) - Math.PI/4);
+          
+          // The physical 8px tip is 0.061 radians wide. Keep the math 100% stable out to 0.065 rads.
+          let stabilityFade = (distToTip - 0.065) / 0.05;
+          stabilityFade = Math.max(0, Math.min(1, Math.pow(stabilityFade, 2)));
+          
+          // A high exponent (6) ensures the star is sleek and stays safely inside the blade walls.
+          const spikeBase = Math.max(0, Math.cos(angle * 4));
+          const spike = Math.pow(spikeBase, 6) * 60; 
+          
+          // Violent high-frequency ripples
+          const ripple = Math.sin(angle * 20 - t * 25) * 4 + Math.cos(angle * 35 + t * 40) * 3;
+          const pulse = Math.sin(t * 10 + angle * 3) * 6;
+          
+          r += spike + (ripple + pulse) * stabilityFade;
+          
+          // STRICT GEOMETRIC CLAMP
+          const slope = -4.0909; 
+          const yIntercept = 81.3636; 
+          const bladeLimit = (yIntercept - 0.5) / (Math.cos(distToTip) - slope * Math.sin(distToTip));
+          
+          r = Math.min(r, coreRadius - 15 - 0.5, bladeLimit);
+          
+          const px = Math.cos(angle) * r;
+          const py = Math.sin(angle) * r;
+          
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      
+      const fluidGrad = ctx.createRadialGradient(0, 0, 5, 0, 0, coreRadius - 15);
+      fluidGrad.addColorStop(0, '#aaddff'); 
+      fluidGrad.addColorStop(0.3, '#2244ff'); 
+      fluidGrad.addColorStop(0.7, 'rgba(10, 26, 136, 0.8)'); 
+      fluidGrad.addColorStop(1, 'rgba(2, 4, 18, 0)'); 
+      
+      ctx.fillStyle = fluidGrad;
+      ctx.strokeStyle = '#4466ff'; 
+      ctx.lineWidth = 1.0;
+      
+      ctx.fill();
+      ctx.stroke();
+      
+      // Detached droplets swirling violently
+      ctx.fillStyle = '#1122cc';
+      for (let d = 0; d < 80; d++) {
+          const dAngle = t * (3 + (d % 4)) + (d * 0.1);
+          const baseDR = 30 + (d % 30);
+          const dR = baseDR + Math.sin(t * 20 + d) * 10;
+          
+          if (dR > 30 && dR < coreRadius - 12) {
+              const dropX = Math.cos(dAngle) * dR;
+              const dropY = Math.sin(dAngle) * dR;
+              const dropSize = 0.5 + (d % 2);
+              
+              ctx.beginPath();
+              ctx.arc(dropX, dropY, dropSize, 0, Math.PI * 2);
+              ctx.fill();
+          }
+      }
+      ctx.restore();
   };
 
   // Function to draw Tier 1 nodes (either front or back pass)
@@ -10545,7 +10550,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         const tyTop = -210; // Taller tower
         
         ctx.save();
-        ctx.translate(tx, 0);
+        ctx.translate(tx, -1); // Moved up just slightly to prevent ground clipping, but not float
         
         // --- Tower Structure ---
         // Base plate (sleek, faceted to match Tier 0 main foundation style)
@@ -10564,31 +10569,27 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.fill();
         ctx.stroke();
         
-        // Main Shaft (Tapered)
-        ctx.fillStyle = '#051020'; // Matching centrifuge chassis background
-        ctx.strokeStyle = fillSapphire;
-        ctx.lineWidth = 2;
+        // Tower Shaft
         ctx.beginPath();
         ctx.moveTo(-18, tyBase - 25);
+        ctx.lineTo(-12, tyTop);
+        ctx.lineTo(12, tyTop);
         ctx.lineTo(18, tyBase - 25);
-        ctx.lineTo(8, tyTop);
-        ctx.lineTo(-8, tyTop);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
         
-        // --- Sapphire Texture Strip down the Shaft ---
+        // Sapphire glowing core running up the tower shaft
         ctx.fillStyle = fillSapphire;
         ctx.beginPath();
-        ctx.moveTo(-6, tyBase - 25);
-        ctx.lineTo(6, tyBase - 25);
-        ctx.lineTo(3, tyTop);
-        ctx.lineTo(-3, tyTop);
+        ctx.moveTo(-4, tyBase - 25);
+        ctx.lineTo(-2, tyTop);
+        ctx.lineTo(2, tyTop);
+        ctx.lineTo(4, tyBase - 25);
         ctx.closePath();
         ctx.fill();
         
-        
-        // --- Top Windmill Turbine ---
+        // --- The Windmill Turbine ---
         ctx.save();
         ctx.translate(0, tyTop);
         
@@ -10609,22 +10610,22 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.fill();
         ctx.stroke();
         
-        // Spin the windmill blades at EXACTLY the same speed AND direction as the core
-        // (t * 0.5 rotates clockwise, matching all other Tier 3 centrifuges)
+        // Spin both in the same direction, matching the tier 3/4 cores
         ctx.rotate(t * 0.5); 
         
-        ctx.fillStyle = '#051020'; 
-        ctx.strokeStyle = fillSapphire; 
-        ctx.lineWidth = 2;
-        
-        for (let i = 0; i < 4; i++) {
+        // 4 Sleek Blades
+        for (let j = 0; j < 4; j++) {
             ctx.save();
-            ctx.rotate(Math.PI / 2 * i);
+            ctx.rotate((Math.PI / 2) * j);
             
+            // Blade fill
+            ctx.fillStyle = '#051020'; 
+            ctx.strokeStyle = fillSapphire; 
+            ctx.lineWidth = 2;
             ctx.fill(bladePath);
             ctx.stroke(bladePath);
             
-            // Tapered sapphire texture strip running down the center of each blade
+            // Thin sapphire texture strip along the center of the blade
             ctx.fillStyle = fillSapphire;
             ctx.beginPath();
             ctx.moveTo(-2.5, 20);
@@ -10639,15 +10640,47 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.restore(); // Restore turbine rotation (back to just tyTop translation)
         
         // --- Miniature Centrifuge Spinner Core ---
-        // Same as Tier 3, sits perfectly in the center of the blades
         ctx.save();
         ctx.translate(0, tyTop);
-        
-        // Draw the mini centrifuge (scale 0.25, timeMult 0.5)
-        // No horizontal flipping needed, it spins clockwise perfectly in sync with the blades
         drawSpinningCore(0, 0, 0.25, 0.5); 
-        
         ctx.restore(); // Restore core translation
+        
+        // --- Single Thin High-Arc Energy Beams ---
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        
+        for (let i = 0; i < 4; i++) {
+            const angle = t * 0.5 + (Math.PI / 2) * i;
+            const tipX = -95 * Math.sin(angle);
+            const tipY = tyTop + 95 * Math.cos(angle);
+            
+            // Glowing energy dot at tip (highly performant, dark blue)
+            ctx.beginPath();
+            ctx.arc(tipX, tipY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#2244ff';
+            ctx.fill();
+            
+            // Arc slightly higher than the centrifuge wheel (wheel apex is ~ -290)
+            const cp1X = tipX + (-tx * 0.2); 
+            const cp1Y = -400; // Reduced height
+            
+            const cp2X = -tx * 0.6; 
+            const cp2Y = -400; // Reduced height
+            
+            const endX = -tx; // Hit the EXACT center directly
+            const endY = coreCy - 27; // Shifted up exactly 27 pixels to hit the true center
+            
+            ctx.beginPath();
+            ctx.moveTo(tipX, tipY);
+            ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+            
+            // Way thinner, dark blue beams
+            ctx.strokeStyle = '#2244ff'; 
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
+        
+        ctx.restore(); // Restore screen modede
         
         ctx.restore(); // Restore tower translation
     }
@@ -10767,6 +10800,34 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
   // Tier 1: Orbital Data Nodes (Front Pass)
   drawTier1Nodes(true);
+
+  // --- Post-Pass: Draw Tier 4 Aura ON TOP of all other effects (including Tier 5 beams) ---
+  if (t4 > 0) {
+      // Main Spinner Aura
+      const mainSpinnerCy = -120;
+      drawTier4Aura(0, mainSpinnerCy, 1.0, 0.5);
+      
+      // Mini Centrifuge Auras (Tier 3)
+      if (t3 > 0) {
+          drawTier4Aura(-98, -31, 0.30, 0.5);
+          drawTier4Aura(-168, -31, 0.30, 0.5);
+          drawTier4Aura(98, -31, 0.30, 0.5);
+          drawTier4Aura(168, -31, 0.30, 0.5);
+      }
+      
+      // Windmill Miniature Core Auras (Tier 5)
+      if (t5 > 0) {
+          for (let dir of [-1, 1]) {
+              const tx = dir * 350;
+              const tyTop = -210;
+              
+              ctx.save();
+              ctx.translate(tx, -1);
+              drawTier4Aura(0, tyTop, 0.25, 0.5);
+              ctx.restore();
+          }
+      }
+  }
 
   ctx.restore();
 }
