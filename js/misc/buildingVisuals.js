@@ -10850,9 +10850,9 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     for (let side of [-1, 1]) {
         ctx.save();
         
-        // Positioned between windmills (350) and main structure (0)
-        const baseX = side * 245; 
-        const hoverY = 5 + Math.sin(t * 2 + side) * 2;
+        // Positioned between windmills and main structure
+        const baseX = side * 241; 
+        const hoverY = 9 + Math.sin(t * 2 + side) * 2;
         
         ctx.translate(baseX, hoverY);
         
