@@ -166,6 +166,18 @@
   margin-top: calc(clamp(50px, calc(54.5px - 0.3vw), 53px) - 0.9em) !important;
 }
 
+.building-currency-icon {
+  vertical-align: middle;
+  transform: translateY(-3px);
+}
+
+@media (max-width: 600px) {
+  .building-currency-icon {
+    vertical-align: -0.15em;
+    transform: none;
+  }
+}
+
 .buildings-tab .shop-upgrade {
   pointer-events: none;
 }
