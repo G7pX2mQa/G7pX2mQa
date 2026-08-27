@@ -10690,34 +10690,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Tier 6: High-Frequency Energy Arcs
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-    
-    ctx.strokeStyle = '#0ff';
-    ctx.lineWidth = 2;
-    ctx.translate(0, coreCy);
-    
-    for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        // Randomized arcs connecting near the core
-        const startAng = t * 5 + i * (Math.PI * 2 / 3);
-        const endAng = startAng + Math.PI + (Math.random() - 0.5);
-        
-        const r1 = 30;
-        const r2 = 30;
-        
-        ctx.moveTo(Math.cos(startAng) * r1, Math.sin(startAng) * r1);
-        ctx.quadraticCurveTo(
-            (Math.random()-0.5) * 80, (Math.random()-0.5) * 80, 
-            Math.cos(endAng) * r2, Math.sin(endAng) * r2
-        );
-        ctx.stroke();
-    }
-    
-    ctx.restore();
-  }
+  // (Tier 6 moved to the end of the function to render on top of Tier 1 nodes)
 
   // Tier 7: Orbital Prisms
   if (t7 > 0) {
@@ -10829,6 +10802,98 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
               ctx.restore();
           }
       }
+  }
+
+  // Tier 6: 3D Ice Crystal Centrifuges (Moved here to draw on top of everything)
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+    ctx.translate(0, coreCy);
+
+    const drawCrystalShard = (x, y, w, h, angle, colorMain, colorHighlight) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, -h); 
+        ctx.lineTo(w/2, 0); 
+        ctx.lineTo(0, h * 0.2); 
+        ctx.lineTo(-w/2, 0); 
+        ctx.closePath();
+        
+        ctx.fillStyle = colorMain;
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(0, -h);
+        ctx.lineTo(w/2, 0);
+        ctx.lineTo(0, h * 0.2);
+        ctx.closePath();
+        ctx.fillStyle = colorHighlight;
+        ctx.fill();
+        
+        ctx.strokeStyle = '#2233ee';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+    };
+
+    // Draw two ice crystal centrifuges, one on each side
+    for (let side of [-1, 1]) {
+        ctx.save();
+        
+        // Positioned between windmills (350) and main structure (0)
+        const baseX = side * 245; 
+        const hoverY = 5 + Math.sin(t * 2 + side) * 2;
+        
+        ctx.translate(baseX, hoverY);
+        
+        // Tilt towards the main structure. 
+        const tiltAngle = side * -0.4;
+        ctx.rotate(tiltAngle);
+
+        const pulse = 1 + Math.sin(t * 3) * 0.05;
+        ctx.scale(pulse, pulse);
+
+        const orbitRadius = 32;
+        
+        let orbiting = [];
+        for (let i = 0; i < 3; i++) {
+            // Spin like a centrifuge
+            const theta = t * 2.5 + (i * Math.PI * 2 / 3);
+            const px = Math.cos(theta) * orbitRadius;
+            const depth = Math.sin(theta);
+            // Orbit around the middle of the tall crystal (approx y = -50)
+            const py = -50 + depth * orbitRadius * 0.35; 
+            
+            orbiting.push({px, py, depth});
+        }
+        
+        orbiting.sort((a, b) => a.depth - b.depth);
+        
+        // Draw crystals behind the center
+        for (let orb of orbiting) {
+            if (orb.depth < 0) {
+                drawCrystalShard(orb.px, orb.py, 22, 75, 0, fillSapphire, 'rgba(100, 150, 255, 0.3)');
+            }
+        }
+        
+        // Draw the central, slightly larger ice crystal
+        drawCrystalShard(0, 0, 35, 140, 0, fillSapphire, 'rgba(100, 150, 255, 0.4)');
+        
+        // Draw crystals in front of the center
+        for (let orb of orbiting) {
+            if (orb.depth >= 0) {
+                drawCrystalShard(orb.px, orb.py, 22, 75, 0, fillSapphire, 'rgba(100, 150, 255, 0.3)');
+            }
+        }
+        
+        ctx.restore();
+    }
+    
+    ctx.restore();
   }
 
   ctx.restore();
