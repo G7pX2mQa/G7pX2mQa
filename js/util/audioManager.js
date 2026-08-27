@@ -248,8 +248,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
                 try { source.stop(); } catch {}
             },
             source,
-            gainNode,
-            setVolume: (newVolumeBase) => {
+            gainNode, type, originalPlaybackRate: playbackRate, setVolume: (newVolumeBase) => {
                 let actualVolume = newVolumeBase;
                 if (isSpawnVessel) {
                     const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
@@ -409,8 +408,24 @@ export function registerPreloadedBuffer(src, buffer) {
 export function setAudioSuspended(suspended) {
   if (audioContext) {
     if (suspended) {
-      if (audioContext.state === 'running') audioContext.suspend().catch(()=>{});
+      if (settingsManager.get('play_music_when_hidden')) {
+        // Only mute SFX if music is meant to keep playing
+        if (sfxGain) {
+          const now = audioContext.currentTime;
+          sfxGain.gain.cancelScheduledValues(now);
+          sfxGain.gain.setValueAtTime(0, now);
+          for (const audio of activeAudios) { if (audio.type === 'sfx' && audio.source && audio.source.playbackRate) { audio.source.playbackRate.value = 0; } }
+        }
+      } else {
+        if (audioContext.state === 'running') audioContext.suspend().catch(()=>{});
+      }
     } else {
+      if (sfxGain) {
+        // Restore SFX volume using existing function when un-suspending
+        const sfxv = settingsManager.get('sfx_volume');
+        setSfxVolume(sfxv !== undefined && sfxv !== false ? sfxv : 100);
+        for (const audio of activeAudios) { if (audio.type === 'sfx' && audio.source && audio.source.playbackRate) { audio.source.playbackRate.value = audio.originalPlaybackRate || 1; } }
+      }
       if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
     }
   }
