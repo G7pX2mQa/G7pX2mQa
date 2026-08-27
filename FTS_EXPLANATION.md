@@ -1,6 +1,6 @@
 # Fake Text Stroke (FTS) Explanation
 
-In this game, "Fake Text Stroke" (FTS) is a technique used to provide text outline effects for players on mobile devices or touch screens.
+"Fake Text Stroke" (FTS) is a technique used to provide text outline effects for players on mobile devices or touch screens.
 
 ## Why is FTS used?
 
