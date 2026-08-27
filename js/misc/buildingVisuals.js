@@ -586,6 +586,7 @@ export function startCanvasLoop(id, canvasEl) {
 
   if (currentBuildingId === 'pure_gold') {
     canvasEl.style.pointerEvents = 'auto';
+    canvasEl.setAttribute('data-ghost-tap-target', 'true');
     keypadZoomedIn = false;
     isVaultOpening = false;
     vaultOpeningTime = 0;
@@ -6450,9 +6451,9 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
 
         // Draw numbers
         keypadCtx.save();
+        keypadCtx.resetTransform();
+        keypadCtx.translate(Math.floor(w / 2), Math.floor(h / 2));
         keypadCtx.fillStyle = "#ffffff";
-        // Unscale the context to avoid minimum font size issues on mobile
-        keypadCtx.scale(1 / zoomFactor, 1 / zoomFactor);
         keypadCtx.font = "bold 24px sans-serif";
         keypadCtx.textAlign = "center";
         
@@ -6460,8 +6461,8 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         const metrics = keypadCtx.measureText(text);
         const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
         
-        const renderX = (bx + 2.5) * zoomFactor;
-        const renderY = (by + 2.5) * zoomFactor + (metrics.actualBoundingBoxAscent - textHeight / 2);
+        const renderX = Math.round((bx + 2.5) * zoomFactor);
+        const renderY = Math.round((by + 2.5) * zoomFactor + (metrics.actualBoundingBoxAscent - textHeight / 2));
 
         keypadCtx.fillText(text, renderX, renderY);
         keypadCtx.restore();
