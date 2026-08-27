@@ -10668,11 +10668,13 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
             const cp2Y = -400; // Reduced height
             
             const endX = -tx; // Hit the EXACT center directly
-            const endY = coreCy - 27; // Shifted up exactly 27 pixels to hit the true center
+            const endY = coreCy - 29;
             
             ctx.beginPath();
             ctx.moveTo(tipX, tipY);
             ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+            
+            ctx.lineCap = 'square'; // Forces the angled line ends to perfectly overlap without a V-gap
             
             // Way thinner, dark blue beams
             ctx.strokeStyle = '#2244ff'; 
