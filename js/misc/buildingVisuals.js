@@ -10650,6 +10650,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         
         ctx.strokeStyle = '#2233ee';
         ctx.lineWidth = 1;
+        ctx.lineJoin = 'round';
         ctx.stroke();
         
         ctx.restore();
