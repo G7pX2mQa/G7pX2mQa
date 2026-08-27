@@ -10530,10 +10530,216 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   // Tier 4: Integrated into drawSpinningCore
   const coreCy = -90;
 
-  // Tier 5: Perimeter Windmill Generators
+  // (Ice Crystals block moved)
+
+  // Tier 7: Orbital Prisms
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    ctx.translate(0, coreCy);
+    
+    const numPrisms = 5;
+    for (let i = 0; i < numPrisms; i++) {
+        const ang = t * -2 + (i / numPrisms) * Math.PI * 2;
+        const r = 100 + Math.sin(t * 3 + i) * 10; // Pulsing orbit distance
+        
+        const px = Math.cos(ang) * r;
+        const py = Math.sin(ang) * r * 0.3; // isometric orbit
+        
+        ctx.save();
+        ctx.translate(px, py);
+        
+        // Spin the prism itself
+        ctx.rotate(t * 3);
+        
+        ctx.fillStyle = fillSapphire;
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(10, 0);
+        ctx.lineTo(0, 15);
+        ctx.lineTo(-10, 0);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // Tier 8: Overclocked Core State (Crazy Improvements)
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    
+    ctx.translate(0, coreCy);
+    
+    // Intense outer corona
+    const corona = ctx.createRadialGradient(0, 0, 40, 0, 0, 150);
+    corona.addColorStop(0, 'rgba(0, 255, 255, 0.5)');
+    corona.addColorStop(0.5, 'rgba(10, 50, 255, 0.2)');
+    corona.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    
+    ctx.fillStyle = corona;
+    ctx.beginPath();
+    // Pulsing size
+    const pSize = 150 + Math.sin(t * 10) * 20;
+    ctx.arc(0, 0, pSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Vertical Plasma Beam
+    const beam = ctx.createLinearGradient(-20, 0, 20, 0);
+    beam.addColorStop(0, 'rgba(0, 255, 255, 0)');
+    beam.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+    beam.addColorStop(0.5, '#fff');
+    beam.addColorStop(0.8, 'rgba(255, 255, 255, 0.8)');
+    beam.addColorStop(1, 'rgba(0, 255, 255, 0)');
+    
+    ctx.fillStyle = beam;
+    // Jittering width
+    const bWidth = 40 + Math.random() * 10;
+    ctx.fillRect(-bWidth/2, -600, bWidth, 600);
+    
+    // Floating Runes / Data Streams circling the beam
+    ctx.fillStyle = '#0ff';
+    ctx.font = '14px monospace';
+    for(let i = 0; i < 8; i++) {
+        const streamY = -((t * 100 + i * 50) % 500);
+        const streamX = Math.sin(t * 2 + i) * 40;
+        ctx.fillText(Math.random() > 0.5 ? '1' : '0', streamX, streamY);
+    }
+    
+    ctx.restore();
+  }
+
+  // Tier 1: Orbital Data Nodes (Front Pass)
+  drawTier1Nodes(true);
+
+  // Tier 5: 3D Ice Crystal Centrifuges
   if (t5 > 0) {
     ctx.save();
     ctx.globalAlpha = t5;
+    ctx.translate(0, coreCy);
+
+    const drawCrystalShard = (x, y, w, h, angle, colorMain, colorHighlight) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, -h); 
+        ctx.lineTo(w/2, 0); 
+        ctx.lineTo(0, h * 0.2); 
+        ctx.lineTo(-w/2, 0); 
+        ctx.closePath();
+        
+        ctx.fillStyle = colorMain;
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(0, -h);
+        ctx.lineTo(w/2, 0);
+        ctx.lineTo(0, h * 0.2);
+        ctx.closePath();
+        ctx.fillStyle = colorHighlight;
+        ctx.fill();
+        
+        ctx.strokeStyle = '#2233ee';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+    };
+
+    // Draw two ice crystal centrifuges, one on each side
+    for (let side of [-1, 1]) {
+        ctx.save();
+        
+        // Positioned between windmills and main structure
+        const baseX = side * 241; 
+        const hoverY = 9 + Math.sin(t * 2 + side) * 2;
+        
+        ctx.translate(baseX, hoverY);
+        
+        // Tilt towards the main structure. 
+        const tiltAngle = side * -0.4;
+        ctx.rotate(tiltAngle);
+
+        const pulse = 1 + Math.sin(t * 3) * 0.05;
+        ctx.scale(pulse, pulse);
+
+        const orbitRadius = 32;
+        
+        let orbiting = [];
+        for (let i = 0; i < 3; i++) {
+            // Spin like a centrifuge
+            const theta = t * 2.5 + (i * Math.PI * 2 / 3);
+            const px = Math.cos(theta) * orbitRadius;
+            const depth = Math.sin(theta);
+            // Orbit around the middle of the tall crystal (approx y = -50)
+            const py = -50 + depth * orbitRadius * 0.35; 
+            
+            orbiting.push({px, py, depth});
+        }
+        
+        orbiting.sort((a, b) => a.depth - b.depth);
+        
+        // Draw crystals behind the center
+        for (let orb of orbiting) {
+            if (orb.depth < 0) {
+                drawCrystalShard(orb.px, orb.py, 22, 75, 0, fillSapphire, 'rgba(100, 150, 255, 0.3)');
+            }
+        }
+        
+        // Draw the central, slightly larger ice crystal
+        drawCrystalShard(0, 0, 35, 140, 0, fillSapphire, 'rgba(100, 150, 255, 0.4)');
+        
+        // Draw crystals in front of the center
+        for (let orb of orbiting) {
+            if (orb.depth >= 0) {
+                drawCrystalShard(orb.px, orb.py, 22, 75, 0, fillSapphire, 'rgba(100, 150, 255, 0.3)');
+            }
+        }
+        
+        ctx.restore();
+    }
+    
+    ctx.restore();
+  }
+
+  // --- Post-Pass: Draw Tier 4 Aura ON TOP of all other effects (including Tier 5 beams) ---
+  if (t4 > 0) {
+      // Main Spinner Aura
+      const mainSpinnerCy = -120;
+      drawTier4Aura(0, mainSpinnerCy, 1.0, 0.5);
+      
+      // Mini Centrifuge Auras (Tier 3)
+      if (t3 > 0) {
+          drawTier4Aura(-98, -31, 0.30, 0.5);
+          drawTier4Aura(-168, -31, 0.30, 0.5);
+          drawTier4Aura(98, -31, 0.30, 0.5);
+          drawTier4Aura(168, -31, 0.30, 0.5);
+      }
+      
+      // Windmill Miniature Core Auras (Tier 6)
+      if (t6 > 0) {
+          for (let dir of [-1, 1]) {
+              const tx = dir * 350;
+              const tyTop = -210;
+              
+              ctx.save();
+              ctx.translate(tx, -1);
+              drawTier4Aura(0, tyTop, 0.25, 0.5);
+              ctx.restore();
+          }
+      }
+  }
+
+  // Tier 6: Perimeter Windmill Generators (Moved here to draw on top of everything)
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
     
     // Cache the aerodynamic, pointy blade path
     const bladePath = new Path2D();
@@ -10691,212 +10897,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.restore(); // Restore screen modede
         
         ctx.restore(); // Restore tower translation
-    }
-    
-    ctx.restore();
-  }
-
-  // (Tier 6 moved to the end of the function to render on top of Tier 1 nodes)
-
-  // Tier 7: Orbital Prisms
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-    ctx.translate(0, coreCy);
-    
-    const numPrisms = 5;
-    for (let i = 0; i < numPrisms; i++) {
-        const ang = t * -2 + (i / numPrisms) * Math.PI * 2;
-        const r = 100 + Math.sin(t * 3 + i) * 10; // Pulsing orbit distance
-        
-        const px = Math.cos(ang) * r;
-        const py = Math.sin(ang) * r * 0.3; // isometric orbit
-        
-        ctx.save();
-        ctx.translate(px, py);
-        
-        // Spin the prism itself
-        ctx.rotate(t * 3);
-        
-        ctx.fillStyle = fillSapphire;
-        ctx.beginPath();
-        ctx.moveTo(0, -15);
-        ctx.lineTo(10, 0);
-        ctx.lineTo(0, 15);
-        ctx.lineTo(-10, 0);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        
-        ctx.restore();
-    }
-    ctx.restore();
-  }
-
-  // Tier 8: Overclocked Core State (Crazy Improvements)
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-    
-    ctx.translate(0, coreCy);
-    
-    // Intense outer corona
-    const corona = ctx.createRadialGradient(0, 0, 40, 0, 0, 150);
-    corona.addColorStop(0, 'rgba(0, 255, 255, 0.5)');
-    corona.addColorStop(0.5, 'rgba(10, 50, 255, 0.2)');
-    corona.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    
-    ctx.fillStyle = corona;
-    ctx.beginPath();
-    // Pulsing size
-    const pSize = 150 + Math.sin(t * 10) * 20;
-    ctx.arc(0, 0, pSize, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Vertical Plasma Beam
-    const beam = ctx.createLinearGradient(-20, 0, 20, 0);
-    beam.addColorStop(0, 'rgba(0, 255, 255, 0)');
-    beam.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
-    beam.addColorStop(0.5, '#fff');
-    beam.addColorStop(0.8, 'rgba(255, 255, 255, 0.8)');
-    beam.addColorStop(1, 'rgba(0, 255, 255, 0)');
-    
-    ctx.fillStyle = beam;
-    // Jittering width
-    const bWidth = 40 + Math.random() * 10;
-    ctx.fillRect(-bWidth/2, -600, bWidth, 600);
-    
-    // Floating Runes / Data Streams circling the beam
-    ctx.fillStyle = '#0ff';
-    ctx.font = '14px monospace';
-    for(let i = 0; i < 8; i++) {
-        const streamY = -((t * 100 + i * 50) % 500);
-        const streamX = Math.sin(t * 2 + i) * 40;
-        ctx.fillText(Math.random() > 0.5 ? '1' : '0', streamX, streamY);
-    }
-    
-    ctx.restore();
-  }
-
-  // Tier 1: Orbital Data Nodes (Front Pass)
-  drawTier1Nodes(true);
-
-  // --- Post-Pass: Draw Tier 4 Aura ON TOP of all other effects (including Tier 5 beams) ---
-  if (t4 > 0) {
-      // Main Spinner Aura
-      const mainSpinnerCy = -120;
-      drawTier4Aura(0, mainSpinnerCy, 1.0, 0.5);
-      
-      // Mini Centrifuge Auras (Tier 3)
-      if (t3 > 0) {
-          drawTier4Aura(-98, -31, 0.30, 0.5);
-          drawTier4Aura(-168, -31, 0.30, 0.5);
-          drawTier4Aura(98, -31, 0.30, 0.5);
-          drawTier4Aura(168, -31, 0.30, 0.5);
-      }
-      
-      // Windmill Miniature Core Auras (Tier 5)
-      if (t5 > 0) {
-          for (let dir of [-1, 1]) {
-              const tx = dir * 350;
-              const tyTop = -210;
-              
-              ctx.save();
-              ctx.translate(tx, -1);
-              drawTier4Aura(0, tyTop, 0.25, 0.5);
-              ctx.restore();
-          }
-      }
-  }
-
-  // Tier 6: 3D Ice Crystal Centrifuges (Moved here to draw on top of everything)
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-    ctx.translate(0, coreCy);
-
-    const drawCrystalShard = (x, y, w, h, angle, colorMain, colorHighlight) => {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle);
-        
-        ctx.beginPath();
-        ctx.moveTo(0, -h); 
-        ctx.lineTo(w/2, 0); 
-        ctx.lineTo(0, h * 0.2); 
-        ctx.lineTo(-w/2, 0); 
-        ctx.closePath();
-        
-        ctx.fillStyle = colorMain;
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.moveTo(0, -h);
-        ctx.lineTo(w/2, 0);
-        ctx.lineTo(0, h * 0.2);
-        ctx.closePath();
-        ctx.fillStyle = colorHighlight;
-        ctx.fill();
-        
-        ctx.strokeStyle = '#2233ee';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        
-        ctx.restore();
-    };
-
-    // Draw two ice crystal centrifuges, one on each side
-    for (let side of [-1, 1]) {
-        ctx.save();
-        
-        // Positioned between windmills and main structure
-        const baseX = side * 241; 
-        const hoverY = 9 + Math.sin(t * 2 + side) * 2;
-        
-        ctx.translate(baseX, hoverY);
-        
-        // Tilt towards the main structure. 
-        const tiltAngle = side * -0.4;
-        ctx.rotate(tiltAngle);
-
-        const pulse = 1 + Math.sin(t * 3) * 0.05;
-        ctx.scale(pulse, pulse);
-
-        const orbitRadius = 32;
-        
-        let orbiting = [];
-        for (let i = 0; i < 3; i++) {
-            // Spin like a centrifuge
-            const theta = t * 2.5 + (i * Math.PI * 2 / 3);
-            const px = Math.cos(theta) * orbitRadius;
-            const depth = Math.sin(theta);
-            // Orbit around the middle of the tall crystal (approx y = -50)
-            const py = -50 + depth * orbitRadius * 0.35; 
-            
-            orbiting.push({px, py, depth});
-        }
-        
-        orbiting.sort((a, b) => a.depth - b.depth);
-        
-        // Draw crystals behind the center
-        for (let orb of orbiting) {
-            if (orb.depth < 0) {
-                drawCrystalShard(orb.px, orb.py, 22, 75, 0, fillSapphire, 'rgba(100, 150, 255, 0.3)');
-            }
-        }
-        
-        // Draw the central, slightly larger ice crystal
-        drawCrystalShard(0, 0, 35, 140, 0, fillSapphire, 'rgba(100, 150, 255, 0.4)');
-        
-        // Draw crystals in front of the center
-        for (let orb of orbiting) {
-            if (orb.depth >= 0) {
-                drawCrystalShard(orb.px, orb.py, 22, 75, 0, fillSapphire, 'rgba(100, 150, 255, 0.3)');
-            }
-        }
-        
-        ctx.restore();
     }
     
     ctx.restore();
