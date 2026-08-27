@@ -624,6 +624,7 @@
   top: auto;
   bottom: calc(100% + 6px);
   transform: translateY(8px);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.8), inset 0 -1px 1px rgba(255, 255, 255, 0.1);
 }
 
 .setting-dropdown-menu.is-upwards.is-open {
@@ -722,6 +723,7 @@
 .setting-info-tooltip.is-upwards {
   top: auto;
   bottom: 120%;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .setting-info-tooltip.is-upwards::after {
