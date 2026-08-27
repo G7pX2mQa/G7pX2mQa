@@ -1255,7 +1255,7 @@ export function initBuildingOverlay() {
         if (wrapped) {
             costRow.style.setProperty("margin-top", "3px", "important");
             walletRow.style.setProperty("margin-top", "0px", "important");
-            textContainer.style.setProperty("bottom", actionsHeight + 29 + "px", "important");
+            textContainer.style.setProperty("bottom", actionsHeight + 32 + "px", "important");
         } else {
             costRow.style.setProperty("margin-top", "calc(52px - 0.9em)", "important");
             walletRow.style.setProperty("margin-top", "calc(39px - 0.9em)", "important");
