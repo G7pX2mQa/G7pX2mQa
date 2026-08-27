@@ -118,8 +118,7 @@ export function initUcPickup({
         const now = performance.now();
         if (now - lastAt < 20) return;
         lastAt = now;
-        const baseSrc = new URL("sounds/pickup.ogg", document.baseURI).href;
-        playAudio(baseSrc, {
+        playAudio("sounds/pickup.ogg", {
             volume: PICKUP_VOLUME,
             type: "sfx",
         });
@@ -222,6 +221,11 @@ export function initUcPickup({
         }
         if (collectedCount > 0) {
             playSound();
+            
+            const manualValueLevel = getLevelNumber(AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID);
+            const manualValueMultiplierBn = BigNum.fromInt(1 + manualValueLevel);
+            const manualValueMultiplierNum = 1 + manualValueLevel;
+
             // Add to bank
             for (const [matType, count] of Object.entries(gains)) {
                 // Check if currency is locked (from debug)
@@ -233,20 +237,16 @@ export function initUcPickup({
                 const handle = bank[matType];
                 if (handle) {
                     const mult = handle.mult.get();
-                    const manualValueLevel = getLevelNumber(AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID);
-                    const manualValueMultiplier = BigNum.fromInt(1 + manualValueLevel);
                     const totalGain = BASE_MATERIAL_VALUE.mulBigNumInteger(BigNum.fromAny(count))
                         .mulBigNumInteger(mult)
-                        .mulBigNumInteger(manualValueMultiplier);
+                        .mulBigNumInteger(manualValueMultiplierBn);
                     queueMaterialGain(handle, totalGain);
                 }
             }
             if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
-                const manualValueLevel = getLevelNumber(AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID);
-                const manualValueMultiplier = 1 + manualValueLevel;
-                window.dpSystem.addDp(collectedCount * manualValueMultiplier);
+                window.dpSystem.addDp(collectedCount * manualValueMultiplierNum);
                 if (isPpSystemUnlocked()) {
-                    addPp(collectedCount * manualValueMultiplier);
+                    addPp(collectedCount * manualValueMultiplierNum);
                 }
             }
             if (
