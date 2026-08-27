@@ -1351,7 +1351,7 @@ export function updateOverlayUi() {
 
     const currentBonus = getBuildingBonus(id, levelBn);
     const nextBonus = getBuildingBonus(id, nextLevelBn);
-    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: -0.15em; margin-right: 0.1em;">`;
+    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" class="building-currency-icon" style="width: 1em; height: 1em; margin-right: -0.1em;">`;
     const resConfig = RESOURCE_REGISTRY.find((r) => r.key === currencyKey);
     setHtmlOrText(document.getElementById("building-detail-level-text"), `Building Level ${formatNumber(levelBn)}`);
     document.getElementById("building-detail-bonus-row").innerHTML =
