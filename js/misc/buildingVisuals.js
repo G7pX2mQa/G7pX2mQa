@@ -10083,8 +10083,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
 
     ctx.restore();
-
-    drawTier4Aura(x, y, scale, timeMult);
   };
   
   // Standalone function to draw the Tier 4 Ferrofluid Aura ON TOP of other elements
@@ -10879,6 +10877,34 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     }
     
     ctx.restore();
+  }
+
+  // --- Post-Pass: Draw Tier 4 Aura ON TOP of all other effects ---
+  if (t4 > 0) {
+      // Main Spinner Aura
+      const mainSpinnerCy = -120;
+      drawTier4Aura(0, mainSpinnerCy, 1.0, 0.5);
+      
+      // Mini Centrifuge Auras (Tier 3)
+      if (t3 > 0) {
+          drawTier4Aura(-98, -31, 0.30, 0.5);
+          drawTier4Aura(-168, -31, 0.30, 0.5);
+          drawTier4Aura(98, -31, 0.30, 0.5);
+          drawTier4Aura(168, -31, 0.30, 0.5);
+      }
+      
+      // Windmill Miniature Core Auras (Tier 6)
+      if (t6 > 0) {
+          for (let dir of [-1, 1]) {
+              const tx = dir * 350;
+              const tyTop = -210;
+              
+              ctx.save();
+              ctx.translate(tx, -1);
+              drawTier4Aura(0, tyTop, 0.25, 0.5);
+              ctx.restore();
+          }
+      }
   }
 
   ctx.restore();
