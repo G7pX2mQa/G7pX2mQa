@@ -323,7 +323,12 @@ class SimulatedOfflineRunner {
         }
 
         this.simDt = dt;
-        this.totalTicks = this.ticksProcessed + Math.ceil(this._exactRemainingSeconds / this.simDt);
+        
+        // Strip out floating point error artifacts using toPrecision before running ceil
+        // so that massive numbers don't continuously increment totalTicks by falsely evaluating fractions
+        const rawTicks = this._exactRemainingSeconds / this.simDt;
+        const cleanedTicks = parseFloat(rawTicks.toPrecision(12));
+        this.totalTicks = this.ticksProcessed + Math.ceil(cleanedTicks);
     }
 
     /**
@@ -343,7 +348,14 @@ class SimulatedOfflineRunner {
 
             this._simulateOneTick(currentDt);
 
-            this._exactRemainingSeconds -= currentDt;
+            const nextRemaining = this._exactRemainingSeconds - currentDt;
+            // Prevent infinite loop if floating point precision swallows the decrement
+            if (this._exactRemainingSeconds === nextRemaining) {
+                this._exactRemainingSeconds = 0;
+            } else {
+                this._exactRemainingSeconds = nextRemaining;
+            }
+            
             this.ticksProcessed++;
             ticksThisFrame++;
 
