@@ -707,7 +707,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                 }
                 if (currentLevel >= 200) {
                     let multBn = BigNum.fromInt(1);
-                    if (currentLevelBN.isInfinite?.()) {
+                    if (baseMult === 1) {
+                        multBn = BigNum.fromInt(1);
+                    } else if (currentLevelBN.isInfinite?.()) {
                         multBn = BigNum.fromAny("Infinity");
                     } else {
                         const diffBN = currentLevelBN.sub(BigNum.fromInt(200));
@@ -781,7 +783,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 21) {
                 const mult = getSurge21Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(20));
@@ -832,7 +836,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 35) {
                 const mult = getSurge35Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(34));
@@ -853,7 +859,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 33) {
                 const mult = getSurge33Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(32));
@@ -874,7 +882,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 27) {
                 const mult = getSurge27Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(26));
@@ -895,7 +905,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 23) {
                 const mult = getSurge23Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(22));
@@ -916,7 +928,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 25) {
                 const mult = getSurge25Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(24));
@@ -937,7 +951,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 29) {
                 const mult = getSurge29Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(28));
@@ -958,7 +974,9 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             if (currentLevel >= 31) {
                 const mult = getSurge31Multiplier();
                 let formattedBonus = "0";
-                if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+                if (baseBonusPct === 0) {
+                    formattedBonus = "0";
+                } else if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
                     formattedBonus = formatMultForUi(BigNum.fromAny("Infinity"));
                 } else {
                     const diffBN = currentLevelBN.sub(BigNum.fromInt(30));
