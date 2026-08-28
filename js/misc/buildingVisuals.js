@@ -88,6 +88,7 @@ let darkDiamondPattern = null;
 let emeraldPattern = null;
 let rubyPattern = null;
 let sapphirePattern = null;
+let unobtainiumPattern = null;
 
 // for specifically the Greenhouse building:
 let cachedGrowLightNormal = null;
@@ -493,6 +494,66 @@ function initSapphirePattern(ctx) {
   }
 }
 
+function initUnobtainiumPattern(ctx) {
+  if (unobtainiumPattern) return;
+
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const pCtx = canvas.getContext('2d');
+
+  pCtx.fillStyle = '#4c1e7a';
+  pCtx.fillRect(0, 0, size, size);
+
+  for (let i = 0; i < 400; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const r = 4 + Math.random() * 12;
+    
+    pCtx.fillStyle = Math.random() > 0.5
+      ? `rgba(130, 40, 200, ${0.04 + Math.random() * 0.06})`
+      : `rgba(60, 10, 110, ${0.04 + Math.random() * 0.06})`;
+
+    for (let ox of [-size, 0, size]) {
+      for (let oy of [-size, 0, size]) {
+        pCtx.beginPath();
+        pCtx.arc(x + ox, y + oy, r, 0, Math.PI * 2);
+        pCtx.fill();
+      }
+    }
+  }
+
+  for (let i = 0; i < 800; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const r = 1 + Math.random() * 4;
+    const startAngle = Math.random() * Math.PI * 2;
+    const endAngle = startAngle + Math.PI * (0.5 + Math.random());
+    
+    pCtx.strokeStyle = Math.random() > 0.5
+      ? `rgba(170, 70, 255, ${0.05 + Math.random() * 0.1})`
+      : `rgba(30, 5, 60, ${0.05 + Math.random() * 0.1})`;
+
+    pCtx.lineWidth = 1 + Math.random() * 1.5;
+    for (let ox of [-size, 0, size]) {
+      for (let oy of [-size, 0, size]) {
+        pCtx.beginPath();
+        pCtx.arc(x + ox, y + oy, r, startAngle, endAngle);
+        pCtx.stroke();
+      }
+    }
+  }
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      unobtainiumPattern = targetCtx.createPattern(canvas, 'repeat');
+    } catch (e) {
+      console.error('Failed to create unobtainium pattern', e);
+    }
+  }
+}
 
 export function startCanvasLoop(id, canvasEl) {
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -515,6 +576,9 @@ export function startCanvasLoop(id, canvasEl) {
   }
   if (!sapphirePattern) {
     initSapphirePattern(activeCtx);
+  }
+  if (!unobtainiumPattern) {
+    initUnobtainiumPattern(activeCtx);
   }
 
   if (canvasResizeObserver) {
@@ -1424,7 +1488,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "emerald") drawGreenhouse(ctx, t, tier, prevTier, animProgress);
   else if (id === "ruby") drawReactor(ctx, t, tier, prevTier, animProgress);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier, prevTier, animProgress);
-  else if (id === "unobtainium") drawBeacon(ctx, t, tier);
+  else if (id === "unobtainium") drawBeacon(ctx, t, tier, prevTier, animProgress);
   else if (id === "prismatium") drawTesseract(ctx, t, tier);
 
   ctx.restore();
@@ -11084,34 +11148,258 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
   ctx.restore();
 }
-function drawBeacon(ctx, t, tier) {
-  ctx.fillStyle = "#330d58";
-  ctx.beginPath();
-  ctx.moveTo(-30, 0);
-  ctx.lineTo(-10, -150);
-  ctx.lineTo(10, -150);
-  ctx.lineTo(30, 0);
-  ctx.fill();
+function drawBeacon(ctx, t, tier, prevTier, animProgress) {
+  const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
+  
+  const t0 = getProg(0), t1 = getProg(1), t2 = getProg(2), t3 = getProg(3);
+  const t4 = getProg(4), t5 = getProg(5), t6 = getProg(6), t7 = getProg(7), t8 = getProg(8);
 
+  if (!unobtainiumPattern) initUnobtainiumPattern(ctx);
+  const fillMat = unobtainiumPattern || '#4c1e7a';
+
+  // -------------------------
+  // BEACON: Strictly 2D
+  // -------------------------
+
+  // Layer 5: Massive Background Magic Circle (T5)
+  if (t5 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t5 * 0.4; // Subtle background element
+    ctx.translate(0, -80);
+    ctx.rotate(-t * 0.2); // Slow rotation
+    
+    ctx.strokeStyle = '#d98cff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 150, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, 130, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Inner star
+    for(let i=0; i<6; i++) {
+       ctx.beginPath();
+       ctx.moveTo(0, 0);
+       ctx.lineTo(Math.cos(i*Math.PI/3)*150, Math.sin(i*Math.PI/3)*150);
+       ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // T7: Secondary Base Structures (Side pylons)
+  if (t7 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t7;
+    ctx.fillStyle = fillMat;
+    ctx.strokeStyle = '#1a0630';
+    ctx.lineWidth = 3;
+    
+    // Left pylon
+    ctx.beginPath();
+    ctx.moveTo(-100, 0);
+    ctx.lineTo(-70, -80);
+    ctx.lineTo(-50, -80);
+    ctx.lineTo(-30, 0);
+    ctx.fill(); ctx.stroke();
+    
+    // Right pylon
+    ctx.beginPath();
+    ctx.moveTo(100, 0);
+    ctx.lineTo(70, -80);
+    ctx.lineTo(50, -80);
+    ctx.lineTo(30, 0);
+    ctx.fill(); ctx.stroke();
+    
+    ctx.restore();
+  }
+
+  // T0: Main Beacon Base (Trapezoid)
   ctx.save();
-  ctx.translate(0, -150);
-  ctx.rotate(t * 2);
-
-  const grad = ctx.createLinearGradient(0, 0, 200, 0);
-  grad.addColorStop(0, "rgba(147, 82, 216, 0.8)");
-  grad.addColorStop(1, "rgba(147, 82, 216, 0)");
-  ctx.fillStyle = grad;
-
+  ctx.globalAlpha = 1.0; // Base is always visible
+  ctx.fillStyle = fillMat;
+  ctx.strokeStyle = '#1a0630';
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(0, -10);
-  ctx.lineTo(200, -50);
-  ctx.lineTo(200, 30);
-  ctx.lineTo(0, 10);
+  ctx.moveTo(-80, 0);
+  ctx.lineTo(-40, -100);
+  ctx.lineTo(40, -100);
+  ctx.lineTo(80, 0);
   ctx.fill();
-
+  ctx.stroke();
   ctx.restore();
-}
 
+  // T2: Glowing Base Runes
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    ctx.fillStyle = `rgba(200, 100, 255, ${0.5 + Math.sin(t*4)*0.5})`;
+    ctx.font = "20px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("✧", -30, -50);
+    ctx.fillText("✧", 30, -50);
+    ctx.fillText("✦", 0, -30);
+    ctx.restore();
+  }
+
+  // T0: Main Crystal Pos
+  const crystalY = -140 + Math.sin(t * 2) * 5;
+  
+  // T4 Core Feature: The Primary Beam
+  if (t0 > 0) {
+    ctx.save();
+    // At T0, it's a basic beam. At T4, it gets empowered.
+    ctx.globalAlpha = 1.0;
+    
+    // Basic beam (T0)
+    let beamWidth = 20;
+    let beamGrad = ctx.createLinearGradient(-beamWidth/2, 0, beamWidth/2, 0);
+    beamGrad.addColorStop(0, "rgba(200, 150, 255, 0.0)");
+    beamGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.8)");
+    beamGrad.addColorStop(1, "rgba(200, 150, 255, 0.0)");
+    
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(-beamWidth/2, -1500, beamWidth, 1500 + crystalY);
+
+    // T4 Empowerment
+    if (t4 > 0) {
+       ctx.globalAlpha = t4;
+       let wideBeamW = 60 + 40 * t8; // Wider at T8
+       let wideGrad = ctx.createLinearGradient(-wideBeamW/2, 0, wideBeamW/2, 0);
+       const pulse = 0.5 + Math.sin(t * 6) * 0.3;
+       wideGrad.addColorStop(0, `rgba(150, 50, 255, 0.0)`);
+       wideGrad.addColorStop(0.3, `rgba(180, 80, 255, ${0.5 * pulse})`);
+       wideGrad.addColorStop(0.5, `rgba(255, 200, 255, ${0.9 * pulse})`);
+       wideGrad.addColorStop(0.7, `rgba(180, 80, 255, ${0.5 * pulse})`);
+       wideGrad.addColorStop(1, `rgba(150, 50, 255, 0.0)`);
+       
+       ctx.fillStyle = wideGrad;
+       ctx.fillRect(-wideBeamW/2, -1500, wideBeamW, 1500 + crystalY);
+    }
+    ctx.restore();
+  }
+
+  // T8: Shockwaves traveling up the beam (Improve core feature)
+  if (t8 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t8;
+    for(let i=0; i<4; i++) {
+        const cycle = ((t * 3 + i) % 4) / 4; // 0 to 1
+        const yPos = crystalY - cycle * 1000;
+        
+        ctx.strokeStyle = `rgba(255, 255, 255, ${1.0 - cycle})`;
+        ctx.lineWidth = 4;
+        
+        // 2D curved arc representing a shockwave travelling up
+        ctx.beginPath();
+        ctx.moveTo(-60, yPos + 20);
+        ctx.quadraticCurveTo(0, yPos - 20, 60, yPos + 20);
+        ctx.stroke();
+        
+        ctx.strokeStyle = `rgba(180, 80, 255, ${0.5 - cycle*0.5})`;
+        ctx.lineWidth = 8;
+        ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // T6: Energy Particles flowing up
+  if (t6 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t6;
+    for(let i=0; i<15; i++) {
+       const cycle = ((t * 1.5 + i * 0.1) % 1.5) / 1.5; // 0 to 1
+       const yPos = 0 - cycle * 800; // flows from base up
+       const xOffset = Math.sin(t * 3 + i * 45) * 40; // horizontal weave
+       
+       ctx.fillStyle = `rgba(255, 150, 255, ${1.0 - cycle})`;
+       ctx.beginPath();
+       ctx.arc(xOffset, yPos, 2 + Math.random()*2, 0, Math.PI*2);
+       ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Draw Crystal (T0)
+  ctx.save();
+  ctx.translate(0, crystalY);
+  ctx.rotate(t * 1.5); // Spin in 2D
+  
+  ctx.fillStyle = '#d98cff';
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  
+  // 2D Diamond
+  ctx.beginPath();
+  ctx.moveTo(0, -25);
+  ctx.lineTo(20, 0);
+  ctx.lineTo(0, 25);
+  ctx.lineTo(-20, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // T1: Floating Energy Rings around crystal
+  if (t1 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t1;
+    ctx.translate(0, crystalY);
+    
+    // Flat 2D rings (ellipses to simulate 3D depth, but strictly drawn as 2D paths)
+    ctx.strokeStyle = `rgba(200, 100, 255, ${0.6 + Math.sin(t*5)*0.2})`;
+    ctx.lineWidth = 3;
+    
+    // Ring 1
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 45, 15, Math.sin(t), 0, Math.PI*2);
+    ctx.stroke();
+    
+    // Ring 2
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 60, 20, -Math.sin(t*0.8), 0, Math.PI*2);
+    ctx.stroke();
+    
+    ctx.restore();
+  }
+
+  // T3: Orbiting smaller crystals
+  if (t3 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t3;
+    ctx.translate(0, crystalY);
+    
+    const numOrbits = 3;
+    for(let i=0; i<numOrbits; i++) {
+        const angle = t * 2 + i * (Math.PI*2 / numOrbits);
+        const radius = 60;
+        const cx = Math.cos(angle) * radius;
+        // In 2D, we can just use sine for Y to make it orbit in an ellipse
+        const cy = Math.sin(angle) * radius * 0.3; 
+        
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(t * 3);
+        
+        ctx.fillStyle = '#b366ff';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.lineTo(8, 0);
+        ctx.lineTo(0, 10);
+        ctx.lineTo(-8, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    ctx.restore();
+  }
+
+}
 function drawTesseract(ctx, t, tier) {
   const fly = Math.sin(t) * 20;
   ctx.save();
