@@ -10253,7 +10253,137 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
   };
 
-  // Draw back nodes
+  
+  // --- Tier 7: Massive Sapphire Vortex (Background) ---
+  if (t7 > 0) {
+      ctx.save();
+      ctx.globalAlpha = t7;
+      
+      const vortexX = 0;
+      const vortexY = -120; // Lower, near ground level (spinner center is -120)
+      
+      // 1. Massive Background Aura / Ambient Glow
+      const auraGrad = ctx.createRadialGradient(vortexX, vortexY, 50, vortexX, vortexY, 600);
+      auraGrad.addColorStop(0, 'rgba(17, 34, 204, 0.4)'); // Deep sapphire blue
+      auraGrad.addColorStop(0.5, 'rgba(0, 26, 77, 0.2)'); // Navy blue
+      auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = auraGrad;
+      ctx.beginPath();
+      ctx.arc(vortexX, vortexY, 600, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Back to normal blending for the vortex structure
+      ctx.globalCompositeOperation = 'source-over';
+      
+      // 2. Swirling Vortex Center (Wormhole)
+      ctx.save();
+      ctx.translate(vortexX, vortexY);
+      ctx.rotate(t * -0.2); // Slow, imposing rotation
+      
+      // Create depth with multiple layers of concentric swirling shapes
+      const numLayers = 5;
+      for (let l = numLayers; l > 0; l--) {
+          const layerScale = l * 50;
+          const layerSpeed = t * (0.5 + l * 0.2);
+          
+          ctx.save();
+          ctx.rotate(layerSpeed);
+          
+          // Outer edge of the layer
+          ctx.beginPath();
+          ctx.arc(0, 0, layerScale, 0, Math.PI * 2);
+          
+          // Inner edge to create a ring
+          ctx.arc(0, 0, Math.max(0, layerScale - 40), 0, Math.PI * 2, true);
+          
+          // Pattern blending
+          ctx.fillStyle = fillSapphire;
+          ctx.globalAlpha = t7 * (0.2 + (numLayers - l) * 0.15);
+          ctx.fill();
+          
+          // Edge highlights
+          ctx.strokeStyle = '#2244ff';
+          ctx.lineWidth = 2 + (numLayers - l);
+          ctx.globalAlpha = t7 * 0.5;
+          ctx.stroke();
+          
+          ctx.restore();
+      }
+      
+      // The absolute dark center (event horizon)
+      ctx.beginPath();
+      ctx.arc(0, 0, 45, 0, Math.PI * 2);
+      ctx.fillStyle = '#010515'; // Extremely dark blue, almost black
+      ctx.fill();
+      
+      // Intense blue rim around the event horizon
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#2244ff';
+      ctx.stroke();
+      
+      // 3. Sucked-in Particles / Stars (Accretion Disk)
+      const numStars = 150;
+      ctx.globalCompositeOperation = 'screen';
+      
+      for (let i = 0; i < numStars; i++) {
+          // Deterministic pseudorandom values based on 'i'
+          const offset = (Math.sin(i * 123.45) * 4321.12) % 1000;
+          const radiusMax = 450 + (Math.cos(i * 321.12) * 150);
+          const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
+          
+          // Time variable to pull them inwards continuously
+          const localT = (t * 0.5 + offset) % 10;
+          const progress = localT / 10; // 0 (far away) to 1 (at center)
+          
+          // Current radius shrinks towards center (45 is event horizon)
+          const currentRadius = 45 + (radiusMax - 45) * (1 - Math.pow(progress, 2));
+          
+          // As they get closer, they spin faster (spiral effect)
+          const currentAngle = angleOffset + (t * 0.8) + (progress * Math.PI * 4);
+          
+          const starX = Math.cos(currentAngle) * currentRadius;
+          const starY = Math.sin(currentAngle) * currentRadius * 0.7; // Slight elliptical tilt
+          
+          // Fade in at edges, brightest in middle, fade out at event horizon
+          let starAlpha = 1;
+          if (progress < 0.2) starAlpha = progress / 0.2;
+          if (progress > 0.8) starAlpha = (1 - progress) / 0.2;
+          
+          ctx.globalAlpha = t7 * starAlpha;
+          ctx.fillStyle = '#4466ff'; // Bright sapphire star
+          
+          // Size shrinks slightly as they fall in
+          const starSize = 1.5 + (1 - progress) * 2;
+          
+          ctx.beginPath();
+          ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Streak line (motion blur)
+          const trailLength = 15 + progress * 20; // Longer trail as they speed up
+          const prevAngle = currentAngle - 0.1;
+          const prevRadius = currentRadius + trailLength;
+          const prevX = Math.cos(prevAngle) * prevRadius;
+          const prevY = Math.sin(prevAngle) * prevRadius * 0.7;
+          
+          ctx.beginPath();
+          ctx.moveTo(starX, starY);
+          ctx.lineTo(prevX, prevY);
+          const streakGrad = ctx.createLinearGradient(starX, starY, prevX, prevY);
+          streakGrad.addColorStop(0, '#2244ff');
+          streakGrad.addColorStop(1, 'rgba(34, 68, 255, 0)');
+          ctx.strokeStyle = streakGrad;
+          ctx.lineWidth = starSize * 0.8;
+          ctx.stroke();
+      }
+      
+      ctx.restore(); // Restore vortex center translation
+      ctx.restore(); // Restore t7 alpha & save state
+  }
+
+// Draw back nodes
   drawTier1Nodes(false);
 
   // Tier 0: The Massive Centrifuge Foundation & Main Wheel
@@ -10535,42 +10665,6 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   const coreCy = -90;
 
   // (Ice Crystals block moved)
-
-  // Tier 7: Orbital Prisms
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-    ctx.translate(0, coreCy);
-    
-    const numPrisms = 5;
-    for (let i = 0; i < numPrisms; i++) {
-        const ang = t * -2 + (i / numPrisms) * Math.PI * 2;
-        const r = 100 + Math.sin(t * 3 + i) * 10; // Pulsing orbit distance
-        
-        const px = Math.cos(ang) * r;
-        const py = Math.sin(ang) * r * 0.3; // isometric orbit
-        
-        ctx.save();
-        ctx.translate(px, py);
-        
-        // Spin the prism itself
-        ctx.rotate(t * 3);
-        
-        ctx.fillStyle = fillSapphire;
-        ctx.beginPath();
-        ctx.moveTo(0, -15);
-        ctx.lineTo(10, 0);
-        ctx.lineTo(0, 15);
-        ctx.lineTo(-10, 0);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        
-        ctx.restore();
-    }
-    ctx.restore();
-  }
 
   // Tier 8: Overclocked Core State (Crazy Improvements)
   if (t8 > 0) {
