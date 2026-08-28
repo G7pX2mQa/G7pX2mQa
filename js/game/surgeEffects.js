@@ -194,9 +194,10 @@ export function isSurgeActive(n) {
 
 function applyTsunamiNerf(bn) {
     if (!isSurgeActive(8)) return bn;
+    const effective = getTsunamiExponent();
+    if (effective === 0) return BigNum.fromInt(1);
     const log10 = approxLog10BigNum(bn);
     if (!Number.isFinite(log10)) return bn;
-    const effective = getTsunamiExponent();
     return bigNumFromLog10(log10 * effective);
 }
 
@@ -234,6 +235,7 @@ export function getSurge21BonusPercentage() {
 
 export function getSurge21Multiplier() {
     if (!isSurgeActive(21)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -258,6 +260,7 @@ export function getSurge23BonusPercentage() {
 
 export function getSurge23Multiplier() {
     if (!isSurgeActive(22)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -282,6 +285,7 @@ export function getSurge25BonusPercentage() {
 
 export function getSurge25Multiplier() {
     if (!isSurgeActive(25)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -306,6 +310,7 @@ export function getSurge27BonusPercentage() {
 
 export function getSurge27Multiplier() {
     if (!isSurgeActive(27)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -330,6 +335,7 @@ export function getSurge29BonusPercentage() {
 
 export function getSurge29Multiplier() {
     if (!isSurgeActive(29)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -354,6 +360,7 @@ export function getSurge31BonusPercentage() {
 
 export function getSurge31Multiplier() {
     if (!isSurgeActive(31)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -378,6 +385,7 @@ export function getSurge33BonusPercentage() {
 
 export function getSurge33Multiplier() {
     if (!isSurgeActive(33)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -402,6 +410,7 @@ export function getSurge35BonusPercentage() {
 
 export function getSurge35Multiplier() {
     if (!isSurgeActive(35)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -420,6 +429,7 @@ export function getSurge35Multiplier() {
 
 export function getSurge200Multiplier() {
     if (!isSurgeActive(200)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -442,6 +452,7 @@ export function getSurge200Multiplier() {
 
 export function getSurge40Multiplier() {
     if (!isSurgeActive(40)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -471,6 +482,7 @@ export function getSurge40Multiplier() {
 
 export function getSurge50Multiplier() {
     if (!isSurgeActive(50)) return BigNum.fromInt(1);
+    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
