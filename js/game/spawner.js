@@ -131,7 +131,7 @@ export function createSpawner(config = {}) {
         return cachedVolume;
     }
 
-    const waveURL = new URL(waveSoundSrc, document.baseURI).href;
+    const waveURL = waveSoundSrc;
     let waveLastAt = 0;
     let activeWaveSounds = [];
     let volumeUpdateTimeout = null;
