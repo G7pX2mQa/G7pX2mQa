@@ -1207,14 +1207,17 @@ function drawCavern(ctx, w, h, t) {
           ctx.globalAlpha = t7 * (0.2 + (numLayers - l) * 0.15);
           ctx.stroke();
           
-          // Thin solid outer and inner structural lines
+          // Thin solid outer structural line
           ctx.beginPath();
           ctx.arc(0, 0, layerScale, 0, Math.PI * 2);
-          ctx.moveTo(Math.max(0, layerScale - 40), 0);
-          ctx.arc(0, 0, Math.max(0, layerScale - 40), 0, Math.PI * 2);
           ctx.strokeStyle = '#2244ff';
           ctx.lineWidth = 2 + (numLayers - l);
           ctx.globalAlpha = t7 * 0.5;
+          ctx.stroke();
+          
+          // Thin solid inner structural line
+          ctx.beginPath();
+          ctx.arc(0, 0, Math.max(0, layerScale - 40), 0, Math.PI * 2);
           ctx.stroke();
           
           ctx.restore();
