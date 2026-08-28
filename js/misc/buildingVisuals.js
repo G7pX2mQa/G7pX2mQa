@@ -10147,80 +10147,209 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     ctx.strokeStyle = fillSapphire;
     ctx.stroke();
     
-    // Complex rotating layers
-    ctx.save();
-    ctx.rotate(t * timeMult);
-    
-    // Outer gear teeth
-    ctx.fillStyle = fillSapphire;
-    ctx.strokeStyle = 'transparent';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 12; i++) {
+    if (t8 < 1) {
         ctx.save();
-        ctx.rotate(Math.PI * 2 * (i / 12));
-        ctx.beginPath();
-        ctx.moveTo(-10, coreRadius);
-        ctx.lineTo(10, coreRadius);
-        ctx.lineTo(6, coreRadius + 12);
-        ctx.lineTo(-6, coreRadius + 12);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-    }
-    
-    // Inner structural ring
-    ctx.beginPath();
-    ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = fillSapphire;
-    ctx.stroke();
-    // Energy track ring
-    ctx.beginPath();
-    ctx.arc(0, 0, coreRadius - 10, 0, Math.PI * 2);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'transparent';
-    ctx.stroke();
-
-    // Advanced 4-spoke turbine
-    for (let i = 0; i < 4; i++) {
-        ctx.save();
-        ctx.rotate(Math.PI / 2 * i);
+        ctx.globalAlpha = 1 - t8;
         
-        // Blade
+        // Complex rotating layers
+        ctx.save();
+        ctx.rotate(t * timeMult);
+        
+        // Outer gear teeth
+        ctx.fillStyle = fillSapphire;
+        ctx.strokeStyle = 'transparent';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 12; i++) {
+            ctx.save();
+            ctx.rotate(Math.PI * 2 * (i / 12));
+            ctx.beginPath();
+            ctx.moveTo(-10, coreRadius);
+            ctx.lineTo(10, coreRadius);
+            ctx.lineTo(6, coreRadius + 12);
+            ctx.lineTo(-6, coreRadius + 12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        // Inner structural ring
         ctx.beginPath();
-        ctx.moveTo(-15, 20);
-        ctx.lineTo(15, 20);
-        ctx.lineTo(4, coreRadius - 15);
-        ctx.lineTo(-4, coreRadius - 15);
+        ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = fillSapphire;
+        ctx.stroke();
+        // Energy track ring
+        ctx.beginPath();
+        ctx.arc(0, 0, coreRadius - 10, 0, Math.PI * 2);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'transparent';
+        ctx.stroke();
+
+        // Advanced 4-spoke turbine
+        for (let i = 0; i < 4; i++) {
+            ctx.save();
+            ctx.rotate(Math.PI / 2 * i);
+            
+            // Blade
+            ctx.beginPath();
+            ctx.moveTo(-15, 20);
+            ctx.lineTo(15, 20);
+            ctx.lineTo(4, coreRadius - 15);
+            ctx.lineTo(-4, coreRadius - 15);
+            ctx.closePath();
+            ctx.fillStyle = fillSapphire;
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        ctx.restore(); // Close the forward rotation group
+
+        // Inner counter-rotating core
+        ctx.save();
+        ctx.rotate(-t * timeMult);
+        
+        // Symmetrical geometric housing and inner elements
+        ctx.beginPath();
+        ctx.moveTo(-10, -10);
+        ctx.lineTo(10, -10);
+        ctx.lineTo(10, 10);
+        ctx.lineTo(-10, 10);
         ctx.closePath();
         ctx.fillStyle = fillSapphire;
         ctx.fill();
+        ctx.strokeStyle = 'transparent';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+        ctx.restore(); // Close t8 alpha group
+    }
+
+    // --- Tier 8: Micro-Galaxy ---
+    if (t8 > 0) {
+        ctx.save();
+        ctx.globalAlpha = t8;
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+        ctx.clip();
+        
+        // Deep space void
+        ctx.fillStyle = '#01020a';
+        ctx.fill();
+        
+        const galaxyTime = t * timeMult * 3;
+        
+        // Cosmic Dust Nebula (Deep Violets and Blues)
+        ctx.save();
+        ctx.rotate(-galaxyTime * 0.1);
+        const nebula1 = ctx.createRadialGradient(20, -20, 0, 20, -20, coreRadius);
+        nebula1.addColorStop(0, 'rgba(40, 20, 100, 0.5)'); // deep violet
+        nebula1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = nebula1;
+        ctx.fill();
+        
+        const nebula2 = ctx.createRadialGradient(-30, 30, 0, -30, 30, coreRadius);
+        nebula2.addColorStop(0, 'rgba(10, 30, 120, 0.5)'); // deep navy
+        nebula2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = nebula2;
+        ctx.fill();
+        ctx.restore();
+        
+        // Gravitational Waves
+        ctx.save();
+        ctx.rotate(galaxyTime);
+        for (let w = 0; w < 4; w++) {
+            ctx.save();
+            ctx.rotate((Math.PI / 2) * w);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(20, 50, coreRadius, coreRadius);
+            ctx.quadraticCurveTo(50, 10, 0, 0);
+            const waveGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+            // Replaced cyan with soft sapphire
+            waveGrad.addColorStop(0, 'rgba(100, 150, 255, 0.8)');
+            waveGrad.addColorStop(0.5, 'rgba(20, 40, 160, 0.5)');
+            waveGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = waveGrad;
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.restore();
+        
+        let constellationPoints = [];
+        
+        // Stars spiraling inwards
+        ctx.fillStyle = '#88aaff'; // Soft ice blue (no cyan)
+        ctx.beginPath();
+        for (let s = 0; s < 100; s++) {
+            let sDist = ((s * 11) - galaxyTime * 40) % coreRadius;
+            if (sDist < 0) sDist += coreRadius;
+            const sAngle = (s * 13) + (galaxyTime * (1.5 + 20 / (sDist + 10)));
+            const px = Math.cos(sAngle) * sDist;
+            const py = Math.sin(sAngle) * sDist;
+            
+            ctx.moveTo(px, py);
+            ctx.arc(px, py, (s % 3 === 0) ? 1.5 : 0.8, 0, Math.PI * 2);
+            
+            if (s < 15) constellationPoints.push({x: px, y: py});
+        }
+        ctx.fill();
+
+        ctx.fillStyle = '#4477ff'; // Deeper blue
+        ctx.beginPath();
+        for (let s = 100; s < 200; s++) {
+            let sDist = ((s * 17) - galaxyTime * 60) % coreRadius;
+            if (sDist < 0) sDist += coreRadius;
+            const sAngle = (s * 19) + (galaxyTime * (2.0 + 15 / (sDist + 10)));
+            const px = Math.cos(sAngle) * sDist;
+            const py = Math.sin(sAngle) * sDist;
+            
+            ctx.moveTo(px, py);
+            ctx.arc(px, py, (s % 4 === 0) ? 1.5 : 0.8, 0, Math.PI * 2);
+            
+            if (s < 115) constellationPoints.push({x: px, y: py});
+        }
+        ctx.fill();
+        
+        // Draw Constellations
+        ctx.strokeStyle = 'rgba(100, 150, 255, 0.25)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        for (let i = 0; i < constellationPoints.length - 1; i++) {
+            ctx.moveTo(constellationPoints[i].x, constellationPoints[i].y);
+            ctx.lineTo(constellationPoints[i+1].x, constellationPoints[i+1].y);
+            if (i < constellationPoints.length - 2) {
+                ctx.lineTo(constellationPoints[i+2].x, constellationPoints[i+2].y);
+            }
+        }
         ctx.stroke();
         
+        // Continuous Supernova
+        const pulse = Math.sin(t * 15) * 0.5 + 0.5;
+        const novaGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 25 + pulse * 10);
+        novaGrad.addColorStop(0, '#fff');
+        novaGrad.addColorStop(0.2, `rgba(120, 160, 255, ${0.9 + pulse * 0.1})`);
+        novaGrad.addColorStop(0.5, 'rgba(20, 50, 200, 0.5)');
+        novaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        ctx.fillStyle = novaGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 40, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Outer Core Shield Rim
+        ctx.strokeStyle = '#3366ff';
+        ctx.lineWidth = 2 + pulse;
+        ctx.beginPath();
+        ctx.arc(0, 0, coreRadius - 1, 0, Math.PI * 2);
+        ctx.stroke();
+
         ctx.restore();
     }
-    
-    ctx.restore(); // Close the forward rotation group
-
-    // Inner counter-rotating core
-    ctx.save();
-    ctx.rotate(-t * timeMult);
-    
-    // Symmetrical geometric housing and inner elements
-    ctx.beginPath();
-    ctx.moveTo(-10, -10);
-    ctx.lineTo(10, -10);
-    ctx.lineTo(10, 10);
-    ctx.lineTo(-10, 10);
-    ctx.closePath();
-    ctx.fillStyle = fillSapphire;
-    ctx.fill();
-    ctx.strokeStyle = 'transparent';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.restore();
 
     ctx.restore();
   };
@@ -10681,50 +10810,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
   // (Ice Crystals block moved)
 
-  // Tier 8: Overclocked Core State (Crazy Improvements)
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-    
-    ctx.translate(0, coreCy);
-    
-    // Intense outer corona
-    const corona = ctx.createRadialGradient(0, 0, 40, 0, 0, 150);
-    corona.addColorStop(0, 'rgba(0, 255, 255, 0.5)');
-    corona.addColorStop(0.5, 'rgba(10, 50, 255, 0.2)');
-    corona.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    
-    ctx.fillStyle = corona;
-    ctx.beginPath();
-    // Pulsing size
-    const pSize = 150 + Math.sin(t * 10) * 20;
-    ctx.arc(0, 0, pSize, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Vertical Plasma Beam
-    const beam = ctx.createLinearGradient(-20, 0, 20, 0);
-    beam.addColorStop(0, 'rgba(0, 255, 255, 0)');
-    beam.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
-    beam.addColorStop(0.5, '#fff');
-    beam.addColorStop(0.8, 'rgba(255, 255, 255, 0.8)');
-    beam.addColorStop(1, 'rgba(0, 255, 255, 0)');
-    
-    ctx.fillStyle = beam;
-    // Jittering width
-    const bWidth = 40 + Math.random() * 10;
-    ctx.fillRect(-bWidth/2, -600, bWidth, 600);
-    
-    // Floating Runes / Data Streams circling the beam
-    ctx.fillStyle = '#0ff';
-    ctx.font = '14px monospace';
-    for(let i = 0; i < 8; i++) {
-        const streamY = -((t * 100 + i * 50) % 500);
-        const streamX = Math.sin(t * 2 + i) * 40;
-        ctx.fillText(Math.random() > 0.5 ? '1' : '0', streamX, streamY);
-    }
-    
-    ctx.restore();
-  }
+  // Tier 8 is now handled inside drawSpinningCore to apply to all cores
 
   // Tier 1: Orbital Data Nodes (Front Pass)
   drawTier1Nodes(true);
