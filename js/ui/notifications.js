@@ -1,8 +1,8 @@
-import { NODE_MAP } from '../game/labNodes.js';
-import { playAudio } from '../util/audioManager.js';
-import { isViewingLabTab } from './merchantTabs/dlgTab.js';
-import { IS_MOBILE } from '../util/platformChecker.js';
-import { getActiveSlot } from '../util/storage.js';
+import { NODE_MAP } from "../game/labNodes.js";
+import { playAudio } from "../util/audioManager.js";
+import { isViewingLabTab } from "./merchantTabs/dlgTab.js";
+import { IS_MOBILE } from "../util/platformChecker.js";
+import { getActiveSlot } from "../util/storage.js";
 
 let container = null;
 const queue = [];
@@ -19,15 +19,15 @@ export function nukeNotifications(clearAll = true) {
     if (clearAll) {
         queue.length = 0;
     }
-    
+
     for (const notif of activeNotifications) {
-        if (notif.audio && typeof notif.audio.stop === 'function') {
+        if (notif.audio && typeof notif.audio.stop === "function") {
             notif.audio.stop();
         }
         if (notif.element) {
             notif.element.remove();
         }
-        if (typeof notif.resolve === 'function') {
+        if (typeof notif.resolve === "function") {
             notif.resolve();
         }
         if (notif.timeoutId) clearTimeout(notif.timeoutId);
@@ -36,7 +36,7 @@ export function nukeNotifications(clearAll = true) {
     activeNotifications.clear();
 
     for (const popup of activeWelcomePopups) {
-        if (popup.audio && typeof popup.audio.stop === 'function') {
+        if (popup.audio && typeof popup.audio.stop === "function") {
             popup.audio.stop();
         }
         if (popup.element) {
@@ -48,7 +48,7 @@ export function nukeNotifications(clearAll = true) {
     activeWelcomePopups.clear();
 
     if (landscapeWarningTracker) {
-        if (landscapeWarningTracker.audio && typeof landscapeWarningTracker.audio.stop === 'function') {
+        if (landscapeWarningTracker.audio && typeof landscapeWarningTracker.audio.stop === "function") {
             landscapeWarningTracker.audio.stop();
         }
         if (landscapeWarningTracker.element) {
@@ -60,15 +60,14 @@ export function nukeNotifications(clearAll = true) {
     }
 
     if (clearAll && container) {
-        container.innerHTML = '';
+        container.innerHTML = "";
     }
-
 }
 
 function ensureContainer() {
     if (container) return container;
-    container = document.createElement('div');
-    container.className = 'notification-container';
+    container = document.createElement("div");
+    container.className = "notification-container";
     document.body.appendChild(container);
     return container;
 }
@@ -96,7 +95,10 @@ export function pauseNotifications() {
     if (landscapeWarningTracker && landscapeWarningTracker.timeoutId) {
         clearTimeout(landscapeWarningTracker.timeoutId);
         landscapeWarningTracker.timeoutId = null;
-        landscapeWarningTracker.remainingDuration = Math.max(0, landscapeWarningTracker.duration - (now - landscapeWarningTracker.startTime));
+        landscapeWarningTracker.remainingDuration = Math.max(
+            0,
+            landscapeWarningTracker.duration - (now - landscapeWarningTracker.startTime),
+        );
     }
 }
 
@@ -120,10 +122,17 @@ export function unpauseNotifications() {
         }
     }
 
-    if (landscapeWarningTracker && !landscapeWarningTracker.timeoutId && landscapeWarningTracker.remainingDuration != null) {
+    if (
+        landscapeWarningTracker &&
+        !landscapeWarningTracker.timeoutId &&
+        landscapeWarningTracker.remainingDuration != null
+    ) {
         landscapeWarningTracker.startTime = now;
         landscapeWarningTracker.duration = landscapeWarningTracker.remainingDuration;
-        landscapeWarningTracker.timeoutId = setTimeout(landscapeWarningTracker.triggerLeaving, landscapeWarningTracker.remainingDuration);
+        landscapeWarningTracker.timeoutId = setTimeout(
+            landscapeWarningTracker.triggerLeaving,
+            landscapeWarningTracker.remainingDuration,
+        );
     }
     processQueue();
 }
@@ -133,9 +142,9 @@ async function processQueue() {
     isProcessing = true;
 
     const { text, iconSrc, duration } = queue.shift();
-    
+
     await displayNotification(text, iconSrc, duration);
-    
+
     isProcessing = false;
     // Process next item if any
     if (queue.length > 0) {
@@ -146,27 +155,27 @@ async function processQueue() {
 function displayNotification(text, iconSrc, duration) {
     return new Promise((resolve) => {
         const parent = ensureContainer();
-        
-        const el = document.createElement('div');
-        el.className = 'notification';
-        
+
+        const el = document.createElement("div");
+        el.className = "notification";
+
         if (iconSrc) {
-            const icon = document.createElement('img');
+            const icon = document.createElement("img");
             icon.src = iconSrc;
-            icon.className = 'notification-icon';
-            icon.alt = '';
+            icon.className = "notification-icon";
+            icon.alt = "";
             el.appendChild(icon);
         }
-        
-        const content = document.createElement('div');
-        content.className = 'notification-text';
-        content.innerHTML = text; 
+
+        const content = document.createElement("div");
+        content.className = "notification-text";
+        content.innerHTML = text;
         el.appendChild(content);
-        
+
         parent.appendChild(el);
-        
-        const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
-        
+
+        const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+
         const notifTracker = {
             element: el,
             audio,
@@ -175,35 +184,35 @@ function displayNotification(text, iconSrc, duration) {
             fallbackTimeoutId: null,
             startTime: Date.now(),
             duration,
-            triggerLeaving: null
+            triggerLeaving: null,
         };
         activeNotifications.add(notifTracker);
-        
+
         const wrappedResolve = () => {
             activeNotifications.delete(notifTracker);
             resolve();
         };
         notifTracker.resolve = wrappedResolve;
-        
+
         // Animate in
         // Use double RAF to ensure transition triggers
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                el.classList.add('is-visible');
+                el.classList.add("is-visible");
             });
         });
-        
+
         notifTracker.triggerLeaving = () => {
-            el.classList.remove('is-visible');
-            el.classList.add('is-leaving');
-            
+            el.classList.remove("is-visible");
+            el.classList.add("is-leaving");
+
             const cleanup = () => {
                 el.remove();
                 wrappedResolve();
             };
-            
-            el.addEventListener('transitionend', cleanup, { once: true });
-            
+
+            el.addEventListener("transitionend", cleanup, { once: true });
+
             // Safety timeout in case transitionend doesn't fire
             notifTracker.fallbackTimeoutId = setTimeout(() => {
                 if (el.isConnected) {
@@ -212,7 +221,7 @@ function displayNotification(text, iconSrc, duration) {
                 }
             }, 600);
         };
-        
+
         // Wait for duration
         notifTracker.timeoutId = setTimeout(notifTracker.triggerLeaving, duration);
     });
@@ -224,8 +233,8 @@ export function showNotification(text, iconSrc, duration = 5000) {
 }
 
 export function initNotifications() {
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     if (IS_MOBILE) {
         const checkOrientation = () => {
             if (getActiveSlot() == null) {
@@ -243,47 +252,47 @@ export function initNotifications() {
                 landscapeWarningShownForSession = false;
             }
         };
-        window.addEventListener('resize', checkOrientation);
-        window.addEventListener('orientationchange', checkOrientation);
+        window.addEventListener("resize", checkOrientation);
+        window.addEventListener("orientationchange", checkOrientation);
         // Initial check deferred slightly to ensure layout is ready
         setTimeout(checkOrientation, 500);
     }
-    
-    window.addEventListener('lab:node:change', (e) => {
+
+    window.addEventListener("lab:node:change", (e) => {
         const { id, level, suppressNotify } = e.detail || {};
         if (!id || level == null || suppressNotify) return;
-        
+
         const node = NODE_MAP.get(id);
         if (!node) return;
-        
+
         // Check max level
         const maxLevel = node.maxLevel;
         if (level < maxLevel) return;
-        
+
         // Check if viewing lab
         if (isViewingLabTab()) return;
-        
+
         // Show notification
-        const title = node.title || 'Node';
+        const title = node.title || "Node";
         showNotification(`${title}<br>Maxed!`, node.icon);
     });
 }
 
 export function showWelcomePopup(isMobile) {
-    const parent = document.createElement('div');
-    parent.className = 'welcome-popup-container';
-    
-    const el = document.createElement('div');
-    el.className = 'welcome-popup notification-text';
-    
-    const action = isMobile ? 'swiping your finger' : 'hovering your cursor';
+    const parent = document.createElement("div");
+    parent.className = "welcome-popup-container";
+
+    const el = document.createElement("div");
+    el.className = "welcome-popup notification-text";
+
+    const action = isMobile ? "swiping your finger" : "hovering your cursor";
     el.innerHTML = `Welcome to the game! Collect the Coins by ${action} over them.`;
-    
+
     parent.appendChild(el);
     document.body.appendChild(parent);
-    
-    const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
-    
+
+    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+
     const popupTracker = {
         element: parent,
         audio,
@@ -291,27 +300,27 @@ export function showWelcomePopup(isMobile) {
         fallbackTimeoutId: null,
         startTime: Date.now(),
         duration: 9000,
-        triggerLeaving: null
+        triggerLeaving: null,
     };
     activeWelcomePopups.add(popupTracker);
-    
+
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            el.classList.add('is-visible');
+            el.classList.add("is-visible");
         });
     });
-    
+
     popupTracker.triggerLeaving = () => {
-        el.classList.remove('is-visible');
-        el.classList.add('is-leaving');
-        
+        el.classList.remove("is-visible");
+        el.classList.add("is-leaving");
+
         const cleanup = () => {
             parent.remove();
             activeWelcomePopups.delete(popupTracker);
         };
-        
-        el.addEventListener('transitionend', cleanup, { once: true });
-        
+
+        el.addEventListener("transitionend", cleanup, { once: true });
+
         popupTracker.fallbackTimeoutId = setTimeout(() => {
             if (parent.isConnected) {
                 parent.remove();
@@ -319,24 +328,27 @@ export function showWelcomePopup(isMobile) {
             activeWelcomePopups.delete(popupTracker);
         }, 1200);
     };
-    
+
     popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000); // 1s enter + 8s wait = 9000ms
 }
 
-export function showWideNotification(text, duration = 9000) {
-    const parent = document.createElement('div');
-    parent.className = 'welcome-popup-container';
-    
-    const el = document.createElement('div');
-    el.className = 'welcome-popup notification-text';
-    
+export function showWideNotification(text, duration = 9000, options = {}) {
+    const parent = document.createElement("div");
+    parent.className = "welcome-popup-container";
+
+    const el = document.createElement("div");
+    el.className = "welcome-popup notification-text";
+
     el.innerHTML = text;
-    
+
     parent.appendChild(el);
     document.body.appendChild(parent);
-    
-    const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
-    
+
+    let audio = null;
+    if (!options.muteSound) {
+        audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+    }
+
     const popupTracker = {
         element: parent,
         audio,
@@ -344,27 +356,27 @@ export function showWideNotification(text, duration = 9000) {
         fallbackTimeoutId: null,
         startTime: Date.now(),
         duration,
-        triggerLeaving: null
+        triggerLeaving: null,
     };
     activeWelcomePopups.add(popupTracker);
-    
+
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            el.classList.add('is-visible');
+            el.classList.add("is-visible");
         });
     });
-    
+
     popupTracker.triggerLeaving = () => {
-        el.classList.remove('is-visible');
-        el.classList.add('is-leaving');
-        
+        el.classList.remove("is-visible");
+        el.classList.add("is-leaving");
+
         const cleanup = () => {
             parent.remove();
             activeWelcomePopups.delete(popupTracker);
         };
-        
-        el.addEventListener('transitionend', cleanup, { once: true });
-        
+
+        el.addEventListener("transitionend", cleanup, { once: true });
+
         popupTracker.fallbackTimeoutId = setTimeout(() => {
             if (parent.isConnected) {
                 parent.remove();
@@ -372,30 +384,33 @@ export function showWideNotification(text, duration = 9000) {
             activeWelcomePopups.delete(popupTracker);
         }, 1200);
     };
-    
+
     popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, duration);
 }
 
 export function showWeeklyReminderPopup() {
-    showWideNotification(`Weekly reminder: Remember to export your save data (Main menu → Manage save slots) in case you lose it!`, 18000);
+    showWideNotification(
+        `Weekly reminder: Remember to export your save data (Main menu → Manage save slots) in case you lose it!`,
+        18000,
+    );
 }
 
 export function showLandscapeWarningPopup() {
     if (landscapeWarningTracker) return;
-    
-    const parent = document.createElement('div');
-    parent.className = 'welcome-popup-container';
-    
-    const el = document.createElement('div');
-    el.className = 'welcome-popup notification-text';
-    
+
+    const parent = document.createElement("div");
+    parent.className = "welcome-popup-container";
+
+    const el = document.createElement("div");
+    el.className = "welcome-popup notification-text";
+
     el.innerHTML = `This game is intended to be played in Portrait mode. Landscape mode may be unplayable.`;
-    
+
     parent.appendChild(el);
     document.body.appendChild(parent);
-    
-    const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
-    
+
+    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+
     landscapeWarningTracker = {
         element: parent,
         el,
@@ -404,44 +419,44 @@ export function showLandscapeWarningPopup() {
         fallbackTimeoutId: null,
         startTime: Date.now(),
         duration: 18000,
-        triggerLeaving: null
+        triggerLeaving: null,
     };
-    
+
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            el.classList.add('is-visible');
+            el.classList.add("is-visible");
         });
     });
-    
+
     landscapeWarningTracker.triggerLeaving = () => {
         hideLandscapeWarningPopup();
     };
-    
+
     landscapeWarningTracker.timeoutId = setTimeout(landscapeWarningTracker.triggerLeaving, 18000); // 18000ms
 }
 
 export function hideLandscapeWarningPopup() {
     if (!landscapeWarningTracker) return;
-    
+
     const tracker = landscapeWarningTracker;
     landscapeWarningTracker = null;
-    
+
     const { element: parent, el, timeoutId, fallbackTimeoutId } = tracker;
-    
+
     if (timeoutId) clearTimeout(timeoutId);
     if (fallbackTimeoutId) clearTimeout(fallbackTimeoutId);
-    
-    el.classList.remove('is-visible');
-    el.classList.add('is-leaving');
-    
+
+    el.classList.remove("is-visible");
+    el.classList.add("is-leaving");
+
     const cleanup = () => {
         if (parent.isConnected) {
             parent.remove();
         }
     };
-    
-    el.addEventListener('transitionend', cleanup, { once: true });
-    
+
+    el.addEventListener("transitionend", cleanup, { once: true });
+
     tracker.fallbackTimeoutId = setTimeout(() => {
         if (parent.isConnected) {
             parent.remove();
