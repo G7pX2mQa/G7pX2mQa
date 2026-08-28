@@ -2283,7 +2283,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         setAudioSuspended(hidden);
         if (currentMusic && currentMusic.element) {
             if (hidden) {
-                currentMusic.element.pause();
+                if (!settingsManager.get("play_music_when_hidden")) {
+                    currentMusic.element.pause();
+                }
             } else {
                 currentMusic.element.play().catch(() => {});
             }
