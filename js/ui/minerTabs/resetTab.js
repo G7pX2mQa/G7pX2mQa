@@ -321,7 +321,7 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge 
     const currentMode = btn.dataset.mode;
     if (targetMode === "msg") {
         if (currentMode !== "msg" || btn.textContent !== msg) {
-            btn.innerHTML = `<span class="merchant-reset__req-msg">${msg}</span>`;
+            setHtmlOrText(btn, `<span class="merchant-reset__req-msg">${msg}</span>`);
             btn.dataset.mode = "msg";
         }
         return;
@@ -329,11 +329,11 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge 
 
     const amountStr = formatBn(pendingAmountBn, isSurge);
     if (currentMode !== "action") {
-        btn.innerHTML = `
+        setHtmlOrText(btn, `
         <span class="merchant-reset__action-plus">+</span>
         <span class="merchant-reset__action-icon"><img src="${iconSrc}" alt=""></span>
         <span class="merchant-reset__action-amount">${amountStr}</span>
-      `;
+      `);
         btn.dataset.mode = "action";
     } else {
         const amtEl = btn.querySelector(".merchant-reset__action-amount");
@@ -525,7 +525,7 @@ function updateCombineCard() {
 				The amount of Cores you get from this first Combine reset isn't too important; reset immediately
               </span>
             `.trim();
-            if (el.status.innerHTML !== expected) el.status.innerHTML = expected;
+        if (el.status.innerHTML !== expected) setHtmlOrText(el.status, expected);
         }
     }
     if (!checkCombineRequirements()) {
@@ -567,7 +567,7 @@ function updateCompressCard() {
 				Purchasing the "Unlock Compress" upgrade unlocked the Crystal building; spend Crystals there<br>
               </span>
             `.trim();
-            if (!el.status.innerHTML.includes("Pressure")) el.status.innerHTML = expected;
+        if (!el.status.innerHTML.includes("Pressure")) setHtmlOrText(el.status, expected);
         }
     }
     if (!checkCompressRequirements()) {
