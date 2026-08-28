@@ -452,7 +452,6 @@ export function getSurge200Multiplier() {
 
 export function getSurge40Multiplier() {
     if (!isSurgeActive(40)) return BigNum.fromInt(1);
-    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
@@ -482,7 +481,6 @@ export function getSurge40Multiplier() {
 
 export function getSurge50Multiplier() {
     if (!isSurgeActive(50)) return BigNum.fromInt(1);
-    if (getTsunamiExponent() === 0) return BigNum.fromInt(1);
     if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === "string" && cachedSurgeLevel === "Infinity")) {
         return BigNum.fromAny("Infinity");
     }
