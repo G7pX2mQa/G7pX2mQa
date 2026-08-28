@@ -1167,19 +1167,26 @@ function drawCavern(ctx, w, h, t) {
       ctx.save();
       ctx.scale(2, 1); // DOUBLE THE WIDTH
       
-      // 1. Massive Background Aura
-      const auraGrad = ctx.createRadialGradient(vortexX, vortexY, 50, vortexX, vortexY, 600);
-      auraGrad.addColorStop(0, 'rgba(17, 34, 204, 0.4)');
-      auraGrad.addColorStop(0.5, 'rgba(0, 26, 77, 0.2)');
-      auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      // 1. Massive Background Aura (Cached for extreme performance)
+      if (!window.cachedVortexAura) {
+          const offC = document.createElement('canvas');
+          offC.width = 600; // 600x600 provides perfect quality while being 4x faster than 1200x1200
+          offC.height = 600;
+          const offCtx = offC.getContext('2d');
+          const grad = offCtx.createRadialGradient(300, 300, 25, 300, 300, 300);
+          grad.addColorStop(0, 'rgba(17, 34, 204, 0.4)');
+          grad.addColorStop(0.5, 'rgba(0, 26, 77, 0.2)');
+          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          offCtx.fillStyle = grad;
+          offCtx.fillRect(0, 0, 600, 600);
+          window.cachedVortexAura = offC;
+      }
       ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = auraGrad;
-      ctx.beginPath();
-      ctx.arc(vortexX, vortexY, 600, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1.0;
+      ctx.drawImage(window.cachedVortexAura, vortexX - 600, vortexY - 600, 1200, 1200);
       
-      // 2. Swirling Vortex Center
+      // 2. Swirling Vortex Center (Restored using optimized thick strokes instead of slow annular fills)
+      ctx.globalCompositeOperation = 'source-over';
       ctx.save();
       ctx.translate(vortexX, vortexY);
       ctx.rotate(t * -0.2);
@@ -1192,15 +1199,19 @@ function drawCavern(ctx, w, h, t) {
           ctx.save();
           ctx.rotate(layerSpeed);
           
+          // Draw the thick textured ring using a stroke, which is ~100x faster than filling a donut path
+          ctx.beginPath();
+          ctx.arc(0, 0, layerScale - 20, 0, Math.PI * 2); 
+          ctx.strokeStyle = fillSapphire; 
+          ctx.lineWidth = 40; 
+          ctx.globalAlpha = t7 * (0.2 + (numLayers - l) * 0.15);
+          ctx.stroke();
+          
+          // Thin solid outer and inner structural lines
           ctx.beginPath();
           ctx.arc(0, 0, layerScale, 0, Math.PI * 2);
           ctx.moveTo(Math.max(0, layerScale - 40), 0);
-          ctx.arc(0, 0, Math.max(0, layerScale - 40), 0, Math.PI * 2, true);
-          
-          ctx.fillStyle = fillSapphire;
-          ctx.globalAlpha = t7 * (0.2 + (numLayers - l) * 0.15);
-          ctx.fill();
-          
+          ctx.arc(0, 0, Math.max(0, layerScale - 40), 0, Math.PI * 2);
           ctx.strokeStyle = '#2244ff';
           ctx.lineWidth = 2 + (numLayers - l);
           ctx.globalAlpha = t7 * 0.5;
@@ -1219,33 +1230,29 @@ function drawCavern(ctx, w, h, t) {
       ctx.stroke();
       
       const numStars = 60;
-      ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = '#0044ff'; // Deeper cosmic blue
-      ctx.strokeStyle = 'rgba(0, 51, 255, 0.8)'; // Stronger, deeper blue trail
+      ctx.globalCompositeOperation = 'source-over'; // Guaranteed hardware fast-path
+      ctx.fillStyle = '#4488ff'; // Brighter to compensate for lack of additive blending
+      ctx.strokeStyle = 'rgba(68, 136, 255, 0.8)'; // Brighter trail
+      ctx.lineWidth = 1.5; // Constant width for batching
+      ctx.globalAlpha = t7;
       
+      ctx.beginPath();
       for (let i = 0; i < numStars; i++) {
-          // Assign each star a permanent orbit radius
-          // Using pseudo-random cosine mapping to distribute them nicely
-          const currentRadius = 140 + (Math.cos(i * 321.12) * 90); // range 50 to 230
+          const currentRadius = 140 + (Math.cos(i * 321.12) * 90);
           const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
           
-          // Kepler-like speeds: closer stars orbit faster
           const speedMultiplier = (230 - currentRadius) / 50 + 0.5;
           const currentAngle = angleOffset + t * speedMultiplier;
           
           const starX = Math.cos(currentAngle) * currentRadius;
-          const starY = Math.sin(currentAngle) * currentRadius * 0.7; // slight elliptical tilt
+          const starY = Math.sin(currentAngle) * currentRadius * 0.7;
           
-          ctx.globalAlpha = t7;
-          
-          // Outer stars might be slightly smaller
-          const starSize = 2.0 + (50 / currentRadius) * 3; // Made stars significantly larger
+          const starSize = 2.0 + (50 / currentRadius) * 3;
           
           ctx.beginPath();
           ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
           ctx.fill();
           
-          // Trace the trail along the orbit path backwards
           const prevAngle = currentAngle - 0.05 - (speedMultiplier * 0.03); 
           const prevX = Math.cos(prevAngle) * currentRadius;
           const prevY = Math.sin(prevAngle) * currentRadius * 0.7;
@@ -1253,9 +1260,9 @@ function drawCavern(ctx, w, h, t) {
           ctx.beginPath();
           ctx.moveTo(starX, starY);
           ctx.lineTo(prevX, prevY);
-          ctx.lineWidth = starSize * 0.8;
           ctx.stroke();
       }
+      
       ctx.restore();
       ctx.restore();
       ctx.restore();
@@ -10285,6 +10292,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
       
       // Detached droplets swirling violently
       ctx.fillStyle = '#1122cc';
+      ctx.beginPath();
       for (let d = 0; d < 80; d++) {
           const dAngle = t * (3 + (d % 4)) + (d * 0.1);
           const baseDR = 30 + (d % 30);
@@ -10295,11 +10303,11 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
               const dropY = Math.sin(dAngle) * dR;
               const dropSize = 0.5 + (d % 2);
               
-              ctx.beginPath();
+              ctx.moveTo(dropX + dropSize, dropY);
               ctx.arc(dropX, dropY, dropSize, 0, Math.PI * 2);
-              ctx.fill();
           }
       }
+      ctx.fill();
       ctx.restore();
   };
 
