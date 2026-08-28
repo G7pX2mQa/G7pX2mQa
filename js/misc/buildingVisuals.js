@@ -10262,6 +10262,11 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         // Gravitational Waves
         ctx.save();
         ctx.rotate(galaxyTime);
+        const waveGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+        waveGrad.addColorStop(0, 'rgba(100, 150, 255, 0.8)');
+        waveGrad.addColorStop(0.5, 'rgba(20, 40, 160, 0.5)');
+        waveGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
         for (let w = 0; w < 4; w++) {
             ctx.save();
             ctx.rotate((Math.PI / 2) * w);
@@ -10269,18 +10274,11 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
             ctx.moveTo(0, 0);
             ctx.quadraticCurveTo(20, 50, coreRadius, coreRadius);
             ctx.quadraticCurveTo(50, 10, 0, 0);
-            const waveGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
-            // Replaced cyan with soft sapphire
-            waveGrad.addColorStop(0, 'rgba(100, 150, 255, 0.8)');
-            waveGrad.addColorStop(0.5, 'rgba(20, 40, 160, 0.5)');
-            waveGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
             ctx.fillStyle = waveGrad;
             ctx.fill();
             ctx.restore();
         }
         ctx.restore();
-        
-        let constellationPoints = [];
         
         // Stars spiraling inwards
         ctx.fillStyle = '#88aaff'; // Soft ice blue (no cyan)
@@ -10292,10 +10290,8 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
             const px = Math.cos(sAngle) * sDist;
             const py = Math.sin(sAngle) * sDist;
             
-            ctx.moveTo(px, py);
-            ctx.arc(px, py, (s % 3 === 0) ? 1.5 : 0.8, 0, Math.PI * 2);
-            
-            if (s < 15) constellationPoints.push({x: px, y: py});
+            const sSize = (s % 3 === 0) ? 3 : 1.6;
+            ctx.rect(px - sSize/2, py - sSize/2, sSize, sSize);
         }
         ctx.fill();
 
@@ -10308,31 +10304,15 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
             const px = Math.cos(sAngle) * sDist;
             const py = Math.sin(sAngle) * sDist;
             
-            ctx.moveTo(px, py);
-            ctx.arc(px, py, (s % 4 === 0) ? 1.5 : 0.8, 0, Math.PI * 2);
-            
-            if (s < 115) constellationPoints.push({x: px, y: py});
+            const sSize = (s % 4 === 0) ? 3 : 1.6;
+            ctx.rect(px - sSize/2, py - sSize/2, sSize, sSize);
         }
         ctx.fill();
         
-        // Draw Constellations
-        ctx.strokeStyle = 'rgba(100, 150, 255, 0.25)';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        for (let i = 0; i < constellationPoints.length - 1; i++) {
-            ctx.moveTo(constellationPoints[i].x, constellationPoints[i].y);
-            ctx.lineTo(constellationPoints[i+1].x, constellationPoints[i+1].y);
-            if (i < constellationPoints.length - 2) {
-                ctx.lineTo(constellationPoints[i+2].x, constellationPoints[i+2].y);
-            }
-        }
-        ctx.stroke();
-        
         // Continuous Supernova
-        const pulse = Math.sin(t * 15) * 0.5 + 0.5;
-        const novaGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 25 + pulse * 10);
+        const novaGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 30);
         novaGrad.addColorStop(0, '#fff');
-        novaGrad.addColorStop(0.2, `rgba(120, 160, 255, ${0.9 + pulse * 0.1})`);
+        novaGrad.addColorStop(0.2, 'rgba(120, 160, 255, 0.95)');
         novaGrad.addColorStop(0.5, 'rgba(20, 50, 200, 0.5)');
         novaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
@@ -10343,7 +10323,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         
         // Outer Core Shield Rim
         ctx.strokeStyle = '#3366ff';
-        ctx.lineWidth = 2 + pulse;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.arc(0, 0, coreRadius - 1, 0, Math.PI * 2);
         ctx.stroke();
