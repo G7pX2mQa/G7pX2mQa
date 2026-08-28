@@ -183,9 +183,11 @@
   justify-content: center;
   align-items: center;
   padding: 8px 16px;
-  background: var(--sas-bg);
+  background: transparent;
   color: #fff;
   font-weight: bold;
   font-size: 1.1rem;
   border-bottom: 1px solid var(--sas-border);
+  -webkit-user-select: text;
+  user-select: text;
 }
