@@ -461,6 +461,40 @@ export function setMusicVolume(volumePercentage) {
     }
 }
 
+export function muteAndFadeInBackgroundAudio(muteDurationMs, fadeDurationMs) {
+    if (!audioContext) return;
+    
+    const musicVolSetting = settingsManager.get('music_volume');
+    const targetMusicVol = (musicVolSetting !== undefined && musicVolSetting !== false) ? Number(musicVolSetting) : 100;
+    
+    const sfxVolSetting = settingsManager.get('sfx_volume');
+    const targetSfxVol = (sfxVolSetting !== undefined && sfxVolSetting !== false) ? Number(sfxVolSetting) : 100;
+
+    // Immediately mute
+    setMusicVolume(0);
+    setSfxVolume(0);
+
+    setTimeout(() => {
+        const steps = 20;
+        const stepTime = fadeDurationMs / steps;
+        let currentStep = 0;
+        
+        const fadeInterval = setInterval(() => {
+            currentStep++;
+            const progress = currentStep / steps;
+            
+            setMusicVolume(targetMusicVol * progress);
+            setSfxVolume(targetSfxVol * progress);
+            
+            if (currentStep >= steps) {
+                clearInterval(fadeInterval);
+                setMusicVolume(targetMusicVol);
+                setSfxVolume(targetSfxVol);
+            }
+        }, stepTime);
+    }, muteDurationMs);
+}
+
 export function setSfxVolume(volumePercentage) {
     if (!sfxGain) return;
     
