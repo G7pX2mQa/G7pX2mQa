@@ -2026,6 +2026,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "sounds/void_buildup.ogg",
             "sounds/warp.ogg",
             "sounds/wave_spawn.ogg",
+			"sounds/winner.ogg",
             "sounds/you_will_die_there_is_nowhere_to_run.ogg",
         ],
     };
