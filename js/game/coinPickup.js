@@ -522,7 +522,7 @@ export function initCoinPickup({
         }
     }
 
-    const resolvedSrc = new URL(soundSrc, document.baseURI).href;
+    const resolvedSrc = soundSrc;
     // Optimization: use _coinObj if present, fallback to dataset/matches
     const isCoin = (el) => {
         if (!(el instanceof HTMLElement)) return false;
