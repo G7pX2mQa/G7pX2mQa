@@ -1,68 +1,76 @@
-import { SECRET_ACHIEVEMENTS, SECRET_ACHIEVEMENT_STATES, getSecretAchievementState, setSecretAchievementState, getLifetimeSizeCoinsCollected } from '../../../game/secretAchievements.js';
-import { bank, getActiveSlot } from '../../../util/storage.js';
-import { playPurchaseSfx } from '../../shopOverlay.js';
-import { shouldSkipGhostTap } from '../../../util/ghostTapGuard.js';
+import {
+    SECRET_ACHIEVEMENTS,
+    SECRET_ACHIEVEMENT_STATES,
+    getSecretAchievementState,
+    setSecretAchievementState,
+    getLifetimeSizeCoinsCollected,
+} from "../../../game/secretAchievements.js";
+import { bank, getActiveSlot } from "../../../util/storage.js";
+import { playPurchaseSfx } from "../../shopOverlay.js";
+import { shouldSkipGhostTap } from "../../../util/ghostTapGuard.js";
+import { playAudio, muteAndFadeInBackgroundAudio } from "../../../util/audioManager.js";
+import { showWideNotification } from "../../notifications.js";
 
 let currentGrid = null;
 
-const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
+const MAXED_BASE_OVERLAY_SRC = "img/misc/maxed.webp";
 
 function renderSecretAchievements(gridEl) {
-    gridEl.innerHTML = '';
+    gridEl.innerHTML = "";
     const slot = getActiveSlot();
 
     let achievedCount = 0;
     const totalCount = SECRET_ACHIEVEMENTS.length;
 
-    SECRET_ACHIEVEMENTS.forEach(achievement => {
+    SECRET_ACHIEVEMENTS.forEach((achievement) => {
         const state = getSecretAchievementState(achievement.id, slot);
         if (state === SECRET_ACHIEVEMENT_STATES.ACHIEVED) {
             achievedCount++;
         }
 
-        const btn = document.createElement('button');
-        btn.className = 'achievement-btn';
-        btn.type = 'button';
+        const btn = document.createElement("button");
+        btn.className = "achievement-btn";
+        btn.type = "button";
         btn.dataset.id = achievement.id;
 
-        const tile = document.createElement('div');
-        tile.className = 'shop-tile';
+        const tile = document.createElement("div");
+        tile.className = "shop-tile";
 
-        const iconImg = document.createElement('img');
-        iconImg.className = 'icon';
-        iconImg.alt = '';
+        const iconImg = document.createElement("img");
+        iconImg.className = "icon";
+        iconImg.alt = "";
         iconImg.src = achievement.icon;
 
         tile.appendChild(iconImg);
 
         if (state === SECRET_ACHIEVEMENT_STATES.ACHIEVED) {
-            const maxedOverlay = document.createElement('img');
-            maxedOverlay.className = 'maxed-overlay';
-            maxedOverlay.alt = '';
+            const maxedOverlay = document.createElement("img");
+            maxedOverlay.className = "maxed-overlay";
+            maxedOverlay.alt = "";
             maxedOverlay.src = MAXED_BASE_OVERLAY_SRC;
             tile.insertBefore(maxedOverlay, iconImg);
         }
 
-        const badge = document.createElement('span');
-        badge.className = 'level-badge text-badge';
-        
+        const badge = document.createElement("span");
+        badge.className = "level-badge text-badge";
+
         let appendBadge = true;
 
         if (state === SECRET_ACHIEVEMENT_STATES.NOT_OWNED) {
-            btn.classList.add('is-locked');
-            iconImg.style.filter = 'brightness(0.05)';
+            btn.classList.add("is-locked");
+            iconImg.style.filter = "brightness(0.05)";
             appendBadge = false;
             btn.title = `Hint: The title of this is “${achievement.title}”`;
-            btn.style.cursor = 'pointer';
+            btn.style.cursor = "pointer";
         } else if (state === SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM) {
-            btn.classList.add('is-pending');
-            badge.textContent = 'Pending Claim';
-            badge.classList.add('can-buy');
+            btn.classList.add("is-pending");
+            badge.textContent = "Pending Claim";
+            badge.classList.add("can-buy");
             btn.title = achievement.title;
         } else if (state === SECRET_ACHIEVEMENT_STATES.ACHIEVED) {
-            btn.classList.add('is-claimed');
-            badge.textContent = 'Achieved';
-            badge.classList.add('is-maxed');
+            btn.classList.add("is-claimed");
+            badge.textContent = "Achieved";
+            badge.classList.add("is-maxed");
             btn.title = achievement.title;
         }
 
@@ -72,7 +80,7 @@ function renderSecretAchievements(gridEl) {
         btn.appendChild(tile);
         gridEl.appendChild(btn);
 
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener("click", (e) => {
             if (e.isTrusted && shouldSkipGhostTap(btn)) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
@@ -82,14 +90,29 @@ function renderSecretAchievements(gridEl) {
             openSecretAchievementDetails(achievement);
         });
 
-        btn.addEventListener('contextmenu', (e) => {
+        btn.addEventListener("contextmenu", (e) => {
             e.preventDefault();
             if (state === SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM) {
                 if (achievement.rewardAmount && bank.voidGems) {
                     bank.voidGems.add(achievement.rewardAmount);
                 }
                 setSecretAchievementState(achievement.id, SECRET_ACHIEVEMENT_STATES.ACHIEVED, slot);
-                playPurchaseSfx();
+                
+                let allAchieved = true;
+                for (const ach of SECRET_ACHIEVEMENTS) {
+                    if (getSecretAchievementState(ach.id, slot) !== SECRET_ACHIEVEMENT_STATES.ACHIEVED) {
+                        allAchieved = false;
+                        break;
+                    }
+                }
+                if (allAchieved) {
+                    playAudio("sounds/winner.ogg", { volume: 0.5, type: "ui" });
+                    muteAndFadeInBackgroundAudio(3000, 2000);
+                    showWideNotification("You've claimed 100% of all secret achievements!", 10000, { muteSound: true });
+                } else {
+                    playPurchaseSfx();
+                }
+                
                 renderSecretAchievements(gridEl);
                 updateProgressRow(gridEl);
             }
@@ -98,13 +121,13 @@ function renderSecretAchievements(gridEl) {
 }
 
 function updateProgressRow(gridEl) {
-    const progressRow = document.getElementById('secret-achievements-progress-row');
+    const progressRow = document.getElementById("secret-achievements-progress-row");
     if (!progressRow) return;
 
     const slot = getActiveSlot();
     let achievedCount = 0;
     const totalCount = SECRET_ACHIEVEMENTS.length;
-    SECRET_ACHIEVEMENTS.forEach(achievement => {
+    SECRET_ACHIEVEMENTS.forEach((achievement) => {
         const state = getSecretAchievementState(achievement.id, slot);
         if (state === SECRET_ACHIEVEMENT_STATES.ACHIEVED) {
             achievedCount++;
@@ -113,9 +136,9 @@ function updateProgressRow(gridEl) {
 
     progressRow.innerHTML = `Secret Achievements: ${achievedCount}/${totalCount}`;
     if (achievedCount === totalCount && totalCount > 0) {
-        progressRow.style.color = '#02e815';
+        progressRow.style.color = "#02e815";
     } else {
-        progressRow.style.color = '#fff';
+        progressRow.style.color = "#fff";
     }
 }
 
@@ -127,9 +150,9 @@ export function initSecretAchievementsTab(panel) {
         <div class="achievements-grid"></div>
     `;
 
-    const grid = panel.querySelector('.achievements-grid');
+    const grid = panel.querySelector(".achievements-grid");
     currentGrid = grid;
-    
+
     renderSecretAchievements(grid);
     updateProgressRow(grid);
 }
@@ -142,33 +165,33 @@ export function updateSecretAchievementsTab() {
 }
 
 function ensureSecretAchievementOverlay() {
-    if (document.getElementById('secret-achievement-details-overlay')) return;
+    if (document.getElementById("secret-achievement-details-overlay")) return;
 
-    const overlay = document.createElement('div');
-    overlay.id = 'secret-achievement-details-overlay';
-    overlay.className = 'upg-overlay';
-    
-    const sheet = document.createElement('div');
-    sheet.className = 'upg-sheet';
-    
-    const grabber = document.createElement('div');
-    grabber.className = 'upg-grabber';
+    const overlay = document.createElement("div");
+    overlay.id = "secret-achievement-details-overlay";
+    overlay.className = "upg-overlay";
+
+    const sheet = document.createElement("div");
+    sheet.className = "upg-sheet";
+
+    const grabber = document.createElement("div");
+    grabber.className = "upg-grabber";
     grabber.innerHTML = `<div class="grab-handle"></div>`;
-    
-    const header = document.createElement('header');
-    header.className = 'upg-header';
-    
-    const content = document.createElement('div');
-    content.className = 'upg-content';
-    
-    const actions = document.createElement('div');
-    actions.className = 'upg-actions';
-    
+
+    const header = document.createElement("header");
+    header.className = "upg-header";
+
+    const content = document.createElement("div");
+    content.className = "upg-content";
+
+    const actions = document.createElement("div");
+    actions.className = "upg-actions";
+
     sheet.append(grabber, header, content, actions);
     overlay.appendChild(sheet);
     document.body.appendChild(overlay);
-    
-    overlay.addEventListener('pointerdown', (e) => {
+
+    overlay.addEventListener("pointerdown", (e) => {
         if (e.target === overlay) {
             closeSecretAchievementDetails();
         }
@@ -177,23 +200,23 @@ function ensureSecretAchievementOverlay() {
 
 function openSecretAchievementDetails(achievement) {
     ensureSecretAchievementOverlay();
-    const overlay = document.getElementById('secret-achievement-details-overlay');
-    const sheet = overlay.querySelector('.upg-sheet');
-    const header = overlay.querySelector('.upg-header');
-    const content = overlay.querySelector('.upg-content');
-    const actions = overlay.querySelector('.upg-actions');
-    
+    const overlay = document.getElementById("secret-achievement-details-overlay");
+    const sheet = overlay.querySelector(".upg-sheet");
+    const header = overlay.querySelector(".upg-header");
+    const content = overlay.querySelector(".upg-content");
+    const actions = overlay.querySelector(".upg-actions");
+
     const slot = getActiveSlot();
     const state = getSecretAchievementState(achievement.id, slot);
 
     if (state === SECRET_ACHIEVEMENT_STATES.NOT_OWNED) {
-        header.innerHTML = '';
-        
-        let extraHintHtml = '';
+        header.innerHTML = "";
+
+        let extraHintHtml = "";
         if (achievement.extraHint) {
             extraHintHtml = `<div class="upg-line" style="margin-top: 8px;">${achievement.extraHint}</div>`;
         }
-        
+
         let contentHtml = `
             <div class="upg-desc centered">Hint: The title of this is “${achievement.title}”${extraHintHtml}</div>
         `;
@@ -201,13 +224,13 @@ function openSecretAchievementDetails(achievement) {
     } else {
         header.innerHTML = `
             <div class="upg-title">${achievement.title}</div>
-            <div class="upg-level">${state === SECRET_ACHIEVEMENT_STATES.ACHIEVED ? 'Achieved' : 'Pending Claim'}</div>
+            <div class="upg-level">${state === SECRET_ACHIEVEMENT_STATES.ACHIEVED ? "Achieved" : "Pending Claim"}</div>
         `;
 
         // Process desc
         let desc = achievement.desc;
 
-        let lifetimeCountStr = '';
+        let lifetimeCountStr = "";
         if (achievement.trackedSize) {
             const lifetimeCount = getLifetimeSizeCoinsCollected(achievement.trackedSize, slot);
             lifetimeCountStr = `<div class="upg-line" style="margin-top: 8px; color: #aaa;">Total size ${achievement.trackedSize} Coins collected: ${lifetimeCount}</div>`;
@@ -228,29 +251,44 @@ function openSecretAchievementDetails(achievement) {
     actions.innerHTML = `
         <button type="button" class="shop-close">Close</button>
     `;
-    
-    const closeBtn = actions.querySelector('.shop-close');
-    closeBtn.addEventListener('click', closeSecretAchievementDetails);
+
+    const closeBtn = actions.querySelector(".shop-close");
+    closeBtn.addEventListener("click", closeSecretAchievementDetails);
 
     if (state === SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM) {
-        const claimBtn = document.createElement('button');
-        claimBtn.type = 'button';
-        claimBtn.className = 'shop-delve';
-        claimBtn.textContent = 'Claim';
-        claimBtn.addEventListener('click', () => {
+        const claimBtn = document.createElement("button");
+        claimBtn.type = "button";
+        claimBtn.className = "shop-delve";
+        claimBtn.textContent = "Claim";
+        claimBtn.addEventListener("click", () => {
             if (achievement.rewardAmount && bank.voidGems) {
                 bank.voidGems.add(achievement.rewardAmount);
             }
             setSecretAchievementState(achievement.id, SECRET_ACHIEVEMENT_STATES.ACHIEVED, slot);
-            playPurchaseSfx();
+            
+            let allAchieved = true;
+            for (const ach of SECRET_ACHIEVEMENTS) {
+                if (getSecretAchievementState(ach.id, slot) !== SECRET_ACHIEVEMENT_STATES.ACHIEVED) {
+                    allAchieved = false;
+                    break;
+                }
+            }
+            if (allAchieved) {
+                playAudio("sounds/winner.ogg", { volume: 0.5, type: "ui" });
+                muteAndFadeInBackgroundAudio(3000, 2000);
+                showWideNotification("You've claimed 100% of all secret achievements!", 10000, { muteSound: true });
+            } else {
+                playPurchaseSfx();
+            }
+            
             if (currentGrid) {
                 renderSecretAchievements(currentGrid);
                 updateProgressRow(currentGrid);
             }
             // Also update the header level to 'Achieved' so it visually reflects the change
-            const headerLevel = overlay.querySelector('.upg-level');
+            const headerLevel = overlay.querySelector(".upg-level");
             if (headerLevel) {
-                headerLevel.textContent = 'Achieved';
+                headerLevel.textContent = "Achieved";
             }
             // Remove the claim button from the DOM since it's now claimed
             claimBtn.remove();
@@ -258,22 +296,22 @@ function openSecretAchievementDetails(achievement) {
         actions.appendChild(claimBtn);
     }
 
-    overlay.classList.add('is-open');
-    sheet.style.transform = 'translateY(100%)';
+    overlay.classList.add("is-open");
+    sheet.style.transform = "translateY(100%)";
     void sheet.offsetHeight;
-    sheet.style.transform = 'translateY(0)';
+    sheet.style.transform = "translateY(0)";
 }
 
 function closeSecretAchievementDetails() {
-    const overlay = document.getElementById('secret-achievement-details-overlay');
+    const overlay = document.getElementById("secret-achievement-details-overlay");
     if (!overlay) return;
-    const sheet = overlay.querySelector('.upg-sheet');
-    sheet.style.transform = 'translateY(100%)';
-    overlay.classList.remove('is-open');
+    const sheet = overlay.querySelector(".upg-sheet");
+    sheet.style.transform = "translateY(100%)";
+    overlay.classList.remove("is-open");
 }
 
-if (typeof window !== 'undefined') {
-    window.addEventListener('secretAchievements:updated', () => {
+if (typeof window !== "undefined") {
+    window.addEventListener("secretAchievements:updated", () => {
         if (currentGrid) {
             renderSecretAchievements(currentGrid);
             updateProgressRow(currentGrid);
