@@ -1132,6 +1132,136 @@ function drawCavern(ctx, w, h, t) {
     }
   }
 
+  if (currentBuildingId === 'sapphire') {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
+    }
+    const t7 = drawTier >= 7 && previousTier < 7 ? animProgress : (drawTier >= 7 ? 1 : 0);
+    
+    if (t7 > 0) {
+      if (!sapphirePattern) {
+        if (activeCtx) initSapphirePattern(activeCtx);
+        else initSapphirePattern(ctx);
+      }
+      const fillSapphire = sapphirePattern || '#1122cc';
+      
+      const floorY = h - 260;
+      const cx = w / 2;
+      const targetScale = 1.0 + drawTier * 0.1;
+      const startScale = 1.0 + previousTier * 0.1;
+      const scale = startScale + (targetScale - startScale) * animProgress;
+      
+      ctx.save();
+      ctx.translate(cx, floorY);
+      ctx.scale(scale, scale);
+      
+      ctx.globalAlpha = t7;
+      
+      const vortexX = 0;
+      const vortexY = -120;
+      
+      ctx.save();
+      ctx.scale(2, 1); // DOUBLE THE WIDTH
+      
+      // 1. Massive Background Aura
+      const auraGrad = ctx.createRadialGradient(vortexX, vortexY, 50, vortexX, vortexY, 600);
+      auraGrad.addColorStop(0, 'rgba(17, 34, 204, 0.4)');
+      auraGrad.addColorStop(0.5, 'rgba(0, 26, 77, 0.2)');
+      auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = auraGrad;
+      ctx.beginPath();
+      ctx.arc(vortexX, vortexY, 600, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      
+      // 2. Swirling Vortex Center
+      ctx.save();
+      ctx.translate(vortexX, vortexY);
+      ctx.rotate(t * -0.2);
+      
+      const numLayers = 5;
+      for (let l = numLayers; l > 0; l--) {
+          const layerScale = l * 50;
+          const layerSpeed = t * (0.5 + l * 0.2);
+          
+          ctx.save();
+          ctx.rotate(layerSpeed);
+          
+          ctx.beginPath();
+          ctx.arc(0, 0, layerScale, 0, Math.PI * 2);
+          ctx.moveTo(Math.max(0, layerScale - 40), 0);
+          ctx.arc(0, 0, Math.max(0, layerScale - 40), 0, Math.PI * 2, true);
+          
+          ctx.fillStyle = fillSapphire;
+          ctx.globalAlpha = t7 * (0.2 + (numLayers - l) * 0.15);
+          ctx.fill();
+          
+          ctx.strokeStyle = '#2244ff';
+          ctx.lineWidth = 2 + (numLayers - l);
+          ctx.globalAlpha = t7 * 0.5;
+          ctx.stroke();
+          
+          ctx.restore();
+      }
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, 45, 0, Math.PI * 2);
+      ctx.fillStyle = '#010515';
+      ctx.fill();
+      
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#2244ff';
+      ctx.stroke();
+      
+      const numStars = 60;
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = '#0044ff'; // Deeper cosmic blue
+      ctx.strokeStyle = 'rgba(0, 51, 255, 0.8)'; // Stronger, deeper blue trail
+      
+      for (let i = 0; i < numStars; i++) {
+          // Assign each star a permanent orbit radius
+          // Using pseudo-random cosine mapping to distribute them nicely
+          const currentRadius = 140 + (Math.cos(i * 321.12) * 90); // range 50 to 230
+          const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
+          
+          // Kepler-like speeds: closer stars orbit faster
+          const speedMultiplier = (230 - currentRadius) / 50 + 0.5;
+          const currentAngle = angleOffset + t * speedMultiplier;
+          
+          const starX = Math.cos(currentAngle) * currentRadius;
+          const starY = Math.sin(currentAngle) * currentRadius * 0.7; // slight elliptical tilt
+          
+          ctx.globalAlpha = t7;
+          
+          // Outer stars might be slightly smaller
+          const starSize = 2.0 + (50 / currentRadius) * 3; // Made stars significantly larger
+          
+          ctx.beginPath();
+          ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Trace the trail along the orbit path backwards
+          const prevAngle = currentAngle - 0.05 - (speedMultiplier * 0.03); 
+          const prevX = Math.cos(prevAngle) * currentRadius;
+          const prevY = Math.sin(prevAngle) * currentRadius * 0.7;
+          
+          ctx.beginPath();
+          ctx.moveTo(starX, starY);
+          ctx.lineTo(prevX, prevY);
+          ctx.lineWidth = starSize * 0.8;
+          ctx.stroke();
+      }
+      ctx.restore();
+      ctx.restore();
+      ctx.restore();
+    }
+  }
+
   const floorH = 260;
 
   // Draw flat floor layers
@@ -10253,135 +10383,9 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
   };
 
-  
   // --- Tier 7: Massive Sapphire Vortex (Background) ---
-  if (t7 > 0) {
-      ctx.save();
-      ctx.globalAlpha = t7;
-      
-      const vortexX = 0;
-      const vortexY = -120; // Lower, near ground level (spinner center is -120)
-      
-      // 1. Massive Background Aura / Ambient Glow
-      const auraGrad = ctx.createRadialGradient(vortexX, vortexY, 50, vortexX, vortexY, 600);
-      auraGrad.addColorStop(0, 'rgba(17, 34, 204, 0.4)'); // Deep sapphire blue
-      auraGrad.addColorStop(0.5, 'rgba(0, 26, 77, 0.2)'); // Navy blue
-      auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      
-      ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = auraGrad;
-      ctx.beginPath();
-      ctx.arc(vortexX, vortexY, 600, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Back to normal blending for the vortex structure
-      ctx.globalCompositeOperation = 'source-over';
-      
-      // 2. Swirling Vortex Center (Wormhole)
-      ctx.save();
-      ctx.translate(vortexX, vortexY);
-      ctx.rotate(t * -0.2); // Slow, imposing rotation
-      
-      // Create depth with multiple layers of concentric swirling shapes
-      const numLayers = 5;
-      for (let l = numLayers; l > 0; l--) {
-          const layerScale = l * 50;
-          const layerSpeed = t * (0.5 + l * 0.2);
-          
-          ctx.save();
-          ctx.rotate(layerSpeed);
-          
-          // Outer edge of the layer
-          ctx.beginPath();
-          ctx.arc(0, 0, layerScale, 0, Math.PI * 2);
-          
-          // Inner edge to create a ring
-          ctx.arc(0, 0, Math.max(0, layerScale - 40), 0, Math.PI * 2, true);
-          
-          // Pattern blending
-          ctx.fillStyle = fillSapphire;
-          ctx.globalAlpha = t7 * (0.2 + (numLayers - l) * 0.15);
-          ctx.fill();
-          
-          // Edge highlights
-          ctx.strokeStyle = '#2244ff';
-          ctx.lineWidth = 2 + (numLayers - l);
-          ctx.globalAlpha = t7 * 0.5;
-          ctx.stroke();
-          
-          ctx.restore();
-      }
-      
-      // The absolute dark center (event horizon)
-      ctx.beginPath();
-      ctx.arc(0, 0, 45, 0, Math.PI * 2);
-      ctx.fillStyle = '#010515'; // Extremely dark blue, almost black
-      ctx.fill();
-      
-      // Intense blue rim around the event horizon
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = '#2244ff';
-      ctx.stroke();
-      
-      // 3. Sucked-in Particles / Stars (Accretion Disk)
-      const numStars = 150;
-      ctx.globalCompositeOperation = 'screen';
-      
-      for (let i = 0; i < numStars; i++) {
-          // Deterministic pseudorandom values based on 'i'
-          const offset = (Math.sin(i * 123.45) * 4321.12) % 1000;
-          const radiusMax = 450 + (Math.cos(i * 321.12) * 150);
-          const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
-          
-          // Time variable to pull them inwards continuously
-          const localT = (t * 0.5 + offset) % 10;
-          const progress = localT / 10; // 0 (far away) to 1 (at center)
-          
-          // Current radius shrinks towards center (45 is event horizon)
-          const currentRadius = 45 + (radiusMax - 45) * (1 - Math.pow(progress, 2));
-          
-          // As they get closer, they spin faster (spiral effect)
-          const currentAngle = angleOffset + (t * 0.8) + (progress * Math.PI * 4);
-          
-          const starX = Math.cos(currentAngle) * currentRadius;
-          const starY = Math.sin(currentAngle) * currentRadius * 0.7; // Slight elliptical tilt
-          
-          // Fade in at edges, brightest in middle, fade out at event horizon
-          let starAlpha = 1;
-          if (progress < 0.2) starAlpha = progress / 0.2;
-          if (progress > 0.8) starAlpha = (1 - progress) / 0.2;
-          
-          ctx.globalAlpha = t7 * starAlpha;
-          ctx.fillStyle = '#4466ff'; // Bright sapphire star
-          
-          // Size shrinks slightly as they fall in
-          const starSize = 1.5 + (1 - progress) * 2;
-          
-          ctx.beginPath();
-          ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Streak line (motion blur)
-          const trailLength = 15 + progress * 20; // Longer trail as they speed up
-          const prevAngle = currentAngle - 0.1;
-          const prevRadius = currentRadius + trailLength;
-          const prevX = Math.cos(prevAngle) * prevRadius;
-          const prevY = Math.sin(prevAngle) * prevRadius * 0.7;
-          
-          ctx.beginPath();
-          ctx.moveTo(starX, starY);
-          ctx.lineTo(prevX, prevY);
-          const streakGrad = ctx.createLinearGradient(starX, starY, prevX, prevY);
-          streakGrad.addColorStop(0, '#2244ff');
-          streakGrad.addColorStop(1, 'rgba(34, 68, 255, 0)');
-          ctx.strokeStyle = streakGrad;
-          ctx.lineWidth = starSize * 0.8;
-          ctx.stroke();
-      }
-      
-      ctx.restore(); // Restore vortex center translation
-      ctx.restore(); // Restore t7 alpha & save state
-  }
+  // Moved to drawCavern so it can be drawn behind the ground layer
+
 
 // Draw back nodes
   drawTier1Nodes(false);
