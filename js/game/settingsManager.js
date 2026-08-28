@@ -253,6 +253,14 @@ export const SETTING_DEFINITIONS = {
             }
         },
     },
+    play_music_when_hidden: {
+        type: "toggle",
+        label: "Play Music When Hidden",
+        hasExtraInfo: true,
+        info: "Normally, when you stop actively viewing the game (e.g., switching to another tab), the game loop and all audio is paused. If this setting is ON, the game's music will not be paused while the game is hidden.",
+        default: false,
+        unlockCondition: () => true,
+    },
     master_volume: {
         type: "slider",
         label: "Master Volume",
