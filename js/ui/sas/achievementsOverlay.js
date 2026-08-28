@@ -7,6 +7,8 @@ import { playPurchaseSfx } from "../shopOverlay.js";
 import { openAchievementExtras } from "./achievementExtras/rainbowGemShopTab.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { shouldSkipGhostTap } from "../../util/ghostTapGuard.js";
+import { playAudio, muteAndFadeInBackgroundAudio } from "../../util/audioManager.js";
+import { showWideNotification } from "../notifications.js";
 const MAXED_BASE_OVERLAY_SRC = "img/misc/maxed.webp";
 let currentGrid = null;
 let currentActions = null;
@@ -86,7 +88,22 @@ function renderAchievements(gridEl) {
                     bank.rainbowGems.add(actualReward);
                 }
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
-                playPurchaseSfx();
+                
+                let allAchieved = true;
+                for (const ach of ACHIEVEMENTS) {
+                    if (getAchievementState(ach.id, slot) !== ACHIEVEMENT_STATES.ACHIEVED) {
+                        allAchieved = false;
+                        break;
+                    }
+                }
+                if (allAchieved) {
+                    playAudio("sounds/winner.ogg", { volume: 0.5, type: "ui" });
+                    muteAndFadeInBackgroundAudio(3000, 2000);
+                    showWideNotification("You've claimed 100% of all achievements!", 10000, { muteSound: true });
+                } else {
+                    playPurchaseSfx();
+                }
+                
                 renderAchievements(gridEl);
             }
         });
@@ -249,7 +266,22 @@ function openAchievementDetails(achievement) {
                 bank.rainbowGems.add(actualReward);
             }
             setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
-            playPurchaseSfx();
+            
+            let allAchieved = true;
+            for (const ach of ACHIEVEMENTS) {
+                if (getAchievementState(ach.id, slot) !== ACHIEVEMENT_STATES.ACHIEVED) {
+                    allAchieved = false;
+                    break;
+                }
+            }
+            if (allAchieved) {
+                playAudio("sounds/winner.ogg", { volume: 0.5, type: "ui" });
+                muteAndFadeInBackgroundAudio(3000, 2000);
+                showWideNotification("You've claimed 100% of all achievements!", 10000, { muteSound: true });
+            } else {
+                playPurchaseSfx();
+            }
+            
             if (currentGrid) renderAchievements(currentGrid);
             // Also update the header level to 'Achieved' so it visually reflects the change
             const headerLevel = overlay.querySelector(".upg-level");
