@@ -11196,188 +11196,320 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // T0: Main Beacon Base (Trapezoid)
+  // Endgame Environmental FX: Anti-Gravity Debris
   ctx.save();
-  ctx.globalAlpha = 1.0; // Base is always visible
-  ctx.fillStyle = fillMat;
-  ctx.strokeStyle = '#1a0630';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(-80, 0);
-  ctx.lineTo(-40, -100);
-  ctx.lineTo(40, -100);
-  ctx.lineTo(80, 0);
-  ctx.fill();
-  ctx.stroke();
+  for (let i = 0; i < 20; i++) {
+    const cycle = ((t * 0.4) + (i * 0.37)) % 1.0; 
+    const debrisY = 30 - cycle * 250; 
+    const debrisX = Math.sin(i * 99 + t * 0.5) * 120;
+    
+    let alpha = 0;
+    if (cycle < 0.2) alpha = cycle / 0.2;
+    else if (cycle > 0.8) alpha = (1.0 - cycle) / 0.2;
+    else alpha = 1.0;
+    
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = (i % 2 === 0) ? '#d98cff' : '#aeeaff';
+    const size = 1 + (i % 2.5);
+    
+    ctx.beginPath();
+    ctx.arc(debrisX, debrisY, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 
-  // T2: Glowing Base Runes
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    ctx.fillStyle = `rgba(200, 100, 255, ${0.5 + Math.sin(t*4)*0.5})`;
-    ctx.font = "20px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("✧", -30, -50);
-    ctx.fillText("✧", 30, -50);
-    ctx.fillText("✦", 0, -30);
-    ctx.restore();
-  }
-
-  // T0: Main Crystal Pos
-  const crystalY = -140 + Math.sin(t * 2) * 5;
-  
-  // T4 Core Feature: The Primary Beam
-  if (t0 > 0) {
-    ctx.save();
-    // At T0, it's a basic beam. At T4, it gets empowered.
-    ctx.globalAlpha = 1.0;
+  const drawState = (stateTier, alphaMult) => {
+    if (alphaMult <= 0) return;
     
-    // Basic beam (T0)
-    let beamWidth = 20;
-    let beamGrad = ctx.createLinearGradient(-beamWidth/2, 0, beamWidth/2, 0);
-    beamGrad.addColorStop(0, "rgba(200, 150, 255, 0.0)");
-    beamGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.8)");
-    beamGrad.addColorStop(1, "rgba(200, 150, 255, 0.0)");
+    const hasT0 = stateTier >= 0;
+    const hasT1 = stateTier >= 1;
+    const hasT2 = stateTier >= 2;
+    const hasT3 = stateTier >= 3;
+    const hasT4 = stateTier >= 4;
+    const hasT6 = stateTier >= 6;
+    const hasT8 = stateTier >= 8;
+
+    const blockSize = 50;
+    let lCount = 0;
+    if (hasT0) lCount += 1;
+    if (hasT1) lCount += 1;
+    if (hasT2) lCount += 1;
+    if (hasT3) lCount += 1;
     
-    ctx.fillStyle = beamGrad;
-    ctx.fillRect(-beamWidth/2, -1500, beamWidth, 1500 + crystalY);
-
-    // T4 Empowerment
-    if (t4 > 0) {
-       ctx.globalAlpha = t4;
-       let wideBeamW = 60 + 40 * t8; // Wider at T8
-       let wideGrad = ctx.createLinearGradient(-wideBeamW/2, 0, wideBeamW/2, 0);
-       const pulse = 0.5 + Math.sin(t * 6) * 0.3;
-       wideGrad.addColorStop(0, `rgba(150, 50, 255, 0.0)`);
-       wideGrad.addColorStop(0.3, `rgba(180, 80, 255, ${0.5 * pulse})`);
-       wideGrad.addColorStop(0.5, `rgba(255, 200, 255, ${0.9 * pulse})`);
-       wideGrad.addColorStop(0.7, `rgba(180, 80, 255, ${0.5 * pulse})`);
-       wideGrad.addColorStop(1, `rgba(150, 50, 255, 0.0)`);
-       
-       ctx.fillStyle = wideGrad;
-       ctx.fillRect(-wideBeamW/2, -1500, wideBeamW, 1500 + crystalY);
-    }
-    ctx.restore();
-  }
-
-  // T8: Shockwaves traveling up the beam (Improve core feature)
-  if (t8 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t8;
-    for(let i=0; i<4; i++) {
-        const cycle = ((t * 3 + i) % 4) / 4; // 0 to 1
-        const yPos = crystalY - cycle * 1000;
-        
-        ctx.strokeStyle = `rgba(255, 255, 255, ${1.0 - cycle})`;
-        ctx.lineWidth = 4;
-        
-        // 2D curved arc representing a shockwave travelling up
-        ctx.beginPath();
-        ctx.moveTo(-60, yPos + 20);
-        ctx.quadraticCurveTo(0, yPos - 20, 60, yPos + 20);
-        ctx.stroke();
-        
-        ctx.strokeStyle = `rgba(180, 80, 255, ${0.5 - cycle*0.5})`;
-        ctx.lineWidth = 8;
-        ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  // T6: Energy Particles flowing up
-  if (t6 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t6;
-    for(let i=0; i<15; i++) {
-       const cycle = ((t * 1.5 + i * 0.1) % 1.5) / 1.5; // 0 to 1
-       const yPos = 0 - cycle * 800; // flows from base up
-       const xOffset = Math.sin(t * 3 + i * 45) * 40; // horizontal weave
-       
-       ctx.fillStyle = `rgba(255, 150, 255, ${1.0 - cycle})`;
-       ctx.beginPath();
-       ctx.arc(xOffset, yPos, 2 + Math.random()*2, 0, Math.PI*2);
-       ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  // Draw Crystal (T0)
-  ctx.save();
-  ctx.translate(0, crystalY);
-  ctx.rotate(t * 1.5); // Spin in 2D
-  
-  ctx.fillStyle = '#d98cff';
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 2;
-  
-  // 2D Diamond
-  ctx.beginPath();
-  ctx.moveTo(0, -25);
-  ctx.lineTo(20, 0);
-  ctx.lineTo(0, 25);
-  ctx.lineTo(-20, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-
-  // T1: Floating Energy Rings around crystal
-  if (t1 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t1;
-    ctx.translate(0, crystalY);
+    const pyramidTopY = -lCount * blockSize;
+    const beaconPieceY = pyramidTopY - blockSize;
     
-    // Flat 2D rings (ellipses to simulate 3D depth, but strictly drawn as 2D paths)
-    ctx.strokeStyle = `rgba(200, 100, 255, ${0.6 + Math.sin(t*5)*0.2})`;
-    ctx.lineWidth = 3;
+    const crystalY = beaconPieceY + blockSize/2 + (Math.random() - 0.5) * 6;
+    const crystalX = (Math.random() - 0.5) * 6;
+
+    ctx.save();
+    ctx.globalAlpha = alphaMult;
     
-    // Ring 1
+    // 1. Pyramid
+    ctx.save();
     ctx.beginPath();
-    ctx.ellipse(0, 0, 45, 15, Math.sin(t), 0, Math.PI*2);
-    ctx.stroke();
+    ctx.rect(-1500, -1500, 3000, 1500); 
+    ctx.clip();
     
-    // Ring 2
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 60, 20, -Math.sin(t*0.8), 0, Math.PI*2);
-    ctx.stroke();
+    const drawLayer = (widthBlocks, yPos) => {
+      ctx.save();
+      ctx.fillStyle = fillMat; 
+      ctx.strokeStyle = '#1a0630';
+      ctx.lineWidth = 2;
+      const totalW = widthBlocks * blockSize;
+      const startX = -totalW / 2;
+      
+      for (let i = 0; i < widthBlocks; i++) {
+        const bx = startX + i * blockSize;
+        ctx.fillRect(bx, yPos, blockSize, blockSize);
+        ctx.strokeRect(bx, yPos, blockSize, blockSize);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(bx, yPos, blockSize, blockSize * 0.15);
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(bx, yPos, blockSize * 0.15, blockSize);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(bx + blockSize * 0.85, yPos, blockSize * 0.15, blockSize);
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(bx, yPos + blockSize * 0.85, blockSize, blockSize * 0.15);
+      }
+      ctx.restore();
+    };
+
+    if (hasT0) drawLayer(3, pyramidTopY + blockSize * 0);
+    if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1);
+    if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2);
+    if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3);
     
     ctx.restore();
-  }
 
-  // T3: Orbiting smaller crystals
-  if (t3 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t3;
-    ctx.translate(0, crystalY);
-    
-    const numOrbits = 3;
-    for(let i=0; i<numOrbits; i++) {
-        const angle = t * 2 + i * (Math.PI*2 / numOrbits);
-        const radius = 60;
-        const cx = Math.cos(angle) * radius;
-        // In 2D, we can just use sine for Y to make it orbit in an ellipse
-        const cy = Math.sin(angle) * radius * 0.3; 
-        
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(t * 3);
-        
-        ctx.fillStyle = '#b366ff';
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
+    // 2. Glass Case
+    if (hasT0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(150, 50, 255, 0.2)';
+      ctx.strokeStyle = 'rgba(255, 150, 255, 0.8)';
+      ctx.lineWidth = 4;
+      ctx.fillRect(-blockSize/2, beaconPieceY, blockSize, blockSize);
+      ctx.strokeRect(-blockSize/2, beaconPieceY, blockSize, blockSize);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-blockSize/2 + 6, beaconPieceY + 6, blockSize - 12, blockSize - 12);
+      ctx.beginPath();
+      ctx.moveTo(-blockSize/2 + 10, beaconPieceY + 10);
+      ctx.lineTo(-blockSize/2 + blockSize/2, beaconPieceY + 10);
+      ctx.lineTo(-blockSize/2 + 10, beaconPieceY + blockSize/2);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 3. Beam & Particle FX
+    if (hasT0) {
+      ctx.save();
+      let beamWidth = 40 + Math.random() * 8;
+      let beamGrad = ctx.createLinearGradient(-beamWidth/2, 0, beamWidth/2, 0);
+      beamGrad.addColorStop(0, "rgba(139, 0, 139, 0.0)");
+      beamGrad.addColorStop(0.2, "rgba(139, 0, 139, 0.5)");
+      beamGrad.addColorStop(0.4, "rgba(148, 0, 211, 0.8)");
+      beamGrad.addColorStop(0.45, "rgba(255, 255, 255, 1.0)");
+      beamGrad.addColorStop(0.55, "rgba(255, 255, 255, 1.0)");
+      beamGrad.addColorStop(0.6, "rgba(148, 0, 211, 0.8)");
+      beamGrad.addColorStop(0.8, "rgba(139, 0, 139, 0.5)");
+      beamGrad.addColorStop(1, "rgba(139, 0, 139, 0.0)");
+      
+      const beamJitterX = (Math.random() - 0.5) * 4;
+      ctx.translate(beamJitterX, 0);
+      ctx.fillStyle = beamGrad;
+      ctx.fillRect(-beamWidth/2, -1500, beamWidth, 1500 + crystalY);
+
+      if (hasT4) {
+         let wideBeamW = 100;
+         let wideGrad = ctx.createLinearGradient(-wideBeamW/2, 0, wideBeamW/2, 0);
+         const pulse = 0.5 + Math.sin(t * 6) * 0.3;
+         wideGrad.addColorStop(0, `rgba(150, 50, 255, 0.0)`);
+         wideGrad.addColorStop(0.3, `rgba(180, 80, 255, ${0.5 * pulse})`);
+         wideGrad.addColorStop(0.5, `rgba(255, 200, 255, ${0.9 * pulse})`);
+         wideGrad.addColorStop(0.7, `rgba(180, 80, 255, ${0.5 * pulse})`);
+         wideGrad.addColorStop(1, `rgba(150, 50, 255, 0.0)`);
+         ctx.fillStyle = wideGrad;
+         ctx.fillRect(-wideBeamW/2, -1500, wideBeamW, 1500 + crystalY);
+      }
+
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
         ctx.beginPath();
-        ctx.moveTo(0, -10);
-        ctx.lineTo(8, 0);
-        ctx.lineTo(0, 10);
-        ctx.lineTo(-8, 0);
+        ctx.strokeStyle = i === 0 ? "rgba(255, 255, 255, 0.9)" : "rgba(210, 100, 255, 0.8)";
+        ctx.moveTo(0, crystalY);
+        let currentY = crystalY;
+        while (currentY > -1500) {
+          currentY -= (20 + Math.random() * 40);
+          const arcX = (Math.random() - 0.5) * beamWidth * 1.5;
+          ctx.lineTo(arcX, currentY);
+        }
+        ctx.stroke();
+      }
+      
+      for (let i = 0; i < 25; i++) {
+        const cycle = ((t * 2.5) + (i * 0.17)) % 1.0;
+        const moteY = crystalY - cycle * 1200;
+        const moteX = (Math.random() - 0.5) * beamWidth * 1.2;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.beginPath();
+        ctx.arc(moteX, moteY, 1 + Math.random() * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore(); // Restore beam jitter
+    }
+
+    if (hasT8) {
+      for(let i=0; i<4; i++) {
+          const cycle = ((t * 3 + i) % 4) / 4; 
+          const yPos = crystalY - cycle * 1000;
+          ctx.strokeStyle = `rgba(255, 255, 255, ${1.0 - cycle})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(-60, yPos + 20);
+          ctx.quadraticCurveTo(0, yPos - 20, 60, yPos + 20);
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(180, 80, 255, ${0.5 - cycle*0.5})`;
+          ctx.lineWidth = 8;
+          ctx.stroke();
+      }
+    }
+    
+    if (hasT6) {
+      for(let i=0; i<15; i++) {
+         const cycle = ((t * 1.5 + i * 0.1) % 1.5) / 1.5;
+         const yPos = 0 - cycle * 800;
+         const xOffset = Math.sin(t * 3 + i * 45) * 40;
+         ctx.fillStyle = `rgba(255, 150, 255, ${1.0 - cycle})`;
+         ctx.beginPath();
+         ctx.arc(xOffset, yPos, 2 + Math.random()*2, 0, Math.PI*2);
+         ctx.fill();
+      }
+    }
+
+    if (hasT0) {
+      ctx.save();
+      const splashY = -800;
+      const splashGrad = ctx.createRadialGradient(0, splashY, 20, 0, splashY, 300);
+      splashGrad.addColorStop(0, "rgba(210, 100, 255, 0.4)");
+      splashGrad.addColorStop(0.5, "rgba(150, 50, 255, 0.15)");
+      splashGrad.addColorStop(1, "rgba(0, 0, 0, 0.0)");
+      ctx.fillStyle = splashGrad;
+      ctx.translate(0, splashY);
+      ctx.scale(2.5, 0.6);
+      ctx.beginPath();
+      ctx.arc(0, 0, 300, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 4. Runes
+    if (hasT2) {
+      ctx.save();
+      ctx.fillStyle = `rgba(200, 100, 255, ${0.5 + Math.sin(t*4)*0.5})`;
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("✧", -blockSize*2, pyramidTopY + blockSize*1.5);
+      ctx.fillText("✧", blockSize*2, pyramidTopY + blockSize*1.5);
+      ctx.fillText("✦", 0, pyramidTopY - 20);
+      ctx.restore();
+    }
+
+    // 5. Nether Star Core
+    if (hasT0) {
+      ctx.save();
+      ctx.translate(crystalX, crystalY);
+      
+      const auraPulse = 0.8 + Math.random() * 0.4;
+      const auraGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 90 * auraPulse);
+      auraGrad.addColorStop(0, "rgba(255, 255, 255, 0.8)");
+      auraGrad.addColorStop(0.2, "rgba(255, 200, 255, 0.6)");
+      auraGrad.addColorStop(0.5, "rgba(180, 80, 255, 0.3)");
+      auraGrad.addColorStop(1, "rgba(100, 0, 255, 0)");
+      ctx.fillStyle = auraGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 90 * auraPulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.rotate(t * 8); 
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#d98cff';
+      ctx.shadowBlur = 20;
+      
+      const drawStar = (radiusOuter, radiusInner) => {
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const angle = i * Math.PI / 4;
+          const radius = (i % 2 === 0) ? radiusOuter : radiusInner;
+          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+        }
         ctx.closePath();
         ctx.fill();
-        ctx.stroke();
-        
-        ctx.restore();
+      };
+
+      drawStar(25, 8);
+      ctx.rotate(Math.PI / 4);
+      drawStar(18, 6);
+
+      ctx.restore();
     }
-    ctx.restore();
+
+    // 6. Floating Rings
+    if (hasT1) {
+      ctx.save();
+      ctx.translate(0, crystalY);
+      ctx.strokeStyle = `rgba(200, 100, 255, ${0.6 + Math.sin(t*5)*0.2})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 45, 15, Math.sin(t), 0, Math.PI*2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 60, 20, -Math.sin(t*0.8), 0, Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 7. Orbiting Crystals
+    if (hasT3) {
+      ctx.save();
+      ctx.translate(0, crystalY);
+      const numOrbits = 3;
+      for(let i=0; i<numOrbits; i++) {
+          const angle = t * 2 + i * (Math.PI*2 / numOrbits);
+          const radius = 60;
+          const cx = Math.cos(angle) * radius;
+          const cy = Math.sin(angle) * radius * 0.3; 
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(t * 3);
+          ctx.fillStyle = '#b366ff';
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, -10);
+          ctx.lineTo(8, 0);
+          ctx.lineTo(0, 10);
+          ctx.lineTo(-8, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    ctx.restore(); // Restore globalAlpha state
+  };
+
+  if (tier !== prevTier && animProgress < 1.0) {
+    drawState(prevTier, 1.0 - animProgress);
+    drawState(tier, animProgress);
+  } else {
+    drawState(tier, 1.0);
   }
 
 }
