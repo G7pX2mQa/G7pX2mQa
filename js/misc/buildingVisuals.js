@@ -11367,20 +11367,33 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
              
              // 8x8 Minecraft beacon texture simulation (Scrolling pixel streaks)
              // OPTIMIZATION: Generate an offscreen repeating pattern ONCE to eliminate the thousands of lineDash calls per frame.
-             if (!window.beaconPatternCanvas) {
+             if (!window.beaconPatternCanvas_v3) {
                   const pCanvas = document.createElement('canvas');
                   pCanvas.width = 16; // 8 columns, 2px each
-                  pCanvas.height = 128;
+                  pCanvas.height = 1024; // Tall enough to prevent strobing at high speeds!
                   const pCtx = pCanvas.getContext('2d');
+                  
+                  // Fill the entire texture with dense, low-contrast noise (streaks everywhere)
                   for (let c = 0; c < 8; c++) {
-                      for (let y = 0; y < 128; y += 3 + Math.random()*5) {
-                          pCtx.fillStyle = "rgba(105, 30, 150, 0.8)"; // Lighter pixel streak
-                          const h = 2 + Math.random()*3;
+                      let y = 0;
+                      while (y < 1024) {
+                          const noise = Math.random();
+                          // Base dark purple is roughly 75, 20, 120
+                          // Generate streaks that are only slightly lighter/darker (low contrast)
+                          const r = 70 + noise * 30; // 70 to 100
+                          const g = 15 + noise * 15; // 15 to 30
+                          const b = 110 + noise * 35; // 110 to 145
+                          pCtx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.95)`;
+                          
+                          // Streaks are very short vertically (2 to 6 pixels)
+                          const h = 2 + Math.floor(Math.random() * 3) * 2; 
                           pCtx.fillRect(c * 2, y, 2, h);
+                          y += h; // No gaps! The pixels are literally everywhere.
                       }
                   }
-                  window.beaconPatternCanvas = pCanvas;
-                  // We cache the canvas, and we'll create the pattern below using the main ctx
+                  window.beaconPatternCanvas_v3 = pCanvas;
+                  // Cache pattern
+                  window.beaconPattern_v3 = pCanvas.getContext('2d').createPattern(pCanvas, 'repeat');
              }
              
              ctx.save();
@@ -11388,16 +11401,18 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
              ctx.rect(leftX, topY, faceWidth, faceHeight);
              ctx.clip(); // Restrict drawing strictly to this face
              
-             // Scroll speed
-             const scrollY = -((t * 2000) % 128); 
+             // Minecraft beacon scrolls VERY fast. 
+             // With a 1024px tall pattern, we can safely scroll at 8000px/s without aliasing!
+             const scrollY = -((t * 8000) % 1024); 
              ctx.translate(leftX, scrollY);
              
              // Scale the 16px wide pattern to dynamically fit the current 3D-projected face width!
              ctx.scale(faceWidth / 16, 1); 
              
-             ctx.fillStyle = ctx.createPattern(window.beaconPatternCanvas, 'repeat');
+             ctx.fillStyle = ctx.createPattern(window.beaconPatternCanvas_v3, 'repeat');
              // Adjust fill rect for the scroll and transform
-             ctx.fillRect(0, topY - scrollY, 16, faceHeight + 128);
+             // We need to fill enough height to cover the face + scroll + pattern height
+             ctx.fillRect(0, topY - scrollY, 16, faceHeight + 1024);
              ctx.restore();
              
              // Edges (Darker outside lines)
