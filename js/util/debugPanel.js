@@ -5,6 +5,7 @@ import { lsSetItem, lsRemoveItem, lsSetItemForce, lsRemoveItemForce, setDebugSto
 import { settingsManager } from "../game/settingsManager.js";
 import { BigNum } from "./bigNum.js";
 import { formatNumber } from "./numFormat.js";
+import { SECRET_ACHIEVEMENTS, SECRET_ACHIEVEMENT_STATES, setSecretAchievementState } from "../game/secretAchievements.js";
 import {
     bank,
     CURRENCIES,
@@ -2435,12 +2436,8 @@ function applyMutationState({ level, progress }) {
     try {
         const forgeUnlocked =
             typeof window.resetSystem?.isForgeUnlocked === "function" ? window.resetSystem.isForgeUnlocked() : false;
-        const forgeOverride =
-            typeof window.resetSystem?.getForgeDebugOverrideState === "function"
-                ? window.resetSystem.getForgeDebugOverrideState()
-                : null;
-        if (!forgeUnlocked && forgeOverride !== true) {
-            window.resetSystem?.setForgeDebugOverride?.(true);
+        if (!forgeUnlocked) {
+            window.resetSystem?.setForgeUnlocked?.(true);
         }
     } catch {}
 
@@ -4105,19 +4102,14 @@ function getUnlockRowDefinitions(slot) {
             description: "If true, unlocks the Forge reset and Reset tab",
             isUnlocked: () => {
                 try {
-                    const override = window.resetSystem?.getForgeDebugOverrideState?.();
-                    if (override != null) return override;
-                } catch {}
-                try {
                     return !!window.resetSystem?.isForgeUnlocked?.();
                 } catch {
                     return false;
                 }
-                return false;
             },
             onEnable: () => {
                 try {
-                    window.resetSystem?.setForgeDebugOverride?.(true);
+                    window.resetSystem?.setForgeUnlocked?.(true);
                 } catch {}
                 try {
                     window.resetSystem?.updateResetPanel?.();
@@ -4125,7 +4117,7 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try {
-                    window.resetSystem?.setForgeDebugOverride?.(false);
+                    window.resetSystem?.setForgeUnlocked?.(false);
                 } catch {}
                 try {
                     window.resetSystem?.updateResetPanel?.();
@@ -4136,10 +4128,6 @@ function getUnlockRowDefinitions(slot) {
             labelText: "Unlock Infuse",
             description: "If true, unlocks the Infuse reset",
             isUnlocked: () => {
-                try {
-                    const override = window.resetSystem?.getInfuseDebugOverrideState?.();
-                    if (override != null) return override;
-                } catch {}
                 try {
                     return !!window.resetSystem?.isInfuseUnlocked?.();
                 } catch {
@@ -4168,10 +4156,6 @@ function getUnlockRowDefinitions(slot) {
             labelText: "Unlock Surge",
             description: "If true, unlocks the Surge reset",
             isUnlocked: () => {
-                try {
-                    const override = window.resetSystem?.getSurgeDebugOverrideState?.();
-                    if (override != null) return override;
-                } catch {}
                 try {
                     return !!window.resetSystem?.isSurgeUnlocked?.();
                 } catch {
