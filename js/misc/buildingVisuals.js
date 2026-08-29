@@ -11341,6 +11341,16 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
          });
       }
       
+      // Dynamically calculate the exact top edge of the visible screen!
+      let topY = -2000;
+      try {
+          const transform = ctx.getTransform();
+          if (transform && transform.d) {
+              // Inverse map screen Y=0 to world Y, minus 100px padding
+              topY = Math.min(crystalY, (-transform.f / transform.d) - 100);
+          }
+      } catch (e) {}
+
       // Draw visible faces
       for(let i=0; i<4; i++) {
          const p1 = corners[i];
@@ -11349,51 +11359,54 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
              const leftX = p1.x;
              const rightX = p2.x;
              const faceWidth = rightX - leftX;
+             const faceHeight = crystalY - topY;
              
              // Base face color (Dark purple)
              ctx.fillStyle = "rgba(75, 20, 120, 0.8)";
-             ctx.fillRect(leftX, -99999, faceWidth, 99999 + crystalY);
+             ctx.fillRect(leftX, topY, faceWidth, faceHeight);
              
              // 8x8 Minecraft beacon texture simulation (Scrolling pixel streaks)
-             ctx.save();
-             const numCols = 8;
-             const colWidth = faceWidth / numCols;
-             for (let c = 0; c < numCols; c++) {
-                 const streakX = leftX + c * colWidth + colWidth / 2;
-                 
-                 // Deterministic randomness per column and face
-                 const r1 = Math.abs(Math.sin(i * 12.9898 + c * 78.233));
-                 const r2 = Math.abs(Math.cos(i * 4.1414 + c * 73.234));
-                 const r3 = Math.abs(Math.sin(i * 7.1234 + c * 13.987));
-                 
-                 // Very short streaks (simulating ~6px pixels on a 50px block)
-                 const dash1 = 6 + r1 * 12;
-                 const gap1 = 6 + r2 * 12;
-                 const dash2 = 6 + r3 * 12;
-                 const gap2 = 6 + r1 * 12;
-                 
-                 // Minecraft beacon beam moves UP very fast. 
-                 const speed = 1500 + r1 * 1000; // 1500-2500px/s
-                 
-                 ctx.beginPath();
-                 ctx.moveTo(streakX, crystalY);
-                 ctx.lineTo(streakX, -99999);
-                 ctx.setLineDash([dash1, gap1, dash2, gap2]);
-                 ctx.lineDashOffset = -(t * speed);
-                 ctx.lineWidth = colWidth;
-                 // Streaks are slightly lighter purple, creating a noise texture against the darker base
-                 ctx.strokeStyle = "rgba(105, 30, 150, 0.8)"; 
-                 ctx.stroke();
+             // OPTIMIZATION: Generate an offscreen repeating pattern ONCE to eliminate the thousands of lineDash calls per frame.
+             if (!window.beaconPatternCanvas) {
+                  const pCanvas = document.createElement('canvas');
+                  pCanvas.width = 16; // 8 columns, 2px each
+                  pCanvas.height = 128;
+                  const pCtx = pCanvas.getContext('2d');
+                  for (let c = 0; c < 8; c++) {
+                      for (let y = 0; y < 128; y += 3 + Math.random()*5) {
+                          pCtx.fillStyle = "rgba(105, 30, 150, 0.8)"; // Lighter pixel streak
+                          const h = 2 + Math.random()*3;
+                          pCtx.fillRect(c * 2, y, 2, h);
+                      }
+                  }
+                  window.beaconPatternCanvas = pCanvas;
+                  // We cache the canvas, and we'll create the pattern below using the main ctx
              }
+             
+             ctx.save();
+             ctx.beginPath();
+             ctx.rect(leftX, topY, faceWidth, faceHeight);
+             ctx.clip(); // Restrict drawing strictly to this face
+             
+             // Scroll speed
+             const scrollY = -((t * 2000) % 128); 
+             ctx.translate(leftX, scrollY);
+             
+             // Scale the 16px wide pattern to dynamically fit the current 3D-projected face width!
+             ctx.scale(faceWidth / 16, 1); 
+             
+             ctx.fillStyle = ctx.createPattern(window.beaconPatternCanvas, 'repeat');
+             // Adjust fill rect for the scroll and transform
+             ctx.fillRect(0, topY - scrollY, 16, faceHeight + 128);
              ctx.restore();
              
              // Edges (Darker outside lines)
              ctx.strokeStyle = "rgba(45, 10, 80, 1.0)";
              ctx.lineWidth = 2;
              ctx.beginPath();
-             ctx.moveTo(leftX, -99999);
+             ctx.moveTo(leftX, topY);
              ctx.lineTo(leftX, crystalY);
-             ctx.moveTo(rightX, -99999);
+             ctx.moveTo(rightX, topY);
              ctx.lineTo(rightX, crystalY);
              ctx.stroke();
          }
@@ -11409,7 +11422,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
          wideGrad.addColorStop(0.7, `rgba(180, 80, 255, ${0.5 * pulse})`);
          wideGrad.addColorStop(1, `rgba(150, 50, 255, 0.0)`);
          ctx.fillStyle = wideGrad;
-         ctx.fillRect(-wideBeamW/2, -99999, wideBeamW, 99999 + crystalY);
+         ctx.fillRect(-wideBeamW/2, topY, wideBeamW, crystalY - topY);
       }
       
       // Floating motes
