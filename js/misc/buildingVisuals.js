@@ -10323,26 +10323,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.fill();
         ctx.restore();
         
-        // Gravitational Waves
-        ctx.save();
-        ctx.rotate(galaxyTime);
-        const waveGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
-        waveGrad.addColorStop(0, 'rgba(100, 150, 255, 0.8)');
-        waveGrad.addColorStop(0.5, 'rgba(20, 40, 160, 0.5)');
-        waveGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        for (let w = 0; w < 4; w++) {
-            ctx.save();
-            ctx.rotate((Math.PI / 2) * w);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.quadraticCurveTo(20, 50, coreRadius, coreRadius);
-            ctx.quadraticCurveTo(50, 10, 0, 0);
-            ctx.fillStyle = waveGrad;
-            ctx.fill();
-            ctx.restore();
-        }
-        ctx.restore();
+
         
         // Stars spiraling inwards
         ctx.fillStyle = '#88aaff'; // Soft ice blue (no cyan)
