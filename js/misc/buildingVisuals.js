@@ -11248,12 +11248,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     // 1. Pyramid
     ctx.save();
     ctx.beginPath();
-    ctx.rect(-1500, -1500, 3000, 1500); 
+    ctx.rect(-99999, -99999, 199998, 99999); // Clip to ground but allow infinite vertical reach
     ctx.clip();
     
     const drawLayer = (widthBlocks, yPos) => {
       ctx.save();
-      ctx.fillStyle = fillMat; 
       ctx.strokeStyle = '#1a0630';
       ctx.lineWidth = 2;
       const totalW = widthBlocks * blockSize;
@@ -11261,6 +11260,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       
       for (let i = 0; i < widthBlocks; i++) {
         const bx = startX + i * blockSize;
+        ctx.fillStyle = fillMat; // Reset to Unobtainium texture for each block
         ctx.fillRect(bx, yPos, blockSize, blockSize);
         ctx.strokeRect(bx, yPos, blockSize, blockSize);
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -11303,24 +11303,53 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    // 3. Beam & Particle FX
+    // 3. Beam & Particle FX (Minecraft 3D rotating square)
     if (hasT0) {
       ctx.save();
-      let beamWidth = 40 + Math.random() * 8;
-      let beamGrad = ctx.createLinearGradient(-beamWidth/2, 0, beamWidth/2, 0);
-      beamGrad.addColorStop(0, "rgba(139, 0, 139, 0.0)");
-      beamGrad.addColorStop(0.2, "rgba(139, 0, 139, 0.5)");
-      beamGrad.addColorStop(0.4, "rgba(148, 0, 211, 0.8)");
-      beamGrad.addColorStop(0.45, "rgba(255, 255, 255, 1.0)");
-      beamGrad.addColorStop(0.55, "rgba(255, 255, 255, 1.0)");
-      beamGrad.addColorStop(0.6, "rgba(148, 0, 211, 0.8)");
-      beamGrad.addColorStop(0.8, "rgba(139, 0, 139, 0.5)");
-      beamGrad.addColorStop(1, "rgba(139, 0, 139, 0.0)");
       
-      const beamJitterX = (Math.random() - 0.5) * 4;
-      ctx.translate(beamJitterX, 0);
-      ctx.fillStyle = beamGrad;
-      ctx.fillRect(-beamWidth/2, -1500, beamWidth, 1500 + crystalY);
+      const R = 22; // half-width of the square
+      const angle = (t * Math.PI * 2) / 10; // 360 degrees in 10 seconds
+      
+      // Calculate 3D projected corners
+      const corners = [];
+      for(let i=0; i<4; i++) {
+         const a = angle + i * (Math.PI / 2);
+         corners.push({
+             x: Math.sin(a) * R,
+             z: Math.cos(a) * R
+         });
+      }
+      
+      // Draw visible faces
+      for(let i=0; i<4; i++) {
+         const p1 = corners[i];
+         const p2 = corners[(i+1)%4];
+         if (p1.x < p2.x) { // Face is pointing towards camera
+             const leftX = p1.x;
+             const rightX = p2.x;
+             const faceWidth = rightX - leftX;
+             
+             // Base face color (Purple translucent edges)
+             ctx.fillStyle = "rgba(180, 80, 255, 0.4)";
+             ctx.fillRect(leftX, -99999, faceWidth, 99999 + crystalY);
+             
+             // Inner white core
+             const coreWidth = faceWidth * 0.6;
+             const coreLeft = leftX + (faceWidth - coreWidth) / 2;
+             ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+             ctx.fillRect(coreLeft, -99999, coreWidth, 99999 + crystalY);
+             
+             // Edges
+             ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+             ctx.lineWidth = 1;
+             ctx.beginPath();
+             ctx.moveTo(leftX, -99999);
+             ctx.lineTo(leftX, crystalY);
+             ctx.moveTo(rightX, -99999);
+             ctx.lineTo(rightX, crystalY);
+             ctx.stroke();
+         }
+      }
 
       if (hasT4) {
          let wideBeamW = 100;
@@ -11332,34 +11361,21 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
          wideGrad.addColorStop(0.7, `rgba(180, 80, 255, ${0.5 * pulse})`);
          wideGrad.addColorStop(1, `rgba(150, 50, 255, 0.0)`);
          ctx.fillStyle = wideGrad;
-         ctx.fillRect(-wideBeamW/2, -1500, wideBeamW, 1500 + crystalY);
-      }
-
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.strokeStyle = i === 0 ? "rgba(255, 255, 255, 0.9)" : "rgba(210, 100, 255, 0.8)";
-        ctx.moveTo(0, crystalY);
-        let currentY = crystalY;
-        while (currentY > -1500) {
-          currentY -= (20 + Math.random() * 40);
-          const arcX = (Math.random() - 0.5) * beamWidth * 1.5;
-          ctx.lineTo(arcX, currentY);
-        }
-        ctx.stroke();
+         ctx.fillRect(-wideBeamW/2, -99999, wideBeamW, 99999 + crystalY);
       }
       
+      // Floating motes
       for (let i = 0; i < 25; i++) {
         const cycle = ((t * 2.5) + (i * 0.17)) % 1.0;
-        const moteY = crystalY - cycle * 1200;
-        const moteX = (Math.random() - 0.5) * beamWidth * 1.2;
+        const moteY = crystalY - cycle * 2000;
+        const moteX = (Math.random() - 0.5) * R * 2.5;
         ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
         ctx.beginPath();
         ctx.arc(moteX, moteY, 1 + Math.random() * 2, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      ctx.restore(); // Restore beam jitter
+      ctx.restore(); 
     }
 
     if (hasT8) {
