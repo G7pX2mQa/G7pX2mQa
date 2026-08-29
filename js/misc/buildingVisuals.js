@@ -11327,7 +11327,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
              
              // 8x8 Minecraft beacon texture simulation (Scrolling pixel streaks)
              // OPTIMIZATION: Generate an offscreen repeating pattern ONCE to eliminate the thousands of lineDash calls per frame.
-             if (!window.beaconPatternCanvas_v3) {
+             if (!window.beaconBeamPatternCache) {
                   const pCanvas = document.createElement('canvas');
                   pCanvas.width = 16; // 8 columns, 2px each
                   pCanvas.height = 1024; // Tall enough to prevent strobing at high speeds!
@@ -11337,7 +11337,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
                   for (let c = 0; c < 8; c++) {
                       let y = 0;
                       while (y < 1024) {
-                          const noise = Math.random();
+                          // Deterministic pseudo-random noise based on coordinates
+                          const seed = c * 12.9898 + y * 78.233;
+                          const pseudoRandom = Math.abs(Math.sin(seed) * 43758.5453);
+                          const noise = pseudoRandom - Math.floor(pseudoRandom);
+                          
                           // Base dark purple is roughly 75, 20, 120
                           // Generate streaks that are only slightly lighter/darker (low contrast)
                           const r = 70 + noise * 30; // 70 to 100
@@ -11346,14 +11350,14 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
                           pCtx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.95)`;
                           
                           // Streaks are very short vertically (2 to 6 pixels)
-                          const h = 2 + Math.floor(Math.random() * 3) * 2; 
+                          const h = 2 + Math.floor((pseudoRandom * 17) % 3) * 2; 
                           pCtx.fillRect(c * 2, y, 2, h);
                           y += h; // No gaps! The pixels are literally everywhere.
                       }
                   }
-                  window.beaconPatternCanvas_v3 = pCanvas;
+                  window.beaconBeamPatternCache = pCanvas;
                   // Cache pattern
-                  window.beaconPattern_v3 = pCanvas.getContext('2d').createPattern(pCanvas, 'repeat');
+                  window.beaconBeamPattern = pCanvas.getContext('2d').createPattern(pCanvas, 'repeat');
              }
              
              ctx.save();
@@ -11369,7 +11373,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
              // Scale the 16px wide pattern to dynamically fit the current 3D-projected face width!
              ctx.scale(faceWidth / 16, 1); 
              
-             ctx.fillStyle = ctx.createPattern(window.beaconPatternCanvas_v3, 'repeat');
+             ctx.fillStyle = ctx.createPattern(window.beaconBeamPatternCache, 'repeat');
              // Adjust fill rect for the scroll and transform
              // We need to fill enough height to cover the face + scroll + pattern height
              ctx.fillRect(0, topY - scrollY, 16, faceHeight + 1024);
@@ -11477,7 +11481,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       
       // 2. Core (x=3..12, y=3..12)
       // Generate stylized 10x10 core texture ONCE to avoid flickering noise
-      if (!window.beaconCorePatternCanvas_v3) {
+      if (!window.beaconCorePatternCache2) {
           const cCanvas = document.createElement('canvas');
           cCanvas.width = 10;
           cCanvas.height = 10;
@@ -11496,8 +11500,12 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
                   let gBase = 0 + distRatio * (81 - 0);
                   let bBase = 50 + distRatio * (169 - 50);
                   
-                  // Less noise so the gradient is preserved and the center remains dark
-                  const noise = (Math.random() - 0.5) * 20;
+                  // Deterministic pseudo-random noise based on coordinates
+                  const seed = cx * 12.9898 + cy * 78.233;
+                  const pseudoRandom = Math.abs(Math.sin(seed) * 43758.5453);
+                  // Scale noise by distance so the center remains perfectly solid and undisturbed
+                  const noise = ((pseudoRandom - Math.floor(pseudoRandom)) - 0.5) * 40 * distRatio;
+                  
                   rBase = Math.max(0, Math.min(255, rBase + noise));
                   gBase = Math.max(0, Math.min(255, gBase + noise));
                   bBase = Math.max(0, Math.min(255, bBase + noise));
@@ -11507,12 +11515,12 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
               }
           }
           
-          window.beaconCorePatternCanvas_v3 = cCanvas;
+          window.beaconCorePatternCache2 = cCanvas;
       }
       
       // Draw the stylized 10x10 core pixel-perfectly
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(window.beaconCorePatternCanvas_v3, 3 * scale, 3 * scale, 10 * scale, 10 * scale);
+      ctx.drawImage(window.beaconCorePatternCache2, 3 * scale, 3 * scale, 10 * scale, 10 * scale);
       ctx.imageSmoothingEnabled = true;
       
       // 3. Glass Shell
