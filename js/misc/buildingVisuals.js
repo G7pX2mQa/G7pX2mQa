@@ -11263,14 +11263,35 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.fillStyle = fillMat; // Reset to Unobtainium texture for each block
         ctx.fillRect(bx, yPos, blockSize, blockSize);
         ctx.strokeRect(bx, yPos, blockSize, blockSize);
+        
+        // Top bevel (always bright)
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
         ctx.fillRect(bx, yPos, blockSize, blockSize * 0.15);
-        ctx.fillStyle = 'rgba(255,255,255,0.05)';
-        ctx.fillRect(bx, yPos, blockSize * 0.15, blockSize);
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(bx + blockSize * 0.85, yPos, blockSize * 0.15, blockSize);
+        
+        // Bottom shadow (always dark)
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.fillRect(bx, yPos + blockSize * 0.85, blockSize, blockSize * 0.15);
+
+        // Dynamic side bevels based on relative position to the center (x=0)
+        const blockCenterX = bx + blockSize / 2;
+        if (blockCenterX < -1) {
+            // Block is on the left; its right side faces the central beacon light
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Left edge is dark
+            ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Right edge is bright
+            ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+        } else if (blockCenterX > 1) {
+            // Block is on the right; its left side faces the central beacon light
+            ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Left edge is bright
+            ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Right edge is dark
+            ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+        } else {
+            // Center block directly under beacon; sides are neutral/dark
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+        }
       }
       ctx.restore();
     };
@@ -11329,19 +11350,38 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
              const rightX = p2.x;
              const faceWidth = rightX - leftX;
              
-             // Base face color (Purple translucent edges)
-             ctx.fillStyle = "rgba(180, 80, 255, 0.4)";
+             // Base face color (Dark purple)
+             ctx.fillStyle = "rgba(75, 20, 120, 0.8)";
              ctx.fillRect(leftX, -99999, faceWidth, 99999 + crystalY);
              
-             // Inner white core
-             const coreWidth = faceWidth * 0.6;
-             const coreLeft = leftX + (faceWidth - coreWidth) / 2;
-             ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-             ctx.fillRect(coreLeft, -99999, coreWidth, 99999 + crystalY);
+             // Scrolling pixel streaks using setLineDash
+             ctx.save();
+             const numStreaks = 4;
+             for (let s = 0; s < numStreaks; s++) {
+                 // Predictable placement based on face index `i` and streak index `s`
+                 const percentX = (0.1 + (s * 0.25) + Math.sin(i * 3 + s) * 0.05) % 1.0;
+                 const streakX = leftX + faceWidth * percentX;
+                 const streakW = faceWidth * 0.15;
+                 
+                 // Dash pattern and speed
+                 const dashLength = 40 + s * 15;
+                 const gapLength = 150 + s * 40;
+                 const speed = 200 + s * 50;
+                 
+                 ctx.beginPath();
+                 ctx.moveTo(streakX, crystalY);
+                 ctx.lineTo(streakX, -99999);
+                 ctx.setLineDash([dashLength, gapLength]);
+                 ctx.lineDashOffset = -(t * speed);
+                 ctx.lineWidth = streakW;
+                 ctx.strokeStyle = "rgba(200, 100, 255, 0.5)"; // Lighter purple streaks
+                 ctx.stroke();
+             }
+             ctx.restore();
              
-             // Edges
-             ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-             ctx.lineWidth = 1;
+             // Edges (Darker outside lines)
+             ctx.strokeStyle = "rgba(45, 10, 80, 1.0)";
+             ctx.lineWidth = 2;
              ctx.beginPath();
              ctx.moveTo(leftX, -99999);
              ctx.lineTo(leftX, crystalY);
@@ -11434,43 +11474,41 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    // 5. Nether Star Core
+    // 5. Solid Beacon Core
     if (hasT0) {
       ctx.save();
-      ctx.translate(crystalX, crystalY);
+      // Draw Obsidian Base (inside the glass)
+      const obsW = blockSize * 0.75;
+      const obsH = blockSize * 0.25;
+      const obsX = crystalX - obsW/2;
+      const obsY = beaconPieceY + blockSize - obsH - 4; // rests near the bottom of glass
       
-      const auraPulse = 0.8 + Math.random() * 0.4;
-      const auraGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 90 * auraPulse);
-      auraGrad.addColorStop(0, "rgba(255, 255, 255, 0.8)");
-      auraGrad.addColorStop(0.2, "rgba(255, 200, 255, 0.6)");
-      auraGrad.addColorStop(0.5, "rgba(180, 80, 255, 0.3)");
-      auraGrad.addColorStop(1, "rgba(100, 0, 255, 0)");
-      ctx.fillStyle = auraGrad;
-      ctx.beginPath();
-      ctx.arc(0, 0, 90 * auraPulse, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.rotate(t * 8); 
+      ctx.fillStyle = '#1a0d23'; // Dark obsidian
+      ctx.fillRect(obsX, obsY, obsW, obsH);
       
-      ctx.fillStyle = '#ffffff';
+      // Draw Glowing Core on top of Obsidian
+      const coreW = blockSize * 0.55;
+      const coreH = blockSize * 0.55;
+      const coreX = crystalX - coreW/2;
+      const coreY = obsY - coreH;
+      
+      // Outer purple shell of the core block
+      ctx.fillStyle = '#6b2d99'; 
+      ctx.fillRect(coreX, coreY, coreW, coreH);
+      
+      // Inner bright white/cyan center
+      const innerW = coreW * 0.5;
+      const innerH = coreH * 0.5;
+      ctx.fillStyle = '#ffffff'; 
+      ctx.fillRect(coreX + (coreW-innerW)/2, coreY + (coreH-innerH)/2, innerW, innerH);
+      
+      // Optional subtle glow around the core
       ctx.shadowColor = '#d98cff';
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = '#d98cff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(coreX, coreY, coreW, coreH);
       
-      const drawStar = (radiusOuter, radiusInner) => {
-        ctx.beginPath();
-        for (let i = 0; i < 8; i++) {
-          const angle = i * Math.PI / 4;
-          const radius = (i % 2 === 0) ? radiusOuter : radiusInner;
-          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
-        }
-        ctx.closePath();
-        ctx.fill();
-      };
-
-      drawStar(25, 8);
-      ctx.rotate(Math.PI / 4);
-      drawStar(18, 6);
-
       ctx.restore();
     }
 
