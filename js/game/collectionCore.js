@@ -301,6 +301,8 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
     try { playfield.removeEventListener('pointerleave', handlePointerLeave); } catch {}
     try { playfield.removeEventListener('pointercancel', handlePointerLeave); } catch {}
     try { window.removeEventListener('blur', resetPointerHistory); } catch {}
+    try { window.removeEventListener('focus', updatePlayfieldRect); } catch {}
+    try { document.removeEventListener('visibilitychange', visibilityHandler); } catch {}
     try { indicator.remove(); } catch {}
   };
 
@@ -315,10 +317,11 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
   window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('focus', updatePlayfieldRect, { passive: true });
   window.addEventListener('blur', resetPointerHistory, { passive: true });
-  document.addEventListener('visibilitychange', () => {
+  const visibilityHandler = () => {
       updatePlayfieldRect();
       if (document.hidden) resetPointerHistory();
-  }, { passive: true });
+  };
+  document.addEventListener('visibilitychange', visibilityHandler, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
   document.addEventListener('ccc:upgrades:changed', refreshMagnetLevel);
 
