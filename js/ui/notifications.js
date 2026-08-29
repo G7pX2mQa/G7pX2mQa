@@ -473,3 +473,9 @@ export function triggerInitialLandscapeCheck() {
         landscapeWarningShownForSession = true;
     }
 }
+
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => {
+        nukeNotifications(true);
+    });
+}
