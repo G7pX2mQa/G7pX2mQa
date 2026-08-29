@@ -114,12 +114,9 @@ function playExperimentResetSound() {
 
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
 const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
-const FORGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:forgeUnlocked:${slot}`;
 const INFUSE_UNLOCK_KEY = (slot) => `ccc:reset:infuse:${slot}`;
 const INFUSE_COMPLETED_KEY = (slot) => `ccc:reset:infuse:completed:${slot}`;
-const INFUSE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:infuseUnlocked:${slot}`;
 const SURGE_UNLOCK_KEY = (slot) => `ccc:reset:surge:${slot}`;
-const SURGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:surgeUnlocked:${slot}`;
 const SURGE_COMPLETED_KEY = (slot) => `ccc:reset:surge:completed:${slot}`;
 export const getSurgeBarLevelKey = (slot) => `ccc:reset:surge:barLevel:${slot}`;
 const SURGE_BAR_LEVEL_KEY = getSurgeBarLevelKey;
@@ -593,77 +590,11 @@ export function setExperimentResetCompleted(value) {
     } catch {}
 }
 
-function getForgeDebugOverride(slot = getActiveSlot()) {
-    if (slot == null) return null;
-    try {
-        const raw = lsGetItem(FORGE_DEBUG_OVERRIDE_KEY(slot));
-        if (raw === "1") return true;
-        if (raw === "0") return false;
-    } catch {}
-    return null;
-}
-
-export function getForgeDebugOverrideState(slot = getActiveSlot()) {
-    return getForgeDebugOverride(slot);
-}
-
-export function setForgeDebugOverride(value, slot = getActiveSlot()) {
-    if (slot == null) return;
-    const normalized = value == null ? null : !!value;
-    if (resetState.forgeDebugOverride === normalized) return;
-    resetState.forgeDebugOverride = normalized;
-    if (normalized == null) {
-        try {
-            lsRemoveItem(FORGE_DEBUG_OVERRIDE_KEY(slot));
-        } catch {}
-    } else {
-        try {
-            lsSetItem(FORGE_DEBUG_OVERRIDE_KEY(slot), normalized ? "1" : "0");
-        } catch {}
-    }
-    primeStorageWatcherSnapshot(FORGE_DEBUG_OVERRIDE_KEY(slot));
-    notifyForgeUnlockChange();
-    updateResetPanel();
-}
-
-function getInfuseDebugOverride(slot = getActiveSlot()) {
-    if (slot == null) return null;
-    try {
-        const raw = lsGetItem(INFUSE_DEBUG_OVERRIDE_KEY(slot));
-        if (raw === "1") return true;
-        if (raw === "0") return false;
-    } catch {}
-    return null;
-}
-
-export function getInfuseDebugOverrideState(slot = getActiveSlot()) {
-    return getInfuseDebugOverride(slot);
-}
-
 export function setInfuseUnlockedForDebug(value) {
     setInfuseUnlocked(value);
 }
 
-export function setInfuseDebugOverride(value, slot = getActiveSlot()) {
-    if (slot == null) return;
-    const normalized = value == null ? null : !!value;
-    if (resetState.infuseDebugOverride === normalized) return;
-    resetState.infuseDebugOverride = normalized;
-    if (normalized == null) {
-        try {
-            lsRemoveItem(INFUSE_DEBUG_OVERRIDE_KEY(slot));
-        } catch {}
-    } else {
-        try {
-            lsSetItem(INFUSE_DEBUG_OVERRIDE_KEY(slot), normalized ? "1" : "0");
-        } catch {}
-    }
-    primeStorageWatcherSnapshot(INFUSE_DEBUG_OVERRIDE_KEY(slot));
-    notifyInfuseUnlockChange();
-    updateResetPanel();
-}
-
-function setInfuseUnlocked(value) {
+export function setInfuseUnlocked(value) {
     const slot = ensureResetSlot();
     if (slot == null) return;
     const next = !!value;
@@ -674,9 +605,10 @@ function setInfuseUnlocked(value) {
     } catch {}
     primeStorageWatcherSnapshot(INFUSE_UNLOCK_KEY(slot));
     notifyInfuseUnlockChange();
+    updateResetPanel();
 }
 
-function setForgeUnlocked(value) {
+export function setForgeUnlocked(value) {
     const slot = ensureResetSlot();
     if (slot == null) return;
     const next = !!value;
@@ -687,27 +619,14 @@ function setForgeUnlocked(value) {
     } catch {}
     primeStorageWatcherSnapshot(FORGE_UNLOCK_KEY(slot));
     notifyForgeUnlockChange();
-}
-
-function getSurgeDebugOverride(slot = getActiveSlot()) {
-    if (slot == null) return null;
-    try {
-        const raw = lsGetItem(SURGE_DEBUG_OVERRIDE_KEY(slot));
-        if (raw === "1") return true;
-        if (raw === "0") return false;
-    } catch {}
-    return null;
-}
-
-export function getSurgeDebugOverrideState(slot = getActiveSlot()) {
-    return getSurgeDebugOverride(slot);
+    updateResetPanel();
 }
 
 export function setSurgeUnlockedForDebug(value) {
     setSurgeUnlocked(value);
 }
 
-function setSurgeUnlocked(value) {
+export function setSurgeUnlocked(value) {
     const slot = ensureResetSlot();
     if (slot == null) return;
     const next = !!value;
@@ -718,18 +637,15 @@ function setSurgeUnlocked(value) {
     } catch {}
     primeStorageWatcherSnapshot(SURGE_UNLOCK_KEY(slot));
     notifySurgeUnlockChange();
+    updateResetPanel();
 }
-
 function readPersistentFlags(slot) {
     if (slot == null) {
         resetState.forgeUnlocked = false;
-        resetState.forgeDebugOverride = null;
         resetState.hasDoneForgeReset = false;
         resetState.infuseUnlocked = false;
-        resetState.infuseDebugOverride = null;
         resetState.hasDoneInfuseReset = false;
         resetState.surgeUnlocked = false;
-        resetState.surgeDebugOverride = null;
         resetState.hasDoneSurgeReset = false;
         resetState.hasDoneExperimentReset = false;
         resetState.flagsPrimed = false;
@@ -740,7 +656,6 @@ function readPersistentFlags(slot) {
     } catch {
         resetState.forgeUnlocked = false;
     }
-    resetState.forgeDebugOverride = getForgeDebugOverride(slot);
     try {
         resetState.hasDoneForgeReset = lsGetItem(FORGE_COMPLETED_KEY(slot)) === "1";
     } catch {
@@ -756,13 +671,11 @@ function readPersistentFlags(slot) {
     } catch {
         resetState.hasDoneInfuseReset = false;
     }
-    resetState.infuseDebugOverride = getInfuseDebugOverride(slot);
     try {
         resetState.surgeUnlocked = lsGetItem(SURGE_UNLOCK_KEY(slot)) === "1";
     } catch {
         resetState.surgeUnlocked = false;
     }
-    resetState.surgeDebugOverride = getSurgeDebugOverride(slot);
     try {
         resetState.hasDoneSurgeReset = lsGetItem(SURGE_COMPLETED_KEY(slot)) === "1";
     } catch {
@@ -821,20 +734,6 @@ function bindStorageWatchers(slot) {
         }),
     );
     watchers.push(
-        watchStorageKey(FORGE_DEBUG_OVERRIDE_KEY(slot), {
-            onChange(value) {
-                let next = null;
-                if (value === "1") next = true;
-                else if (value === "0") next = false;
-                if (resetState.forgeDebugOverride !== next) {
-                    resetState.forgeDebugOverride = next;
-                    notifyForgeUnlockChange();
-                    updateResetPanel();
-                }
-            },
-        }),
-    );
-    watchers.push(
         watchStorageKey(INFUSE_UNLOCK_KEY(slot), {
             onChange(value) {
                 const next = value === "1";
@@ -858,39 +757,11 @@ function bindStorageWatchers(slot) {
         }),
     );
     watchers.push(
-        watchStorageKey(INFUSE_DEBUG_OVERRIDE_KEY(slot), {
-            onChange(value) {
-                let next = null;
-                if (value === "1") next = true;
-                else if (value === "0") next = false;
-                if (resetState.infuseDebugOverride !== next) {
-                    resetState.infuseDebugOverride = next;
-                    notifyInfuseUnlockChange();
-                    updateResetPanel();
-                }
-            },
-        }),
-    );
-    watchers.push(
         watchStorageKey(SURGE_UNLOCK_KEY(slot), {
             onChange(value) {
                 const next = value === "1";
                 if (resetState.surgeUnlocked !== next) {
                     resetState.surgeUnlocked = next;
-                    notifySurgeUnlockChange();
-                    updateResetPanel();
-                }
-            },
-        }),
-    );
-    watchers.push(
-        watchStorageKey(SURGE_DEBUG_OVERRIDE_KEY(slot), {
-            onChange(value) {
-                let next = null;
-                if (value === "1") next = true;
-                else if (value === "0") next = false;
-                if (resetState.surgeDebugOverride !== next) {
-                    resetState.surgeDebugOverride = next;
                     notifySurgeUnlockChange();
                     updateResetPanel();
                 }
@@ -1058,11 +929,6 @@ function recomputePendingDna() {
     }
 }
 
-function canAccessForgeTab() {
-    const override = getForgeDebugOverride();
-    if (override != null) return !!override;
-    return resetState.forgeUnlocked || getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.UNLOCK_FORGE) >= 1;
-}
 
 function meetsLevelRequirement() {
     try {
@@ -1086,22 +952,16 @@ function meetsInfuseRequirement() {
 
 export function isForgeUnlocked() {
     ensurePersistentFlagsPrimed();
-    const override = getForgeDebugOverride();
-    if (override != null) return !!override;
-    return !!resetState.forgeUnlocked || canAccessForgeTab();
+    return !!resetState.forgeUnlocked;
 }
 
 export function isInfuseUnlocked() {
     ensurePersistentFlagsPrimed();
-    const override = getInfuseDebugOverride();
-    if (override != null) return !!override;
     return !!resetState.infuseUnlocked;
 }
 
 export function isSurgeUnlocked() {
     ensurePersistentFlagsPrimed();
-    const override = getSurgeDebugOverride();
-    if (override != null) return !!override;
     return !!resetState.surgeUnlocked;
 }
 
@@ -2736,9 +2596,7 @@ export function initResetSystem() {
             unlockMutationSystem();
         } catch {}
     }
-    if (!resetState.forgeUnlocked && canAccessForgeTab()) {
-        setForgeUnlocked(true);
-    }
+
     bindStorageWatchers(slot);
     ensureValueListeners();
     bindGlobalEvents();
@@ -2783,9 +2641,7 @@ export function initResetSystem() {
                     unlockMutationSystem();
                 } catch {}
             }
-            if (!resetState.forgeUnlocked && canAccessForgeTab()) {
-                setForgeUnlocked(true);
-            }
+
             bindStorageWatchers(nextSlot);
             ensureValueListeners();
             recomputePendingGold(true);
@@ -2811,22 +2667,20 @@ if (typeof window !== "undefined") {
         computeInfuseMagicFromInputs,
         computeSurgeWavesFromInputs,
         computePendingDnaFromInputs,
-        getForgeDebugOverrideState,
         hasDoneForgeReset,
         isForgeUnlocked,
-        setForgeDebugOverride,
+        setForgeUnlocked,
         setForgeResetCompleted,
         updateResetPanel,
         isInfuseUnlocked,
-        setInfuseDebugOverride,
-        getInfuseDebugOverrideState,
+        setInfuseUnlocked,
         recomputePendingMagic,
         setInfuseUnlockedForDebug,
         setInfuseResetCompleted,
         hasDoneInfuseReset,
         isSurgeUnlocked,
+        setSurgeUnlocked,
         setSurgeUnlockedForDebug,
-        getSurgeDebugOverrideState,
         setSurgeResetCompleted,
         hasDoneSurgeReset,
         getCurrentSurgeLevel,
