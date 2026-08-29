@@ -11354,27 +11354,35 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
              ctx.fillStyle = "rgba(75, 20, 120, 0.8)";
              ctx.fillRect(leftX, -99999, faceWidth, 99999 + crystalY);
              
-             // Scrolling pixel streaks using setLineDash
+             // 8x8 Minecraft beacon texture simulation (Scrolling pixel streaks)
              ctx.save();
-             const numStreaks = 4;
-             for (let s = 0; s < numStreaks; s++) {
-                 // Predictable placement based on face index `i` and streak index `s`
-                 const percentX = (0.1 + (s * 0.25) + Math.sin(i * 3 + s) * 0.05) % 1.0;
-                 const streakX = leftX + faceWidth * percentX;
-                 const streakW = faceWidth * 0.15;
+             const numCols = 8;
+             const colWidth = faceWidth / numCols;
+             for (let c = 0; c < numCols; c++) {
+                 const streakX = leftX + c * colWidth + colWidth / 2;
                  
-                 // Dash pattern and speed
-                 const dashLength = 40 + s * 15;
-                 const gapLength = 150 + s * 40;
-                 const speed = 200 + s * 50;
+                 // Deterministic randomness per column and face
+                 const r1 = Math.abs(Math.sin(i * 12.9898 + c * 78.233));
+                 const r2 = Math.abs(Math.cos(i * 4.1414 + c * 73.234));
+                 const r3 = Math.abs(Math.sin(i * 7.1234 + c * 13.987));
+                 
+                 // Very short streaks (simulating ~6px pixels on a 50px block)
+                 const dash1 = 6 + r1 * 12;
+                 const gap1 = 6 + r2 * 12;
+                 const dash2 = 6 + r3 * 12;
+                 const gap2 = 6 + r1 * 12;
+                 
+                 // Minecraft beacon beam moves UP very fast. 
+                 const speed = 1500 + r1 * 1000; // 1500-2500px/s
                  
                  ctx.beginPath();
                  ctx.moveTo(streakX, crystalY);
                  ctx.lineTo(streakX, -99999);
-                 ctx.setLineDash([dashLength, gapLength]);
+                 ctx.setLineDash([dash1, gap1, dash2, gap2]);
                  ctx.lineDashOffset = -(t * speed);
-                 ctx.lineWidth = streakW;
-                 ctx.strokeStyle = "rgba(200, 100, 255, 0.5)"; // Lighter purple streaks
+                 ctx.lineWidth = colWidth;
+                 // Streaks are slightly lighter purple, creating a noise texture against the darker base
+                 ctx.strokeStyle = "rgba(105, 30, 150, 0.8)"; 
                  ctx.stroke();
              }
              ctx.restore();
