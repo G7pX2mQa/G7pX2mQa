@@ -565,7 +565,10 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
 // --- Logic Helpers ---
 const affordableCache = new Map();
 if (typeof window !== "undefined") {
-    window.addEventListener("saveSlot:change", () => affordableCache.clear());
+    window.addEventListener("saveSlot:change", () => {
+        affordableCache.clear();
+        scrollingElements.clear();
+    });
 }
 
 function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
