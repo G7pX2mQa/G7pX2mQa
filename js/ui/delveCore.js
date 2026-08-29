@@ -500,8 +500,9 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(updateAll, 100);
     };
+    let obs = null;
     if (typeof MutationObserver !== "undefined") {
-        const obs = new MutationObserver(debouncedUpdateAll);
+        obs = new MutationObserver(debouncedUpdateAll);
         obs.observe(scroller, { childList: true, subtree: true, characterData: true });
     }
     window.addEventListener("resize", updateAll);
@@ -556,8 +557,27 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         scheduleHide(FADE_SCROLL_MS);
     });
     // mark so we don't double-init
-    scroller.__customScroll = { bar, thumb, ro, updateAll };
+    const destroy = () => {
+        if (ro) ro.disconnect();
+        if (obs) obs.disconnect();
+        scroller.removeEventListener("scroll", onScroll);
+        if (supportsScrollEnd) scroller.removeEventListener("scrollend", onScrollEnd);
+        window.removeEventListener("resize", updateAll);
+        window.removeEventListener("pointermove", onDragMove);
+        window.removeEventListener("pointerup", endDrag);
+        window.removeEventListener("pointercancel", endDrag);
+        bar.remove();
+        delete scroller.__customScroll;
+    };
+    scroller.__customScroll = { bar, thumb, ro, updateAll, destroy };
     updateAll();
+}
+
+export function destroyMerchantScrollbar(overlayEl, scrollerSelector = ".merchant-content") {
+    const scroller = overlayEl?.querySelector(scrollerSelector);
+    if (scroller && scroller.__customScroll && typeof scroller.__customScroll.destroy === "function") {
+        scroller.__customScroll.destroy();
+    }
 }
 
 export function bindRapidActivation(target, handler, { once = false } = {}) {
