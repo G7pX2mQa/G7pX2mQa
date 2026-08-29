@@ -11209,8 +11209,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     const hasT4 = stateTier >= 4;
     const hasT6 = stateTier >= 6;
     const hasT8 = stateTier >= 8;
-
-    const blockSize = 50;
+    const blockSize = 48; // Divisible by 16 for perfect subpixel alignment of the beacon block!
     let lCount = 0;
     if (hasT0) lCount += 1;
     if (hasT1) lCount += 1;
@@ -11219,7 +11218,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     
     const pyramidTopY = -lCount * blockSize;
     const beaconPieceY = pyramidTopY - blockSize;
-        const crystalY = beaconPieceY + 3 * (blockSize / 16); // Top of the core
+    const crystalY = beaconPieceY + 3 * (blockSize / 16); // Top of the core
     const crystalX = 0;
 
     ctx.save();
@@ -11233,16 +11232,27 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     
     const drawLayer = (widthBlocks, yPos) => {
       ctx.save();
-      ctx.strokeStyle = '#1a0630';
-      ctx.lineWidth = 2;
       const totalW = widthBlocks * blockSize;
       const startX = -totalW / 2;
       
+      // Pass 1: Fills
       for (let i = 0; i < widthBlocks; i++) {
         const bx = startX + i * blockSize;
-        ctx.fillStyle = fillMat; // Reset to Unobtainium texture for each block
+        ctx.fillStyle = fillMat; // Unobtainium texture
         ctx.fillRect(bx, yPos, blockSize, blockSize);
+      }
+      
+      // Pass 2: Strokes (Drawn before bevels so they don't clip into them)
+      ctx.strokeStyle = '#1a0630';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < widthBlocks; i++) {
+        const bx = startX + i * blockSize;
         ctx.strokeRect(bx, yPos, blockSize, blockSize);
+      }
+      
+      // Pass 3: Bevels (Drawn last so they perfectly cover the inner halves of the strokes)
+      for (let i = 0; i < widthBlocks; i++) {
+        const bx = startX + i * blockSize;
         
         // Top bevel (always bright)
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -11253,22 +11263,22 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.fillRect(bx, yPos + blockSize * 0.85, blockSize, blockSize * 0.15);
 
         // Dynamic side bevels based on relative position to the center (x=0)
-        const blockCenterX = bx + blockSize / 2;
+        const blockCenterX = bx + Math.floor(blockSize / 2);
         if (blockCenterX < -1) {
-            // Block is on the left; its right side faces the central beacon light
+            // Block is on the left
             ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Left edge is dark
             ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Right edge is bright
             ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
         } else if (blockCenterX > 1) {
-            // Block is on the right; its left side faces the central beacon light
+            // Block is on the right
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Left edge is bright
             ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
             ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Right edge is dark
             ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
         } else {
-            // Center block directly under beacon; sides are neutral/dark
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            // Center block
+            ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Neutral sides
             ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
             ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
         }
