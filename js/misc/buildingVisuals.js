@@ -11197,26 +11197,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
   }
 
   // Endgame Environmental FX: Anti-Gravity Debris
-  ctx.save();
-  for (let i = 0; i < 20; i++) {
-    const cycle = ((t * 0.4) + (i * 0.37)) % 1.0; 
-    const debrisY = 30 - cycle * 250; 
-    const debrisX = Math.sin(i * 99 + t * 0.5) * 120;
-    
-    let alpha = 0;
-    if (cycle < 0.2) alpha = cycle / 0.2;
-    else if (cycle > 0.8) alpha = (1.0 - cycle) / 0.2;
-    else alpha = 1.0;
-    
-    ctx.globalAlpha = alpha * 0.7;
-    ctx.fillStyle = (i % 2 === 0) ? '#d98cff' : '#aeeaff';
-    const size = 1 + (i % 2.5);
-    
-    ctx.beginPath();
-    ctx.arc(debrisX, debrisY, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
+
 
   const drawState = (stateTier, alphaMult) => {
     if (alphaMult <= 0) return;
@@ -11238,9 +11219,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     
     const pyramidTopY = -lCount * blockSize;
     const beaconPieceY = pyramidTopY - blockSize;
-    
-    const crystalY = beaconPieceY + blockSize/2 + (Math.random() - 0.5) * 6;
-    const crystalX = (Math.random() - 0.5) * 6;
+        const crystalY = beaconPieceY + 3 * (blockSize / 16); // Top of the core
+    const crystalX = 0;
 
     ctx.save();
     ctx.globalAlpha = alphaMult;
@@ -11303,32 +11283,12 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     
     ctx.restore();
 
-    // 2. Glass Case
-    if (hasT0) {
-      ctx.save();
-      ctx.fillStyle = 'rgba(150, 50, 255, 0.2)';
-      ctx.strokeStyle = 'rgba(255, 150, 255, 0.8)';
-      ctx.lineWidth = 4;
-      ctx.fillRect(-blockSize/2, beaconPieceY, blockSize, blockSize);
-      ctx.strokeRect(-blockSize/2, beaconPieceY, blockSize, blockSize);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-blockSize/2 + 6, beaconPieceY + 6, blockSize - 12, blockSize - 12);
-      ctx.beginPath();
-      ctx.moveTo(-blockSize/2 + 10, beaconPieceY + 10);
-      ctx.lineTo(-blockSize/2 + blockSize/2, beaconPieceY + 10);
-      ctx.lineTo(-blockSize/2 + 10, beaconPieceY + blockSize/2);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.fill();
-      ctx.restore();
-    }
 
     // 3. Beam & Particle FX (Minecraft 3D rotating square)
     if (hasT0) {
       ctx.save();
       
-      const R = 22; // half-width of the square
+      const R = 8.5; // Adjusted so max diagonal width is ~24px (fits perfectly inside the 31px core width)re
       const angle = (t * Math.PI * 2) / 10; // 360 degrees in 10 seconds
       
       // Calculate 3D projected corners
@@ -11440,16 +11400,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
          ctx.fillRect(-wideBeamW/2, topY, wideBeamW, crystalY - topY);
       }
       
-      // Floating motes
-      for (let i = 0; i < 25; i++) {
-        const cycle = ((t * 2.5) + (i * 0.17)) % 1.0;
-        const moteY = crystalY - cycle * 2000;
-        const moteX = (Math.random() - 0.5) * R * 2.5;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.beginPath();
-        ctx.arc(moteX, moteY, 1 + Math.random() * 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
+
 
       ctx.restore(); 
     }
@@ -11510,40 +11461,80 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    // 5. Solid Beacon Core
+    // 5. Cohesive Beacon Block (Perfect 16x16 Minecraft replica)
     if (hasT0) {
       ctx.save();
-      // Draw Obsidian Base (inside the glass)
-      const obsW = blockSize * 0.75;
-      const obsH = blockSize * 0.25;
-      const obsX = crystalX - obsW/2;
-      const obsY = beaconPieceY + blockSize - obsH - 4; // rests near the bottom of glass
+      const scale = blockSize / 16; 
       
-      ctx.fillStyle = '#1a0d23'; // Dark obsidian
-      ctx.fillRect(obsX, obsY, obsW, obsH);
+      // Move to top-left of the beacon block
+      ctx.translate(-blockSize/2, beaconPieceY);
       
-      // Draw Glowing Core on top of Obsidian
-      const coreW = blockSize * 0.55;
-      const coreH = blockSize * 0.55;
-      const coreX = crystalX - coreW/2;
-      const coreY = obsY - coreH;
+      // 1. Obsidian Base (x=2..13, y=13..15)
+      ctx.fillStyle = fillMat; // Use the unobtainium texture!
+      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 20% black overlay
+      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
       
-      // Outer purple shell of the core block
-      ctx.fillStyle = '#6b2d99'; 
-      ctx.fillRect(coreX, coreY, coreW, coreH);
+      // 2. Core (x=3..12, y=3..12)
+      // Generate stylized 10x10 core texture ONCE to avoid flickering noise
+      if (!window.beaconCorePatternCanvas_v3) {
+          const cCanvas = document.createElement('canvas');
+          cCanvas.width = 10;
+          cCanvas.height = 10;
+          const cCtx = cCanvas.getContext('2d');
+          
+          for (let cy = 0; cy < 10; cy++) {
+              for (let cx = 0; cx < 10; cx++) {
+                  const dx = cx - 4.5;
+                  const dy = cy - 4.5;
+                  // Use Math.pow(..., 1.5) to keep the dark center area wider and more consistent
+                  const distRatio = Math.pow(Math.min(1, Math.sqrt(dx*dx + dy*dy) / 6.36), 1.5);
+                  
+                  // Outside (distRatio 1) = Royal Purple (120, 81, 169)
+                  // Inside (distRatio 0) = Darker Purple (30, 0, 50) - slightly darker now
+                  let rBase = 30 + distRatio * (120 - 30);
+                  let gBase = 0 + distRatio * (81 - 0);
+                  let bBase = 50 + distRatio * (169 - 50);
+                  
+                  // Less noise so the gradient is preserved and the center remains dark
+                  const noise = (Math.random() - 0.5) * 20;
+                  rBase = Math.max(0, Math.min(255, rBase + noise));
+                  gBase = Math.max(0, Math.min(255, gBase + noise));
+                  bBase = Math.max(0, Math.min(255, bBase + noise));
+                  
+                  cCtx.fillStyle = `rgb(${Math.floor(rBase)}, ${Math.floor(gBase)}, ${Math.floor(bBase)})`;
+                  cCtx.fillRect(cx, cy, 1, 1);
+              }
+          }
+          
+          window.beaconCorePatternCanvas_v3 = cCanvas;
+      }
       
-      // Inner bright white/cyan center
-      const innerW = coreW * 0.5;
-      const innerH = coreH * 0.5;
-      ctx.fillStyle = '#ffffff'; 
-      ctx.fillRect(coreX + (coreW-innerW)/2, coreY + (coreH-innerH)/2, innerW, innerH);
+      // Draw the stylized 10x10 core pixel-perfectly
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(window.beaconCorePatternCanvas_v3, 3 * scale, 3 * scale, 10 * scale, 10 * scale);
+      ctx.imageSmoothingEnabled = true;
       
-      // Optional subtle glow around the core
-      ctx.shadowColor = '#d98cff';
-      ctx.shadowBlur = 10;
-      ctx.strokeStyle = '#d98cff';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(coreX, coreY, coreW, coreH);
+      // 3. Glass Shell
+      // Fill (Darker Purple Tint)
+      ctx.fillStyle = 'rgba(100, 20, 160, 0.45)'; 
+      ctx.fillRect(1 * scale, 1 * scale, 14 * scale, 14 * scale);
+      
+      // Glass border (Tinted purple)
+      ctx.fillStyle = 'rgba(180, 80, 255, 0.5)';
+      ctx.fillRect(0, 0, 16 * scale, 1 * scale); // Top
+      ctx.fillRect(0, 15 * scale, 16 * scale, 1 * scale); // Bottom
+      ctx.fillRect(0, 1 * scale, 1 * scale, 14 * scale); // Left
+      ctx.fillRect(15 * scale, 1 * scale, 1 * scale, 14 * scale); // Right
+      
+      // Corner highlight (Tinted purple, both sides)
+      ctx.fillStyle = 'rgba(220, 150, 255, 0.7)';
+      // Top left
+      ctx.fillRect(1 * scale, 1 * scale, 2 * scale, 1 * scale);
+      ctx.fillRect(1 * scale, 2 * scale, 1 * scale, 1 * scale);
+      // Bottom right
+      ctx.fillRect(13 * scale, 14 * scale, 2 * scale, 1 * scale);
+      ctx.fillRect(14 * scale, 13 * scale, 1 * scale, 1 * scale);
       
       ctx.restore();
     }
