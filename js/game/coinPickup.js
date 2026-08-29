@@ -471,6 +471,7 @@ export function initCoinPickup({
     };
     window.addEventListener("currency:change", onCurrencyChange);
     const onSaveSlotChange = () => {
+        mutationMultiplierCache.clear();
         coinsVal = bank.coins.value;
         scheduleHudUpdate();
         // Check if shop should be unlocked on slot change
