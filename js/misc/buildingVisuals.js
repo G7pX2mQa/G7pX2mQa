@@ -11524,19 +11524,19 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.imageSmoothingEnabled = true;
       
       // 3. Glass Shell
-      // Fill (Darker Purple Tint)
-      ctx.fillStyle = 'rgba(100, 20, 160, 0.45)'; 
+      // Fill (Royal Purple Tint, less red/pink)
+      ctx.fillStyle = 'rgba(75, 20, 160, 0.45)'; 
       ctx.fillRect(1 * scale, 1 * scale, 14 * scale, 14 * scale);
       
-      // Glass border (Tinted purple)
-      ctx.fillStyle = 'rgba(180, 80, 255, 0.5)';
+      // Glass border (Royal Purple)
+      ctx.fillStyle = 'rgba(130, 40, 255, 0.5)';
       ctx.fillRect(0, 0, 16 * scale, 1 * scale); // Top
       ctx.fillRect(0, 15 * scale, 16 * scale, 1 * scale); // Bottom
       ctx.fillRect(0, 1 * scale, 1 * scale, 14 * scale); // Left
       ctx.fillRect(15 * scale, 1 * scale, 1 * scale, 14 * scale); // Right
       
-      // Corner highlight (Tinted purple, both sides)
-      ctx.fillStyle = 'rgba(220, 150, 255, 0.7)';
+      // Corner highlight (Dark Royal Purple, both sides)
+      ctx.fillStyle = 'rgba(130, 50, 220, 0.8)';
       // Top left
       ctx.fillRect(1 * scale, 1 * scale, 2 * scale, 1 * scale);
       ctx.fillRect(1 * scale, 2 * scale, 1 * scale, 1 * scale);
