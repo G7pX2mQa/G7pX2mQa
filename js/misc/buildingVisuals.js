@@ -11199,16 +11199,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     const crystalY = beaconPieceY + 3 * (blockSize / 16); // Top of the core
     const crystalX = 0;
 
-    ctx.save();
-    ctx.globalAlpha = alphaMult;
-    
-    // 1. Pyramid
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(-99999, -99999, 199998, 99999); // Clip to ground but allow infinite vertical reach
-    ctx.clip();
-    
-    const drawLayer = (widthBlocks, yPos, layerIndexFromBottom) => {
+    const drawLayer = (widthBlocks, yPos, layerIndexFromBottom, drawPass = 'all') => {
       ctx.save();
       const totalW = widthBlocks * blockSize;
       const startX = -totalW / 2;
@@ -11379,10 +11370,79 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     };
 
-    if (hasT0) drawLayer(3, pyramidTopY + blockSize * 0, lCount - 1);
-    if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1, lCount - 2);
-    if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2, lCount - 3);
-    if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3, lCount - 4);
+    ctx.save();
+    ctx.globalAlpha = alphaMult;
+    
+    // 0. Shockwaves (drawn underneath beams)
+    if (hasT6) {
+      if (hasT0) drawLayer(3, pyramidTopY + blockSize * 0, lCount - 1, 'shockwaves');
+      if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1, lCount - 2, 'shockwaves');
+      if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2, lCount - 3, 'shockwaves');
+      if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3, lCount - 4, 'shockwaves');
+    }
+
+    // Tier 7 Beams (drawn underneath pyramid but above anything before it)
+    if (hasT7) {
+      const sideOffset = 7 * blockSize;
+      
+      const innerX = sideOffset / 3;
+      const innerY = pyramidTopY * 2 / 3;
+      
+      const outerX = sideOffset * 2 / 3;
+      const outerY = pyramidTopY * 1 / 3;
+      
+      const innerOriginX = 2.5 * blockSize;
+      const innerOriginY = pyramidTopY + blockSize * 2; // T1 bottom corner
+      
+      const outerOriginX = 3.5 * blockSize;
+      const outerOriginY = pyramidTopY + blockSize * 3; // T2 bottom corner
+      
+      const drawBeam = (originX, originY, targetX, targetY) => {
+        ctx.save();
+        ctx.fillStyle = fillMat;
+        ctx.strokeStyle = '#1a0630';
+        ctx.lineWidth = 3;
+        
+        // Draw a thick beam
+        const dx = targetX - originX;
+        const dy = targetY - originY;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        const nx = -dy / len;
+        const ny = dx / len;
+        
+        const thickness = 10;
+        
+        ctx.beginPath();
+        ctx.moveTo(originX + nx * thickness, originY + ny * thickness);
+        ctx.lineTo(targetX + nx * thickness, targetY + ny * thickness);
+        ctx.lineTo(targetX - nx * thickness, targetY - ny * thickness);
+        ctx.lineTo(originX - nx * thickness, originY - ny * thickness);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.restore();
+      };
+      
+      // Draw inner beams (left and right)
+      drawBeam(innerOriginX, innerOriginY, innerX, innerY - blockSize/2);
+      drawBeam(-innerOriginX, innerOriginY, -innerX, innerY - blockSize/2);
+      
+      // Draw outer beams (left and right)
+      drawBeam(outerOriginX, outerOriginY, outerX, outerY - blockSize/2);
+      drawBeam(-outerOriginX, outerOriginY, -outerX, outerY - blockSize/2);
+    }
+    
+    // 1. Pyramid
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-99999, -99999, 199998, 99999); // Clip to ground but allow infinite vertical reach
+    ctx.clip();
+
+    if (hasT0) drawLayer(3, pyramidTopY + blockSize * 0, lCount - 1, hasT6 ? 'pyramid' : 'all');
+    if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1, lCount - 2, hasT6 ? 'pyramid' : 'all');
+    if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2, lCount - 3, hasT6 ? 'pyramid' : 'all');
+    if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3, lCount - 4, hasT6 ? 'pyramid' : 'all');
     
     ctx.restore();
 
