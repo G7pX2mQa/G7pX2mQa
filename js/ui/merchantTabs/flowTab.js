@@ -1346,7 +1346,7 @@ export function updateFlowTab() {
     if (explainerTextEl) {
         let hwMode = false;
         try {
-            hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${getActiveSlot()}`) === "1";
+            hwMode = lsGetItem(`ccc:waterwheelHotkeyMode:${getActiveSlot() ?? "default"}`) === "1";
         } catch (e) {}
         if (hwMode) {
             explainerTextEl.innerHTML = `<strong><span style="color: #00fffa;">Waterwheel Hotkey mode is active</span></strong>`;
