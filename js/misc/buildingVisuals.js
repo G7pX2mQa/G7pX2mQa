@@ -11812,8 +11812,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           gcv.height = 64;
           const gcx = gcv.getContext('2d');
           const g = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
-          g.addColorStop(0, 'rgba(180, 40, 255, 1)'); // Bright vivid purple core
-          g.addColorStop(1, 'rgba(180, 40, 255, 0)'); // Fades to transparent
+          // Changed from 180, 40, 255 to 130, 10, 255 to remove the pinkish hue
+          g.addColorStop(0, 'rgba(130, 10, 255, 1)'); // True violet purple
+          g.addColorStop(1, 'rgba(130, 10, 255, 0)'); // Fades to transparent
           gcx.fillStyle = g;
           gcx.fillRect(0, 0, 64, 64);
           window.voidParticleGlowCache = gcv;
