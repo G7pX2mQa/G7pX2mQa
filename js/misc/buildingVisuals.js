@@ -11321,7 +11321,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.save();
       
       const R = 8.5; // Adjusted so max diagonal width is ~24px (fits perfectly inside the 31px core width)re
-      const angle = (t * Math.PI * 2) / 10; // 360 degrees in 10 seconds
+      const angle = (t * Math.PI * 2) / 10 + Math.PI / 4; // 360 degrees in 10 seconds, starting with sides flat to camera
       
       // Calculate 3D projected corners
       const corners = [];
