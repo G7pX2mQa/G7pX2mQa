@@ -11142,32 +11142,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
   // BEACON: Strictly 2D
   // -------------------------
 
-  // Layer 5: Massive Background Magic Circle (T5)
-  if (t5 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t5 * 0.4; // Subtle background element
-    ctx.translate(0, -80);
-    ctx.rotate(-t * 0.2); // Slow rotation
-    
-    ctx.strokeStyle = '#d98cff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 150, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.arc(0, 0, 130, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Inner star
-    for(let i=0; i<6; i++) {
-       ctx.beginPath();
-       ctx.moveTo(0, 0);
-       ctx.lineTo(Math.cos(i*Math.PI/3)*150, Math.sin(i*Math.PI/3)*150);
-       ctx.stroke();
-    }
-    ctx.restore();
-  }
+  // (Tier 5 visual was moved to additive particle effects in drawState)
 
   // T7: Secondary Base Structures (Side pylons)
   if (t7 > 0) {
@@ -11207,6 +11182,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     const hasT2 = stateTier >= 2;
     const hasT3 = stateTier >= 3;
     const hasT4 = stateTier >= 4;
+    const hasT5 = stateTier >= 5;
     const hasT6 = stateTier >= 6;
     const hasT8 = stateTier >= 8;
     const hasT4Block = inheritedBlockTier >= 4;
@@ -11819,6 +11795,70 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         
         ctx.beginPath();
         const size = 1.5 + Math.abs(Math.sin(i * 4.5)) * 1.5;
+        ctx.arc(xPos, yPos, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Tier 5: Void Particles
+    if (hasT5) {
+      ctx.save();
+      
+      // Initialize performant glow cache ONCE
+      if (!window.voidParticleGlowCache) {
+          const gcv = document.createElement('canvas');
+          gcv.width = 64; 
+          gcv.height = 64;
+          const gcx = gcv.getContext('2d');
+          const g = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
+          g.addColorStop(0, 'rgba(180, 40, 255, 1)'); // Bright vivid purple core
+          g.addColorStop(1, 'rgba(180, 40, 255, 0)'); // Fades to transparent
+          gcx.fillStyle = g;
+          gcx.fillRect(0, 0, 64, 64);
+          window.voidParticleGlowCache = gcv;
+      }
+      
+      const bottomWidthBlocks = 9; // T5 always has a T3 base (9 blocks)
+      const halfWidth = (bottomWidthBlocks * blockSize) / 2;
+      const numParticles = bottomWidthBlocks * 8; // Twice as many as T1
+      
+      for (let i = 0; i < numParticles; i++) {
+        const cycle = ((t * 0.3 + i * 0.17) % 1.0);
+        const startY = 0;
+        const endY = pyramidTopY - 20;
+        const yPos = startY + (endY - startY) * cycle;
+        
+        // Different seed so they don't perfectly overlap T1
+        const pseudoRandom = Math.abs(Math.sin(i * 25.1234) * 43758.5453); 
+        const randomFraction = pseudoRandom - Math.floor(pseudoRandom); 
+        const baseX = -halfWidth + (randomFraction * halfWidth * 2);
+        
+        const wobble = Math.sin(t * 2 + i) * 10;
+        const xPos = baseX + wobble;
+        
+        const alpha = Math.sin(cycle * Math.PI);
+        
+        // Use square root on the sine wave to pull the curve up rapidly.
+        // This makes the transition incredibly smooth and prevents it from lingering on black!
+        const rawCycle = (Math.sin(t * 6.0 + i * 1.0) + 1) / 2; 
+        const colorCycle = Math.sqrt(rawCycle); 
+        
+        const r = Math.floor(60 * colorCycle);
+        const b = Math.floor(110 * colorCycle);
+        
+        // Twice the size of T1 particles
+        const size = (1.5 + Math.abs(Math.sin(i * 4.5)) * 1.5) * 2;
+
+        // 1. Draw highly performant glowing aura using the cached image
+        const glowSize = size * 4; // Glow extends far past the core
+        ctx.globalAlpha = alpha * 0.6 * colorCycle; // Glow pulses with the color!
+        ctx.drawImage(window.voidParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
+        ctx.globalAlpha = alpha; // Reset global alpha for the core
+        
+        // 2. Draw dark matter core
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(${r}, 0, ${b}, 0.95)`;
         ctx.arc(xPos, yPos, size, 0, Math.PI * 2);
         ctx.fill();
       }
