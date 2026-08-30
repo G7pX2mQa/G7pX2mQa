@@ -1,3 +1,4 @@
+import { IS_MOBILE } from "../util/platformChecker.js";
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
@@ -6643,7 +6644,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         const btnNum = r * 3 + c + 1;
 
         const isHovered = kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5;
-        const isHighlighted = isHovered || (lastHotkeyNum === btnNum);
+        const isHighlighted = isHovered || (IS_MOBILE && lastHotkeyNum === btnNum);
         keypadCtx.fillStyle = isHighlighted ? "#656565" : "#434343";
         keypadCtx.fillRect(bx, by, 5, 5);
 
@@ -11426,7 +11427,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           // At 60 FPS, 120 wraps/sec is exactly 2.0 wraps per frame, which causes perfect stroboscopic freezing!
           // The maximum visual speed before it starts strobing backwards is ~25 wraps per second.
           // 25 is blindingly fast (a blur of motion).
-          const speed = 25.0; 
+          const speed = -25.0; 
           let p = (y * freq + t * speed + (hIndex * 0.5)) % 1.0;
           if (p < 0) p += 1.0;
           
@@ -11515,7 +11516,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       const beamWidth = 28;
       for (let i = 0; i < 80; i++) {
         const cycle = ((t * 0.4 + i * 0.21) % 1.0);
-        const yPos = topY + (crystalY - topY) * cycle;
+        const yPos = crystalY - (crystalY - topY) * cycle;
         
         const seed = i * 73.19;
         const randX = Math.abs(Math.sin(seed) * 10000);
@@ -12067,7 +12068,7 @@ function handleVaultCanvasKeyDown(e) {
     setVaultSequence(newSeq);
 
     if (newSeq === target) {
-      playAudio("sounds/correct.ogg", { volume: 0.67 });
+      playAudio("sounds/correct.ogg", { volume: 0.4 });
       isVaultOpening = true;
       vaultOpeningTime = 5.0;
       keypadZoomedIn = false;
@@ -12081,9 +12082,9 @@ function handleVaultCanvasKeyDown(e) {
         window.resetSystem.updateBuildingsOverlayUi();
       }
     } else if (newLen === oldLen + 1) {
-      playAudio("sounds/correct.ogg", { volume: 0.67 });
+      playAudio("sounds/correct.ogg", { volume: 0.4 });
     } else {
-      playAudio("sounds/incorrect.ogg", { volume: 0.33 });
+      playAudio("sounds/incorrect.ogg", { volume: 0.2 });
       setVaultSequence("0000000000000000");
     }
   }
@@ -12137,7 +12138,7 @@ function handleVaultCanvasClick(e) {
           setVaultSequence(newSeq);
 
           if (newSeq === target) {
-            playAudio("sounds/correct.ogg", { volume: 0.67 });
+            playAudio("sounds/correct.ogg", { volume: 0.4 });
             isVaultOpening = true;
             vaultOpeningTime = 5.0;
             keypadZoomedIn = false;
@@ -12151,9 +12152,9 @@ function handleVaultCanvasClick(e) {
               window.resetSystem.updateBuildingsOverlayUi();
             }
           } else if (newLen === oldLen + 1) {
-            playAudio("sounds/correct.ogg", { volume: 0.67 });
+            playAudio("sounds/correct.ogg", { volume: 0.4 });
           } else {
-            playAudio("sounds/incorrect.ogg", { volume: 0.33 });
+            playAudio("sounds/incorrect.ogg", { volume: 0.2 });
             setVaultSequence("0000000000000000");
           }
           return;
