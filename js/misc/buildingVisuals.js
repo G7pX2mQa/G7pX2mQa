@@ -11853,13 +11853,13 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // 1. Draw highly performant glowing aura using the cached image
         const glowSize = size * 4; // Glow extends far past the core
-        ctx.globalAlpha = alpha * 0.6 * colorCycle; // Glow pulses with the color!
+        ctx.globalAlpha = alpha * 0.6 * colorCycle * alphaMult; // Multiply by alphaMult so it fades in with the tier!
         ctx.drawImage(window.voidParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
-        ctx.globalAlpha = alpha; // Reset global alpha for the core
+        ctx.globalAlpha = alphaMult; // Reset global alpha to the tier's fade progress for the core
         
         // 2. Draw dark matter core
         ctx.beginPath();
-        ctx.fillStyle = `rgba(${r}, 0, ${b}, 0.95)`;
+        ctx.fillStyle = `rgba(${r}, 0, ${b}, ${alpha * 0.95})`;
         ctx.arc(xPos, yPos, size, 0, Math.PI * 2);
         ctx.fill();
       }
