@@ -11145,32 +11145,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
   // (Tier 5 visual was moved to additive particle effects in drawState)
 
-  // T7: Secondary Base Structures (Side pylons)
-  if (t7 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t7;
-    ctx.fillStyle = fillMat;
-    ctx.strokeStyle = '#1a0630';
-    ctx.lineWidth = 3;
-    
-    // Left pylon
-    ctx.beginPath();
-    ctx.moveTo(-100, 0);
-    ctx.lineTo(-70, -80);
-    ctx.lineTo(-50, -80);
-    ctx.lineTo(-30, 0);
-    ctx.fill(); ctx.stroke();
-    
-    // Right pylon
-    ctx.beginPath();
-    ctx.moveTo(100, 0);
-    ctx.lineTo(70, -80);
-    ctx.lineTo(50, -80);
-    ctx.lineTo(30, 0);
-    ctx.fill(); ctx.stroke();
-    
-    ctx.restore();
-  }
+  // (T7 side beacons and support beams are now drawn inside drawState)
 
   // Endgame Environmental FX: Anti-Gravity Debris
 
@@ -11185,6 +11160,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     const hasT4 = stateTier >= 4;
     const hasT5 = stateTier >= 5;
     const hasT6 = stateTier >= 6;
+    const hasT7 = stateTier >= 7;
     const hasT8 = stateTier >= 8;
     const hasT4Block = inheritedBlockTier >= 4;
     const blockSize = 48; // Divisible by 16 for perfect subpixel alignment of the beacon block!
@@ -11383,6 +11359,64 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1, lCount - 2);
     if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2, lCount - 3);
     if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3, lCount - 4);
+
+    // T7: Unobtainium support beams for elevated side beacons
+    // Drawn after pyramid layers (above shockwaves), before the main pyramid clip restore
+    if (hasT7) {
+      const beamThickness = 10; // Reasonably thick beams
+      const centralHeight = lCount * blockSize + blockSize; // Total height of central beacon (pyramid + beacon block)
+
+      // Side beacon horizontal positions: equidistant spacing
+      // T3 ground beacons are at x = ±(7 * blockSize) = ±336
+      // 3 equal horizontal sections: 336/3 = 112
+      const sideSpacing = (7 * blockSize) / 3;
+      const upperX = sideSpacing;       // ±112 (closer to center)
+      const lowerX = sideSpacing * 2;   // ±224 (further from center)
+
+      // Vertical positions: 1/3 and 2/3 of central beacon height
+      // These are the CENTER of each 3-block base
+      const upperBeaconCenterY = -(centralHeight * 2 / 3); // -160
+      const lowerBeaconCenterY = -(centralHeight * 1 / 3); // -80
+
+      // Support beam origins: corners of pyramid layers
+      // 5-block layer (T1): top-left corner at x = -(5*blockSize/2) = -120, y = pyramidTopY + blockSize
+      const fiveBlockHalfW = (5 * blockSize) / 2;   // 120
+      const fiveBlockTopY = pyramidTopY + blockSize; // -144 (top of the 5-block layer)
+
+      // 7-block layer (T2): bottom corner at x = -(7*blockSize/2) = -168, y = pyramidTopY + 2*blockSize + blockSize = -48
+      const sevenBlockHalfW = (7 * blockSize) / 2;    // 168
+      const sevenBlockBottomY = pyramidTopY + 3 * blockSize; // -48 (bottom of the 7-block layer)
+
+      // Draw each support beam as a thick filled parallelogram (no outline)
+      const drawSupportBeam = (originX, originY, targetX, targetY) => {
+        // Calculate perpendicular offset for beam thickness
+        const dx = targetX - originX;
+        const dy = targetY - originY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const perpX = (-dy / len) * (beamThickness / 2);
+        const perpY = (dx / len) * (beamThickness / 2);
+
+        ctx.save();
+        ctx.fillStyle = fillMat;
+        ctx.beginPath();
+        ctx.moveTo(originX + perpX, originY + perpY);
+        ctx.lineTo(targetX + perpX, targetY + perpY);
+        ctx.lineTo(targetX - perpX, targetY - perpY);
+        ctx.lineTo(originX - perpX, originY - perpY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      };
+
+      // Upper beacons (2/3 height): beams from 5-block layer corners
+      // Left upper: from right edge of 5-block layer's left corner (actually outer left corner)
+      drawSupportBeam(-fiveBlockHalfW, fiveBlockTopY, -upperX, upperBeaconCenterY);
+      drawSupportBeam(fiveBlockHalfW, fiveBlockTopY, upperX, upperBeaconCenterY);
+
+      // Lower beacons (1/3 height): beams from 7-block layer corners
+      drawSupportBeam(-sevenBlockHalfW, sevenBlockBottomY, -lowerX, lowerBeaconCenterY);
+      drawSupportBeam(sevenBlockHalfW, sevenBlockBottomY, lowerX, lowerBeaconCenterY);
+    }
     
     ctx.restore();
 
@@ -11962,6 +11996,42 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
       ctx.save();
       ctx.translate(sideOffset, 0);
+      drawState(0, alphaMult, stateTier);
+      ctx.restore();
+    }
+
+    // T7: Elevated Side Beacons (4 new beacons, 2 per side)
+    // Each is identical to a tier 3 side beacon (drawState(0)) but floating in the air
+    if (hasT7) {
+      const centralHeight = lCount * blockSize + blockSize; // 240 at full pyramid
+      const sideSpacing = (7 * blockSize) / 3; // 112 - equidistant horizontal spacing
+
+      // The center of the 3-block base in drawState(0) local coords is at y = -24
+      // To place center at world targetY: translate y = targetY + 24
+      const upperCenterY = -(centralHeight * 2 / 3); // -160
+      const lowerCenterY = -(centralHeight * 1 / 3); // -80
+      const upperTranslateY = upperCenterY + blockSize / 2; // -136
+      const lowerTranslateY = lowerCenterY + blockSize / 2; // -56
+
+      // Upper pair (2/3 height, closer to center at x = ±112)
+      ctx.save();
+      ctx.translate(-sideSpacing, upperTranslateY);
+      drawState(0, alphaMult, stateTier);
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(sideSpacing, upperTranslateY);
+      drawState(0, alphaMult, stateTier);
+      ctx.restore();
+
+      // Lower pair (1/3 height, further out at x = ±224)
+      ctx.save();
+      ctx.translate(-sideSpacing * 2, lowerTranslateY);
+      drawState(0, alphaMult, stateTier);
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(sideSpacing * 2, lowerTranslateY);
       drawState(0, alphaMult, stateTier);
       ctx.restore();
     }
