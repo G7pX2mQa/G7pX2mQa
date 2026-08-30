@@ -11199,7 +11199,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
   // Endgame Environmental FX: Anti-Gravity Debris
 
 
-  const drawState = (stateTier, alphaMult) => {
+  const drawState = (stateTier, alphaMult, inheritedBlockTier = stateTier) => {
     if (alphaMult <= 0) return;
     
     const hasT0 = stateTier >= 0;
@@ -11209,6 +11209,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     const hasT4 = stateTier >= 4;
     const hasT6 = stateTier >= 6;
     const hasT8 = stateTier >= 8;
+    const hasT4Block = inheritedBlockTier >= 4;
     const blockSize = 48; // Divisible by 16 for perfect subpixel alignment of the beacon block!
     let lCount = 0;
     if (hasT0) lCount += 1;
@@ -11317,7 +11318,162 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
 
     // 3. Beam & Particle FX (Minecraft 3D rotating square)
-    if (hasT0) {
+    if (hasT4Block) {
+      ctx.save();
+      
+      const R = 8.5; // Same as T0
+      const angle = (t * Math.PI * 2) / 10 + Math.PI / 4; 
+      
+      const corners = [];
+      for(let i=0; i<4; i++) {
+         const a = angle + i * (Math.PI / 2);
+         corners.push({
+             x: Math.sin(a) * R,
+             z: Math.cos(a) * R
+         });
+      }
+      
+      let topY = -2000;
+      try {
+          const transform = ctx.getTransform();
+          if (transform && transform.d) {
+              topY = Math.min(crystalY, (-transform.f / transform.d) - 100);
+          }
+      } catch (e) {}
+
+      // Define corners for the helix to perfectly hug the square beam
+      const helixCorners = [];
+      for(let i=0; i<4; i++) {
+         const a = angle + i * (Math.PI / 2);
+         helixCorners.push({
+             x: Math.sin(a) * (R + 2.5),
+             z: Math.cos(a) * (R + 2.5)
+         });
+      }
+
+      function getHelixPoint(y, hIndex) {
+          const freq = 0.015; 
+          // 8000px/sec * 0.015 freq = 120 wraps per second. 
+          // At 60 FPS, 120 wraps/sec is exactly 2.0 wraps per frame, which causes perfect stroboscopic freezing!
+          // The maximum visual speed before it starts strobing backwards is ~25 wraps per second.
+          // 25 is blindingly fast (a blur of motion).
+          const speed = 25.0; 
+          let p = (y * freq + t * speed + (hIndex * 0.5)) % 1.0;
+          if (p < 0) p += 1.0;
+          
+          const seg = Math.floor(p * 4);
+          const prog = (p * 4) % 1.0;
+          
+          const c1 = helixCorners[seg];
+          const c2 = helixCorners[(seg + 1) % 4];
+          
+          return {
+              x: c1.x + (c2.x - c1.x) * prog,
+              z: c1.z + (c2.z - c1.z) * prog,
+              y: y
+          };
+      }
+
+      function drawHelixLayer(isFront) {
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          
+          for (let h = 0; h < 2; h++) {
+              ctx.beginPath();
+              let isDrawing = false;
+              
+              for (let y = crystalY; y >= topY; y -= 2) {
+                  const pt = getHelixPoint(y, h);
+                  // Front layer: z > 0, Back layer: z <= 0
+                  const isVisible = isFront ? pt.z > 0 : pt.z <= 0;
+                  
+                  if (isVisible) {
+                      if (!isDrawing) {
+                          ctx.moveTo(pt.x, pt.y);
+                          isDrawing = true;
+                      } else {
+                          ctx.lineTo(pt.x, pt.y);
+                      }
+                  } else {
+                      isDrawing = false;
+                  }
+              }
+              
+              // Outer Glow (Way darker purple)
+              ctx.strokeStyle = isFront ? "rgba(60, 0, 120, 0.9)" : "rgba(30, 0, 60, 0.4)";
+              ctx.lineWidth = isFront ? 6 : 3;
+              ctx.stroke();
+              
+              // Inner Core (Dark violet instead of bright pink/white)
+              ctx.strokeStyle = isFront ? "rgba(120, 10, 200, 1.0)" : "rgba(70, 0, 110, 0.5)";
+              ctx.lineWidth = isFront ? 2 : 1;
+              ctx.stroke();
+          }
+      }
+
+      // 1. Draw BACK half of the helices
+      drawHelixLayer(false);
+
+      // 2. Draw visible faces (Pure Black Beam)
+      for(let i=0; i<4; i++) {
+         const p1 = corners[i];
+         const p2 = corners[(i+1)%4];
+         if (p1.x < p2.x) { // Face is pointing towards camera
+             const leftX = p1.x;
+             const rightX = p2.x;
+             const faceWidth = rightX - leftX;
+             const faceHeight = crystalY - topY;
+             
+             ctx.fillStyle = "#000000";
+             ctx.fillRect(leftX, topY, faceWidth, faceHeight);
+             
+             // Edges (Glowing Violet)
+             ctx.strokeStyle = "rgba(80, 20, 150, 0.8)";
+             ctx.lineWidth = 1.5;
+             ctx.beginPath();
+             ctx.moveTo(leftX, topY);
+             ctx.lineTo(leftX, crystalY);
+             ctx.moveTo(rightX, topY);
+             ctx.lineTo(rightX, crystalY);
+             ctx.stroke();
+         }
+      }
+
+      // 3. Draw FRONT half of the helices
+      drawHelixLayer(true);
+
+      // Falling Dark Matter "Ash"
+      const beamWidth = 28;
+      for (let i = 0; i < 80; i++) {
+        const cycle = ((t * 0.4 + i * 0.21) % 1.0);
+        const yPos = topY + (crystalY - topY) * cycle;
+        
+        const seed = i * 73.19;
+        const randX = Math.abs(Math.sin(seed) * 10000);
+        const fracX = randX - Math.floor(randX);
+        
+        // Reduced spread to bring particles closer to the beam
+        const spread = beamWidth * 0.9;
+        let xPos = (fracX - 0.5) * 2 * spread;
+        
+        // Reduced wobble
+        const wobble = Math.sin(yPos * 0.03 + t * 2 + seed) * 8;
+        xPos += wobble;
+        
+        const isBlack = (Math.floor(randX * 100) % 3) !== 0; 
+        
+        let alpha = 1.0;
+        if (cycle < 0.1) alpha = cycle / 0.1;
+        if (cycle > 0.9) alpha = (1.0 - cycle) / 0.1;
+        
+        ctx.fillStyle = isBlack ? `rgba(0, 0, 0, ${alpha})` : `rgba(120, 20, 220, ${alpha * 0.8})`;
+        ctx.beginPath();
+        const size = 1.5 + fracX * 3.5;
+        ctx.arc(xPos, yPos, size, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    } else if (hasT0) {
       ctx.save();
       
       const R = 8.5; // Adjusted so max diagonal width is ~24px (fits perfectly inside the 31px core width)re
@@ -11423,18 +11579,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
          }
       }
 
-      if (hasT4) {
-         let wideBeamW = 100;
-         let wideGrad = ctx.createLinearGradient(-wideBeamW/2, 0, wideBeamW/2, 0);
-         const pulse = 0.5 + Math.sin(t * 6) * 0.3;
-         wideGrad.addColorStop(0, `rgba(150, 50, 255, 0.0)`);
-         wideGrad.addColorStop(0.3, `rgba(180, 80, 255, ${0.5 * pulse})`);
-         wideGrad.addColorStop(0.5, `rgba(255, 200, 255, ${0.9 * pulse})`);
-         wideGrad.addColorStop(0.7, `rgba(180, 80, 255, ${0.5 * pulse})`);
-         wideGrad.addColorStop(1, `rgba(150, 50, 255, 0.0)`);
-         ctx.fillStyle = wideGrad;
-         ctx.fillRect(-wideBeamW/2, topY, wideBeamW, crystalY - topY);
-      }
+
       
 
 
@@ -11488,7 +11633,81 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
 
     // 5. Cohesive Beacon Block (Perfect 16x16 Minecraft replica)
-    if (hasT0) {
+    if (hasT4Block) {
+      ctx.save();
+      const scale = blockSize / 16; 
+      
+      // Move to top-left of the beacon block
+      ctx.translate(-blockSize/2, beaconPieceY);
+      
+      // 1. Obsidian Base (x=2..13, y=13..15)
+      ctx.fillStyle = fillMat; // Use the unobtainium texture!
+      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 20% black overlay
+      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+      
+      // 2. Core (x=3..12, y=3..12) - Crazy Dark Matter Mode
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
+      ctx.clip();
+
+      // Deep void background
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
+
+      // Crazy swirling dark matter
+      for (let i = 0; i < 5; i++) {
+          const px = 8 * scale + Math.sin(t * 4 + i * 1.5) * (3 * scale);
+          const py = 8 * scale + Math.cos(t * 5 + i * 0.8) * (3 * scale);
+          
+          const grad = ctx.createRadialGradient(px, py, 0, px, py, 6 * scale);
+          grad.addColorStop(0, i % 2 === 0 ? "rgba(180, 0, 255, 0.9)" : "rgba(80, 0, 150, 0.9)");
+          grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+          
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(px, py, 6 * scale, 0, Math.PI * 2);
+          ctx.fill();
+      }
+
+      ctx.restore();
+      
+      // 3. Glass Shell (Unchanged from T0)
+      // Fill (Royal Purple Tint, less red/pink)
+      ctx.fillStyle = 'rgba(75, 20, 160, 0.45)'; 
+      ctx.fillRect(1 * scale, 1 * scale, 14 * scale, 14 * scale);
+      
+      // Glass border (Royal Purple)
+      ctx.fillStyle = 'rgba(130, 40, 255, 0.5)';
+      ctx.fillRect(0, 0, 16 * scale, 1 * scale); // Top
+      ctx.fillRect(0, 15 * scale, 16 * scale, 1 * scale); // Bottom
+      ctx.fillRect(0, 1 * scale, 1 * scale, 14 * scale); // Left
+      ctx.fillRect(15 * scale, 1 * scale, 1 * scale, 14 * scale); // Right
+      
+      // Corner highlight (Dark Royal Purple, both sides)
+      ctx.fillStyle = 'rgba(130, 50, 220, 0.8)';
+      // Top left
+      ctx.fillRect(1 * scale, 1 * scale, 2 * scale, 1 * scale);
+      ctx.fillRect(1 * scale, 2 * scale, 1 * scale, 1 * scale);
+      // Bottom right
+      ctx.fillRect(13 * scale, 14 * scale, 2 * scale, 1 * scale);
+      ctx.fillRect(14 * scale, 13 * scale, 1 * scale, 1 * scale);
+      
+      // Floating dark ash around the block
+      for (let i = 0; i < 6; i++) {
+         const cycle = ((t + i * 0.4) % 1.0);
+         const px = 8 * scale + (Math.sin(t * 3 + i * 45) * 10 * scale);
+         const py = 8 * scale + (Math.cos(t * 2.5 + i * 30) * 10 * scale) - cycle * 20;
+         
+         ctx.fillStyle = `rgba(0, 0, 0, ${1 - cycle})`;
+         ctx.beginPath();
+         ctx.arc(px, py, 1.5 * scale * (1 - cycle), 0, Math.PI * 2);
+         ctx.fill();
+      }
+      
+      ctx.restore();
+    } else if (hasT0) {
       ctx.save();
       const scale = blockSize / 16; 
       
@@ -11570,7 +11789,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     }
 
     // 6. Purple Particles
-    if (hasT1) {
+    if (hasT1 && !hasT4Block) {
       ctx.save();
       
       // Determine the width of the bottom-most layer of the pyramid
@@ -11618,12 +11837,12 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       
       ctx.save();
       ctx.translate(-sideOffset, 0);
-      drawState(0, alphaMult);
+      drawState(0, alphaMult, stateTier);
       ctx.restore();
 
       ctx.save();
       ctx.translate(sideOffset, 0);
-      drawState(0, alphaMult);
+      drawState(0, alphaMult, stateTier);
       ctx.restore();
     }
 
