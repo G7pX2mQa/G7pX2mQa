@@ -11557,18 +11557,46 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    // 6. Floating Rings
+    // 6. Purple Particles
     if (hasT1) {
       ctx.save();
-      ctx.translate(0, crystalY);
-      ctx.strokeStyle = `rgba(200, 100, 255, ${0.6 + Math.sin(t*5)*0.2})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 45, 15, Math.sin(t), 0, Math.PI*2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 60, 20, -Math.sin(t*0.8), 0, Math.PI*2);
-      ctx.stroke();
+      
+      // Determine the width of the bottom-most layer of the pyramid
+      let bottomWidthBlocks = 5; // T1 base
+      if (hasT3) bottomWidthBlocks = 9;
+      else if (hasT2) bottomWidthBlocks = 7;
+      
+      const halfWidth = (bottomWidthBlocks * blockSize) / 2;
+      const numParticles = bottomWidthBlocks * 4; // Scale particles with width (20, 28, 36)
+      
+      for (let i = 0; i < numParticles; i++) {
+        // cycle from 0 to 1
+        const cycle = ((t * 0.3 + i * 0.17) % 1.0);
+        // Start near the base of the pyramid (0) and drift up slightly past the top (pyramidTopY)
+        const startY = 0;
+        const endY = pyramidTopY - 20;
+        const yPos = startY + (endY - startY) * cycle;
+        
+        // Spread particles across the dynamic width of the pyramid base truly randomly
+        // We use a robust deterministic pseudo-random number based on the particle index
+        // to avoid grouping in specific regions.
+        const pseudoRandom = Math.abs(Math.sin(i * 12.9898) * 43758.5453);
+        const randomFraction = pseudoRandom - Math.floor(pseudoRandom); 
+        // Map from [0, 1) to [-halfWidth, halfWidth]
+        const baseX = -halfWidth + (randomFraction * halfWidth * 2);
+        
+        const wobble = Math.sin(t * 2 + i) * 10;
+        const xPos = baseX + wobble;
+        
+        // Fade in and out
+        const alpha = Math.sin(cycle * Math.PI);
+        
+        ctx.fillStyle = `rgba(180, 80, 255, ${alpha * 0.8})`;
+        ctx.beginPath();
+        const size = 1.5 + Math.abs(Math.sin(i * 4.5)) * 1.5;
+        ctx.arc(xPos, yPos, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
 
