@@ -11789,7 +11789,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     }
 
     // 6. Purple Particles
-    if (hasT1 && !hasT4Block) {
+    if (hasT1) {
       ctx.save();
       
       // Determine the width of the bottom-most layer of the pyramid
@@ -11823,6 +11823,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         const alpha = Math.sin(cycle * Math.PI);
         
         ctx.fillStyle = `rgba(180, 80, 255, ${alpha * 0.8})`;
+        
         ctx.beginPath();
         const size = 1.5 + Math.abs(Math.sin(i * 4.5)) * 1.5;
         ctx.arc(xPos, yPos, size, 0, Math.PI * 2);
