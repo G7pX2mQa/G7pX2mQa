@@ -11845,15 +11845,16 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         const rawCycle = (Math.sin(t * 6.0 + i * 1.0) + 1) / 2; 
         const colorCycle = Math.sqrt(rawCycle); 
         
-        const r = Math.floor(60 * colorCycle);
-        const b = Math.floor(110 * colorCycle);
+        // Tuned to a rich, dark purple (85/150) so it stays dark but remains visibly purple!
+        const r = Math.floor(85 * colorCycle);
+        const b = Math.floor(150 * colorCycle);
         
         // Twice the size of T1 particles
         const size = (1.5 + Math.abs(Math.sin(i * 4.5)) * 1.5) * 2;
 
         // 1. Draw highly performant glowing aura using the cached image
         const glowSize = size * 4; // Glow extends far past the core
-        ctx.globalAlpha = alpha * 0.6 * colorCycle * alphaMult; // Multiply by alphaMult so it fades in with the tier!
+        ctx.globalAlpha = alpha * 0.8 * colorCycle * alphaMult; // Increased from 0.6 to 0.8
         ctx.drawImage(window.voidParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
         ctx.globalAlpha = alphaMult; // Reset global alpha to the tier's fade progress for the core
         
