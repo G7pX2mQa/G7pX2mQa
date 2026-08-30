@@ -11699,18 +11699,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.fillRect(13 * scale, 14 * scale, 2 * scale, 1 * scale);
       ctx.fillRect(14 * scale, 13 * scale, 1 * scale, 1 * scale);
       
-      // Floating dark ash around the block
-      for (let i = 0; i < 6; i++) {
-         const cycle = ((t + i * 0.4) % 1.0);
-         const px = 8 * scale + (Math.sin(t * 3 + i * 45) * 10 * scale);
-         const py = 8 * scale + (Math.cos(t * 2.5 + i * 30) * 10 * scale) - cycle * 20;
-         
-         ctx.fillStyle = `rgba(0, 0, 0, ${1 - cycle})`;
-         ctx.beginPath();
-         ctx.arc(px, py, 1.5 * scale * (1 - cycle), 0, Math.PI * 2);
-         ctx.fill();
-      }
-      
       ctx.restore();
     } else if (hasT0) {
       ctx.save();
