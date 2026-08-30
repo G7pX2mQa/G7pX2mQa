@@ -1295,6 +1295,7 @@ export function enterArea(areaID, fadeDuration = 0) {
         }
         cleanupUpgradesListener = onUpgradesChanged(applyUpgradesToSpawner);
         if (typeof window !== "undefined") {
+            window.removeEventListener("debug:change", applyUpgradesToSpawner);
             window.addEventListener("debug:change", applyUpgradesToSpawner);
         }
     }
