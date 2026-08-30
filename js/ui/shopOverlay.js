@@ -335,7 +335,14 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     const { orientation = "vertical" } = options;
     const isVertical = orientation === "vertical";
     const scroller = overlayEl?.querySelector(scrollerSelector);
-    if (!scroller || scroller.__customScroll) return;
+    if (!scroller) return;
+    if (scroller.__customScroll) {
+        if (typeof scroller.__customScroll.destroy === "function") {
+            scroller.__customScroll.destroy();
+        } else {
+            return;
+        }
+    }
     const bar = document.createElement("div");
     bar.className = `shop-scrollbar${isVertical ? "" : " is-horizontal"}`;
     const thumb = document.createElement("div");
@@ -343,6 +350,18 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     bar.appendChild(thumb);
     sheetEl.appendChild(bar);
     scroller.__customScroll = { bar, thumb };
+    let obs = null;
+    let ro = null;
+    scroller.__customScroll.destroy = () => {
+        window.removeEventListener("resize", updateAll);
+        scroller.removeEventListener("scroll", onScroll);
+        if (supportsScrollEnd) scroller.removeEventListener("scrollend", onScrollEnd);
+        if (ro && ro.disconnect) ro.disconnect();
+        if (obs && obs.disconnect) obs.disconnect();
+        window.removeEventListener("pointermove", onDragMove);
+        window.removeEventListener("pointerup", endDrag);
+        window.removeEventListener("pointercancel", endDrag);
+    };
     const FADE_SCROLL_MS = 150;
     const FADE_DRAG_MS = 120;
     const supportsScrollEnd = "onscrollend" in window;
@@ -465,7 +484,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         debounceTimer = setTimeout(updateAll, 100);
     };
     if (typeof MutationObserver !== "undefined") {
-        const obs = new MutationObserver(() => debouncedUpdateAll());
+        obs = new MutationObserver(() => debouncedUpdateAll());
         obs.observe(scroller, { childList: true, subtree: true, characterData: true });
     }
     // Drag logic
@@ -505,7 +524,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
     scroller.addEventListener("scroll", onScroll, { passive: true });
     if (supportsScrollEnd) scroller.addEventListener("scrollend", onScrollEnd, { passive: true });
-    const ro = new ResizeObserver(() => {
+    ro = new ResizeObserver(() => {
         updateAll();
     });
     ro.observe(scroller);
