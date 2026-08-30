@@ -361,6 +361,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         window.removeEventListener("pointermove", onDragMove);
         window.removeEventListener("pointerup", endDrag);
         window.removeEventListener("pointercancel", endDrag);
+        if (bar) bar.remove();
     };
     const FADE_SCROLL_MS = 150;
     const FADE_DRAG_MS = 120;
