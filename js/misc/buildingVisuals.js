@@ -11468,7 +11468,12 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         
         ctx.fillStyle = isBlack ? `rgba(0, 0, 0, ${alpha})` : `rgba(120, 20, 220, ${alpha * 0.8})`;
         ctx.beginPath();
-        const size = 1.5 + fracX * 3.5;
+        
+        // Use a different pseudo-random value for size so it isn't correlated with xPos
+        const randSize = Math.abs(Math.cos(seed) * 10000);
+        const fracSize = randSize - Math.floor(randSize);
+        const size = 1.5 + fracSize * 3.5;
+        
         ctx.arc(xPos, yPos, size, 0, Math.PI*2);
         ctx.fill();
       }
