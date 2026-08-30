@@ -11230,7 +11230,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     ctx.rect(-99999, -99999, 199998, 99999); // Clip to ground but allow infinite vertical reach
     ctx.clip();
     
-    const drawLayer = (widthBlocks, yPos) => {
+    const drawLayer = (widthBlocks, yPos, layerIndexFromBottom) => {
       ctx.save();
       const totalW = widthBlocks * blockSize;
       const startX = -totalW / 2;
@@ -11283,13 +11283,35 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
         }
       }
+      
+      if (hasT2 && layerIndexFromBottom !== undefined) {
+        const pulseInterval = 0.625;
+        const pauseDuration = 0;
+        const totalCycle = (lCount * pulseInterval) + pauseDuration;
+        
+        const currentLoopTime = t % totalCycle;
+        const pulseStart = layerIndexFromBottom * pulseInterval;
+        const pulseEnd = pulseStart + pulseInterval;
+        
+        if (currentLoopTime >= pulseStart && currentLoopTime <= pulseEnd) {
+            const pulseProgress = (currentLoopTime - pulseStart) / pulseInterval;
+            const pulseOpacity = 1.0 - pulseProgress;
+            
+            ctx.fillStyle = `rgba(200, 100, 255, ${pulseOpacity * 0.65})`;
+            for (let i = 0; i < widthBlocks; i++) {
+                const bx = startX + i * blockSize;
+                ctx.fillRect(bx, yPos, blockSize, blockSize);
+            }
+        }
+      }
+
       ctx.restore();
     };
 
-    if (hasT0) drawLayer(3, pyramidTopY + blockSize * 0);
-    if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1);
-    if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2);
-    if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3);
+    if (hasT0) drawLayer(3, pyramidTopY + blockSize * 0, lCount - 1);
+    if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1, lCount - 2);
+    if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2, lCount - 3);
+    if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3, lCount - 4);
     
     ctx.restore();
 
@@ -11463,17 +11485,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    // 4. Runes
-    if (hasT2) {
-      ctx.save();
-      ctx.fillStyle = `rgba(200, 100, 255, ${0.5 + Math.sin(t*4)*0.5})`;
-      ctx.font = "20px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("✧", -blockSize*2, pyramidTopY + blockSize*1.5);
-      ctx.fillText("✧", blockSize*2, pyramidTopY + blockSize*1.5);
-      ctx.fillText("✦", 0, pyramidTopY - 20);
-      ctx.restore();
-    }
+
 
     // 5. Cohesive Beacon Block (Perfect 16x16 Minecraft replica)
     if (hasT0) {
