@@ -11279,6 +11279,99 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
                 const bx = startX + i * blockSize;
                 ctx.fillRect(bx, yPos, blockSize, blockSize);
             }
+            
+            // Tier 6: Enhanced Dark Matter Shockwaves
+            if (hasT6) {
+                const maxDistance = 450;
+                // Add an ease out effect so they start fast and slow down
+                const easeOut = 1 - Math.pow(1 - pulseProgress, 3);
+                const travelDist = easeOut * maxDistance;
+                const waveAlpha = (1.0 - pulseProgress) * 0.9;
+                
+                // Edges of the current layer
+                const leftEdge = startX;
+                const rightEdge = startX + totalW;
+                const shockwaveY = yPos + blockSize / 2;
+                
+                ctx.save();
+                if (!window.voidParticleGlowCache) {
+                    const gcv = document.createElement('canvas');
+                    gcv.width = 64; 
+                    gcv.height = 64;
+                    const gcx = gcv.getContext('2d');
+                    const g = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
+                    g.addColorStop(0, 'rgba(130, 10, 255, 1)');
+                    g.addColorStop(1, 'rgba(130, 10, 255, 0)');
+                    gcx.fillStyle = g;
+                    gcx.fillRect(0, 0, 64, 64);
+                    window.voidParticleGlowCache = gcv;
+                }
+
+                const drawEnhancedShockwave = (xPos, startEdge, direction) => {
+                    // 2. Lingering Energy Trail / Scar
+                    // A thick ground line connecting the building edge to the current shockwave position
+                    ctx.beginPath();
+                    ctx.moveTo(startEdge, shockwaveY);
+                    ctx.lineTo(xPos, shockwaveY);
+                    ctx.strokeStyle = `rgba(100, 20, 200, ${waveAlpha * 0.6})`;
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                    // Add a bright core to the trail
+                    ctx.beginPath();
+                    ctx.moveTo(startEdge, shockwaveY);
+                    ctx.lineTo(xPos, shockwaveY);
+                    ctx.strokeStyle = `rgba(200, 100, 255, ${waveAlpha * 0.8})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Main wave line (perfectly flat/straight up and down)
+                    ctx.fillStyle = `rgba(150, 40, 255, ${waveAlpha})`;
+                    ctx.fillRect(xPos - 4, shockwaveY - blockSize * 1.2, 8, blockSize * 2.4);
+                    
+                    // Draw massive glow behind it
+                    ctx.globalAlpha = waveAlpha;
+                    const glowSize = blockSize * 1.5;
+                    ctx.drawImage(window.voidParticleGlowCache, xPos - glowSize, shockwaveY - glowSize, glowSize * 2, glowSize * 2);
+                    
+                    // 3. Violent Particle Wake (Now perfectly inline)
+                    ctx.globalAlpha = waveAlpha * 0.9;
+                    for (let p = 0; p < 35; p++) {
+                        const seed = (layerIndexFromBottom * 100) + p;
+                        const rand = Math.abs(Math.sin(seed * 25.1234) * 43758.5453);
+                        const randFrac = rand - Math.floor(rand);
+                        
+                        // Trailing distance behind the wave
+                        const trailDist = Math.pow(randFrac, 1.5) * travelDist * 0.8; 
+                        const pX = xPos - (direction * trailDist);
+                        
+                        // Vertical spread is strictly bound to the height of the shockwave
+                        const randY = Math.abs(Math.cos(seed * 41.2312) * 43758.5453);
+                        const yFrac = randY - Math.floor(randY);
+                        // No expanding scatter, just strictly confined to the block height
+                        const pY = shockwaveY + (yFrac - 0.5) * (blockSize * 2.4);
+                        
+                        // Particle size
+                        const pSize = 1.0 + Math.pow(randFrac, 2) * 4.0;
+                        
+                        // Draw particle glow
+                        const pGlow = pSize * 4;
+                        ctx.drawImage(window.voidParticleGlowCache, pX - pGlow, pY - pGlow, pGlow * 2, pGlow * 2);
+                        
+                        // Draw particle core
+                        ctx.beginPath();
+                        ctx.fillStyle = `rgba(200, 80, 255, ${waveAlpha * (0.5 + randFrac * 0.5)})`;
+                        ctx.arc(pX, pY, pSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                };
+                
+                // Draw left wave
+                drawEnhancedShockwave(leftEdge - travelDist, leftEdge, -1);
+                // Draw right wave
+                drawEnhancedShockwave(rightEdge + travelDist, rightEdge, 1);
+                
+                ctx.restore();
+            }
         }
       }
 
@@ -11583,17 +11676,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       }
     }
     
-    if (hasT6) {
-      for(let i=0; i<15; i++) {
-         const cycle = ((t * 1.5 + i * 0.1) % 1.5) / 1.5;
-         const yPos = 0 - cycle * 800;
-         const xOffset = Math.sin(t * 3 + i * 45) * 40;
-         ctx.fillStyle = `rgba(255, 150, 255, ${1.0 - cycle})`;
-         ctx.beginPath();
-         ctx.arc(xOffset, yPos, 2 + Math.random()*2, 0, Math.PI*2);
-         ctx.fill();
-      }
-    }
+
 
     if (hasT0) {
       ctx.save();
