@@ -730,6 +730,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         spawnParticles(false, 0); // Immediate first one
         playAudio("sounds/explosion_short.ogg", { volume: 0.8 });
         count++;
+        if (window.bossDeathSequenceInterval) clearInterval(window.bossDeathSequenceInterval);
         window.bossDeathSequenceInterval = setInterval(() => {
             if (count < totalShort) {
                 playAudio("sounds/explosion_short.ogg", { volume: 0.8 });
@@ -1227,6 +1228,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 } else if (buildupAudio?.element) {
                     buildupAudio.element.addEventListener("ended", startDeathSequence, { once: true });
                 } else {
+                    if (window.bossDeathSequenceTimeout) clearTimeout(window.bossDeathSequenceTimeout);
                     window.bossDeathSequenceTimeout = setTimeout(() => {
                         playPlayerDeathSequence();
                     }, 5000);
