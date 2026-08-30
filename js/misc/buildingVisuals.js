@@ -11612,32 +11612,18 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    // 7. Orbiting Crystals
+    // 7. Side Beacons
     if (hasT3) {
+      const sideOffset = 7 * blockSize;
+      
       ctx.save();
-      ctx.translate(0, crystalY);
-      const numOrbits = 3;
-      for(let i=0; i<numOrbits; i++) {
-          const angle = t * 2 + i * (Math.PI*2 / numOrbits);
-          const radius = 60;
-          const cx = Math.cos(angle) * radius;
-          const cy = Math.sin(angle) * radius * 0.3; 
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.rotate(t * 3);
-          ctx.fillStyle = '#b366ff';
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(0, -10);
-          ctx.lineTo(8, 0);
-          ctx.lineTo(0, 10);
-          ctx.lineTo(-8, 0);
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-          ctx.restore();
-      }
+      ctx.translate(-sideOffset, 0);
+      drawState(0, alphaMult);
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(sideOffset, 0);
+      drawState(0, alphaMult);
       ctx.restore();
     }
 
