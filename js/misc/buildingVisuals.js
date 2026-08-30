@@ -11329,12 +11329,12 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
                     ctx.fillRect(xPos - 4, shockwaveY - blockSize * 1.2, 8, blockSize * 2.4);
                     
                     // Draw massive glow behind it
-                    ctx.globalAlpha = waveAlpha;
+                    ctx.globalAlpha = waveAlpha * alphaMult;
                     const glowSize = blockSize * 1.5;
                     ctx.drawImage(window.voidParticleGlowCache, xPos - glowSize, shockwaveY - glowSize, glowSize * 2, glowSize * 2);
                     
                     // 3. Violent Particle Wake (Now perfectly inline)
-                    ctx.globalAlpha = waveAlpha * 0.9;
+                    ctx.globalAlpha = waveAlpha * 0.9 * alphaMult;
                     for (let p = 0; p < 35; p++) {
                         const seed = (layerIndexFromBottom * 100) + p;
                         const rand = Math.abs(Math.sin(seed * 25.1234) * 43758.5453);
