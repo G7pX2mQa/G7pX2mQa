@@ -3741,22 +3741,22 @@ function getUnlockRowDefinitions(slot) {
             description: "If true, unlocks The Below",
             isUnlocked: () => {
                 try {
-                    return !isNodeLocked("depths", true);
+                    return !isNodeLocked("below", true);
                 } catch {
                     return false;
                 }
             },
             onEnable: () => {
                 try {
-                    setNodeLocked("depths", false);
+                    setNodeLocked("below", false);
                     refreshNodesState();
                     window.dispatchEvent(new Event("pinnedAreas:changed"));
-                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:depths", slot } }));
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:below", slot } }));
                 } catch {}
             },
             onDisable: () => {
                 try {
-                    setNodeLocked("depths", true);
+                    setNodeLocked("below", true);
                     refreshNodesState();
                     window.dispatchEvent(new Event("pinnedAreas:changed"));
                 } catch {}
