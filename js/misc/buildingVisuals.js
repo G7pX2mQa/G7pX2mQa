@@ -11474,10 +11474,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         const scale = blockSize / 16;
         ctx.translate(-blockSize / 2, bpy);
-        ctx.fillStyle = fillMat;
-        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
         ctx.save();
         ctx.beginPath(); ctx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale); ctx.clip();
         ctx.fillStyle = '#000000'; ctx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
@@ -11559,10 +11555,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         const scale = blockSize / 16;
         ctx.translate(-blockSize / 2, bpy);
-        ctx.fillStyle = fillMat;
-        ctx.fillRect(2*scale, 13*scale, 12*scale, 3*scale);
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(2*scale, 13*scale, 12*scale, 3*scale);
         if (!window.beaconCorePatternCache2) {
           const cCanvas = document.createElement('canvas');
           cCanvas.width = 10; cCanvas.height = 10;
@@ -11684,149 +11676,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
 
 
-    // 5. Cohesive Beacon Block (Perfect 16x16 Minecraft replica)
-    if (hasT4Block) {
-      ctx.save();
-      const scale = blockSize / 16; 
-      
-      // Move to top-left of the beacon block
-      ctx.translate(-blockSize/2, beaconPieceY);
-      
-      // 1. Obsidian Base (x=2..13, y=13..15)
-      ctx.fillStyle = fillMat; // Use the unobtainium texture!
-      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 20% black overlay
-      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
-      
-      // 2. Core (x=3..12, y=3..12) - Crazy Dark Matter Mode
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
-      ctx.clip();
-
-      // Deep void background
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
-
-      // Crazy swirling dark matter
-      for (let i = 0; i < 5; i++) {
-          const px = 8 * scale + Math.sin(t * 4 + i * 1.5) * (3 * scale);
-          const py = 8 * scale + Math.cos(t * 5 + i * 0.8) * (3 * scale);
-          
-          const grad = ctx.createRadialGradient(px, py, 0, px, py, 6 * scale);
-          grad.addColorStop(0, i % 2 === 0 ? "rgba(180, 0, 255, 0.9)" : "rgba(80, 0, 150, 0.9)");
-          grad.addColorStop(1, "rgba(0, 0, 0, 0)");
-          
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(px, py, 6 * scale, 0, Math.PI * 2);
-          ctx.fill();
-      }
-
-      ctx.restore();
-      
-      // 3. Glass Shell (Unchanged from T0)
-      // Fill (Royal Purple Tint, less red/pink)
-      ctx.fillStyle = 'rgba(75, 20, 160, 0.45)'; 
-      ctx.fillRect(1 * scale, 1 * scale, 14 * scale, 14 * scale);
-      
-      // Glass border (Royal Purple)
-      ctx.fillStyle = 'rgba(130, 40, 255, 0.5)';
-      ctx.fillRect(0, 0, 16 * scale, 1 * scale); // Top
-      ctx.fillRect(0, 15 * scale, 16 * scale, 1 * scale); // Bottom
-      ctx.fillRect(0, 1 * scale, 1 * scale, 14 * scale); // Left
-      ctx.fillRect(15 * scale, 1 * scale, 1 * scale, 14 * scale); // Right
-      
-      // Corner highlight (Dark Royal Purple, both sides)
-      ctx.fillStyle = 'rgba(130, 50, 220, 0.8)';
-      // Top left
-      ctx.fillRect(1 * scale, 1 * scale, 2 * scale, 1 * scale);
-      ctx.fillRect(1 * scale, 2 * scale, 1 * scale, 1 * scale);
-      // Bottom right
-      ctx.fillRect(13 * scale, 14 * scale, 2 * scale, 1 * scale);
-      ctx.fillRect(14 * scale, 13 * scale, 1 * scale, 1 * scale);
-      
-      ctx.restore();
-    } else if (hasT0) {
-      ctx.save();
-      const scale = blockSize / 16; 
-      
-      // Move to top-left of the beacon block
-      ctx.translate(-blockSize/2, beaconPieceY);
-      
-      // 1. Obsidian Base (x=2..13, y=13..15)
-      ctx.fillStyle = fillMat; // Use the unobtainium texture!
-      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 20% black overlay
-      ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
-      
-      // 2. Core (x=3..12, y=3..12)
-      // Generate stylized 10x10 core texture ONCE to avoid flickering noise
-      if (!window.beaconCorePatternCache2) {
-          const cCanvas = document.createElement('canvas');
-          cCanvas.width = 10;
-          cCanvas.height = 10;
-          const cCtx = cCanvas.getContext('2d');
-          
-          for (let cy = 0; cy < 10; cy++) {
-              for (let cx = 0; cx < 10; cx++) {
-                  const dx = cx - 4.5;
-                  const dy = cy - 4.5;
-                  // Use Math.pow(..., 1.5) to keep the dark center area wider and more consistent
-                  const distRatio = Math.pow(Math.min(1, Math.sqrt(dx*dx + dy*dy) / 6.36), 1.5);
-                  
-                  // Outside (distRatio 1) = Royal Purple (120, 81, 169)
-                  // Inside (distRatio 0) = Darker Purple (30, 0, 50) - slightly darker now
-                  let rBase = 30 + distRatio * (120 - 30);
-                  let gBase = 0 + distRatio * (81 - 0);
-                  let bBase = 50 + distRatio * (169 - 50);
-                  
-                  // Deterministic pseudo-random noise based on coordinates
-                  const seed = cx * 12.9898 + cy * 78.233;
-                  const pseudoRandom = Math.abs(Math.sin(seed) * 43758.5453);
-                  // Scale noise by distance so the center remains perfectly solid and undisturbed
-                  const noise = ((pseudoRandom - Math.floor(pseudoRandom)) - 0.5) * 40 * distRatio;
-                  
-                  rBase = Math.max(0, Math.min(255, rBase + noise));
-                  gBase = Math.max(0, Math.min(255, gBase + noise));
-                  bBase = Math.max(0, Math.min(255, bBase + noise));
-                  
-                  cCtx.fillStyle = `rgb(${Math.floor(rBase)}, ${Math.floor(gBase)}, ${Math.floor(bBase)})`;
-                  cCtx.fillRect(cx, cy, 1, 1);
-              }
-          }
-          
-          window.beaconCorePatternCache2 = cCanvas;
-      }
-      
-      // Draw the stylized 10x10 core pixel-perfectly
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(window.beaconCorePatternCache2, 3 * scale, 3 * scale, 10 * scale, 10 * scale);
-      ctx.imageSmoothingEnabled = true;
-      
-      // 3. Glass Shell
-      // Fill (Royal Purple Tint, less red/pink)
-      ctx.fillStyle = 'rgba(75, 20, 160, 0.45)'; 
-      ctx.fillRect(1 * scale, 1 * scale, 14 * scale, 14 * scale);
-      
-      // Glass border (Royal Purple)
-      ctx.fillStyle = 'rgba(130, 40, 255, 0.5)';
-      ctx.fillRect(0, 0, 16 * scale, 1 * scale); // Top
-      ctx.fillRect(0, 15 * scale, 16 * scale, 1 * scale); // Bottom
-      ctx.fillRect(0, 1 * scale, 1 * scale, 14 * scale); // Left
-      ctx.fillRect(15 * scale, 1 * scale, 1 * scale, 14 * scale); // Right
-      
-      // Corner highlight (Dark Royal Purple, both sides)
-      ctx.fillStyle = 'rgba(130, 50, 220, 0.8)';
-      // Top left
-      ctx.fillRect(1 * scale, 1 * scale, 2 * scale, 1 * scale);
-      ctx.fillRect(1 * scale, 2 * scale, 1 * scale, 1 * scale);
-      // Bottom right
-      ctx.fillRect(13 * scale, 14 * scale, 2 * scale, 1 * scale);
-      ctx.fillRect(14 * scale, 13 * scale, 1 * scale, 1 * scale);
-      
-      ctx.restore();
-    }
 
     // 6. Purple Particles
     if (hasT1) {
@@ -11834,7 +11683,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       
       // Determine the width of the bottom-most layer of the pyramid
       let bottomWidthBlocks = 5; // T1 base
-      if (hasT3) bottomWidthBlocks = 9;
+      if (hasT7) bottomWidthBlocks = 17;
+      else if (hasT3) bottomWidthBlocks = 9;
       else if (hasT2) bottomWidthBlocks = 7;
       
       const halfWidth = (bottomWidthBlocks * blockSize) / 2;
@@ -11891,7 +11741,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           window.voidParticleGlowCache = gcv;
       }
       
-      const bottomWidthBlocks = 9; // T5 always has a T3 base (9 blocks)
+      const bottomWidthBlocks = hasT7 ? 17 : 9; // T5 always has a T3 base (9 blocks)
       const halfWidth = (bottomWidthBlocks * blockSize) / 2;
       const numParticles = bottomWidthBlocks * 8; // Twice as many as T1
       
@@ -11939,7 +11789,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     }
 
     // 7. Side Beacons
-    if (hasT3) {
+    if (hasT3 && !hasT7) {
       const sideOffset = 7 * blockSize;
       
       ctx.save();
@@ -11953,41 +11803,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    // T7: Elevated Side Beacons (4 new beacons, 2 per side)
-    // Each is identical to a tier 3 side beacon (drawState(0)) but floating in the air
-    if (hasT7) {
-      const centralHeight = lCount * blockSize + blockSize; // 240 at full pyramid
-      const sideSpacing = (7 * blockSize) / 3; // 112 - equidistant horizontal spacing
-
-      // The center of the 3-block base in drawState(0) local coords is at y = -24
-      // To place center at world targetY: translate y = targetY + 24
-      const upperCenterY = -(centralHeight * 2 / 3); // -160
-      const lowerCenterY = -(centralHeight * 1 / 3); // -80
-      const upperTranslateY = upperCenterY + blockSize / 2; // -136
-      const lowerTranslateY = lowerCenterY + blockSize / 2; // -56
-
-      // Upper pair (2/3 height, closer to center at x = ±112)
-      ctx.save();
-      ctx.translate(-sideSpacing, upperTranslateY);
-      drawState(0, alphaMult, stateTier);
-      ctx.restore();
-
-      ctx.save();
-      ctx.translate(sideSpacing, upperTranslateY);
-      drawState(0, alphaMult, stateTier);
-      ctx.restore();
-
-      // Lower pair (1/3 height, further out at x = ±224)
-      ctx.save();
-      ctx.translate(-sideSpacing * 2, lowerTranslateY);
-      drawState(0, alphaMult, stateTier);
-      ctx.restore();
-
-      ctx.save();
-      ctx.translate(sideSpacing * 2, lowerTranslateY);
-      drawState(0, alphaMult, stateTier);
-      ctx.restore();
-    }
 
     ctx.restore(); // Restore globalAlpha state
   };
