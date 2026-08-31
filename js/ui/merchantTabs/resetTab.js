@@ -1485,19 +1485,65 @@ function calculateSurgeLevelJump(startLevelNum, wavesBn) {
         if (currentWaves.cmp(req) < 0) break;
         const logCurrentNum = getSafeLog10Number(currentWaves);
         const logReqNum = getSafeLog10Number(req);
-        if (logCurrentNum != -1 && logReqNum != -1 && logCurrentNum - logReqNum > 2 && barLevel < 1e12) {
-            let approxLevels = Math.floor(logCurrentNum - logReqNum);
-            let safeJump = Math.max(1, approxLevels - 2);
-            let targetLevel = barLevel + safeJump;
-            if (targetLevel > 1e12) targetLevel = 1e12;
-            const nextReq = getSurgeRequirement(targetLevel);
-            const cost = nextReq.sub(req).div(BigNum.fromInt(9));
-            if (currentWaves.cmp(cost) >= 0) {
-                currentWaves = currentWaves.sub(cost);
-                barLevel = targetLevel;
-                req = nextReq;
-                changed = true;
-                continue;
+        if (logCurrentNum != -1 && logReqNum != -1 && logCurrentNum - logReqNum > 2) {
+            let safeJump = 0;
+            if (barLevel < 1e12) {
+                let approxLevels = Math.floor(logCurrentNum - logReqNum);
+                safeJump = Math.max(1, approxLevels - 2);
+                let targetLevel = barLevel + safeJump;
+                if (targetLevel > 1e12) targetLevel = 1e12;
+                const nextReq = getSurgeRequirement(targetLevel);
+                const cost = nextReq.sub(req).div(BigNum.fromInt(9));
+                if (currentWaves.cmp(cost) >= 0) {
+                    currentWaves = currentWaves.sub(cost);
+                    barLevel = targetLevel;
+                    req = nextReq;
+                    changed = true;
+                    continue;
+                }
+            } else {
+                let lowJump = 1;
+                let highJump = 1;
+                while (true) {
+                    let testLevel = barLevel + highJump;
+                    if (testLevel >= 4500000000000) {
+                        break;
+                    }
+                    let testReq = getSurgeRequirement(testLevel);
+                    if (testReq.isInfinite?.() || getSafeLog10Number(testReq) > logCurrentNum - 1) {
+                        break;
+                    }
+                    highJump *= 2;
+                }
+                
+                let bestJump = 0;
+                while (lowJump <= highJump) {
+                    let midJump = Math.floor((lowJump + highJump) / 2);
+                    let testLevel = barLevel + midJump;
+                    if (testLevel >= 4500000000000) {
+                        highJump = midJump - 1;
+                        continue;
+                    }
+                    let testReq = getSurgeRequirement(testLevel);
+                    if (!testReq.isInfinite?.() && getSafeLog10Number(testReq) <= logCurrentNum - 1) {
+                        bestJump = midJump;
+                        lowJump = midJump + 1;
+                    } else {
+                        highJump = midJump - 1;
+                    }
+                }
+                
+                if (bestJump > 0) {
+                    let targetLevel = barLevel + bestJump;
+                    const nextReq = getSurgeRequirement(targetLevel);
+                    if (currentWaves.cmp(nextReq) >= 0) {
+                        currentWaves = currentWaves.sub(nextReq);
+                        barLevel = targetLevel;
+                        req = nextReq;
+                        changed = true;
+                        continue;
+                    }
+                }
             }
         }
         currentWaves = currentWaves.sub(req);
