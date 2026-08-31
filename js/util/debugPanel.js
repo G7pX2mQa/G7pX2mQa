@@ -3737,8 +3737,8 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
-            labelText: "Unlock Deep Depths",
-            description: "If true, unlocks Deep Depths",
+            labelText: "Unlock The Below",
+            description: "If true, unlocks The Below",
             isUnlocked: () => {
                 try {
                     return !isNodeLocked("depths", true);
