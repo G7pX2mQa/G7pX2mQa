@@ -955,15 +955,15 @@ function loop(currentTime) {
     } else if (keypadZoomedIn) {
       const w = activeCanvas.width;
       const h = activeCanvas.height;
-      const kx = (canvasMouseX - w / 2) / 8;
-      const ky = (canvasMouseY - h / 2) / 8;
+      const kx = (canvasMouseX - Math.floor(w / 2)) / 8;
+      const ky = (canvasMouseY - Math.floor(h / 2)) / 8;
       if (kx >= -12.5 && kx <= 12.5 && ky >= -18 && ky <= 18) {
         let onBtn = false;
         for (let r = 0; r < 3; r++) {
           for (let c = 0; c < 3; c++) {
             const bx = -9.5 + c * 7;
             const by = -3 + r * 7;
-            if (kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5) {
+            if (kx >= bx && kx < bx + 5 && ky >= by && ky < by + 5) {
               onBtn = true;
             }
           }
@@ -6643,7 +6643,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         const by = -3 + r * 7;
         const btnNum = r * 3 + c + 1;
 
-        const isHovered = kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5;
+        const isHovered = kx >= bx && kx < bx + 5 && ky >= by && ky < by + 5;
         const isHighlighted = isHovered || (IS_MOBILE && lastHotkeyNum === btnNum);
         keypadCtx.fillStyle = isHighlighted ? "#656565" : "#434343";
         keypadCtx.fillRect(bx, by, 5, 5);
@@ -11963,8 +11963,8 @@ function handleVaultCanvasClick(e) {
 
   if (keypadZoomedIn) {
     const zoomFactor = 8;
-    const kx = (cx - w / 2) / zoomFactor;
-    const ky = (cy - h / 2) / zoomFactor;
+    const kx = (cx - Math.floor(w / 2)) / zoomFactor;
+    const ky = (cy - Math.floor(h / 2)) / zoomFactor;
 
     if (kx < -12.5 || kx > 12.5 || ky < -18 || ky > 18) {
       keypadZoomedIn = false;
@@ -11976,7 +11976,7 @@ function handleVaultCanvasClick(e) {
       for (let c = 0; c < 3; c++) {
         const bx = -9.5 + c * 7;
         const by = -3 + r * 7;
-        if (kx >= bx && kx <= bx + 5 && ky >= by && ky <= by + 5) {
+        if (kx >= bx && kx < bx + 5 && ky >= by && ky < by + 5) {
           const btnNum = r * 3 + c + 1;
           
           lastHotkeyNum = btnNum;
