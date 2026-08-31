@@ -11355,74 +11355,298 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     };
 
-    if (hasT0) drawLayer(3, pyramidTopY + blockSize * 0, lCount - 1);
-    if (hasT1) drawLayer(5, pyramidTopY + blockSize * 1, lCount - 2);
-    if (hasT2) drawLayer(7, pyramidTopY + blockSize * 2, lCount - 3);
-    if (hasT3) drawLayer(9, pyramidTopY + blockSize * 3, lCount - 4);
+    // T7: mega-pyramid expands layer widths from 3/5/7/9 → 5/9/13/17
+    if (hasT0) drawLayer(hasT7 ? 5  : 3, pyramidTopY + blockSize * 0, lCount - 1);
+    if (hasT1) drawLayer(hasT7 ? 9  : 5, pyramidTopY + blockSize * 1, lCount - 2);
+    if (hasT2) drawLayer(hasT7 ? 13 : 7, pyramidTopY + blockSize * 2, lCount - 3);
+    if (hasT3) drawLayer(hasT7 ? 17 : 9, pyramidTopY + blockSize * 3, lCount - 4);
 
-    // T7: Unobtainium support beams for elevated side beacons
-    // Drawn after pyramid layers (above shockwaves), before the main pyramid clip restore
-    if (hasT7) {
-      const beamThickness = 10; // Reasonably thick beams
-      const centralHeight = lCount * blockSize + blockSize; // Total height of central beacon (pyramid + beacon block)
-
-      // Side beacon horizontal positions: equidistant spacing
-      // T3 ground beacons are at x = ±(7 * blockSize) = ±336
-      // 3 equal horizontal sections: 336/3 = 112
-      const sideSpacing = (7 * blockSize) / 3;
-      const upperX = sideSpacing;       // ±112 (closer to center)
-      const lowerX = sideSpacing * 2;   // ±224 (further from center)
-
-      // Vertical positions: 1/3 and 2/3 of central beacon height
-      // These are the CENTER of each 3-block base
-      const upperBeaconCenterY = -(centralHeight * 2 / 3); // -160
-      const lowerBeaconCenterY = -(centralHeight * 1 / 3); // -80
-
-      // Support beam origins: corners of pyramid layers
-      // 5-block layer (T1): top-left corner at x = -(5*blockSize/2) = -120, y = pyramidTopY + blockSize
-      const fiveBlockHalfW = (5 * blockSize) / 2;   // 120
-      const fiveBlockTopY = pyramidTopY + blockSize; // -144 (top of the 5-block layer)
-
-      // 7-block layer (T2): bottom corner at x = -(7*blockSize/2) = -168, y = pyramidTopY + 2*blockSize + blockSize = -48
-      const sevenBlockHalfW = (7 * blockSize) / 2;    // 168
-      const sevenBlockBottomY = pyramidTopY + 3 * blockSize; // -48 (bottom of the 7-block layer)
-
-      // Draw each support beam as a thick filled parallelogram (no outline)
-      const drawSupportBeam = (originX, originY, targetX, targetY) => {
-        // Calculate perpendicular offset for beam thickness
-        const dx = targetX - originX;
-        const dy = targetY - originY;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        const perpX = (-dy / len) * (beamThickness / 2);
-        const perpY = (dx / len) * (beamThickness / 2);
-
-        ctx.save();
-        ctx.fillStyle = fillMat;
-        ctx.beginPath();
-        ctx.moveTo(originX + perpX, originY + perpY);
-        ctx.lineTo(targetX + perpX, targetY + perpY);
-        ctx.lineTo(targetX - perpX, targetY - perpY);
-        ctx.lineTo(originX - perpX, originY - perpY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      };
-
-      // Upper beacons (2/3 height): beams from 5-block layer corners
-      // Left upper: from right edge of 5-block layer's left corner (actually outer left corner)
-      drawSupportBeam(-fiveBlockHalfW, fiveBlockTopY, -upperX, upperBeaconCenterY);
-      drawSupportBeam(fiveBlockHalfW, fiveBlockTopY, upperX, upperBeaconCenterY);
-
-      // Lower beacons (1/3 height): beams from 7-block layer corners
-      drawSupportBeam(-sevenBlockHalfW, sevenBlockBottomY, -lowerX, lowerBeaconCenterY);
-      drawSupportBeam(sevenBlockHalfW, sevenBlockBottomY, lowerX, lowerBeaconCenterY);
-    }
-    
     ctx.restore();
 
 
-    // 3. Beam & Particle FX (Minecraft 3D rotating square)
-    if (hasT4Block) {
+
+
+    // 3 & 5. Beacon Block + Beam — unified helper for all beacon positions
+    // drawBeaconAt(cx, bpy, includeAsh)
+    //   cx         : world-space X center of the beacon
+    //   bpy        : Y of the TOP-LEFT corner of the beacon block (beaconPieceY in the old code)
+    //   includeAsh : whether to render the falling dark-matter ash particles (central beacon only)
+    const drawBeaconAt = (cx, bpy, includeAsh) => {
+      const bCrystalY = bpy + 3 * (blockSize / 16); // top of the core / beam terminus
+
+      ctx.save();
+      ctx.translate(cx, 0);  // shift x only; all Y coords remain world-space
+
+      if (hasT4Block) {
+        // ── T4+: dark matter beam (rotating square + helices) ──────────────
+        const R = 8.5;
+        const angle = (t * Math.PI * 2) / 10 + Math.PI / 4;
+
+        const corners = [];
+        for (let i = 0; i < 4; i++) {
+          const a = angle + i * (Math.PI / 2);
+          corners.push({ x: Math.sin(a) * R, z: Math.cos(a) * R });
+        }
+
+        let topY = -2000;
+        try {
+          const transform = ctx.getTransform();
+          if (transform && transform.d)
+            topY = Math.min(bCrystalY, (-transform.f / transform.d) - 100);
+        } catch (e) {}
+
+        const helixCorners = [];
+        for (let i = 0; i < 4; i++) {
+          const a = angle + i * (Math.PI / 2);
+          helixCorners.push({ x: Math.sin(a) * (R + 2.5), z: Math.cos(a) * (R + 2.5) });
+        }
+
+        const getHelixPt = (y, hIndex) => {
+          const freq = 0.015, speed = -25.0;
+          let p = (y * freq + t * speed + hIndex * 0.5) % 1.0;
+          if (p < 0) p += 1.0;
+          const seg = Math.floor(p * 4), prog = (p * 4) % 1.0;
+          const c1 = helixCorners[seg], c2 = helixCorners[(seg + 1) % 4];
+          return { x: c1.x + (c2.x - c1.x) * prog, z: c1.z + (c2.z - c1.z) * prog };
+        };
+
+        const drawHelixL = (isFront) => {
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (let h = 0; h < 2; h++) {
+            ctx.beginPath();
+            let drawing = false;
+            for (let y = bCrystalY; y >= topY; y -= 2) {
+              const pt = getHelixPt(y, h);
+              const vis = isFront ? pt.z > 0 : pt.z <= 0;
+              if (vis) {
+                if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
+                else ctx.lineTo(pt.x, y);
+              } else { drawing = false; }
+            }
+            ctx.strokeStyle = isFront ? 'rgba(60,0,120,0.9)' : 'rgba(30,0,60,0.4)';
+            ctx.lineWidth   = isFront ? 6 : 3; ctx.stroke();
+            ctx.strokeStyle = isFront ? 'rgba(120,10,200,1.0)' : 'rgba(70,0,110,0.5)';
+            ctx.lineWidth   = isFront ? 2 : 1; ctx.stroke();
+          }
+        };
+
+        drawHelixL(false);
+
+        for (let i = 0; i < 4; i++) {
+          const p1 = corners[i], p2 = corners[(i + 1) % 4];
+          if (p1.x < p2.x) {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(p1.x, topY, p2.x - p1.x, bCrystalY - topY);
+            ctx.strokeStyle = 'rgba(80,20,150,0.8)'; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, topY); ctx.lineTo(p1.x, bCrystalY);
+            ctx.moveTo(p2.x, topY); ctx.lineTo(p2.x, bCrystalY);
+            ctx.stroke();
+          }
+        }
+
+        drawHelixL(true);
+
+        if (includeAsh) {
+          const beamWidth = 28;
+          for (let i = 0; i < 80; i++) {
+            const cycle = (t * 0.4 + i * 0.21) % 1.0;
+            const yPos = bCrystalY - (bCrystalY - topY) * cycle;
+            const seed = i * 73.19;
+            const randX = Math.abs(Math.sin(seed) * 10000);
+            const fracX = randX - Math.floor(randX);
+            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+            xPos += Math.sin(yPos * 0.03 + t * 2 + seed) * 8;
+            const isBlack = (Math.floor(randX * 100) % 3) !== 0;
+            let alpha = 1.0;
+            if (cycle < 0.1) alpha = cycle / 0.1;
+            if (cycle > 0.9) alpha = (1.0 - cycle) / 0.1;
+            ctx.fillStyle = isBlack ? `rgba(0,0,0,${alpha})` : `rgba(120,20,220,${alpha * 0.8})`;
+            ctx.beginPath();
+            const randSize = Math.abs(Math.cos(seed) * 10000);
+            const fracSize = randSize - Math.floor(randSize);
+            ctx.arc(xPos, yPos, 1.5 + (fracSize - Math.floor(fracSize)) * 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Dark matter beacon block
+        ctx.save();
+        const scale = blockSize / 16;
+        ctx.translate(-blockSize / 2, bpy);
+        ctx.fillStyle = fillMat;
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+        ctx.save();
+        ctx.beginPath(); ctx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale); ctx.clip();
+        ctx.fillStyle = '#000000'; ctx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
+        for (let i = 0; i < 5; i++) {
+          const px = 8 * scale + Math.sin(t * 4 + i * 1.5) * 3 * scale;
+          const py = 8 * scale + Math.cos(t * 5 + i * 0.8) * 3 * scale;
+          const grad = ctx.createRadialGradient(px, py, 0, px, py, 6 * scale);
+          grad.addColorStop(0, i % 2 === 0 ? 'rgba(180,0,255,0.9)' : 'rgba(80,0,150,0.9)');
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(px, py, 6 * scale, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
+        ctx.fillStyle = 'rgba(130,40,255,0.5)';
+        ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
+        ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
+        ctx.fillStyle = 'rgba(130,50,220,0.8)';
+        ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
+        ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
+        ctx.restore();
+
+      } else if (hasT0) {
+        // ── T0–T3: simple scrolling purple beam ─────────────────────────────
+        const R = 8.5;
+        const angle = (t * Math.PI * 2) / 10 + Math.PI / 4;
+        const corners = [];
+        for (let i = 0; i < 4; i++) {
+          const a = angle + i * (Math.PI / 2);
+          corners.push({ x: Math.sin(a) * R, z: Math.cos(a) * R });
+        }
+        let topY = -2000;
+        try {
+          const transform = ctx.getTransform();
+          if (transform && transform.d)
+            topY = Math.min(bCrystalY, (-transform.f / transform.d) - 100);
+        } catch (e) {}
+
+        for (let i = 0; i < 4; i++) {
+          const p1 = corners[i], p2 = corners[(i + 1) % 4];
+          if (p1.x < p2.x) {
+            const leftX = p1.x, rightX = p2.x, faceW = rightX - leftX, faceH = bCrystalY - topY;
+            ctx.fillStyle = 'rgba(75,20,120,0.8)';
+            ctx.fillRect(leftX, topY, faceW, faceH);
+            if (!window.beaconBeamPatternCache) {
+              const pCanvas = document.createElement('canvas');
+              pCanvas.width = 16; pCanvas.height = 1024;
+              const pCtx = pCanvas.getContext('2d');
+              for (let c = 0; c < 8; c++) {
+                let y = 0;
+                while (y < 1024) {
+                  const seed = c * 12.9898 + y * 78.233;
+                  const prng = Math.abs(Math.sin(seed) * 43758.5453);
+                  const noise = prng - Math.floor(prng);
+                  const r = 70 + noise * 30, g = 15 + noise * 15, b = 110 + noise * 35;
+                  pCtx.fillStyle = `rgba(${r},${g},${b},0.95)`;
+                  const h = 2 + Math.floor((prng * 17) % 3) * 2;
+                  pCtx.fillRect(c * 2, y, 2, h); y += h;
+                }
+              }
+              window.beaconBeamPatternCache = pCanvas;
+              window.beaconBeamPattern = pCanvas.getContext('2d').createPattern(pCanvas, 'repeat');
+            }
+            ctx.save();
+            ctx.beginPath(); ctx.rect(leftX, topY, faceW, faceH); ctx.clip();
+            const scrollY = -((t * 8000) % 1024);
+            ctx.translate(leftX, scrollY); ctx.scale(faceW / 16, 1);
+            ctx.fillStyle = ctx.createPattern(window.beaconBeamPatternCache, 'repeat');
+            ctx.fillRect(0, topY - scrollY, 16, faceH + 1024);
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(45,10,80,1.0)'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(leftX, topY); ctx.lineTo(leftX, bCrystalY);
+            ctx.moveTo(rightX, topY); ctx.lineTo(rightX, bCrystalY);
+            ctx.stroke();
+          }
+        }
+
+        // Regular beacon block (T0–T3 style)
+        ctx.save();
+        const scale = blockSize / 16;
+        ctx.translate(-blockSize / 2, bpy);
+        ctx.fillStyle = fillMat;
+        ctx.fillRect(2*scale, 13*scale, 12*scale, 3*scale);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(2*scale, 13*scale, 12*scale, 3*scale);
+        if (!window.beaconCorePatternCache2) {
+          const cCanvas = document.createElement('canvas');
+          cCanvas.width = 10; cCanvas.height = 10;
+          const cCtx = cCanvas.getContext('2d');
+          for (let cy2 = 0; cy2 < 10; cy2++) {
+            for (let cx2 = 0; cx2 < 10; cx2++) {
+              const dx = cx2 - 4.5, dy = cy2 - 4.5;
+              const distRatio = Math.pow(Math.min(1, Math.sqrt(dx*dx + dy*dy) / 6.36), 1.5);
+              let rB = 30 + distRatio * 90, gB = 0 + distRatio * 81, bB = 50 + distRatio * 119;
+              const seed = cx2 * 12.9898 + cy2 * 78.233;
+              const prng = Math.abs(Math.sin(seed) * 43758.5453);
+              const noise = ((prng - Math.floor(prng)) - 0.5) * 40 * distRatio;
+              rB = Math.max(0, Math.min(255, rB + noise));
+              gB = Math.max(0, Math.min(255, gB + noise));
+              bB = Math.max(0, Math.min(255, bB + noise));
+              cCtx.fillStyle = `rgb(${Math.floor(rB)},${Math.floor(gB)},${Math.floor(bB)})`;
+              cCtx.fillRect(cx2, cy2, 1, 1);
+            }
+          }
+          window.beaconCorePatternCache2 = cCanvas;
+        }
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(window.beaconCorePatternCache2, 3*scale, 3*scale, 10*scale, 10*scale);
+        ctx.imageSmoothingEnabled = true;
+        ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
+        ctx.fillStyle = 'rgba(130,40,255,0.5)';
+        ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
+        ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
+        ctx.fillStyle = 'rgba(130,50,220,0.8)';
+        ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
+        ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
+        ctx.restore();
+      }
+
+      ctx.restore(); // end translate(cx, 0)
+    };
+
+    // ── T8 arch rings (uses central crystalY) ────────────────────────────────
+    if (hasT8) {
+      for (let i = 0; i < 4; i++) {
+        const cycle = ((t * 3 + i) % 4) / 4;
+        const yPos = crystalY - cycle * 1000;
+        ctx.strokeStyle = `rgba(255,255,255,${1.0 - cycle})`; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(-60, yPos + 20); ctx.quadraticCurveTo(0, yPos - 20, 60, yPos + 20); ctx.stroke();
+        ctx.strokeStyle = `rgba(180,80,255,${0.5 - cycle * 0.5})`; ctx.lineWidth = 8; ctx.stroke();
+      }
+    }
+
+    // Sky splash glow
+    if (hasT0) {
+      ctx.save();
+      const splashY = -800;
+      const splashGrad = ctx.createRadialGradient(0, splashY, 20, 0, splashY, 300);
+      splashGrad.addColorStop(0, 'rgba(210,100,255,0.4)');
+      splashGrad.addColorStop(0.5, 'rgba(150,50,255,0.15)');
+      splashGrad.addColorStop(1, 'rgba(0,0,0,0.0)');
+      ctx.fillStyle = splashGrad;
+      ctx.translate(0, splashY); ctx.scale(2.5, 0.6);
+      ctx.beginPath(); ctx.arc(0, 0, 300, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Draw the CENTRAL beacon (beam + block at x=0, top of pyramid)
+    if (hasT0) drawBeaconAt(0, beaconPieceY, true);
+
+    // T7: 8 additional step-corner beacons on the mega-pyramid
+    // Beacon block bottom sits flush with the top surface of each pyramid layer.
+    // bpy = top-of-layer_y - blockSize  (since beacon block occupies bpy..bpy+blockSize)
+    // Layer tops (with lCount=4, blockSize=48): 17-block→-48, 13-block→-96, 9-block→-144, 5-block→-192
+    if (hasT7) {
+      // Step-1: on the 17-block layer top (y=-48), at x = ±7×blockSize = ±336
+      drawBeaconAt(-7 * blockSize, -2 * blockSize, false); // bpy = -48 - 48 = -96
+      drawBeaconAt( 7 * blockSize, -2 * blockSize, false);
+      // Step-2: on the 13-block layer top (y=-96), at x = ±5×blockSize = ±240
+      drawBeaconAt(-5 * blockSize, -3 * blockSize, false); // bpy = -96 - 48 = -144
+      drawBeaconAt( 5 * blockSize, -3 * blockSize, false);
+      // Step-3: on the 9-block layer top (y=-144), at x = ±3×blockSize = ±144
+      drawBeaconAt(-3 * blockSize, -4 * blockSize, false); // bpy = -144 - 48 = -192
+      drawBeaconAt( 3 * blockSize, -4 * blockSize, false);
+      // Top pair: flanking the central beacon on the 5-block layer top (y=-192)
+      drawBeaconAt(-blockSize, beaconPieceY, false);       // x = -48, bpy = -240
+      drawBeaconAt( blockSize, beaconPieceY, false);       // x = +48, bpy = -240
+    }
+
       ctx.save();
       
       const R = 8.5; // Same as T0
