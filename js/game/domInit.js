@@ -1,24 +1,22 @@
-import { settingsManager } from './settingsManager.js';
-import { initPinnedCurrencies, initPinnedLevels } from '../ui/currencyAndLevelPins.js';
-import { initPinnedAreas } from '../ui/areaPins.js';
-import { RESOURCE_REGISTRY } from './offlinePanel.js';
-import { getLevelNumber } from './upgrades.js';
-import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
-import { FONT_MAP, ALL_FONT_CLASSES } from '../main.js';
+import { settingsManager } from "./settingsManager.js";
+import { initPinnedCurrencies, initPinnedLevels } from "../ui/currencyAndLevelPins.js";
+import { initPinnedAreas } from "../ui/areaPins.js";
+import { RESOURCE_REGISTRY } from "./offlinePanel.js";
+import { FONT_MAP, ALL_FONT_CLASSES } from "../main.js";
 
 export function ensureGameDom(layerCount, startZ) {
-  if (document.getElementById('game-root')) return;
+    if (document.getElementById("game-root")) return;
 
-  const main = document.createElement('main');
-  const uiHiddenClass = settingsManager.get('user_interface') ? '' : 'hide-ui';
-  main.id = 'game-root';
-  main.className = 'area area-cove';
-  main.hidden = true;
+    const main = document.createElement("main");
+    const uiHiddenClass = settingsManager.get("user_interface") ? "" : "hide-ui";
+    main.id = "game-root";
+    main.className = "area area-cove";
+    main.hidden = true;
 
-  // Generate a single master foreground canvas
-  let waterLayersHtml = `<canvas id="water-foreground" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: ${startZ};"></canvas>`;
+    // Generate a single master foreground canvas
+    let waterLayersHtml = `<canvas id="water-foreground" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: ${startZ};"></canvas>`;
 
-  main.innerHTML = `
+    main.innerHTML = `
       <div class="hud-top ${uiHiddenClass}">
         <div id="pinned-currencies-container"></div>
         <div class="coin-counter">
@@ -43,7 +41,7 @@ export function ensureGameDom(layerCount, startZ) {
 			
             <div class="xp-bar__frame">
               <div class="xp-bar__level">
-                ${RESOURCE_REGISTRY.find(c => c.key === 'xp_levels')?.barText?.replace('{val}', '0') || 'Level<span class="xp-level-value">0</span>'}
+                ${RESOURCE_REGISTRY.find((c) => c.key === "xp_levels")?.barText?.replace("{val}", "0") || 'Level<span class="xp-level-value">0</span>'}
               </div>
 
               <div class="xp-bar__divider" aria-hidden="true"></div>
@@ -63,7 +61,7 @@ export function ensureGameDom(layerCount, startZ) {
 
             <div class="mp-bar__frame">
               <div class="mp-bar__level">
-                ${RESOURCE_REGISTRY.find(c => c.key === 'mp_levels')?.barText?.replace('{val}', '0') || 'Mutation<span class="mp-level-value">0</span>'}
+                ${RESOURCE_REGISTRY.find((c) => c.key === "mp_levels")?.barText?.replace("{val}", "0") || 'Mutation<span class="mp-level-value">0</span>'}
               </div>
 
               <div class="mp-bar__divider" aria-hidden="true"></div>
@@ -83,7 +81,7 @@ export function ensureGameDom(layerCount, startZ) {
 
             <div class="dp-bar__frame">
               <div class="dp-bar__level">
-                ${RESOURCE_REGISTRY.find(c => c.key === 'dp_levels')?.barText?.replace('{val}', '0') || 'Depth:<span class="dp-level-value">0</span>m'}
+                ${RESOURCE_REGISTRY.find((c) => c.key === "dp_levels")?.barText?.replace("{val}", "0") || 'Depth:<span class="dp-level-value">0</span>m'}
               </div>
 
               <div class="dp-bar__divider" aria-hidden="true"></div>
@@ -103,7 +101,7 @@ export function ensureGameDom(layerCount, startZ) {
 
             <div class="pp-bar__frame">
               <div class="pp-bar__level">
-                ${RESOURCE_REGISTRY.find(c => c.key === 'pp_levels')?.barText?.replace('{val}', '0') || 'Pressure:<span class="pp-level-value">0</span>atm'}
+                ${RESOURCE_REGISTRY.find((c) => c.key === "pp_levels")?.barText?.replace("{val}", "0") || 'Pressure:<span class="pp-level-value">0</span>atm'}
               </div>
 
               <div class="pp-bar__divider" aria-hidden="true"></div>
@@ -117,7 +115,7 @@ export function ensureGameDom(layerCount, startZ) {
 
       </div>
 
-      <section class="playfield" aria-label="Starter Cove Sand">
+      <section class="playfield">
         <div class="waves" id="waves"></div>
 
         <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: 1;"></canvas>
@@ -141,97 +139,96 @@ export function ensureGameDom(layerCount, startZ) {
       </div>
   `;
 
-  document.body.appendChild(main);
+    document.body.appendChild(main);
 
-  initPinnedCurrencies(document.getElementById('pinned-currencies-container'));
-  // We use the same container for both currency and level pins because they share the same absolute positioning anchor in the HUD.
-  initPinnedLevels(document.getElementById('pinned-currencies-container'));
-  initPinnedAreas();
+    initPinnedCurrencies(document.getElementById("pinned-currencies-container"));
+    // We use the same container for both currency and level pins because they share the same absolute positioning anchor in the HUD.
+    initPinnedLevels(document.getElementById("pinned-currencies-container"));
+    initPinnedAreas();
 
-  const xpConfig = RESOURCE_REGISTRY.find(c => c.key === 'xp');
-  if (xpConfig) {
-      const xpBar = document.getElementById('game-root').querySelector('.xp-bar');
-      const xpFill = document.getElementById('game-root').querySelector('.xp-bar__fill');
-      if (xpBar) {
-          if (xpConfig.pinBgGradient) xpBar.style.background = xpConfig.pinBgGradient;
-          if (xpConfig.borderColor) xpBar.style.setProperty('--bar-border-color', xpConfig.borderColor);
-          if (xpConfig.barBoxShadow) xpBar.style.setProperty('--bar-box-shadow', xpConfig.barBoxShadow);
-      }
-      if (xpFill) {
-          if (xpConfig.fillGradient) xpFill.style.background = xpConfig.fillGradient;
-          if (xpConfig.glassBg) xpFill.style.setProperty('--glass-bg', xpConfig.glassBg);
-          if (xpConfig.glassOpacity) xpFill.style.setProperty('--glass-opacity', xpConfig.glassOpacity);
-      }
-  }
-
-  const mpConfig = RESOURCE_REGISTRY.find(c => c.key === 'mp');
-  if (mpConfig) {
-      const mpBar = document.getElementById('game-root').querySelector('.mp-bar');
-      const mpFill = document.getElementById('game-root').querySelector('.mp-bar__fill');
-      if (mpBar) {
-          if (mpConfig.pinBgGradient) mpBar.style.background = mpConfig.pinBgGradient;
-          if (mpConfig.borderColor) mpBar.style.setProperty('--bar-border-color', mpConfig.borderColor);
-          if (mpConfig.barBoxShadow) mpBar.style.setProperty('--bar-box-shadow', mpConfig.barBoxShadow);
-      }
-      if (mpFill) {
-          if (mpConfig.fillGradient) mpFill.style.background = mpConfig.fillGradient;
-          if (mpConfig.glassBg) mpFill.style.setProperty('--glass-bg', mpConfig.glassBg);
-          if (mpConfig.glassOpacity) mpFill.style.setProperty('--glass-opacity', mpConfig.glassOpacity);
-      }
-  }
-
-  const dpConfig = RESOURCE_REGISTRY.find(c => c.key === 'dp');
-  if (dpConfig) {
-      const dpBar = document.getElementById('game-root').querySelector('.dp-bar');
-      const dpFill = document.getElementById('game-root').querySelector('.dp-bar__fill');
-      if (dpBar) {
-          if (dpConfig.pinBgGradient) dpBar.style.background = dpConfig.pinBgGradient;
-          if (dpConfig.borderColor) dpBar.style.setProperty('--bar-border-color', dpConfig.borderColor);
-          if (dpConfig.barBoxShadow) dpBar.style.setProperty('--bar-box-shadow', dpConfig.barBoxShadow);
-      }
-      if (dpFill) {
-          if (dpConfig.fillGradient) dpFill.style.background = dpConfig.fillGradient;
-          if (dpConfig.glassBg) dpFill.style.setProperty('--glass-bg', dpConfig.glassBg);
-          if (dpConfig.glassOpacity) dpFill.style.setProperty('--glass-opacity', dpConfig.glassOpacity);
-      }
-  }
-  const ppConfig = RESOURCE_REGISTRY.find(c => c.key === 'pp');
-  if (ppConfig) {
-      const ppBar = document.getElementById('game-root').querySelector('.pp-bar');
-      const ppFill = document.getElementById('game-root').querySelector('.pp-bar__fill');
-      if (ppBar) {
-          if (ppConfig.pinBgGradient) ppBar.style.background = ppConfig.pinBgGradient;
-          if (ppConfig.borderColor) ppBar.style.setProperty('--bar-border-color', ppConfig.borderColor);
-          if (ppConfig.barBoxShadow) ppBar.style.setProperty('--bar-box-shadow', ppConfig.barBoxShadow);
-      }
-      if (ppFill) {
-          if (ppConfig.fillGradient) ppFill.style.background = ppConfig.fillGradient;
-          if (ppConfig.glassBg) ppFill.style.setProperty('--glass-bg', ppConfig.glassBg);
-          if (ppConfig.glassOpacity) ppFill.style.setProperty('--glass-opacity', ppConfig.glassOpacity);
-      }
-  }
-
-
-  // Apply rainbow gem upgrades effects on load
-  const applyFontSetting = () => {
-    document.body.classList.remove(...ALL_FONT_CLASSES, 'custom-font-active');
-    const fontMod = settingsManager.get('active_font_mod');
-    if (FONT_MAP[fontMod]) {
-      document.body.classList.add(FONT_MAP[fontMod], 'custom-font-active');
+    const xpConfig = RESOURCE_REGISTRY.find((c) => c.key === "xp");
+    if (xpConfig) {
+        const xpBar = document.getElementById("game-root").querySelector(".xp-bar");
+        const xpFill = document.getElementById("game-root").querySelector(".xp-bar__fill");
+        if (xpBar) {
+            if (xpConfig.pinBgGradient) xpBar.style.background = xpConfig.pinBgGradient;
+            if (xpConfig.borderColor) xpBar.style.setProperty("--bar-border-color", xpConfig.borderColor);
+            if (xpConfig.barBoxShadow) xpBar.style.setProperty("--bar-box-shadow", xpConfig.barBoxShadow);
+        }
+        if (xpFill) {
+            if (xpConfig.fillGradient) xpFill.style.background = xpConfig.fillGradient;
+            if (xpConfig.glassBg) xpFill.style.setProperty("--glass-bg", xpConfig.glassBg);
+            if (xpConfig.glassOpacity) xpFill.style.setProperty("--glass-opacity", xpConfig.glassOpacity);
+        }
     }
-  };
-  
-  settingsManager.subscribe('active_font_mod', applyFontSetting);
-  applyFontSetting();
 
-  const applyOverlayTransitionSetting = () => {
-    if (settingsManager.get('overlay_transition') === false) {
-      document.body.classList.add('no-overlay-transitions');
-    } else {
-      document.body.classList.remove('no-overlay-transitions');
+    const mpConfig = RESOURCE_REGISTRY.find((c) => c.key === "mp");
+    if (mpConfig) {
+        const mpBar = document.getElementById("game-root").querySelector(".mp-bar");
+        const mpFill = document.getElementById("game-root").querySelector(".mp-bar__fill");
+        if (mpBar) {
+            if (mpConfig.pinBgGradient) mpBar.style.background = mpConfig.pinBgGradient;
+            if (mpConfig.borderColor) mpBar.style.setProperty("--bar-border-color", mpConfig.borderColor);
+            if (mpConfig.barBoxShadow) mpBar.style.setProperty("--bar-box-shadow", mpConfig.barBoxShadow);
+        }
+        if (mpFill) {
+            if (mpConfig.fillGradient) mpFill.style.background = mpConfig.fillGradient;
+            if (mpConfig.glassBg) mpFill.style.setProperty("--glass-bg", mpConfig.glassBg);
+            if (mpConfig.glassOpacity) mpFill.style.setProperty("--glass-opacity", mpConfig.glassOpacity);
+        }
     }
-  };
 
-  settingsManager.subscribe('overlay_transition', applyOverlayTransitionSetting);
-  applyOverlayTransitionSetting();
+    const dpConfig = RESOURCE_REGISTRY.find((c) => c.key === "dp");
+    if (dpConfig) {
+        const dpBar = document.getElementById("game-root").querySelector(".dp-bar");
+        const dpFill = document.getElementById("game-root").querySelector(".dp-bar__fill");
+        if (dpBar) {
+            if (dpConfig.pinBgGradient) dpBar.style.background = dpConfig.pinBgGradient;
+            if (dpConfig.borderColor) dpBar.style.setProperty("--bar-border-color", dpConfig.borderColor);
+            if (dpConfig.barBoxShadow) dpBar.style.setProperty("--bar-box-shadow", dpConfig.barBoxShadow);
+        }
+        if (dpFill) {
+            if (dpConfig.fillGradient) dpFill.style.background = dpConfig.fillGradient;
+            if (dpConfig.glassBg) dpFill.style.setProperty("--glass-bg", dpConfig.glassBg);
+            if (dpConfig.glassOpacity) dpFill.style.setProperty("--glass-opacity", dpConfig.glassOpacity);
+        }
+    }
+    const ppConfig = RESOURCE_REGISTRY.find((c) => c.key === "pp");
+    if (ppConfig) {
+        const ppBar = document.getElementById("game-root").querySelector(".pp-bar");
+        const ppFill = document.getElementById("game-root").querySelector(".pp-bar__fill");
+        if (ppBar) {
+            if (ppConfig.pinBgGradient) ppBar.style.background = ppConfig.pinBgGradient;
+            if (ppConfig.borderColor) ppBar.style.setProperty("--bar-border-color", ppConfig.borderColor);
+            if (ppConfig.barBoxShadow) ppBar.style.setProperty("--bar-box-shadow", ppConfig.barBoxShadow);
+        }
+        if (ppFill) {
+            if (ppConfig.fillGradient) ppFill.style.background = ppConfig.fillGradient;
+            if (ppConfig.glassBg) ppFill.style.setProperty("--glass-bg", ppConfig.glassBg);
+            if (ppConfig.glassOpacity) ppFill.style.setProperty("--glass-opacity", ppConfig.glassOpacity);
+        }
+    }
+
+    // Apply rainbow gem upgrades effects on load
+    const applyFontSetting = () => {
+        document.body.classList.remove(...ALL_FONT_CLASSES, "custom-font-active");
+        const fontMod = settingsManager.get("active_font_mod");
+        if (FONT_MAP[fontMod]) {
+            document.body.classList.add(FONT_MAP[fontMod], "custom-font-active");
+        }
+    };
+
+    settingsManager.subscribe("active_font_mod", applyFontSetting);
+    applyFontSetting();
+
+    const applyOverlayTransitionSetting = () => {
+        if (settingsManager.get("overlay_transition") === false) {
+            document.body.classList.add("no-overlay-transitions");
+        } else {
+            document.body.classList.remove("no-overlay-transitions");
+        }
+    };
+
+    settingsManager.subscribe("overlay_transition", applyOverlayTransitionSetting);
+    applyOverlayTransitionSetting();
 }
