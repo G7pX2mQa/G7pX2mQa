@@ -11474,6 +11474,13 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         const scale = blockSize / 16;
         ctx.translate(-blockSize / 2, bpy);
+
+        // 1. Obsidian Base (x=2..13, y=13..15)
+        ctx.fillStyle = fillMat; // Use the unobtainium texture!
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 20% black overlay
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+
         ctx.save();
         ctx.beginPath(); ctx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale); ctx.clip();
         ctx.fillStyle = '#000000'; ctx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
@@ -11555,6 +11562,13 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         const scale = blockSize / 16;
         ctx.translate(-blockSize / 2, bpy);
+
+        // 1. Obsidian Base (x=2..13, y=13..15)
+        ctx.fillStyle = fillMat; // Use the unobtainium texture!
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 20% black overlay
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+
         if (!window.beaconCorePatternCache2) {
           const cCanvas = document.createElement('canvas');
           cCanvas.width = 10; cCanvas.height = 10;
