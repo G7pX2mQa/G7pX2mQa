@@ -11640,17 +11640,17 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
     // Layer tops (with lCount=4, blockSize=48): 17-block→-48, 13-block→-96, 9-block→-144, 5-block→-192
     if (hasT7) {
       // Step-1: on the 17-block layer top (y=-48), at x = ±7×blockSize = ±336
-      drawBeaconAt(-7 * blockSize, -2 * blockSize, false); // bpy = -48 - 48 = -96
-      drawBeaconAt( 7 * blockSize, -2 * blockSize, false);
+      drawBeaconAt(-7 * blockSize, -2 * blockSize, true); // bpy = -48 - 48 = -96
+      drawBeaconAt( 7 * blockSize, -2 * blockSize, true);
       // Step-2: on the 13-block layer top (y=-96), at x = ±5×blockSize = ±240
-      drawBeaconAt(-5 * blockSize, -3 * blockSize, false); // bpy = -96 - 48 = -144
-      drawBeaconAt( 5 * blockSize, -3 * blockSize, false);
+      drawBeaconAt(-5 * blockSize, -3 * blockSize, true); // bpy = -96 - 48 = -144
+      drawBeaconAt( 5 * blockSize, -3 * blockSize, true);
       // Step-3: on the 9-block layer top (y=-144), at x = ±3×blockSize = ±144
-      drawBeaconAt(-3 * blockSize, -4 * blockSize, false); // bpy = -144 - 48 = -192
-      drawBeaconAt( 3 * blockSize, -4 * blockSize, false);
+      drawBeaconAt(-3 * blockSize, -4 * blockSize, true); // bpy = -144 - 48 = -192
+      drawBeaconAt( 3 * blockSize, -4 * blockSize, true);
       // Top pair: flanking the central beacon on the 5-block layer top (y=-192)
-      drawBeaconAt(-blockSize, beaconPieceY, false);       // x = -48, bpy = -240
-      drawBeaconAt( blockSize, beaconPieceY, false);       // x = +48, bpy = -240
+      drawBeaconAt(-blockSize, beaconPieceY, true);       // x = -48, bpy = -240
+      drawBeaconAt( blockSize, beaconPieceY, true);       // x = +48, bpy = -240
     }
 
 
