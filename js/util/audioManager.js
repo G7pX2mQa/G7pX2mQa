@@ -104,6 +104,13 @@ export function initAudio() {
     settingsManager.subscribe('sfx_volume', (val) => {
         setSfxVolume(val);
     });
+    settingsManager.subscribe('spawn_vessel_volume', (val) => {
+        for (const audio of activeSpawnVesselAudios) {
+            if (audio.setVolume && audio.baseVolume !== undefined) {
+                audio.setVolume(audio.baseVolume);
+            }
+        }
+    });
 }
 
 // "Warm" the context on user interaction
@@ -176,11 +183,10 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
   }
  
   let isSpawnVessel = false;
+  let originalBaseVolume = volume;
   if (type === 'spawn_vessel') {
       if (Date.now() < spawnVesselMutedUntil) return null;
       isSpawnVessel = true;
-      const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
-      volume = volume * (spawnVesselVolumeSetting / 100);
       type = 'sfx';
   }
 
@@ -200,18 +206,24 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         source.loop = loop;
         
         const gainNode = ctx.createGain();
+
+        let initialVolume = volume;
+        if (isSpawnVessel) {
+            const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
+            initialVolume = initialVolume * (spawnVesselVolumeSetting / 100);
+        }
         
         if (fadeDuration > 0) {
             gainNode.gain.value = 0;
             try {
                 const now = ctx.currentTime;
                 gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(volume, now + fadeDuration);
+                gainNode.gain.linearRampToValueAtTime(initialVolume, now + fadeDuration);
             } catch (e) {
-                gainNode.gain.value = volume;
+                gainNode.gain.value = initialVolume;
             }
         } else {
-            gainNode.gain.value = volume;
+            gainNode.gain.value = initialVolume;
         }
         
         source.connect(gainNode);
@@ -228,6 +240,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         source.start(0);
         
         let stopTimeout = null;
+        let currentBaseVolume = originalBaseVolume;
         
         const retObj = {
             stop: (fadeOutDuration = 0) => {
@@ -248,7 +261,8 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
                 try { source.stop(); } catch {}
             },
             source,
-            gainNode, type, originalPlaybackRate: playbackRate, setVolume: (newVolumeBase) => {
+            gainNode, type, originalPlaybackRate: playbackRate, get baseVolume() { return currentBaseVolume; }, setVolume: (newVolumeBase) => {
+                currentBaseVolume = newVolumeBase;
                 let actualVolume = newVolumeBase;
                 if (isSpawnVessel) {
                     const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
@@ -294,6 +308,12 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
           : volume;
 
       // HTML5 Audio fallback doesn't use the Web Audio global gains, so we need to multiply them here.
+      if (isSpawnVessel) {
+          const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
+          if (spawnVesselVolumeSetting !== undefined && spawnVesselVolumeSetting !== null) {
+              finalVolume = finalVolume * (spawnVesselVolumeSetting / 100);
+          }
+      }
       if (type === 'music') {
           const musicVolumeSetting = settingsManager.get('music_volume');
           if (musicVolumeSetting !== undefined && musicVolumeSetting !== null) {
@@ -308,6 +328,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
 
       let fadeInterval = null;
       let stopTimeout = null;
+      let currentBaseVolume = originalBaseVolume;
       
       if (fadeDuration > 0) {
           a.volume = 0;
@@ -358,7 +379,9 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
               }
               try { a.pause(); a.currentTime = 0; } catch {}
           },
+          get baseVolume() { return currentBaseVolume; },
           setVolume: (newVolumeBase) => {
+              currentBaseVolume = newVolumeBase;
               let actualVolume = newVolumeBase;
               if (isSpawnVessel) {
                   const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
