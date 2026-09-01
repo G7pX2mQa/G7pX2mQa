@@ -11832,16 +11832,18 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         const scale = blockSize / 16;
         ctx.translate(-blockSize / 2, bpy);
+        const cacheResMult = 3;
         if (window.t8BlockCacheTime !== t || !window.t8BlockCacheCanvas) {
           window.t8BlockCacheTime = t;
           if (!window.t8BlockCacheCanvas) {
             window.t8BlockCacheCanvas = document.createElement('canvas');
-            window.t8BlockCacheCanvas.width = 24 * scale;
-            window.t8BlockCacheCanvas.height = 24 * scale;
+            window.t8BlockCacheCanvas.width = 24 * scale * cacheResMult;
+            window.t8BlockCacheCanvas.height = 24 * scale * cacheResMult;
           }
           const cCtx = window.t8BlockCacheCanvas.getContext('2d');
           cCtx.clearRect(0, 0, window.t8BlockCacheCanvas.width, window.t8BlockCacheCanvas.height);
           cCtx.save();
+          cCtx.scale(cacheResMult, cacheResMult);
           // The visual goes from -2*scale to 18*scale in X and Y
           // We translate by 4*scale to center it safely in our 24x24 scale canvas
           cCtx.translate(4 * scale, 4 * scale);
@@ -12062,7 +12064,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           cCtx.restore();
         }
 
-        ctx.drawImage(window.t8BlockCacheCanvas, -4 * scale, -4 * scale);
+        ctx.drawImage(window.t8BlockCacheCanvas, -4 * scale, -4 * scale, 24 * scale, 24 * scale);
 
 
         ctx.restore(); // end block translate
