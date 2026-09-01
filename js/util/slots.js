@@ -43,7 +43,7 @@ function renderSlotCards() {
         const titleEl = btn.querySelector(".slot-title");
         if (titleEl) {
             const text = coinsTextFor(slot);
-            titleEl.innerHTML = `<img src="img/currencies/coin/coin.webp" class="coin-slot-icon-img" alt=""> ${text}`;
+            titleEl.innerHTML = `<img src="img/currencies/coin/coin.webp" class="coin-slot-icon-img" alt=""> <span class="slot-title-text">${text}</span>`;
         }
 
         const existingMeta = btn.querySelector(".slot-meta");
