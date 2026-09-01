@@ -11285,6 +11285,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
                 }
 
                 const drawEnhancedShockwave = (xPos, startEdge, direction) => {
+                    ctx.globalAlpha = alphaMult;
                     // 2. Lingering Energy Trail / Scar
                     // A thick ground line connecting the building edge to the current shockwave position
                     ctx.beginPath();
