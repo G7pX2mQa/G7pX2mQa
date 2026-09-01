@@ -11832,20 +11832,34 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         const scale = blockSize / 16;
         ctx.translate(-blockSize / 2, bpy);
+        if (window.t8BlockCacheTime !== t || !window.t8BlockCacheCanvas) {
+          window.t8BlockCacheTime = t;
+          if (!window.t8BlockCacheCanvas) {
+            window.t8BlockCacheCanvas = document.createElement('canvas');
+            window.t8BlockCacheCanvas.width = 24 * scale;
+            window.t8BlockCacheCanvas.height = 24 * scale;
+          }
+          const cCtx = window.t8BlockCacheCanvas.getContext('2d');
+          cCtx.clearRect(0, 0, window.t8BlockCacheCanvas.width, window.t8BlockCacheCanvas.height);
+          cCtx.save();
+          // The visual goes from -2*scale to 18*scale in X and Y
+          // We translate by 4*scale to center it safely in our 24x24 scale canvas
+          cCtx.translate(4 * scale, 4 * scale);
+
 
         // 1. Obsidian Base — unchanged (x=2..13, y=13..15)
-        ctx.fillStyle = fillMat;
-        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+        cCtx.fillStyle = fillMat;
+        cCtx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+        cCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        cCtx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
 
         // 2. Singularity Core (clipped to 3..13, 3..13 — the glass window area)
-        ctx.save();
-        ctx.beginPath(); ctx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale); ctx.clip();
+        cCtx.save();
+        cCtx.beginPath(); cCtx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale); cCtx.clip();
 
         // 2a. Deep void black background
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
+        cCtx.fillStyle = '#000000';
+        cCtx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
 
         // Core center coordinates
         const coreCX = 8 * scale;
@@ -11858,7 +11872,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           const nx = coreCX + Math.sin(t * 2.5 + nSeed * 3) * 3 * scale;
           const ny = coreCY + Math.cos(t * 3.1 + nSeed * 2) * 3 * scale;
           const nRadius = (2.5 + Math.sin(t * 4 + nSeed) * 1) * scale;
-          const nebGrad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nRadius);
+          const nebGrad = cCtx.createRadialGradient(nx, ny, 0, nx, ny, nRadius);
 
           // Cycling nebula colors
           const nPhase = t * 2 + nebula * 0.785;
@@ -11868,8 +11882,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           nebGrad.addColorStop(0, `rgba(${nR},${nG},${nB},0.7)`);
           nebGrad.addColorStop(0.5, `rgba(${nR >> 1},${nG >> 1},${nB >> 1},0.3)`);
           nebGrad.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.fillStyle = nebGrad;
-          ctx.beginPath(); ctx.arc(nx, ny, nRadius, 0, Math.PI * 2); ctx.fill();
+          cCtx.fillStyle = nebGrad;
+          cCtx.beginPath(); cCtx.arc(nx, ny, nRadius, 0, Math.PI * 2); cCtx.fill();
         }
 
         // 2c. Concentric rotating rings — 3 rings at different speeds and tilts
@@ -11880,30 +11894,30 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           const ringEllipseY = ringRadius * (0.2 + 0.15 * Math.sin(t * 2 + ring));
           const ringAlpha = 0.5 + 0.3 * Math.sin(t * 3 + ring * 2);
 
-          ctx.save();
-          ctx.translate(coreCX, coreCY);
-          ctx.rotate(ringA * 0.3);
+          cCtx.save();
+          cCtx.translate(coreCX, coreCY);
+          cCtx.rotate(ringA * 0.3);
 
           // Ring glow
-          ctx.beginPath();
-          ctx.ellipse(0, 0, ringRadius * 1.2, ringEllipseY * 1.2, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(90,0,180,${ringAlpha * 0.3})`; ctx.lineWidth = 2 * scale / 3;
-          ctx.stroke();
+          cCtx.beginPath();
+          cCtx.ellipse(0, 0, ringRadius * 1.2, ringEllipseY * 1.2, 0, 0, Math.PI * 2);
+          cCtx.strokeStyle = `rgba(90,0,180,${ringAlpha * 0.3})`; cCtx.lineWidth = 2 * scale / 3;
+          cCtx.stroke();
 
           // Ring core
-          ctx.beginPath();
-          ctx.ellipse(0, 0, ringRadius, ringEllipseY, 0, 0, Math.PI * 2);
+          cCtx.beginPath();
+          cCtx.ellipse(0, 0, ringRadius, ringEllipseY, 0, 0, Math.PI * 2);
           const ringColor = ring === 0 ? '255,180,255' : ring === 1 ? '180,100,255' : '120,200,255';
-          ctx.strokeStyle = `rgba(${ringColor},${ringAlpha * 0.8})`; ctx.lineWidth = 1.2 * scale / 3;
-          ctx.stroke();
+          cCtx.strokeStyle = `rgba(${ringColor},${ringAlpha * 0.8})`; cCtx.lineWidth = 1.2 * scale / 3;
+          cCtx.stroke();
 
           // Bright node on each ring
           const nodeX = Math.cos(ringA) * ringRadius;
           const nodeY = Math.sin(ringA) * ringEllipseY;
-          ctx.fillStyle = `rgba(255,255,255,${ringAlpha * 0.9})`;
-          ctx.beginPath(); ctx.arc(nodeX, nodeY, 0.6 * scale / 3, 0, Math.PI * 2); ctx.fill();
+          cCtx.fillStyle = `rgba(255,255,255,${ringAlpha * 0.9})`;
+          cCtx.beginPath(); cCtx.arc(nodeX, nodeY, 0.6 * scale / 3, 0, Math.PI * 2); cCtx.fill();
 
-          ctx.restore();
+          cCtx.restore();
         }
 
         // 2d. Orbiting energy motes — tiny bright particles circling the core
@@ -11920,13 +11934,13 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             const trailAngle = moteAngle - trail * 0.15;
             const trailX = coreCX + Math.cos(trailAngle) * moteR;
             const trailY = coreCY + Math.sin(trailAngle) * moteR * 0.6;
-            ctx.fillStyle = `rgba(200,140,255,${moteAlpha * (0.3 - trail * 0.08)})`;
-            ctx.beginPath(); ctx.arc(trailX, trailY, moteSize * (1 - trail * 0.2), 0, Math.PI * 2); ctx.fill();
+            cCtx.fillStyle = `rgba(200,140,255,${moteAlpha * (0.3 - trail * 0.08)})`;
+            cCtx.beginPath(); cCtx.arc(trailX, trailY, moteSize * (1 - trail * 0.2), 0, Math.PI * 2); cCtx.fill();
           }
 
           // Mote core
-          ctx.fillStyle = `rgba(255,240,255,${moteAlpha * 0.9})`;
-          ctx.beginPath(); ctx.arc(moteX, moteY, moteSize, 0, Math.PI * 2); ctx.fill();
+          cCtx.fillStyle = `rgba(255,240,255,${moteAlpha * 0.9})`;
+          cCtx.beginPath(); cCtx.arc(moteX, moteY, moteSize, 0, Math.PI * 2); cCtx.fill();
         }
 
         // 2e. Central singularity — white-hot point with extreme radial gradient
@@ -11934,42 +11948,42 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         const singR = 1.5 * scale * singPulse;
 
         // Outer singularity glow — large soft purple
-        const singGlow3 = ctx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, coreR);
+        const singGlow3 = cCtx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, coreR);
         singGlow3.addColorStop(0, 'rgba(255,200,255,0.4)');
         singGlow3.addColorStop(0.3, 'rgba(160,40,255,0.2)');
         singGlow3.addColorStop(0.7, 'rgba(80,0,180,0.1)');
         singGlow3.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = singGlow3;
-        ctx.beginPath(); ctx.arc(coreCX, coreCY, coreR, 0, Math.PI * 2); ctx.fill();
+        cCtx.fillStyle = singGlow3;
+        cCtx.beginPath(); cCtx.arc(coreCX, coreCY, coreR, 0, Math.PI * 2); cCtx.fill();
 
         // Mid singularity glow
-        const singGlow2 = ctx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, singR * 3);
+        const singGlow2 = cCtx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, singR * 3);
         singGlow2.addColorStop(0, 'rgba(255,255,255,0.9)');
         singGlow2.addColorStop(0.3, 'rgba(255,180,255,0.5)');
         singGlow2.addColorStop(0.7, 'rgba(80,0,160,0.15)');
         singGlow2.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = singGlow2;
-        ctx.beginPath(); ctx.arc(coreCX, coreCY, singR * 3, 0, Math.PI * 2); ctx.fill();
+        cCtx.fillStyle = singGlow2;
+        cCtx.beginPath(); cCtx.arc(coreCX, coreCY, singR * 3, 0, Math.PI * 2); cCtx.fill();
 
         // Core white point
-        const singGlow1 = ctx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, singR);
+        const singGlow1 = cCtx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, singR);
         singGlow1.addColorStop(0, 'rgba(255,255,255,1.0)');
         singGlow1.addColorStop(0.5, 'rgba(255,230,255,0.8)');
         singGlow1.addColorStop(1, 'rgba(200,100,255,0.3)');
-        ctx.fillStyle = singGlow1;
-        ctx.beginPath(); ctx.arc(coreCX, coreCY, singR, 0, Math.PI * 2); ctx.fill();
+        cCtx.fillStyle = singGlow1;
+        cCtx.beginPath(); cCtx.arc(coreCX, coreCY, singR, 0, Math.PI * 2); cCtx.fill();
 
         // 2f. Dimensional crack lines radiating from center
-        ctx.save();
-        ctx.translate(coreCX, coreCY);
+        cCtx.save();
+        cCtx.translate(coreCX, coreCY);
         const numCracks = 6;
         for (let c = 0; c < numCracks; c++) {
           const crackAngle = (c / numCracks) * Math.PI * 2 + t * 0.5;
           const crackLen = (2 + Math.sin(t * 6 + c * 1.7) * 1.5) * scale;
           const crackAlpha = 0.4 + 0.4 * Math.sin(t * 4 + c * 2.3);
 
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
+          cCtx.beginPath();
+          cCtx.moveTo(0, 0);
 
           // Jagged crack path
           const segs = 4;
@@ -11979,72 +11993,77 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             const baseY = Math.sin(crackAngle) * crackLen * sFrac;
             const jX = Math.sin(t * 12 + c * 3 + s * 5) * 0.5 * scale;
             const jY = Math.cos(t * 10 + c * 4 + s * 7) * 0.3 * scale;
-            ctx.lineTo(baseX + jX, baseY + jY);
+            cCtx.lineTo(baseX + jX, baseY + jY);
           }
 
           // White-hot core of crack
-          ctx.strokeStyle = `rgba(255,255,255,${crackAlpha})`; ctx.lineWidth = 0.5 * scale / 3;
-          ctx.stroke();
+          cCtx.strokeStyle = `rgba(255,255,255,${crackAlpha})`; cCtx.lineWidth = 0.5 * scale / 3;
+          cCtx.stroke();
           // Purple glow
-          ctx.strokeStyle = `rgba(200,100,255,${crackAlpha * 0.5})`; ctx.lineWidth = 1.5 * scale / 3;
-          ctx.stroke();
+          cCtx.strokeStyle = `rgba(200,100,255,${crackAlpha * 0.5})`; cCtx.lineWidth = 1.5 * scale / 3;
+          cCtx.stroke();
         }
-        ctx.restore();
+        cCtx.restore();
 
         // 2g. Rotating energy star — spiky starburst overlay
-        ctx.save();
-        ctx.translate(coreCX, coreCY);
+        cCtx.save();
+        cCtx.translate(coreCX, coreCY);
         const starAngle = t * 2;
         const starPoints = 8;
         const starOuterR = 1.8 * scale;
         const starInnerR = 0.6 * scale;
-        ctx.beginPath();
+        cCtx.beginPath();
         for (let s = 0; s < starPoints * 2; s++) {
           const sa = starAngle + (s / (starPoints * 2)) * Math.PI * 2;
           const sr = s % 2 === 0 ? starOuterR : starInnerR;
           const sx = Math.cos(sa) * sr;
           const sy = Math.sin(sa) * sr;
-          if (s === 0) ctx.moveTo(sx, sy);
-          else ctx.lineTo(sx, sy);
+          if (s === 0) cCtx.moveTo(sx, sy);
+          else cCtx.lineTo(sx, sy);
         }
-        ctx.closePath();
-        const starGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, starOuterR);
+        cCtx.closePath();
+        const starGrad = cCtx.createRadialGradient(0, 0, 0, 0, 0, starOuterR);
         starGrad.addColorStop(0, `rgba(255,255,255,${0.6 * singPulse})`);
         starGrad.addColorStop(1, `rgba(200,120,255,${0.2 * singPulse})`);
-        ctx.fillStyle = starGrad;
-        ctx.fill();
-        ctx.restore();
+        cCtx.fillStyle = starGrad;
+        cCtx.fill();
+        cCtx.restore();
 
-        ctx.restore(); // end core clip
+        cCtx.restore(); // end core clip
 
         // 3. Glass frame — the outer border overlay (unchanged structure, enhanced glow)
         // Tinted glass overlay
-        ctx.fillStyle = 'rgba(60,10,140,0.35)';
-        ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
+        cCtx.fillStyle = 'rgba(60,10,140,0.35)';
+        cCtx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
 
         // Outer border — enhanced with pulsing glow
         const borderPulse = 0.5 + 0.2 * Math.sin(t * 6);
-        ctx.fillStyle = `rgba(160,60,255,${borderPulse})`;
-        ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
-        ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
+        cCtx.fillStyle = `rgba(160,60,255,${borderPulse})`;
+        cCtx.fillRect(0, 0, 16*scale, 1*scale); cCtx.fillRect(0, 15*scale, 16*scale, 1*scale);
+        cCtx.fillRect(0, 1*scale, 1*scale, 14*scale); cCtx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
 
         // Corner accents — brighter for T8, pulsing with border
-        ctx.fillStyle = `rgba(120,30,220,${0.6 + 0.35 * Math.sin(t * 6)})`;
-        ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
-        ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
+        cCtx.fillStyle = `rgba(120,30,220,${0.6 + 0.35 * Math.sin(t * 6)})`;
+        cCtx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); cCtx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
+        cCtx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); cCtx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
         // Additional corner accents for T8
-        ctx.fillRect(13*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 2*scale, 1*scale, 1*scale);
-        ctx.fillRect(1*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 13*scale, 1*scale, 1*scale);
+        cCtx.fillRect(13*scale, 1*scale, 2*scale, 1*scale); cCtx.fillRect(14*scale, 2*scale, 1*scale, 1*scale);
+        cCtx.fillRect(1*scale, 14*scale, 2*scale, 1*scale); cCtx.fillRect(1*scale, 13*scale, 1*scale, 1*scale);
 
         // Pulsing glow halo around the entire block
-        ctx.save();
-        const haloGrad = ctx.createRadialGradient(8*scale, 8*scale, 4*scale, 8*scale, 8*scale, 12*scale);
+        cCtx.save();
+        const haloGrad = cCtx.createRadialGradient(8*scale, 8*scale, 4*scale, 8*scale, 8*scale, 12*scale);
         haloGrad.addColorStop(0, 'rgba(90,0,180,0)');
         haloGrad.addColorStop(0.7, `rgba(80,0,180,${0.1 * singPulse})`);
         haloGrad.addColorStop(1, `rgba(60,0,150,${0.2 * singPulse})`);
-        ctx.fillStyle = haloGrad;
-        ctx.fillRect(-2*scale, -2*scale, 20*scale, 20*scale);
-        ctx.restore();
+        cCtx.fillStyle = haloGrad;
+        cCtx.fillRect(-2*scale, -2*scale, 20*scale, 20*scale);
+        cCtx.restore();
+          cCtx.restore();
+        }
+
+        ctx.drawImage(window.t8BlockCacheCanvas, -4 * scale, -4 * scale);
+
 
         ctx.restore(); // end block translate
 
