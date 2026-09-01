@@ -11201,7 +11201,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.lineWidth = 2;
       for (let i = 0; i < widthBlocks; i++) {
         const bx = startX + i * blockSize;
-        ctx.strokeRect(bx, yPos, blockSize, blockSize);
+        ctx.strokeRect(bx + 1, yPos + 1, blockSize - 2, blockSize - 2);
       }
       
       // Pass 3: Bevels (Drawn last so they perfectly cover the inner halves of the strokes)
@@ -12041,9 +12041,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // Outer border — enhanced with pulsing glow
         const borderPulse = 0.5 + 0.2 * Math.sin(t * 6);
-        cCtx.fillStyle = `rgba(160,60,255,${borderPulse})`;
-        cCtx.fillRect(0, 0, 16*scale, 1*scale); cCtx.fillRect(0, 15*scale, 16*scale, 1*scale);
-        cCtx.fillRect(0, 1*scale, 1*scale, 14*scale); cCtx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
+        cCtx.strokeStyle = `rgba(160,60,255,${borderPulse})`;
+        cCtx.lineWidth = 1 * scale;
+        cCtx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
 
         // Corner accents — brighter for T8, pulsing with border
         cCtx.fillStyle = `rgba(120,30,220,${0.6 + 0.35 * Math.sin(t * 6)})`;
@@ -12228,9 +12228,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
         ctx.restore();
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
-        ctx.fillStyle = 'rgba(60,0,120,0.5)';
-        ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
-        ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
+        ctx.strokeStyle = 'rgba(60,0,120,0.5)';
+        ctx.lineWidth = 1 * scale;
+        ctx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
         ctx.fillStyle = 'rgba(90,20,170,0.85)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
@@ -12330,9 +12330,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.drawImage(window.beaconCorePatternCache2, 3*scale, 3*scale, 10*scale, 10*scale);
         ctx.imageSmoothingEnabled = true;
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
-        ctx.fillStyle = 'rgba(60,0,120,0.5)';
-        ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
-        ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
+        ctx.strokeStyle = 'rgba(60,0,120,0.5)';
+        ctx.lineWidth = 1 * scale;
+        ctx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
         ctx.fillStyle = 'rgba(90,20,170,0.85)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
