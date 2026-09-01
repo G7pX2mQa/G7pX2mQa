@@ -18,7 +18,13 @@ const PRIORITY_SELECTORS = [
 ];
 
 function handleEsc(e) {
-  if (e.key !== 'Escape') return;
+  if (e.key !== 'Escape' && e.key !== 'Backspace') return;
+
+  if (e.key === 'Backspace') {
+    const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+    if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+    if (document.activeElement && document.activeElement.isContentEditable) return;
+  }
 
   if (isGlobalEscDisabled) {
     e.preventDefault();
@@ -30,31 +36,64 @@ function handleEsc(e) {
   let yields = false;
   let closedAny = false;
 
-  for (const { sel, btn, yield: shouldYield, closeAll } of PRIORITY_SELECTORS) {
-    const candidates = document.querySelectorAll(sel);
-    if (candidates.length > 0) {
-      if (shouldYield) {
-        yields = true;
-        // Break to prevent closing parents
-        break;
-      }
+  if (e.key === 'Backspace') {
+    let allCandidates = [];
+    for (const info of PRIORITY_SELECTORS) {
+      const els = document.querySelectorAll(info.sel);
+      els.forEach(el => {
+        let z = parseInt(window.getComputedStyle(el).zIndex, 10);
+        if (isNaN(z)) z = 0;
+        allCandidates.push({ el, info, z });
+      });
+    }
 
-      if (closeAll) {
-        // If configured to close all, iterate and close each matching overlay
-        candidates.forEach(el => {
-          const closeButton = el.querySelector(btn || '.shop-close');
+    if (allCandidates.length > 0) {
+      allCandidates.sort((a, b) => {
+        if (a.z !== b.z) return b.z - a.z;
+        const pos = a.el.compareDocumentPosition(b.el);
+        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return 1;
+        if (pos & Node.DOCUMENT_POSITION_PRECEDING) return -1;
+        return 0;
+      });
+
+      const highest = allCandidates[0];
+      if (highest.info.yield) {
+        yields = true;
+      } else {
+        const closeButton = highest.el.querySelector(highest.info.btn || '.shop-close');
+        if (closeButton) {
+          closeButton.click();
+          closedAny = true;
+        }
+      }
+    }
+  } else {
+    for (const { sel, btn, yield: shouldYield, closeAll } of PRIORITY_SELECTORS) {
+      const candidates = document.querySelectorAll(sel);
+      if (candidates.length > 0) {
+        if (shouldYield) {
+          yields = true;
+          // Break to prevent closing parents
+          break;
+        }
+
+        if (closeAll) {
+          // If configured to close all, iterate and close each matching overlay
+          candidates.forEach(el => {
+            const closeButton = el.querySelector(btn || '.shop-close');
+            if (closeButton) {
+              closeButton.click();
+              closedAny = true;
+            }
+          });
+        } else {
+          const topMost = candidates[candidates.length - 1];
+          const closeButton = topMost.querySelector(btn || '.shop-close');
+
           if (closeButton) {
             closeButton.click();
             closedAny = true;
           }
-        });
-      } else {
-        const topMost = candidates[candidates.length - 1];
-        const closeButton = topMost.querySelector(btn || '.shop-close');
-
-        if (closeButton) {
-          closeButton.click();
-          closedAny = true;
         }
       }
     }
