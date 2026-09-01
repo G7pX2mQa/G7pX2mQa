@@ -11433,33 +11433,63 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         };
 
         // ── BACK HELICES (behind the beam column) ──
-        const drawHelixLayer8 = (isFront) => {
-          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (!window.t8FrontHelixColors) {
+          window.t8FrontHelixColors = [];
           for (let h = 0; h < 4; h++) {
-            ctx.beginPath();
-            let drawing = false;
-            for (let y = bCrystalY; y >= topY; y -= 45) {
-              const pt = getHelixPt8(y, h);
-              const vis = isFront ? pt.z > 0 : pt.z <= 0;
-              if (vis) {
-                if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
-                else ctx.lineTo(pt.x, y);
-              } else { drawing = false; }
-            }
-            // Each helix gets a unique color from the singularity palette
             const hueShift = h * 90;
             const baseR = Math.floor(40 + 30 * Math.sin(hueShift * 0.0174));
-            const baseG = 0; // Strictly no green/pink influence
             const baseB = Math.floor(150 + 50 * Math.cos(hueShift * 0.0174));
-            if (isFront) {
-              ctx.strokeStyle = `rgba(${baseR},${baseG},${baseB},0.95)`;
-              ctx.lineWidth = 6; ctx.stroke();
-              ctx.strokeStyle = `rgba(100,50,200,0.9)`;
-              ctx.lineWidth = 2; ctx.stroke();
-            } else {
-              ctx.strokeStyle = `rgba(48,0,96,1.0)`;
-              ctx.lineWidth = 3; ctx.stroke();
+            window.t8FrontHelixColors.push(`rgba(${baseR},0,${baseB},0.95)`);
+          }
+        }
+
+        const drawHelixLayer8 = (isFront) => {
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          if (!isFront) {
+            ctx.strokeStyle = 'rgba(48,0,96,1.0)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let h = 0; h < 4; h++) {
+              let drawing = false;
+              for (let y = bCrystalY; y >= topY; y -= 45) {
+                const pt = getHelixPt8(y, h);
+                if (pt.z <= 0) {
+                  if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
+                  else ctx.lineTo(pt.x, y);
+                } else { drawing = false; }
+              }
             }
+            ctx.stroke();
+          } else {
+            ctx.lineWidth = 6;
+            for (let h = 0; h < 4; h++) {
+              ctx.beginPath();
+              let drawing = false;
+              for (let y = bCrystalY; y >= topY; y -= 45) {
+                const pt = getHelixPt8(y, h);
+                if (pt.z > 0) {
+                  if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
+                  else ctx.lineTo(pt.x, y);
+                } else { drawing = false; }
+              }
+              ctx.strokeStyle = window.t8FrontHelixColors[h];
+              ctx.stroke();
+            }
+            
+            ctx.strokeStyle = 'rgba(100,50,200,0.9)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let h = 0; h < 4; h++) {
+              let drawing = false;
+              for (let y = bCrystalY; y >= topY; y -= 45) {
+                const pt = getHelixPt8(y, h);
+                if (pt.z > 0) {
+                  if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
+                  else ctx.lineTo(pt.x, y);
+                } else { drawing = false; }
+              }
+            }
+            ctx.stroke();
           }
         };
 
@@ -11467,8 +11497,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // ── Void tear shimmer — dimensional rift edges along beam ──
         ctx.save();
+        ctx.strokeStyle = 'rgba(85,10,135,0.7)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
         for (let side = -1; side <= 1; side += 2) {
-          ctx.beginPath();
           for (let y = bCrystalY; y >= topY; y -= 45) {
             const shimmerX = side * (R + 1.5 + Math.sin(y * 0.08 + t * 12) * 1.0 + Math.sin(y * 0.03 + t * 5) * 1.0);
             if (y === bCrystalY) ctx.moveTo(shimmerX, y);
@@ -11476,10 +11508,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           }
           const topShimmerX = side * (R + 1.5 + Math.sin(topY * 0.08 + t * 12) * 1.0 + Math.sin(topY * 0.03 + t * 5) * 1.0);
           ctx.lineTo(topShimmerX, topY);
-          
-          // Dark purple glow
-          ctx.strokeStyle = `rgba(85,10,135,0.7)`; ctx.lineWidth = 4; ctx.stroke();
         }
+        ctx.stroke();
         ctx.restore();
 
         // ── Octagonal beam column faces ──
@@ -11588,39 +11618,46 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // ── Ascending energy rings — pulsing halos that travel up the beam ──
         ctx.save();
+        
+        // Pass 1: Outer glow ring
+        ctx.strokeStyle = 'rgba(90,0,180,0.3)';
+        ctx.lineWidth = 6;
         for (let ring = 0; ring < 8; ring++) {
           const ringCycle = ((t * 2.5 + ring * 0.75) % 6) / 6;
           const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
           if (ringAlpha <= 0) continue;
-
           const ringY = bCrystalY - ringCycle * beamHeight;
           const ringR = R + 2 + Math.sin(ringCycle * Math.PI * 4) * 3;
-
           ctx.globalAlpha = ringAlpha;
-
-          // Outer glow ring
           ctx.beginPath();
           ctx.ellipse(0, ringY, ringR * 1.3, ringR * 0.35, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(90,0,180,0.3)';
-          ctx.lineWidth = 6; ctx.stroke();
+          ctx.stroke();
+        }
 
-          // Main ring
+        // Pass 2: Main ring
+        ctx.strokeStyle = 'rgba(100,50,200,0.8)';
+        ctx.lineWidth = 1.5;
+        for (let ring = 0; ring < 8; ring++) {
+          const ringCycle = ((t * 2.5 + ring * 0.75) % 6) / 6;
+          const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
+          if (ringAlpha <= 0) continue;
+          const ringY = bCrystalY - ringCycle * beamHeight;
+          const ringR = R + 2 + Math.sin(ringCycle * Math.PI * 4) * 3;
+          ctx.globalAlpha = ringAlpha;
           ctx.beginPath();
           ctx.ellipse(0, ringY, ringR * 0.9, ringR * 0.22, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(100,50,200,0.8)';
-          ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.stroke();
         }
         ctx.restore();
 
         // ── Lightning arcs — erratic energy discharges between helices ──
         ctx.save();
         const numArcs = 6;
-        for (let arc = 0; arc < numArcs; arc++) {
-          // Each arc has a lifecycle: it appears, crackles, and fades
+        const drawArcPath = (arc) => {
           const arcSeed = arc * 37.7193;
           const arcCycle = ((t * 4 + arcSeed) % 3) / 3;
           const arcAlpha = Math.pow(Math.sin(arcCycle * Math.PI), 3); // Sharp flash
-          if (arcAlpha < 0.05) continue;
+          if (arcAlpha < 0.05) return arcAlpha;
 
           // Random Y position along the beam
           const prng = Math.abs(Math.sin(arcSeed * 12.9898) * 43758.5453);
@@ -11647,11 +11684,29 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
               ctx.lineTo(h2.x, arcStartY);
             }
           }
+          return arcAlpha;
+        };
 
-          // Glow layer
-          ctx.globalAlpha = arcAlpha;
-          ctx.strokeStyle = 'rgba(100,0,180,0.4)'; ctx.lineWidth = 5; ctx.stroke();
-          ctx.strokeStyle = 'rgba(100,50,200,0.9)'; ctx.lineWidth = 2; ctx.stroke();
+        // Pass 1: Glow layer
+        ctx.strokeStyle = 'rgba(100,0,180,0.4)';
+        ctx.lineWidth = 5;
+        for (let arc = 0; arc < numArcs; arc++) {
+          const alpha = drawArcPath(arc);
+          if (alpha >= 0.05) {
+            ctx.globalAlpha = alpha;
+            ctx.stroke();
+          }
+        }
+
+        // Pass 2: Core layer
+        ctx.strokeStyle = 'rgba(100,50,200,0.9)';
+        ctx.lineWidth = 2;
+        for (let arc = 0; arc < numArcs; arc++) {
+          const alpha = drawArcPath(arc);
+          if (alpha >= 0.05) {
+            ctx.globalAlpha = alpha;
+            ctx.stroke();
+          }
         }
         ctx.restore();
 
