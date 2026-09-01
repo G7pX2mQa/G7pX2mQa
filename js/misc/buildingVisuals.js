@@ -11424,7 +11424,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
 
         const getHelixPt8 = (y, hIndex) => {
-          const freq = 0.012, speed = -30.0;
+          const freq = 0.015, speed = -8000.0;
           let p = (y * freq + t * speed + hIndex * 0.25) % 1.0;
           if (p < 0) p += 1.0;
           const seg = Math.floor(p * 8), prog = (p * 8) % 1.0;
@@ -11460,7 +11460,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
               ctx.strokeStyle = `rgba(50,0,100,0.8)`;
               ctx.lineWidth = 1; ctx.stroke();
             } else {
-              ctx.strokeStyle = `rgba(${baseR >> 1},0,${baseB >> 1},0.35)`;
+              ctx.strokeStyle = `rgba(48,0,96,1.0)`;
               ctx.lineWidth = 3; ctx.stroke();
             }
           }
@@ -11497,43 +11497,54 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.fillRect(leftX, topY, faceW, beamHeight);
 
             // Scrolling energy pattern (faster than T4, more complex)
+            if (!window.beaconBeamPattern8Cache) {
+              const pCanvas = document.createElement('canvas');
+              pCanvas.width = 24; pCanvas.height = 512;
+              const pCtx = pCanvas.getContext('2d');
+              
+              // Pre-render Layer 1: bright energy veins
+              for (let stripe = 0; stripe < 6; stripe++) {
+                const sx = stripe * 4;
+                const sw = 4;
+                for (let sy = 0; sy < 512; sy += 8) {
+                  const seed = stripe * 7.331 + sy * 0.419;
+                  const prng = Math.abs(Math.sin(seed) * 43758.5453);
+                  const noise = prng - Math.floor(prng);
+                  const r = 100 + noise * 80;
+                  const g = 10 + noise * 30;
+                  const b = 180 + noise * 75;
+                  const a = 0.4 + noise * 0.5;
+                  pCtx.fillStyle = `rgba(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)},${a})`;
+                  const h = 2 + Math.floor(noise * 4) * 2;
+                  pCtx.fillRect(sx, sy, sw, h);
+                }
+              }
+
+              // Pre-render Layer 2: dark matter threads
+              for (let stripe = 0; stripe < 4; stripe++) {
+                const sx = (stripe / 4) * 24 + 24 / 8;
+                const sw = 24 / 8;
+                for (let sy = 0; sy < 512; sy += 12) {
+                  const seed2 = stripe * 19.77 + sy * 0.831;
+                  const prng2 = Math.abs(Math.sin(seed2) * 21345.6789);
+                  const noise2 = prng2 - Math.floor(prng2);
+                  const a2 = noise2 * 0.6;
+                  pCtx.fillStyle = `rgba(0,0,0,${a2})`;
+                  pCtx.fillRect(sx, sy, sw, 4 + Math.floor(noise2 * 6));
+                }
+              }
+              window.beaconBeamPattern8Cache = pCanvas;
+              window.beaconBeamPattern8 = pCanvas.getContext('2d').createPattern(pCanvas, 'repeat');
+            }
+            
             ctx.save();
             ctx.beginPath(); ctx.rect(leftX, topY, faceW, beamHeight); ctx.clip();
-
-            // Layer 1: Fast upward scroll — bright energy veins
-            const scrollY1 = -((t * 12000) % 512);
-            for (let stripe = 0; stripe < 6; stripe++) {
-              const sx = leftX + (stripe / 6) * faceW;
-              const sw = faceW / 6;
-              for (let sy = scrollY1 + topY; sy < bCrystalY; sy += 8) {
-                const seed = stripe * 7.331 + ((sy - scrollY1) % 512) * 0.419;
-                const prng = Math.abs(Math.sin(seed) * 43758.5453);
-                const noise = prng - Math.floor(prng);
-                const r = 100 + noise * 80;
-                const g = 10 + noise * 30;
-                const b = 180 + noise * 75;
-                const a = 0.4 + noise * 0.5;
-                ctx.fillStyle = `rgba(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)},${a})`;
-                const h = 2 + Math.floor(noise * 4) * 2;
-                ctx.fillRect(sx, sy, sw, h);
-              }
-            }
-
-            // Layer 2: Slow downward counter-scroll — dark matter threads
-            const scrollY2 = ((t * 4000) % 256);
-            for (let stripe = 0; stripe < 4; stripe++) {
-              const sx = leftX + (stripe / 4) * faceW + faceW / 8;
-              const sw = faceW / 8;
-              for (let sy = scrollY2 + topY; sy < bCrystalY; sy += 12) {
-                const seed2 = stripe * 19.77 + ((sy - scrollY2) % 256) * 0.831;
-                const prng2 = Math.abs(Math.sin(seed2) * 21345.6789);
-                const noise2 = prng2 - Math.floor(prng2);
-                const a2 = noise2 * 0.6;
-                ctx.fillStyle = `rgba(0,0,0,${a2})`;
-                ctx.fillRect(sx, sy, sw, 4 + Math.floor(noise2 * 6));
-              }
-            }
-
+            const scrollY = -((t * 8000) % 512);
+            ctx.translate(leftX, scrollY); ctx.scale(faceW / 24, 1);
+            ctx.fillStyle = ctx.createPattern(window.beaconBeamPattern8Cache, 'repeat');
+            ctx.fillRect(0, topY - scrollY, 24, beamHeight + 512);
+            ctx.restore();
+            
             // Layer 3: Pulsating horizontal bands
             const pulsePhase = t * 3;
             for (let band = 0; band < 12; band++) {
@@ -11542,8 +11553,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
               ctx.fillStyle = `rgba(90,0,180,${bandAlpha})`;
               ctx.fillRect(leftX, bandY, faceW, beamHeight / 24);
             }
-
-            ctx.restore();
 
             // Edge lines — brighter than T4
             ctx.strokeStyle = 'rgba(100,0,200,0.9)'; ctx.lineWidth = 1.5;
