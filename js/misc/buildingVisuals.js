@@ -11473,11 +11473,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         for (let side = -1; side <= 1; side += 2) {
           ctx.beginPath();
           for (let y = bCrystalY; y >= topY; y -= 25) {
-            const shimmerX = side * (R + 1.5 + Math.sin(y * 0.08 + t * 12) * 2.5 + Math.sin(y * 0.03 + t * 5) * 1.5);
+            const shimmerX = side * (R + 1.5 + Math.sin(y * 0.08 + t * 12) * 1.0 + Math.sin(y * 0.03 + t * 5) * 1.0);
             if (y === bCrystalY) ctx.moveTo(shimmerX, y);
             else ctx.lineTo(shimmerX, y);
           }
-          const topShimmerX = side * (R + 1.5 + Math.sin(topY * 0.08 + t * 12) * 2.5 + Math.sin(topY * 0.03 + t * 5) * 1.5);
+          const topShimmerX = side * (R + 1.5 + Math.sin(topY * 0.08 + t * 12) * 1.0 + Math.sin(topY * 0.03 + t * 5) * 1.0);
           ctx.lineTo(topShimmerX, topY);
           
           // Dark purple glow
