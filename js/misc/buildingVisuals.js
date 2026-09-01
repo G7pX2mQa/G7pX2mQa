@@ -11424,7 +11424,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
 
         const getHelixPt8 = (y, hIndex) => {
-          const freq = 0.015, speed = -100.0;
+          const freq = 0.015, speed = -4.0;
           let p = (y * freq + t * speed + hIndex * 0.25) % 1.0;
           if (p < 0) p += 1.0;
           const seg = Math.floor(p * 8), prog = (p * 8) % 1.0;
@@ -11443,35 +11443,54 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           }
         }
 
+        const colLeft = Math.min(...octCorners.map(c => c.x));
+        const colRight = Math.max(...octCorners.map(c => c.x));
+
+        const traceHelix8 = (h, conditionFn) => {
+          let wasCond = false;
+          let prevPt = null;
+          let prevY = 0;
+          for (let y = bCrystalY; y >= topY; y -= 2) {
+            const pt = getHelixPt8(y, h);
+            const isCond = conditionFn(pt);
+            if (isCond) {
+              if (!wasCond) {
+                if (prevPt) {
+                  ctx.moveTo(prevPt.x, prevY);
+                  ctx.lineTo(pt.x, y);
+                } else {
+                  ctx.moveTo(pt.x, y);
+                }
+              } else {
+                ctx.lineTo(pt.x, y);
+              }
+            } else {
+              if (wasCond) {
+                ctx.lineTo(pt.x, y);
+              }
+            }
+            wasCond = isCond;
+            prevPt = pt;
+            prevY = y;
+          }
+        };
+
         const drawHelixLayer8 = (isFront) => {
-          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
           if (!isFront) {
             ctx.strokeStyle = 'rgba(48,0,96,1.0)';
             ctx.lineWidth = 3;
             ctx.beginPath();
             for (let h = 0; h < 4; h++) {
-              let drawing = false;
-              for (let y = bCrystalY; y >= topY; y -= 45) {
-                const pt = getHelixPt8(y, h);
-                if (pt.z <= 0) {
-                  if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
-                  else ctx.lineTo(pt.x, y);
-                } else { drawing = false; }
-              }
+              traceHelix8(h, pt => pt.z <= 0);
             }
             ctx.stroke();
-          } else {
+
+            // Layer 1b: Thick/Bright for z <= 0 AND outside column
             ctx.lineWidth = 6;
             for (let h = 0; h < 4; h++) {
               ctx.beginPath();
-              let drawing = false;
-              for (let y = bCrystalY; y >= topY; y -= 45) {
-                const pt = getHelixPt8(y, h);
-                if (pt.z > 0) {
-                  if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
-                  else ctx.lineTo(pt.x, y);
-                } else { drawing = false; }
-              }
+              traceHelix8(h, pt => pt.z <= 0 && (pt.x < colLeft || pt.x > colRight));
               ctx.strokeStyle = window.t8FrontHelixColors[h];
               ctx.stroke();
             }
@@ -11480,14 +11499,23 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.lineWidth = 2;
             ctx.beginPath();
             for (let h = 0; h < 4; h++) {
-              let drawing = false;
-              for (let y = bCrystalY; y >= topY; y -= 45) {
-                const pt = getHelixPt8(y, h);
-                if (pt.z > 0) {
-                  if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
-                  else ctx.lineTo(pt.x, y);
-                } else { drawing = false; }
-              }
+              traceHelix8(h, pt => pt.z <= 0 && (pt.x < colLeft || pt.x > colRight));
+            }
+            ctx.stroke();
+          } else {
+            ctx.lineWidth = 6;
+            for (let h = 0; h < 4; h++) {
+              ctx.beginPath();
+              traceHelix8(h, pt => pt.z > 0);
+              ctx.strokeStyle = window.t8FrontHelixColors[h];
+              ctx.stroke();
+            }
+            
+            ctx.strokeStyle = 'rgba(100,50,200,0.9)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let h = 0; h < 4; h++) {
+              traceHelix8(h, pt => pt.z > 0);
             }
             ctx.stroke();
           }
@@ -12061,7 +12089,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
 
         const getHelixPt = (y, hIndex) => {
-          const freq = 0.015, speed = -25.0;
+          const freq = 0.015, speed = -2.5;
           let p = (y * freq + t * speed + hIndex * 0.5) % 1.0;
           if (p < 0) p += 1.0;
           const seg = Math.floor(p * 4), prog = (p * 4) % 1.0;
@@ -12069,23 +12097,65 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           return { x: c1.x + (c2.x - c1.x) * prog, z: c1.z + (c2.z - c1.z) * prog };
         };
 
-        const drawHelixL = (isFront) => {
-          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          for (let h = 0; h < 2; h++) {
-            ctx.beginPath();
-            let drawing = false;
-            for (let y = bCrystalY; y >= topY; y -= 2) {
-              const pt = getHelixPt(y, h);
-              const vis = isFront ? pt.z > 0 : pt.z <= 0;
-              if (vis) {
-                if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
-                else ctx.lineTo(pt.x, y);
-              } else { drawing = false; }
+        const colLeft = Math.min(...corners.map(c => c.x));
+        const colRight = Math.max(...corners.map(c => c.x));
+
+        const traceHelix = (h, conditionFn) => {
+          let wasCond = false;
+          let prevPt = null;
+          let prevY = 0;
+          for (let y = bCrystalY; y >= topY; y -= 2) {
+            const pt = getHelixPt(y, h);
+            const isCond = conditionFn(pt);
+            if (isCond) {
+              if (!wasCond) {
+                if (prevPt) {
+                  ctx.moveTo(prevPt.x, prevY);
+                  ctx.lineTo(pt.x, y);
+                } else {
+                  ctx.moveTo(pt.x, y);
+                }
+              } else {
+                ctx.lineTo(pt.x, y);
+              }
+            } else {
+              if (wasCond) {
+                ctx.lineTo(pt.x, y);
+              }
             }
-            ctx.strokeStyle = isFront ? 'rgba(60,0,120,0.9)' : 'rgba(30,0,60,0.4)';
-            ctx.lineWidth   = isFront ? 6 : 3; ctx.stroke();
-            ctx.strokeStyle = isFront ? 'rgba(120,10,200,1.0)' : 'rgba(70,0,110,0.5)';
-            ctx.lineWidth   = isFront ? 2 : 1; ctx.stroke();
+            wasCond = isCond;
+            prevPt = pt;
+            prevY = y;
+          }
+        };
+
+        const drawHelixL = (isFront) => {
+          ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
+          if (!isFront) {
+            for (let h = 0; h < 2; h++) {
+              ctx.beginPath();
+              traceHelix(h, pt => pt.z <= 0);
+              ctx.strokeStyle = 'rgba(30,0,60,0.4)';
+              ctx.lineWidth = 3; ctx.stroke();
+              ctx.strokeStyle = 'rgba(70,0,110,0.5)';
+              ctx.lineWidth = 1; ctx.stroke();
+
+              ctx.beginPath();
+              traceHelix(h, pt => pt.z <= 0 && (pt.x < colLeft || pt.x > colRight));
+              ctx.strokeStyle = 'rgba(60,0,120,0.9)';
+              ctx.lineWidth = 6; ctx.stroke();
+              ctx.strokeStyle = 'rgba(120,10,200,1.0)';
+              ctx.lineWidth = 2; ctx.stroke();
+            }
+          } else {
+            for (let h = 0; h < 2; h++) {
+              ctx.beginPath();
+              traceHelix(h, pt => pt.z > 0);
+              ctx.strokeStyle = 'rgba(60,0,120,0.9)';
+              ctx.lineWidth = 6; ctx.stroke();
+              ctx.strokeStyle = 'rgba(120,10,200,1.0)';
+              ctx.lineWidth = 2; ctx.stroke();
+            }
           }
         };
 
