@@ -11438,7 +11438,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           for (let h = 0; h < 4; h++) {
             ctx.beginPath();
             let drawing = false;
-            for (let y = bCrystalY; y >= topY; y -= 25) {
+            for (let y = bCrystalY; y >= topY; y -= 45) {
               const pt = getHelixPt8(y, h);
               const vis = isFront ? pt.z > 0 : pt.z <= 0;
               if (vis) {
@@ -11453,12 +11453,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             const baseB = Math.floor(150 + 50 * Math.cos(hueShift * 0.0174));
             if (isFront) {
               ctx.strokeStyle = `rgba(${baseR},${baseG},${baseB},0.95)`;
-              ctx.lineWidth = 5; ctx.stroke();
-              ctx.strokeStyle = `rgba(${baseR}, 0, ${baseB}, 1.0)`;
+              ctx.lineWidth = 6; ctx.stroke();
+              ctx.strokeStyle = `rgba(100,50,200,0.9)`;
               ctx.lineWidth = 2; ctx.stroke();
-              // White-hot inner core line
-              ctx.strokeStyle = `rgba(50,0,100,0.8)`;
-              ctx.lineWidth = 1; ctx.stroke();
             } else {
               ctx.strokeStyle = `rgba(48,0,96,1.0)`;
               ctx.lineWidth = 3; ctx.stroke();
@@ -11472,7 +11469,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         for (let side = -1; side <= 1; side += 2) {
           ctx.beginPath();
-          for (let y = bCrystalY; y >= topY; y -= 25) {
+          for (let y = bCrystalY; y >= topY; y -= 45) {
             const shimmerX = side * (R + 1.5 + Math.sin(y * 0.08 + t * 12) * 1.0 + Math.sin(y * 0.03 + t * 5) * 1.0);
             if (y === bCrystalY) ctx.moveTo(shimmerX, y);
             else ctx.lineTo(shimmerX, y);
@@ -11481,9 +11478,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           ctx.lineTo(topShimmerX, topY);
           
           // Dark purple glow
-          ctx.strokeStyle = 'rgba(70,0,120,0.4)'; ctx.lineWidth = 6; ctx.stroke();
-          // Dark purple core
-          ctx.strokeStyle = 'rgba(100,20,150,0.8)'; ctx.lineWidth = 2.5; ctx.stroke();
+          ctx.strokeStyle = `rgba(85,10,135,0.7)`; ctx.lineWidth = 4; ctx.stroke();
         }
         ctx.restore();
 
@@ -11548,11 +11543,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             
             // Layer 3: Pulsating horizontal bands
             const pulsePhase = t * 3;
-            for (let band = 0; band < 12; band++) {
-              const bandY = topY + (band / 12) * beamHeight;
+            for (let band = 0; band < 6; band++) {
+              const bandY = topY + (band / 6) * beamHeight;
               const bandAlpha = 0.15 + 0.15 * Math.sin(pulsePhase + band * 0.8);
               ctx.fillStyle = `rgba(90,0,180,${bandAlpha})`;
-              ctx.fillRect(leftX, bandY, faceW, beamHeight / 24);
+              ctx.fillRect(leftX, bandY, faceW, beamHeight / 12);
             }
 
             // Edge lines — brighter than T4
@@ -11604,15 +11599,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
           // Main ring
           ctx.beginPath();
-          ctx.ellipse(0, 0, ringR, ringR * 0.25, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(60,0,120,${ringAlpha * 0.7})`;
-          ctx.lineWidth = 2.5; ctx.stroke();
-
-          // White-hot inner
-          ctx.beginPath();
-          ctx.ellipse(0, 0, ringR * 0.85, ringR * 0.2, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(20,0,40,${ringAlpha * 0.8})`;
-          ctx.lineWidth = 1; ctx.stroke();
+          ctx.ellipse(0, 0, ringR * 0.9, ringR * 0.22, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(100,50,200,${ringAlpha * 0.8})`;
+          ctx.lineWidth = 1.5; ctx.stroke();
 
           ctx.restore();
         }
@@ -11655,10 +11644,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
           // Glow layer
           ctx.strokeStyle = `rgba(100,0,180,${arcAlpha * 0.4})`; ctx.lineWidth = 5; ctx.stroke();
-          // Core
-          ctx.strokeStyle = `rgba(50,0,100,${arcAlpha * 0.9})`; ctx.lineWidth = 1.5; ctx.stroke();
-          // White flash
-          ctx.strokeStyle = `rgba(10,0,20,${arcAlpha * 0.9})`; ctx.lineWidth = 0.5; ctx.stroke();
+          ctx.strokeStyle = `rgba(100,50,200,${arcAlpha * 0.9})`; ctx.lineWidth = 2; ctx.stroke();
         }
         ctx.restore();
 
@@ -11696,9 +11682,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
               const pb = Math.floor(180 + 40 * Math.sin(colorPhase + 4));
               ctx.fillStyle = `rgba(${pr},${pg},${pb},${alpha * 0.9})`;
             }
-            ctx.beginPath();
-            ctx.arc(xPos, yPos, sz, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(xPos - sz, yPos - sz, sz * 2, sz * 2);
 
             // Add glow to energy particles (Optimized with cached canvas)
             if (!isVoid && alpha > 0.3) {
@@ -11717,10 +11701,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
                 window.t8EnergyParticleGlowCache = gcv;
               }
               const glowSize = sz * 3;
-              ctx.save();
+              const oldAlpha = ctx.globalAlpha;
               ctx.globalAlpha = alpha * 0.3 * alphaMult;
               ctx.drawImage(window.t8EnergyParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
-              ctx.restore();
+              ctx.globalAlpha = oldAlpha;
             }
           }
         }
@@ -12032,11 +12016,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             if (cycle < 0.1) alpha = cycle / 0.1;
             if (cycle > 0.9) alpha = (1.0 - cycle) / 0.1;
             ctx.fillStyle = isBlack ? `rgba(0,0,0,${alpha})` : `rgba(120,20,220,${alpha * 0.8})`;
-            ctx.beginPath();
             const randSize = Math.abs(Math.cos(seed) * 10000);
             const fracSize = randSize - Math.floor(randSize);
-            ctx.arc(xPos, yPos, 1.5 + (fracSize - Math.floor(fracSize)) * 3.5, 0, Math.PI * 2);
-            ctx.fill();
+            const pSz = 1.5 + (fracSize - Math.floor(fracSize)) * 3.5;
+            ctx.fillRect(xPos - pSz, yPos - pSz, pSz * 2, pSz * 2);
           }
         }
 
