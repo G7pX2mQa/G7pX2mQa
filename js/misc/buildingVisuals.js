@@ -11540,35 +11540,44 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.fillStyle = window.beaconBeamPattern8;
             ctx.fillRect(0, topY - scrollY, 24, beamHeight + 512);
             ctx.restore();
-            
-            // Layer 3: Pulsating horizontal bands
-            const pulsePhase = t * 3;
-            for (let band = 0; band < 6; band++) {
-              const bandY = topY + (band / 6) * beamHeight;
-              const bandAlpha = 0.15 + 0.15 * Math.sin(pulsePhase + band * 0.8);
-              ctx.fillStyle = `rgba(90,0,180,${bandAlpha})`;
-              ctx.fillRect(leftX, bandY, faceW, beamHeight / 12);
-            }
-
-            // Edge lines — brighter than T4
-            ctx.strokeStyle = 'rgba(100,0,200,0.9)'; ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(leftX, topY); ctx.lineTo(leftX, bCrystalY);
-            ctx.moveTo(rightX, topY); ctx.lineTo(rightX, bCrystalY);
-            ctx.stroke();
-            // White highlight on edges
-            ctx.strokeStyle = 'rgba(50,0,100,0.5)'; ctx.lineWidth = 0.5;
-            ctx.stroke();
           }
         }
+
+        // Layer 3: Pulsating horizontal bands
+        const pulsePhase = t * 3;
+        ctx.save();
+        for (let band = 0; band < 6; band++) {
+          const bandY = topY + (band / 6) * beamHeight;
+          ctx.globalAlpha = 0.15 + 0.15 * Math.sin(pulsePhase + band * 0.8);
+          ctx.fillStyle = '#5a00b4';
+          for (let i = 0; i < 8; i++) {
+            const p1 = octCorners[i], p2 = octCorners[(i + 1) % 8];
+            if (p1.x < p2.x) {
+              ctx.fillRect(p1.x, bandY, p2.x - p1.x, beamHeight / 12);
+            }
+          }
+        }
+        ctx.restore();
+
+        // Edge lines — brighter than T4
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const p1 = octCorners[i], p2 = octCorners[(i + 1) % 8];
+          if (p1.x < p2.x) {
+            ctx.moveTo(p1.x, topY); ctx.lineTo(p1.x, bCrystalY);
+            ctx.moveTo(p2.x, topY); ctx.lineTo(p2.x, bCrystalY);
+          }
+        }
+        ctx.strokeStyle = 'rgba(100,0,200,0.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = 'rgba(50,0,100,0.5)'; ctx.lineWidth = 0.5; ctx.stroke();
 
         // ── Inner counter-rotating column (visible through the octagonal shell) ──
         ctx.save();
         ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(15,0,30,0.85)';
         for (let i = 0; i < 4; i++) {
           const p1 = innerCorners[i], p2 = innerCorners[(i + 1) % 4];
           if (p1.x < p2.x) {
-            ctx.fillStyle = 'rgba(15,0,30,0.85)';
             ctx.fillRect(p1.x, topY, p2.x - p1.x, beamHeight);
           }
         }
@@ -11578,33 +11587,30 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         drawHelixLayer8(true);
 
         // ── Ascending energy rings — pulsing halos that travel up the beam ──
+        ctx.save();
         for (let ring = 0; ring < 8; ring++) {
           const ringCycle = ((t * 2.5 + ring * 0.75) % 6) / 6;
-          const ringY = bCrystalY - ringCycle * beamHeight;
           const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
           if (ringAlpha <= 0) continue;
 
+          const ringY = bCrystalY - ringCycle * beamHeight;
           const ringR = R + 2 + Math.sin(ringCycle * Math.PI * 4) * 3;
-          const ringAngle = angle8 + ringCycle * Math.PI * 2;
 
-          // Draw the ring as a perspective ellipse
-          ctx.save();
-          ctx.translate(0, ringY);
+          ctx.globalAlpha = ringAlpha;
 
           // Outer glow ring
           ctx.beginPath();
-          ctx.ellipse(0, 0, ringR * 1.3, ringR * 0.35, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(90,0,180,${ringAlpha * 0.3})`;
+          ctx.ellipse(0, ringY, ringR * 1.3, ringR * 0.35, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(90,0,180,0.3)';
           ctx.lineWidth = 6; ctx.stroke();
 
           // Main ring
           ctx.beginPath();
-          ctx.ellipse(0, 0, ringR * 0.9, ringR * 0.22, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(100,50,200,${ringAlpha * 0.8})`;
+          ctx.ellipse(0, ringY, ringR * 0.9, ringR * 0.22, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(100,50,200,0.8)';
           ctx.lineWidth = 1.5; ctx.stroke();
-
-          ctx.restore();
         }
+        ctx.restore();
 
         // ── Lightning arcs — erratic energy discharges between helices ──
         ctx.save();
@@ -11643,70 +11649,114 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           }
 
           // Glow layer
-          ctx.strokeStyle = `rgba(100,0,180,${arcAlpha * 0.4})`; ctx.lineWidth = 5; ctx.stroke();
-          ctx.strokeStyle = `rgba(100,50,200,${arcAlpha * 0.9})`; ctx.lineWidth = 2; ctx.stroke();
+          ctx.globalAlpha = arcAlpha;
+          ctx.strokeStyle = 'rgba(100,0,180,0.4)'; ctx.lineWidth = 5; ctx.stroke();
+          ctx.strokeStyle = 'rgba(100,50,200,0.9)'; ctx.lineWidth = 2; ctx.stroke();
         }
         ctx.restore();
 
         // ── Enhanced Ash / Void Particles (more intense than T4) ──
         {
           const beamWidth = 32;
+          
+          ctx.fillStyle = '#000';
           for (let i = 0; i < 120; i++) {
-            const cycle = (t * 2.0 + i * 0.163) % 1.0;
-            const yPos = bCrystalY - beamHeight * cycle;
             const seed = i * 73.19;
             const randX = Math.abs(Math.sin(seed) * 10000);
-            const fracX = randX - Math.floor(randX);
-            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
-            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
-            // Spiral motion
-            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
-
             const isVoid = (Math.floor(randX * 100) % 4) !== 0;
+            if (!isVoid) continue;
+            
+            const cycle = (t * 2.0 + i * 0.163) % 1.0;
             let alpha = 1.0;
             if (cycle < 0.08) alpha = cycle / 0.08;
             if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
+            if (alpha <= 0) continue;
+
+            const yPos = bCrystalY - beamHeight * cycle;
+            const fracX = randX - Math.floor(randX);
+            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
+            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
 
             const randSize = Math.abs(Math.cos(seed) * 10000);
             const fracSize = randSize - Math.floor(randSize);
             const sz = 1.5 + fracSize * 4;
-
-            if (isVoid) {
-              // Black void particle
-              ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-            } else {
-              // Bright energy particle — cycling colors
-              const colorPhase = t * 3 + i * 0.7;
-              const pr = Math.floor(80 + 40 * Math.sin(colorPhase));
-              const pg = 0;
-              const pb = Math.floor(180 + 40 * Math.sin(colorPhase + 4));
-              ctx.fillStyle = `rgba(${pr},${pg},${pb},${alpha * 0.9})`;
-            }
+            
+            ctx.globalAlpha = alpha * alphaMult;
             ctx.fillRect(xPos - sz, yPos - sz, sz * 2, sz * 2);
-
-            // Add glow to energy particles (Optimized with cached canvas)
-            if (!isVoid && alpha > 0.3) {
-              if (!window.t8EnergyParticleGlowCache) {
-                const gcv = document.createElement('canvas');
-                // The max sz is roughly 1.5 + 4 = 5.5, so sz * 3 is ~16.5. 
-                // A 64x64 canvas allows for a radius up to 32.
-                gcv.width = 64;
-                gcv.height = 64;
-                const gcx = gcv.getContext('2d');
-                const grad = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
-                grad.addColorStop(0, 'rgba(90,0,180,1)'); // Base intense purple
-                grad.addColorStop(1, 'rgba(90,0,180,0)'); // Transparent edge
-                gcx.fillStyle = grad;
-                gcx.fillRect(0, 0, 64, 64);
-                window.t8EnergyParticleGlowCache = gcv;
-              }
-              const glowSize = sz * 3;
-              const oldAlpha = ctx.globalAlpha;
-              ctx.globalAlpha = alpha * 0.3 * alphaMult;
-              ctx.drawImage(window.t8EnergyParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
-              ctx.globalAlpha = oldAlpha;
-            }
           }
+
+          const prGlob = Math.floor(100 + 20 * Math.sin(t * 3));
+          const pbGlob = Math.floor(200 + 20 * Math.sin(t * 3 + 4));
+          ctx.fillStyle = `rgb(${prGlob}, 0, ${pbGlob})`;
+          for (let i = 0; i < 120; i++) {
+            const seed = i * 73.19;
+            const randX = Math.abs(Math.sin(seed) * 10000);
+            const isVoid = (Math.floor(randX * 100) % 4) !== 0;
+            if (isVoid) continue;
+            
+            const cycle = (t * 2.0 + i * 0.163) % 1.0;
+            let alpha = 1.0;
+            if (cycle < 0.08) alpha = cycle / 0.08;
+            if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
+            if (alpha <= 0) continue;
+
+            const yPos = bCrystalY - beamHeight * cycle;
+            const fracX = randX - Math.floor(randX);
+            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
+            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
+
+            const randSize = Math.abs(Math.cos(seed) * 10000);
+            const fracSize = randSize - Math.floor(randSize);
+            const sz = 1.5 + fracSize * 4;
+            
+            ctx.globalAlpha = alpha * 0.9 * alphaMult;
+            ctx.fillRect(xPos - sz, yPos - sz, sz * 2, sz * 2);
+          }
+
+          if (!window.t8EnergyParticleGlowCache) {
+            const gcv = document.createElement('canvas');
+            gcv.width = 64;
+            gcv.height = 64;
+            const gcx = gcv.getContext('2d');
+            const grad = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0, 'rgba(90,0,180,1)'); // Base intense purple
+            grad.addColorStop(1, 'rgba(90,0,180,0)'); // Transparent edge
+            gcx.fillStyle = grad;
+            gcx.fillRect(0, 0, 64, 64);
+            window.t8EnergyParticleGlowCache = gcv;
+          }
+          
+          for (let i = 0; i < 120; i++) {
+            const seed = i * 73.19;
+            const randX = Math.abs(Math.sin(seed) * 10000);
+            const isVoid = (Math.floor(randX * 100) % 4) !== 0;
+            if (isVoid) continue;
+            
+            const cycle = (t * 2.0 + i * 0.163) % 1.0;
+            let alpha = 1.0;
+            if (cycle < 0.08) alpha = cycle / 0.08;
+            if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
+            if (alpha <= 0.3) continue;
+
+            const yPos = bCrystalY - beamHeight * cycle;
+            const fracX = randX - Math.floor(randX);
+            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
+            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
+
+            const randSize = Math.abs(Math.cos(seed) * 10000);
+            const fracSize = randSize - Math.floor(randSize);
+            const sz = 1.5 + fracSize * 4;
+            
+            const glowSize = sz * 3;
+            ctx.globalAlpha = alpha * 0.3 * alphaMult;
+            ctx.drawImage(window.t8EnergyParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
+          }
+          
+          // Reset globalAlpha after loops
+          ctx.globalAlpha = alphaMult;
         }
 
         // ═══════════════════════════════════════════════════════════════════
