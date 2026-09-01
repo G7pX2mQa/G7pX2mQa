@@ -11484,31 +11484,29 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.stroke();
 
             // Layer 1b: Thick/Bright for z <= 0 AND outside column
+            ctx.beginPath();
             for (let h = 0; h < 2; h++) {
-              ctx.beginPath();
               traceHelix8(h, pt => pt.z <= 0 && (pt.x < colLeft || pt.x > colRight));
-              
-              ctx.lineWidth = 6;
-              ctx.strokeStyle = window.t8FrontHelixColors[h];
-              ctx.stroke();
-              
-              ctx.lineWidth = 2;
-              ctx.strokeStyle = 'rgba(100,50,200,0.9)';
-              ctx.stroke();
             }
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = 'rgba(105,5,190,0.95)';
+            ctx.stroke();
+            
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(130,20,220,1.0)';
+            ctx.stroke();
           } else {
+            ctx.beginPath();
             for (let h = 0; h < 2; h++) {
-              ctx.beginPath();
               traceHelix8(h, pt => pt.z > 0);
-              
-              ctx.lineWidth = 6;
-              ctx.strokeStyle = window.t8FrontHelixColors[h];
-              ctx.stroke();
-              
-              ctx.lineWidth = 2;
-              ctx.strokeStyle = 'rgba(100,50,200,0.9)';
-              ctx.stroke();
             }
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = 'rgba(105,5,190,0.95)';
+            ctx.stroke();
+            
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(130,20,220,1.0)';
+            ctx.stroke();
           }
         };
 
@@ -11595,16 +11593,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         // Layer 3: Pulsating horizontal bands
         const pulsePhase = t * 3;
         ctx.save();
-        for (let band = 0; band < 6; band++) {
-          const bandY = topY + (band / 6) * beamHeight;
+        for (let band = 0; band < 4; band++) {
+          const bandY = topY + (band / 4) * beamHeight;
           ctx.globalAlpha = 0.15 + 0.15 * Math.sin(pulsePhase + band * 0.8);
           ctx.fillStyle = '#5a00b4';
-          for (let i = 0; i < 8; i++) {
-            const p1 = octCorners[i], p2 = octCorners[(i + 1) % 8];
-            if (p1.x < p2.x) {
-              ctx.fillRect(p1.x, bandY, p2.x - p1.x, beamHeight / 12);
-            }
-          }
+          ctx.fillRect(colLeft, bandY, colRight - colLeft, beamHeight / 12);
         }
         ctx.restore();
 
@@ -11641,8 +11634,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         // Pass 1: Outer glow ring
         ctx.strokeStyle = 'rgba(90,0,180,0.3)';
         ctx.lineWidth = 6;
-        for (let ring = 0; ring < 8; ring++) {
-          const ringCycle = ((t * 2.5 + ring * 0.75) % 6) / 6;
+        for (let ring = 0; ring < 4; ring++) {
+          const ringCycle = ((t * 2.5 + ring * 1.5) % 6) / 6;
           const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
           if (ringAlpha <= 0) continue;
           const ringY = bCrystalY - ringCycle * beamHeight;
@@ -11656,8 +11649,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         // Pass 2: Main ring
         ctx.strokeStyle = 'rgba(100,50,200,0.8)';
         ctx.lineWidth = 1.5;
-        for (let ring = 0; ring < 8; ring++) {
-          const ringCycle = ((t * 2.5 + ring * 0.75) % 6) / 6;
+        for (let ring = 0; ring < 4; ring++) {
+          const ringCycle = ((t * 2.5 + ring * 1.5) % 6) / 6;
           const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
           if (ringAlpha <= 0) continue;
           const ringY = bCrystalY - ringCycle * beamHeight;
@@ -11671,7 +11664,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // ── Lightning arcs — erratic energy discharges between helices ──
         ctx.save();
-        const numArcs = 6;
+        const numArcs = 3;
         const drawArcPath = (arc) => {
           const arcSeed = arc * 37.7193;
           const arcCycle = ((t * 4 + arcSeed) % 3) / 3;
