@@ -108,6 +108,10 @@ function populateShortcutsOverlay(overlayEl) {
             key: "Esc",
             desc: "Inside any overlay, pressing Esc will instantly close all currently open overlays with a few exceptions.",
         },
+        {
+            key: "Backspace",
+            desc: "Does a similar thing as Esc, but only closes the highest overlay.",
+        }
     );
     let isBossBeaten = isShortcutTextPermanentlyUnlocked(2);
     if (!isBossBeaten && typeof getLifetimeBossBeaten === "function" && getLifetimeBossBeaten()) {
