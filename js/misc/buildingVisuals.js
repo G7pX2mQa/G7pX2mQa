@@ -11537,7 +11537,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.beginPath(); ctx.rect(leftX, topY, faceW, beamHeight); ctx.clip();
             const scrollY = -((t * 8000) % 512);
             ctx.translate(leftX, scrollY); ctx.scale(faceW / 24, 1);
-            ctx.fillStyle = ctx.createPattern(window.beaconBeamPattern8Cache, 'repeat');
+            ctx.fillStyle = window.beaconBeamPattern8;
             ctx.fillRect(0, topY - scrollY, 24, beamHeight + 512);
             ctx.restore();
             
@@ -12100,7 +12100,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.beginPath(); ctx.rect(leftX, topY, faceW, faceH); ctx.clip();
             const scrollY = -((t * 8000) % 1024);
             ctx.translate(leftX, scrollY); ctx.scale(faceW / 16, 1);
-            ctx.fillStyle = ctx.createPattern(window.beaconBeamPatternCache, 'repeat');
+            ctx.fillStyle = window.beaconBeamPattern;
             ctx.fillRect(0, topY - scrollY, 16, faceH + 1024);
             ctx.restore();
             ctx.strokeStyle = 'rgba(45,10,80,1.0)'; ctx.lineWidth = 2;
