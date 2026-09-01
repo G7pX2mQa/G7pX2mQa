@@ -11415,7 +11415,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         const beamHeight = bCrystalY - topY;
 
-        // ── Quad helix corners (4 helices instead of T4's 2) ──
+        // ── Dual helix corners (2 helices instead of 4, to restore FPS while keeping T8 identity) ──
         const helixR8 = R + 3.5;
         const helixCorners8 = [];
         for (let i = 0; i < 8; i++) {
@@ -11425,7 +11425,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         const getHelixPt8 = (y, hIndex) => {
           const freq = 0.015, speed = -4.0;
-          let p = (y * freq + t * speed + hIndex * 0.25) % 1.0;
+          let p = (y * freq + t * speed + hIndex * 0.5) % 1.0;
           if (p < 0) p += 1.0;
           const seg = Math.floor(p * 8), prog = (p * 8) % 1.0;
           const c1 = helixCorners8[seg], c2 = helixCorners8[(seg + 1) % 8];
@@ -11434,13 +11434,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // ── BACK HELICES (behind the beam column) ──
         if (!window.t8FrontHelixColors) {
-          window.t8FrontHelixColors = [];
-          for (let h = 0; h < 4; h++) {
-            const hueShift = h * 90;
-            const baseR = Math.floor(40 + 30 * Math.sin(hueShift * 0.0174));
-            const baseB = Math.floor(150 + 50 * Math.cos(hueShift * 0.0174));
-            window.t8FrontHelixColors.push(`rgba(${baseR},0,${baseB},0.95)`);
-          }
+          window.t8FrontHelixColors = [
+            'rgba(120,10,200,1.0)',
+            'rgba(90,0,180,0.95)'
+          ];
         }
 
         const colLeft = Math.min(...octCorners.map(c => c.x));
@@ -11450,7 +11447,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           let wasCond = false;
           let prevPt = null;
           let prevY = 0;
-          for (let y = bCrystalY; y >= topY; y -= 2) {
+          for (let y = bCrystalY; y >= topY; y -= 5) {
             const pt = getHelixPt8(y, h);
             const isCond = conditionFn(pt);
             if (isCond) {
@@ -11481,43 +11478,37 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             ctx.strokeStyle = 'rgba(48,0,96,1.0)';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            for (let h = 0; h < 4; h++) {
+            for (let h = 0; h < 2; h++) {
               traceHelix8(h, pt => pt.z <= 0);
             }
             ctx.stroke();
 
             // Layer 1b: Thick/Bright for z <= 0 AND outside column
-            ctx.lineWidth = 6;
-            for (let h = 0; h < 4; h++) {
+            for (let h = 0; h < 2; h++) {
               ctx.beginPath();
               traceHelix8(h, pt => pt.z <= 0 && (pt.x < colLeft || pt.x > colRight));
+              
+              ctx.lineWidth = 6;
               ctx.strokeStyle = window.t8FrontHelixColors[h];
               ctx.stroke();
+              
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = 'rgba(100,50,200,0.9)';
+              ctx.stroke();
             }
-            
-            ctx.strokeStyle = 'rgba(100,50,200,0.9)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            for (let h = 0; h < 4; h++) {
-              traceHelix8(h, pt => pt.z <= 0 && (pt.x < colLeft || pt.x > colRight));
-            }
-            ctx.stroke();
           } else {
-            ctx.lineWidth = 6;
-            for (let h = 0; h < 4; h++) {
+            for (let h = 0; h < 2; h++) {
               ctx.beginPath();
               traceHelix8(h, pt => pt.z > 0);
+              
+              ctx.lineWidth = 6;
               ctx.strokeStyle = window.t8FrontHelixColors[h];
               ctx.stroke();
+              
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = 'rgba(100,50,200,0.9)';
+              ctx.stroke();
             }
-            
-            ctx.strokeStyle = 'rgba(100,50,200,0.9)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            for (let h = 0; h < 4; h++) {
-              traceHelix8(h, pt => pt.z > 0);
-            }
-            ctx.stroke();
           }
         };
 
@@ -11592,11 +11583,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             }
             
             ctx.save();
-            ctx.beginPath(); ctx.rect(leftX, topY, faceW, beamHeight); ctx.clip();
             const scrollY = -((t * 8000) % 512);
-            ctx.translate(leftX, scrollY); ctx.scale(faceW / 24, 1);
+            ctx.translate(leftX, scrollY); 
+            ctx.scale(faceW / 24, 1);
             ctx.fillStyle = window.beaconBeamPattern8;
-            ctx.fillRect(0, topY - scrollY, 24, beamHeight + 512);
+            ctx.fillRect(0, topY - scrollY, 24, beamHeight);
             ctx.restore();
           }
         }
