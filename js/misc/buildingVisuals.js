@@ -11448,19 +11448,19 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             }
             // Each helix gets a unique color from the singularity palette
             const hueShift = h * 90;
-            const baseR = Math.floor(60 + 40 * Math.sin(hueShift * 0.0174));
-            const baseG = Math.floor(0 + 20 * Math.sin((hueShift + 120) * 0.0174));
-            const baseB = Math.floor(120 + 60 * Math.cos(hueShift * 0.0174));
+            const baseR = Math.floor(40 + 30 * Math.sin(hueShift * 0.0174));
+            const baseG = 0; // Strictly no green/pink influence
+            const baseB = Math.floor(150 + 50 * Math.cos(hueShift * 0.0174));
             if (isFront) {
               ctx.strokeStyle = `rgba(${baseR},${baseG},${baseB},0.95)`;
               ctx.lineWidth = 5; ctx.stroke();
-              ctx.strokeStyle = `rgba(${Math.min(255, baseR + 80)},${Math.min(255, baseG + 30)},${Math.min(255, baseB + 60)},1.0)`;
+              ctx.strokeStyle = `rgba(${baseR}, 0, ${baseB}, 1.0)`;
               ctx.lineWidth = 2; ctx.stroke();
               // White-hot inner core line
-              ctx.strokeStyle = `rgba(255,220,255,0.4)`;
+              ctx.strokeStyle = `rgba(50,0,100,0.8)`;
               ctx.lineWidth = 1; ctx.stroke();
             } else {
-              ctx.strokeStyle = `rgba(${baseR >> 1},${baseG >> 1},${baseB >> 1},0.35)`;
+              ctx.strokeStyle = `rgba(${baseR >> 1},0,${baseB >> 1},0.35)`;
               ctx.lineWidth = 3; ctx.stroke();
             }
           }
@@ -11539,20 +11539,20 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             for (let band = 0; band < 12; band++) {
               const bandY = topY + (band / 12) * beamHeight;
               const bandAlpha = 0.15 + 0.15 * Math.sin(pulsePhase + band * 0.8);
-              ctx.fillStyle = `rgba(220,140,255,${bandAlpha})`;
+              ctx.fillStyle = `rgba(90,0,180,${bandAlpha})`;
               ctx.fillRect(leftX, bandY, faceW, beamHeight / 24);
             }
 
             ctx.restore();
 
             // Edge lines — brighter than T4
-            ctx.strokeStyle = 'rgba(160,60,255,0.9)'; ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(100,0,200,0.9)'; ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(leftX, topY); ctx.lineTo(leftX, bCrystalY);
             ctx.moveTo(rightX, topY); ctx.lineTo(rightX, bCrystalY);
             ctx.stroke();
             // White highlight on edges
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 0.5;
+            ctx.strokeStyle = 'rgba(50,0,100,0.5)'; ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         }
@@ -11564,9 +11564,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           const p1 = innerCorners[i], p2 = innerCorners[(i + 1) % 4];
           if (p1.x < p2.x) {
             const grad = ctx.createLinearGradient(p1.x, 0, p2.x, 0);
-            grad.addColorStop(0, 'rgba(200,80,255,0.15)');
-            grad.addColorStop(0.5, 'rgba(255,200,255,0.25)');
-            grad.addColorStop(1, 'rgba(200,80,255,0.15)');
+            grad.addColorStop(0, 'rgba(80,0,160,0.15)');
+            grad.addColorStop(0.5, 'rgba(40,0,80,0.25)');
+            grad.addColorStop(1, 'rgba(80,0,160,0.15)');
             ctx.fillStyle = grad;
             ctx.fillRect(p1.x, topY, p2.x - p1.x, beamHeight);
           }
@@ -11594,19 +11594,19 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           // Outer glow ring
           ctx.beginPath();
           ctx.ellipse(0, 0, ringR * 1.3, ringR * 0.35, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(180,80,255,${ringAlpha * 0.3})`;
+          ctx.strokeStyle = `rgba(90,0,180,${ringAlpha * 0.3})`;
           ctx.lineWidth = 6; ctx.stroke();
 
           // Main ring
           ctx.beginPath();
           ctx.ellipse(0, 0, ringR, ringR * 0.25, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(220,160,255,${ringAlpha * 0.7})`;
+          ctx.strokeStyle = `rgba(60,0,120,${ringAlpha * 0.7})`;
           ctx.lineWidth = 2.5; ctx.stroke();
 
           // White-hot inner
           ctx.beginPath();
           ctx.ellipse(0, 0, ringR * 0.85, ringR * 0.2, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(255,255,255,${ringAlpha * 0.5})`;
+          ctx.strokeStyle = `rgba(20,0,40,${ringAlpha * 0.8})`;
           ctx.lineWidth = 1; ctx.stroke();
 
           ctx.restore();
@@ -11649,11 +11649,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           }
 
           // Glow layer
-          ctx.strokeStyle = `rgba(200,120,255,${arcAlpha * 0.4})`; ctx.lineWidth = 5; ctx.stroke();
+          ctx.strokeStyle = `rgba(100,0,180,${arcAlpha * 0.4})`; ctx.lineWidth = 5; ctx.stroke();
           // Core
-          ctx.strokeStyle = `rgba(255,220,255,${arcAlpha * 0.9})`; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.strokeStyle = `rgba(50,0,100,${arcAlpha * 0.9})`; ctx.lineWidth = 1.5; ctx.stroke();
           // White flash
-          ctx.strokeStyle = `rgba(255,255,255,${arcAlpha * 0.6})`; ctx.lineWidth = 0.5; ctx.stroke();
+          ctx.strokeStyle = `rgba(10,0,20,${arcAlpha * 0.9})`; ctx.lineWidth = 0.5; ctx.stroke();
         }
         ctx.restore();
 
@@ -11686,66 +11686,39 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             } else {
               // Bright energy particle — cycling colors
               const colorPhase = t * 3 + i * 0.7;
-              const pr = Math.floor(160 + 60 * Math.sin(colorPhase));
-              const pg = Math.floor(40 + 40 * Math.sin(colorPhase + 2));
-              const pb = Math.floor(200 + 55 * Math.sin(colorPhase + 4));
+              const pr = Math.floor(80 + 40 * Math.sin(colorPhase));
+              const pg = 0;
+              const pb = Math.floor(180 + 40 * Math.sin(colorPhase + 4));
               ctx.fillStyle = `rgba(${pr},${pg},${pb},${alpha * 0.9})`;
             }
             ctx.beginPath();
             ctx.arc(xPos, yPos, sz, 0, Math.PI * 2);
             ctx.fill();
 
-            // Add glow to energy particles
+            // Add glow to energy particles (Optimized with cached canvas)
             if (!isVoid && alpha > 0.3) {
-              const glowGrad = ctx.createRadialGradient(xPos, yPos, 0, xPos, yPos, sz * 3);
-              glowGrad.addColorStop(0, `rgba(220,160,255,${alpha * 0.3})`);
-              glowGrad.addColorStop(1, 'rgba(220,160,255,0)');
-              ctx.fillStyle = glowGrad;
-              ctx.beginPath();
-              ctx.arc(xPos, yPos, sz * 3, 0, Math.PI * 2);
-              ctx.fill();
+              if (!window.t8EnergyParticleGlowCache) {
+                const gcv = document.createElement('canvas');
+                // The max sz is roughly 1.5 + 4 = 5.5, so sz * 3 is ~16.5. 
+                // A 64x64 canvas allows for a radius up to 32.
+                gcv.width = 64;
+                gcv.height = 64;
+                const gcx = gcv.getContext('2d');
+                const grad = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
+                grad.addColorStop(0, 'rgba(90,0,180,1)'); // Base intense purple
+                grad.addColorStop(1, 'rgba(90,0,180,0)'); // Transparent edge
+                gcx.fillStyle = grad;
+                gcx.fillRect(0, 0, 64, 64);
+                window.t8EnergyParticleGlowCache = gcv;
+              }
+              const glowSize = sz * 3;
+              ctx.save();
+              ctx.globalAlpha = alpha * 0.3 * alphaMult;
+              ctx.drawImage(window.t8EnergyParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
+              ctx.restore();
             }
           }
         }
-
-        // ── Dimensional fracture lines — cracks in reality along the beam ──
-        ctx.save();
-        for (let f = 0; f < 5; f++) {
-          const fSeed = f * 53.127;
-          const fCycle = ((t * 1.5 + fSeed) % 8) / 8;
-          const fAlpha = Math.sin(fCycle * Math.PI) * 0.6;
-          if (fAlpha < 0.05) continue;
-
-          const fY = topY + fCycle * beamHeight;
-          const fLen = 30 + Math.abs(Math.sin(fSeed * 3.14)) * 40;
-
-          ctx.beginPath();
-          ctx.moveTo(0, fY);
-          // Fracture branches outward
-          const branches = 3 + Math.floor(Math.abs(Math.sin(fSeed)) * 3);
-          for (let b = 0; b < branches; b++) {
-            const bAngle = (b / branches) * Math.PI * 2 + fSeed;
-            const bLen = fLen * (0.5 + Math.abs(Math.sin(fSeed + b * 2.1)) * 0.5);
-            const endX = Math.cos(bAngle) * bLen;
-            const endY = fY + Math.sin(bAngle) * bLen * 0.3;
-
-            ctx.moveTo(0, fY);
-            // Jagged line
-            const midX1 = endX * 0.3 + Math.sin(t * 8 + b) * 5;
-            const midY1 = fY + (endY - fY) * 0.3 + Math.cos(t * 6 + b) * 3;
-            const midX2 = endX * 0.7 + Math.cos(t * 7 + b * 2) * 4;
-            const midY2 = fY + (endY - fY) * 0.7 + Math.sin(t * 9 + b * 3) * 2;
-            ctx.lineTo(midX1, midY1);
-            ctx.lineTo(midX2, midY2);
-            ctx.lineTo(endX, endY);
-          }
-
-          // White-hot fracture core
-          ctx.strokeStyle = `rgba(255,255,255,${fAlpha})`; ctx.lineWidth = 1.5; ctx.stroke();
-          // Purple glow around fracture
-          ctx.strokeStyle = `rgba(180,80,255,${fAlpha * 0.5})`; ctx.lineWidth = 4; ctx.stroke();
-        }
-        ctx.restore();
 
         // ═══════════════════════════════════════════════════════════════════
         // ██  T8 SINGULARITY BEACON BLOCK  ██
@@ -11808,7 +11781,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           // Ring glow
           ctx.beginPath();
           ctx.ellipse(0, 0, ringRadius * 1.2, ringEllipseY * 1.2, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(180,80,255,${ringAlpha * 0.3})`; ctx.lineWidth = 2 * scale / 3;
+          ctx.strokeStyle = `rgba(90,0,180,${ringAlpha * 0.3})`; ctx.lineWidth = 2 * scale / 3;
           ctx.stroke();
 
           // Ring core
@@ -11867,7 +11840,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         const singGlow2 = ctx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, singR * 3);
         singGlow2.addColorStop(0, 'rgba(255,255,255,0.9)');
         singGlow2.addColorStop(0.3, 'rgba(255,180,255,0.5)');
-        singGlow2.addColorStop(0.7, 'rgba(200,80,255,0.15)');
+        singGlow2.addColorStop(0.7, 'rgba(80,0,160,0.15)');
         singGlow2.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = singGlow2;
         ctx.beginPath(); ctx.arc(coreCX, coreCY, singR * 3, 0, Math.PI * 2); ctx.fill();
@@ -11950,7 +11923,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
 
         // Corner accents — brighter for T8
-        ctx.fillStyle = 'rgba(200,120,255,0.9)';
+        ctx.fillStyle = 'rgba(100,0,180,0.9)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
         // Additional corner accents for T8
@@ -11960,9 +11933,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         // Pulsing glow halo around the entire block
         ctx.save();
         const haloGrad = ctx.createRadialGradient(8*scale, 8*scale, 4*scale, 8*scale, 8*scale, 12*scale);
-        haloGrad.addColorStop(0, 'rgba(180,80,255,0)');
-        haloGrad.addColorStop(0.7, `rgba(160,40,255,${0.1 * singPulse})`);
-        haloGrad.addColorStop(1, `rgba(120,0,255,${0.2 * singPulse})`);
+        haloGrad.addColorStop(0, 'rgba(90,0,180,0)');
+        haloGrad.addColorStop(0.7, `rgba(80,0,180,${0.1 * singPulse})`);
+        haloGrad.addColorStop(1, `rgba(60,0,150,${0.2 * singPulse})`);
         ctx.fillStyle = haloGrad;
         ctx.fillRect(-2*scale, -2*scale, 20*scale, 20*scale);
         ctx.restore();
@@ -12080,16 +12053,16 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           const px = 8 * scale + Math.sin(t * 4 + i * 1.5) * 3 * scale;
           const py = 8 * scale + Math.cos(t * 5 + i * 0.8) * 3 * scale;
           const grad = ctx.createRadialGradient(px, py, 0, px, py, 6 * scale);
-          grad.addColorStop(0, i % 2 === 0 ? 'rgba(180,0,255,0.9)' : 'rgba(80,0,150,0.9)');
+          grad.addColorStop(0, i % 2 === 0 ? 'rgba(90,0,180,0.9)' : 'rgba(80,0,150,0.9)');
           grad.addColorStop(1, 'rgba(0,0,0,0)');
           ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(px, py, 6 * scale, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
-        ctx.fillStyle = 'rgba(130,40,255,0.5)';
+        ctx.fillStyle = 'rgba(60,0,120,0.5)';
         ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
         ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
-        ctx.fillStyle = 'rgba(130,50,220,0.8)';
+        ctx.fillStyle = 'rgba(70,0,130,0.8)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
         ctx.restore();
@@ -12186,10 +12159,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.drawImage(window.beaconCorePatternCache2, 3*scale, 3*scale, 10*scale, 10*scale);
         ctx.imageSmoothingEnabled = true;
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
-        ctx.fillStyle = 'rgba(130,40,255,0.5)';
+        ctx.fillStyle = 'rgba(60,0,120,0.5)';
         ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
         ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
-        ctx.fillStyle = 'rgba(130,50,220,0.8)';
+        ctx.fillStyle = 'rgba(70,0,130,0.8)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
         ctx.restore();
