@@ -11377,7 +11377,599 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.save();
       ctx.translate(cx, 0);  // shift x only; all Y coords remain world-space
 
-      if (hasT4Block) {
+      if (hasT8) {
+        // ══════════════════════════════════════════════════════════════════════
+        // ██  T8: SINGULARITY BEACON — THE FINAL FORM  ██
+        // ══════════════════════════════════════════════════════════════════════
+        // Every beacon (central + all 8 outer) gets this identical upgrade.
+        // The beam becomes a dimensional rift column with octagonal geometry,
+        // quad helices, ascending energy rings, lightning arcs, void shimmer,
+        // and the core transforms into a singularity with orbiting motes.
+        // ══════════════════════════════════════════════════════════════════════
+
+        const R = 8.5;
+        const angle8 = (t * Math.PI * 2) / 8 + Math.PI / 8; // Faster rotation, offset start
+        const innerAngle8 = -(t * Math.PI * 2) / 6; // Counter-rotating inner geometry
+
+        // ── Octagonal outer column corners ──
+        const octCorners = [];
+        for (let i = 0; i < 8; i++) {
+          const a = angle8 + i * (Math.PI / 4);
+          octCorners.push({ x: Math.sin(a) * R, z: Math.cos(a) * R });
+        }
+
+        // ── Inner counter-rotating square corners ──
+        const innerR = R * 0.55;
+        const innerCorners = [];
+        for (let i = 0; i < 4; i++) {
+          const a = innerAngle8 + i * (Math.PI / 2);
+          innerCorners.push({ x: Math.sin(a) * innerR, z: Math.cos(a) * innerR });
+        }
+
+        let topY = -2000;
+        try {
+          const transform = ctx.getTransform();
+          if (transform && transform.d)
+            topY = Math.min(bCrystalY, (-transform.f / transform.d) - 100);
+        } catch (e) {}
+
+        const beamHeight = bCrystalY - topY;
+
+        // ── Quad helix corners (4 helices instead of T4's 2) ──
+        const helixR8 = R + 3.5;
+        const helixCorners8 = [];
+        for (let i = 0; i < 8; i++) {
+          const a = angle8 + i * (Math.PI / 4);
+          helixCorners8.push({ x: Math.sin(a) * helixR8, z: Math.cos(a) * helixR8 });
+        }
+
+        const getHelixPt8 = (y, hIndex) => {
+          const freq = 0.012, speed = -30.0;
+          let p = (y * freq + t * speed + hIndex * 0.25) % 1.0;
+          if (p < 0) p += 1.0;
+          const seg = Math.floor(p * 8), prog = (p * 8) % 1.0;
+          const c1 = helixCorners8[seg], c2 = helixCorners8[(seg + 1) % 8];
+          return { x: c1.x + (c2.x - c1.x) * prog, z: c1.z + (c2.z - c1.z) * prog };
+        };
+
+        // ── BACK HELICES (behind the beam column) ──
+        const drawHelixLayer8 = (isFront) => {
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (let h = 0; h < 4; h++) {
+            ctx.beginPath();
+            let drawing = false;
+            for (let y = bCrystalY; y >= topY; y -= 2) {
+              const pt = getHelixPt8(y, h);
+              const vis = isFront ? pt.z > 0 : pt.z <= 0;
+              if (vis) {
+                if (!drawing) { ctx.moveTo(pt.x, y); drawing = true; }
+                else ctx.lineTo(pt.x, y);
+              } else { drawing = false; }
+            }
+            // Each helix gets a unique color from the singularity palette
+            const hueShift = h * 90;
+            const baseR = Math.floor(60 + 40 * Math.sin(hueShift * 0.0174));
+            const baseG = Math.floor(0 + 20 * Math.sin((hueShift + 120) * 0.0174));
+            const baseB = Math.floor(120 + 60 * Math.cos(hueShift * 0.0174));
+            if (isFront) {
+              ctx.strokeStyle = `rgba(${baseR},${baseG},${baseB},0.95)`;
+              ctx.lineWidth = 5; ctx.stroke();
+              ctx.strokeStyle = `rgba(${Math.min(255, baseR + 80)},${Math.min(255, baseG + 30)},${Math.min(255, baseB + 60)},1.0)`;
+              ctx.lineWidth = 2; ctx.stroke();
+              // White-hot inner core line
+              ctx.strokeStyle = `rgba(255,220,255,0.4)`;
+              ctx.lineWidth = 1; ctx.stroke();
+            } else {
+              ctx.strokeStyle = `rgba(${baseR >> 1},${baseG >> 1},${baseB >> 1},0.35)`;
+              ctx.lineWidth = 3; ctx.stroke();
+            }
+          }
+        };
+
+        drawHelixLayer8(false);
+
+        // ── Void tear shimmer — dimensional rift edges along beam ──
+        ctx.save();
+        for (let side = -1; side <= 1; side += 2) {
+          ctx.beginPath();
+          for (let y = topY; y <= bCrystalY; y += 3) {
+            const shimmerX = side * (R + 1.5 + Math.sin(y * 0.08 + t * 12) * 2.5 + Math.sin(y * 0.03 + t * 5) * 1.5);
+            if (y === topY) ctx.moveTo(shimmerX, y);
+            else ctx.lineTo(shimmerX, y);
+          }
+          // Outer glow
+          ctx.strokeStyle = 'rgba(200,120,255,0.25)'; ctx.lineWidth = 6; ctx.stroke();
+          // Mid layer
+          ctx.strokeStyle = 'rgba(255,180,255,0.4)'; ctx.lineWidth = 2.5; ctx.stroke();
+          // White-hot core
+          ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+        }
+        ctx.restore();
+
+        // ── Octagonal beam column faces ──
+        for (let i = 0; i < 8; i++) {
+          const p1 = octCorners[i], p2 = octCorners[(i + 1) % 8];
+          if (p1.x < p2.x) {
+            const leftX = p1.x, rightX = p2.x, faceW = rightX - leftX;
+
+            // Base fill — deep void black with subtle purple tint
+            ctx.fillStyle = 'rgba(5,0,15,0.95)';
+            ctx.fillRect(leftX, topY, faceW, beamHeight);
+
+            // Scrolling energy pattern (faster than T4, more complex)
+            ctx.save();
+            ctx.beginPath(); ctx.rect(leftX, topY, faceW, beamHeight); ctx.clip();
+
+            // Layer 1: Fast upward scroll — bright energy veins
+            const scrollY1 = -((t * 12000) % 512);
+            for (let stripe = 0; stripe < 6; stripe++) {
+              const sx = leftX + (stripe / 6) * faceW;
+              const sw = faceW / 6;
+              for (let sy = scrollY1 + topY; sy < bCrystalY; sy += 8) {
+                const seed = stripe * 7.331 + ((sy - scrollY1) % 512) * 0.419;
+                const prng = Math.abs(Math.sin(seed) * 43758.5453);
+                const noise = prng - Math.floor(prng);
+                const r = 100 + noise * 80;
+                const g = 10 + noise * 30;
+                const b = 180 + noise * 75;
+                const a = 0.4 + noise * 0.5;
+                ctx.fillStyle = `rgba(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)},${a})`;
+                const h = 2 + Math.floor(noise * 4) * 2;
+                ctx.fillRect(sx, sy, sw, h);
+              }
+            }
+
+            // Layer 2: Slow downward counter-scroll — dark matter threads
+            const scrollY2 = ((t * 4000) % 256);
+            for (let stripe = 0; stripe < 4; stripe++) {
+              const sx = leftX + (stripe / 4) * faceW + faceW / 8;
+              const sw = faceW / 8;
+              for (let sy = scrollY2 + topY; sy < bCrystalY; sy += 12) {
+                const seed2 = stripe * 19.77 + ((sy - scrollY2) % 256) * 0.831;
+                const prng2 = Math.abs(Math.sin(seed2) * 21345.6789);
+                const noise2 = prng2 - Math.floor(prng2);
+                const a2 = noise2 * 0.6;
+                ctx.fillStyle = `rgba(0,0,0,${a2})`;
+                ctx.fillRect(sx, sy, sw, 4 + Math.floor(noise2 * 6));
+              }
+            }
+
+            // Layer 3: Pulsating horizontal bands
+            const pulsePhase = t * 3;
+            for (let band = 0; band < 12; band++) {
+              const bandY = topY + (band / 12) * beamHeight;
+              const bandAlpha = 0.15 + 0.15 * Math.sin(pulsePhase + band * 0.8);
+              ctx.fillStyle = `rgba(220,140,255,${bandAlpha})`;
+              ctx.fillRect(leftX, bandY, faceW, beamHeight / 24);
+            }
+
+            ctx.restore();
+
+            // Edge lines — brighter than T4
+            ctx.strokeStyle = 'rgba(160,60,255,0.9)'; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(leftX, topY); ctx.lineTo(leftX, bCrystalY);
+            ctx.moveTo(rightX, topY); ctx.lineTo(rightX, bCrystalY);
+            ctx.stroke();
+            // White highlight on edges
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+
+        // ── Inner counter-rotating column (visible through the octagonal shell) ──
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 4; i++) {
+          const p1 = innerCorners[i], p2 = innerCorners[(i + 1) % 4];
+          if (p1.x < p2.x) {
+            const grad = ctx.createLinearGradient(p1.x, 0, p2.x, 0);
+            grad.addColorStop(0, 'rgba(200,80,255,0.15)');
+            grad.addColorStop(0.5, 'rgba(255,200,255,0.25)');
+            grad.addColorStop(1, 'rgba(200,80,255,0.15)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(p1.x, topY, p2.x - p1.x, beamHeight);
+          }
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.restore();
+
+        // ── FRONT HELICES ──
+        drawHelixLayer8(true);
+
+        // ── Ascending energy rings — pulsing halos that travel up the beam ──
+        for (let ring = 0; ring < 8; ring++) {
+          const ringCycle = ((t * 2.5 + ring * 0.75) % 6) / 6;
+          const ringY = bCrystalY - ringCycle * beamHeight;
+          const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
+          if (ringAlpha <= 0) continue;
+
+          const ringR = R + 2 + Math.sin(ringCycle * Math.PI * 4) * 3;
+          const ringAngle = angle8 + ringCycle * Math.PI * 2;
+
+          // Draw the ring as a perspective ellipse
+          ctx.save();
+          ctx.translate(0, ringY);
+
+          // Outer glow ring
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ringR * 1.3, ringR * 0.35, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(180,80,255,${ringAlpha * 0.3})`;
+          ctx.lineWidth = 6; ctx.stroke();
+
+          // Main ring
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ringR, ringR * 0.25, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(220,160,255,${ringAlpha * 0.7})`;
+          ctx.lineWidth = 2.5; ctx.stroke();
+
+          // White-hot inner
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ringR * 0.85, ringR * 0.2, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,255,255,${ringAlpha * 0.5})`;
+          ctx.lineWidth = 1; ctx.stroke();
+
+          ctx.restore();
+        }
+
+        // ── Lightning arcs — erratic energy discharges between helices ──
+        ctx.save();
+        const numArcs = 6;
+        for (let arc = 0; arc < numArcs; arc++) {
+          // Each arc has a lifecycle: it appears, crackles, and fades
+          const arcSeed = arc * 37.7193;
+          const arcCycle = ((t * 4 + arcSeed) % 3) / 3;
+          const arcAlpha = Math.pow(Math.sin(arcCycle * Math.PI), 3); // Sharp flash
+          if (arcAlpha < 0.05) continue;
+
+          // Random Y position along the beam
+          const prng = Math.abs(Math.sin(arcSeed * 12.9898) * 43758.5453);
+          const yFrac = prng - Math.floor(prng);
+          const arcStartY = topY + yFrac * beamHeight * 0.8;
+
+          // Two random helix points at that Y
+          const h1 = getHelixPt8(arcStartY, arc % 4);
+          const h2 = getHelixPt8(arcStartY, (arc + 2) % 4);
+
+          // Draw jagged lightning between h1 and h2
+          ctx.beginPath();
+          ctx.moveTo(h1.x, arcStartY);
+          const segments = 6;
+          for (let s = 1; s <= segments; s++) {
+            const frac = s / segments;
+            const midX = h1.x + (h2.x - h1.x) * frac;
+            const midY = arcStartY + (Math.sin(s * 4.2 + t * 20) * 8);
+            if (s < segments) {
+              const jitterX = Math.sin(arcSeed + s * 9.13 + t * 15) * 6;
+              const jitterY = Math.cos(arcSeed + s * 7.77 + t * 12) * 5;
+              ctx.lineTo(midX + jitterX, midY + jitterY);
+            } else {
+              ctx.lineTo(h2.x, arcStartY);
+            }
+          }
+
+          // Glow layer
+          ctx.strokeStyle = `rgba(200,120,255,${arcAlpha * 0.4})`; ctx.lineWidth = 5; ctx.stroke();
+          // Core
+          ctx.strokeStyle = `rgba(255,220,255,${arcAlpha * 0.9})`; ctx.lineWidth = 1.5; ctx.stroke();
+          // White flash
+          ctx.strokeStyle = `rgba(255,255,255,${arcAlpha * 0.6})`; ctx.lineWidth = 0.5; ctx.stroke();
+        }
+        ctx.restore();
+
+        // ── Enhanced Ash / Void Particles (more intense than T4) ──
+        {
+          const beamWidth = 32;
+          for (let i = 0; i < 120; i++) {
+            const cycle = (t * 0.5 + i * 0.163) % 1.0;
+            const yPos = bCrystalY - beamHeight * cycle;
+            const seed = i * 73.19;
+            const randX = Math.abs(Math.sin(seed) * 10000);
+            const fracX = randX - Math.floor(randX);
+            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
+            // Spiral motion
+            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
+
+            const isVoid = (Math.floor(randX * 100) % 4) !== 0;
+            let alpha = 1.0;
+            if (cycle < 0.08) alpha = cycle / 0.08;
+            if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
+
+            const randSize = Math.abs(Math.cos(seed) * 10000);
+            const fracSize = randSize - Math.floor(randSize);
+            const sz = 1.5 + fracSize * 4;
+
+            if (isVoid) {
+              // Black void particle
+              ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+            } else {
+              // Bright energy particle — cycling colors
+              const colorPhase = t * 3 + i * 0.7;
+              const pr = Math.floor(160 + 60 * Math.sin(colorPhase));
+              const pg = Math.floor(40 + 40 * Math.sin(colorPhase + 2));
+              const pb = Math.floor(200 + 55 * Math.sin(colorPhase + 4));
+              ctx.fillStyle = `rgba(${pr},${pg},${pb},${alpha * 0.9})`;
+            }
+            ctx.beginPath();
+            ctx.arc(xPos, yPos, sz, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Add glow to energy particles
+            if (!isVoid && alpha > 0.3) {
+              const glowGrad = ctx.createRadialGradient(xPos, yPos, 0, xPos, yPos, sz * 3);
+              glowGrad.addColorStop(0, `rgba(220,160,255,${alpha * 0.3})`);
+              glowGrad.addColorStop(1, 'rgba(220,160,255,0)');
+              ctx.fillStyle = glowGrad;
+              ctx.beginPath();
+              ctx.arc(xPos, yPos, sz * 3, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        // ── Dimensional fracture lines — cracks in reality along the beam ──
+        ctx.save();
+        for (let f = 0; f < 5; f++) {
+          const fSeed = f * 53.127;
+          const fCycle = ((t * 1.5 + fSeed) % 8) / 8;
+          const fAlpha = Math.sin(fCycle * Math.PI) * 0.6;
+          if (fAlpha < 0.05) continue;
+
+          const fY = topY + fCycle * beamHeight;
+          const fLen = 30 + Math.abs(Math.sin(fSeed * 3.14)) * 40;
+
+          ctx.beginPath();
+          ctx.moveTo(0, fY);
+          // Fracture branches outward
+          const branches = 3 + Math.floor(Math.abs(Math.sin(fSeed)) * 3);
+          for (let b = 0; b < branches; b++) {
+            const bAngle = (b / branches) * Math.PI * 2 + fSeed;
+            const bLen = fLen * (0.5 + Math.abs(Math.sin(fSeed + b * 2.1)) * 0.5);
+            const endX = Math.cos(bAngle) * bLen;
+            const endY = fY + Math.sin(bAngle) * bLen * 0.3;
+
+            ctx.moveTo(0, fY);
+            // Jagged line
+            const midX1 = endX * 0.3 + Math.sin(t * 8 + b) * 5;
+            const midY1 = fY + (endY - fY) * 0.3 + Math.cos(t * 6 + b) * 3;
+            const midX2 = endX * 0.7 + Math.cos(t * 7 + b * 2) * 4;
+            const midY2 = fY + (endY - fY) * 0.7 + Math.sin(t * 9 + b * 3) * 2;
+            ctx.lineTo(midX1, midY1);
+            ctx.lineTo(midX2, midY2);
+            ctx.lineTo(endX, endY);
+          }
+
+          // White-hot fracture core
+          ctx.strokeStyle = `rgba(255,255,255,${fAlpha})`; ctx.lineWidth = 1.5; ctx.stroke();
+          // Purple glow around fracture
+          ctx.strokeStyle = `rgba(180,80,255,${fAlpha * 0.5})`; ctx.lineWidth = 4; ctx.stroke();
+        }
+        ctx.restore();
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ██  T8 SINGULARITY BEACON BLOCK  ██
+        // ═══════════════════════════════════════════════════════════════════
+        ctx.save();
+        const scale = blockSize / 16;
+        ctx.translate(-blockSize / 2, bpy);
+
+        // 1. Obsidian Base — unchanged (x=2..13, y=13..15)
+        ctx.fillStyle = fillMat;
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(2 * scale, 13 * scale, 12 * scale, 3 * scale);
+
+        // 2. Singularity Core (clipped to 3..13, 3..13 — the glass window area)
+        ctx.save();
+        ctx.beginPath(); ctx.rect(3 * scale, 3 * scale, 10 * scale, 10 * scale); ctx.clip();
+
+        // 2a. Deep void black background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(3 * scale, 3 * scale, 10 * scale, 10 * scale);
+
+        // Core center coordinates
+        const coreCX = 8 * scale;
+        const coreCY = 8 * scale;
+        const coreR = 4.5 * scale;
+
+        // 2b. Pulsating nebula clouds — swirling background energy
+        for (let nebula = 0; nebula < 8; nebula++) {
+          const nSeed = nebula * 1.618;
+          const nx = coreCX + Math.sin(t * 2.5 + nSeed * 3) * 3 * scale;
+          const ny = coreCY + Math.cos(t * 3.1 + nSeed * 2) * 3 * scale;
+          const nRadius = (2.5 + Math.sin(t * 4 + nSeed) * 1) * scale;
+          const nebGrad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nRadius);
+
+          // Cycling nebula colors
+          const nPhase = t * 2 + nebula * 0.785;
+          const nR = Math.floor(80 + 60 * Math.sin(nPhase));
+          const nG = Math.floor(0 + 30 * Math.sin(nPhase + 2.094));
+          const nB = Math.floor(140 + 80 * Math.sin(nPhase + 4.189));
+          nebGrad.addColorStop(0, `rgba(${nR},${nG},${nB},0.7)`);
+          nebGrad.addColorStop(0.5, `rgba(${nR >> 1},${nG >> 1},${nB >> 1},0.3)`);
+          nebGrad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = nebGrad;
+          ctx.beginPath(); ctx.arc(nx, ny, nRadius, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // 2c. Concentric rotating rings — 3 rings at different speeds and tilts
+        for (let ring = 0; ring < 3; ring++) {
+          const ringSpeed = (ring + 1) * 1.5;
+          const ringA = t * ringSpeed + ring * (Math.PI / 3);
+          const ringRadius = (1.5 + ring * 1.2) * scale;
+          const ringEllipseY = ringRadius * (0.2 + 0.15 * Math.sin(t * 2 + ring));
+          const ringAlpha = 0.5 + 0.3 * Math.sin(t * 3 + ring * 2);
+
+          ctx.save();
+          ctx.translate(coreCX, coreCY);
+          ctx.rotate(ringA * 0.3);
+
+          // Ring glow
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ringRadius * 1.2, ringEllipseY * 1.2, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(180,80,255,${ringAlpha * 0.3})`; ctx.lineWidth = 2 * scale / 3;
+          ctx.stroke();
+
+          // Ring core
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ringRadius, ringEllipseY, 0, 0, Math.PI * 2);
+          const ringColor = ring === 0 ? '255,180,255' : ring === 1 ? '180,100,255' : '120,200,255';
+          ctx.strokeStyle = `rgba(${ringColor},${ringAlpha * 0.8})`; ctx.lineWidth = 1.2 * scale / 3;
+          ctx.stroke();
+
+          // Bright node on each ring
+          const nodeX = Math.cos(ringA) * ringRadius;
+          const nodeY = Math.sin(ringA) * ringEllipseY;
+          ctx.fillStyle = `rgba(255,255,255,${ringAlpha * 0.9})`;
+          ctx.beginPath(); ctx.arc(nodeX, nodeY, 0.6 * scale / 3, 0, Math.PI * 2); ctx.fill();
+
+          ctx.restore();
+        }
+
+        // 2d. Orbiting energy motes — tiny bright particles circling the core
+        for (let mote = 0; mote < 12; mote++) {
+          const moteAngle = t * (3 + mote * 0.3) + mote * (Math.PI * 2 / 12);
+          const moteR = (2 + Math.sin(t * 2 + mote * 1.5) * 1.5) * scale;
+          const moteX = coreCX + Math.cos(moteAngle) * moteR;
+          const moteY = coreCY + Math.sin(moteAngle) * moteR * 0.6; // Perspective squash
+          const moteAlpha = 0.5 + 0.5 * Math.sin(t * 5 + mote * 2);
+          const moteSize = (0.3 + Math.abs(Math.sin(t * 4 + mote)) * 0.3) * scale;
+
+          // Mote trail
+          for (let trail = 1; trail <= 3; trail++) {
+            const trailAngle = moteAngle - trail * 0.15;
+            const trailX = coreCX + Math.cos(trailAngle) * moteR;
+            const trailY = coreCY + Math.sin(trailAngle) * moteR * 0.6;
+            ctx.fillStyle = `rgba(200,140,255,${moteAlpha * (0.3 - trail * 0.08)})`;
+            ctx.beginPath(); ctx.arc(trailX, trailY, moteSize * (1 - trail * 0.2), 0, Math.PI * 2); ctx.fill();
+          }
+
+          // Mote core
+          ctx.fillStyle = `rgba(255,240,255,${moteAlpha * 0.9})`;
+          ctx.beginPath(); ctx.arc(moteX, moteY, moteSize, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // 2e. Central singularity — white-hot point with extreme radial gradient
+        const singPulse = 0.8 + 0.2 * Math.sin(t * 8);
+        const singR = 1.5 * scale * singPulse;
+
+        // Outer singularity glow — large soft purple
+        const singGlow3 = ctx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, coreR);
+        singGlow3.addColorStop(0, 'rgba(255,200,255,0.4)');
+        singGlow3.addColorStop(0.3, 'rgba(160,40,255,0.2)');
+        singGlow3.addColorStop(0.7, 'rgba(80,0,180,0.1)');
+        singGlow3.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = singGlow3;
+        ctx.beginPath(); ctx.arc(coreCX, coreCY, coreR, 0, Math.PI * 2); ctx.fill();
+
+        // Mid singularity glow
+        const singGlow2 = ctx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, singR * 3);
+        singGlow2.addColorStop(0, 'rgba(255,255,255,0.9)');
+        singGlow2.addColorStop(0.3, 'rgba(255,180,255,0.5)');
+        singGlow2.addColorStop(0.7, 'rgba(200,80,255,0.15)');
+        singGlow2.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = singGlow2;
+        ctx.beginPath(); ctx.arc(coreCX, coreCY, singR * 3, 0, Math.PI * 2); ctx.fill();
+
+        // Core white point
+        const singGlow1 = ctx.createRadialGradient(coreCX, coreCY, 0, coreCX, coreCY, singR);
+        singGlow1.addColorStop(0, 'rgba(255,255,255,1.0)');
+        singGlow1.addColorStop(0.5, 'rgba(255,230,255,0.8)');
+        singGlow1.addColorStop(1, 'rgba(200,100,255,0.3)');
+        ctx.fillStyle = singGlow1;
+        ctx.beginPath(); ctx.arc(coreCX, coreCY, singR, 0, Math.PI * 2); ctx.fill();
+
+        // 2f. Dimensional crack lines radiating from center
+        ctx.save();
+        ctx.translate(coreCX, coreCY);
+        const numCracks = 6;
+        for (let c = 0; c < numCracks; c++) {
+          const crackAngle = (c / numCracks) * Math.PI * 2 + t * 0.5;
+          const crackLen = (2 + Math.sin(t * 6 + c * 1.7) * 1.5) * scale;
+          const crackAlpha = 0.4 + 0.4 * Math.sin(t * 4 + c * 2.3);
+
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+
+          // Jagged crack path
+          const segs = 4;
+          for (let s = 1; s <= segs; s++) {
+            const sFrac = s / segs;
+            const baseX = Math.cos(crackAngle) * crackLen * sFrac;
+            const baseY = Math.sin(crackAngle) * crackLen * sFrac;
+            const jX = Math.sin(t * 12 + c * 3 + s * 5) * 0.5 * scale;
+            const jY = Math.cos(t * 10 + c * 4 + s * 7) * 0.3 * scale;
+            ctx.lineTo(baseX + jX, baseY + jY);
+          }
+
+          // White-hot core of crack
+          ctx.strokeStyle = `rgba(255,255,255,${crackAlpha})`; ctx.lineWidth = 0.5 * scale / 3;
+          ctx.stroke();
+          // Purple glow
+          ctx.strokeStyle = `rgba(200,100,255,${crackAlpha * 0.5})`; ctx.lineWidth = 1.5 * scale / 3;
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // 2g. Rotating energy star — spiky starburst overlay
+        ctx.save();
+        ctx.translate(coreCX, coreCY);
+        const starAngle = t * 2;
+        const starPoints = 8;
+        const starOuterR = 1.8 * scale;
+        const starInnerR = 0.6 * scale;
+        ctx.beginPath();
+        for (let s = 0; s < starPoints * 2; s++) {
+          const sa = starAngle + (s / (starPoints * 2)) * Math.PI * 2;
+          const sr = s % 2 === 0 ? starOuterR : starInnerR;
+          const sx = Math.cos(sa) * sr;
+          const sy = Math.sin(sa) * sr;
+          if (s === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.closePath();
+        const starGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, starOuterR);
+        starGrad.addColorStop(0, `rgba(255,255,255,${0.6 * singPulse})`);
+        starGrad.addColorStop(1, `rgba(200,120,255,${0.2 * singPulse})`);
+        ctx.fillStyle = starGrad;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.restore(); // end core clip
+
+        // 3. Glass frame — the outer border overlay (unchanged structure, enhanced glow)
+        // Tinted glass overlay
+        ctx.fillStyle = 'rgba(60,10,140,0.35)';
+        ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
+
+        // Outer border — enhanced with pulsing glow
+        const borderPulse = 0.5 + 0.2 * Math.sin(t * 6);
+        ctx.fillStyle = `rgba(160,60,255,${borderPulse})`;
+        ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
+        ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
+
+        // Corner accents — brighter for T8
+        ctx.fillStyle = 'rgba(200,120,255,0.9)';
+        ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
+        ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
+        // Additional corner accents for T8
+        ctx.fillRect(13*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 2*scale, 1*scale, 1*scale);
+        ctx.fillRect(1*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 13*scale, 1*scale, 1*scale);
+
+        // Pulsing glow halo around the entire block
+        ctx.save();
+        const haloGrad = ctx.createRadialGradient(8*scale, 8*scale, 4*scale, 8*scale, 8*scale, 12*scale);
+        haloGrad.addColorStop(0, 'rgba(180,80,255,0)');
+        haloGrad.addColorStop(0.7, `rgba(160,40,255,${0.1 * singPulse})`);
+        haloGrad.addColorStop(1, `rgba(120,0,255,${0.2 * singPulse})`);
+        ctx.fillStyle = haloGrad;
+        ctx.fillRect(-2*scale, -2*scale, 20*scale, 20*scale);
+        ctx.restore();
+
+        ctx.restore(); // end block translate
+
+      } else if (hasT4Block) {
         // ── T4+: dark matter beam (rotating square + helices) ──────────────
         const R = 8.5;
         const angle = (t * Math.PI * 2) / 10 + Math.PI / 4;
@@ -11606,16 +12198,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore(); // end translate(cx, 0)
     };
 
-    // ── T8 arch rings (uses central crystalY) ────────────────────────────────
-    if (hasT8) {
-      for (let i = 0; i < 4; i++) {
-        const cycle = ((t * 3 + i) % 4) / 4;
-        const yPos = crystalY - cycle * 1000;
-        ctx.strokeStyle = `rgba(255,255,255,${1.0 - cycle})`; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(-60, yPos + 20); ctx.quadraticCurveTo(0, yPos - 20, 60, yPos + 20); ctx.stroke();
-        ctx.strokeStyle = `rgba(180,80,255,${0.5 - cycle * 0.5})`; ctx.lineWidth = 8; ctx.stroke();
-      }
-    }
+
 
     // Sky splash glow
     if (hasT0) {
@@ -11653,23 +12236,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       drawBeaconAt( blockSize, beaconPieceY, true);       // x = +48, bpy = -240
     }
 
-
-    if (hasT8) {
-      for(let i=0; i<4; i++) {
-          const cycle = ((t * 3 + i) % 4) / 4; 
-          const yPos = crystalY - cycle * 1000;
-          ctx.strokeStyle = `rgba(255, 255, 255, ${1.0 - cycle})`;
-          ctx.lineWidth = 4;
-          ctx.beginPath();
-          ctx.moveTo(-60, yPos + 20);
-          ctx.quadraticCurveTo(0, yPos - 20, 60, yPos + 20);
-          ctx.stroke();
-          ctx.strokeStyle = `rgba(180, 80, 255, ${0.5 - cycle*0.5})`;
-          ctx.lineWidth = 8;
-          ctx.stroke();
-      }
-    }
-    
 
 
     if (hasT0) {
