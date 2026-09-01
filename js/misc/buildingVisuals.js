@@ -11424,7 +11424,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
 
         const getHelixPt8 = (y, hIndex) => {
-          const freq = 0.015, speed = -8000.0;
+          const freq = 0.015, speed = -100.0;
           let p = (y * freq + t * speed + hIndex * 0.25) % 1.0;
           if (p < 0) p += 1.0;
           const seg = Math.floor(p * 8), prog = (p * 8) % 1.0;
@@ -11438,7 +11438,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           for (let h = 0; h < 4; h++) {
             ctx.beginPath();
             let drawing = false;
-            for (let y = bCrystalY; y >= topY; y -= 2) {
+            for (let y = bCrystalY; y >= topY; y -= 25) {
               const pt = getHelixPt8(y, h);
               const vis = isFront ? pt.z > 0 : pt.z <= 0;
               if (vis) {
@@ -11472,7 +11472,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         for (let side = -1; side <= 1; side += 2) {
           ctx.beginPath();
-          for (let y = topY; y <= bCrystalY; y += 3) {
+          for (let y = topY; y <= bCrystalY; y += 25) {
             const shimmerX = side * (R + 1.5 + Math.sin(y * 0.08 + t * 12) * 2.5 + Math.sin(y * 0.03 + t * 5) * 1.5);
             if (y === topY) ctx.moveTo(shimmerX, y);
             else ctx.lineTo(shimmerX, y);
@@ -11568,14 +11568,14 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // ── Inner counter-rotating column (visible through the octagonal shell) ──
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalCompositeOperation = 'source-over';
         for (let i = 0; i < 4; i++) {
           const p1 = innerCorners[i], p2 = innerCorners[(i + 1) % 4];
           if (p1.x < p2.x) {
             const grad = ctx.createLinearGradient(p1.x, 0, p2.x, 0);
-            grad.addColorStop(0, 'rgba(80,0,160,0.15)');
-            grad.addColorStop(0.5, 'rgba(40,0,80,0.25)');
-            grad.addColorStop(1, 'rgba(80,0,160,0.15)');
+            grad.addColorStop(0, 'rgba(20,0,40,0.8)');
+            grad.addColorStop(0.5, 'rgba(10,0,20,0.9)');
+            grad.addColorStop(1, 'rgba(20,0,40,0.8)');
             ctx.fillStyle = grad;
             ctx.fillRect(p1.x, topY, p2.x - p1.x, beamHeight);
           }
@@ -11670,7 +11670,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         {
           const beamWidth = 32;
           for (let i = 0; i < 120; i++) {
-            const cycle = (t * 0.5 + i * 0.163) % 1.0;
+            const cycle = (t * 2.0 + i * 0.163) % 1.0;
             const yPos = bCrystalY - beamHeight * cycle;
             const seed = i * 73.19;
             const randX = Math.abs(Math.sin(seed) * 10000);
