@@ -12017,7 +12017,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
 
         // Corner accents — brighter for T8
-        ctx.fillStyle = 'rgba(100,0,180,0.9)';
+        ctx.fillStyle = 'rgba(120,30,220,0.95)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
         // Additional corner accents for T8
@@ -12155,9 +12155,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.fillStyle = 'rgba(60,0,120,0.5)';
         ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
         ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
-        ctx.fillStyle = 'rgba(70,0,130,0.8)';
+        ctx.fillStyle = 'rgba(90,20,170,0.85)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
+        ctx.fillRect(13*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 2*scale, 1*scale, 1*scale);
+        ctx.fillRect(1*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 13*scale, 1*scale, 1*scale);
         ctx.restore();
 
       } else if (hasT0) {
@@ -12255,9 +12257,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.fillStyle = 'rgba(60,0,120,0.5)';
         ctx.fillRect(0, 0, 16*scale, 1*scale); ctx.fillRect(0, 15*scale, 16*scale, 1*scale);
         ctx.fillRect(0, 1*scale, 1*scale, 14*scale); ctx.fillRect(15*scale, 1*scale, 1*scale, 14*scale);
-        ctx.fillStyle = 'rgba(70,0,130,0.8)';
+        ctx.fillStyle = 'rgba(90,20,170,0.85)';
         ctx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         ctx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
+        ctx.fillRect(13*scale, 1*scale, 2*scale, 1*scale); ctx.fillRect(14*scale, 2*scale, 1*scale, 1*scale);
+        ctx.fillRect(1*scale, 14*scale, 2*scale, 1*scale); ctx.fillRect(1*scale, 13*scale, 1*scale, 1*scale);
         ctx.restore();
       }
 
