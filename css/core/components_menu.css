@@ -107,10 +107,10 @@
   font-weight: 700;
   color: #fff;
   margin-bottom: var(--space-2);
-  -webkit-text-stroke: calc(0.5px * var(--stroke-mult, 1)) black;
-  -webkit-text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
-  text-stroke: calc(0.5px * var(--stroke-mult, 1)) black;
-  text-stroke-width: calc(0.5px * var(--stroke-mult, 1));
+  -webkit-text-stroke: calc(1px * var(--stroke-mult, 1)) black;
+  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
+  text-stroke: calc(1px * var(--stroke-mult, 1)) black;
+  text-stroke-width: calc(1px * var(--stroke-mult, 1));
   line-height: 1.1;
 }
 
@@ -125,10 +125,10 @@
     -webkit-text-stroke: 0;
     text-stroke: 0;
     text-shadow:
-      0.5px 0.5px 0 black,
-      -0.5px 0.5px 0 black,
-      0.5px -0.5px 0 black,
-      -0.5px -0.5px 0 black;
+      1px 1px 0 black,
+      -1px 1px 0 black,
+      1px -1px 0 black,
+      -1px -1px 0 black;
   }
 }
 
