@@ -11472,17 +11472,18 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         for (let side = -1; side <= 1; side += 2) {
           ctx.beginPath();
-          for (let y = topY; y <= bCrystalY; y += 25) {
+          for (let y = bCrystalY; y >= topY; y -= 25) {
             const shimmerX = side * (R + 1.5 + Math.sin(y * 0.08 + t * 12) * 2.5 + Math.sin(y * 0.03 + t * 5) * 1.5);
-            if (y === topY) ctx.moveTo(shimmerX, y);
+            if (y === bCrystalY) ctx.moveTo(shimmerX, y);
             else ctx.lineTo(shimmerX, y);
           }
-          // Outer glow
-          ctx.strokeStyle = 'rgba(200,120,255,0.25)'; ctx.lineWidth = 6; ctx.stroke();
-          // Mid layer
-          ctx.strokeStyle = 'rgba(255,180,255,0.4)'; ctx.lineWidth = 2.5; ctx.stroke();
-          // White-hot core
-          ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+          const topShimmerX = side * (R + 1.5 + Math.sin(topY * 0.08 + t * 12) * 2.5 + Math.sin(topY * 0.03 + t * 5) * 1.5);
+          ctx.lineTo(topShimmerX, topY);
+          
+          // Dark purple glow
+          ctx.strokeStyle = 'rgba(70,0,120,0.4)'; ctx.lineWidth = 6; ctx.stroke();
+          // Dark purple core
+          ctx.strokeStyle = 'rgba(100,20,150,0.8)'; ctx.lineWidth = 2.5; ctx.stroke();
         }
         ctx.restore();
 
@@ -11572,15 +11573,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         for (let i = 0; i < 4; i++) {
           const p1 = innerCorners[i], p2 = innerCorners[(i + 1) % 4];
           if (p1.x < p2.x) {
-            const grad = ctx.createLinearGradient(p1.x, 0, p2.x, 0);
-            grad.addColorStop(0, 'rgba(20,0,40,0.8)');
-            grad.addColorStop(0.5, 'rgba(10,0,20,0.9)');
-            grad.addColorStop(1, 'rgba(20,0,40,0.8)');
-            ctx.fillStyle = grad;
+            ctx.fillStyle = 'rgba(15,0,30,0.85)';
             ctx.fillRect(p1.x, topY, p2.x - p1.x, beamHeight);
           }
         }
-        ctx.globalCompositeOperation = 'source-over';
         ctx.restore();
 
         // ── FRONT HELICES ──
