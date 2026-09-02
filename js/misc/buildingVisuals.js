@@ -12964,20 +12964,22 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
   }
 
+  // ── Vertex Trails Accumulation ──
+  if (!geom.trailHistory || Math.abs(t - (geom.lastTrailTime || 0)) > 0.1) {
+    geom.trailHistory = Array(16).fill(null).map(() => []);
+  }
+  geom.lastTrailTime = t;
+  
+  // Push current positions
+  for (let i = 0; i < 16; i++) {
+    geom.trailHistory[i].unshift({ x: geom.projected[i].x, y: geom.projected[i].y, scale: geom.projected[i].scale });
+    if (geom.trailHistory[i].length > 50) { // 3x longer
+      geom.trailHistory[i].pop();
+    }
+  }
+
   // ── Vertex Trails (Tier 2) ──
   if (tier2Prog > 0) {
-    if (!geom.trailHistory) {
-      geom.trailHistory = Array(16).fill(null).map(() => []);
-    }
-    
-    // Push current positions
-    for (let i = 0; i < 16; i++) {
-      geom.trailHistory[i].unshift({ x: geom.projected[i].x, y: geom.projected[i].y, scale: geom.projected[i].scale });
-      if (geom.trailHistory[i].length > 50) { // 3x longer
-        geom.trailHistory[i].pop();
-      }
-    }
-
     ctx.save();
     ctx.globalAlpha = tier2Prog;
 
