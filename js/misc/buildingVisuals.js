@@ -11204,47 +11204,48 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.strokeRect(bx + 1, yPos + 1, blockSize - 2, blockSize - 2);
       }
       
-      // Pass 3: Bevels (Inset by 1px so they don't cover the outer half of the stroke)
+      // Pass 3: Bevels (Inset by 2px to strictly cover the inside of the block outlines)
       for (let i = 0; i < widthBlocks; i++) {
         const bx = startX + i * blockSize;
         
-        const innerX = bx + 1;
-        const innerY = yPos + 1;
-        const innerW = blockSize - 2;
-        const bevSize = blockSize * 0.15;
-        const bevH = bevSize - 1;
-        const sideBevY = yPos + bevSize;
-        const sideBevH = blockSize * 0.7;
-        const sideBevW = bevSize - 1;
-        const rightBevX = bx + blockSize - bevSize;
+        const innerX = bx + 2;
+        const innerY = yPos + 2;
+        const innerW = blockSize - 4;
+        
+        const bevTotal = Math.round(blockSize * 0.15);
+        const bevThickness = bevTotal - 2;
+        
+        const sideBevY = yPos + bevTotal;
+        const sideBevH = blockSize - 2 * bevTotal;
+        const rightBevX = bx + blockSize - bevTotal;
 
         // Top bevel (always bright)
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.fillRect(innerX, innerY, innerW, bevH);
+        ctx.fillRect(innerX, innerY, innerW, bevThickness);
         
         // Bottom shadow (always dark)
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.fillRect(innerX, yPos + blockSize - bevSize, innerW, bevH);
+        ctx.fillRect(innerX, yPos + blockSize - bevTotal, innerW, bevThickness);
 
         // Dynamic side bevels based on relative position to the center (x=0)
         const blockCenterX = bx + Math.floor(blockSize / 2);
         if (blockCenterX < -1) {
             // Block is on the left
             ctx.fillStyle = 'rgba(0,0,0,0.4)'; // Left edge is dark
-            ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
+            ctx.fillRect(innerX, sideBevY, bevThickness, sideBevH);
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Right edge is bright
-            ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
+            ctx.fillRect(rightBevX, sideBevY, bevThickness, sideBevH);
         } else if (blockCenterX > 1) {
             // Block is on the right
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Left edge is bright
-            ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
+            ctx.fillRect(innerX, sideBevY, bevThickness, sideBevH);
             ctx.fillStyle = 'rgba(0,0,0,0.4)'; // Right edge is dark
-            ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
+            ctx.fillRect(rightBevX, sideBevY, bevThickness, sideBevH);
         } else {
             // Center block
             ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Neutral sides
-            ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
-            ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
+            ctx.fillRect(innerX, sideBevY, bevThickness, sideBevH);
+            ctx.fillRect(rightBevX, sideBevY, bevThickness, sideBevH);
         }
       }
       
