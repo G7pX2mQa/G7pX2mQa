@@ -1372,7 +1372,7 @@ function drawCavern(ctx, w, h, t) {
     // Custom rainbow ground carving for Tesseract
     const groundY = h - floorH;
     const holeRadius = floorH - 10; // Leaves a bit of space at the bottom
-    const holeWidthRadius = Math.min(w * 0.5, holeRadius + 250);
+    const holeWidthRadius = w * 0.5;
 
     const groundGrad = ctx.createLinearGradient(0, groundY, 0, groundY + floorH);
     groundGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
@@ -5551,6 +5551,166 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 let cachedFaceOnLink = null;
 let cachedSideOnLink = null;
 const cachedForcefields = {};
+
+
+function getMatchLength(str, target) {
+  for (let len = str.length; len > 0; len--) {
+    let suffix = str.slice(-len);
+    if (target.startsWith(suffix)) {
+      return len;
+    }
+  }
+  return 0;
+}
+
+function handleVaultCanvasPointerMove(e) {
+  if (!activeCanvas) return;
+  if (settingsManager.get('only_show_building')) return;
+  const rect = activeCanvas.getBoundingClientRect();
+  const clientX = e.clientX - rect.left;
+  const clientY = e.clientY - rect.top;
+  const scaleX = activeCanvas.width / rect.width;
+  const scaleY = activeCanvas.height / rect.height;
+  canvasMouseX = clientX * scaleX;
+  canvasMouseY = clientY * scaleY;
+}
+
+if (typeof window !== 'undefined') {
+  window.isMutedByVault = () => {
+    return isVaultOpening || isVaultOpen;
+  };
+  window.isVaultCoinCollected = () => {
+    return vaultCoinCollectedLocal;
+  };
+}
+
+function handleVaultCanvasKeyDown(e) {
+  if (settingsManager.get('only_show_building')) return;
+  if (!keypadZoomedIn || isVaultOpening || isVaultOpen) return;
+  const key = e.key;
+  if (key >= '1' && key <= '9') {
+    const btnNum = parseInt(key, 10);
+    lastHotkeyNum = btnNum;
+    
+    // Simulate button click/press
+    const seq = getVaultSequence();
+    const newSeq = (seq + btnNum).slice(-16);
+    const target = "7887773346665553";
+    const oldLen = getMatchLength(seq, target);
+    const newLen = getMatchLength(newSeq, target);
+
+    setVaultSequence(newSeq);
+
+    if (newSeq === target) {
+      playAudio("sounds/correct.ogg", { volume: 0.4 });
+      isVaultOpening = true;
+      vaultOpeningTime = 5.0;
+      keypadZoomedIn = false;
+      vaultCoinCollectedLocal = false;
+      setVaultCoinCollected(false);
+      playAudio("sounds/opening.ogg");
+      window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+      
+      setVaultSequence("0000000000000000");
+      if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
+        window.resetSystem.updateBuildingsOverlayUi();
+      }
+    } else if (newLen === oldLen + 1) {
+      playAudio("sounds/correct.ogg", { volume: 0.4 });
+    } else {
+      playAudio("sounds/incorrect.ogg", { volume: 0.2 });
+      setVaultSequence("0000000000000000");
+    }
+  }
+}
+
+function handleVaultCanvasClick(e) {
+  if (!activeCanvas) return;
+  if (settingsManager.get('only_show_building')) return;
+  const rect = activeCanvas.getBoundingClientRect();
+  const clientX = e.clientX - rect.left;
+  const clientY = e.clientY - rect.top;
+  const scaleX = activeCanvas.width / rect.width;
+  const scaleY = activeCanvas.height / rect.height;
+  const cx = clientX * scaleX;
+  const cy = clientY * scaleY;
+
+  const w = activeCanvas.width;
+  const h = activeCanvas.height;
+  const floorY = h - 260;
+  const centerX = w / 2;
+
+  if (isVaultOpen) return;
+  if (isVaultOpening) return;
+
+  if (keypadZoomedIn) {
+    const zoomFactor = 8;
+    const kx = (cx - Math.floor(w / 2)) / zoomFactor;
+    const ky = (cy - Math.floor(h / 2)) / zoomFactor;
+
+    if (kx < -12.5 || kx > 12.5 || ky < -18 || ky > 18) {
+      keypadZoomedIn = false;
+      activeCanvas.style.cursor = 'default';
+      return;
+    }
+
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const bx = -9.5 + c * 7;
+        const by = -3 + r * 7;
+        if (kx >= bx && kx < bx + 5 && ky >= by && ky < by + 5) {
+          const btnNum = r * 3 + c + 1;
+          
+          lastHotkeyNum = btnNum;
+
+          const seq = getVaultSequence();
+          const newSeq = (seq + btnNum).slice(-16);
+          const target = "7887773346665553";
+          const oldLen = getMatchLength(seq, target);
+          const newLen = getMatchLength(newSeq, target);
+
+          setVaultSequence(newSeq);
+
+          if (newSeq === target) {
+            playAudio("sounds/correct.ogg", { volume: 0.4 });
+            isVaultOpening = true;
+            vaultOpeningTime = 5.0;
+            keypadZoomedIn = false;
+            vaultCoinCollectedLocal = false;
+            setVaultCoinCollected(false);
+            playAudio("sounds/opening.ogg");
+            window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+            
+            setVaultSequence("0000000000000000");
+            if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
+              window.resetSystem.updateBuildingsOverlayUi();
+            }
+          } else if (newLen === oldLen + 1) {
+            playAudio("sounds/correct.ogg", { volume: 0.4 });
+          } else {
+            playAudio("sounds/incorrect.ogg", { volume: 0.2 });
+            setVaultSequence("0000000000000000");
+          }
+          return;
+        }
+      }
+    }
+  } else {
+    const scale = 1.0 + getTier() * 0.1;
+    const dy = 15;
+    const left = centerX - 48 * scale;
+    const right = centerX - 23 * scale;
+    const top = floorY - (88 + dy) * scale;
+    const bottom = floorY - (52 + dy) * scale;
+
+    if (cx >= left && cx <= right && cy >= top && cy <= bottom) {
+      if (getTier() >= 2) {
+        keypadZoomedIn = true;
+      }
+    }
+  }
+}
+
 
 function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   if (!pureGoldPattern && activeCtx) {
@@ -12468,165 +12628,4 @@ function drawTesseract(ctx, t, tier) {
   ctx.restore();
 
   ctx.restore();
-
-
-}
-
-
-function getMatchLength(str, target) {
-  for (let len = str.length; len > 0; len--) {
-    let suffix = str.slice(-len);
-    if (target.startsWith(suffix)) {
-      return len;
-    }
-  }
-  return 0;
-}
-
-function handleVaultCanvasPointerMove(e) {
-  if (!activeCanvas) return;
-  if (settingsManager.get('only_show_building')) return;
-  const rect = activeCanvas.getBoundingClientRect();
-  const clientX = e.clientX - rect.left;
-  const clientY = e.clientY - rect.top;
-  const scaleX = activeCanvas.width / rect.width;
-  const scaleY = activeCanvas.height / rect.height;
-  canvasMouseX = clientX * scaleX;
-  canvasMouseY = clientY * scaleY;
-}
-
-if (typeof window !== 'undefined') {
-  window.isMutedByVault = () => {
-    return isVaultOpening || isVaultOpen;
-  };
-  window.isVaultCoinCollected = () => {
-    return vaultCoinCollectedLocal;
-  };
-}
-
-function handleVaultCanvasKeyDown(e) {
-  if (settingsManager.get('only_show_building')) return;
-  if (!keypadZoomedIn || isVaultOpening || isVaultOpen) return;
-  const key = e.key;
-  if (key >= '1' && key <= '9') {
-    const btnNum = parseInt(key, 10);
-    lastHotkeyNum = btnNum;
-    
-    // Simulate button click/press
-    const seq = getVaultSequence();
-    const newSeq = (seq + btnNum).slice(-16);
-    const target = "7887773346665553";
-    const oldLen = getMatchLength(seq, target);
-    const newLen = getMatchLength(newSeq, target);
-
-    setVaultSequence(newSeq);
-
-    if (newSeq === target) {
-      playAudio("sounds/correct.ogg", { volume: 0.4 });
-      isVaultOpening = true;
-      vaultOpeningTime = 5.0;
-      keypadZoomedIn = false;
-      vaultCoinCollectedLocal = false;
-      setVaultCoinCollected(false);
-      playAudio("sounds/opening.ogg");
-      window.dispatchEvent(new CustomEvent('audio:stopMusic'));
-      
-      setVaultSequence("0000000000000000");
-      if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
-        window.resetSystem.updateBuildingsOverlayUi();
-      }
-    } else if (newLen === oldLen + 1) {
-      playAudio("sounds/correct.ogg", { volume: 0.4 });
-    } else {
-      playAudio("sounds/incorrect.ogg", { volume: 0.2 });
-      setVaultSequence("0000000000000000");
-    }
-  }
-}
-
-function handleVaultCanvasClick(e) {
-  if (!activeCanvas) return;
-  if (settingsManager.get('only_show_building')) return;
-  const rect = activeCanvas.getBoundingClientRect();
-  const clientX = e.clientX - rect.left;
-  const clientY = e.clientY - rect.top;
-  const scaleX = activeCanvas.width / rect.width;
-  const scaleY = activeCanvas.height / rect.height;
-  const cx = clientX * scaleX;
-  const cy = clientY * scaleY;
-
-  const w = activeCanvas.width;
-  const h = activeCanvas.height;
-  const floorY = h - 260;
-  const centerX = w / 2;
-
-  if (isVaultOpen) return;
-  if (isVaultOpening) return;
-
-  if (keypadZoomedIn) {
-    const zoomFactor = 8;
-    const kx = (cx - Math.floor(w / 2)) / zoomFactor;
-    const ky = (cy - Math.floor(h / 2)) / zoomFactor;
-
-    if (kx < -12.5 || kx > 12.5 || ky < -18 || ky > 18) {
-      keypadZoomedIn = false;
-      activeCanvas.style.cursor = 'default';
-      return;
-    }
-
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        const bx = -9.5 + c * 7;
-        const by = -3 + r * 7;
-        if (kx >= bx && kx < bx + 5 && ky >= by && ky < by + 5) {
-          const btnNum = r * 3 + c + 1;
-          
-          lastHotkeyNum = btnNum;
-
-          const seq = getVaultSequence();
-          const newSeq = (seq + btnNum).slice(-16);
-          const target = "7887773346665553";
-          const oldLen = getMatchLength(seq, target);
-          const newLen = getMatchLength(newSeq, target);
-
-          setVaultSequence(newSeq);
-
-          if (newSeq === target) {
-            playAudio("sounds/correct.ogg", { volume: 0.4 });
-            isVaultOpening = true;
-            vaultOpeningTime = 5.0;
-            keypadZoomedIn = false;
-            vaultCoinCollectedLocal = false;
-            setVaultCoinCollected(false);
-            playAudio("sounds/opening.ogg");
-            window.dispatchEvent(new CustomEvent('audio:stopMusic'));
-            
-            setVaultSequence("0000000000000000");
-            if (typeof window !== 'undefined' && window.resetSystem && window.resetSystem.updateBuildingsOverlayUi) {
-              window.resetSystem.updateBuildingsOverlayUi();
-            }
-          } else if (newLen === oldLen + 1) {
-            playAudio("sounds/correct.ogg", { volume: 0.4 });
-          } else {
-            playAudio("sounds/incorrect.ogg", { volume: 0.2 });
-            setVaultSequence("0000000000000000");
-          }
-          return;
-        }
-      }
-    }
-  } else {
-    const scale = 1.0 + getTier() * 0.1;
-    const dy = 15;
-    const left = centerX - 48 * scale;
-    const right = centerX - 23 * scale;
-    const top = floorY - (88 + dy) * scale;
-    const bottom = floorY - (52 + dy) * scale;
-
-    if (cx >= left && cx <= right && cy >= top && cy <= bottom) {
-      if (getTier() >= 2) {
-        keypadZoomedIn = true;
-      }
-    }
-  }
 }
