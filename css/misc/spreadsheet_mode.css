@@ -74,13 +74,19 @@ body.spreadsheet-mode:not(.menu-bg) .map-bubbles-container {
   display: none !important;
 }
 
+body.hide-building-visuals:not(.menu-bg) #building-detail-canvas,
+body.hide-building-visuals:not(.menu-bg) #building-keypad-canvas {
+  display: none !important;
+}
+
 /* Hide all images to prevent rasterization, but keep them clickable */
 body.spreadsheet-mode:not(.menu-bg) img {
   opacity: 0 !important;
 }
 
 /* Center the building level text since the building graphics are hidden */
-body.spreadsheet-mode:not(.menu-bg) #building-detail-level-text {
+body.spreadsheet-mode:not(.menu-bg) #building-detail-level-text,
+body.hide-building-visuals:not(.menu-bg) #building-detail-level-text {
   position: absolute !important;
   top: 50% !important;
   left: 50% !important;
@@ -102,4 +108,8 @@ body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-upgrade {
 
 body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile {
   pointer-events: none !important;
+}
+
+body.hide-building-visuals:not(.menu-bg) .only-building-btn {
+  display: none !important;
 }
