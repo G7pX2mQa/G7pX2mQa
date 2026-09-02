@@ -12610,6 +12610,38 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   // 16 vertices of a 4D hypercube, projected 4D→3D→2D with perspective.
   // Rainbow gradient faces, black outlines, floating above the ground.
 
+  // ── Viewport Auto-Scaling ──
+  const startScale = 1.0 + prevTier * 0.1;
+  const targetScale = 1.0 + tier * 0.1;
+  const globalScale = startScale + (targetScale - startScale) * animProgress;
+  
+  const canvasW = ctx.canvas.width;
+  const canvasH = ctx.canvas.height;
+  const floorY = canvasH - 260; // Consistent with drawBuilding
+  
+  const availLeft = (canvasW / 2) / globalScale;
+  const availRight = (canvasW / 2) / globalScale;
+  const availTop = floorY / globalScale;
+  const availBottom = (canvasH - floorY) / globalScale;
+
+  const maxLocalRadius = 304; // Derived from max 4D projection extent
+  const maxBob = 8;
+  const baseCy = -130;
+  const maxTop = Math.abs(baseCy - maxBob - maxLocalRadius); 
+  const maxBottom = baseCy + maxBob + maxLocalRadius; 
+  
+  let viewportScale = 1.0;
+  if (maxLocalRadius > 0) viewportScale = Math.min(viewportScale, availLeft / maxLocalRadius);
+  if (maxLocalRadius > 0) viewportScale = Math.min(viewportScale, availRight / maxLocalRadius);
+  if (maxTop > 0) viewportScale = Math.min(viewportScale, availTop / maxTop);
+  if (maxBottom > 0) viewportScale = Math.min(viewportScale, availBottom / maxBottom);
+
+  // Apply a 5% margin padding as requested ("5% too large")
+  viewportScale *= 0.95;
+
+  ctx.save();
+  ctx.scale(viewportScale, viewportScale);
+
   // Center position — float above ground, gently bobbing
   const bobSpeed = 0.8;
   const bobAmp = 8;
@@ -12621,14 +12653,19 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const baseSize = 42;
 
   // ── 4D Geometry ──
-  // 16 vertices of a hypercube: all combinations of ±1 in 4 dimensions
+  const dimX = 2;
+  const dimY = 2;
+  const dimZ = 2;
+  const dimW = 2;
+
+  // 16 vertices of a hypercube: all combinations of ±dim in 4 dimensions
   const rawVerts = [];
   for (let i = 0; i < 16; i++) {
     rawVerts.push([
-      (i & 1) ? 1 : -1,
-      (i & 2) ? 1 : -1,
-      (i & 4) ? 1 : -1,
-      (i & 8) ? 1 : -1,
+      (i & 1) ? dimX : -dimX,
+      (i & 2) ? dimY : -dimY,
+      (i & 4) ? dimZ : -dimZ,
+      (i & 8) ? dimW : -dimW,
     ]);
   }
 
@@ -12654,9 +12691,14 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       for (let d = 0; d < 4; d++) {
         if (d !== a1 && d !== a2) fixedAxes.push(d);
       }
-      // For each combination of fixed axis values (±1, ±1)
-      for (let fv0 = -1; fv0 <= 1; fv0 += 2) {
-        for (let fv1 = -1; fv1 <= 1; fv1 += 2) {
+      
+      const dims = [dimX, dimY, dimZ, dimW];
+      const v0 = dims[fixedAxes[0]];
+      const v1 = dims[fixedAxes[1]];
+
+      // For each combination of fixed axis values
+      for (let fv0 = -v0; fv0 <= v0; fv0 += v0 * 2) {
+        for (let fv1 = -v1; fv1 <= v1; fv1 += v1 * 2) {
           const faceVerts = [];
           for (let i = 0; i < 16; i++) {
             if (rawVerts[i][fixedAxes[0]] === fv0 && rawVerts[i][fixedAxes[1]] === fv1) {
@@ -12669,7 +12711,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
             const sorted = faceVerts.slice().sort((a, b) => {
               const va1 = rawVerts[a][a1], va2 = rawVerts[a][a2];
               const vb1 = rawVerts[b][a1], vb2 = rawVerts[b][a2];
-              // Sort in a cycle: (-1,-1), (1,-1), (1,1), (-1,1)
+              // Sort in a cycle
               const angleA = Math.atan2(va2, va1);
               const angleB = Math.atan2(vb2, vb1);
               return angleA - angleB;
@@ -12719,8 +12761,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   }
 
   // ── 4D → 2D Projection ──
-  const viewDist4D = 3.0; // Distance from 4D "camera" to origin in W
-  const viewDist3D = 4.0; // Distance from 3D camera to origin in Z
+  const viewDist4D = 6.0; // Distance from 4D "camera" to origin in W
+  const viewDist3D = 8.0; // Distance from 3D camera to origin in Z
 
   function project(v4) {
     const [x, y, z, w] = rotate4D(v4);
@@ -12775,8 +12817,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   ctx.translate(cx, cy);
 
   // ── Outer glow / aura ──
-  const glowRadius = baseSize * 2.2;
-  const auraGrad = ctx.createRadialGradient(0, 0, baseSize * 0.5, 0, 0, glowRadius);
+  const glowRadius = baseSize * 4.4;
+  const auraGrad = ctx.createRadialGradient(0, 0, baseSize * 1.0, 0, 0, glowRadius);
   const glowHue = ((t * 40) % 360 + 360) % 360;
   auraGrad.addColorStop(0, `hsla(${glowHue}, 100%, 70%, 0.15)`);
   auraGrad.addColorStop(0.5, `hsla(${(glowHue + 120) % 360}, 100%, 60%, 0.07)`);
@@ -12875,7 +12917,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   // A subtle rainbow shadow cast below the tesseract
   ctx.save();
   const shadowY = -cy + 5; // Position relative to the ground
-  const shadowGrad = ctx.createRadialGradient(0, shadowY, 0, 0, shadowY, baseSize * 1.5);
+  const shadowGrad = ctx.createRadialGradient(0, shadowY, 0, 0, shadowY, baseSize * 3.0);
   const shadowHue = ((t * 30) % 360 + 360) % 360;
   shadowGrad.addColorStop(0, `hsla(${shadowHue}, 80%, 50%, 0.15)`);
   shadowGrad.addColorStop(0.6, `hsla(${(shadowHue + 180) % 360}, 80%, 40%, 0.06)`);
@@ -12885,10 +12927,11 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   ctx.save();
   ctx.translate(0, shadowY);
   ctx.scale(1, 0.3);
-  ctx.arc(0, 0, baseSize * 1.5, 0, Math.PI * 2);
+  ctx.arc(0, 0, baseSize * 3.0, 0, Math.PI * 2);
   ctx.restore();
   ctx.fill();
   ctx.restore();
 
   ctx.restore();
+  ctx.restore(); // Restore viewport scaling
 }
