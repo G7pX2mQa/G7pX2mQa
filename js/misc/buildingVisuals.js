@@ -12031,6 +12031,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // Outer border — enhanced with pulsing glow
         const borderPulse = 0.5 + 0.2 * Math.sin(t * 6);
+        cCtx.lineJoin = 'miter';
         cCtx.strokeStyle = `rgba(160,60,255,${borderPulse})`;
         cCtx.lineWidth = 1 * scale;
         cCtx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
@@ -12221,7 +12222,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
         ctx.restore();
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
-        ctx.strokeStyle = 'rgba(60,0,120,0.5)';
+        ctx.lineJoin = 'miter';
+        ctx.strokeStyle = 'rgba(30,0,80,0.8)';
         ctx.lineWidth = 1 * scale;
         ctx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
         ctx.fillStyle = 'rgba(90,20,170,0.85)';
@@ -12323,7 +12325,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.drawImage(window.beaconCorePatternCache2, 3*scale, 3*scale, 10*scale, 10*scale);
         ctx.imageSmoothingEnabled = true;
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
-        ctx.strokeStyle = 'rgba(60,0,120,0.5)';
+        ctx.lineJoin = 'miter';
+        ctx.strokeStyle = 'rgba(30,0,80,0.8)';
         ctx.lineWidth = 1 * scale;
         ctx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
         ctx.fillStyle = 'rgba(90,20,170,0.85)';
