@@ -11693,7 +11693,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         for (let arc = 0; arc < numArcs; arc++) {
           const alpha = drawArcPath(arc);
           if (alpha >= 0.05) {
-            ctx.globalAlpha = alpha;
+            ctx.globalAlpha = alpha * alphaMult;
             ctx.stroke();
           }
         }
@@ -11704,7 +11704,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         for (let arc = 0; arc < numArcs; arc++) {
           const alpha = drawArcPath(arc);
           if (alpha >= 0.05) {
-            ctx.globalAlpha = alpha;
+            ctx.globalAlpha = alpha * alphaMult;
             ctx.stroke();
           }
         }
