@@ -1162,8 +1162,8 @@ function drawCavern(ctx, w, h, t) {
     grad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
     grad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
     grad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
-    grad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
-    grad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+    grad.addColorStop(0.66, "rgba(0, 255, 255, 1)");
+    grad.addColorStop(0.83, "rgba(0, 0, 255, 1)");
     grad.addColorStop(1, "rgba(148, 0, 211, 1)");
   } else {
     grad.addColorStop(0, "#2e1c11");
@@ -1197,8 +1197,8 @@ function drawCavern(ctx, w, h, t) {
       stalactiteGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
       stalactiteGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
       stalactiteGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
-      stalactiteGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
-      stalactiteGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+      stalactiteGrad.addColorStop(0.66, "rgba(0, 255, 255, 1)");
+      stalactiteGrad.addColorStop(0.83, "rgba(0, 0, 255, 1)");
       stalactiteGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
     } else {
       stalactiteGrad.addColorStop(0, "#1c100a");
@@ -1226,8 +1226,8 @@ function drawCavern(ctx, w, h, t) {
         dropGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
         dropGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
         dropGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
-        dropGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
-        dropGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+        dropGrad.addColorStop(0.66, "rgba(0, 255, 255, 1)");
+        dropGrad.addColorStop(0.83, "rgba(0, 0, 255, 1)");
         dropGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
         ctx.fillStyle = dropGrad;
       } else {
@@ -1392,8 +1392,8 @@ function drawCavern(ctx, w, h, t) {
     groundGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
     groundGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
     groundGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
-    groundGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
-    groundGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+    groundGrad.addColorStop(0.66, "rgba(0, 255, 255, 1)");
+    groundGrad.addColorStop(0.83, "rgba(0, 0, 255, 1)");
     groundGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
     
     ctx.fillStyle = groundGrad;
