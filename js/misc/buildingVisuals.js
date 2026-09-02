@@ -11397,11 +11397,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
 
 
+    const ashPasses = [];
+
     // 3 & 5. Beacon Block + Beam — unified helper for all beacon positions
     // drawBeaconAt(cx, bpy, includeAsh)
-    //   cx         : world-space X center of the beacon
-    //   bpy        : Y of the TOP-LEFT corner of the beacon block (beaconPieceY in the old code)
-    //   includeAsh : whether to render the falling dark-matter ash particles (central beacon only)
     const drawBeaconAt = (cx, bpy, includeAsh) => {
       const bCrystalY = bpy + 3 * (blockSize / 16); // top of the core / beam terminus
 
@@ -11712,109 +11711,111 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
 
         // ── Enhanced Ash / Void Particles (more intense than T4) ──
-        {
-          const beamWidth = 32;
-          
-          ctx.fillStyle = '#000';
-          for (let i = 0; i < 120; i++) {
-            const seed = i * 73.19;
-            const randX = Math.abs(Math.sin(seed) * 10000);
-            const isVoid = (Math.floor(randX * 100) % 4) !== 0;
-            if (!isVoid) continue;
+        if (includeAsh) {
+          ashPasses.push(() => {
+            ctx.save();
+            ctx.translate(cx, 0);
+            const beamWidth = 32;
             
-            const cycle = (t * 2.0 + i * 0.163) % 1.0;
-            let alpha = 1.0;
-            if (cycle < 0.08) alpha = cycle / 0.08;
-            if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
-            if (alpha <= 0) continue;
+            ctx.fillStyle = '#000';
+            for (let i = 0; i < 120; i++) {
+              const seed = i * 73.19;
+              const randX = Math.abs(Math.sin(seed) * 10000);
+              const isVoid = (Math.floor(randX * 100) % 4) !== 0;
+              if (!isVoid) continue;
+              
+              const cycle = (t * 2.0 + i * 0.163) % 1.0;
+              let alpha = 1.0;
+              if (cycle < 0.08) alpha = cycle / 0.08;
+              if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
+              if (alpha <= 0) continue;
 
-            const yPos = bCrystalY - beamHeight * cycle;
-            const fracX = randX - Math.floor(randX);
-            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
-            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
-            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
+              const yPos = bCrystalY - beamHeight * cycle;
+              const fracX = randX - Math.floor(randX);
+              let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+              xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
+              xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
 
-            const randSize = Math.abs(Math.cos(seed) * 10000);
-            const fracSize = randSize - Math.floor(randSize);
-            const sz = 1.5 + fracSize * 4;
+              const randSize = Math.abs(Math.cos(seed) * 10000);
+              const fracSize = randSize - Math.floor(randSize);
+              const sz = 1.5 + fracSize * 4;
+              
+              ctx.globalAlpha = alpha * alphaMult;
+              ctx.fillRect(xPos - sz, yPos - sz, sz * 2, sz * 2);
+            }
+
+            const prGlob = Math.floor(100 + 20 * Math.sin(t * 3));
+            const pbGlob = Math.floor(200 + 20 * Math.sin(t * 3 + 4));
+            ctx.fillStyle = `rgb(${prGlob}, 0, ${pbGlob})`;
+            for (let i = 0; i < 120; i++) {
+              const seed = i * 73.19;
+              const randX = Math.abs(Math.sin(seed) * 10000);
+              const isVoid = (Math.floor(randX * 100) % 4) !== 0;
+              if (isVoid) continue;
+              
+              const cycle = (t * 2.0 + i * 0.163) % 1.0;
+              let alpha = 1.0;
+              if (cycle < 0.08) alpha = cycle / 0.08;
+              if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
+              if (alpha <= 0) continue;
+
+              const yPos = bCrystalY - beamHeight * cycle;
+              const fracX = randX - Math.floor(randX);
+              let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+              xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
+              xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
+
+              const randSize = Math.abs(Math.cos(seed) * 10000);
+              const fracSize = randSize - Math.floor(randSize);
+              const sz = 1.5 + fracSize * 4;
+              
+              ctx.globalAlpha = alpha * 0.9 * alphaMult;
+              ctx.fillRect(xPos - sz, yPos - sz, sz * 2, sz * 2);
+            }
+
+            if (!window.t8EnergyParticleGlowCache) {
+              const gcv = document.createElement('canvas');
+              gcv.width = 64;
+              gcv.height = 64;
+              const gcx = gcv.getContext('2d');
+              const grad = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
+              grad.addColorStop(0, 'rgba(90,0,180,1)'); // Base intense purple
+              grad.addColorStop(1, 'rgba(90,0,180,0)'); // Transparent edge
+              gcx.fillStyle = grad;
+              gcx.fillRect(0, 0, 64, 64);
+              window.t8EnergyParticleGlowCache = gcv;
+            }
             
-            ctx.globalAlpha = alpha * alphaMult;
-            ctx.fillRect(xPos - sz, yPos - sz, sz * 2, sz * 2);
-          }
+            for (let i = 0; i < 120; i++) {
+              const seed = i * 73.19;
+              const randX = Math.abs(Math.sin(seed) * 10000);
+              const isVoid = (Math.floor(randX * 100) % 4) !== 0;
+              if (isVoid) continue;
+              
+              const cycle = (t * 2.0 + i * 0.163) % 1.0;
+              let alpha = 1.0;
+              if (cycle < 0.08) alpha = cycle / 0.08;
+              if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
+              if (alpha <= 0.3) continue;
 
-          const prGlob = Math.floor(100 + 20 * Math.sin(t * 3));
-          const pbGlob = Math.floor(200 + 20 * Math.sin(t * 3 + 4));
-          ctx.fillStyle = `rgb(${prGlob}, 0, ${pbGlob})`;
-          for (let i = 0; i < 120; i++) {
-            const seed = i * 73.19;
-            const randX = Math.abs(Math.sin(seed) * 10000);
-            const isVoid = (Math.floor(randX * 100) % 4) !== 0;
-            if (isVoid) continue;
-            
-            const cycle = (t * 2.0 + i * 0.163) % 1.0;
-            let alpha = 1.0;
-            if (cycle < 0.08) alpha = cycle / 0.08;
-            if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
-            if (alpha <= 0) continue;
+              const yPos = bCrystalY - beamHeight * cycle;
+              const fracX = randX - Math.floor(randX);
+              let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+              const randMove = Math.abs(Math.sin(seed * 1.5) * 10000);
+              const moveAmp = (randMove - Math.floor(randMove) - 0.5) * 2;
+              xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10 * moveAmp;
+              xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5 * moveAmp;
 
-            const yPos = bCrystalY - beamHeight * cycle;
-            const fracX = randX - Math.floor(randX);
-            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
-            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
-            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
-
-            const randSize = Math.abs(Math.cos(seed) * 10000);
-            const fracSize = randSize - Math.floor(randSize);
-            const sz = 1.5 + fracSize * 4;
-            
-            ctx.globalAlpha = alpha * 0.9 * alphaMult;
-            ctx.fillRect(xPos - sz, yPos - sz, sz * 2, sz * 2);
-          }
-
-          if (!window.t8EnergyParticleGlowCache) {
-            const gcv = document.createElement('canvas');
-            gcv.width = 64;
-            gcv.height = 64;
-            const gcx = gcv.getContext('2d');
-            const grad = gcx.createRadialGradient(32, 32, 0, 32, 32, 32);
-            grad.addColorStop(0, 'rgba(90,0,180,1)'); // Base intense purple
-            grad.addColorStop(1, 'rgba(90,0,180,0)'); // Transparent edge
-            gcx.fillStyle = grad;
-            gcx.fillRect(0, 0, 64, 64);
-            window.t8EnergyParticleGlowCache = gcv;
-          }
-          
-          for (let i = 0; i < 120; i++) {
-            const seed = i * 73.19;
-            const randX = Math.abs(Math.sin(seed) * 10000);
-            const isVoid = (Math.floor(randX * 100) % 4) !== 0;
-            if (isVoid) continue;
-            
-            const cycle = (t * 2.0 + i * 0.163) % 1.0;
-            let alpha = 1.0;
-            if (cycle < 0.08) alpha = cycle / 0.08;
-            if (cycle > 0.92) alpha = (1.0 - cycle) / 0.08;
-            if (alpha <= 0.3) continue;
-
-            const yPos = bCrystalY - beamHeight * cycle;
-            const fracX = randX - Math.floor(randX);
-            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
-            const randMove = Math.abs(Math.sin(seed * 1.5) * 10000);
-            const moveAmp = (randMove - Math.floor(randMove) - 0.5) * 2;
-            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10 * moveAmp;
-            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5 * moveAmp;
-
-            const randSize = Math.abs(Math.cos(seed) * 10000);
-            const fracSize = randSize - Math.floor(randSize);
-            const sz = 1.5 + fracSize * 4;
-            
-            const glowSize = sz * 3;
-            ctx.globalAlpha = alpha * 0.3 * alphaMult;
-            ctx.drawImage(window.t8EnergyParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
-          }
-          
-          // Reset globalAlpha after loops
-          ctx.globalAlpha = alphaMult;
+              const randSize = Math.abs(Math.cos(seed) * 10000);
+              const fracSize = randSize - Math.floor(randSize);
+              const sz = 1.5 + fracSize * 4;
+              
+              const glowSize = sz * 3;
+              ctx.globalAlpha = alpha * 0.3 * alphaMult;
+              ctx.drawImage(window.t8EnergyParticleGlowCache, xPos - glowSize, yPos - glowSize, glowSize * 2, glowSize * 2);
+            }
+            ctx.restore();
+          });
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -12175,27 +12176,32 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         drawHelixL(true);
 
         if (includeAsh) {
-          const beamWidth = 28;
-          for (let i = 0; i < 80; i++) {
-            const cycle = (t * 0.4 + i * 0.21) % 1.0;
-            const yPos = bCrystalY - (bCrystalY - topY) * cycle;
-            const seed = i * 73.19;
-            const randX = Math.abs(Math.sin(seed) * 10000);
-            const fracX = randX - Math.floor(randX);
-            let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
-            const randMove = Math.abs(Math.sin(seed * 1.5) * 10000);
-            const moveAmp = (randMove - Math.floor(randMove) - 0.5) * 2;
-            xPos += Math.sin(yPos * 0.03 + t * 2 + seed) * 8 * moveAmp;
-            const isBlack = (Math.floor(randX * 100) % 3) !== 0;
-            let alpha = 1.0;
-            if (cycle < 0.1) alpha = cycle / 0.1;
-            if (cycle > 0.9) alpha = (1.0 - cycle) / 0.1;
-            ctx.fillStyle = isBlack ? `rgba(0,0,0,${alpha})` : `rgba(120,20,220,${alpha * 0.8})`;
-            const randSize = Math.abs(Math.cos(seed) * 10000);
-            const fracSize = randSize - Math.floor(randSize);
-            const pSz = 1.5 + (fracSize - Math.floor(fracSize)) * 3.5;
-            ctx.fillRect(xPos - pSz, yPos - pSz, pSz * 2, pSz * 2);
-          }
+          ashPasses.push(() => {
+            ctx.save();
+            ctx.translate(cx, 0);
+            const beamWidth = 28;
+            for (let i = 0; i < 80; i++) {
+              const cycle = (t * 0.4 + i * 0.21) % 1.0;
+              const yPos = bCrystalY - (bCrystalY - topY) * cycle;
+              const seed = i * 73.19;
+              const randX = Math.abs(Math.sin(seed) * 10000);
+              const fracX = randX - Math.floor(randX);
+              let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
+              const randMove = Math.abs(Math.sin(seed * 1.5) * 10000);
+              const moveAmp = (randMove - Math.floor(randMove) - 0.5) * 2;
+              xPos += Math.sin(yPos * 0.03 + t * 2 + seed) * 8 * moveAmp;
+              const isBlack = (Math.floor(randX * 100) % 3) !== 0;
+              let alpha = 1.0;
+              if (cycle < 0.1) alpha = cycle / 0.1;
+              if (cycle > 0.9) alpha = (1.0 - cycle) / 0.1;
+              ctx.fillStyle = isBlack ? `rgba(0,0,0,${alpha})` : `rgba(120,20,220,${alpha * 0.8})`;
+              const randSize = Math.abs(Math.cos(seed) * 10000);
+              const fracSize = randSize - Math.floor(randSize);
+              const pSz = 1.5 + (fracSize - Math.floor(fracSize)) * 3.5;
+              ctx.fillRect(xPos - pSz, yPos - pSz, pSz * 2, pSz * 2);
+            }
+            ctx.restore();
+          });
         }
 
         // Dark matter beacon block
@@ -12525,6 +12531,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
+    ashPasses.forEach(pass => pass());
 
     ctx.restore(); // Restore globalAlpha state
   };
