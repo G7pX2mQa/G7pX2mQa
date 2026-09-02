@@ -24,6 +24,7 @@ let globalRefineryAnimTime = 0; // Integrated time for smooth refinery animation
 let globalRefineryPipeTime = 0;
 let globalRefineryTankTime = 0;
 let globalOilRigAnimTime = 0;
+let globalBeaconAnimTime = 0;
 
 let keypadZoomedIn = false;
 let isVaultOpening = false;
@@ -880,6 +881,24 @@ function loop(currentTime) {
     oilRigSpeedMult = 1.0 + tier8Prog * 4.0; 
   }
   globalOilRigAnimTime += dt * oilRigSpeedMult;
+
+  let beaconSpeedMult = 1.0;
+  if (currentBuildingId === "unobtainium") {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress =
+        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
+    }
+    const tier8Prog =
+      drawTier >= 8 && previousTier < 8 ? animProgress : drawTier >= 8 ? 1 : 0;
+    
+    beaconSpeedMult = 0.2 + tier8Prog * 0.8; 
+  } else {
+  }
+  globalBeaconAnimTime += dt * beaconSpeedMult;
 
   if (isVaultOpening) {
     vaultOpeningTime -= dt;
@@ -11390,6 +11409,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       ctx.translate(cx, 0);  // shift x only; all Y coords remain world-space
 
       if (hasT8) {
+        const t = typeof globalBeaconAnimTime !== 'undefined' ? globalBeaconAnimTime : 0;
         // ══════════════════════════════════════════════════════════════════════
         // ██  T8: SINGULARITY BEACON — THE FINAL FORM  ██
         // ══════════════════════════════════════════════════════════════════════
@@ -11436,7 +11456,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
 
         const getHelixPt8 = (y, hIndex) => {
-          const freq = 0.015, speed = -4.0;
+          const freq = 0.015, speed = 4.0;
           let p = (y * freq + t * speed + hIndex * 0.5) % 1.0;
           if (p < 0) p += 1.0;
           const seg = Math.floor(p * 8), prog = (p * 8) % 1.0;
@@ -11602,16 +11622,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           }
         }
 
-        // Layer 3: Pulsating horizontal bands
-        const pulsePhase = t * 3;
-        ctx.save();
-        for (let band = 0; band < 4; band++) {
-          const bandY = topY + (band / 4) * beamHeight;
-          ctx.globalAlpha = 0.15 + 0.15 * Math.sin(pulsePhase + band * 0.8);
-          ctx.fillStyle = '#5a00b4';
-          ctx.fillRect(colLeft, bandY, colRight - colLeft, beamHeight / 12);
-        }
-        ctx.restore();
+        // Layer 3: Pulsating horizontal bands (Removed as requested)
 
         // Edge lines — brighter than T4
         ctx.beginPath();
@@ -11639,40 +11650,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         // ── FRONT HELICES ──
         drawHelixLayer8(true);
-
-        // ── Ascending energy rings — pulsing halos that travel up the beam ──
-        ctx.save();
-        
-        // Pass 1: Outer glow ring
-        ctx.strokeStyle = 'rgba(90,0,180,0.3)';
-        ctx.lineWidth = 6;
-        for (let ring = 0; ring < 4; ring++) {
-          const ringCycle = ((t * 2.5 + ring * 1.5) % 6) / 6;
-          const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
-          if (ringAlpha <= 0) continue;
-          const ringY = bCrystalY - ringCycle * beamHeight;
-          const ringR = R + 2 + Math.sin(ringCycle * Math.PI * 4) * 3;
-          ctx.globalAlpha = ringAlpha;
-          ctx.beginPath();
-          ctx.ellipse(0, ringY, ringR * 1.3, ringR * 0.35, 0, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        // Pass 2: Main ring
-        ctx.strokeStyle = 'rgba(100,50,200,0.8)';
-        ctx.lineWidth = 1.5;
-        for (let ring = 0; ring < 4; ring++) {
-          const ringCycle = ((t * 2.5 + ring * 1.5) % 6) / 6;
-          const ringAlpha = Math.sin(ringCycle * Math.PI) * 0.8;
-          if (ringAlpha <= 0) continue;
-          const ringY = bCrystalY - ringCycle * beamHeight;
-          const ringR = R + 2 + Math.sin(ringCycle * Math.PI * 4) * 3;
-          ctx.globalAlpha = ringAlpha;
-          ctx.beginPath();
-          ctx.ellipse(0, ringY, ringR * 0.9, ringR * 0.22, 0, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        ctx.restore();
 
         // ── Lightning arcs — erratic energy discharges between helices ──
         ctx.save();
@@ -12107,7 +12084,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         }
 
         const getHelixPt = (y, hIndex) => {
-          const freq = 0.015, speed = -2.5;
+          const freq = 0.015, speed = 2.5;
           let p = (y * freq + t * speed + hIndex * 0.5) % 1.0;
           if (p < 0) p += 1.0;
           const seg = Math.floor(p * 4), prog = (p * 4) % 1.0;
