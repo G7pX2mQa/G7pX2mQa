@@ -12619,10 +12619,14 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const canvasH = ctx.canvas.height;
   const floorY = canvasH - 260; // Consistent with drawBuilding
   
-  const availLeft = (canvasW / 2) / globalScale;
-  const availRight = (canvasW / 2) / globalScale;
-  const availTop = floorY / globalScale;
-  const availBottom = (canvasH - floorY) / globalScale;
+  // Calculate viewport fit based on the maximum possible scale (Tier 8)
+  // This ensures Tier 0 still looks proportionally smaller than Tier 8 on small screens.
+  const maxGlobalScale = 1.0 + 8 * 0.1; // Tier 8 max scale is 1.8
+  
+  const availLeft = (canvasW / 2) / maxGlobalScale;
+  const availRight = (canvasW / 2) / maxGlobalScale;
+  const availTop = floorY / maxGlobalScale;
+  const availBottom = (canvasH - floorY) / maxGlobalScale;
 
   const maxLocalRadius = 304; // Derived from max 4D projection extent
   const maxBob = 8;
