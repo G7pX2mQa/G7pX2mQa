@@ -477,14 +477,34 @@ const applySpreadsheetMode = () => {
         });
     } catch (e) {}
 };
+const applyBuildingVisualsMode = () => {
+    try {
+        if (!settingsManager.get("show_building_visuals")) {
+            document.body.classList.add("hide-building-visuals");
+        } else {
+            document.body.classList.remove("hide-building-visuals");
+        }
+    } catch (e) {}
+};
+
 window.addEventListener("setting:changed", (e) => {
     if (e?.detail?.key === "spreadsheet_mode") {
         applySpreadsheetMode();
+        applyBuildingVisualsMode();
+    }
+    if (e?.detail?.key === "show_building_visuals") {
+        applyBuildingVisualsMode();
     }
 });
-window.addEventListener("saveSlot:change", applySpreadsheetMode);
+window.addEventListener("saveSlot:change", () => {
+    applySpreadsheetMode();
+    applyBuildingVisualsMode();
+});
 if (typeof document !== "undefined") {
-    document.addEventListener("DOMContentLoaded", applySpreadsheetMode);
+    document.addEventListener("DOMContentLoaded", () => {
+        applySpreadsheetMode();
+        applyBuildingVisualsMode();
+    });
 }
 
 export let activePlaytime = 0;
