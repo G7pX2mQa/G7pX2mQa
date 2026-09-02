@@ -11650,65 +11650,6 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         // ── FRONT HELICES ──
         drawHelixLayer8(true);
 
-        // ── Lightning arcs — erratic energy discharges between helices ──
-        ctx.save();
-        const numArcs = 3;
-        const drawArcPath = (arc) => {
-          const arcSeed = arc * 37.7193;
-          const arcCycle = ((t * 4 + arcSeed) % 3) / 3;
-          const arcAlpha = Math.pow(Math.sin(arcCycle * Math.PI), 3); // Sharp flash
-          if (arcAlpha < 0.05) return arcAlpha;
-
-          // Random Y position along the beam
-          const prng = Math.abs(Math.sin(arcSeed * 12.9898) * 43758.5453);
-          const yFrac = prng - Math.floor(prng);
-          const arcStartY = topY + yFrac * beamHeight * 0.8;
-
-          // Two random helix points at that Y
-          const h1 = getHelixPt8(arcStartY, arc % 4);
-          const h2 = getHelixPt8(arcStartY, (arc + 2) % 4);
-
-          // Draw jagged lightning between h1 and h2
-          ctx.beginPath();
-          ctx.moveTo(h1.x, arcStartY);
-          const segments = 6;
-          for (let s = 1; s <= segments; s++) {
-            const frac = s / segments;
-            const midX = h1.x + (h2.x - h1.x) * frac;
-            const midY = arcStartY + (Math.sin(s * 4.2 + t * 20) * 8);
-            if (s < segments) {
-              const jitterX = Math.sin(arcSeed + s * 9.13 + t * 15) * 6;
-              const jitterY = Math.cos(arcSeed + s * 7.77 + t * 12) * 5;
-              ctx.lineTo(midX + jitterX, midY + jitterY);
-            } else {
-              ctx.lineTo(h2.x, arcStartY);
-            }
-          }
-          return arcAlpha;
-        };
-
-        // Pass 1: Glow layer
-        ctx.strokeStyle = 'rgba(100,0,180,0.4)';
-        ctx.lineWidth = 5;
-        for (let arc = 0; arc < numArcs; arc++) {
-          const alpha = drawArcPath(arc);
-          if (alpha >= 0.05) {
-            ctx.globalAlpha = alpha * alphaMult;
-            ctx.stroke();
-          }
-        }
-
-        // Pass 2: Core layer
-        ctx.strokeStyle = 'rgba(100,50,200,0.9)';
-        ctx.lineWidth = 2;
-        for (let arc = 0; arc < numArcs; arc++) {
-          const alpha = drawArcPath(arc);
-          if (alpha >= 0.05) {
-            ctx.globalAlpha = alpha * alphaMult;
-            ctx.stroke();
-          }
-        }
-        ctx.restore();
 
         // ── Enhanced Ash / Void Particles (more intense than T4) ──
         if (includeAsh) {
