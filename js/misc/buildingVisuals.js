@@ -12414,7 +12414,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         const cycle = ((t * 0.3 + i * 0.17) % 1.0);
         // Start near the base of the pyramid (0) and drift up slightly past the top (pyramidTopY)
         const startY = 0;
-        const endY = pyramidTopY - 20;
+        const endY = pyramidTopY + 3;
         const yPos = startY + (endY - startY) * cycle;
         
         // Spread particles across the dynamic width of the pyramid base truly randomly
@@ -12467,7 +12467,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
       for (let i = 0; i < numParticles; i++) {
         const cycle = ((t * 0.3 + i * 0.17) % 1.0);
         const startY = 0;
-        const endY = pyramidTopY - 20;
+        const endY = pyramidTopY + 3;
         const yPos = startY + (endY - startY) * cycle;
         
         // Different seed so they don't perfectly overlap T1
