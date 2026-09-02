@@ -449,6 +449,21 @@ export const SETTING_DEFINITIONS = {
             }
         },
     },
+    show_building_visuals: {
+        type: "toggle",
+        label: "Show Building Visuals",
+        overlay: "performance",
+        hasExtraInfo: true,
+        info: "Turning this setting OFF will hide all Building visuals. Viewing the Buildings consumes significant GPU, so it makes sense if you wish to stop viewing them.",
+        default: true,
+        unlockCondition: () => {
+            try {
+                return isBuildingsUnlocked();
+            } catch {
+                return false;
+            }
+        },
+    },
     insta_teleport: {
         type: "toggle",
         label: "Collectible Insta-Teleport",
@@ -758,10 +773,10 @@ class SettingsManager {
 
         if (
             !raw &&
-            (key === "show_side_containers" || key === "disable_webgl") && 
+            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals") && 
             this.settings["spreadsheet_mode"] === true
         ) {
-            // For show_side_containers, we want it OFF (false)
+            // For show_side_containers and show_building_visuals, we want it OFF (false)
             // For disable_webgl (Reduced GPU), we want it ON (true)
             return key === "disable_webgl" ? true : false;
         }
