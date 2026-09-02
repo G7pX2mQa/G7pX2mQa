@@ -12787,9 +12787,6 @@ function initPenteractGeometry() {
 }
 
 function drawTesseract(ctx, t, tier, prevTier, animProgress) {
-  // ── 4D Tesseract (Hypercube) ──
-  // 16 vertices of a 4D hypercube, projected 4D→3D→2D with perspective.
-  // Rainbow gradient faces, black outlines, floating above the ground.
   const showTier1 = tier >= 1 ? 1 : 0;
   const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
   const showTier2 = tier >= 2 ? 1 : 0;
@@ -12799,22 +12796,15 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const showTier4 = tier >= 4 ? 1 : 0;
   const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
 
-  const usePenteract = tier4Prog > 0 || tier >= 4;
-  const geom = usePenteract ? initPenteractGeometry() : initTesseractGeometry();
-  const numVerts = geom.rawVerts.length;
-  const is5D = numVerts === 32;
-
-  // ── Viewport Auto-Scaling ──
   const startScale = 1.0 + prevTier * 0.1;
   const targetScale = 1.0 + tier * 0.1;
   const globalScale = startScale + (targetScale - startScale) * animProgress;
   
   const canvasW = ctx.canvas.width;
   const canvasH = ctx.canvas.height;
-  const floorY = canvasH - 260; // Consistent with drawBuilding
+  const floorY = canvasH - 260;
   
-  // Calculate viewport fit based on the maximum possible scale (Tier 8)
-  const maxGlobalScale = 1.0 + 8 * 0.1; // Tier 8 max scale is 1.8
+  const maxGlobalScale = 1.0 + 8 * 0.1;
   
   const availLeft = (canvasW / 2) / maxGlobalScale;
   const availRight = (canvasW / 2) / maxGlobalScale;
@@ -12836,123 +12826,26 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   ctx.save();
   ctx.scale(viewportScale, viewportScale);
 
-  // Center position — float above ground, gently bobbing
   const bobSpeed = 0.8;
   const bobAmp = 8;
   const bob = Math.sin(t * bobSpeed) * bobAmp;
   const cx = 0;
   const cy = -130 + bob; 
-
   const baseSize = 42;
 
-  // ── ND Rotation ──
-  const rotXW = t * 0.4;  
-  const rotYW = t * 0.3;  
-  const rotZW = t * 0.2;  
-  const rotXY = t * 0.15; 
-  
-  const rotXV = t * 0.25;
-  const rotYV = t * 0.35;
-  const rotZV = t * 0.45;
-
+  const rotXW = t * 0.4, rotYW = t * 0.3, rotZW = t * 0.2, rotXY = t * 0.15; 
+  const rotXV = t * 0.25, rotYV = t * 0.35, rotZV = t * 0.45;
   const cosXW = Math.cos(rotXW), sinXW = Math.sin(rotXW);
   const cosYW = Math.cos(rotYW), sinYW = Math.sin(rotYW);
   const cosZW = Math.cos(rotZW), sinZW = Math.sin(rotZW);
   const cosXY = Math.cos(rotXY), sinXY = Math.sin(rotXY);
-  
   const cosXV = Math.cos(rotXV), sinXV = Math.sin(rotXV);
   const cosYV = Math.cos(rotYV), sinYV = Math.sin(rotYV);
   const cosZV = Math.cos(rotZV), sinZV = Math.sin(rotZV);
 
-  function rotateND(vArr) {
-    let x = vArr[0], y = vArr[1], z = vArr[2], w = vArr[3];
-    // Interpolate the 5th dimension size based on tier4Prog so it blooms out!
-    let v = is5D ? vArr[4] * tier4Prog : 0;
-
-    if (is5D) {
-      // Rotate XV
-      let nx = x * cosXV - v * sinXV;
-      let nv = x * sinXV + v * cosXV;
-      x = nx; v = nv;
-
-      // Rotate YV
-      let ny = y * cosYV - v * sinYV;
-      nv = y * sinYV + v * cosYV;
-      y = ny; v = nv;
-
-      // Rotate ZV
-      let nz = z * cosZV - v * sinZV;
-      nv = z * sinZV + v * cosZV;
-      z = nz; v = nv;
-    }
-
-    // Rotate XW
-    let nx = x * cosXW - w * sinXW;
-    let nw = x * sinXW + w * cosXW;
-    x = nx; w = nw;
-
-    // Rotate YW
-    let ny = y * cosYW - w * sinYW;
-    nw = y * sinYW + w * cosYW;
-    y = ny; w = nw;
-
-    // Rotate ZW
-    let nz = z * cosZW - w * sinZW;
-    nw = z * sinZW + w * cosZW;
-    z = nz; w = nw;
-
-    // Rotate XY
-    nx = x * cosXY - y * sinXY;
-    ny = x * sinXY + y * cosXY;
-    x = nx; y = ny;
-
-    return [x, y, z, w, v];
-  }
-
-  // ── ND → 2D Projection ──
-  const viewDist5D = 7.0; 
-  const viewDist4D = 6.0; 
-  const viewDist3D = 8.0; 
-
-  // Project all vertices directly into pre-allocated array
-  for (let i = 0; i < numVerts; i++) {
-    const vND = rotateND(geom.rawVerts[i]);
-    const x = vND[0], y = vND[1], z = vND[2], w = vND[3], v = vND[4];
-
-    const scale5 = 1.0; // Orthographic 5D->4D to prevent cascading perspective blowout
-    const x4 = x * scale5;
-    const y4 = y * scale5;
-    const z4 = z * scale5;
-    const w4 = w * scale5;
-
-    const scale4 = viewDist4D / (viewDist4D - w4);
-    const x3 = x4 * scale4;
-    const y3 = y4 * scale4;
-    const z3 = z4 * scale4;
-
-    const scale3 = viewDist3D / (viewDist3D - z3);
-    
-    geom.projected[i].x = x3 * scale3 * baseSize;
-    geom.projected[i].y = y3 * scale3 * baseSize;
-    geom.projected[i].depth = z3 + w4 * 0.5 + (is5D ? v * 0.25 : 0);
-    geom.projected[i].scale = scale5 * scale4 * scale3;
-  }
-
-  // ── Rainbow Gradient Helper ──
   function rainbowColor(param, alpha) {
     const hue = ((param * 360 + t * 60) % 360 + 360) % 360;
     return `hsla(${hue}, 100%, 55%, ${alpha})`;
-  }
-
-  // ── Depth update for faces (NO SORTING) ──
-  // We compute depth to adjust alpha (so front faces are more opaque),
-  // but we intentionally DO NOT sort the array to prevent z-fighting color snaps.
-  for (let i = 0; i < geom.facesWithDepth.length; i++) {
-    const f = geom.facesWithDepth[i];
-    f.depth = (geom.projected[f.indices[0]].depth + 
-               geom.projected[f.indices[1]].depth + 
-               geom.projected[f.indices[2]].depth + 
-               geom.projected[f.indices[3]].depth) / 4;
   }
 
   const drawSatellites = (isFront) => {
@@ -12965,28 +12858,21 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     
     for (let i = 0; i < numSatellites; i++) {
       const orbitAngle = t * 1.2 + (i * Math.PI * 2 / numSatellites);
-      
       const satX = Math.cos(orbitAngle) * orbitRadius;
-      const satY = Math.sin(orbitAngle) * orbitRadius * 0.3; // isometric tilt
+      const satY = Math.sin(orbitAngle) * orbitRadius * 0.3;
       const satZ = Math.sin(orbitAngle) * orbitRadius;
-      
       const bobOffset = Math.sin(t * 3 + i * Math.PI) * 10;
-      
       const satHue = ((t * 40 + (i / numSatellites) * 360) % 360 + 360) % 360;
       
       ctx.save();
       ctx.translate(satX, satY + bobOffset);
-      
-      const rotX = t * 2.1;
-      const rotY = t * 2.8;
+      const rotX = t * 2.1, rotY = t * 2.8;
       const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
       const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-      
       const verts = [
         [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
         [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
       ];
-      
       const projVerts = verts.map(v => {
         let x = v[0] * satSize, y = v[1] * satSize, z = v[2] * satSize;
         let nx = x * cosY - z * sinY;
@@ -12999,14 +12885,11 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
         const pScale = viewDist / (viewDist - z);
         return { x: x * pScale, y: y * pScale, depth: z + satZ };
       });
-      
       const edges = [
         [0,1], [1,2], [2,3], [3,0],
         [4,5], [5,6], [6,7], [7,4],
         [0,4], [1,5], [2,6], [3,7]
       ];
-
-      // Draw the aura if the center of the satellite matches the pass
       if ((satZ > 0 && isFront) || (satZ <= 0 && !isFront)) {
         const satAura = ctx.createRadialGradient(0, 0, 0, 0, 0, satSize * 2.5);
         satAura.addColorStop(0, `hsla(${satHue}, 100%, 70%, 0.4)`);
@@ -13016,12 +12899,10 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
         ctx.arc(0, 0, satSize * 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
-      
       const edgesToDraw = edges.filter(e => {
         const avgDepth = (projVerts[e[0]].depth + projVerts[e[1]].depth) / 2;
         return (avgDepth > 0 && isFront) || (avgDepth <= 0 && !isFront);
       });
-
       if (edgesToDraw.length > 0) {
         ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
         ctx.lineWidth = 3;
@@ -13031,7 +12912,6 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
           ctx.lineTo(projVerts[e[1]].x, projVerts[e[1]].y);
         });
         ctx.stroke();
-
         ctx.strokeStyle = `hsla(${satHue}, 100%, 70%, 1.0)`;
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -13041,8 +12921,210 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
         });
         ctx.stroke();
       }
-      
       ctx.restore();
+    }
+    ctx.restore();
+  };
+
+  const drawModel = (geom, modelAlpha, bloomProg) => {
+    if (modelAlpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha *= modelAlpha;
+    const numVerts = geom.rawVerts.length;
+    const is5D = numVerts === 32;
+
+    function rotateND(vArr) {
+      let x = vArr[0], y = vArr[1], z = vArr[2], w = vArr[3];
+      let v = is5D ? vArr[4] * bloomProg : 0;
+      if (is5D) {
+        let nx = x * cosXV - v * sinXV;
+        let nv = x * sinXV + v * cosXV;
+        x = nx; v = nv;
+        let ny = y * cosYV - v * sinYV;
+        nv = y * sinYV + v * cosYV;
+        y = ny; v = nv;
+        let nz = z * cosZV - v * sinZV;
+        nv = z * sinZV + v * cosZV;
+        z = nz; v = nv;
+      }
+      let nx = x * cosXW - w * sinXW;
+      let nw = x * sinXW + w * cosXW;
+      x = nx; w = nw;
+      let ny = y * cosYW - w * sinYW;
+      nw = y * sinYW + w * cosYW;
+      y = ny; w = nw;
+      let nz = z * cosZW - w * sinZW;
+      nw = z * sinZW + w * cosZW;
+      z = nz; w = nw;
+      nx = x * cosXY - y * sinXY;
+      ny = x * sinXY + y * cosXY;
+      x = nx; y = ny;
+      return [x, y, z, w, v];
+    }
+
+    const viewDist4D = 6.0; 
+    const viewDist3D = 8.0; 
+    for (let i = 0; i < numVerts; i++) {
+      const vND = rotateND(geom.rawVerts[i]);
+      const x = vND[0], y = vND[1], z = vND[2], w = vND[3], v = vND[4];
+      const scale5 = 1.0;
+      const x4 = x * scale5, y4 = y * scale5, z4 = z * scale5, w4 = w * scale5;
+      const scale4 = viewDist4D / (viewDist4D - w4);
+      const x3 = x4 * scale4, y3 = y4 * scale4, z3 = z4 * scale4;
+      const scale3 = viewDist3D / (viewDist3D - z3);
+      geom.projected[i].x = x3 * scale3 * baseSize;
+      geom.projected[i].y = y3 * scale3 * baseSize;
+      geom.projected[i].depth = z3 + w4 * 0.5 + (is5D ? v * 0.25 : 0);
+      geom.projected[i].scale = scale5 * scale4 * scale3;
+    }
+
+    for (let i = 0; i < geom.facesWithDepth.length; i++) {
+      const f = geom.facesWithDepth[i];
+      f.depth = (geom.projected[f.indices[0]].depth + 
+                 geom.projected[f.indices[1]].depth + 
+                 geom.projected[f.indices[2]].depth + 
+                 geom.projected[f.indices[3]].depth) / 4;
+    }
+
+    for (let i = 0; i < geom.facesWithDepth.length; i++) {
+      const face = geom.facesWithDepth[i];
+      const p0 = geom.projected[face.indices[0]];
+      const p1 = geom.projected[face.indices[1]];
+      const p2 = geom.projected[face.indices[2]];
+      const p3 = geom.projected[face.indices[3]];
+      const faceParam = face.faceIdx / geom.faces.length;
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      const faceAlpha = 0.3 + face.depth * 0.03;
+      ctx.fillStyle = rainbowColor(faceParam, Math.max(0.1, Math.min(0.5, faceAlpha)));
+      ctx.fill();
+    }
+
+    for (let k = 0; k < geom.edgesWithDepth.length; k++) {
+      const edge = geom.edgesWithDepth[k];
+      edge.depth = (geom.projected[edge.i].depth + geom.projected[edge.j].depth) / 2;
+    }
+    geom.edgesWithDepth.sort((a, b) => a.depth - b.depth);
+
+    for (let k = 0; k < geom.edgesWithDepth.length; k++) {
+      const edge = geom.edgesWithDepth[k];
+      const p1 = geom.projected[edge.i];
+      const p2 = geom.projected[edge.j];
+      const edgeAlpha = 0.6 + edge.depth * 0.05;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = rainbowColor(edge.edgeParam, Math.max(0.5, Math.min(1.0, edgeAlpha)));
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    }
+
+    if (!geom.trailHistory || Math.abs(t - (geom.lastTrailTime || 0)) > 0.1 || geom.trailHistory.length !== numVerts) {
+      geom.trailHistory = Array(numVerts).fill(null).map(() => []);
+    }
+    geom.lastTrailTime = t;
+    for (let i = 0; i < numVerts; i++) {
+      geom.trailHistory[i].unshift({ x: geom.projected[i].x, y: geom.projected[i].y, scale: geom.projected[i].scale });
+      if (geom.trailHistory[i].length > 50) { 
+        geom.trailHistory[i].pop();
+      }
+    }
+
+    if (tier2Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha *= tier2Prog;
+      for (let i = 0; i < numVerts; i++) {
+        const history = geom.trailHistory[i];
+        if (history.length < 2) continue;
+        const vertParam = i / numVerts;
+        const baseHue = ((vertParam * 360 + t * 60) % 360 + 360) % 360;
+        for (let j = 0; j < history.length - 1; j++) {
+          const p1 = history[j];
+          const p2 = history[j + 1];
+          const life = Math.pow(1 - (j / history.length), 0.7); 
+          const width = (2.5 + p1.scale * 1.5) * life * 4.0;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `hsla(${baseHue}, 100%, 65%, ${life})`;
+          ctx.lineWidth = width;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    if (tier3Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha *= tier3Prog;
+      const frameRate = 12;
+      const arcSeed = Math.floor(t * frameRate);
+      const numArcs = (arcSeed % 3) + 1;
+      for (let a = 0; a < numArcs; a++) {
+        const rand1 = Math.abs(Math.sin(arcSeed * 1.1 + a * 3.7));
+        const rand2 = Math.abs(Math.cos(arcSeed * 1.5 + a * 2.3));
+        const v1 = Math.floor(rand1 * numVerts) % numVerts;
+        let v2 = Math.floor(rand2 * numVerts) % numVerts;
+        if (v1 === v2) v2 = (v2 + 1) % numVerts;
+        const p1 = geom.projected[v1];
+        const p2 = geom.projected[v2];
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const segments = Math.max(3, Math.floor(dist / 15));
+        const jagAmp = 10;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        for (let s = 1; s < segments; s++) {
+          const segFrac = s / segments;
+          const bx = p1.x + dx * segFrac;
+          const by = p1.y + dy * segFrac;
+          const jagRand = Math.sin(arcSeed * 2.1 + a * 4.3 + s * 1.7) * 2 - 1; 
+          const nx = -dy / dist;
+          const ny = dx / dist;
+          ctx.lineTo(bx + nx * jagRand * jagAmp, by + ny * jagRand * jagAmp);
+        }
+        ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = rainbowColor((v1 + v2) / (numVerts * 2), 0.8);
+        ctx.lineWidth = 4;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    for (let i = 0; i < numVerts; i++) {
+      const p = geom.projected[i];
+      const vertParam = i / numVerts;
+      const dotSize = Math.max(0, 2.5 + p.scale * 0.8);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, dotSize + 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, dotSize, 0, Math.PI * 2);
+      ctx.fillStyle = rainbowColor(vertParam, 1.0);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x - dotSize * 0.3, p.y - dotSize * 0.3, Math.max(0, dotSize * 0.4), 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.fill();
     }
     ctx.restore();
   };
@@ -13052,7 +13134,6 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
   drawSatellites(false);
 
-  // ── Outer glow / aura ──
   const glowRadius = baseSize * 4.4;
   const auraGrad = ctx.createRadialGradient(0, 0, baseSize * 1.0, 0, 0, glowRadius);
   const glowHue = ((t * 40) % 360 + 360) % 360;
@@ -13064,193 +13145,13 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  // ── Draw filled faces (Fixed draw order, source-over) ──
-  for (let i = 0; i < geom.facesWithDepth.length; i++) {
-    const face = geom.facesWithDepth[i];
-    const p0 = geom.projected[face.indices[0]];
-    const p1 = geom.projected[face.indices[1]];
-    const p2 = geom.projected[face.indices[2]];
-    const p3 = geom.projected[face.indices[3]];
-    const faceParam = face.faceIdx / geom.faces.length;
-
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.lineTo(p3.x, p3.y);
-    ctx.closePath();
-
-    // Revert to the original deeper glass alpha math
-    const faceAlpha = 0.3 + face.depth * 0.03;
-    ctx.fillStyle = rainbowColor(faceParam, Math.max(0.1, Math.min(0.5, faceAlpha)));
-    ctx.fill();
-  }
-
-  // ── Sort edges by average depth ──
-  for (let k = 0; k < geom.edgesWithDepth.length; k++) {
-    const edge = geom.edgesWithDepth[k];
-    edge.depth = (geom.projected[edge.i].depth + geom.projected[edge.j].depth) / 2;
-  }
-  geom.edgesWithDepth.sort((a, b) => a.depth - b.depth);
-
-  // ── Draw edges ──
-  for (let k = 0; k < geom.edgesWithDepth.length; k++) {
-    const edge = geom.edgesWithDepth[k];
-    const p1 = geom.projected[edge.i];
-    const p2 = geom.projected[edge.j];
-    const edgeAlpha = 0.6 + edge.depth * 0.05;
-
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-    ctx.lineWidth = 3.5;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = rainbowColor(edge.edgeParam, Math.max(0.5, Math.min(1.0, edgeAlpha)));
-    ctx.lineWidth = 1.8;
-    ctx.stroke();
-  }
-
-  // ── Vertex Trails Accumulation ──
-  if (!geom.trailHistory || Math.abs(t - (geom.lastTrailTime || 0)) > 0.1 || geom.trailHistory.length !== numVerts) {
-    geom.trailHistory = Array(numVerts).fill(null).map(() => []);
-  }
-  geom.lastTrailTime = t;
-  
-  // Push current positions
-  for (let i = 0; i < numVerts; i++) {
-    geom.trailHistory[i].unshift({ x: geom.projected[i].x, y: geom.projected[i].y, scale: geom.projected[i].scale });
-    if (geom.trailHistory[i].length > 50) { // 3x longer
-      geom.trailHistory[i].pop();
-    }
-  }
-
-  // ── Vertex Trails (Tier 2) ──
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-
-    for (let i = 0; i < numVerts; i++) {
-      const history = geom.trailHistory[i];
-      if (history.length < 2) continue;
-
-      const vertParam = i / numVerts;
-      // We want a rainbow trail that matches the vertex color
-      const baseHue = ((vertParam * 360 + t * 60) % 360 + 360) % 360;
-
-      for (let j = 0; j < history.length - 1; j++) {
-        const p1 = history[j];
-        const p2 = history[j + 1];
-        // Non-linear fade so it stays visible longer
-        const life = Math.pow(1 - (j / history.length), 0.7); 
-
-        const width = (2.5 + p1.scale * 1.5) * life * 4.0;
-
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        
-        ctx.strokeStyle = `hsla(${baseHue}, 100%, 65%, ${life})`;
-        ctx.lineWidth = width;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.stroke();
-
-      }
-    }
-    ctx.restore();
-  }
-
-
-  // ── Internal Energy Arcs (Tier 3) ──
-  if (tier3Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier3Prog;
-    
-    // We want the arcs to pop in and out quickly.
-    // Use a pseudo-random seed based on time to keep arcs consistent for a few frames
-    const frameRate = 12; // Arcs change 12 times a second
-    const arcSeed = Math.floor(t * frameRate);
-    
-    // We can draw 1-3 arcs depending on the seed
-    const numArcs = (arcSeed % 3) + 1;
-    
-    for (let a = 0; a < numArcs; a++) {
-      const rand1 = Math.abs(Math.sin(arcSeed * 1.1 + a * 3.7));
-      const rand2 = Math.abs(Math.cos(arcSeed * 1.5 + a * 2.3));
-      
-      const v1 = Math.floor(rand1 * numVerts) % numVerts;
-      let v2 = Math.floor(rand2 * numVerts) % numVerts;
-      if (v1 === v2) v2 = (v2 + 1) % numVerts;
-      
-      const p1 = geom.projected[v1];
-      const p2 = geom.projected[v2];
-      
-      // Calculate arc points with jaggedness
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      const segments = Math.max(3, Math.floor(dist / 15));
-      const jagAmp = 10; // Amplitude of the jaggedness
-      
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      for (let s = 1; s < segments; s++) {
-        const segFrac = s / segments;
-        const bx = p1.x + dx * segFrac;
-        const by = p1.y + dy * segFrac;
-        
-        // Random offset orthogonal to the line
-        const jagRand = Math.sin(arcSeed * 2.1 + a * 4.3 + s * 1.7) * 2 - 1; 
-        
-        // Normal vector to the line
-        const nx = -dy / dist;
-        const ny = dx / dist;
-        
-        ctx.lineTo(bx + nx * jagRand * jagAmp, by + ny * jagRand * jagAmp);
-      }
-      ctx.lineTo(p2.x, p2.y);
-      
-      // Draw outer colored glow
-      ctx.strokeStyle = rainbowColor((v1 + v2) / (numVerts * 2), 0.8);
-      ctx.lineWidth = 4;
-      ctx.globalCompositeOperation = "lighter";
-      ctx.stroke();
-      
-      // Draw inner bright core
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  // ── Draw vertices ──
-  for (let i = 0; i < numVerts; i++) {
-    const p = geom.projected[i];
-    const vertParam = i / numVerts;
-    const dotSize = Math.max(0, 2.5 + p.scale * 0.8);
-
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, dotSize + 1.2, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, dotSize, 0, Math.PI * 2);
-    ctx.fillStyle = rainbowColor(vertParam, 1.0);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(p.x - dotSize * 0.3, p.y - dotSize * 0.3, dotSize * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-    ctx.fill();
+  if (tier >= 4 && prevTier < 4) {
+    drawModel(initTesseractGeometry(), 1.0 - animProgress, 0);
+    drawModel(initPenteractGeometry(), animProgress, animProgress);
+  } else if (tier >= 4) {
+    drawModel(initPenteractGeometry(), 1.0, 1.0);
+  } else {
+    drawModel(initTesseractGeometry(), 1.0, 0);
   }
 
   drawSatellites(true);
