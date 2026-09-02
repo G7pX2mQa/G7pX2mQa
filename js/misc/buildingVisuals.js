@@ -12719,6 +12719,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
   const showTier2 = tier >= 2 ? 1 : 0;
   const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
+  const showTier3 = tier >= 3 ? 1 : 0;
+  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
 
   // ── Viewport Auto-Scaling ──
   const startScale = 1.0 + prevTier * 0.1;
@@ -13047,6 +13049,72 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+
+  // ── Internal Energy Arcs (Tier 3) ──
+  if (tier3Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier3Prog;
+    
+    // We want the arcs to pop in and out quickly.
+    // Use a pseudo-random seed based on time to keep arcs consistent for a few frames
+    const frameRate = 12; // Arcs change 12 times a second
+    const arcSeed = Math.floor(t * frameRate);
+    
+    // We can draw 1-3 arcs depending on the seed
+    const numArcs = (arcSeed % 3) + 1;
+    
+    for (let a = 0; a < numArcs; a++) {
+      // Very simple pseudo-random generation based on seed and arc index
+      const rand1 = Math.abs(Math.sin(arcSeed * 1.1 + a * 3.7));
+      const rand2 = Math.abs(Math.cos(arcSeed * 1.5 + a * 2.3));
+      
+      const v1 = Math.floor(rand1 * 16) % 16;
+      let v2 = Math.floor(rand2 * 16) % 16;
+      if (v1 === v2) v2 = (v2 + 1) % 16;
+      
+      const p1 = geom.projected[v1];
+      const p2 = geom.projected[v2];
+      
+      // Calculate arc points with jaggedness
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      const segments = Math.max(3, Math.floor(dist / 15));
+      const jagAmp = 10; // Amplitude of the jaggedness
+      
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      for (let s = 1; s < segments; s++) {
+        const segFrac = s / segments;
+        const bx = p1.x + dx * segFrac;
+        const by = p1.y + dy * segFrac;
+        
+        // Random offset orthogonal to the line
+        const jagRand = Math.sin(arcSeed * 2.1 + a * 4.3 + s * 1.7) * 2 - 1; 
+        
+        // Normal vector to the line
+        const nx = -dy / dist;
+        const ny = dx / dist;
+        
+        ctx.lineTo(bx + nx * jagRand * jagAmp, by + ny * jagRand * jagAmp);
+      }
+      ctx.lineTo(p2.x, p2.y);
+      
+      // Draw outer colored glow
+      ctx.strokeStyle = rainbowColor((v1 + v2) / 32, 0.8);
+      ctx.lineWidth = 4;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.stroke();
+      
+      // Draw inner bright core
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 
   // ── Draw vertices ──
   for (let i = 0; i < 16; i++) {
