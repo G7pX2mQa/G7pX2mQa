@@ -405,7 +405,6 @@ function initRubyPattern(ctx) {
   pCtx.fillStyle = '#ff2020';
   pCtx.fillRect(0, 0, size, size);
 
-  // Diagonal strokes to mimic the gem grain seen in ruby.webp
   for (let i = 0; i < 800; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
@@ -1086,15 +1085,6 @@ function draw(ctx, keypadCtx, width, height, t) {
 }
 function drawCavern(ctx, w, h, t) {
   if (!window.currentCavernLayout) {
-    const numGems = 20 + Math.floor(Math.random() * 11);
-    const gems = [];
-    for (let i = 0; i < numGems; i++) {
-      gems.push({
-        xFrac: Math.random(),
-        yFrac: Math.random(),
-        gemType: Math.floor(Math.random() * 20), // 20 cached gemstone combinations
-      });
-    }
 
     const numStalactites = 8 + Math.floor(Math.random() * 8);
     const stalactites = [];
@@ -1163,7 +1153,7 @@ function drawCavern(ctx, w, h, t) {
       }
     }
 
-    window.currentCavernLayout = { gems, stalactites, cracks };
+    window.currentCavernLayout = { stalactites, cracks };
   }
 
   const grad = ctx.createLinearGradient(0, 0, 0, h);
@@ -1382,6 +1372,7 @@ function drawCavern(ctx, w, h, t) {
     // Custom rainbow ground carving for Tesseract
     const groundY = h - floorH;
     const holeRadius = floorH - 10; // Leaves a bit of space at the bottom
+    const holeWidthRadius = Math.min(w * 0.5, holeRadius + 250);
 
     const groundGrad = ctx.createLinearGradient(0, groundY, 0, groundY + floorH);
     groundGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
@@ -1398,9 +1389,9 @@ function drawCavern(ctx, w, h, t) {
     // Start from top-left of the ground
     ctx.moveTo(-50, groundY);
     // Line to the left edge of the hole
-    ctx.lineTo(w / 2 - holeRadius - 100, groundY);
+    ctx.lineTo(w / 2 - holeWidthRadius, groundY);
     // Semi-circle arc downwards (counter-clockwise), stretch x slightly
-    ctx.ellipse(w / 2, groundY, holeRadius + 250, holeRadius, 0, Math.PI, 0, true); // Hole Width determiner line here. Change the 250 in `holeRadius + 250`; increase it for wider, decrease it for smaller.
+    ctx.ellipse(w / 2, groundY, holeWidthRadius, holeRadius, 0, Math.PI, 0, true);
     // Line to the right edge of the ground
     ctx.lineTo(w + 50, groundY);
     // Line down to bottom right
@@ -1420,82 +1411,6 @@ function drawCavern(ctx, w, h, t) {
     ctx.fillStyle = "rgb(18, 12, 10)";
     ctx.fillRect(-50, h - floorH * 0.6, w + 100, floorH * 0.6 + 50);
   }
-
-  // generate and draw clusters identically to sellTab.js
-  const colors = [
-    { r: 0, g: 255, b: 255 }, // Bright Cyan
-    { r: 148, g: 0, b: 211 }, // Deep Purple
-    { r: 235, g: 30, b: 50 }, // Red (Ruby)
-    { r: 40, g: 220, b: 100 }, // Green (Emerald)
-  ];
-
-  if (!window.cachedGemstones) {
-    window.cachedGemstones = [];
-    for (let i = 0; i < 20; i++) {
-      const sharedColor = colors[i % colors.length];
-      const clusters = [];
-      const numPieces = 3 + Math.floor(Math.abs(Math.sin(i * 123.45)) * 3);
-      for (let p = 0; p < numPieces; p++) {
-        const pSize = 4 + Math.abs(Math.sin(p * 456.78)) * 6;
-        const numVertices = 4 + Math.floor(Math.abs(Math.cos(p * 789.01)) * 4);
-        const facets = [];
-        for (let v = 0; v < numVertices; v++) {
-          const angle = (v / numVertices) * Math.PI * 2;
-          const rad = pSize * (0.6 + Math.abs(Math.sin(v * 12.34)) * 0.6);
-          const shade = 0.6 + Math.abs(Math.cos(v * 56.78)) * 0.6;
-          facets.push({
-            dx: Math.cos(angle) * rad,
-            dy: Math.sin(angle) * rad,
-            shade,
-          });
-        }
-        clusters.push({
-          ox: (Math.abs(Math.sin(p * 90.12)) - 0.5) * 10,
-          oy: (Math.abs(Math.cos(p * 34.56)) - 0.5) * 10,
-          facets,
-          size: pSize,
-        });
-      }
-
-      let cachedImage;
-      if (typeof OffscreenCanvas !== 'undefined') {
-        cachedImage = new OffscreenCanvas(40, 40);
-      } else {
-        cachedImage = document.createElement("canvas");
-        cachedImage.width = 40;
-        cachedImage.height = 40;
-      }
-      const octx = cachedImage.getContext("2d");
-      octx.translate(20, 20); // Center drawing
-
-      for (const cl of clusters) {
-        const px = cl.ox;
-        const py = cl.oy;
-        if (cl.facets && cl.facets.length > 0) {
-          for (let v = 0; v < cl.facets.length; v++) {
-            const p1 = cl.facets[v];
-            const p2 = cl.facets[(v + 1) % cl.facets.length];
-
-            octx.beginPath();
-            octx.moveTo(px, py); // center point
-            octx.lineTo(px + p1.dx, py + p1.dy);
-            octx.lineTo(px + p2.dx, py + p2.dy);
-            octx.closePath();
-
-            // Calculate shaded color for this facet
-            const r = Math.min(255, sharedColor.r * p1.shade);
-            const g = Math.min(255, sharedColor.g * p1.shade);
-            const b = Math.min(255, sharedColor.b * p1.shade);
-            octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            octx.fill();
-          }
-        }
-      }
-      window.cachedGemstones.push(cachedImage);
-    }
-  }
-
-  // Gemstones completely removed from standard ground visuals
 }
 
 function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress) {
@@ -6662,8 +6577,6 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   
   ctx.fillStyle = "rgb(18, 12, 10)";
   ctx.fillRect(-1600, floorH - floorH * 0.6, 3200, floorH * 0.6 + 50);
-
-  // Gemstones completely removed from fake ground for Vault building
 
   ctx.restore();
 
