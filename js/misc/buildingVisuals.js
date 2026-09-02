@@ -11799,8 +11799,10 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             const yPos = bCrystalY - beamHeight * cycle;
             const fracX = randX - Math.floor(randX);
             let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
-            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10;
-            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5;
+            const randMove = Math.abs(Math.sin(seed * 1.5) * 10000);
+            const moveAmp = (randMove - Math.floor(randMove) - 0.5) * 2;
+            xPos += Math.sin(yPos * 0.025 + t * 3 + seed) * 10 * moveAmp;
+            xPos += Math.cos(yPos * 0.04 + t * 2 + i) * 5 * moveAmp;
 
             const randSize = Math.abs(Math.cos(seed) * 10000);
             const fracSize = randSize - Math.floor(randSize);
@@ -12180,7 +12182,9 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             const randX = Math.abs(Math.sin(seed) * 10000);
             const fracX = randX - Math.floor(randX);
             let xPos = (fracX - 0.5) * 2 * beamWidth * 0.9;
-            xPos += Math.sin(yPos * 0.03 + t * 2 + seed) * 8;
+            const randMove = Math.abs(Math.sin(seed * 1.5) * 10000);
+            const moveAmp = (randMove - Math.floor(randMove) - 0.5) * 2;
+            xPos += Math.sin(yPos * 0.03 + t * 2 + seed) * 8 * moveAmp;
             const isBlack = (Math.floor(randX * 100) % 3) !== 0;
             let alpha = 1.0;
             if (cycle < 0.1) alpha = cycle / 0.1;
