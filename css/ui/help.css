@@ -184,8 +184,8 @@
   filter: brightness(1.2);
 }
 
-/* Intro Theme */
-.help-layer.is-intro {
+/* Welcome Theme */
+.help-layer.is-welcome {
   background: linear-gradient(180deg, rgba(247, 214, 75, 0.4), rgba(232, 184, 0, 0.25));
   box-shadow: inset 0 0 0 2px rgba(247, 214, 75, 0.2);
 }
@@ -229,8 +229,8 @@
 
 /* --- Theming for Help Cards --- */
 
-/* Intro Card */
-.help-card.is-intro {
+/* Welcome Card */
+.help-card.is-welcome {
   background: linear-gradient(180deg, hsl(47 95% 55% / 0.96), hsl(40 85% 45% / 0.98));
   border: 1px solid hsl(47 90% 55% / 0.85);
 }
