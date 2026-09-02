@@ -11230,7 +11230,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         const blockCenterX = bx + Math.floor(blockSize / 2);
         if (blockCenterX < -1) {
             // Block is on the left
-            ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Left edge is dark
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; // Left edge is dark
             ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Right edge is bright
             ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
@@ -11238,7 +11238,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
             // Block is on the right
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Left edge is bright
             ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Right edge is dark
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; // Right edge is dark
             ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
         } else {
             // Center block
