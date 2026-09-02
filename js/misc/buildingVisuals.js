@@ -34,6 +34,7 @@ let canvasClickListener = null;
 let canvasPointerMoveListener = null;
 let canvasKeyDownListener = null;
 let lastHotkeyNum = null;
+let lastHoveredNum = null;
 let canvasMouseX = 0;
 let canvasMouseY = 0;
 const coinImg = new Image();
@@ -704,6 +705,7 @@ export function stopCanvasLoop() {
     canvasKeyDownListener = null;
   }
   lastHotkeyNum = null;
+  lastHoveredNum = null;
 
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
@@ -6810,14 +6812,30 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     const kx = (canvasMouseX - Math.floor(w / 2)) / zoomFactor;
     const ky = (canvasMouseY - Math.floor(h / 2)) / zoomFactor;
 
+    let currentHoveredNum = null;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const bx = -9.5 + c * 7;
+        const by = -3 + r * 7;
+        if (kx >= bx && kx < bx + 5 && ky >= by && ky < by + 5) {
+          currentHoveredNum = r * 3 + c + 1;
+        }
+      }
+    }
+
+    if (currentHoveredNum !== null && currentHoveredNum !== lastHoveredNum) {
+      lastHotkeyNum = null;
+    }
+    lastHoveredNum = currentHoveredNum;
+
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
         const bx = -9.5 + c * 7;
         const by = -3 + r * 7;
         const btnNum = r * 3 + c + 1;
 
-        const isHovered = kx >= bx && kx < bx + 5 && ky >= by && ky < by + 5;
-        const isHighlighted = isHovered || (IS_MOBILE && lastHotkeyNum === btnNum);
+        const isHovered = currentHoveredNum === btnNum;
+        const isHighlighted = isHovered || lastHotkeyNum === btnNum;
         keypadCtx.fillStyle = isHighlighted ? "#656565" : "#434343";
         keypadCtx.fillRect(bx, by, 5, 5);
 
