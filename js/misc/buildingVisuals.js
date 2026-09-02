@@ -13072,24 +13072,6 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
   drawSatellites(true);
 
-  // ── Shadow / reflection on the ground ──
-  ctx.save();
-  const shadowY = -cy + 5; 
-  const shadowGrad = ctx.createRadialGradient(0, shadowY, 0, 0, shadowY, baseSize * 3.0);
-  const shadowHue = ((t * 30) % 360 + 360) % 360;
-  shadowGrad.addColorStop(0, `hsla(${shadowHue}, 80%, 50%, 0.15)`);
-  shadowGrad.addColorStop(0.6, `hsla(${(shadowHue + 180) % 360}, 80%, 40%, 0.06)`);
-  shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = shadowGrad;
-  ctx.beginPath();
-  ctx.save();
-  ctx.translate(0, shadowY);
-  ctx.scale(1, 0.3);
-  ctx.arc(0, 0, baseSize * 3.0, 0, Math.PI * 2);
-  ctx.restore();
-  ctx.fill();
-  ctx.restore();
-
   ctx.restore();
   ctx.restore(); 
 }
