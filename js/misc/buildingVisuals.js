@@ -12709,18 +12709,100 @@ function initTesseractGeometry() {
   return tesseractStatic;
 }
 
+let penteractStatic = null;
+function initPenteractGeometry() {
+  if (penteractStatic) return penteractStatic;
+
+  const dim = 2 * Math.sqrt(4/5); // Scale down so 5D radius matches 4D radius
+  const dimX = dim, dimY = dim, dimZ = dim, dimW = dim, dimV = dim;
+  const rawVerts = [];
+  for (let i = 0; i < 32; i++) {
+    rawVerts.push([
+      (i & 1) ? dimX : -dimX,
+      (i & 2) ? dimY : -dimY,
+      (i & 4) ? dimZ : -dimZ,
+      (i & 8) ? dimW : -dimW,
+      (i & 16) ? dimV : -dimV,
+    ]);
+  }
+
+  const edges = [];
+  for (let i = 0; i < 32; i++) {
+    for (let j = i + 1; j < 32; j++) {
+      let diff = 0;
+      let diffDim = 0;
+      for (let d = 0; d < 5; d++) {
+        if (rawVerts[i][d] !== rawVerts[j][d]) {
+          diff++;
+          diffDim = d;
+        }
+      }
+      if (diff === 1) edges.push({ i, j, edgeParam: diffDim / 5 });
+    }
+  }
+
+  const faces = [];
+  for (let a1 = 0; a1 < 5; a1++) {
+    for (let a2 = a1 + 1; a2 < 5; a2++) {
+      const fixedAxes = [];
+      for (let d = 0; d < 5; d++) {
+        if (d !== a1 && d !== a2) fixedAxes.push(d);
+      }
+      const dims = [dimX, dimY, dimZ, dimW, dimV];
+      const v0 = dims[fixedAxes[0]];
+      const v1 = dims[fixedAxes[1]];
+      const v2 = dims[fixedAxes[2]];
+
+      for (let fv0 = -v0; fv0 <= v0; fv0 += v0 * 2) {
+        for (let fv1 = -v1; fv1 <= v1; fv1 += v1 * 2) {
+          for (let fv2 = -v2; fv2 <= v2; fv2 += v2 * 2) {
+            const faceVerts = [];
+            for (let i = 0; i < 32; i++) {
+              if (rawVerts[i][fixedAxes[0]] === fv0 &&
+                  rawVerts[i][fixedAxes[1]] === fv1 &&
+                  rawVerts[i][fixedAxes[2]] === fv2) {
+                faceVerts.push(i);
+              }
+            }
+            if (faceVerts.length === 4) {
+              const sorted = faceVerts.slice().sort((a, b) => {
+                const va1 = rawVerts[a][a1], va2 = rawVerts[a][a2];
+                const vb1 = rawVerts[b][a1], vb2 = rawVerts[b][a2];
+                return Math.atan2(va2, va1) - Math.atan2(vb2, vb1);
+              });
+              faces.push(sorted);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const facesWithDepth = faces.map((indices, idx) => ({ indices, depth: 0, faceIdx: idx }));
+  const edgesWithDepth = edges.map(edge => ({ i: edge.i, j: edge.j, edgeParam: edge.edgeParam, depth: 0 }));
+  const projected = new Array(32).fill(null).map(() => ({ x: 0, y: 0, depth: 0, scale: 0 }));
+
+  penteractStatic = { rawVerts, edges, faces, facesWithDepth, edgesWithDepth, projected };
+  return penteractStatic;
+}
+
 function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   // ── 4D Tesseract (Hypercube) ──
   // 16 vertices of a 4D hypercube, projected 4D→3D→2D with perspective.
   // Rainbow gradient faces, black outlines, floating above the ground.
-  const geom = initTesseractGeometry();
-
   const showTier1 = tier >= 1 ? 1 : 0;
   const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
   const showTier2 = tier >= 2 ? 1 : 0;
   const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
   const showTier3 = tier >= 3 ? 1 : 0;
   const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
+  const showTier4 = tier >= 4 ? 1 : 0;
+  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
+
+  const usePenteract = tier4Prog > 0 || tier >= 4;
+  const geom = usePenteract ? initPenteractGeometry() : initTesseractGeometry();
+  const numVerts = geom.rawVerts.length;
+  const is5D = numVerts === 32;
 
   // ── Viewport Auto-Scaling ──
   const startScale = 1.0 + prevTier * 0.1;
@@ -12763,19 +12845,46 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
   const baseSize = 42;
 
-  // ── 4D Rotation ──
+  // ── ND Rotation ──
   const rotXW = t * 0.4;  
   const rotYW = t * 0.3;  
   const rotZW = t * 0.2;  
   const rotXY = t * 0.15; 
+  
+  const rotXV = t * 0.25;
+  const rotYV = t * 0.35;
+  const rotZV = t * 0.45;
 
   const cosXW = Math.cos(rotXW), sinXW = Math.sin(rotXW);
   const cosYW = Math.cos(rotYW), sinYW = Math.sin(rotYW);
   const cosZW = Math.cos(rotZW), sinZW = Math.sin(rotZW);
   const cosXY = Math.cos(rotXY), sinXY = Math.sin(rotXY);
+  
+  const cosXV = Math.cos(rotXV), sinXV = Math.sin(rotXV);
+  const cosYV = Math.cos(rotYV), sinYV = Math.sin(rotYV);
+  const cosZV = Math.cos(rotZV), sinZV = Math.sin(rotZV);
 
-  function rotate4D(v) {
-    let x = v[0], y = v[1], z = v[2], w = v[3];
+  function rotateND(vArr) {
+    let x = vArr[0], y = vArr[1], z = vArr[2], w = vArr[3];
+    // Interpolate the 5th dimension size based on tier4Prog so it blooms out!
+    let v = is5D ? vArr[4] * tier4Prog : 0;
+
+    if (is5D) {
+      // Rotate XV
+      let nx = x * cosXV - v * sinXV;
+      let nv = x * sinXV + v * cosXV;
+      x = nx; v = nv;
+
+      // Rotate YV
+      let ny = y * cosYV - v * sinYV;
+      nv = y * sinYV + v * cosYV;
+      y = ny; v = nv;
+
+      // Rotate ZV
+      let nz = z * cosZV - v * sinZV;
+      nv = z * sinZV + v * cosZV;
+      z = nz; v = nv;
+    }
 
     // Rotate XW
     let nx = x * cosXW - w * sinXW;
@@ -12797,29 +12906,36 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ny = x * sinXY + y * cosXY;
     x = nx; y = ny;
 
-    return [x, y, z, w];
+    return [x, y, z, w, v];
   }
 
-  // ── 4D → 2D Projection ──
+  // ── ND → 2D Projection ──
+  const viewDist5D = 7.0; 
   const viewDist4D = 6.0; 
   const viewDist3D = 8.0; 
 
   // Project all vertices directly into pre-allocated array
-  for (let i = 0; i < 16; i++) {
-    const v4 = rotate4D(geom.rawVerts[i]);
-    const x = v4[0], y = v4[1], z = v4[2], w = v4[3];
+  for (let i = 0; i < numVerts; i++) {
+    const vND = rotateND(geom.rawVerts[i]);
+    const x = vND[0], y = vND[1], z = vND[2], w = vND[3], v = vND[4];
 
-    const scale4 = viewDist4D / (viewDist4D - w);
-    const x3 = x * scale4;
-    const y3 = y * scale4;
-    const z3 = z * scale4;
+    const scale5 = 1.0; // Orthographic 5D->4D to prevent cascading perspective blowout
+    const x4 = x * scale5;
+    const y4 = y * scale5;
+    const z4 = z * scale5;
+    const w4 = w * scale5;
+
+    const scale4 = viewDist4D / (viewDist4D - w4);
+    const x3 = x4 * scale4;
+    const y3 = y4 * scale4;
+    const z3 = z4 * scale4;
 
     const scale3 = viewDist3D / (viewDist3D - z3);
     
     geom.projected[i].x = x3 * scale3 * baseSize;
     geom.projected[i].y = y3 * scale3 * baseSize;
-    geom.projected[i].depth = z3 + w * 0.5;
-    geom.projected[i].scale = scale4 * scale3;
+    geom.projected[i].depth = z3 + w4 * 0.5 + (is5D ? v * 0.25 : 0);
+    geom.projected[i].scale = scale5 * scale4 * scale3;
   }
 
   // ── Rainbow Gradient Helper ──
@@ -13000,13 +13116,13 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   }
 
   // ── Vertex Trails Accumulation ──
-  if (!geom.trailHistory || Math.abs(t - (geom.lastTrailTime || 0)) > 0.1) {
-    geom.trailHistory = Array(16).fill(null).map(() => []);
+  if (!geom.trailHistory || Math.abs(t - (geom.lastTrailTime || 0)) > 0.1 || geom.trailHistory.length !== numVerts) {
+    geom.trailHistory = Array(numVerts).fill(null).map(() => []);
   }
   geom.lastTrailTime = t;
   
   // Push current positions
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < numVerts; i++) {
     geom.trailHistory[i].unshift({ x: geom.projected[i].x, y: geom.projected[i].y, scale: geom.projected[i].scale });
     if (geom.trailHistory[i].length > 50) { // 3x longer
       geom.trailHistory[i].pop();
@@ -13018,11 +13134,11 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
 
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < numVerts; i++) {
       const history = geom.trailHistory[i];
       if (history.length < 2) continue;
 
-      const vertParam = i / 16;
+      const vertParam = i / numVerts;
       // We want a rainbow trail that matches the vertex color
       const baseHue = ((vertParam * 360 + t * 60) % 360 + 360) % 360;
 
@@ -13064,13 +13180,12 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     const numArcs = (arcSeed % 3) + 1;
     
     for (let a = 0; a < numArcs; a++) {
-      // Very simple pseudo-random generation based on seed and arc index
       const rand1 = Math.abs(Math.sin(arcSeed * 1.1 + a * 3.7));
       const rand2 = Math.abs(Math.cos(arcSeed * 1.5 + a * 2.3));
       
-      const v1 = Math.floor(rand1 * 16) % 16;
-      let v2 = Math.floor(rand2 * 16) % 16;
-      if (v1 === v2) v2 = (v2 + 1) % 16;
+      const v1 = Math.floor(rand1 * numVerts) % numVerts;
+      let v2 = Math.floor(rand2 * numVerts) % numVerts;
+      if (v1 === v2) v2 = (v2 + 1) % numVerts;
       
       const p1 = geom.projected[v1];
       const p2 = geom.projected[v2];
@@ -13102,7 +13217,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       ctx.lineTo(p2.x, p2.y);
       
       // Draw outer colored glow
-      ctx.strokeStyle = rainbowColor((v1 + v2) / 32, 0.8);
+      ctx.strokeStyle = rainbowColor((v1 + v2) / (numVerts * 2), 0.8);
       ctx.lineWidth = 4;
       ctx.globalCompositeOperation = "lighter";
       ctx.stroke();
@@ -13117,10 +13232,10 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   }
 
   // ── Draw vertices ──
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < numVerts; i++) {
     const p = geom.projected[i];
-    const vertParam = i / 16;
-    const dotSize = 2.5 + p.scale * 0.8;
+    const vertParam = i / numVerts;
+    const dotSize = Math.max(0, 2.5 + p.scale * 0.8);
 
     ctx.beginPath();
     ctx.arc(p.x, p.y, dotSize + 1.2, 0, Math.PI * 2);
