@@ -1216,10 +1216,23 @@ function drawCavern(ctx, w, h, t) {
 
     // draw water droplet
     const dropT = (t * st.dropSpeed + st.dropPhase) % 6; // 6 seconds cycle
-    if (dropT < 1) {
+    const maxDropT = currentBuildingId === 'prismatium' ? 1.5 : 1;
+    if (dropT < maxDropT) {
       // Falling phase
       const dropY = st.length + dropT * (h - st.length);
-      ctx.fillStyle = "rgba(100, 200, 255, 0.4)";
+      if (currentBuildingId === 'prismatium') {
+        const dropGrad = ctx.createLinearGradient(0, dropY - 2, 0, dropY + 2);
+        dropGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
+        dropGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
+        dropGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
+        dropGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
+        dropGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
+        dropGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+        dropGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
+        ctx.fillStyle = dropGrad;
+      } else {
+        ctx.fillStyle = "rgba(100, 200, 255, 0.4)";
+      }
       ctx.beginPath();
       ctx.arc(tipX, dropY, 2, 0, Math.PI * 2);
       ctx.fill();
