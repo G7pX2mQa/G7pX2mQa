@@ -13009,9 +13009,6 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
         ctx.lineJoin = "round";
         ctx.stroke();
 
-        ctx.strokeStyle = `rgba(255, 255, 255, ${life * 0.7})`;
-        ctx.lineWidth = width * 0.4;
-        ctx.stroke();
       }
     }
     ctx.restore();
