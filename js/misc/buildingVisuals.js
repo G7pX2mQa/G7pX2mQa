@@ -11204,37 +11204,47 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.strokeRect(bx + 1, yPos + 1, blockSize - 2, blockSize - 2);
       }
       
-      // Pass 3: Bevels (Drawn last so they perfectly cover the inner halves of the strokes)
+      // Pass 3: Bevels (Inset by 1px so they don't cover the outer half of the stroke)
       for (let i = 0; i < widthBlocks; i++) {
         const bx = startX + i * blockSize;
         
+        const innerX = bx + 1;
+        const innerY = yPos + 1;
+        const innerW = blockSize - 2;
+        const bevSize = blockSize * 0.15;
+        const bevH = bevSize - 1;
+        const sideBevY = yPos + bevSize;
+        const sideBevH = blockSize * 0.7;
+        const sideBevW = bevSize - 1;
+        const rightBevX = bx + blockSize - bevSize;
+
         // Top bevel (always bright)
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.fillRect(bx, yPos, blockSize, blockSize * 0.15);
+        ctx.fillRect(innerX, innerY, innerW, bevH);
         
         // Bottom shadow (always dark)
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.fillRect(bx, yPos + blockSize * 0.85, blockSize, blockSize * 0.15);
+        ctx.fillRect(innerX, yPos + blockSize - bevSize, innerW, bevH);
 
         // Dynamic side bevels based on relative position to the center (x=0)
         const blockCenterX = bx + Math.floor(blockSize / 2);
         if (blockCenterX < -1) {
             // Block is on the left
             ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Left edge is dark
-            ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Right edge is bright
-            ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
         } else if (blockCenterX > 1) {
             // Block is on the right
             ctx.fillStyle = 'rgba(255,255,255,0.15)'; // Left edge is bright
-            ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
             ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Right edge is dark
-            ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
         } else {
             // Center block
             ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Neutral sides
-            ctx.fillRect(bx, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
-            ctx.fillRect(bx + blockSize * 0.85, yPos + blockSize * 0.15, blockSize * 0.15, blockSize * 0.7);
+            ctx.fillRect(innerX, sideBevY, sideBevW, sideBevH);
+            ctx.fillRect(rightBevX, sideBevY, sideBevW, sideBevH);
         }
       }
       
@@ -12057,10 +12067,11 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         cCtx.save();
         const haloGrad = cCtx.createRadialGradient(8*scale, 8*scale, 4*scale, 8*scale, 8*scale, 12*scale);
         haloGrad.addColorStop(0, 'rgba(90,0,180,0)');
-        haloGrad.addColorStop(0.7, `rgba(80,0,180,${0.1 * singPulse})`);
-        haloGrad.addColorStop(1, `rgba(60,0,150,${0.2 * singPulse})`);
+        haloGrad.addColorStop(0.5, `rgba(80,0,180,${0.1 * singPulse})`);
+        haloGrad.addColorStop(0.8, `rgba(60,0,150,${0.2 * singPulse})`);
+        haloGrad.addColorStop(1, 'rgba(60,0,150,0)');
         cCtx.fillStyle = haloGrad;
-        cCtx.fillRect(-2*scale, -2*scale, 20*scale, 20*scale);
+        cCtx.fillRect(-4*scale, -4*scale, 24*scale, 24*scale);
         cCtx.restore();
           cCtx.restore();
         }
