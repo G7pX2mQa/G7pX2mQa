@@ -12223,7 +12223,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
         ctx.lineJoin = 'miter';
-        ctx.strokeStyle = 'rgba(30,0,80,0.8)';
+        ctx.strokeStyle = 'rgba(45,0,105,0.8)';
         ctx.lineWidth = 1 * scale;
         ctx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
         ctx.fillStyle = 'rgba(90,20,170,0.85)';
@@ -12326,7 +12326,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         ctx.imageSmoothingEnabled = true;
         ctx.fillStyle = 'rgba(75,20,160,0.45)';   ctx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
         ctx.lineJoin = 'miter';
-        ctx.strokeStyle = 'rgba(30,0,80,0.8)';
+        ctx.strokeStyle = 'rgba(45,0,105,0.8)';
         ctx.lineWidth = 1 * scale;
         ctx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
         ctx.fillStyle = 'rgba(90,20,170,0.85)';
