@@ -11420,8 +11420,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         // ══════════════════════════════════════════════════════════════════════
 
         const R = 8.5;
-        const angle8 = (t * Math.PI * 2) / 8 + Math.PI / 8; // Faster rotation, offset start
-        const innerAngle8 = -(t * Math.PI * 2) / 6; // Counter-rotating inner geometry
+        const angle8 = (t * Math.PI * 2) / 2.5 + Math.PI / 8; // Faster rotation, offset start
+        const innerAngle8 = -(t * Math.PI * 2) / 1.5; // Counter-rotating inner geometry, matching the 4x speed bump
 
         // ── Octagonal outer column corners ──
         const octCorners = [];
@@ -11450,17 +11450,17 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
         // ── Dual helix corners (2 helices instead of 4, to restore FPS while keeping T8 identity) ──
         const helixR8 = R + 3.5;
         const helixCorners8 = [];
-        for (let i = 0; i < 8; i++) {
-          const a = angle8 + i * (Math.PI / 4);
+        for (let i = 0; i < 4; i++) {
+          const a = angle8 + i * (Math.PI / 2);
           helixCorners8.push({ x: Math.sin(a) * helixR8, z: Math.cos(a) * helixR8 });
         }
 
         const getHelixPt8 = (y, hIndex) => {
-          const freq = 0.015, speed = 4.0;
+          const freq = 0.015, speed = 10.0;
           let p = (y * freq + t * speed + hIndex * 0.5) % 1.0;
           if (p < 0) p += 1.0;
-          const seg = Math.floor(p * 8), prog = (p * 8) % 1.0;
-          const c1 = helixCorners8[seg], c2 = helixCorners8[(seg + 1) % 8];
+          const seg = Math.floor(p * 4), prog = (p * 4) % 1.0;
+          const c1 = helixCorners8[seg], c2 = helixCorners8[(seg + 1) % 4];
           return { x: c1.x + (c2.x - c1.x) * prog, z: c1.z + (c2.z - c1.z) * prog };
         };
 
