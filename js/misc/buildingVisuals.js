@@ -11900,7 +11900,7 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
           // Ring core
           cCtx.beginPath();
           cCtx.ellipse(0, 0, ringRadius, ringEllipseY, 0, 0, Math.PI * 2);
-          const ringColor = ring === 0 ? '255,180,255' : ring === 1 ? '180,100,255' : '120,200,255';
+          const ringColor = ring === 0 ? '255,180,255' : ring === 1 ? '180,100,255' : '140,40,250';
           cCtx.strokeStyle = `rgba(${ringColor},${ringAlpha * 0.8})`; cCtx.lineWidth = 1.2 * scale / 3;
           cCtx.stroke();
 
