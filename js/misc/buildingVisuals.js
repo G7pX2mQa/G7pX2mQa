@@ -12640,9 +12640,6 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   if (maxTop > 0) viewportScale = Math.min(viewportScale, availTop / maxTop);
   if (maxBottom > 0) viewportScale = Math.min(viewportScale, availBottom / maxBottom);
 
-  // Apply a 5% margin padding as requested ("5% too large")
-  viewportScale *= 0.95;
-
   ctx.save();
   ctx.scale(viewportScale, viewportScale);
 
