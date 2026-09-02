@@ -12684,6 +12684,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
   const showTier1 = tier >= 1 ? 1 : 0;
   const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
+  const showTier2 = tier >= 2 ? 1 : 0;
+  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
 
   // ── Viewport Auto-Scaling ──
   const startScale = 1.0 + prevTier * 0.1;
@@ -12982,6 +12984,81 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(p.x - dotSize * 0.3, p.y - dotSize * 0.3, dotSize * 0.4, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
     ctx.fill();
+  }
+
+  // ── Inner Tesseract (Tier 2) ──
+  if (tier2Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+
+    const innerScale = 0.45;
+
+    // Draw faces
+    for (let i = 0; i < geom.facesWithDepth.length; i++) {
+      const face = geom.facesWithDepth[i];
+      const p0 = geom.projected[face.indices[0]];
+      const p1 = geom.projected[face.indices[1]];
+      const p2 = geom.projected[face.indices[2]];
+      const p3 = geom.projected[face.indices[3]];
+      const faceParam = face.faceIdx / geom.faces.length;
+      
+      ctx.beginPath();
+      ctx.moveTo(p0.x * innerScale, p0.y * innerScale);
+      ctx.lineTo(p1.x * innerScale, p1.y * innerScale);
+      ctx.lineTo(p2.x * innerScale, p2.y * innerScale);
+      ctx.lineTo(p3.x * innerScale, p3.y * innerScale);
+      ctx.closePath();
+
+      const faceAlpha = 0.3 + face.depth * 0.03;
+      ctx.fillStyle = rainbowColor(faceParam, Math.max(0.1, Math.min(0.5, faceAlpha)));
+      ctx.fill();
+    }
+
+    // Draw edges
+    for (let k = 0; k < geom.edgesWithDepth.length; k++) {
+      const edge = geom.edgesWithDepth[k];
+      const p1 = geom.projected[edge.i];
+      const p2 = geom.projected[edge.j];
+      const edgeAlpha = 0.6 + edge.depth * 0.05;
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x * innerScale, p1.y * innerScale);
+      ctx.lineTo(p2.x * innerScale, p2.y * innerScale);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x * innerScale, p1.y * innerScale);
+      ctx.lineTo(p2.x * innerScale, p2.y * innerScale);
+      ctx.strokeStyle = rainbowColor(edge.edgeParam, Math.max(0.5, Math.min(1.0, edgeAlpha)));
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    // Draw vertices
+    for (let i = 0; i < 16; i++) {
+      const p = geom.projected[i];
+      const vertParam = i / 16;
+      const dotSize = 1.5 + p.scale * 0.6; // Slightly smaller dots
+
+      ctx.beginPath();
+      ctx.arc(p.x * innerScale, p.y * innerScale, dotSize + 1.0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(p.x * innerScale, p.y * innerScale, dotSize, 0, Math.PI * 2);
+      ctx.fillStyle = rainbowColor(vertParam, 1.0);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(p.x * innerScale - dotSize * 0.3, p.y * innerScale - dotSize * 0.3, dotSize * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.fill();
+    }
+
+    ctx.restore();
   }
 
   drawSatellites(true);
