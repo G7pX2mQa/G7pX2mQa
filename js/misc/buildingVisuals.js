@@ -12682,6 +12682,9 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   // Rainbow gradient faces, black outlines, floating above the ground.
   const geom = initTesseractGeometry();
 
+  const showTier1 = tier >= 1 ? 1 : 0;
+  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
+
   // ── Viewport Auto-Scaling ──
   const startScale = 1.0 + prevTier * 0.1;
   const targetScale = 1.0 + tier * 0.1;
@@ -12799,8 +12802,93 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
                geom.projected[f.indices[3]].depth) / 4;
   }
 
+  const drawSatellites = (isFront) => {
+    if (tier1Prog <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = tier1Prog;
+    const numSatellites = 10;
+    const orbitRadius = baseSize * 3.5;
+    const satSize = 8;
+    
+    for (let i = 0; i < numSatellites; i++) {
+      const orbitAngle = t * 1.2 + (i * Math.PI * 2 / numSatellites);
+      const zPos = Math.sin(orbitAngle);
+      
+      if ((zPos > 0 && isFront) || (zPos <= 0 && !isFront)) {
+        const satX = Math.cos(orbitAngle) * orbitRadius;
+        const satY = Math.sin(orbitAngle) * orbitRadius * 0.3; // isometric tilt
+        const bobOffset = Math.sin(t * 3 + i * Math.PI) * 10;
+        
+        const satHue = ((t * 40 + i * 180) % 360 + 360) % 360;
+        
+        ctx.save();
+        ctx.translate(satX, satY + bobOffset);
+        
+        const rotX = t * 2.1;
+        const rotY = t * 2.8;
+        const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+        const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+        
+        const verts = [
+          [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+          [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+        ];
+        
+        const projVerts = verts.map(v => {
+          let x = v[0] * satSize, y = v[1] * satSize, z = v[2] * satSize;
+          let nx = x * cosY - z * sinY;
+          let nz = x * sinY + z * cosY;
+          x = nx; z = nz;
+          let ny = y * cosX - z * sinX;
+          nz = y * sinX + z * cosX;
+          y = ny; z = nz;
+          const viewDist = 40;
+          const pScale = viewDist / (viewDist - z);
+          return { x: x * pScale, y: y * pScale };
+        });
+        
+        const edges = [
+          [0,1], [1,2], [2,3], [3,0],
+          [4,5], [5,6], [6,7], [7,4],
+          [0,4], [1,5], [2,6], [3,7]
+        ];
+        
+        const satAura = ctx.createRadialGradient(0, 0, 0, 0, 0, satSize * 2.5);
+        satAura.addColorStop(0, `hsla(${satHue}, 100%, 70%, 0.4)`);
+        satAura.addColorStop(1, `rgba(0,0,0,0)`);
+        ctx.fillStyle = satAura;
+        ctx.beginPath();
+        ctx.arc(0, 0, satSize * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        edges.forEach(e => {
+          ctx.moveTo(projVerts[e[0]].x, projVerts[e[0]].y);
+          ctx.lineTo(projVerts[e[1]].x, projVerts[e[1]].y);
+        });
+        ctx.stroke();
+
+        ctx.strokeStyle = `hsla(${satHue}, 100%, 70%, 1.0)`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        edges.forEach(e => {
+          ctx.moveTo(projVerts[e[0]].x, projVerts[e[0]].y);
+          ctx.lineTo(projVerts[e[1]].x, projVerts[e[1]].y);
+        });
+        ctx.stroke();
+        
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  };
+
   ctx.save();
   ctx.translate(cx, cy);
+
+  drawSatellites(false);
 
   // ── Outer glow / aura ──
   const glowRadius = baseSize * 4.4;
@@ -12886,6 +12974,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
     ctx.fill();
   }
+
+  drawSatellites(true);
 
   // ── Shadow / reflection on the ground ──
   ctx.save();
