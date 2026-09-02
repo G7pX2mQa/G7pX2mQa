@@ -1490,7 +1490,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "ruby") drawReactor(ctx, t, tier, prevTier, animProgress);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier, prevTier, animProgress);
   else if (id === "unobtainium") drawBeacon(ctx, t, tier, prevTier, animProgress);
-  else if (id === "prismatium") drawTesseract(ctx, t, tier);
+  else if (id === "prismatium") drawTesseract(ctx, t, tier, prevTier, animProgress);
 
   ctx.restore();
 
@@ -12605,39 +12605,289 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
   }
 
 }
-function drawTesseract(ctx, t, tier) {
-  const fly = Math.sin(t) * 20;
+function drawTesseract(ctx, t, tier, prevTier, animProgress) {
+  // ── 4D Tesseract (Hypercube) ──
+  // 16 vertices of a 4D hypercube, projected 4D→3D→2D with perspective.
+  // Rainbow gradient faces, black outlines, floating above the ground.
+
+  // Center position — float above ground, gently bobbing
+  const bobSpeed = 0.8;
+  const bobAmp = 8;
+  const bob = Math.sin(t * bobSpeed) * bobAmp;
+  const cx = 0;
+  const cy = -130 + bob; // Well above the ground (0 = ground level)
+
+  // Base size of the tesseract
+  const baseSize = 42;
+
+  // ── 4D Geometry ──
+  // 16 vertices of a hypercube: all combinations of ±1 in 4 dimensions
+  const rawVerts = [];
+  for (let i = 0; i < 16; i++) {
+    rawVerts.push([
+      (i & 1) ? 1 : -1,
+      (i & 2) ? 1 : -1,
+      (i & 4) ? 1 : -1,
+      (i & 8) ? 1 : -1,
+    ]);
+  }
+
+  // 32 edges: connect vertices that differ in exactly one coordinate
+  const edges = [];
+  for (let i = 0; i < 16; i++) {
+    for (let j = i + 1; j < 16; j++) {
+      let diff = 0;
+      for (let d = 0; d < 4; d++) {
+        if (rawVerts[i][d] !== rawVerts[j][d]) diff++;
+      }
+      if (diff === 1) edges.push([i, j]);
+    }
+  }
+
+  // 24 faces (squares): groups of 4 vertices that share 2 fixed coordinates
+  // Each face is defined by picking 2 axes to vary (keeping the other 2 fixed)
+  const faces = [];
+  for (let a1 = 0; a1 < 4; a1++) {
+    for (let a2 = a1 + 1; a2 < 4; a2++) {
+      // The other two axes are fixed
+      const fixedAxes = [];
+      for (let d = 0; d < 4; d++) {
+        if (d !== a1 && d !== a2) fixedAxes.push(d);
+      }
+      // For each combination of fixed axis values (±1, ±1)
+      for (let fv0 = -1; fv0 <= 1; fv0 += 2) {
+        for (let fv1 = -1; fv1 <= 1; fv1 += 2) {
+          const faceVerts = [];
+          for (let i = 0; i < 16; i++) {
+            if (rawVerts[i][fixedAxes[0]] === fv0 && rawVerts[i][fixedAxes[1]] === fv1) {
+              faceVerts.push(i);
+            }
+          }
+          if (faceVerts.length === 4) {
+            // Sort the 4 vertices in a proper winding order for a quad
+            // Use the two varying axes to sort
+            const sorted = faceVerts.slice().sort((a, b) => {
+              const va1 = rawVerts[a][a1], va2 = rawVerts[a][a2];
+              const vb1 = rawVerts[b][a1], vb2 = rawVerts[b][a2];
+              // Sort in a cycle: (-1,-1), (1,-1), (1,1), (-1,1)
+              const angleA = Math.atan2(va2, va1);
+              const angleB = Math.atan2(vb2, vb1);
+              return angleA - angleB;
+            });
+            faces.push(sorted);
+          }
+        }
+      }
+    }
+  }
+
+  // ── 4D Rotation ──
+  // Rotate in multiple 4D planes for that hypnotic tesseract look
+  const rotXW = t * 0.4;  // rotation in XW plane
+  const rotYW = t * 0.3;  // rotation in YW plane
+  const rotZW = t * 0.2;  // rotation in ZW plane
+  const rotXY = t * 0.15; // slight rotation in XY plane
+
+  function rotate4D(v) {
+    let [x, y, z, w] = v;
+
+    // Rotate XW
+    let cos = Math.cos(rotXW), sin = Math.sin(rotXW);
+    let nx = x * cos - w * sin;
+    let nw = x * sin + w * cos;
+    x = nx; w = nw;
+
+    // Rotate YW
+    cos = Math.cos(rotYW); sin = Math.sin(rotYW);
+    let ny = y * cos - w * sin;
+    nw = y * sin + w * cos;
+    y = ny; w = nw;
+
+    // Rotate ZW
+    cos = Math.cos(rotZW); sin = Math.sin(rotZW);
+    let nz = z * cos - w * sin;
+    nw = z * sin + w * cos;
+    z = nz; w = nw;
+
+    // Rotate XY (adds some tumble)
+    cos = Math.cos(rotXY); sin = Math.sin(rotXY);
+    nx = x * cos - y * sin;
+    ny = x * sin + y * cos;
+    x = nx; y = ny;
+
+    return [x, y, z, w];
+  }
+
+  // ── 4D → 2D Projection ──
+  const viewDist4D = 3.0; // Distance from 4D "camera" to origin in W
+  const viewDist3D = 4.0; // Distance from 3D camera to origin in Z
+
+  function project(v4) {
+    const [x, y, z, w] = rotate4D(v4);
+
+    // 4D → 3D perspective projection (project along W axis)
+    const scale4 = viewDist4D / (viewDist4D - w);
+    const x3 = x * scale4;
+    const y3 = y * scale4;
+    const z3 = z * scale4;
+
+    // 3D → 2D perspective projection (project along Z axis)
+    const scale3 = viewDist3D / (viewDist3D - z3);
+    const x2 = x3 * scale3 * baseSize;
+    const y2 = y3 * scale3 * baseSize;
+
+    // Depth for sorting (combined 4D+3D depth)
+    const depth = z3 + w * 0.5;
+
+    return { x: x2, y: y2, depth, scale: scale4 * scale3 };
+  }
+
+  // Project all vertices
+  const projected = rawVerts.map(v => project(v));
+
+  // ── Rainbow Gradient Helper ──
+  // Creates a cycling rainbow color based on a parameter and time
+  function rainbowColor(param, alpha) {
+    const hue = ((param * 360 + t * 60) % 360 + 360) % 360;
+    // Convert HSL to RGB
+    const s = 1.0, l = 0.55;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r, g, b;
+    if (hue < 60) { r = c; g = x; b = 0; }
+    else if (hue < 120) { r = x; g = c; b = 0; }
+    else if (hue < 180) { r = 0; g = c; b = x; }
+    else if (hue < 240) { r = 0; g = x; b = c; }
+    else if (hue < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+    return `rgba(${Math.round((r + m) * 255)}, ${Math.round((g + m) * 255)}, ${Math.round((b + m) * 255)}, ${alpha})`;
+  }
+
+  // ── Sort faces by average depth (painter's algorithm) ──
+  const facesWithDepth = faces.map((f, idx) => {
+    const avgDepth = f.reduce((sum, vi) => sum + projected[vi].depth, 0) / f.length;
+    return { indices: f, depth: avgDepth, faceIdx: idx };
+  });
+  facesWithDepth.sort((a, b) => a.depth - b.depth); // Back to front
+
   ctx.save();
-  ctx.translate(0, -100 + fly);
+  ctx.translate(cx, cy);
 
-  const r = 30 + tier * 2;
-  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-  grad.addColorStop(0, "#fff");
-  grad.addColorStop(0.2, "#00ffff");
-  grad.addColorStop(0.5, "#ff00ff");
-  grad.addColorStop(1, "#000");
-
-  ctx.fillStyle = grad;
+  // ── Outer glow / aura ──
+  const glowRadius = baseSize * 2.2;
+  const auraGrad = ctx.createRadialGradient(0, 0, baseSize * 0.5, 0, 0, glowRadius);
+  const glowHue = ((t * 40) % 360 + 360) % 360;
+  auraGrad.addColorStop(0, `hsla(${glowHue}, 100%, 70%, 0.15)`);
+  auraGrad.addColorStop(0.5, `hsla(${(glowHue + 120) % 360}, 100%, 60%, 0.07)`);
+  auraGrad.addColorStop(1, `hsla(${(glowHue + 240) % 360}, 100%, 50%, 0)`);
+  ctx.fillStyle = auraGrad;
   ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.save();
-  ctx.rotate(t);
-  ctx.scale(1, 0.3);
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
+  // ── Draw filled faces (rainbow gradient, translucent) ──
+  for (const face of facesWithDepth) {
+    const verts = face.indices.map(i => projected[i]);
+    const faceParam = face.faceIdx / faces.length;
 
+    ctx.beginPath();
+    ctx.moveTo(verts[0].x, verts[0].y);
+    for (let i = 1; i < verts.length; i++) {
+      ctx.lineTo(verts[i].x, verts[i].y);
+    }
+    ctx.closePath();
+
+    // Rainbow fill — each face gets a different hue cycling through the spectrum
+    const faceAlpha = 0.3 + face.depth * 0.03;
+    ctx.fillStyle = rainbowColor(faceParam, Math.max(0.1, Math.min(0.5, faceAlpha)));
+    ctx.fill();
+
+    // Black outline for every face
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // ── Draw all edges with black outlines and rainbow color ──
+  // Sort edges by average depth too
+  const edgesWithDepth = edges.map(([i, j]) => {
+    const avgDepth = (projected[i].depth + projected[j].depth) / 2;
+    return { i, j, depth: avgDepth };
+  });
+  edgesWithDepth.sort((a, b) => a.depth - b.depth);
+
+  for (const edge of edgesWithDepth) {
+    const p1 = projected[edge.i];
+    const p2 = projected[edge.j];
+
+    // Determine which dimension this edge spans (for color coding)
+    let diffDim = 0;
+    for (let d = 0; d < 4; d++) {
+      if (rawVerts[edge.i][d] !== rawVerts[edge.j][d]) { diffDim = d; break; }
+    }
+    const edgeParam = diffDim / 4;
+    const edgeAlpha = 0.6 + edge.depth * 0.05;
+
+    // Black outline (draw thicker line behind)
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+
+    // Rainbow colored edge on top
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = rainbowColor(edgeParam, Math.max(0.5, Math.min(1.0, edgeAlpha)));
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+
+  // ── Draw vertices as small glowing dots ──
+  for (let i = 0; i < projected.length; i++) {
+    const p = projected[i];
+    const vertParam = i / 16;
+    const dotSize = 2.5 + p.scale * 0.8;
+
+    // Black outline circle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, dotSize + 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.fill();
+
+    // Rainbow dot
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, dotSize, 0, Math.PI * 2);
+    ctx.fillStyle = rainbowColor(vertParam, 1.0);
+    ctx.fill();
+
+    // White specular highlight
+    ctx.beginPath();
+    ctx.arc(p.x - dotSize * 0.3, p.y - dotSize * 0.3, dotSize * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.fill();
+  }
+
+  // ── Shadow / reflection on the ground ──
+  // A subtle rainbow shadow cast below the tesseract
   ctx.save();
-  ctx.rotate(-t * 1.5);
-  ctx.scale(0.3, 1);
+  const shadowY = -cy + 5; // Position relative to the ground
+  const shadowGrad = ctx.createRadialGradient(0, shadowY, 0, 0, shadowY, baseSize * 1.5);
+  const shadowHue = ((t * 30) % 360 + 360) % 360;
+  shadowGrad.addColorStop(0, `hsla(${shadowHue}, 80%, 50%, 0.15)`);
+  shadowGrad.addColorStop(0.6, `hsla(${(shadowHue + 180) % 360}, 80%, 40%, 0.06)`);
+  shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = shadowGrad;
   ctx.beginPath();
-  ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.save();
+  ctx.translate(0, shadowY);
+  ctx.scale(1, 0.3);
+  ctx.arc(0, 0, baseSize * 1.5, 0, Math.PI * 2);
+  ctx.restore();
+  ctx.fill();
   ctx.restore();
 
   ctx.restore();
