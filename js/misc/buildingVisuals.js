@@ -1202,8 +1202,18 @@ function drawCavern(ctx, w, h, t) {
     const tipX = sx + Math.sin(st.dropPhase) * 10;
 
     const stalactiteGrad = ctx.createLinearGradient(sx, 0, sx, st.length);
-    stalactiteGrad.addColorStop(0, "#1c100a");
-    stalactiteGrad.addColorStop(1, "#402618");
+    if (currentBuildingId === 'prismatium') {
+      stalactiteGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
+      stalactiteGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
+      stalactiteGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
+      stalactiteGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
+      stalactiteGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
+      stalactiteGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+      stalactiteGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
+    } else {
+      stalactiteGrad.addColorStop(0, "#1c100a");
+      stalactiteGrad.addColorStop(1, "#402618");
+    }
     ctx.fillStyle = stalactiteGrad;
 
     ctx.beginPath();
@@ -1368,15 +1378,48 @@ function drawCavern(ctx, w, h, t) {
 
   const floorH = 260;
 
-  // Draw flat floor layers
-  ctx.fillStyle = "rgb(42, 30, 24)";
-  ctx.fillRect(-50, h - floorH, w + 100, floorH + 50);
+  if (currentBuildingId === "prismatium") {
+    // Custom rainbow ground carving for Tesseract
+    const groundY = h - floorH;
+    const holeRadius = floorH - 10; // Leaves a bit of space at the bottom
 
-  ctx.fillStyle = "rgb(28, 20, 16)";
-  ctx.fillRect(-50, h - floorH * 0.8, w + 100, floorH * 0.8 + 50);
+    const groundGrad = ctx.createLinearGradient(0, groundY, 0, groundY + floorH);
+    groundGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
+    groundGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
+    groundGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
+    groundGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
+    groundGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
+    groundGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+    groundGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
+    
+    ctx.fillStyle = groundGrad;
+    
+    ctx.beginPath();
+    // Start from top-left of the ground
+    ctx.moveTo(-50, groundY);
+    // Line to the left edge of the hole
+    ctx.lineTo(w / 2 - holeRadius - 100, groundY);
+    // Semi-circle arc downwards (counter-clockwise), stretch x slightly
+    ctx.ellipse(w / 2, groundY, holeRadius + 250, holeRadius, 0, Math.PI, 0, true); // Hole Width determiner line here. Change the 250 in `holeRadius + 250`; increase it for wider, decrease it for smaller.
+    // Line to the right edge of the ground
+    ctx.lineTo(w + 50, groundY);
+    // Line down to bottom right
+    ctx.lineTo(w + 50, groundY + floorH + 50);
+    // Line to bottom left
+    ctx.lineTo(-50, groundY + floorH + 50);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    // Draw flat floor layers
+    ctx.fillStyle = "rgb(42, 30, 24)";
+    ctx.fillRect(-50, h - floorH, w + 100, floorH + 50);
 
-  ctx.fillStyle = "rgb(18, 12, 10)";
-  ctx.fillRect(-50, h - floorH * 0.6, w + 100, floorH * 0.6 + 50);
+    ctx.fillStyle = "rgb(28, 20, 16)";
+    ctx.fillRect(-50, h - floorH * 0.8, w + 100, floorH * 0.8 + 50);
+
+    ctx.fillStyle = "rgb(18, 12, 10)";
+    ctx.fillRect(-50, h - floorH * 0.6, w + 100, floorH * 0.6 + 50);
+  }
 
   // generate and draw clusters identically to sellTab.js
   const colors = [
@@ -12513,40 +12556,7 @@ function drawTesseract(ctx, t, tier) {
 
   ctx.restore();
 
-  // Create the massive custom rainbow ground carving
-  const groundW = 2000;
-  const groundH = 1000;
-  const holeRadius = 500;
-  
-  // Base y position for the ground relative to Tesseract context
-  const groundY = 150; 
-  
-  const groundGrad = ctx.createLinearGradient(0, groundY, 0, groundY + holeRadius);
-  groundGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
-  groundGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
-  groundGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
-  groundGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
-  groundGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
-  groundGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
-  groundGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
-  
-  ctx.fillStyle = groundGrad;
-  
-  ctx.beginPath();
-  // Start from top-left of the ground
-  ctx.moveTo(-groundW, groundY);
-  // Line to the left edge of the hole
-  ctx.lineTo(-holeRadius, groundY);
-  // Semi-circle arc downwards (counter-clockwise)
-  ctx.arc(0, groundY, holeRadius, Math.PI, 0, true);
-  // Line to the right edge of the ground
-  ctx.lineTo(groundW, groundY);
-  // Line down to bottom right
-  ctx.lineTo(groundW, groundY + groundH);
-  // Line to bottom left
-  ctx.lineTo(-groundW, groundY + groundH);
-  ctx.closePath();
-  ctx.fill();
+
 }
 
 
