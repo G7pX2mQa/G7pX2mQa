@@ -70,7 +70,7 @@ function markHelpEntryPermanentlyUnlocked(id, slot = getActiveSlot()) {
 const HELP_ENTRIES = [
     {
         id: 1,
-        title: "Intro",
+        title: "Welcome",
         icon: "img/currencies/coin/coin.webp",
         tldr: "Collect Coins; Buy upgrades; Make numbers go up",
         progressionGoal: "Unlock the XP system, then reach XP Level 31 and unlock a certain upgrade",
@@ -91,7 +91,7 @@ const HELP_ENTRIES = [
         mobileText:
             "The core gameplay mechanic of this game is collecting Coins, which you can do by swiping over the Coins with your finger. While your finger is held on the playfield (the area the Coins settle onto), a particle trail will be constantly drawn at the location of your finger. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to tap on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster.",
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Normal Upgrade Level Cost</strong><br><code>Cost = BaseCost * (1.2 ^ UpgLevel)</code>.</div><div style="margin-bottom:12px;"><strong>XP Requirement</strong><br><code>Requirement = 10 * (1.1 ^ XPLevel) * (2.5 ^ Floor(XPLevel / 10))</code><br>After XPLevel 1e12: <code>Requirement = 10 * (1.1 ^ XPLevel) * (2.5 ^ Floor(XPLevel / 10)) * 5 * e^(2.36034e-10 * (XPLevel - 1e12))</code>.</div><div style="margin-bottom:12px;"><strong>XP Level Coin Multiplier</strong><br><code>Total Multiplier = (1.1 ^ XPLevel) + XPLevel</code>.<br></div><div><strong>Buy Next / Buy Max / Buy Cheap Logic</strong><br><strong>Buy Max:</strong> Buys the maximum possible amount of UpgLevels within the current wallet constraint.<br><strong>Buy Cheap:</strong> Buys as many UpgLevels as possible such that the cost of the <em>last purchased UpgLevel</em> does not exceed 10% of the <em>remaining wallet balance</em> after the previous UpgLevels are purchased.<br><strong>Buy Next:</strong> Only applies to milestone-type upgrades; calculates the exact amount of UpgLevels to buy to reach the next milestone or falls back to Buy Max if not enough in wallet.</div>`,
-        themeClass: "is-intro",
+        themeClass: "is-welcome",
         isVisible: () => true, // Always unlocked
     },
     {
@@ -353,7 +353,7 @@ function renderHelpContent(force = false) {
     if (!container) return;
     // Filter entries to only show visible ones
     const visibleEntries = HELP_ENTRIES.filter((e) => e.isVisible());
-    // If current entry is no longer visible, reset to Intro (which is always visible)
+    // If current entry is no longer visible, reset to Welcome (which is always visible)
     if (!visibleEntries.find((e) => e.id === currentEntryId)) {
         currentEntryId = 1;
     }
@@ -378,7 +378,7 @@ function renderHelpContent(force = false) {
         const isActive = entry.id === currentEntryId ? "is-active" : "";
         // map id to class string
         const classMap = {
-            1: "is-intro",
+            1: "is-welcome",
             2: "is-forge",
             3: "is-infuse",
             4: "is-surge",
@@ -396,7 +396,7 @@ function renderHelpContent(force = false) {
     sidebarHtml += "</aside>";
     // Build Content
     const classMap = {
-        1: "is-intro",
+        1: "is-welcome",
         2: "is-forge",
         3: "is-infuse",
         4: "is-surge",
