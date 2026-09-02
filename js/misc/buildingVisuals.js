@@ -1167,8 +1167,18 @@ function drawCavern(ctx, w, h, t) {
   }
 
   const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, "#2e1c11");
-  grad.addColorStop(1, "#1a0d05");
+  if (currentBuildingId === 'prismatium') {
+    grad.addColorStop(0, "rgba(255, 0, 0, 1)");
+    grad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
+    grad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
+    grad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
+    grad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
+    grad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+    grad.addColorStop(1, "rgba(148, 0, 211, 1)");
+  } else {
+    grad.addColorStop(0, "#2e1c11");
+    grad.addColorStop(1, "#1a0d05");
+  }
 
   ctx.fillStyle = grad;
   ctx.fillRect(-50, -50, w + 100, h + 100);
@@ -12503,8 +12513,40 @@ function drawTesseract(ctx, t, tier) {
 
   ctx.restore();
 
-  ctx.fillStyle = "#222";
-  ctx.fillRect(-50, -20, 100, 20);
+  // Create the massive custom rainbow ground carving
+  const groundW = 2000;
+  const groundH = 1000;
+  const holeRadius = 500;
+  
+  // Base y position for the ground relative to Tesseract context
+  const groundY = 150; 
+  
+  const groundGrad = ctx.createLinearGradient(0, groundY, 0, groundY + holeRadius);
+  groundGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
+  groundGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
+  groundGrad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
+  groundGrad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
+  groundGrad.addColorStop(0.66, "rgba(0, 0, 255, 1)");
+  groundGrad.addColorStop(0.83, "rgba(75, 0, 130, 1)");
+  groundGrad.addColorStop(1, "rgba(148, 0, 211, 1)");
+  
+  ctx.fillStyle = groundGrad;
+  
+  ctx.beginPath();
+  // Start from top-left of the ground
+  ctx.moveTo(-groundW, groundY);
+  // Line to the left edge of the hole
+  ctx.lineTo(-holeRadius, groundY);
+  // Semi-circle arc downwards (counter-clockwise)
+  ctx.arc(0, groundY, holeRadius, Math.PI, 0, true);
+  // Line to the right edge of the ground
+  ctx.lineTo(groundW, groundY);
+  // Line down to bottom right
+  ctx.lineTo(groundW, groundY + groundH);
+  // Line to bottom left
+  ctx.lineTo(-groundW, groundY + groundH);
+  ctx.closePath();
+  ctx.fill();
 }
 
 
