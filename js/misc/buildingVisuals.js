@@ -774,6 +774,21 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
 function loop(currentTime) {
   if (!activeCanvas) return;
 
+  if (!settingsManager.get("show_building_visuals")) {
+    if (activeCtx) {
+      activeCtx.clearRect(0, 0, activeCanvas.width, activeCanvas.height);
+    }
+    const keypadCanvas = document.getElementById("building-keypad-canvas");
+    if (keypadCanvas) {
+      const keypadCtx = keypadCanvas.getContext("2d");
+      if (keypadCtx) {
+        keypadCtx.clearRect(0, 0, keypadCanvas.width, keypadCanvas.height);
+      }
+    }
+    animationFrameId = requestAnimationFrame(loop);
+    return;
+  }
+
   const fpsInterval = 1000 / 60;
   const elapsedSinceLastDraw = currentTime - lastDrawTime;
 
