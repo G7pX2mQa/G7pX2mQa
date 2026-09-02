@@ -1354,18 +1354,18 @@ export function updateOverlayUi() {
     const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" class="building-currency-icon" style="width: 1em; height: 1em; margin-right: -0.1em;">`;
     const resConfig = RESOURCE_REGISTRY.find((r) => r.key === currencyKey);
     setHtmlOrText(document.getElementById("building-detail-level-text"), `Building Level ${formatNumber(levelBn)}`);
-    document.getElementById("building-detail-bonus-row").innerHTML =
-        `${BUILDING_BONUS_TEXTS[id] || "Bonus"}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
+    setHtmlOrText(document.getElementById("building-detail-bonus-row"), 
+        `${BUILDING_BONUS_TEXTS[id] || "Bonus"}: ${formatMultForUi(currentBonus)}x → ${formatMultForUi(nextBonus)}x`);
     const btnBuy = document.getElementById("building-btn-buy");
     const btnBuyMax = document.getElementById("building-btn-buy-max");
     const btnBuyCheap = document.getElementById("building-btn-buy-cheap");
     if (levelBn.isInfinite && levelBn.isInfinite()) {
         const costRow = document.getElementById("building-detail-cost-row");
         costRow.style.visibility = "hidden";
-        costRow.innerHTML = `Cost: ${imgStr}`;
+        setHtmlOrText(costRow, `Cost: ${imgStr}`);
         const walletRow = document.getElementById("building-detail-wallet-row");
         walletRow.style.visibility = "hidden";
-        walletRow.innerHTML = `You have: ${imgStr}`;
+        setHtmlOrText(walletRow, `You have: ${imgStr}`);
         btnBuy.style.display = "none";
         btnBuyMax.style.display = "none";
         btnBuyCheap.style.display = "none";
@@ -1390,7 +1390,7 @@ export function updateOverlayUi() {
             : "Stone";
         const costRow = document.getElementById("building-detail-cost-row");
         costRow.style.visibility = "";
-        costRow.innerHTML = `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`;
+        setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`);
         const walletMatName = resConfig
             ? walletBn.cmp(BigNum.fromInt(1)) === 0
                 ? resConfig.singular
@@ -1398,7 +1398,7 @@ export function updateOverlayUi() {
             : "Stone";
         const walletRow = document.getElementById("building-detail-wallet-row");
         walletRow.style.visibility = "";
-        walletRow.innerHTML = `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`;
+        setHtmlOrText(walletRow, `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`);
         btnBuy.style.display = "";
         btnBuyMax.style.display = "";
         btnBuyCheap.style.display = "";
