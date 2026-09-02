@@ -12025,36 +12025,17 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
 
         cCtx.restore(); // end core clip
 
-        // 3. Glass frame — the outer border overlay (unchanged structure, enhanced glow)
-        // Tinted glass overlay
-        cCtx.fillStyle = 'rgba(60,10,140,0.35)';
-        cCtx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
-
-        // Outer border — enhanced with pulsing glow
-        const borderPulse = 0.5 + 0.2 * Math.sin(t * 6);
+        // 3. Glass frame
+        cCtx.fillStyle = 'rgba(75,20,160,0.45)';   cCtx.fillRect(1*scale, 1*scale, 14*scale, 14*scale);
         cCtx.lineJoin = 'miter';
-        cCtx.strokeStyle = `rgba(160,60,255,${borderPulse})`;
+        cCtx.strokeStyle = 'rgba(45,0,105,0.8)';
         cCtx.lineWidth = 1 * scale;
         cCtx.strokeRect(0.5 * scale, 0.5 * scale, 15 * scale, 15 * scale);
-
-        // Corner accents — brighter for T8, pulsing with border
-        cCtx.fillStyle = `rgba(120,30,220,${0.6 + 0.35 * Math.sin(t * 6)})`;
+        cCtx.fillStyle = 'rgba(90,20,170,0.85)';
         cCtx.fillRect(1*scale, 1*scale, 2*scale, 1*scale); cCtx.fillRect(1*scale, 2*scale, 1*scale, 1*scale);
         cCtx.fillRect(13*scale, 14*scale, 2*scale, 1*scale); cCtx.fillRect(14*scale, 13*scale, 1*scale, 1*scale);
-        // Additional corner accents for T8
         cCtx.fillRect(13*scale, 1*scale, 2*scale, 1*scale); cCtx.fillRect(14*scale, 2*scale, 1*scale, 1*scale);
         cCtx.fillRect(1*scale, 14*scale, 2*scale, 1*scale); cCtx.fillRect(1*scale, 13*scale, 1*scale, 1*scale);
-
-        // Pulsing glow halo around the entire block
-        cCtx.save();
-        const haloGrad = cCtx.createRadialGradient(8*scale, 8*scale, 4*scale, 8*scale, 8*scale, 12*scale);
-        haloGrad.addColorStop(0, 'rgba(90,0,180,0)');
-        haloGrad.addColorStop(0.5, `rgba(80,0,180,${0.1 * singPulse})`);
-        haloGrad.addColorStop(0.8, `rgba(60,0,150,${0.2 * singPulse})`);
-        haloGrad.addColorStop(1, 'rgba(60,0,150,0)');
-        cCtx.fillStyle = haloGrad;
-        cCtx.fillRect(-4*scale, -4*scale, 24*scale, 24*scale);
-        cCtx.restore();
           cCtx.restore();
         }
 
