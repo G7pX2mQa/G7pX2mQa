@@ -12819,7 +12819,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       
       const bobOffset = Math.sin(t * 3 + i * Math.PI) * 10;
       
-      const satHue = ((t * 40 + i * 180) % 360 + 360) % 360;
+      const satHue = ((t * 40 + (i / numSatellites) * 360) % 360 + 360) % 360;
       
       ctx.save();
       ctx.translate(satX, satY + bobOffset);
