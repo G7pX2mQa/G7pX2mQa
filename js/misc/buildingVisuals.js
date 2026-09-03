@@ -13080,7 +13080,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       const snakeSpeed = 2.5;
       const snakeLen = 1.8; 
       const numSegments = 12;
-      const numSnakes = 20;
+      const numSnakes = 16;
       
       if (!geom.snakes) {
         geom.snakes = Array(numSnakes).fill(null).map((_, i) => ({
@@ -13131,23 +13131,29 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
             const p1 = geom.projected[v1];
             const p2 = geom.projected[v2];
             
-            let eParam = 0;
-            for (let e=0; e<geom.edges.length; e++) {
-               if ((geom.edges[e].i === v1 && geom.edges[e].j === v2) || (geom.edges[e].i === v2 && geom.edges[e].j === v1)) {
-                   eParam = geom.edges[e].edgeParam;
-                   break;
-               }
-            }
-            
             return {
                 x: p1.x + (p2.x - p1.x) * f,
-                y: p1.y + (p2.y - p1.y) * f,
-                eParam: eParam
+                y: p1.y + (p2.y - p1.y) * f
             };
         };
         
         let prevP = getPosAt(currentGlobalProg);
         if (prevP) {
+            let snakeEParam = 0;
+            const step = Math.floor(currentGlobalProg);
+            const idx = step - s.startStep;
+            if (idx >= 0 && idx < s.path.length - 1) {
+                const v1 = s.path[idx];
+                const v2 = s.path[idx + 1];
+                for (let e=0; e<geom.edges.length; e++) {
+                   if ((geom.edges[e].i === v1 && geom.edges[e].j === v2) || (geom.edges[e].i === v2 && geom.edges[e].j === v1)) {
+                       snakeEParam = geom.edges[e].edgeParam;
+                       break;
+                   }
+                }
+            }
+
+            const numSegments = 10;
             const points = [prevP];
             for (let i = 1; i <= numSegments; i++) {
                 const currP = getPosAt(currentGlobalProg - (i / numSegments) * snakeLen);
@@ -13165,15 +13171,14 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
                 ctx.moveTo(pA.x, pA.y);
                 ctx.lineTo(pB.x, pB.y);
                 ctx.lineCap = "round";
-                ctx.strokeStyle = rainbowColor(pB.eParam, 0.4 * life);
-                ctx.lineWidth = 8 + life * 16;
+                ctx.strokeStyle = rainbowColor(snakeEParam, 0.4 * life);
+                ctx.lineWidth = 6 + life * 14;
                 ctx.stroke();
             }
             
-            const headP = points[0];
             ctx.beginPath();
-            ctx.arc(headP.x, headP.y, 16, 0, Math.PI * 2);
-            ctx.fillStyle = rainbowColor(headP.eParam, 0.6);
+            ctx.arc(prevP.x, prevP.y, 14, 0, Math.PI * 2);
+            ctx.fillStyle = rainbowColor(snakeEParam, 0.6);
             ctx.fill();
             ctx.globalCompositeOperation = "source-over";
 
@@ -13192,7 +13197,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
             }
 
             ctx.beginPath();
-            ctx.arc(headP.x, headP.y, 3, 0, Math.PI * 2);
+            ctx.arc(prevP.x, prevP.y, 3, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255, 255, 255, 1.0)";
             ctx.fill();
         }
