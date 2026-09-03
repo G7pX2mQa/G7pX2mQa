@@ -28,7 +28,7 @@ body.spreadsheet-mode:not(.menu-bg) {
 }
 
 /* Strip background images, shadows, and curves globally */
-body.spreadsheet-mode:not(.menu-bg) * {
+body.spreadsheet-mode:not(.menu-bg) *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb) {
   border-radius: 0 !important;
   box-shadow: none !important;
   text-shadow: none !important;
@@ -37,7 +37,7 @@ body.spreadsheet-mode:not(.menu-bg) * {
   animation: none !important;
 }
 
-body.spreadsheet-transition-override * {
+body.spreadsheet-transition-override *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb) {
   transition: none !important;
   animation: none !important;
 }
@@ -79,9 +79,64 @@ body.hide-building-visuals:not(.menu-bg) #building-keypad-canvas {
   display: none !important;
 }
 
-/* Hide all images to prevent rasterization, but keep them clickable */
-body.spreadsheet-mode:not(.menu-bg) img {
-  opacity: 0 !important;
+/* Ensure custom overlay scrollbars are crisp, visible, and functional in spreadsheet mode */
+body.spreadsheet-mode:not(.menu-bg) .shop-scrollbar,
+body.spreadsheet-mode:not(.menu-bg) .merchant-scrollbar {
+  background: #1a1a1a !important;
+  border: 1px solid #444 !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  width: 10px !important;
+  box-sizing: border-box !important;
+  z-index: 100 !important;
+}
+
+body.spreadsheet-mode:not(.menu-bg) .shop-scrollbar.is-horizontal,
+body.spreadsheet-mode:not(.menu-bg) .merchant-scrollbar.is-horizontal {
+  height: 10px !important;
+  width: auto !important;
+}
+
+body.spreadsheet-mode:not(.menu-bg) .shop-scrollbar__thumb,
+body.spreadsheet-mode:not(.menu-bg) .merchant-scrollbar__thumb {
+  background: #e0e0e0 !important;
+  border: 1px solid #666 !important;
+  opacity: 1 !important;
+  box-sizing: border-box !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+body.spreadsheet-mode:not(.menu-bg) .shop-scrollbar__thumb:hover,
+body.spreadsheet-mode:not(.menu-bg) .shop-scrollbar__thumb.dragging,
+body.spreadsheet-mode:not(.menu-bg) .merchant-scrollbar__thumb:hover,
+body.spreadsheet-mode:not(.menu-bg) .merchant-scrollbar__thumb.dragging {
+  background: #ffffff !important;
+  border-color: #999 !important;
+}
+
+/* Ensure native scrollbars are also visible in spreadsheet mode */
+body.spreadsheet-mode:not(.menu-bg) {
+  scrollbar-color: #888888 #111111;
+}
+
+body.spreadsheet-mode:not(.menu-bg) ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+body.spreadsheet-mode:not(.menu-bg) ::-webkit-scrollbar-track {
+  background: #111111;
+  border: 1px solid #444;
+}
+
+body.spreadsheet-mode:not(.menu-bg) ::-webkit-scrollbar-thumb {
+  background: #888888;
+  border: 1px solid #444;
+}
+
+body.spreadsheet-mode:not(.menu-bg) ::-webkit-scrollbar-thumb:hover {
+  background: #cccccc;
 }
 
 /* Center the building level text since the building graphics are hidden */
