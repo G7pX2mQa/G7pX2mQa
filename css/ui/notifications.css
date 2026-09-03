@@ -146,3 +146,154 @@
            -1px 1px 0 #000,  -1px -1px 0 #000;
     }
 }
+
+/* Firefox Special Wide Notification */
+.welcome-popup.firefox-message-popup {
+    flex-direction: column;
+    padding: 16px 20px 14px;
+    gap: 12px;
+}
+
+.firefox-notif-text {
+    width: 100%;
+}
+
+.firefox-notif-btn-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 2px;
+}
+
+/* Button styled exactly like .hm-view-milestones but with beige themes */
+.firefox-notif-btn {
+    border: 1px solid hsl(38 60% 60% / .75);
+    background: hsl(38 50% 80% / 0.20);
+    color: #fff9ee;
+    padding: 10px 14px;
+    min-width: 160px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: .2px;
+    cursor: pointer;
+    pointer-events: auto;
+    border-radius: 0;
+    transition: background 100ms ease, transform 100ms ease;
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.firefox-notif-btn:hover {
+    background: hsl(38 50% 80% / 0.32);
+}
+
+.firefox-notif-btn:active {
+    transform: translateY(1px);
+    background: hsl(38 50% 80% / 0.42);
+}
+
+/* Firefox Notice Overlay - styled similarly to .hide-ui-popup card but much larger */
+.firefox-notice-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    place-items: center;
+    z-index: 2147483646;
+    pointer-events: none;
+    isolation: isolate;
+}
+
+.firefox-notice-overlay.is-visible {
+    display: grid;
+    pointer-events: auto;
+}
+
+.firefox-notice-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(12px) brightness(0.6);
+    -webkit-backdrop-filter: blur(12px) brightness(0.6);
+    background: rgba(0, 0, 0, 0.50);
+}
+
+.firefox-notice-card {
+    position: relative;
+    width: min(840px, 92vw);
+    max-height: 88vh;
+    background: var(--sas-card, hsl(220 26% 12% / 1));
+    border: 1px solid var(--sas-border, hsl(215 28% 26% / 1));
+    box-shadow: 0 28px 80px hsl(215 60% 2% / 0.65);
+    padding: 28px 32px 24px;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.firefox-notice-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+    margin-bottom: 24px;
+}
+
+.firefox-notice-text {
+    color: hsl(0 0% 100% / .92);
+    font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+    font-size: clamp(1rem, 2.2vw, 1.18rem);
+    line-height: 1.65;
+    text-align: left;
+    word-break: break-word;
+}
+
+.firefox-notice-text p {
+    margin: 0 0 14px 0;
+}
+
+.firefox-notice-text p:last-child {
+    margin-bottom: 0;
+}
+
+.firefox-notice-actions {
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.firefox-notice-actions .sas-close {
+    min-width: 180px;
+    height: 44px;
+    border-radius: 0;
+    border: 1px solid hsla(0, 80%, 40%, 0.45);
+    background: hsla(0, 80%, 40%, 0.15);
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: .2px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.firefox-notice-actions .sas-close:hover {
+    background: hsla(0, 80%, 40%, 0.22);
+}
+
+.firefox-notice-actions .sas-close:active {
+    transform: translateY(1px);
+    background: hsla(0, 80%, 40%, 0.28);
+}
+
+@media (max-width: 480px) and (orientation: portrait) {
+    .firefox-notice-card {
+        padding: 20px 16px 18px;
+    }
+    .firefox-notice-actions .sas-close {
+        min-width: 140px;
+    }
+}
