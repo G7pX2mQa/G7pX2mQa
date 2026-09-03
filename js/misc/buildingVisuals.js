@@ -1544,6 +1544,10 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
           : tierUpAnimTime / 2.5;
     }
     levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
+    const titleEl = document.querySelector(".upg-title");
+    if (titleEl) {
+      titleEl.style.opacity = Math.max(0, 1 - shakeAlphaText);
+    }
   }
 }
 
@@ -13158,4 +13162,64 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
   ctx.restore();
   ctx.restore(); 
+
+  const titleEl = document.querySelector(".upg-title");
+  if (titleEl) {
+    let text = "Tesseract";
+    if (tier >= 8) text = "Hexeract";
+    else if (tier >= 4) text = "Penteract";
+    
+    let shouldGlitch = false;
+    let glitchProg = 0;
+    let fromText = "";
+    let toText = "";
+
+    if (prevTier < 4 && tier >= 4) {
+      shouldGlitch = true;
+      glitchProg = animProgress;
+      fromText = "Tesseract";
+      toText = "Penteract";
+    } else if (prevTier < 8 && tier >= 8) {
+      shouldGlitch = true;
+      glitchProg = animProgress;
+      fromText = "Penteract";
+      toText = "Hexeract";
+    }
+
+    if (shouldGlitch && glitchProg > 0 && glitchProg < 1) {
+      let glitchStr = "";
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*!~?";
+      const maxLen = Math.max(fromText.length, toText.length);
+      for (let i = 0; i < maxLen; i++) {
+        const chaos = Math.sin(glitchProg * Math.PI);
+        if (Math.random() < chaos * 0.8) {
+          glitchStr += chars[Math.floor(Math.random() * chars.length)];
+        } else if (glitchProg < 0.5) {
+          glitchStr += fromText[i] || chars[Math.floor(Math.random() * chars.length)];
+        } else {
+          glitchStr += toText[i] || chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      
+      let coloredStr = "";
+      for(let i=0; i<glitchStr.length; i++) {
+         if (chars.includes(glitchStr[i]) && !fromText.includes(glitchStr[i]) && !toText.includes(glitchStr[i])) {
+             const hue = Math.floor(Math.random() * 360);
+             coloredStr += `<span style="color: hsl(${hue}, 100%, 65%); text-shadow: 0 0 8px hsl(${hue}, 100%, 65%); font-weight: bold;">${glitchStr[i]}</span>`;
+         } else {
+             coloredStr += glitchStr[i];
+         }
+      }
+      
+      const rOffsetX = (Math.random() - 0.5) * 4 * Math.sin(glitchProg * Math.PI);
+      const rOffsetY = (Math.random() - 0.5) * 4 * Math.sin(glitchProg * Math.PI);
+      
+      titleEl.innerHTML = `Prismatium Building: <span style="display: inline-block; transform: translate(${rOffsetX}px, ${rOffsetY}px);">${coloredStr}</span>`;
+    } else {
+      const expected = `Prismatium Building: ${text}`;
+      if (titleEl.innerHTML !== expected) {
+        titleEl.innerHTML = expected;
+      }
+    }
+  }
 }
