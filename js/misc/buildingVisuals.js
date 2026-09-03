@@ -12826,6 +12826,88 @@ function initPenteractGeometry() {
   return penteractStatic;
 }
 
+let hexeractStatic = null;
+function initHexeractGeometry() {
+  if (hexeractStatic) return hexeractStatic;
+
+  const dim = 2 * Math.sqrt(4/6); // Scale down so 6D radius matches 4D radius
+  const dimX = dim, dimY = dim, dimZ = dim, dimW = dim, dimV = dim, dimU = dim;
+  const rawVerts = [];
+  for (let i = 0; i < 64; i++) {
+    rawVerts.push([
+      (i & 1) ? dimX : -dimX,
+      (i & 2) ? dimY : -dimY,
+      (i & 4) ? dimZ : -dimZ,
+      (i & 8) ? dimW : -dimW,
+      (i & 16) ? dimV : -dimV,
+      (i & 32) ? dimU : -dimU,
+    ]);
+  }
+
+  const edges = [];
+  for (let i = 0; i < 64; i++) {
+    for (let j = i + 1; j < 64; j++) {
+      let diff = 0;
+      let diffDim = 0;
+      for (let d = 0; d < 6; d++) {
+        if (rawVerts[i][d] !== rawVerts[j][d]) {
+          diff++;
+          diffDim = d;
+        }
+      }
+      if (diff === 1) edges.push({ i, j, edgeParam: diffDim / 6 });
+    }
+  }
+
+  const faces = [];
+  for (let a1 = 0; a1 < 6; a1++) {
+    for (let a2 = a1 + 1; a2 < 6; a2++) {
+      const fixedAxes = [];
+      for (let d = 0; d < 6; d++) {
+        if (d !== a1 && d !== a2) fixedAxes.push(d);
+      }
+      const dims = [dimX, dimY, dimZ, dimW, dimV, dimU];
+      const v0 = dims[fixedAxes[0]];
+      const v1 = dims[fixedAxes[1]];
+      const v2 = dims[fixedAxes[2]];
+      const v3 = dims[fixedAxes[3]];
+
+      for (let fv0 = -v0; fv0 <= v0; fv0 += v0 * 2) {
+        for (let fv1 = -v1; fv1 <= v1; fv1 += v1 * 2) {
+          for (let fv2 = -v2; fv2 <= v2; fv2 += v2 * 2) {
+            for (let fv3 = -v3; fv3 <= v3; fv3 += v3 * 2) {
+              const faceVerts = [];
+              for (let i = 0; i < 64; i++) {
+                if (rawVerts[i][fixedAxes[0]] === fv0 &&
+                    rawVerts[i][fixedAxes[1]] === fv1 &&
+                    rawVerts[i][fixedAxes[2]] === fv2 &&
+                    rawVerts[i][fixedAxes[3]] === fv3) {
+                  faceVerts.push(i);
+                }
+              }
+              if (faceVerts.length === 4) {
+                const sorted = faceVerts.slice().sort((a, b) => {
+                  const va1 = rawVerts[a][a1], va2 = rawVerts[a][a2];
+                  const vb1 = rawVerts[b][a1], vb2 = rawVerts[b][a2];
+                  return Math.atan2(va2, va1) - Math.atan2(vb2, vb1);
+                });
+                faces.push(sorted);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const facesWithDepth = faces.map((indices, idx) => ({ indices, depth: 0, faceIdx: idx }));
+  const edgesWithDepth = edges.map(edge => ({ i: edge.i, j: edge.j, edgeParam: edge.edgeParam, depth: 0 }));
+  const projected = new Array(64).fill(null).map(() => ({ x: 0, y: 0, depth: 0, scale: 0 }));
+
+  hexeractStatic = { rawVerts, edges, faces, facesWithDepth, edgesWithDepth, projected };
+  return hexeractStatic;
+}
+
 function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const showTier1 = tier >= 1 ? 1 : 0;
   const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
@@ -12883,6 +12965,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
   const rotXW = t * 0.4, rotYW = t * 0.3, rotZW = t * 0.2, rotXY = t * 0.15; 
   const rotXV = t * 0.25, rotYV = t * 0.35, rotZV = t * 0.45;
+  const rotXU = t * 0.18, rotYU = t * 0.28, rotZU = t * 0.38;
   const cosXW = Math.cos(rotXW), sinXW = Math.sin(rotXW);
   const cosYW = Math.cos(rotYW), sinYW = Math.sin(rotYW);
   const cosZW = Math.cos(rotZW), sinZW = Math.sin(rotZW);
@@ -12890,6 +12973,9 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const cosXV = Math.cos(rotXV), sinXV = Math.sin(rotXV);
   const cosYV = Math.cos(rotYV), sinYV = Math.sin(rotYV);
   const cosZV = Math.cos(rotZV), sinZV = Math.sin(rotZV);
+  const cosXU = Math.cos(rotXU), sinXU = Math.sin(rotXU);
+  const cosYU = Math.cos(rotYU), sinYU = Math.sin(rotYU);
+  const cosZU = Math.cos(rotZU), sinZU = Math.sin(rotZU);
 
   function rainbowColor(param, alpha) {
     const hue = ((param * 360 + t * 60) % 360 + 360) % 360;
@@ -12976,17 +13062,32 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
-  const drawModel = (geom, modelAlpha, bloomProg) => {
+  const drawModel = (geom, modelAlpha, bloomProg, bloom6Prog) => {
     if (modelAlpha <= 0) return;
     ctx.save();
     ctx.globalAlpha *= modelAlpha;
     const numVerts = geom.rawVerts.length;
     const is5D = numVerts === 32;
+    const is6D = numVerts === 64;
+    const hasV = is5D || is6D;
+    const b6 = bloom6Prog || 0;
 
     function rotateND(vArr) {
       let x = vArr[0], y = vArr[1], z = vArr[2], w = vArr[3];
-      let v = is5D ? vArr[4] * bloomProg : 0;
-      if (is5D) {
+      let v = hasV ? vArr[4] * bloomProg : 0;
+      let u = is6D ? vArr[5] * b6 : 0;
+      if (is6D) {
+        let nx = x * cosXU - u * sinXU;
+        let nu = x * sinXU + u * cosXU;
+        x = nx; u = nu;
+        let ny = y * cosYU - u * sinYU;
+        nu = y * sinYU + u * cosYU;
+        y = ny; u = nu;
+        let nz = z * cosZU - u * sinZU;
+        nu = z * sinZU + u * cosZU;
+        z = nz; u = nu;
+      }
+      if (hasV) {
         let nx = x * cosXV - v * sinXV;
         let nv = x * sinXV + v * cosXV;
         x = nx; v = nv;
@@ -13009,14 +13110,14 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       nx = x * cosXY - y * sinXY;
       ny = x * sinXY + y * cosXY;
       x = nx; y = ny;
-      return [x, y, z, w, v];
+      return [x, y, z, w, v, u];
     }
 
     const viewDist4D = 6.0; 
     const viewDist3D = 8.0; 
     for (let i = 0; i < numVerts; i++) {
       const vND = rotateND(geom.rawVerts[i]);
-      const x = vND[0], y = vND[1], z = vND[2], w = vND[3], v = vND[4];
+      const x = vND[0], y = vND[1], z = vND[2], w = vND[3], v = vND[4], u = vND[5];
       const scale5 = 1.0;
       const x4 = x * scale5, y4 = y * scale5, z4 = z * scale5, w4 = w * scale5;
       const scale4 = viewDist4D / (viewDist4D - w4);
@@ -13024,7 +13125,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       const scale3 = viewDist3D / (viewDist3D - z3);
       geom.projected[i].x = x3 * scale3 * baseSize;
       geom.projected[i].y = y3 * scale3 * baseSize;
-      geom.projected[i].depth = z3 + w4 * 0.5 + (is5D ? v * 0.25 : 0);
+      geom.projected[i].depth = z3 + w4 * 0.5 + (hasV ? v * 0.25 : 0) + (is6D ? u * 0.125 : 0);
       geom.projected[i].scale = scale5 * scale4 * scale3;
     }
 
@@ -13399,7 +13500,12 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  if (tier >= 4 && prevTier < 4) {
+  if (tier >= 8 && prevTier < 8) {
+    drawModel(initPenteractGeometry(), 1.0 - animProgress, 1.0);
+    drawModel(initHexeractGeometry(), animProgress, 1.0, animProgress);
+  } else if (tier >= 8) {
+    drawModel(initHexeractGeometry(), 1.0, 1.0, 1.0);
+  } else if (tier >= 4 && prevTier < 4) {
     drawModel(initTesseractGeometry(), 1.0 - animProgress, 0);
     drawModel(initPenteractGeometry(), animProgress, animProgress);
   } else if (tier >= 4) {
