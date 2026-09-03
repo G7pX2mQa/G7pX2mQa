@@ -3522,26 +3522,6 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
 */
 }
 
-function drawGear(ctx, r, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#222";
-  ctx.beginPath();
-  ctx.arc(0, 0, r / 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = color;
-  for (let i = 0; i < 8; i++) {
-    ctx.save();
-    ctx.rotate((i / 8) * Math.PI * 2);
-    ctx.fillRect(-2, -r - 3, 4, 6);
-    ctx.restore();
-  }
-}
-
 function drawCharger(ctx, t, tier, prevTier, animProgress) {
   const showTier1 = tier >= 1 ? 1 : 0;
   const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
