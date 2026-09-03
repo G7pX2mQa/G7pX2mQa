@@ -354,6 +354,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     let ro = null;
     scroller.__customScroll.destroy = () => {
         window.removeEventListener("resize", updateAll);
+        window.removeEventListener("setting:changed", onSettingChanged);
         scroller.removeEventListener("scroll", onScroll);
         if (supportsScrollEnd) scroller.removeEventListener("scrollend", onScrollEnd);
         if (ro && ro.disconnect) ro.disconnect();
@@ -367,8 +368,12 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     const FADE_DRAG_MS = 120;
     const supportsScrollEnd = "onscrollend" in window;
     // --- Scroll-Driven Animation Support Check ---
+    const checkSpreadsheetMode = () =>
+        (typeof settingsManager !== "undefined" && settingsManager.get("spreadsheet_mode")) ||
+        document.body?.classList?.contains("spreadsheet-mode");
+
     const supportsTimelineScope = CSS.supports("timeline-scope", "none");
-    const useCssTimeline = supportsTimelineScope && CSS.supports("animation-timeline", "scroll()");
+    const useCssTimeline = !checkSpreadsheetMode() && supportsTimelineScope && CSS.supports("animation-timeline", "scroll()");
     if (useCssTimeline) {
         injectScrollTimelineStyles();
         const uniqueId = Math.random().toString(36).slice(2, 8);
@@ -435,7 +440,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
             thumb.style.width = thumbSize + "px";
             thumb.style.height = "100%";
         }
-        if (useCssTimeline) {
+        if (useCssTimeline && !checkSpreadsheetMode()) {
             if (isVertical) {
                 thumb.style.setProperty("--thumb-y", `${range}px`);
                 thumb.style.setProperty("--thumb-x", "0px");
@@ -460,15 +465,61 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
             lastShadow = hasShadow;
             sheetEl?.classList.toggle("has-scroll-shadow", hasShadow);
         }
-        // 2. Thumb Position (if not using CSS Timeline)
-        if (!useCssTimeline) {
-            const { maxScroll, range } = cachedMetrics;
-            const rawPos = (scrollPos / maxScroll) * range;
-            const pos = IS_MOBILE ? rawPos : Math.round(rawPos);
-            if (isVertical) {
-                thumb.style.transform = `translateY(${pos}px)`;
+        // 2. Thumb Position (if not using CSS Timeline, or if spreadsheet mode is active)
+        const isSpreadsheetActive = checkSpreadsheetMode();
+        if (!useCssTimeline || isSpreadsheetActive) {
+            const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
+            const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
+            let { maxScroll, range, barSize, thumbSize } = cachedMetrics;
+
+            if (
+                !range ||
+                range <= 0 ||
+                scrollSize !== cachedMetrics.scrollSize ||
+                clientSize !== cachedMetrics.clientSize
+            ) {
+                if (isVertical && (!bar.clientHeight || bar.clientHeight <= 0)) {
+                    updateBounds();
+                }
+                const currentBarSize = (isVertical ? bar.clientHeight : bar.clientWidth) || clientSize;
+                const visibleRatio = clientSize / Math.max(1, scrollSize);
+                const currentThumbSize = Math.max(28, Math.round(currentBarSize * visibleRatio));
+                maxScroll = Math.max(1, scrollSize - clientSize);
+                range = Math.max(0, currentBarSize - currentThumbSize);
+                cachedMetrics = {
+                    scrollSize,
+                    clientSize,
+                    barSize: currentBarSize,
+                    thumbSize: currentThumbSize,
+                    maxScroll,
+                    range,
+                    visibleRatio,
+                };
+                if (isVertical) {
+                    thumb.style.height = currentThumbSize + "px";
+                } else {
+                    thumb.style.width = currentThumbSize + "px";
+                }
+            }
+
+            const rawPos = maxScroll > 0 && range > 0 ? (scrollPos / maxScroll) * range : 0;
+            const pos = Number.isFinite(rawPos) ? (IS_MOBILE ? rawPos : Math.round(rawPos)) : 0;
+
+            if (isSpreadsheetActive) {
+                thumb.style.setProperty("animation", "none", "important");
+                thumb.style.setProperty("animation-name", "none", "important");
+                thumb.style.setProperty("animation-timeline", "none", "important");
+                thumb.style.setProperty(
+                    "transform",
+                    isVertical ? `translateY(${pos}px)` : `translateX(${pos}px)`,
+                    "important",
+                );
             } else {
-                thumb.style.transform = `translateX(${pos}px)`;
+                if (isVertical) {
+                    thumb.style.transform = `translateY(${pos}px)`;
+                } else {
+                    thumb.style.transform = `translateX(${pos}px)`;
+                }
             }
         }
     };
@@ -580,6 +631,12 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         showBar();
         scheduleHide(FADE_SCROLL_MS);
     });
+    function onSettingChanged(e) {
+        if (e?.detail?.key === "spreadsheet_mode") {
+            updateAll();
+        }
+    }
+    window.addEventListener("setting:changed", onSettingChanged);
     updateAll();
 }
 // --- Logic Helpers ---
