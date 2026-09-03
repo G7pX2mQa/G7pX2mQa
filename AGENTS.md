@@ -4,3 +4,4 @@
 - When creating new keys to save to localStorage, it is VERY important that all entries start with the prefix ccc and end with the current slot number. Also don't use the native localStorage setters or removers or getters, but use the custom functions `lsSetItem` or `lsRemoveItem` or `lsGetItem`
 - When applicable, make sure to not ever save things to localStorage if the current save slot is null.
 - Never use BigInt.
+- Most importantly, NEVER use `git checkout`. I never use this command and so using it will drastically destroy file data.
