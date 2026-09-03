@@ -367,7 +367,7 @@ export function showFirefoxNoticeModal() {
         <p style="font-weight: 800; font-size: 1.15em; color: #ffeb3b; margin-bottom: 12px;">Read this message fully:</p>
         <p>It has been detected that you are using the Firefox browser. While this game is supported on this browser, some visually intense sections of the game may drag down the game's performance. Firefox's visual rendering engine is generally worse than Chromium at rendering complex canvas visuals which this game utilizes in many places.</p>
         <p>In order to make sure the game is still as accessible as possible, there are a variety of performance settings in Stats & Settings. In particular, there is a setting you can enable called "Spreadsheet Mode" which strips away all of the complex visuals, fancy animations, and stuff like that in order to greatly improve performance.</p>
-        <p>But anyway, enough reading, go collect some Coins!</p>
+        <p>But enough reading, go collect some Coins!</p>
     `.trim();
 
     content.appendChild(textEl);
