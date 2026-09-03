@@ -13077,64 +13077,124 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     if (tier5Prog > 0) {
       ctx.save();
       ctx.globalAlpha *= tier5Prog;
-      const pulseSpeed = 2.0;
-      const numPulses = Math.floor(geom.edgesWithDepth.length * 0.8);
-      for (let i = 0; i < numPulses; i++) {
-        const pulseCycle = t * pulseSpeed + i * 2.13; 
-        const currentCycle = Math.floor(pulseCycle);
-        const cycleFrac = pulseCycle - currentCycle;
+      const snakeSpeed = 2.5;
+      const snakeLen = 1.8; 
+      const numSegments = 12;
+      const numSnakes = 12;
+      
+      if (!geom.snakes) {
+        geom.snakes = Array(numSnakes).fill(null).map((_, i) => ({
+            id: i,
+            startStep: Math.floor(t * snakeSpeed),
+            path: [Math.floor(Math.random() * numVerts)]
+        }));
+      }
+      
+      const currentGlobalProg = t * snakeSpeed;
+      
+      for (let s of geom.snakes) {
+        const requiredLen = Math.floor(currentGlobalProg) - s.startStep + 2;
+        let safeguard = 0;
+        while (s.path.length <= requiredLen && safeguard < 2000) {
+            safeguard++;
+            const currentV = s.path[s.path.length - 1];
+            const prevV = s.path.length > 1 ? s.path[s.path.length - 2] : -1;
+            const neighbors = [];
+            for (let e=0; e<geom.edges.length; e++) {
+                if (geom.edges[e].i === currentV) neighbors.push(geom.edges[e].j);
+                if (geom.edges[e].j === currentV) neighbors.push(geom.edges[e].i);
+            }
+            const valid = neighbors.filter(n => n !== prevV);
+            if (valid.length > 0) {
+                s.path.push(valid[Math.floor(Math.random() * valid.length)]);
+            } else if (neighbors.length > 0) {
+                s.path.push(neighbors[Math.floor(Math.random() * neighbors.length)]);
+            } else {
+                s.path.push(currentV);
+            }
+        }
         
-        const edgeIdx = Math.floor(Math.abs(Math.sin(currentCycle * 1.3 + i * 3.7)) * geom.edgesWithDepth.length) % geom.edgesWithDepth.length;
-        const edge = geom.edgesWithDepth[edgeIdx];
+        if (s.path.length > 50) {
+            const elementsToRemove = s.path.length - 50;
+            s.path.splice(0, elementsToRemove);
+            s.startStep += elementsToRemove;
+        }
         
-        const p1 = geom.projected[edge.i];
-        const p2 = geom.projected[edge.j];
+        const getPosAt = (prog) => {
+            const step = Math.floor(prog);
+            const f = prog - step;
+            const idx = step - s.startStep;
+            if (idx < 0 || idx >= s.path.length - 1) return null;
+            const v1 = s.path[idx];
+            const v2 = s.path[idx + 1];
+            if (v1 === undefined || v2 === undefined) return null;
+            const p1 = geom.projected[v1];
+            const p2 = geom.projected[v2];
+            
+            let eParam = 0;
+            for (let e=0; e<geom.edges.length; e++) {
+               if ((geom.edges[e].i === v1 && geom.edges[e].j === v2) || (geom.edges[e].i === v2 && geom.edges[e].j === v1)) {
+                   eParam = geom.edges[e].edgeParam;
+                   break;
+               }
+            }
+            
+            return {
+                x: p1.x + (p2.x - p1.x) * f,
+                y: p1.y + (p2.y - p1.y) * f,
+                eParam: eParam
+            };
+        };
         
-        const dir = (Math.floor(Math.abs(Math.cos(currentCycle * 2.1 + i))) % 2 === 0);
-        const startP = dir ? p1 : p2;
-        const endP = dir ? p2 : p1;
-        
-        const pulseLength = 0.4; 
-        
-        let tStart = cycleFrac - pulseLength;
-        let tEnd = cycleFrac;
-        if (tStart < 0) tStart = 0;
-        if (tEnd > 1) tEnd = 1;
-        
-        if (tEnd > 0 && tStart < 1) {
-          const px1 = startP.x + (endP.x - startP.x) * tStart;
-          const py1 = startP.y + (endP.y - startP.y) * tStart;
-          const px2 = startP.x + (endP.x - startP.x) * tEnd;
-          const py2 = startP.y + (endP.y - startP.y) * tEnd;
-          
-          ctx.beginPath();
-          ctx.moveTo(px1, py1);
-          ctx.lineTo(px2, py2);
-          ctx.strokeStyle = "rgba(255, 255, 255, 1.0)";
-          ctx.lineWidth = 3.5;
-          ctx.lineCap = "round";
-          ctx.stroke();
-          
-          ctx.globalCompositeOperation = "lighter";
-          ctx.strokeStyle = rainbowColor(edge.edgeParam, 0.9);
-          ctx.lineWidth = 10;
-          ctx.stroke();
-          
-          ctx.strokeStyle = rainbowColor(edge.edgeParam, 0.4);
-          ctx.lineWidth = 20;
-          ctx.stroke();
-          
-          ctx.beginPath();
-          ctx.arc(px2, py2, 4, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255, 255, 255, 1.0)";
-          ctx.fill();
-          
-          ctx.beginPath();
-          ctx.arc(px2, py2, 10, 0, Math.PI * 2);
-          ctx.fillStyle = rainbowColor(edge.edgeParam, 0.8);
-          ctx.fill();
-          
-          ctx.globalCompositeOperation = "source-over";
+        let prevP = getPosAt(currentGlobalProg);
+        if (prevP) {
+            const points = [prevP];
+            for (let i = 1; i <= numSegments; i++) {
+                const currP = getPosAt(currentGlobalProg - (i / numSegments) * snakeLen);
+                if (!currP) break;
+                points.push(currP);
+            }
+            
+            ctx.globalCompositeOperation = "lighter";
+            for (let i = 1; i < points.length; i++) {
+                const pA = points[i-1];
+                const pB = points[i];
+                const life = Math.max(0, 1.0 - (i / numSegments)); 
+                
+                ctx.beginPath();
+                ctx.moveTo(pA.x, pA.y);
+                ctx.lineTo(pB.x, pB.y);
+                ctx.lineCap = "round";
+                ctx.strokeStyle = rainbowColor(pB.eParam, 0.4 * life);
+                ctx.lineWidth = 8 + life * 16;
+                ctx.stroke();
+            }
+            
+            const headP = points[0];
+            ctx.beginPath();
+            ctx.arc(headP.x, headP.y, 16, 0, Math.PI * 2);
+            ctx.fillStyle = rainbowColor(headP.eParam, 0.6);
+            ctx.fill();
+            ctx.globalCompositeOperation = "source-over";
+
+            for (let i = 1; i < points.length; i++) {
+                const pA = points[i-1];
+                const pB = points[i];
+                const life = Math.max(0, 1.0 - (i / numSegments)); 
+                
+                ctx.beginPath();
+                ctx.moveTo(pA.x, pA.y);
+                ctx.lineTo(pB.x, pB.y);
+                ctx.lineCap = "round";
+                ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 * life})`;
+                ctx.lineWidth = 1.0 + life * 2.0;
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.arc(headP.x, headP.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 255, 255, 1.0)";
+            ctx.fill();
         }
       }
       ctx.restore();
