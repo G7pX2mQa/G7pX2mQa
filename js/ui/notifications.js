@@ -1,7 +1,7 @@
 import { NODE_MAP } from "../game/labNodes.js";
 import { playAudio } from "../util/audioManager.js";
 import { isViewingLabTab } from "./merchantTabs/dlgTab.js";
-import { IS_MOBILE } from "../util/platformChecker.js";
+import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
 import { getActiveSlot } from "../util/storage.js";
 
 let container = null;
@@ -278,7 +278,7 @@ export function initNotifications() {
     });
 }
 
-export function showWelcomePopup(isMobile) {
+export function showWelcomePopup(isMobile, onComplete) {
     const parent = document.createElement("div");
     parent.className = "welcome-popup-container";
 
@@ -310,11 +310,158 @@ export function showWelcomePopup(isMobile) {
         });
     });
 
+    let completed = false;
+    const completeAndCleanup = () => {
+        if (completed) return;
+        completed = true;
+        parent.remove();
+        activeWelcomePopups.delete(popupTracker);
+        if (typeof onComplete === "function") {
+            try {
+                onComplete();
+            } catch (err) {
+                console.error("Error in showWelcomePopup onComplete:", err);
+            }
+        }
+    };
+
     popupTracker.triggerLeaving = () => {
         el.classList.remove("is-visible");
         el.classList.add("is-leaving");
 
+        el.addEventListener("transitionend", completeAndCleanup, { once: true });
+
+        popupTracker.fallbackTimeoutId = setTimeout(() => {
+            if (parent.isConnected) {
+                completeAndCleanup();
+            } else {
+                activeWelcomePopups.delete(popupTracker);
+            }
+        }, 1200);
+    };
+
+    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000); // 1s enter + 8s wait = 9000ms
+}
+
+export function showFirefoxNoticeModal() {
+    const existing = document.querySelector(".firefox-notice-overlay");
+    if (existing) {
+        existing.remove();
+    }
+
+    const overlayEl = document.createElement("div");
+    overlayEl.className = "firefox-notice-overlay is-visible";
+    overlayEl.setAttribute("role", "dialog");
+    overlayEl.setAttribute("aria-modal", "true");
+
+    const card = document.createElement("div");
+    card.className = "firefox-notice-card";
+
+    const content = document.createElement("div");
+    content.className = "firefox-notice-content";
+
+    const textEl = document.createElement("div");
+    textEl.className = "firefox-notice-text";
+
+    textEl.innerHTML = `
+        <p style="font-weight: 800; font-size: 1.15em; color: #ffeb3b; margin-bottom: 12px;">Read this message fully:</p>
+        <p>It has been detected that you are using the Firefox browser. While this game is supported on this browser, some visually intense sections of the game may drag down the game's performance. Firefox's visual rendering engine is generally worse than Chromium at rendering complex canvas visuals which this game utilizes in many places.</p>
+        <p>In order to make sure the game is still as accessble as possible, there are a variety of performance settings in Stats & Settings. In particular, there is a setting you can enable called "Spreadsheet Mode" which strips away all of the complex visuals, fancy animations, and stuff like that in order to greatly improve performance.</p>
+        <p>But anyway, enough reading, go collect some Coins!</p>
+    `.trim();
+
+    content.appendChild(textEl);
+    card.appendChild(content);
+
+    const actions = document.createElement("div");
+    actions.className = "firefox-notice-actions sas-actions";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "sas-close";
+    closeBtn.textContent = "Close";
+
+    const closeModal = () => {
+        document.removeEventListener("keydown", onKeyDown);
+        overlayEl.remove();
+    };
+
+    closeBtn.addEventListener("click", closeModal);
+    actions.appendChild(closeBtn);
+    card.appendChild(actions);
+
+    overlayEl.appendChild(card);
+
+    overlayEl.addEventListener("click", (e) => {
+        if (e.target === overlayEl) {
+            closeModal();
+        }
+    });
+
+    const onKeyDown = (e) => {
+        if (e.key === "Escape") {
+            closeModal();
+        }
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    document.body.appendChild(overlayEl);
+}
+
+export function showFirefoxNotification(isMobile = IS_MOBILE) {
+    const parent = document.createElement("div");
+    parent.className = "welcome-popup-container";
+
+    const el = document.createElement("div");
+    el.className = "welcome-popup notification-text firefox-message-popup";
+
+    const actionWord = isMobile ? "Tap" : "Click";
+    const textEl = document.createElement("div");
+    textEl.className = "firefox-notif-text";
+    textEl.textContent = `You have received a special message! ${actionWord} the button below to view it.`;
+    el.appendChild(textEl);
+
+    const btnRow = document.createElement("div");
+    btnRow.className = "firefox-notif-btn-row";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "firefox-notif-btn";
+    btn.textContent = "View Message";
+
+    btnRow.appendChild(btn);
+    el.appendChild(btnRow);
+
+    parent.appendChild(el);
+    document.body.appendChild(parent);
+
+    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+
+    const popupTracker = {
+        element: parent,
+        audio,
+        timeoutId: null,
+        fallbackTimeoutId: null,
+        startTime: Date.now(),
+        duration: 9000,
+        triggerLeaving: null,
+    };
+    activeWelcomePopups.add(popupTracker);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            el.classList.add("is-visible");
+        });
+    });
+
+    popupTracker.triggerLeaving = () => {
+        el.classList.remove("is-visible");
+        el.classList.add("is-leaving");
+
+        let cleanedUp = false;
         const cleanup = () => {
+            if (cleanedUp) return;
+            cleanedUp = true;
             parent.remove();
             activeWelcomePopups.delete(popupTracker);
         };
@@ -329,7 +476,17 @@ export function showWelcomePopup(isMobile) {
         }, 1200);
     };
 
-    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000); // 1s enter + 8s wait = 9000ms
+    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000);
+
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (popupTracker.timeoutId) {
+            clearTimeout(popupTracker.timeoutId);
+            popupTracker.timeoutId = null;
+        }
+        popupTracker.triggerLeaving();
+        showFirefoxNoticeModal();
+    });
 }
 
 export function showWideNotification(text, duration = 9000, options = {}) {
