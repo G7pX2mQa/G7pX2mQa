@@ -12760,6 +12760,12 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
   const showTier5 = tier >= 5 ? 1 : 0;
   const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
+  const showTier6 = tier >= 6 ? 1 : 0;
+  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
+  const showTier7 = tier >= 7 ? 1 : 0;
+  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
+  const showTier8 = tier >= 8 ? 1 : 0;
+  const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
 
   const startScale = 1.0 + prevTier * 0.1;
   const targetScale = 1.0 + tier * 0.1;
@@ -13225,9 +13231,82 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
+  const drawCubeHalo = () => {
+    if (tier6Prog <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+
+    const cubeVerts = [
+      [-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1],
+      [-1,-1,1], [1,-1,1], [1,1,1], [-1,1,1]
+    ];
+    const cubeEdges = [
+      [0,1],[1,2],[2,3],[3,0],
+      [4,5],[5,6],[6,7],[7,4],
+      [0,4],[1,5],[2,6],[3,7]
+    ];
+
+    const rings = [
+      { radius: 170, count: 18, speed: 0.3, size: 8 },
+      { radius: 220, count: 24, speed: -0.25, size: 10 },
+      { radius: 270, count: 32, speed: 0.2, size: 12 }
+    ];
+
+    rings.forEach((ring, ringIdx) => {
+      const ringBaseAngle = t * ring.speed;
+      for (let i = 0; i < ring.count; i++) {
+        const angle = ringBaseAngle + (i / ring.count) * Math.PI * 2;
+        
+        const cx = Math.cos(angle) * ring.radius;
+        const cy = Math.sin(angle) * ring.radius;
+
+        // Individual cube spin in 3D
+        const rx = t * 1.8 + i * 0.7;
+        const ry = t * 1.4 + i * 0.5;
+        const rz = t * 2.2 + i * 0.6;
+
+        const cosX = Math.cos(rx), sinX = Math.sin(rx);
+        const cosY = Math.cos(ry), sinY = Math.sin(ry);
+        const cosZ = Math.cos(rz), sinZ = Math.sin(rz);
+
+        const proj = cubeVerts.map(v => {
+          let x = v[0] * ring.size, y = v[1] * ring.size, z = v[2] * ring.size;
+          let nx = x*cosZ - y*sinZ, ny = x*sinZ + y*cosZ; x=nx; y=ny;
+          nx = x*cosY - z*sinY; let nz = x*sinY + z*cosY; x=nx; z=nz;
+          ny = y*cosX - z*sinX; nz = y*sinX + z*cosX; y=ny; z=nz;
+
+          return { x: x + cx, y: y + cy };
+        });
+
+        const hue = ((i / ring.count * 360) + (t * 50) + ringIdx * 120) % 360;
+
+        ctx.strokeStyle = `rgba(0, 0, 0, 0.9)`;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        cubeEdges.forEach(e => {
+          ctx.moveTo(proj[e[0]].x, proj[e[0]].y);
+          ctx.lineTo(proj[e[1]].x, proj[e[1]].y);
+        });
+        ctx.stroke();
+
+        ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 1.0)`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        cubeEdges.forEach(e => {
+          ctx.moveTo(proj[e[0]].x, proj[e[0]].y);
+          ctx.lineTo(proj[e[1]].x, proj[e[1]].y);
+        });
+        ctx.stroke();
+      }
+    });
+
+    ctx.restore();
+  };
+
   ctx.save();
   ctx.translate(cx, cy);
 
+  drawCubeHalo();
   drawSatellites(false);
 
   const glowRadius = baseSize * 4.4;
