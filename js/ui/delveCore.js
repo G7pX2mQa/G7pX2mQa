@@ -390,8 +390,12 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
     const supportsScrollEnd = "onscrollend" in window;
     let fadeTimer = null;
     // --- Scroll-Driven Animation Support Check ---
+    const checkSpreadsheetMode = () =>
+        (typeof settingsManager !== "undefined" && settingsManager.get("spreadsheet_mode")) ||
+        document.body?.classList?.contains("spreadsheet-mode");
+
     const supportsTimelineScope = CSS.supports("timeline-scope", "none");
-    const useCssTimeline = supportsTimelineScope && CSS.supports("animation-timeline", "scroll()");
+    const useCssTimeline = !checkSpreadsheetMode() && supportsTimelineScope && CSS.supports("animation-timeline", "scroll()");
     if (useCssTimeline) {
         injectScrollTimelineStyles();
         const uniqueId = Math.random().toString(36).slice(2, 8);
@@ -434,7 +438,7 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         const range = Math.max(0, barH - thumbH);
         cachedMetrics = { scrollHeight, clientHeight, barH, thumbH, maxScroll, range };
         thumb.style.height = thumbH + "px";
-        if (useCssTimeline) {
+        if (useCssTimeline && !checkSpreadsheetMode()) {
             thumb.style.setProperty("--thumb-y", `${range}px`);
             thumb.style.setProperty("--thumb-x", "0px");
         }
@@ -452,12 +456,48 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
             lastShadow = hasShadow;
             sheetEl?.classList.toggle("has-scroll-shadow", hasShadow);
         }
-        // 2. Thumb Position (if not using CSS Timeline)
-        if (!useCssTimeline) {
-            const { maxScroll, range } = cachedMetrics;
-            const rawY = (scrollTop / maxScroll) * range;
-            const y = IS_MOBILE ? rawY : Math.round(rawY);
-            thumb.style.transform = `translateY(${y}px)`;
+        // 2. Thumb Position (if not using CSS Timeline, or if spreadsheet mode is active)
+        const isSpreadsheetActive = checkSpreadsheetMode();
+        if (!useCssTimeline || isSpreadsheetActive) {
+            const { scrollHeight, clientHeight } = scroller;
+            let { maxScroll, range, barH, thumbH } = cachedMetrics;
+
+            if (
+                !range ||
+                range <= 0 ||
+                scrollHeight !== cachedMetrics.scrollHeight ||
+                clientHeight !== cachedMetrics.clientHeight
+            ) {
+                if (!bar.clientHeight || bar.clientHeight <= 0) {
+                    updateBounds();
+                }
+                const currentBarH = bar.clientHeight || clientHeight || 1;
+                const visibleRatio = clientHeight / Math.max(1, scrollHeight);
+                const currentThumbH = Math.max(28, Math.round(currentBarH * visibleRatio));
+                maxScroll = Math.max(1, scrollHeight - clientHeight);
+                range = Math.max(0, currentBarH - currentThumbH);
+                cachedMetrics = {
+                    scrollHeight,
+                    clientHeight,
+                    barH: currentBarH,
+                    thumbH: currentThumbH,
+                    maxScroll,
+                    range,
+                };
+                thumb.style.height = currentThumbH + "px";
+            }
+
+            const rawY = maxScroll > 0 && range > 0 ? (scrollTop / maxScroll) * range : 0;
+            const y = Number.isFinite(rawY) ? (IS_MOBILE ? rawY : Math.round(rawY)) : 0;
+
+            if (isSpreadsheetActive) {
+                thumb.style.setProperty("animation", "none", "important");
+                thumb.style.setProperty("animation-name", "none", "important");
+                thumb.style.setProperty("animation-timeline", "none", "important");
+                thumb.style.setProperty("transform", `translateY(${y}px)`, "important");
+            } else {
+                thumb.style.transform = `translateY(${y}px)`;
+            }
         }
         if (IS_MOBILE) showBar();
     };
@@ -557,9 +597,16 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         scheduleHide(FADE_SCROLL_MS);
     });
     // mark so we don't double-init
+    const onSettingChanged = (e) => {
+        if (e?.detail?.key === "spreadsheet_mode") {
+            updateAll();
+        }
+    };
+    window.addEventListener("setting:changed", onSettingChanged);
     const destroy = () => {
         if (ro) ro.disconnect();
         if (obs) obs.disconnect();
+        window.removeEventListener("setting:changed", onSettingChanged);
         scroller.removeEventListener("scroll", onScroll);
         if (supportsScrollEnd) scroller.removeEventListener("scrollend", onScrollEnd);
         window.removeEventListener("resize", updateAll);
