@@ -1410,7 +1410,7 @@ function drawCavern(ctx, w, h, t) {
       animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
       drawTier = currentTier;
     }
-    const t6 = drawTier >= 6 && previousTier < 6 ? animProgress : (drawTier >= 6 ? 1 : 0);
+    const t6 = drawTier >= 6 && previousTier < 6 ? Math.pow(animProgress, 0.3) : (drawTier >= 6 ? 1 : 0);
 
     if (t6 > 0) {
       ctx.save();
