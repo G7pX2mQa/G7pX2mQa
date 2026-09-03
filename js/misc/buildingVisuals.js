@@ -1125,7 +1125,12 @@ function updateDomOverlays(w, h, t) {
       let fromText = "";
       let toText = "";
 
-      if (prevTier < 4 && tier >= 4) {
+      if (prevTier < 4 && tier >= 8) {
+        shouldGlitch = true;
+        glitchProg = animProgress;
+        fromText = "Tesseract";
+        toText = "Hexeract";
+      } else if (prevTier < 4 && tier >= 4) {
         shouldGlitch = true;
         glitchProg = animProgress;
         fromText = "Tesseract";
@@ -13633,7 +13638,11 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   ctx.fill();
 
   if (tier >= 8 && prevTier < 8) {
-    drawModel(initPenteractGeometry(), 1.0 - animProgress, 1.0);
+    if (prevTier < 4) {
+      drawModel(initTesseractGeometry(), 1.0 - animProgress, 0);
+    } else {
+      drawModel(initPenteractGeometry(), 1.0 - animProgress, 1.0);
+    }
     drawModel(initHexeractGeometry(), animProgress, 1.0, animProgress);
   } else if (tier >= 8) {
     drawModel(initHexeractGeometry(), 1.0, 1.0, 1.0);
