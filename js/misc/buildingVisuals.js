@@ -12877,6 +12877,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       if (edgesToDraw.length > 0) {
         ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
         ctx.lineWidth = 3;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
         ctx.beginPath();
         edgesToDraw.forEach(e => {
           ctx.moveTo(projVerts[e[0]].x, projVerts[e[0]].y);
@@ -13282,6 +13284,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
         ctx.strokeStyle = `rgba(0, 0, 0, 0.9)`;
         ctx.lineWidth = 3.5;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
         ctx.beginPath();
         cubeEdges.forEach(e => {
           ctx.moveTo(proj[e[0]].x, proj[e[0]].y);
