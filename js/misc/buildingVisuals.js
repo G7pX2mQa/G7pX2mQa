@@ -1402,6 +1402,103 @@ function drawCavern(ctx, w, h, t) {
     const holeRadius = floorH - 10; // Leaves a bit of space at the bottom
     const holeWidthRadius = w * 0.5;
 
+    // TIER 7: Synthwave Rainbow Spacetime Grid
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
+    }
+    const t7 = drawTier >= 7 && previousTier < 7 ? animProgress : (drawTier >= 7 ? 1 : 0);
+
+    if (t7 > 0) {
+      ctx.save();
+      const cx = w / 2;
+      const cy = groundY;
+      const rx = holeWidthRadius;
+      const ry = holeRadius;
+
+      const gridGrad = ctx.createLinearGradient(cx - rx, 0, cx + rx, 0);
+      for (let i = 0; i <= 6; i++) {
+        const hue = (i / 6 * 360 - t * 40) % 360;
+        gridGrad.addColorStop(i / 6, `hsla(${(hue + 360) % 360}, 100%, 65%, ${t7})`);
+      }
+      
+      ctx.strokeStyle = gridGrad;
+      
+      // Significantly reduced density for extreme performance gain
+      const numRings = 12;
+      const numRadials = 18;
+      const zMax = 1000;
+      const zSpacing = zMax / numRings;
+      const zSpeed = 150;
+      const zOffset = (t * zSpeed) % zSpacing;
+
+      // Pre-calculate points to halve the JavaScript math overhead
+      const pts = [];
+      for (let i = 0; i <= numRings; i++) {
+        pts[i] = [];
+        const z = i * zSpacing + zOffset;
+        let clampedZ = Math.max(0, z);
+        let scale = 200 / (200 + clampedZ);
+        const depthFade = Math.min(1, clampedZ / 200) * Math.max(0, 1 - clampedZ / zMax);
+        
+        for (let a = 0; a <= numRadials; a++) {
+          const theta = (a / numRadials) * Math.PI; 
+          const wave = Math.sin(a * 0.8 - t * 3 + clampedZ * 0.015) * 0.12;
+          const edgeFade = Math.sin(theta); 
+          const finalScale = scale * (1 + wave * edgeFade * depthFade);
+          
+          pts[i].push({
+            x: cx + rx * Math.cos(theta) * finalScale,
+            y: cy + ry * Math.sin(theta) * finalScale
+          });
+        }
+      }
+
+      // Generate points exactly at the boundary (z=0) for the radial lines
+      const edgePts = [];
+      for (let a = 0; a <= numRadials; a++) {
+        const theta = (a / numRadials) * Math.PI;
+        edgePts.push({
+          x: cx + rx * Math.cos(theta),
+          y: cy + ry * Math.sin(theta)
+        });
+      }
+
+      ctx.beginPath();
+      
+      // Draw Concentric Rings
+      for (let i = 0; i <= numRings; i++) {
+        const z = i * zSpacing + zOffset;
+        if (z > zMax) continue;
+        
+        ctx.moveTo(pts[i][0].x, pts[i][0].y);
+        for (let a = 1; a <= numRadials; a++) {
+          ctx.lineTo(pts[i][a].x, pts[i][a].y);
+        }
+      }
+
+      // Draw Radial Lines
+      for (let a = 0; a <= numRadials; a++) {
+        ctx.moveTo(edgePts[a].x, edgePts[a].y);
+        for (let i = 0; i <= numRings; i++) {
+          const z = i * zSpacing + zOffset;
+          if (z > zMax) continue;
+          ctx.lineTo(pts[i][a].x, pts[i][a].y);
+        }
+        ctx.lineTo(cx, cy); // connect to singularity
+      }
+      
+      // A single 2.5px stroke halves rasterization overhead and avoids slow lineJoin operations
+      ctx.lineWidth = 2.5;
+      ctx.globalAlpha = t7 * 1.0;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
     const groundGrad = ctx.createLinearGradient(0, groundY, 0, groundY + floorH);
     groundGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
     groundGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
