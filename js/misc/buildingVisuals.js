@@ -621,7 +621,7 @@ export function startCanvasLoop(id, canvasEl) {
         }
       });
     });
-    canvasIntersectionObserver.observe(activeCanvas);
+    canvasIntersectionObserver.observe(activeCanvas.parentElement);
   } else {
     isCanvasIntersecting = true;
   }
@@ -13168,7 +13168,7 @@ function updateDomOverlays(w, h, t) {
 
   const levelText = document.getElementById("building-detail-level-text");
   let shakeAlphaText = 0;
-  if (tierUpAnimTime > 0) {
+  if (tierUpAnimTime > 0 && settingsManager.get("show_building_visuals")) {
     shakeAlphaText = tierUpAnimTime > 2.5 ? (6.0 - tierUpAnimTime) / 3.5 : tierUpAnimTime / 2.5;
   }
 
@@ -13194,7 +13194,7 @@ function updateDomOverlays(w, h, t) {
     levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
   }
 
-  const titleEl = document.querySelector(".upg-title");
+  const titleEl = document.querySelector("#building-detail-overlay .upg-title");
   if (titleEl) {
     titleEl.style.opacity = Math.max(0, 1 - shakeAlphaText);
     
