@@ -13087,7 +13087,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       ctx.globalAlpha *= tier5Prog;
       const snakeSpeed = 2;
       const snakeLen = 2; 
-      const numSegments = 12;
+      const numSegments = 16;
       const numSnakes = 16;
       
       if (!geom.snakes) {
