@@ -487,7 +487,7 @@ export const SETTING_DEFINITIONS = {
         label: "Spreadsheet Mode",
         overlay: "performance",
         hasExtraInfo: true,
-        info: "Obliterates all complex visuals in the game. All core logic remains the same, but many visual effects are completely broken. Improves game performance significantly.",
+        info: "Obliterates visual fluff, like a spreadsheet. All core logic remains the same, but many visual effects are completely broken. Improves game performance significantly.",
         default: false,
         unlockCondition: () => true,
     },
