@@ -484,10 +484,10 @@ export const SETTING_DEFINITIONS = {
     },
     spreadsheet_mode: {
         type: "toggle",
-        label: "Reduced GPU Usage Mode EXTREME",
+        label: "Spreadsheet Mode",
         overlay: "performance",
         hasExtraInfo: true,
-        info: "I don't even know how to describe this setting. It makes the game barely playable. Drastically reduces GPU usage though.",
+        info: "Obliterates all complex visuals in the game. All core logic remains the same, but many visual effects are completely broken. Improves game performance significantly.",
         default: false,
         unlockCondition: () => true,
     },
