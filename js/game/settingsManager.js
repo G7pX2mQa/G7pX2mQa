@@ -180,7 +180,7 @@ export const SETTING_DEFINITIONS = {
         type: "toggle",
         label: "Overlay Transitions",
         hasExtraInfo: true,
-        info: "If turned OFF, disables the short open/close transition that most overlays in the game use.",
+        info: "If turned OFF, disables the short open/close transitions that most overlays in the game use.",
         default: true,
         unlockCondition: () => true,
     },
