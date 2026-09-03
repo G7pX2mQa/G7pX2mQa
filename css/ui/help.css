@@ -238,7 +238,7 @@
 /* Forge Card */
 .help-card.is-forge {
   background: linear-gradient(180deg, hsl(36 88% 55% / 0.96), hsl(26 70% 34% / 0.98));
-  /* border dynamically applied */
+  border: 1px solid hsl(36 88% 55% / 0.85);
 }
 
 /* Infuse Card */
