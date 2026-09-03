@@ -487,7 +487,7 @@ export const SETTING_DEFINITIONS = {
         label: "Spreadsheet Mode (Maximum Performance)",
         overlay: "performance",
         hasExtraInfo: true,
-        info: "Obliterates visual fluff, like a spreadsheet. All core logic remains the same, but many visual effects are completely broken. Improves game performance significantly.",
+        info: "Obliterates visual fluff, like a spreadsheet. All core logic remains the same, but many visual effects become completely broken. Improves game performance significantly.",
         default: false,
         unlockCondition: () => true,
     },
