@@ -83,6 +83,7 @@ import { setAutobuyerToggle } from "../game/automationEffects.js";
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from "../game/automationUpgrades.js";
 import { isSellUnlocked, setSellUnlocked } from "../ui/minerTabs/sellTab.js";
 import { isCombineUnlocked, setCombineUnlocked } from "../ui/minerTabs/resetTab.js";
+import { levelBigNumToNumber } from "../game/upgrades.js";
 import {
     isBuildingsUnlocked,
     setBuildingsUnlocked,
@@ -1901,7 +1902,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
         debugPanelStatSetters.push(commitValueWithArg);
     }
 
-    return { row, input, setValue, isEditing: () => editing, commitValueWithArg };
+    return { row, input, setValue, isEditing: () => editing, commitValueWithArg, setLabel: (text) => { label.firstChild.nodeValue = text; } };
 }
 
 function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable, slot }) {
@@ -5169,10 +5170,24 @@ function buildBuildingsDebug(container) {
     }
 
     BUILDING_IDS.forEach((id) => {
-        const title = (BUILDING_NAMES[id] || id) + " Level";
-        const levelKey = `ccc:buildingLevel:${id}:${slot}`;
-
         let currentLevel = getBuildingLevel(id);
+        
+        let buildingName = BUILDING_NAMES[id] || id;
+        if (id === "prismatium") {
+            const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
+            let tier = 0;
+            const num = levelBigNumToNumber(currentLevel);
+            for (let i = 0; i < TIERS.length; i++) {
+                if (num >= TIERS[i]) tier = i + 1;
+            }
+            if (tier >= 8) buildingName = "Hexeract";
+            else if (tier >= 4) buildingName = "Penteract";
+            else buildingName = "Tesseract";
+            BUILDING_NAMES[id] = buildingName;
+        }
+        
+        const title = buildingName + " Level";
+        const levelKey = `ccc:buildingLevel:${id}:${slot}`;
 
         const row = createInputRow(
             title,
@@ -5234,7 +5249,24 @@ function buildBuildingsDebug(container) {
             id: id,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
-                row.setValue(getBuildingLevel(id));
+                const lvl = getBuildingLevel(id);
+                row.setValue(lvl);
+                if (id === "prismatium") {
+                    const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
+                    let tier = 0;
+                    const num = levelBigNumToNumber(lvl);
+                    for (let i = 0; i < TIERS.length; i++) {
+                        if (num >= TIERS[i]) tier = i + 1;
+                    }
+                    let name = "Tesseract";
+                    if (tier >= 8) name = "Hexeract";
+                    else if (tier >= 4) name = "Penteract";
+                    
+                    if (BUILDING_NAMES[id] !== name) {
+                        BUILDING_NAMES[id] = name;
+                    }
+                    if (row.setLabel) row.setLabel(name + " Level");
+                }
             },
         });
 
