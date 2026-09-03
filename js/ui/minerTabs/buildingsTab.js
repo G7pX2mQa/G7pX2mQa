@@ -1304,6 +1304,17 @@ export function openBuildingDetailOverlay(id) {
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
     let buildingName = BUILDING_NAMES[id] || "Building";
+    if (id === "prismatium") {
+        const levelBn = getBuildingLevel(id);
+        const levelNum = levelBigNumToNumber(levelBn);
+        const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
+        let tier = 0;
+        for (let i = 0; i < TIERS.length; i++) {
+            if (levelNum >= TIERS[i]) tier = i + 1;
+        }
+        if (tier >= 8) buildingName = "Hexeract";
+        else if (tier >= 4) buildingName = "Penteract";
+    }
     header.innerHTML = `<div class="upg-title">${properName} Building: ${buildingName}</div>`;
     updateOverlayUi();
     openBuildingOverlaySheet(overlayEl, sheet);
