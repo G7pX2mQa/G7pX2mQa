@@ -13080,7 +13080,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       const snakeSpeed = 2.5;
       const snakeLen = 1.8; 
       const numSegments = 12;
-      const numSnakes = 12;
+      const numSnakes = 20;
       
       if (!geom.snakes) {
         geom.snakes = Array(numSnakes).fill(null).map((_, i) => ({
