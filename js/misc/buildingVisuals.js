@@ -1402,7 +1402,7 @@ function drawCavern(ctx, w, h, t) {
     const holeRadius = floorH - 10; // Leaves a bit of space at the bottom
     const holeWidthRadius = w * 0.5;
 
-    // TIER 7: Synthwave Rainbow Spacetime Grid
+    // TIER 6: Synthwave Rainbow Spacetime Grid
     let currentTier = getTier();
     let drawTier = currentTier;
     let animProgress = 1.0;
@@ -1410,9 +1410,9 @@ function drawCavern(ctx, w, h, t) {
       animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
       drawTier = currentTier;
     }
-    const t7 = drawTier >= 7 && previousTier < 7 ? animProgress : (drawTier >= 7 ? 1 : 0);
+    const t6 = drawTier >= 6 && previousTier < 6 ? animProgress : (drawTier >= 6 ? 1 : 0);
 
-    if (t7 > 0) {
+    if (t6 > 0) {
       ctx.save();
       const cx = w / 2;
       const cy = groundY;
@@ -1422,7 +1422,7 @@ function drawCavern(ctx, w, h, t) {
       const gridGrad = ctx.createLinearGradient(cx - rx, 0, cx + rx, 0);
       for (let i = 0; i <= 6; i++) {
         const hue = (i / 6 * 360 - t * 40) % 360;
-        gridGrad.addColorStop(i / 6, `hsla(${(hue + 360) % 360}, 100%, 65%, ${t7})`);
+        gridGrad.addColorStop(i / 6, `hsla(${(hue + 360) % 360}, 100%, 65%, ${t6})`);
       }
       
       ctx.strokeStyle = gridGrad;
@@ -1493,7 +1493,7 @@ function drawCavern(ctx, w, h, t) {
       
       // A single 2.5px stroke halves rasterization overhead and avoids slow lineJoin operations
       ctx.lineWidth = 2.5;
-      ctx.globalAlpha = t7 * 1.0;
+      ctx.globalAlpha = t6 * 1.0;
       ctx.stroke();
 
       ctx.restore();
@@ -13237,8 +13237,6 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
                    }
                 }
             }
-
-            const numSegments = 10;
             const points = [prevP];
             for (let i = 1; i <= numSegments; i++) {
                 const currP = getPosAt(currentGlobalProg - (i / numSegments) * snakeLen);
@@ -13311,9 +13309,9 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   };
 
   const drawCubeHalo = () => {
-    if (tier6Prog <= 0) return;
+    if (tier7Prog <= 0) return;
     ctx.save();
-    ctx.globalAlpha = tier6Prog;
+    ctx.globalAlpha = tier7Prog;
 
     const cubeVerts = [
       [-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1],
