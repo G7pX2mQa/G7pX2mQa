@@ -1416,8 +1416,8 @@ function drawCavern(ctx, w, h, t) {
       ctx.save();
       const cx = w / 2;
       const cy = groundY;
-      const rx = holeWidthRadius;
-      const ry = holeRadius;
+      const rx = holeWidthRadius + 8;
+      const ry = holeRadius + 8;
 
       const gridGrad = ctx.createLinearGradient(cx - rx, 0, cx + rx, 0);
       for (let i = 0; i <= 6; i++) {
