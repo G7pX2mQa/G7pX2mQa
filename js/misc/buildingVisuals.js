@@ -13380,7 +13380,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
           ctx.lineTo(bx + nx * jagRand * jagAmp, by + ny * jagRand * jagAmp);
         }
         ctx.lineTo(p2.x, p2.y);
-        ctx.strokeStyle = rainbowColor((v1 + v2) / (numVerts * 2), 0.8);
+        ctx.strokeStyle = rainbowColor(0, 0.8);
         ctx.lineWidth = 4;
         ctx.globalCompositeOperation = "lighter";
         ctx.stroke();
