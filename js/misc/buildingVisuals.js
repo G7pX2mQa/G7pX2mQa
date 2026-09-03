@@ -13298,17 +13298,23 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     }
     geom.edgesWithDepth.sort((a, b) => a.depth - b.depth);
 
+    ctx.beginPath();
+    for (let k = 0; k < geom.edgesWithDepth.length; k++) {
+      const edge = geom.edgesWithDepth[k];
+      const p1 = geom.projected[edge.i];
+      const p2 = geom.projected[edge.j];
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+    }
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+
     for (let k = 0; k < geom.edgesWithDepth.length; k++) {
       const edge = geom.edgesWithDepth[k];
       const p1 = geom.projected[edge.i];
       const p2 = geom.projected[edge.j];
       const edgeAlpha = 0.6 + edge.depth * 0.05;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-      ctx.lineWidth = 3.5;
-      ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
@@ -13331,14 +13337,17 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
     if (tier2Prog > 0) {
       ctx.save();
       ctx.globalAlpha *= tier2Prog;
+      const step = is6D ? 3 : (is5D ? 2 : 1);
       for (let i = 0; i < numVerts; i++) {
         const history = geom.trailHistory[i];
         if (history.length < 2) continue;
         const vertParam = i / numVerts;
         const baseHue = ((vertParam * 360 + t * 60) % 360 + 360) % 360;
-        for (let j = 0; j < history.length - 1; j++) {
+        for (let j = 0; j < history.length - 1; j += step) {
           const p1 = history[j];
-          const p2 = history[j + 1];
+          const nextJ = Math.min(j + step, history.length - 1);
+          if (j === nextJ) break;
+          const p2 = history[nextJ];
           const life = Math.pow(1 - (j / history.length), 0.7); 
           const width = (2.5 + p1.scale * 1.5) * life * 4.0;
           ctx.beginPath();
@@ -13526,23 +13535,38 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
+    ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.beginPath();
+    for (let i = 0; i < numVerts; i++) {
+      const p = geom.projected[i];
+      const dotSize = Math.max(0, 2.5 + p.scale * 0.8);
+      ctx.moveTo(p.x + dotSize + 1.2, p.y);
+      ctx.arc(p.x, p.y, dotSize + 1.2, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
     for (let i = 0; i < numVerts; i++) {
       const p = geom.projected[i];
       const vertParam = i / numVerts;
       const dotSize = Math.max(0, 2.5 + p.scale * 0.8);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, dotSize + 1.2, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-      ctx.fill();
-      ctx.beginPath();
       ctx.arc(p.x, p.y, dotSize, 0, Math.PI * 2);
       ctx.fillStyle = rainbowColor(vertParam, 1.0);
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(p.x - dotSize * 0.3, p.y - dotSize * 0.3, Math.max(0, dotSize * 0.4), 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-      ctx.fill();
     }
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.beginPath();
+    for (let i = 0; i < numVerts; i++) {
+      const p = geom.projected[i];
+      const dotSize = Math.max(0, 2.5 + p.scale * 0.8);
+      const hX = p.x - dotSize * 0.3;
+      const hY = p.y - dotSize * 0.3;
+      const hR = Math.max(0, dotSize * 0.4);
+      ctx.moveTo(hX + hR, hY);
+      ctx.arc(hX, hY, hR, 0, Math.PI * 2);
+    }
+    ctx.fill();
     ctx.restore();
   };
 
