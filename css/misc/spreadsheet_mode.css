@@ -178,3 +178,9 @@ body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile {
 body.hide-building-visuals:not(.menu-bg) .only-building-btn {
   display: none !important;
 }
+
+/* Fix for secret achievement icons overflowing in spreadsheet mode */
+body.spreadsheet-mode:not(.menu-bg) .achievement-btn .shop-tile {
+  width: 100% !important;
+  height: 100% !important;
+}
