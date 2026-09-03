@@ -6,6 +6,7 @@ import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoin
 import { createCursorTrail } from "../game/cursorTrail.js";
 import { getPreRenderedItem } from "../game/spawnerCore.js";
 import { settingsManager } from "../game/settingsManager.js";
+import { setHtmlOrText } from "../util/uiHelpers.js";
 
 let activeCanvas = null;
 let activeCtx = null;
@@ -776,21 +777,6 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
 function loop(currentTime) {
   if (!activeCanvas) return;
 
-  if (!settingsManager.get("show_building_visuals")) {
-    if (activeCtx) {
-      activeCtx.clearRect(0, 0, activeCanvas.width, activeCanvas.height);
-    }
-    const keypadCanvas = document.getElementById("building-keypad-canvas");
-    if (keypadCanvas) {
-      const keypadCtx = keypadCanvas.getContext("2d");
-      if (keypadCtx) {
-        keypadCtx.clearRect(0, 0, keypadCanvas.width, keypadCanvas.height);
-      }
-    }
-    animationFrameId = requestAnimationFrame(loop);
-    return;
-  }
-
   const fpsInterval = 1000 / 60;
   const elapsedSinceLastDraw = currentTime - lastDrawTime;
 
@@ -1032,12 +1018,24 @@ function loop(currentTime) {
   }
 
   if (activeCanvas && activeCtx) {
-    const keypadCanvas = document.getElementById('building-keypad-canvas');
-    let keypadCtx = null;
-    if (keypadCanvas) {
-      keypadCtx = keypadCanvas.getContext('2d');
+    if (settingsManager.get("show_building_visuals")) {
+      const keypadCanvas = document.getElementById('building-keypad-canvas');
+      let keypadCtx = null;
+      if (keypadCanvas) {
+        keypadCtx = keypadCanvas.getContext('2d');
+      }
+      draw(activeCtx, keypadCtx, activeCanvas.width, activeCanvas.height, time);
+    } else {
+      activeCtx.clearRect(0, 0, activeCanvas.width, activeCanvas.height);
+      const keypadCanvas = document.getElementById("building-keypad-canvas");
+      if (keypadCanvas) {
+        const keypadCtx = keypadCanvas.getContext("2d");
+        if (keypadCtx) {
+          keypadCtx.clearRect(0, 0, keypadCanvas.width, keypadCanvas.height);
+        }
+      }
     }
-    draw(activeCtx, keypadCtx, activeCanvas.width, activeCanvas.height, time);
+    updateDomOverlays(activeCanvas.width, activeCanvas.height, time);
   }
 
   animationFrameId = requestAnimationFrame(loop);
@@ -1510,45 +1508,6 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "prismatium") drawTesseract(ctx, t, tier, prevTier, animProgress);
 
   ctx.restore();
-
-  // Update HTML element position
-  const levelText = document.getElementById("building-detail-level-text");
-  if (levelText) {
-    const getOffset = (bId, bTier) => {
-      if (bId === "core") return 150 - bTier * 2;
-      if (bId === "crystal") return 180 - bTier * 8;
-      if (bId === "copper") return 180 + bTier * 8;
-      if (bId === "iron") return 220;
-      if (bId === "pure_gold") return 250 + bTier * 10 + (bTier >= 4 ? 35 : 0);
-      if (bId === "diamond") return 200 + bTier * 15;
-      return 180;
-    };
-
-    const targetOffset = getOffset(id, tier);
-    const startOffset =
-      prevTier >= 0 ? getOffset(id, prevTier) : getOffset(id, 0);
-    const offset = startOffset + (targetOffset - startOffset) * animProgress;
-
-    levelText.style.position = "absolute";
-    // Calculate top offset based on parent container offset (which might be causing the drift)
-    // Adjust for padding or margins of the container
-    levelText.style.top = Math.max(50, finalHighestY - offset) + "px"; // Magic number offset to fix clipping
-    levelText.style.left = "0";
-    levelText.style.width = "100%";
-
-    let shakeAlphaText = 0;
-    if (tierUpAnimTime > 0) {
-      shakeAlphaText =
-        tierUpAnimTime > 2.5
-          ? (6.0 - tierUpAnimTime) / 3.5
-          : tierUpAnimTime / 2.5;
-    }
-    levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
-    const titleEl = document.querySelector(".upg-title");
-    if (titleEl) {
-      titleEl.style.opacity = Math.max(0, 1 - shakeAlphaText);
-    }
-  }
 }
 
 // ----------------- Building Drawing Routines ----------------- //
@@ -13163,62 +13122,135 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   ctx.restore();
   ctx.restore(); 
 
+}
+
+function updateDomOverlays(w, h, t) {
+  if (!currentBuildingId) return;
+  const id = currentBuildingId;
+  let tier = getTier();
+  let prevTier = previousTier;
+  let animProgress = 1.0;
+  if (tierUpAnimTime > 0) {
+    animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+  }
+  
+  let scale = 1;
+  if (id === "core") scale = 0.8;
+  else if (id === "crystal") scale = 0.7;
+  else if (id === "stone") scale = 0.7;
+  else if (id === "copper") scale = 0.7;
+  else if (id === "iron") scale = 0.65;
+  else if (id === "pure_gold") scale = 0.6;
+  else if (id === "diamond") scale = 0.55;
+  else if (id === "emerald") scale = 0.6;
+  else if (id === "ruby") scale = 0.7;
+  else if (id === "sapphire") scale = 0.7;
+  else if (id === "unobtainium") scale = 0.65;
+  else if (id === "prismatium") scale = 0.65;
+  
+  const floorY = h / 2 + 150;
+  let topY = 0;
+  if (id === "core") topY = -200;
+  else if (id === "crystal") topY = -(100 + tier * 10) - 30;
+  else if (id === "stone") topY = -140;
+  else if (id === "copper") topY = -90;
+  else if (id === "iron") topY = -100;
+  else if (id === "pure_gold") topY = -100;
+  else if (id === "diamond") topY = -120;
+  else if (id === "emerald") topY = -130;
+  else if (id === "ruby") topY = -200;
+  else if (id === "sapphire") topY = -80;
+  else if (id === "unobtainium") topY = -160;
+  else if (id === "prismatium") topY = -150;
+  else topY = -100;
+  
+  const finalHighestY = floorY + topY * scale;
+
+  const levelText = document.getElementById("building-detail-level-text");
+  let shakeAlphaText = 0;
+  if (tierUpAnimTime > 0) {
+    shakeAlphaText = tierUpAnimTime > 2.5 ? (6.0 - tierUpAnimTime) / 3.5 : tierUpAnimTime / 2.5;
+  }
+
+  if (levelText) {
+    const getOffset = (bId, bTier) => {
+      if (bId === "core") return 150 - bTier * 2;
+      if (bId === "crystal") return 180 - bTier * 8;
+      if (bId === "copper") return 180 + bTier * 8;
+      if (bId === "iron") return 220;
+      if (bId === "pure_gold") return 250 + bTier * 10 + (bTier >= 4 ? 35 : 0);
+      if (bId === "diamond") return 200 + bTier * 15;
+      return 180;
+    };
+
+    const targetOffset = getOffset(id, tier);
+    const startOffset = prevTier >= 0 ? getOffset(id, prevTier) : getOffset(id, 0);
+    const offset = startOffset + (targetOffset - startOffset) * animProgress;
+
+    levelText.style.position = "absolute";
+    levelText.style.top = Math.max(50, finalHighestY - offset) + "px";
+    levelText.style.left = "0";
+    levelText.style.width = "100%";
+    levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
+  }
+
   const titleEl = document.querySelector(".upg-title");
   if (titleEl) {
-    let text = "Tesseract";
-    if (tier >= 8) text = "Hexeract";
-    else if (tier >= 4) text = "Penteract";
+    titleEl.style.opacity = Math.max(0, 1 - shakeAlphaText);
     
-    let shouldGlitch = false;
-    let glitchProg = 0;
-    let fromText = "";
-    let toText = "";
+    if (id === "prismatium") {
+      let text = "Tesseract";
+      if (tier >= 8) text = "Hexeract";
+      else if (tier >= 4) text = "Penteract";
+      
+      let shouldGlitch = false;
+      let glitchProg = 0;
+      let fromText = "";
+      let toText = "";
 
-    if (prevTier < 4 && tier >= 4) {
-      shouldGlitch = true;
-      glitchProg = animProgress;
-      fromText = "Tesseract";
-      toText = "Penteract";
-    } else if (prevTier < 8 && tier >= 8) {
-      shouldGlitch = true;
-      glitchProg = animProgress;
-      fromText = "Penteract";
-      toText = "Hexeract";
-    }
+      if (prevTier < 4 && tier >= 4) {
+        shouldGlitch = true;
+        glitchProg = animProgress;
+        fromText = "Tesseract";
+        toText = "Penteract";
+      } else if (prevTier < 8 && tier >= 8) {
+        shouldGlitch = true;
+        glitchProg = animProgress;
+        fromText = "Penteract";
+        toText = "Hexeract";
+      }
 
-    if (shouldGlitch && glitchProg > 0 && glitchProg < 1) {
-      let glitchStr = "";
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*!~?";
-      const maxLen = Math.max(fromText.length, toText.length);
-      for (let i = 0; i < maxLen; i++) {
-        const chaos = Math.sin(glitchProg * Math.PI);
-        if (Math.random() < chaos * 0.8) {
-          glitchStr += chars[Math.floor(Math.random() * chars.length)];
-        } else if (glitchProg < 0.5) {
-          glitchStr += fromText[i] || chars[Math.floor(Math.random() * chars.length)];
-        } else {
-          glitchStr += toText[i] || chars[Math.floor(Math.random() * chars.length)];
+      if (shouldGlitch && glitchProg > 0 && glitchProg < 1) {
+        let glitchStr = "";
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*!~?";
+        const maxLen = Math.max(fromText.length, toText.length);
+        for (let i = 0; i < maxLen; i++) {
+          const chaos = Math.sin(glitchProg * Math.PI);
+          if (Math.random() < chaos * 0.8) {
+            glitchStr += chars[Math.floor(Math.random() * chars.length)];
+          } else if (glitchProg < 0.5) {
+            glitchStr += fromText[i] || chars[Math.floor(Math.random() * chars.length)];
+          } else {
+            glitchStr += toText[i] || chars[Math.floor(Math.random() * chars.length)];
+          }
         }
-      }
-      
-      let coloredStr = "";
-      for(let i=0; i<glitchStr.length; i++) {
-         if (chars.includes(glitchStr[i]) && !fromText.includes(glitchStr[i]) && !toText.includes(glitchStr[i])) {
-             const hue = Math.floor(Math.random() * 360);
-             coloredStr += `<span style="color: hsl(${hue}, 100%, 65%); text-shadow: 0 0 8px hsl(${hue}, 100%, 65%); font-weight: bold;">${glitchStr[i]}</span>`;
-         } else {
-             coloredStr += glitchStr[i];
-         }
-      }
-      
-      const rOffsetX = (Math.random() - 0.5) * 4 * Math.sin(glitchProg * Math.PI);
-      const rOffsetY = (Math.random() - 0.5) * 4 * Math.sin(glitchProg * Math.PI);
-      
-      titleEl.innerHTML = `Prismatium Building: <span style="display: inline-block; transform: translate(${rOffsetX}px, ${rOffsetY}px);">${coloredStr}</span>`;
-    } else {
-      const expected = `Prismatium Building: ${text}`;
-      if (titleEl.innerHTML !== expected) {
-        titleEl.innerHTML = expected;
+        
+        let coloredStr = "";
+        for(let i=0; i<glitchStr.length; i++) {
+           if (chars.includes(glitchStr[i]) && !fromText.includes(glitchStr[i]) && !toText.includes(glitchStr[i])) {
+               const hue = Math.floor(Math.random() * 360);
+               coloredStr += `<span style="color: hsl(${hue}, 100%, 65%); text-shadow: 0 0 8px hsl(${hue}, 100%, 65%); font-weight: bold;">${glitchStr[i]}</span>`;
+           } else {
+               coloredStr += glitchStr[i];
+           }
+        }
+        
+        const rOffsetX = (Math.random() - 0.5) * 4 * Math.sin(glitchProg * Math.PI);
+        const rOffsetY = (Math.random() - 0.5) * 4 * Math.sin(glitchProg * Math.PI);
+        
+        setHtmlOrText(titleEl, `Prismatium Building: <span style="display: inline-block; transform: translate(${rOffsetX}px, ${rOffsetY}px);">${coloredStr}</span>`);
+      } else {
+        setHtmlOrText(titleEl, `Prismatium Building: ${text}`);
       }
     }
   }
