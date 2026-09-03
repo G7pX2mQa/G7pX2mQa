@@ -2166,6 +2166,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         showNotification,
         showWelcomePopup,
         showWeeklyReminderPopup,
+        showFirefoxNotification,
+        showFirefoxNoticeModal,
         triggerInitialLandscapeCheck,
     } = notificationModule;
 
@@ -2179,7 +2181,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             const procsKey = `ccc:weekly_reminder_procs:${slot}`;
             if (!lsGetItem(welcomeKey)) {
                 lsSetItem(welcomeKey, "1");
-                showWelcomePopup(IS_MOBILE);
+                showWelcomePopup(IS_MOBILE, () => {
+                    if (IS_FIREFOX && getActiveSlot() === slot) {
+                        showFirefoxNotification(IS_MOBILE);
+                    }
+                });
             } else {
                 let procs = [];
                 try {
@@ -2210,6 +2216,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.bank = bank;
     window.unpauseNotifications = unpauseNotifications;
     window.showNotification = showNotification;
+    window.showFirefoxNotification = showFirefoxNotification;
+    window.showFirefoxNoticeModal = showFirefoxNoticeModal;
 
     // Global Audio Control for Events
     if (typeof window !== "undefined") {
