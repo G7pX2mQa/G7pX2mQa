@@ -149,6 +149,16 @@ body.hide-building-visuals:not(.menu-bg) #building-detail-level-text {
   margin: 0 !important;
 }
 
+/* Ensure floating overlays (dropdowns, tooltips) get a solid background
+   since their gradient background-image is stripped by the global rule above */
+body.spreadsheet-mode:not(.menu-bg) .setting-dropdown-menu,
+body.spreadsheet-mode:not(.menu-bg) .setting-dropdown-option,
+body.spreadsheet-mode:not(.menu-bg) .setting-info-tooltip {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  border: 1px solid #444 !important;
+}
+
 body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.base,
 body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.maxed-overlay,
 body.spreadsheet-mode:not(.menu-bg) .buildings-tab .shop-tile img.icon {
