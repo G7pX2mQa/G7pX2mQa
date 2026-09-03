@@ -340,7 +340,7 @@ export function showWelcomePopup(isMobile, onComplete) {
         }, 1200);
     };
 
-    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 17000); // 1s enter + 16s wait = 9000ms
+    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000); // 1s enter + 8s wait = 9000ms
 }
 
 export function showFirefoxNoticeModal() {
