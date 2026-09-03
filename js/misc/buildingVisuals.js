@@ -12758,6 +12758,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
   const showTier4 = tier >= 4 ? 1 : 0;
   const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
+  const showTier5 = tier >= 5 ? 1 : 0;
+  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
 
   const startScale = 1.0 + prevTier * 0.1;
   const targetScale = 1.0 + tier * 0.1;
@@ -13068,6 +13070,72 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
         ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
         ctx.lineWidth = 1.5;
         ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if (tier5Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha *= tier5Prog;
+      const pulseSpeed = 2.0;
+      const numPulses = Math.floor(geom.edgesWithDepth.length * 0.8);
+      for (let i = 0; i < numPulses; i++) {
+        const pulseCycle = t * pulseSpeed + i * 2.13; 
+        const currentCycle = Math.floor(pulseCycle);
+        const cycleFrac = pulseCycle - currentCycle;
+        
+        const edgeIdx = Math.floor(Math.abs(Math.sin(currentCycle * 1.3 + i * 3.7)) * geom.edgesWithDepth.length) % geom.edgesWithDepth.length;
+        const edge = geom.edgesWithDepth[edgeIdx];
+        
+        const p1 = geom.projected[edge.i];
+        const p2 = geom.projected[edge.j];
+        
+        const dir = (Math.floor(Math.abs(Math.cos(currentCycle * 2.1 + i))) % 2 === 0);
+        const startP = dir ? p1 : p2;
+        const endP = dir ? p2 : p1;
+        
+        const pulseLength = 0.4; 
+        
+        let tStart = cycleFrac - pulseLength;
+        let tEnd = cycleFrac;
+        if (tStart < 0) tStart = 0;
+        if (tEnd > 1) tEnd = 1;
+        
+        if (tEnd > 0 && tStart < 1) {
+          const px1 = startP.x + (endP.x - startP.x) * tStart;
+          const py1 = startP.y + (endP.y - startP.y) * tStart;
+          const px2 = startP.x + (endP.x - startP.x) * tEnd;
+          const py2 = startP.y + (endP.y - startP.y) * tEnd;
+          
+          ctx.beginPath();
+          ctx.moveTo(px1, py1);
+          ctx.lineTo(px2, py2);
+          ctx.strokeStyle = "rgba(255, 255, 255, 1.0)";
+          ctx.lineWidth = 3.5;
+          ctx.lineCap = "round";
+          ctx.stroke();
+          
+          ctx.globalCompositeOperation = "lighter";
+          ctx.strokeStyle = rainbowColor(edge.edgeParam, 0.9);
+          ctx.lineWidth = 10;
+          ctx.stroke();
+          
+          ctx.strokeStyle = rainbowColor(edge.edgeParam, 0.4);
+          ctx.lineWidth = 20;
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.arc(px2, py2, 4, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 255, 255, 1.0)";
+          ctx.fill();
+          
+          ctx.beginPath();
+          ctx.arc(px2, py2, 10, 0, Math.PI * 2);
+          ctx.fillStyle = rainbowColor(edge.edgeParam, 0.8);
+          ctx.fill();
+          
+          ctx.globalCompositeOperation = "source-over";
+        }
       }
       ctx.restore();
     }
