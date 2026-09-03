@@ -11,6 +11,7 @@ import { unmarkSaveSlotModified, markSaveSlotModified } from "./util/storage.js"
 import { settingsManager } from "./game/settingsManager.js";
 import { flushBackupSnapshot as immediateFlushBackupSnapshot } from "./util/suspensionSafeguard.js";
 import { IS_MOBILE, IS_FIREFOX } from "./util/platformChecker.js";
+import { showWideNotification } from "./ui/notifications.js";
 
 export const FONT_MAP = {
     1: "font-tinos",
@@ -2779,4 +2780,10 @@ window.addEventListener("duplicateInstanceDetected", () => {
     }
     dupScreen.style.display = "grid";
 });
+
+window.addEventListener("webglcontextlost", (e) => {
+    e.preventDefault();
+    showWideNotification("WebGL context lost. Please refresh the tab to get it back.", 10000);
+}, true);
+
 window.enterArea = enterArea;
