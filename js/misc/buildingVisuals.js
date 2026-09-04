@@ -13083,8 +13083,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const maxRadiusWithBob = maxLocalRadius + maxBob;
   
   let viewportScale = 1.0;
-  viewportScale = Math.min(viewportScale, (canvasW / 2) / (maxLocalRadius * maxGlobalScale));
-  viewportScale = Math.min(viewportScale, (canvasH / 2) / (maxRadiusWithBob * maxGlobalScale));
+  viewportScale = Math.min(viewportScale, (canvasW * 0.95 / 2) / (maxLocalRadius * maxGlobalScale));
+  viewportScale = Math.min(viewportScale, (canvasH * 0.95 / 2) / (maxRadiusWithBob * maxGlobalScale));
 
   ctx.save();
   ctx.scale(viewportScale, viewportScale);
