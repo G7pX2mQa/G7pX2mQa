@@ -2,7 +2,7 @@
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { bank, getActiveSlot } from "../util/storage.js";
 import { BigNum } from "../util/bigNum.js";
-import { formatNumber } from "../util/numFormat.js";
+import { formatNumber, SUFFIX_ENTRIES } from "../util/numFormat.js";
 import { FONT_MAP } from "../main.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import {
@@ -1680,10 +1680,11 @@ function openValcDialog(model) {
     const targetRowObj = createInputRow("Target Level:");
     const { row: startRow, input: startInput, afterSlot: startAfter } = startRowObj;
     const { row: targetRow, label: targetLabel, input: targetInput, afterSlot: targetAfter } = targetRowObj;
-    startInput.value = formatNumber(BigNum.fromAny(model.lvl));
-    targetInput.value = formatNumber(BigNum.fromAny(model.lvl));
+    const isLvlInf = model.lvlBn?.isInfinite?.() || model.lvl === Infinity || model.lvl === "Infinity";
+    startInput.value = isLvlInf ? "Infinity" : stripTags(formatNumber(BigNum.fromAny(model.lvl)));
+    targetInput.value = isLvlInf ? "Infinity" : stripTags(formatNumber(BigNum.fromAny(model.lvl)));
     const cap = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
-    const capText = cap === Infinity ? "" : ` / ${formatNumber(BigNum.fromAny(cap))}`;
+    const capText = cap === Infinity ? "" : ` / ${stripTags(formatNumber(BigNum.fromAny(cap)))}`;
     startAfter.textContent = capText;
     targetAfter.textContent = capText;
     inputsContainer.append(startRow, targetRow);
@@ -1695,8 +1696,23 @@ function openValcDialog(model) {
     costToDisplay.style.marginBottom = "1rem";
     costToDisplay.style.textAlign = "center";
     const parseLevel = (val) => {
-        const v = String(val).trim().replace(/,/g, "");
+        let v = String(val).trim().replace(/,/g, "");
         if (!v) return 0;
+        
+        const match = v.match(/^([+-]?\d+(?:\.\d+)?)([a-zA-Z]+)$/);
+        if (match) {
+            const numPart = match[1];
+            const suffix = match[2];
+            let exp = 0;
+            if (suffix.toLowerCase() === 'k') {
+                exp = 3;
+            } else {
+                const entry = SUFFIX_ENTRIES.find(e => e[1] === suffix);
+                if (entry) exp = entry[0];
+            }
+            if (exp > 0) v = numPart + 'e' + exp;
+        }
+
         const parsedBn = parseBigNumInput(v);
         if (!parsedBn || parsedBn.isNaN?.()) return -1;
         let num = Math.floor(parsedBn.toNumber?.() ?? Number(parsedBn));
@@ -1710,6 +1726,7 @@ function openValcDialog(model) {
     };
 
     const getRetroactiveCostAt = (level) => {
+        if (level === Infinity) return BigNum.fromAny("Infinity");
         if (model.upg.upgType !== "HM") {
             try {
                 return BigNum.fromAny(model.upg.costAtLevel(level));
@@ -1717,6 +1734,8 @@ function openValcDialog(model) {
                 return BigNum.fromInt(0);
             }
         }
+
+        if (level > 1e15) return BigNum.fromAny("Infinity");
 
         const origEvol = model.upg.activeEvolutions;
         const origScaling = model.upg.scaling;
@@ -1733,12 +1752,18 @@ function openValcDialog(model) {
     };
 
     const getRetroactiveCost = (start, end) => {
+        if (end === Infinity || end > 1e15) return BigNum.fromAny("Infinity");
+        
         if (model.upg.upgType !== "HM") {
+            let countBn;
+            try { countBn = BigNum.fromAny(end).sub(BigNum.fromAny(start)); }
+            catch { countBn = BigNum.fromAny("Infinity"); }
+            
             return evaluateBulkPurchase(
                 model.upg,
-                BigNum.fromInt(start),
+                BigNum.fromAny(start),
                 BigNum.fromAny("Infinity"),
-                BigNum.fromInt(end - start),
+                countBn
             ).spent;
         }
 
@@ -1746,18 +1771,39 @@ function openValcDialog(model) {
         const origScaling = model.upg.scaling;
         let totalSpent = BigNum.fromInt(0);
         let currentStart = start;
+        let iterations = 0;
         try {
             while (currentStart < end) {
+                if (iterations++ > 100) {
+                    model.upg.activeEvolutions = Math.floor(end / 1000);
+                    delete model.upg.scaling;
+                    let countBn;
+                    try { countBn = BigNum.fromAny(end).sub(BigNum.fromAny(currentStart)); }
+                    catch { countBn = BigNum.fromAny(end - currentStart); }
+                    const { spent } = evaluateBulkPurchase(
+                        model.upg,
+                        BigNum.fromAny(currentStart),
+                        BigNum.fromAny("Infinity"),
+                        countBn,
+                    );
+                    totalSpent = totalSpent.add(spent);
+                    break;
+                }
                 const currentEvol = Math.floor(currentStart / 1000);
                 const nextBoundary = (currentEvol + 1) * 1000;
                 const currentEnd = Math.min(end, nextBoundary);
                 model.upg.activeEvolutions = currentEvol;
                 delete model.upg.scaling;
+                
+                let countBn;
+                try { countBn = BigNum.fromAny(currentEnd).sub(BigNum.fromAny(currentStart)); }
+                catch { countBn = BigNum.fromAny(currentEnd - currentStart); }
+
                 const { spent } = evaluateBulkPurchase(
                     model.upg,
-                    BigNum.fromInt(currentStart),
+                    BigNum.fromAny(currentStart),
                     BigNum.fromAny("Infinity"),
-                    BigNum.fromInt(currentEnd - currentStart),
+                    countBn,
                 );
                 totalSpent = totalSpent.add(spent);
                 currentStart = currentEnd;
@@ -1789,12 +1835,6 @@ function openValcDialog(model) {
         let effectiveTarget = safeTarget;
         let costAt = getRetroactiveCostAt(effectiveTarget);
         const costAtLabel = getCurrencyLabel(model.upg.costType, costAt);
-        let cumulative = BigNum.fromInt(0);
-        if (isTargetMode && effectiveTarget > safeStart) {
-            cumulative = getRetroactiveCost(safeStart, effectiveTarget);
-        }
-
-        const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
         const targetStr = formatNumber(BigNum.fromAny(effectiveTarget));
         let costAtStr;
         if (effectiveTarget >= cap) {
@@ -1803,7 +1843,19 @@ function openValcDialog(model) {
             costAtStr = `${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
         }
         costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
-        costToDisplay.innerHTML = `Cost to level ${targetStr}: ${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
+
+        if (isTargetMode) {
+            if (effectiveTarget >= 1e6) {
+                costToDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Cumulative cost doesn't mean much above at this point</span>`;
+            } else {
+                let cumulative = BigNum.fromInt(0);
+                if (effectiveTarget > safeStart) {
+                    cumulative = getRetroactiveCost(safeStart, effectiveTarget);
+                }
+                const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
+                costToDisplay.innerHTML = `Cost to level ${targetStr}: ${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
+            }
+        }
     };
 
     const formatOnBlur = (inputEl) => {
@@ -1814,7 +1866,8 @@ function openValcDialog(model) {
             return;
         }
         inputEl.style.borderColor = "rgba(255, 255, 255, 0.2)";
-        inputEl.value = formatNumber(BigNum.fromAny(finalNum));
+        const finalNumBn = BigNum.fromAny(finalNum);
+        inputEl.value = finalNumBn.isInfinite?.() ? "Infinity" : stripTags(formatNumber(finalNumBn));
         if (isFirstEditInTargetMode) {
             isFirstEditInTargetMode = false;
             if (inputEl === startInput) {
@@ -1867,7 +1920,7 @@ function openValcDialog(model) {
     const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
     if (model.upg.upgType === "HM" && evolutions > 0) {
         const hmNote = document.createElement("div");
-        hmNote.textContent = "(Evolution scaling is retroactively regressed every 1000 levels to be informative)";
+        hmNote.textContent = `(Evolution scaling is retroactively regressed every ${(1000).toLocaleString()} levels to be informative)`;
         hmNote.style.color = "rgb(245, 230, 160)";
         hmNote.style.fontSize = "0.8em";
         hmNote.style.opacity = "0.7";
@@ -2049,6 +2102,11 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             : capReached
               ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)`
               : `Level ${model.lvlFmtHtml} / ${capHtml}`;
+              
+        if (model.lvlBn?.isInfinite?.()) {
+            levelHtml = "Infinity";
+        }
+        
         if (mode === "rainbow_gem_shop") {
             levelHtml = capReached ? "Owned" : "Not Owned";
         }
