@@ -338,6 +338,7 @@
 .setting-slider-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
+  box-sizing: border-box;
   width: var(--thumb-size);
   height: var(--thumb-size);
   border-radius: 50%;
@@ -354,6 +355,7 @@
 }
 
 .setting-slider-input::-moz-range-thumb {
+  box-sizing: border-box;
   width: var(--thumb-size);
   height: var(--thumb-size);
   border-radius: 50%;
@@ -397,7 +399,7 @@
 /* Thumb label to show the value */
 .setting-slider-thumb-label {
   position: absolute;
-  top: calc(50% - 14px); /* Vertical center over the track */
+  top: 12px; /* Vertical center over the track */
   transform: translate(-50%, -50%);
   pointer-events: none; /* Let clicks pass through to the slider thumb */
   color: #fff;
