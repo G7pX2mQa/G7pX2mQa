@@ -44,6 +44,7 @@ export function nukeNotifications(clearAll = true) {
         }
         if (popup.timeoutId) clearTimeout(popup.timeoutId);
         if (popup.fallbackTimeoutId) clearTimeout(popup.fallbackTimeoutId);
+        if (popup.intervalId) clearInterval(popup.intervalId);
     }
     activeWelcomePopups.clear();
 
@@ -365,9 +366,9 @@ export function showFirefoxNoticeModal() {
 
     textEl.innerHTML = `
         <p style="font-weight: 600; font-size: 1.15em; color: #ffeb3b; margin-bottom: 12px;">Read this message fully:</p>
-        <p>So now that you've progressed a bit in the game, I must tell you some important information: I know that you're playing this on the Firefox browser. And while this game is supported on this browser, I want to say that some canvas-heavy sections that come up later in the game may drag down the game's performance compared to Chromium-based browsers. You may have experienced lag even in The Cove, I can't say for sure.</p>
+        <p>So now that you've progressed a bit in the game, I must tell you some important information: I know that you're playing this on the Firefox browser. And while this game is supported on this browser, I want to say that some canvas-heavy sections that come up later in the game may drag down the game's performance on Firefox compared to Chromium-based browsers. You may have experienced lag even in The Cove, I can't say for sure.</p>
         <p>So that's why I suggest you check out all of the Performance settings, they can help out a ton if the game ever lags. In particular, there's a setting you can enable called "Spreadsheet Mode" which strips away all of the complex visuals, fancy animations, and stuff like that in order to greatly improve performance if you ever need it.</p>
-        <p>But enough reading, go collect some Coins!</p>
+        <p>Just something to keep in mind.</p>
     `.trim();
 
     content.appendChild(textEl);
@@ -418,7 +419,15 @@ export function showFirefoxNotification(isMobile = IS_MOBILE) {
     const actionWord = isMobile ? "Tap" : "Click";
     const textEl = document.createElement("div");
     textEl.className = "firefox-notif-text";
-    textEl.textContent = `You have received a special message! ${actionWord} the button below to view it.`;
+
+    const messageEl = document.createElement("div");
+    messageEl.textContent = `You have received a special message! ${actionWord} the button below to view it.`;
+    textEl.appendChild(messageEl);
+
+    const countdownEl = document.createElement("div");
+    countdownEl.className = "firefox-notif-countdown";
+    textEl.appendChild(countdownEl);
+
     el.appendChild(textEl);
 
     const btnRow = document.createElement("div");
@@ -436,17 +445,38 @@ export function showFirefoxNotification(isMobile = IS_MOBILE) {
     document.body.appendChild(parent);
 
     const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+    const DURATION = 31000;
 
     const popupTracker = {
         element: parent,
         audio,
         timeoutId: null,
         fallbackTimeoutId: null,
+        intervalId: null,
         startTime: Date.now(),
-        duration: 9000,
+        duration: DURATION,
+        remainingDuration: null,
         triggerLeaving: null,
     };
     activeWelcomePopups.add(popupTracker);
+
+    const getRemainingMs = () => {
+        if (popupTracker.remainingDuration != null && popupTracker.timeoutId == null) {
+            return popupTracker.remainingDuration;
+        }
+        return Math.max(0, popupTracker.duration - (Date.now() - popupTracker.startTime));
+    };
+
+    const updateCountdown = () => {
+        const remainingMs = getRemainingMs();
+        const remainingSec = Math.max(0, remainingMs / 1000);
+        const floored = Math.min(30, Math.floor(remainingSec));
+        const timeText = floored === 0 ? "< 1 second" : floored === 1 ? "1 second" : `${floored} seconds`;
+        countdownEl.textContent = `This notification will disappear in ${timeText}.`;
+    };
+
+    updateCountdown();
+    popupTracker.intervalId = setInterval(updateCountdown, 100);
 
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -454,7 +484,15 @@ export function showFirefoxNotification(isMobile = IS_MOBILE) {
         });
     });
 
+    const stopCountdown = () => {
+        if (popupTracker.intervalId) {
+            clearInterval(popupTracker.intervalId);
+            popupTracker.intervalId = null;
+        }
+    };
+
     popupTracker.triggerLeaving = () => {
+        stopCountdown();
         el.classList.remove("is-visible");
         el.classList.add("is-leaving");
 
@@ -462,6 +500,7 @@ export function showFirefoxNotification(isMobile = IS_MOBILE) {
         const cleanup = () => {
             if (cleanedUp) return;
             cleanedUp = true;
+            stopCountdown();
             parent.remove();
             activeWelcomePopups.delete(popupTracker);
         };
@@ -476,10 +515,11 @@ export function showFirefoxNotification(isMobile = IS_MOBILE) {
         }, 1200);
     };
 
-    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000);
+    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, DURATION);
 
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
+        stopCountdown();
         if (popupTracker.timeoutId) {
             clearTimeout(popupTracker.timeoutId);
             popupTracker.timeoutId = null;
