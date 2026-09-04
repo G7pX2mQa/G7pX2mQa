@@ -364,9 +364,9 @@ export function showFirefoxNoticeModal() {
     textEl.className = "firefox-notice-text";
 
     textEl.innerHTML = `
-        <p style="font-weight: 800; font-size: 1.15em; color: #ffeb3b; margin-bottom: 12px;">Read this message fully:</p>
-        <p>It has been detected that you are using the Firefox browser. While this game is supported on this browser, some visually intense sections of the game may drag down the game's performance. Firefox's visual rendering engine is generally worse than Chromium at rendering complex canvas visuals which this game utilizes in many places.</p>
-        <p>In order to make sure the game is still as accessible as possible, there are a variety of performance settings in Stats & Settings. In particular, there is a setting you can enable called "Spreadsheet Mode" which strips away all of the complex visuals, fancy animations, and stuff like that in order to greatly improve performance.</p>
+        <p style="font-weight: 600; font-size: 1.15em; color: #ffeb3b; margin-bottom: 12px;">Read this message fully:</p>
+        <p>So now that you've progressed a bit in the game, I must tell you some important information: I know that you're playing this on the Firefox browser. And while this game is supported on this browser, I want to say that some canvas-heavy sections that come up later in the game may drag down the game's performance compared to Chromium-based browsers. You may have experienced lag even in The Cove, I can't say for sure.</p>
+        <p>So that's why I suggest you check out all of the Performance settings, they can help out a ton if the game ever lags. In particular, there's a setting you can enable called "Spreadsheet Mode" which strips away all of the complex visuals, fancy animations, and stuff like that in order to greatly improve performance if you ever need it.</p>
         <p>But enough reading, go collect some Coins!</p>
     `.trim();
 
