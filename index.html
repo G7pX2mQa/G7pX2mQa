@@ -47,6 +47,8 @@
 
     <script>
       document.documentElement.classList.add('booting', 'js-enabled');
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      window.scrollTo(0, 0);
     </script>
 
     <link rel="stylesheet" href="./styles.css"/>
