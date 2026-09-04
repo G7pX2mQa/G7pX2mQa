@@ -590,12 +590,18 @@ export function startCanvasLoop(id, canvasEl) {
   canvasResizeObserver = new ResizeObserver(() => {
     if (!activeCanvas) return;
     const rect = activeCanvas.parentElement.getBoundingClientRect();
-    activeCanvas.width = rect.width;
-    activeCanvas.height = rect.height;
+    let dpr = 1;
+    if (typeof settingsManager !== "undefined") {
+      const quality = settingsManager.get("graphics_quality") ?? 10;
+      if (quality < 4) dpr = 0.5;
+      else if (quality < 8) dpr = 0.75;
+    }
+    activeCanvas.width = rect.width * dpr;
+    activeCanvas.height = rect.height * dpr;
     const keypadCanvas = document.getElementById('building-keypad-canvas');
     if (keypadCanvas) {
-      keypadCanvas.width = rect.width;
-      keypadCanvas.height = rect.height;
+      keypadCanvas.width = rect.width * dpr;
+      keypadCanvas.height = rect.height * dpr;
     }
   });
   canvasResizeObserver.observe(activeCanvas.parentElement);
@@ -627,12 +633,18 @@ export function startCanvasLoop(id, canvasEl) {
   }
 
   const rect = activeCanvas.parentElement.getBoundingClientRect();
-  activeCanvas.width = rect.width;
-  activeCanvas.height = rect.height;
+  let dpr = 1;
+  if (typeof settingsManager !== "undefined") {
+    const quality = settingsManager.get("graphics_quality") ?? 10;
+    if (quality < 4) dpr = 0.5;
+    else if (quality < 8) dpr = 0.75;
+  }
+  activeCanvas.width = rect.width * dpr;
+  activeCanvas.height = rect.height * dpr;
   const keypadCanvas = document.getElementById('building-keypad-canvas');
   if (keypadCanvas) {
-    keypadCanvas.width = rect.width;
-    keypadCanvas.height = rect.height;
+    keypadCanvas.width = rect.width * dpr;
+    keypadCanvas.height = rect.height * dpr;
   }
 
   // Using import for ES modules instead of require for local scope
@@ -938,14 +950,15 @@ function loop(currentTime) {
       }
     }
 
+    const rect = activeCanvas.getBoundingClientRect();
     let cursor = 'default';
     if (isOnlyBuilding) {
       cursor = 'none';
     } else if (isVaultOpen && !vaultCoinCollectedLocal) {
       cursor = 'none';
       const scale = 1.0 + getTier() * 0.1;
-      const coin_cx = activeCanvas.width / 2;
-      const floorY = activeCanvas.height - 260;
+      const coin_cx = rect.width / 2;
+      const floorY = rect.height - 260;
       const coin_cy = floorY - (getTier() >= 1 ? 65 : 50) * scale;
       
       // Hitbox is a circular radius of 20 * scale representing the coin's physical boundaries.
@@ -974,8 +987,8 @@ function loop(currentTime) {
     } else if (isVaultOpening) {
       cursor = 'none';
     } else if (keypadZoomedIn) {
-      const w = activeCanvas.width;
-      const h = activeCanvas.height;
+      const w = rect.width;
+      const h = rect.height;
       const kx = (canvasMouseX - Math.floor(w / 2)) / 8;
       const ky = (canvasMouseY - Math.floor(h / 2)) / 8;
       if (kx >= -12.5 && kx <= 12.5 && ky >= -18 && ky <= 18) {
@@ -995,8 +1008,8 @@ function loop(currentTime) {
       }
     } else {
       const scale = 1.0 + getTier() * 0.1;
-      const floorY = activeCanvas.height - 260;
-      const centerX = activeCanvas.width / 2;
+      const floorY = rect.height - 260;
+      const centerX = rect.width / 2;
       const dy = 15;
       const left = centerX - 48 * scale;
       const right = centerX - 23 * scale;
@@ -1018,13 +1031,33 @@ function loop(currentTime) {
   }
 
   if (activeCanvas && activeCtx) {
+    let dpr = 1;
+    if (typeof settingsManager !== "undefined") {
+      const quality = settingsManager.get("graphics_quality") ?? 10;
+      if (quality < 4) dpr = 0.5;
+      else if (quality < 8) dpr = 0.75;
+    }
+    const logicalW = activeCanvas.width / dpr;
+    const logicalH = activeCanvas.height / dpr;
+
     if (settingsManager.get("show_building_visuals")) {
       const keypadCanvas = document.getElementById('building-keypad-canvas');
       let keypadCtx = null;
       if (keypadCanvas) {
         keypadCtx = keypadCanvas.getContext('2d');
       }
-      draw(activeCtx, keypadCtx, activeCanvas.width, activeCanvas.height, time);
+      
+      activeCtx.save();
+      activeCtx.scale(dpr, dpr);
+      if (keypadCtx) {
+        keypadCtx.save();
+        keypadCtx.scale(dpr, dpr);
+      }
+      
+      draw(activeCtx, keypadCtx, logicalW, logicalH, time);
+      
+      activeCtx.restore();
+      if (keypadCtx) keypadCtx.restore();
     } else {
       activeCtx.clearRect(0, 0, activeCanvas.width, activeCanvas.height);
       const keypadCanvas = document.getElementById("building-keypad-canvas");
@@ -1035,7 +1068,7 @@ function loop(currentTime) {
         }
       }
     }
-    updateDomOverlays(activeCanvas.width, activeCanvas.height, time);
+    updateDomOverlays(logicalW, logicalH, time);
   }
 
   animationFrameId = requestAnimationFrame(loop);
@@ -1739,7 +1772,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "ruby") drawReactor(ctx, t, tier, prevTier, animProgress);
   else if (id === "sapphire") drawCentrifuge(ctx, t, tier, prevTier, animProgress);
   else if (id === "unobtainium") drawBeacon(ctx, t, tier, prevTier, animProgress);
-  else if (id === "prismatium") drawTesseract(ctx, t, tier, prevTier, animProgress);
+  else if (id === "prismatium") drawTesseract(ctx, w, h, t, tier, prevTier, animProgress);
 
   ctx.restore();
 }
@@ -5776,8 +5809,8 @@ function handleVaultCanvasPointerMove(e) {
   const rect = activeCanvas.getBoundingClientRect();
   const clientX = e.clientX - rect.left;
   const clientY = e.clientY - rect.top;
-  const scaleX = activeCanvas.width / rect.width;
-  const scaleY = activeCanvas.height / rect.height;
+  const scaleX = 1;
+  const scaleY = 1;
   canvasMouseX = clientX * scaleX;
   canvasMouseY = clientY * scaleY;
 }
@@ -5837,13 +5870,13 @@ function handleVaultCanvasClick(e) {
   const rect = activeCanvas.getBoundingClientRect();
   const clientX = e.clientX - rect.left;
   const clientY = e.clientY - rect.top;
-  const scaleX = activeCanvas.width / rect.width;
-  const scaleY = activeCanvas.height / rect.height;
+  const scaleX = 1;
+  const scaleY = 1;
   const cx = clientX * scaleX;
   const cy = clientY * scaleY;
 
-  const w = activeCanvas.width;
-  const h = activeCanvas.height;
+  const w = rect.width;
+  const h = rect.height;
   const floorY = h - 260;
   const centerX = w / 2;
 
@@ -7374,7 +7407,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   // Drill Interaction (Tier 0-3) Particles
   if (t4 < 1) {
       let numToSpawn = 0;
-      for(let k=0; k<7; k++) {
+      let particleScale = typeof settingsManager !== "undefined" ? (settingsManager.get("graphics_quality") ?? 10) / 10 : 1.0;
+      let loopCount = Math.floor(7 * particleScale);
+      for(let k=0; k<loopCount; k++) {
           if (Math.random() < 0.3 * (1 - t4)) numToSpawn++; // Smoothly fade out drill particles
       }
       for(let i=0; i<numToSpawn; i++) {
@@ -7430,6 +7465,9 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
                   let spawnChance = 0.8 * forceFactor;
                   if (t8 > 0) spawnChance *= 3.0; // Spawn way more droplets in tier 8
                   
+                  let particleScale = typeof settingsManager !== "undefined" ? (settingsManager.get("graphics_quality") ?? 10) / 10 : 1.0;
+                  spawnChance *= particleScale;
+
                   if (Math.random() < spawnChance) { 
                       let spawnPx = px + (Math.random()-0.5)*10;
                       let dir = spawnPx < 0 ? -1 : 1;
@@ -13045,7 +13083,7 @@ function initHexeractGeometry() {
   return hexeractStatic;
 }
 
-function drawTesseract(ctx, t, tier, prevTier, animProgress) {
+function drawTesseract(ctx, w, h, t, tier, prevTier, animProgress) {
   const showTier1 = tier >= 1 ? 1 : 0;
   const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
   const showTier2 = tier >= 2 ? 1 : 0;
@@ -13067,8 +13105,8 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const targetScale = 1.0 + tier * 0.1;
   const globalScale = startScale + (targetScale - startScale) * animProgress;
   
-  const canvasW = ctx.canvas.width;
-  const canvasH = ctx.canvas.height;
+  const canvasW = w;
+  const canvasH = h;
   const floorY = canvasH - 260;
   
   const maxGlobalScale = 1.0 + 8 * 0.1;
