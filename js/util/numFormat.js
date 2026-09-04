@@ -74,7 +74,7 @@ function getExtendedSuffix(illion) {
 }
 
 // Suffixes copied from CCC (descending exponents).
-const SUFFIX_ENTRIES = [
+export const SUFFIX_ENTRIES = [
   [300,'NoNg'],[297,'OcNg'],[294,'SpNg'],[291,'SxNg'],[288,'QnNg'],[285,'QdNg'],[282,'TNg'],[279,'DNg'],[276,'UNg'],[273,'Ng'],
   [270,'NoOg'],[267,'OcOg'],[264,'SpOg'],[261,'SxOg'],[258,'QnOg'],[255,'QdOg'],[252,'TOg'],[249,'DOg'],[246,'UOg'],[243,'Og'],
   [240,'NoSg'],[237,'OcSg'],[234,'SpSg'],[231,'SxSg'],[228,'QnSg'],[225,'QdSg'],[222,'TSg'],[219,'DSg'],[216,'USg'],[213,'Sg'],
