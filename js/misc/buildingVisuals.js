@@ -1704,7 +1704,7 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
   else if (id === "ruby") topY = -200;
   else if (id === "sapphire") topY = -80;
   else if (id === "unobtainium") topY = -160;
-  else if (id === "prismatium") topY = -150;
+  else if (id === "prismatium") topY = 2 * ((h / 2) - floorY) / scale;
   else topY = -100;
 
   // Scale the topY
@@ -13080,15 +13080,11 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
 
   const maxLocalRadius = 304; 
   const maxBob = 8;
-  const baseCy = -130;
-  const maxTop = Math.abs(baseCy - maxBob - maxLocalRadius); 
-  const maxBottom = baseCy + maxBob + maxLocalRadius; 
+  const maxRadiusWithBob = maxLocalRadius + maxBob;
   
   let viewportScale = 1.0;
-  if (maxLocalRadius > 0) viewportScale = Math.min(viewportScale, availLeft / maxLocalRadius);
-  if (maxLocalRadius > 0) viewportScale = Math.min(viewportScale, availRight / maxLocalRadius);
-  if (maxTop > 0) viewportScale = Math.min(viewportScale, availTop / maxTop);
-  if (maxBottom > 0) viewportScale = Math.min(viewportScale, availBottom / maxBottom);
+  viewportScale = Math.min(viewportScale, (canvasW / 2) / (maxLocalRadius * maxGlobalScale));
+  viewportScale = Math.min(viewportScale, (canvasH / 2) / (maxRadiusWithBob * maxGlobalScale));
 
   ctx.save();
   ctx.scale(viewportScale, viewportScale);
@@ -13097,7 +13093,7 @@ function drawTesseract(ctx, t, tier, prevTier, animProgress) {
   const bobAmp = 8;
   const bob = Math.sin(t * bobSpeed) * bobAmp;
   const cx = 0;
-  const cy = -130 + bob; 
+  const cy = ((canvasH / 2) - floorY) / (globalScale * viewportScale) + bob; 
   const baseSize = 42;
 
   const rotXW = t * 0.4, rotYW = t * 0.3, rotZW = t * 0.2, rotXY = t * 0.15; 
