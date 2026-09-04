@@ -87,6 +87,15 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
             infoTooltip.textContent = def.info;
 
             infoIcon.addEventListener("mouseenter", () => {
+                if (
+                    (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport") &&
+                    settingsManager.get("spreadsheet_mode", true)
+                ) {
+                    infoTooltip.textContent = def.info + " Automatically handled by Spreadsheet Mode setting.";
+                } else {
+                    infoTooltip.textContent = def.info;
+                }
+
                 // Temporarily make visible to measure
                 infoTooltip.style.visibility = "hidden";
                 infoTooltip.style.display = "block";
