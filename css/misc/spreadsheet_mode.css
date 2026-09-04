@@ -28,7 +28,7 @@ body.spreadsheet-mode:not(.menu-bg) {
 }
 
 /* Strip background images, shadows, and curves globally */
-body.spreadsheet-mode:not(.menu-bg) *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb) {
+body.spreadsheet-mode:not(.menu-bg) *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb):not(.reward-icon) {
   border-radius: 0 !important;
   box-shadow: none !important;
   text-shadow: none !important;
@@ -37,7 +37,7 @@ body.spreadsheet-mode:not(.menu-bg) *:not(.shop-scrollbar):not(.shop-scrollbar__
   animation: none !important;
 }
 
-body.spreadsheet-transition-override *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb) {
+body.spreadsheet-transition-override *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb):not(.reward-icon) {
   transition: none !important;
   animation: none !important;
 }
