@@ -2181,11 +2181,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const procsKey = `ccc:weekly_reminder_procs:${slot}`;
             if (!lsGetItem(welcomeKey)) {
                 lsSetItem(welcomeKey, "1");
-                showWelcomePopup(IS_MOBILE, () => {
-                    if (IS_FIREFOX && getActiveSlot() === slot) {
-                        showFirefoxNotification(IS_MOBILE);
-                    }
-                });
+                showWelcomePopup(IS_MOBILE);
             } else {
                 let procs = [];
                 try {
