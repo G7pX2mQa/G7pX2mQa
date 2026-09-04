@@ -1846,7 +1846,7 @@ function openValcDialog(model) {
 
         if (isTargetMode) {
             if (effectiveTarget >= 1e6) {
-                costToDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Cumulative cost doesn't mean much above at this point</span>`;
+                costToDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Cumulative cost doesn't mean much at this point</span>`;
             } else {
                 let cumulative = BigNum.fromInt(0);
                 if (effectiveTarget > safeStart) {
