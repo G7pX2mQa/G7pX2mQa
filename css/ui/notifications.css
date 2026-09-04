@@ -152,10 +152,22 @@
     flex-direction: column;
     padding: 16px 20px 14px;
     gap: 12px;
+    pointer-events: auto;
+    cursor: default;
+}
+
+.welcome-popup.firefox-message-popup,
+.welcome-popup.firefox-message-popup * {
+    cursor: default;
 }
 
 .firefox-notif-text {
     width: 100%;
+}
+
+.firefox-notif-countdown {
+    margin-top: 4px;
+    font-size: 0.9em;
 }
 
 .firefox-notif-btn-row {
@@ -176,7 +188,7 @@
     font-size: 0.95rem;
     font-weight: 700;
     letter-spacing: .2px;
-    cursor: pointer;
+    cursor: default;
     pointer-events: auto;
     border-radius: 0;
     transition: background 100ms ease, transform 100ms ease;
