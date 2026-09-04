@@ -2102,11 +2102,7 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             : capReached
               ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)`
               : `Level ${model.lvlFmtHtml} / ${capHtml}`;
-              
-        if (model.lvlBn?.isInfinite?.()) {
-            levelHtml = "Infinity";
-        }
-        
+
         if (mode === "rainbow_gem_shop") {
             levelHtml = capReached ? "Owned" : "Not Owned";
         }
