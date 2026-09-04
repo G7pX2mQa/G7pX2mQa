@@ -2510,18 +2510,7 @@ function bindGlobalEvents() {
         if (e && e.detail && e.detail.level !== undefined) {
             let level = e.detail.level;
             const slot = getActiveSlot();
-            if (slot != null) {
-                const flagKey = `ccc:firefox_surge_100_shown:${slot}`;
-                if (!lsGetItem(flagKey)) {
-                    const is100 = level === Infinity || (typeof level === "number" && level >= 100);
-                    if (is100) {
-                        lsSetItem(flagKey, "1");
-                        if (IS_FIREFOX && typeof window.showFirefoxNotification === "function" && !settingsManager.get("spreadsheet_mode")) {
-                            window.showFirefoxNotification(IS_MOBILE);
-                        }
-                    }
-                }
-            }
+
             let is125 = level === Infinity || (typeof level === "number" && level >= 125);
             setNodeLocked("cavern", !is125);
             let is20 = level === Infinity || (typeof level === "number" && level >= 20);
