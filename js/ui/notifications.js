@@ -345,210 +345,26 @@ export function showWelcomePopup(isMobile, onComplete) {
     popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, 9000); // 1s enter + 8s wait = 9000ms
 }
 
-export function showFirefoxNoticeModal() {
-    const existing = document.querySelector(".firefox-notice-overlay");
-    if (existing) {
-        existing.remove();
-    }
-
-    const overlayEl = document.createElement("div");
-    overlayEl.className = "firefox-notice-overlay is-visible";
-    overlayEl.setAttribute("role", "dialog");
-    overlayEl.setAttribute("aria-modal", "true");
-
-    const card = document.createElement("div");
-    card.className = "firefox-notice-card";
-
-    const content = document.createElement("div");
-    content.className = "firefox-notice-content";
-
-    const textEl = document.createElement("div");
-    textEl.className = "firefox-notice-text";
-
-    textEl.innerHTML = `
-        <p style="font-weight: 600; font-size: 1.15em; color: #ffeb3b; margin-bottom: 12px;">Read this message fully:</p>
-        <p>Now that you've progressed a bit in the game, I must tell you some important information:<br>I know that you're playing this on the Firefox browser. And while this game is supported on this browser, I want to say that some canvas-heavy sections that come up later in the game may drag down the game's performance on Firefox compared to Chromium-based browsers. You may have even experienced lag in The Cove, I can't say for sure.</p>
-        <p>So that's why I suggest you check out all of the Performance settings, they can help out a ton if the game ever lags. Turning down the Graphics Quality slider may improve performance slightly. There's also a nuclear setting you can enable called "Spreadsheet Mode" which strips away all of the complex visuals, fancy animations, and stuff like that in order to significantly improve performance if you ever need it.</p>
-        <p>Just something to keep in mind.</p>
-    `.trim();
-
-    content.appendChild(textEl);
-    card.appendChild(content);
-
-    const actions = document.createElement("div");
-    actions.className = "firefox-notice-actions sas-actions";
-
-    const closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.className = "sas-close";
-    closeBtn.textContent = "Close";
-
-    const closeModal = () => {
-        document.removeEventListener("keydown", onKeyDown);
-        overlayEl.remove();
-    };
-
-    closeBtn.addEventListener("click", closeModal);
-    actions.appendChild(closeBtn);
-    card.appendChild(actions);
-
-    overlayEl.appendChild(card);
-
-    overlayEl.addEventListener("click", (e) => {
-        if (e.target === overlayEl) {
-            closeModal();
-        }
-    });
-
-    const onKeyDown = (e) => {
-        if (e.key === "Escape") {
-            closeModal();
-        }
-    };
-    document.addEventListener("keydown", onKeyDown);
-
-    document.body.appendChild(overlayEl);
-}
-
-export function showFirefoxNotification(isMobile = IS_MOBILE) {
-    const parent = document.createElement("div");
-    parent.className = "welcome-popup-container";
-
-    const el = document.createElement("div");
-    el.className = "welcome-popup notification-text firefox-message-popup";
-
-    const actionWord = isMobile ? "Tap" : "Click";
-    const textEl = document.createElement("div");
-    textEl.className = "firefox-notif-text";
-
-    const messageEl = document.createElement("div");
-    messageEl.textContent = `You have received a special message! ${actionWord} the button below to view it.`;
-    textEl.appendChild(messageEl);
-
-    const countdownEl = document.createElement("div");
-    countdownEl.className = "firefox-notif-countdown";
-    textEl.appendChild(countdownEl);
-
-    el.appendChild(textEl);
-
-    const btnRow = document.createElement("div");
-    btnRow.className = "firefox-notif-btn-row";
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "firefox-notif-btn";
-    btn.textContent = "View Message";
-
-    btnRow.appendChild(btn);
-    el.appendChild(btnRow);
-
-    parent.appendChild(el);
-    document.body.appendChild(parent);
-
-    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
-    const DURATION = 31000;
-
-    const popupTracker = {
-        element: parent,
-        audio,
-        timeoutId: null,
-        fallbackTimeoutId: null,
-        intervalId: null,
-        startTime: Date.now(),
-        duration: DURATION,
-        remainingDuration: null,
-        triggerLeaving: null,
-    };
-    activeWelcomePopups.add(popupTracker);
-
-    const getRemainingMs = () => {
-        if (popupTracker.remainingDuration != null && popupTracker.timeoutId == null) {
-            return popupTracker.remainingDuration;
-        }
-        return Math.max(0, popupTracker.duration - (Date.now() - popupTracker.startTime));
-    };
-
-    const updateCountdown = () => {
-        const remainingMs = getRemainingMs();
-        const remainingSec = Math.max(0, remainingMs / 1000);
-        const floored = Math.min(30, Math.floor(remainingSec));
-        const timeText = floored === 0 ? "< 1 second" : floored === 1 ? "1 second" : `${floored} seconds`;
-        countdownEl.textContent = `This notification will disappear in ${timeText}.`;
-    };
-
-    updateCountdown();
-    popupTracker.intervalId = setInterval(updateCountdown, 100);
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            el.classList.add("is-visible");
-        });
-    });
-
-    const stopCountdown = () => {
-        if (popupTracker.intervalId) {
-            clearInterval(popupTracker.intervalId);
-            popupTracker.intervalId = null;
-        }
-    };
-
-    popupTracker.triggerLeaving = () => {
-        stopCountdown();
-        el.classList.remove("is-visible");
-        el.classList.add("is-leaving");
-
-        let cleanedUp = false;
-        const cleanup = () => {
-            if (cleanedUp) return;
-            cleanedUp = true;
-            stopCountdown();
-            parent.remove();
-            activeWelcomePopups.delete(popupTracker);
-        };
-
-        el.addEventListener("transitionend", cleanup, { once: true });
-
-        popupTracker.fallbackTimeoutId = setTimeout(() => {
-            if (parent.isConnected) {
-                parent.remove();
-            }
-            activeWelcomePopups.delete(popupTracker);
-        }, 1200);
-    };
-
-    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, DURATION);
-
-    btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        stopCountdown();
-        if (popupTracker.timeoutId) {
-            clearTimeout(popupTracker.timeoutId);
-            popupTracker.timeoutId = null;
-        }
-        popupTracker.triggerLeaving();
-        showFirefoxNoticeModal();
-    });
-}
 
 export function showRareNoticeModal() {
-    const existing = document.querySelector(".firefox-notice-overlay");
+    const existing = document.querySelector(".jackpot-notice-overlay");
     if (existing) {
         existing.remove();
     }
 
     const overlayEl = document.createElement("div");
-    overlayEl.className = "firefox-notice-overlay is-visible";
+    overlayEl.className = "jackpot-notice-overlay is-visible";
     overlayEl.setAttribute("role", "dialog");
     overlayEl.setAttribute("aria-modal", "true");
 
     const card = document.createElement("div");
-    card.className = "firefox-notice-card";
+    card.className = "jackpot-notice-card";
 
     const content = document.createElement("div");
-    content.className = "firefox-notice-content";
+    content.className = "jackpot-notice-content";
 
     const textEl = document.createElement("div");
-    textEl.className = "firefox-notice-text";
+    textEl.className = "jackpot-notice-text";
     textEl.style.textAlign = "center";
 
     textEl.innerHTML = `
@@ -560,7 +376,7 @@ export function showRareNoticeModal() {
     card.appendChild(content);
 
     const actions = document.createElement("div");
-    actions.className = "firefox-notice-actions sas-actions";
+    actions.className = "jackpot-notice-actions sas-actions";
 
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
@@ -568,7 +384,6 @@ export function showRareNoticeModal() {
     closeBtn.textContent = "Close";
 
     const closeModal = () => {
-        document.removeEventListener("keydown", onKeyDown);
         overlayEl.remove();
     };
 
@@ -578,19 +393,6 @@ export function showRareNoticeModal() {
 
     overlayEl.appendChild(card);
 
-    overlayEl.addEventListener("click", (e) => {
-        if (e.target === overlayEl) {
-            closeModal();
-        }
-    });
-
-    const onKeyDown = (e) => {
-        if (e.key === "Escape") {
-            closeModal();
-        }
-    };
-    document.addEventListener("keydown", onKeyDown);
-
     document.body.appendChild(overlayEl);
 }
 
@@ -599,28 +401,28 @@ export function showRareNotification(isMobile = IS_MOBILE) {
     parent.className = "welcome-popup-container";
 
     const el = document.createElement("div");
-    el.className = "welcome-popup notification-text firefox-message-popup";
+    el.className = "welcome-popup notification-text jackpot-message-popup";
 
     const actionWord = isMobile ? "Tap" : "Click";
     const textEl = document.createElement("div");
-    textEl.className = "firefox-notif-text";
+    textEl.className = "jackpot-notif-text";
 
     const messageEl = document.createElement("div");
     messageEl.textContent = `You have received a special message! ${actionWord} the button below to view it.`;
     textEl.appendChild(messageEl);
 
     const countdownEl = document.createElement("div");
-    countdownEl.className = "firefox-notif-countdown";
+    countdownEl.className = "jackpot-notif-countdown";
     textEl.appendChild(countdownEl);
 
     el.appendChild(textEl);
 
     const btnRow = document.createElement("div");
-    btnRow.className = "firefox-notif-btn-row";
+    btnRow.className = "jackpot-notif-btn-row";
 
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "firefox-notif-btn";
+    btn.className = "jackpot-notif-btn";
     btn.textContent = "View Message";
 
     btnRow.appendChild(btn);
@@ -888,7 +690,7 @@ if (typeof window !== "undefined") {
                     lastActiveRollTime += minutesPassed * 60;
                     
                     for (let i = 0; i < minutesPassed; i++) {
-                        if (!isPaused && Math.random() < 1 / 1e6) {
+                        if (!isPaused && Math.random() < 1/1) {
                             showRareNotification();
                             break;
                         }
