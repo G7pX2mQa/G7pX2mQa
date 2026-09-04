@@ -828,6 +828,9 @@ export function createBaseSpawner(config = {}) {
         settingsManager.subscribe("spreadsheet_mode", () => {
             requestAnimationFrame(() => computeMetrics());
         });
+        settingsManager.subscribe("graphics_quality", () => {
+            requestAnimationFrame(() => computeMetrics());
+        });
     }
 
     document.addEventListener("visibilitychange", () => {
