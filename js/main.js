@@ -806,6 +806,7 @@ function finishAndHideLoader(loaderEl, onFadeStart, finishedText, dwellMs = 500)
         const onEnd = () => {
             loaderEl.remove();
             document.documentElement.classList.remove("booting");
+            window.scrollTo(0, 0);
             try {
                 window.dispatchEvent(new CustomEvent("boot:complete"));
             } catch {}
@@ -2344,6 +2345,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await twoFrames();
     document.documentElement.classList.remove("booting");
+    window.scrollTo(0, 0);
 
     await nextFrame();
 
