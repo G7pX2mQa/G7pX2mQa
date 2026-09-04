@@ -2166,8 +2166,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         showNotification,
         showWelcomePopup,
         showWeeklyReminderPopup,
-        showFirefoxNotification,
-        showFirefoxNoticeModal,
         showRareNotification,
         showRareNoticeModal,
         triggerInitialLandscapeCheck,
@@ -2214,8 +2212,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.bank = bank;
     window.unpauseNotifications = unpauseNotifications;
     window.showNotification = showNotification;
-    window.showFirefoxNotification = showFirefoxNotification;
-    window.showFirefoxNoticeModal = showFirefoxNoticeModal;
     window.showRareNotification = showRareNotification;
     window.showRareNoticeModal = showRareNoticeModal;
 
