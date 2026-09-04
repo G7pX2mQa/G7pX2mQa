@@ -1122,7 +1122,7 @@
 }
 
 /* Shrink upgrade text and lab node overlay text slightly for shorter viewports */
-@media (max-height: 750px) {
+@media (max-height: 750px) and (hover: hover) and (pointer: fine) {
     .upg-title,
     .upg-level,
     .upg-desc.centered,
@@ -1138,7 +1138,7 @@
 }
 
 /* Reduce spacing for viewports between 751px and 800px */
-@media (min-height: 751px) and (max-height: 800px) {
+@media (min-height: 751px) and (max-height: 800px) and (hover: hover) and (pointer: fine) {
     .upg-content,
     .upg-info {
         gap: calc(var(--upg-spacing) * 0.5) !important;
