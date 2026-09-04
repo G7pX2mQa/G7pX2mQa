@@ -593,8 +593,8 @@ export function startCanvasLoop(id, canvasEl) {
     let dpr = 1;
     if (typeof settingsManager !== "undefined") {
       const quality = settingsManager.get("graphics_quality") ?? 10;
-      if (quality < 4) dpr = 0.5;
-      else if (quality < 8) dpr = 0.75;
+      if (quality < 4) dpr = 0.25;
+      else if (quality < 8) dpr = 0.5;
     }
     activeCanvas.width = rect.width * dpr;
     activeCanvas.height = rect.height * dpr;
@@ -636,8 +636,8 @@ export function startCanvasLoop(id, canvasEl) {
   let dpr = 1;
   if (typeof settingsManager !== "undefined") {
     const quality = settingsManager.get("graphics_quality") ?? 10;
-    if (quality < 4) dpr = 0.5;
-    else if (quality < 8) dpr = 0.75;
+    if (quality < 4) dpr = 0.25;
+    else if (quality < 8) dpr = 0.5;
   }
   activeCanvas.width = rect.width * dpr;
   activeCanvas.height = rect.height * dpr;
@@ -1034,8 +1034,8 @@ function loop(currentTime) {
     let dpr = 1;
     if (typeof settingsManager !== "undefined") {
       const quality = settingsManager.get("graphics_quality") ?? 10;
-      if (quality < 4) dpr = 0.5;
-      else if (quality < 8) dpr = 0.75;
+      if (quality < 4) dpr = 0.25;
+      else if (quality < 8) dpr = 0.5;
     }
     const logicalW = activeCanvas.width / dpr;
     const logicalH = activeCanvas.height / dpr;
