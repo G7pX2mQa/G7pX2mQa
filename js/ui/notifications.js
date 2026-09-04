@@ -690,7 +690,7 @@ if (typeof window !== "undefined") {
                     lastActiveRollTime += minutesPassed * 60;
                     
                     for (let i = 0; i < minutesPassed; i++) {
-                        if (!isPaused && Math.random() < 1/1) {
+                        if (!isPaused && Math.random() < 1/1e6) {
                             showRareNotification();
                             break;
                         }
