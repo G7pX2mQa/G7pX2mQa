@@ -190,6 +190,26 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
       type = 'sfx';
   }
 
+  if (document.hidden && type === 'sfx') {
+      return null;
+  }
+
+  if (type === 'sfx') {
+      let activeSfxCount = 0;
+      for (const audio of activeAudios) {
+          if (audio.type === 'sfx') activeSfxCount++;
+      }
+      // Cap maximum simultaneous sound effects to prevent blasting and audio tearing
+      if (activeSfxCount >= 10) {
+          for (const audio of activeAudios) {
+              if (audio.type === 'sfx') {
+                  if (audio.stop) audio.stop();
+                  break;
+              }
+          }
+      }
+  }
+
   const ctx = getAudioContext();
   const url = new URL(src, document.baseURI).href;
   
@@ -431,13 +451,19 @@ export function registerPreloadedBuffer(src, buffer) {
 export function setAudioSuspended(suspended) {
   if (audioContext) {
     if (suspended) {
+      // Stop all active SFX immediately so they don't resume later
+      for (const audio of activeAudios) {
+        if (audio.type === 'sfx' && audio.stop) {
+          audio.stop();
+        }
+      }
+
       if (settingsManager.get('play_music_when_hidden')) {
         // Only mute SFX if music is meant to keep playing
         if (sfxGain) {
           const now = audioContext.currentTime;
           sfxGain.gain.cancelScheduledValues(now);
           sfxGain.gain.setValueAtTime(0, now);
-          for (const audio of activeAudios) { if (audio.type === 'sfx' && audio.source && audio.source.playbackRate) { audio.source.playbackRate.value = 0; } }
         }
       } else {
         if (audioContext.state === 'running') audioContext.suspend().catch(()=>{});
@@ -447,7 +473,6 @@ export function setAudioSuspended(suspended) {
         // Restore SFX volume using existing function when un-suspending
         const sfxv = settingsManager.get('sfx_volume');
         setSfxVolume(sfxv !== undefined && sfxv !== false ? sfxv : 100);
-        for (const audio of activeAudios) { if (audio.type === 'sfx' && audio.source && audio.source.playbackRate) { audio.source.playbackRate.value = audio.originalPlaybackRate || 1; } }
       }
       if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
     }
