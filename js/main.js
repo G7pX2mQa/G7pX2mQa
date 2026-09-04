@@ -2168,6 +2168,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         showWeeklyReminderPopup,
         showFirefoxNotification,
         showFirefoxNoticeModal,
+        showRareNotification,
+        showRareNoticeModal,
         triggerInitialLandscapeCheck,
     } = notificationModule;
 
@@ -2214,6 +2216,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.showNotification = showNotification;
     window.showFirefoxNotification = showFirefoxNotification;
     window.showFirefoxNoticeModal = showFirefoxNoticeModal;
+    window.showRareNotification = showRareNotification;
+    window.showRareNoticeModal = showRareNoticeModal;
 
     // Global Audio Control for Events
     if (typeof window !== "undefined") {
