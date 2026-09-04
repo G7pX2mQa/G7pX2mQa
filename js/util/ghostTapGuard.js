@@ -6,7 +6,7 @@ const DEFAULT_TIMEOUT_MS = 0;
 const ELEMENT_SKIP_PROP = Symbol("ccc:ghostTap:skipUntil");
 const GLOBAL_SKIP_PROP = "__cccGhostTapSkipUntil";
 const TARGET_SELECTOR =
-    '[data-ghost-tap-target], button, [role="button"], [data-btn], .game-btn, .btn, .slot-card, a[href], input, select, textarea, summary, label';
+    '[data-ghost-tap-target], button, [role="button"], [data-btn], .game-btn, .btn, .slot-card, a[href], input, select, textarea, summary, label, .merchant-firstchat__card';
 const DEFAULT_LONG_PRESS_MS = 80;
 
 let guardInstalled = false;
