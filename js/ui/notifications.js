@@ -367,7 +367,7 @@ export function showFirefoxNoticeModal() {
 
     textEl.innerHTML = `
         <p style="font-weight: 600; font-size: 1.15em; color: #ffeb3b; margin-bottom: 12px;">Read this message fully:</p>
-        <p>Now that you've progressed a bit in the game, I must tell you some important information:<br>I know that you're playing this on the Firefox browser. And while this game is supported on this browser, I want to say that some canvas-heavy sections that come up later in the game may drag down the game's performance on Firefox compared to Chromium-based browsers. You may have experienced lag even in The Cove, I can't say for sure.</p>
+        <p>Now that you've progressed a bit in the game, I must tell you some important information:<br>I know that you're playing this on the Firefox browser. And while this game is supported on this browser, I want to say that some canvas-heavy sections that come up later in the game may drag down the game's performance on Firefox compared to Chromium-based browsers. You may have even experienced lag in The Cove, I can't say for sure.</p>
         <p>So that's why I suggest you check out all of the Performance settings, they can help out a ton if the game ever lags. Turning down the Graphics Quality slider may improve performance slightly. There's also a nuclear setting you can enable called "Spreadsheet Mode" which strips away all of the complex visuals, fancy animations, and stuff like that in order to significantly improve performance if you ever need it.</p>
         <p>Just something to keep in mind.</p>
     `.trim();
