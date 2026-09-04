@@ -289,9 +289,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
             };
 
             sliderInput.addEventListener("input", (e) => {
-                if (key !== "graphics_quality") {
-                    settingsManager.set(key, parseFloat(e.target.value));
-                }
+                settingsManager.set(key, parseFloat(e.target.value));
                 updateSliderProgress();
             });
 
