@@ -3,6 +3,7 @@ import { playAudio } from "../util/audioManager.js";
 import { isViewingLabTab } from "./merchantTabs/dlgTab.js";
 import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
 import { getActiveSlot } from "../util/storage.js";
+import { lsGetItem } from "../main.js";
 
 let container = null;
 const queue = [];
@@ -529,6 +530,190 @@ export function showFirefoxNotification(isMobile = IS_MOBILE) {
     });
 }
 
+export function showRareNoticeModal() {
+    const existing = document.querySelector(".firefox-notice-overlay");
+    if (existing) {
+        existing.remove();
+    }
+
+    const overlayEl = document.createElement("div");
+    overlayEl.className = "firefox-notice-overlay is-visible";
+    overlayEl.setAttribute("role", "dialog");
+    overlayEl.setAttribute("aria-modal", "true");
+
+    const card = document.createElement("div");
+    card.className = "firefox-notice-card";
+
+    const content = document.createElement("div");
+    content.className = "firefox-notice-content";
+
+    const textEl = document.createElement("div");
+    textEl.className = "firefox-notice-text";
+    textEl.style.textAlign = "center";
+
+    textEl.innerHTML = `
+        <p>Wow! This notification spawning is so rare, that even with around 480 days of active playtime, you'd only have a coin flip's chance of ever seeing it. That's pretty crazy.<br><br>Show this message off to others!!!</p>
+        <p style="color: gray; font-size: 0.9em; margin-top: 16px;">This notification’s occurrence does not unlock anything.</p>
+    `.trim();
+
+    content.appendChild(textEl);
+    card.appendChild(content);
+
+    const actions = document.createElement("div");
+    actions.className = "firefox-notice-actions sas-actions";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "sas-close";
+    closeBtn.textContent = "Close";
+
+    const closeModal = () => {
+        document.removeEventListener("keydown", onKeyDown);
+        overlayEl.remove();
+    };
+
+    closeBtn.addEventListener("click", closeModal);
+    actions.appendChild(closeBtn);
+    card.appendChild(actions);
+
+    overlayEl.appendChild(card);
+
+    overlayEl.addEventListener("click", (e) => {
+        if (e.target === overlayEl) {
+            closeModal();
+        }
+    });
+
+    const onKeyDown = (e) => {
+        if (e.key === "Escape") {
+            closeModal();
+        }
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    document.body.appendChild(overlayEl);
+}
+
+export function showRareNotification(isMobile = IS_MOBILE) {
+    const parent = document.createElement("div");
+    parent.className = "welcome-popup-container";
+
+    const el = document.createElement("div");
+    el.className = "welcome-popup notification-text firefox-message-popup";
+
+    const actionWord = isMobile ? "Tap" : "Click";
+    const textEl = document.createElement("div");
+    textEl.className = "firefox-notif-text";
+
+    const messageEl = document.createElement("div");
+    messageEl.textContent = `You have received a special message! ${actionWord} the button below to view it.`;
+    textEl.appendChild(messageEl);
+
+    const countdownEl = document.createElement("div");
+    countdownEl.className = "firefox-notif-countdown";
+    textEl.appendChild(countdownEl);
+
+    el.appendChild(textEl);
+
+    const btnRow = document.createElement("div");
+    btnRow.className = "firefox-notif-btn-row";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "firefox-notif-btn";
+    btn.textContent = "View Message";
+
+    btnRow.appendChild(btn);
+    el.appendChild(btnRow);
+
+    parent.appendChild(el);
+    document.body.appendChild(parent);
+
+    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+    const DURATION = 31000;
+
+    const popupTracker = {
+        element: parent,
+        audio,
+        timeoutId: null,
+        fallbackTimeoutId: null,
+        intervalId: null,
+        startTime: Date.now(),
+        duration: DURATION,
+        remainingDuration: null,
+        triggerLeaving: null,
+    };
+    activeWelcomePopups.add(popupTracker);
+
+    const getRemainingMs = () => {
+        if (popupTracker.remainingDuration != null && popupTracker.timeoutId == null) {
+            return popupTracker.remainingDuration;
+        }
+        return Math.max(0, popupTracker.duration - (Date.now() - popupTracker.startTime));
+    };
+
+    const updateCountdown = () => {
+        const remainingMs = getRemainingMs();
+        const remainingSec = Math.max(0, remainingMs / 1000);
+        const floored = Math.min(30, Math.floor(remainingSec));
+        const timeText = floored === 0 ? "< 1 second" : floored === 1 ? "1 second" : `${floored} seconds`;
+        countdownEl.textContent = `This notification will disappear in ${timeText}.`;
+    };
+
+    updateCountdown();
+    popupTracker.intervalId = setInterval(updateCountdown, 100);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            el.classList.add("is-visible");
+        });
+    });
+
+    const stopCountdown = () => {
+        if (popupTracker.intervalId) {
+            clearInterval(popupTracker.intervalId);
+            popupTracker.intervalId = null;
+        }
+    };
+
+    popupTracker.triggerLeaving = () => {
+        stopCountdown();
+        el.classList.remove("is-visible");
+        el.classList.add("is-leaving");
+
+        let cleanedUp = false;
+        const cleanup = () => {
+            if (cleanedUp) return;
+            cleanedUp = true;
+            stopCountdown();
+            parent.remove();
+            activeWelcomePopups.delete(popupTracker);
+        };
+
+        el.addEventListener("transitionend", cleanup, { once: true });
+
+        popupTracker.fallbackTimeoutId = setTimeout(() => {
+            if (parent.isConnected) {
+                parent.remove();
+            }
+            activeWelcomePopups.delete(popupTracker);
+        }, 1200);
+    };
+
+    popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, DURATION);
+
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        stopCountdown();
+        if (popupTracker.timeoutId) {
+            clearTimeout(popupTracker.timeoutId);
+            popupTracker.timeoutId = null;
+        }
+        popupTracker.triggerLeaving();
+        showRareNoticeModal();
+    });
+}
+
 export function showWideNotification(text, duration = 9000, options = {}) {
     const parent = document.createElement("div");
     parent.className = "welcome-popup-container";
@@ -671,8 +856,45 @@ export function triggerInitialLandscapeCheck() {
     }
 }
 
+let rareNotifInterval = null;
+
 if (typeof window !== "undefined") {
     window.addEventListener("saveSlot:change", () => {
         nukeNotifications(true);
+        if (rareNotifInterval) {
+            clearInterval(rareNotifInterval);
+            rareNotifInterval = null;
+        }
+        
+        const slot = getActiveSlot();
+        if (slot != null) {
+            let lastActiveRollTime = -1;
+            rareNotifInterval = setInterval(() => {
+                if (getActiveSlot() !== slot) return;
+                
+                const activeTime = window.activePlaytime;
+                if (activeTime === undefined) return;
+                
+                if (lastActiveRollTime === -1) {
+                    const storedStr = lsGetItem(`ccc:activePlaytime:${slot}`);
+                    const stored = storedStr ? Number(storedStr) : 0;
+                    if (Math.abs(activeTime - stored) < 10) {
+                        lastActiveRollTime = activeTime;
+                    }
+                } else if (activeTime < lastActiveRollTime || activeTime > lastActiveRollTime + 120) {
+                    lastActiveRollTime = -1;
+                } else if (activeTime >= lastActiveRollTime + 60) {
+                    const minutesPassed = Math.floor((activeTime - lastActiveRollTime) / 60);
+                    lastActiveRollTime += minutesPassed * 60;
+                    
+                    for (let i = 0; i < minutesPassed; i++) {
+                        if (!isPaused && Math.random() < 1 / 1e6) {
+                            showRareNotification();
+                            break;
+                        }
+                    }
+                }
+            }, 1000);
+        }
     });
 }
