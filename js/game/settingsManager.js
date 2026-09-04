@@ -773,12 +773,12 @@ class SettingsManager {
 
         if (
             !raw &&
-            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals") && 
+            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport") && 
             this.settings["spreadsheet_mode"] === true
         ) {
             // For show_side_containers and show_building_visuals, we want it OFF (false)
-            // For disable_webgl (Reduced GPU), we want it ON (true)
-            return key === "disable_webgl" ? true : false;
+            // For disable_webgl (Reduced GPU) and insta_teleport, we want it ON (true)
+            return (key === "disable_webgl" || key === "insta_teleport") ? true : false;
         }
 
         // For magnet_radius, we must ensure the saved value isn't greater than current max level.
@@ -802,13 +802,6 @@ class SettingsManager {
         )
             return;
 
-        // Mutual exclusivity logic
-        if (key === "disable_webgl" && value === true && this.settings["spreadsheet_mode"] === true) {
-            this.set("spreadsheet_mode", false);
-        }
-        if (key === "spreadsheet_mode" && value === true && this.settings["disable_webgl"] === true) {
-            this.set("disable_webgl", false);
-        }
 
         this.settings[key] = value;
         this._isDefault[key] = false;
