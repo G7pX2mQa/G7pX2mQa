@@ -1,7 +1,7 @@
 // js/ui/merchantTabs/resetTab.js
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { BigNum } from "../../util/bigNum.js";
-import { IS_MOBILE } from "../../util/platformChecker.js";
+import { IS_MOBILE, IS_FIREFOX } from "../../util/platformChecker.js";
 import {
     bank,
     getActiveSlot,
@@ -2509,11 +2509,23 @@ function bindGlobalEvents() {
         triggerSurgeBarAnimation();
         if (e && e.detail && e.detail.level !== undefined) {
             let level = e.detail.level;
+            const slot = getActiveSlot();
+            if (slot != null) {
+                const flagKey = `ccc:firefox_surge_100_shown:${slot}`;
+                if (!lsGetItem(flagKey)) {
+                    const is100 = level === Infinity || (typeof level === "number" && level >= 100);
+                    if (is100) {
+                        lsSetItem(flagKey, "1");
+                        if (IS_FIREFOX && typeof window.showFirefoxNotification === "function") {
+                            window.showFirefoxNotification(IS_MOBILE);
+                        }
+                    }
+                }
+            }
             let is125 = level === Infinity || (typeof level === "number" && level >= 125);
             setNodeLocked("cavern", !is125);
             let is20 = level === Infinity || (typeof level === "number" && level >= 20);
             let is8 = level === Infinity || (typeof level === "number" && level >= 8);
-            const slot = getActiveSlot();
             if (!is20 && slot != null) {
                 try {
                     lsRemoveItem(`ccc:unlock:flow:${slot}`);
