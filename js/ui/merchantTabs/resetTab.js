@@ -2516,7 +2516,7 @@ function bindGlobalEvents() {
                     const is100 = level === Infinity || (typeof level === "number" && level >= 100);
                     if (is100) {
                         lsSetItem(flagKey, "1");
-                        if (IS_FIREFOX && typeof window.showFirefoxNotification === "function") {
+                        if (IS_FIREFOX && typeof window.showFirefoxNotification === "function" && !settingsManager.get("spreadsheet_mode")) {
                             window.showFirefoxNotification(IS_MOBILE);
                         }
                     }
