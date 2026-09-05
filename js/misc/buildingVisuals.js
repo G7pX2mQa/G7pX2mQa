@@ -1134,10 +1134,17 @@ function updateDomOverlays(w, h, t) {
         viewportScale = Math.min(1.0, w / bounds.w, h / bounds.h);
       }
       
-      let shift = shiftConfig.start + (shiftConfig.perTier * bTier);
-      if (id === "pure_gold" && bTier >= 4) shift += 35;
+      const baseHeight = shiftConfig.perTier * 10;
+      const constantGap = shiftConfig.start - baseHeight;
+      const bScale = 1.0 + bTier * 0.1;
       
-      return floorY - (shift * viewportScale);
+      let shift = constantGap + (baseHeight * bScale * viewportScale);
+      
+      if (id === "pure_gold" && bTier >= 4) {
+        shift += 35 * viewportScale;
+      }
+      
+      return floorY - shift;
     };
 
     const targetTop = getTargetTop(tier);
