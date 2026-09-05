@@ -1552,31 +1552,70 @@ function drawCavern(ctx, w, h, t) {
       ctx.lineWidth = 1.5; // Constant width for batching
       ctx.globalAlpha = t7;
       
-      ctx.beginPath();
-      for (let i = 0; i < numStars; i++) {
-          const currentRadius = 140 + (Math.cos(i * 321.12) * 90);
-          const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
-          
-          const speedMultiplier = (230 - currentRadius) / 50 + 0.5;
-          const currentAngle = angleOffset + t * speedMultiplier;
-          
-          const starX = Math.cos(currentAngle) * currentRadius;
-          const starY = Math.sin(currentAngle) * currentRadius * 0.7;
-          
-          const starSize = 2.0 + (50 / currentRadius) * 3;
-          
+      if (window.IS_FIREFOX) {
           ctx.beginPath();
-          ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+          for (let i = 0; i < numStars; i++) {
+              const currentRadius = 140 + (Math.cos(i * 321.12) * 90);
+              const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
+              
+              const speedMultiplier = (230 - currentRadius) / 50 + 0.5;
+              const currentAngle = angleOffset + t * speedMultiplier;
+              
+              const starX = Math.cos(currentAngle) * currentRadius;
+              const starY = Math.sin(currentAngle) * currentRadius * 0.7;
+              
+              const starSize = 2.0 + (50 / currentRadius) * 3;
+              
+              ctx.moveTo(starX + starSize, starY);
+              ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+          }
           ctx.fill();
-          
-          const prevAngle = currentAngle - 0.05 - (speedMultiplier * 0.03); 
-          const prevX = Math.cos(prevAngle) * currentRadius;
-          const prevY = Math.sin(prevAngle) * currentRadius * 0.7;
-          
+
           ctx.beginPath();
-          ctx.moveTo(starX, starY);
-          ctx.lineTo(prevX, prevY);
+          for (let i = 0; i < numStars; i++) {
+              const currentRadius = 140 + (Math.cos(i * 321.12) * 90);
+              const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
+              
+              const speedMultiplier = (230 - currentRadius) / 50 + 0.5;
+              const currentAngle = angleOffset + t * speedMultiplier;
+              
+              const starX = Math.cos(currentAngle) * currentRadius;
+              const starY = Math.sin(currentAngle) * currentRadius * 0.7;
+              
+              const prevAngle = currentAngle - 0.05 - (speedMultiplier * 0.03); 
+              const prevX = Math.cos(prevAngle) * currentRadius;
+              const prevY = Math.sin(prevAngle) * currentRadius * 0.7;
+              
+              ctx.moveTo(starX, starY);
+              ctx.lineTo(prevX, prevY);
+          }
           ctx.stroke();
+      } else {
+          for (let i = 0; i < numStars; i++) {
+              const currentRadius = 140 + (Math.cos(i * 321.12) * 90);
+              const angleOffset = Math.sin(i * 789.12) * Math.PI * 2;
+              
+              const speedMultiplier = (230 - currentRadius) / 50 + 0.5;
+              const currentAngle = angleOffset + t * speedMultiplier;
+              
+              const starX = Math.cos(currentAngle) * currentRadius;
+              const starY = Math.sin(currentAngle) * currentRadius * 0.7;
+              
+              const starSize = 2.0 + (50 / currentRadius) * 3;
+              
+              ctx.beginPath();
+              ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+              ctx.fill();
+              
+              const prevAngle = currentAngle - 0.05 - (speedMultiplier * 0.03); 
+              const prevX = Math.cos(prevAngle) * currentRadius;
+              const prevY = Math.sin(prevAngle) * currentRadius * 0.7;
+              
+              ctx.beginPath();
+              ctx.moveTo(starX, starY);
+              ctx.lineTo(prevX, prevY);
+              ctx.stroke();
+          }
       }
       
       ctx.restore();
@@ -4794,10 +4833,17 @@ function drawFluidPipe(ctx, pathsOrPts, width, fluidColor, flowSpeed, timeOffset
       ctx.stroke();
 
       if (glow) {
-          ctx.shadowColor = fluidColor;
-          ctx.shadowBlur = width;
-          ctx.stroke();
-          ctx.shadowBlur = 0;
+          if (window.IS_FIREFOX) {
+              ctx.globalAlpha *= 0.5;
+              ctx.lineWidth = innerDashW * 3;
+              ctx.stroke();
+              ctx.globalAlpha /= 0.5;
+          } else {
+              ctx.shadowColor = fluidColor;
+              ctx.shadowBlur = width;
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+          }
       }
       ctx.setLineDash([]);
     }
@@ -8662,12 +8708,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.lineTo(0, 0);
       ctx.fill();
 
-      // Clip veins so they don't stick out of the leaf
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(-width, -length/2, 0, -length);
-      ctx.quadraticCurveTo(width, -length/2, 0, 0);
-      ctx.clip();
+      if (!window.IS_FIREFOX) {
+          // Clip veins so they don't stick out of the leaf (original high fidelity logic)
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-width, -length/2, 0, -length);
+          ctx.quadraticCurveTo(width, -length/2, 0, 0);
+          ctx.clip();
+      }
 
       // Main Center Stem/Vein
       ctx.strokeStyle = veinColor;
@@ -8806,14 +8854,34 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
               let alpha = 0.8;
               if (normDepth < -0.5) alpha = 0.5;
               
-              // Fade in as it spawns on branch, fade out as it reaches the end of the whirlwind
               if (progress < 0.1) alpha *= (progress / 0.1);
               if (progress > 0.8) alpha *= (1 - progress) / 0.2;
               
-              ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
-              ctx.beginPath();
-              ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
-              ctx.fill();
+              if (window.IS_FIREFOX) {
+                  if (!window.cachedPetal) {
+                      window.cachedPetal = document.createElement('canvas');
+                      window.cachedPetal.width = 16;
+                      window.cachedPetal.height = 16;
+                      const pCtx = window.cachedPetal.getContext('2d');
+                      pCtx.fillStyle = `rgb(255, 180, 220)`;
+                      pCtx.beginPath();
+                      pCtx.ellipse(8, 8, 4, 2, 0, 0, Math.PI*2);
+                      pCtx.fill();
+                  }
+                  
+                  ctx.save();
+                  ctx.translate(sx, sy);
+                  ctx.rotate(rot);
+                  ctx.scale(scale, scale);
+                  ctx.globalAlpha = alpha;
+                  ctx.drawImage(window.cachedPetal, -8, -8);
+                  ctx.restore();
+              } else {
+                  ctx.fillStyle = `rgba(255, 180, 220, ${alpha})`;
+                  ctx.beginPath();
+                  ctx.ellipse(sx, sy, 4 * scale, 2 * scale, rot, 0, Math.PI*2);
+                  ctx.fill();
+              }
           }
       }
   };
@@ -9783,7 +9851,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   const drawAsh = (isRisingPass) => {
       if (t6 <= 0) return;
       
-      const numAsh = 400; // Doubled
+      const numAsh = window.IS_FIREFOX ? 150 : 400;
       const maxLifetime = 5.0; // seconds
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
       const ashImg = getAshCanvas();
@@ -9833,8 +9901,8 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           // Real-time Glow Oscillation
           let brightness = 0.2 + (pulse * 0.8) + (t8 * 0.5);
           
-          // Spawn size strictly based on spawn oscillation
-          let baseSize = 3 + (rand1 * 2) + (spawnPulse * 6) + (t8 * 4);
+          // Spawn size strictly based on spawn oscillation, scaled up for lower particle count on Firefox
+          let baseSize = (3 + (rand1 * 2) + (spawnPulse * 6) + (t8 * 4)) * (window.IS_FIREFOX ? 1.6 : 1.0);
           
           // Peak real-time oscillation doubles the current size of the particle
           let size = baseSize * (1.0 + 1.0 * pulse); 
@@ -10839,7 +10907,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
       
       // Main volatile ferrofluid blob with energy concentrated at the center
       ctx.beginPath();
-      const numPoints = 360;
+      const numPoints = window.IS_FIREFOX ? 120 : 360;
       for (let i = 0; i <= numPoints; i++) {
           const angle = (i / numPoints) * Math.PI * 2;
           
@@ -13413,21 +13481,42 @@ function drawTesseract(ctx, w, h, t, tier, prevTier, animProgress) {
         if (history.length < 2) continue;
         const vertParam = i / numVerts;
         const baseHue = ((vertParam * 360 + t * 60) % 360 + 360) % 360;
-        for (let j = 0; j < history.length - 1; j += step) {
-          const p1 = history[j];
-          const nextJ = Math.min(j + step, history.length - 1);
-          if (j === nextJ) break;
-          const p2 = history[nextJ];
-          const life = Math.pow(1 - (j / history.length), 0.7); 
-          const width = (2.5 + p1.scale * 1.5) * life * 4.0;
+        if (window.IS_FIREFOX) {
+          const pStart = history[0];
+          const pEnd = history[history.length - 1];
+          const grad = ctx.createLinearGradient(pStart.x, pStart.y, pEnd.x, pEnd.y);
+          // Increased opacity to 1.0 and added an intermediate stop for better visibility
+          grad.addColorStop(0, `hsla(${baseHue}, 100%, 75%, 1.0)`);
+          grad.addColorStop(0.5, `hsla(${baseHue}, 100%, 65%, 0.5)`);
+          grad.addColorStop(1, `hsla(${baseHue}, 100%, 65%, 0)`);
+          
           ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.strokeStyle = `hsla(${baseHue}, 100%, 65%, ${life})`;
-          ctx.lineWidth = width;
+          ctx.moveTo(pStart.x, pStart.y);
+          for (let j = step; j < history.length; j += step) {
+            ctx.lineTo(history[j].x, history[j].y);
+          }
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = (2.5 + pStart.scale * 1.5) * 4.0; // Doubled thickness
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
           ctx.stroke();
+        } else {
+          for (let j = 0; j < history.length - 1; j += step) {
+            const p1 = history[j];
+            const nextJ = Math.min(j + step, history.length - 1);
+            if (j === nextJ) break;
+            const p2 = history[nextJ];
+            const life = Math.pow(1 - (j / history.length), 0.7); 
+            const width = (2.5 + p1.scale * 1.5) * life * 4.0;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `hsla(${baseHue}, 100%, 65%, ${life})`;
+            ctx.lineWidth = width;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.stroke();
+          }
         }
       }
       ctx.restore();
