@@ -1433,9 +1433,9 @@ function drawCavern(ctx, w, h, t) {
 
     ctx.beginPath();
     // perfect triangle
-    ctx.moveTo(sx - st.width / 2, 0);
+    ctx.moveTo(sx - st.width / 2, -50);
     ctx.lineTo(tipX, st.length); // The tip
-    ctx.lineTo(sx + st.width / 2, 0);
+    ctx.lineTo(sx + st.width / 2, -50);
     ctx.closePath();
     ctx.fill();
 
