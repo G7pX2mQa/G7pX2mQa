@@ -1086,7 +1086,6 @@ const BUILDING_TEXT_SHIFTS = {
   ruby: { start: 350, perTier: 15 },
   sapphire: { start: 395, perTier: 23 },
   unobtainium: { start: 310, perTier: 10 },
-  prismatium: { start: 310, perTier: 0 },
 };
 
 function updateDomOverlays(w, h, t) {
@@ -1110,8 +1109,14 @@ function updateDomOverlays(w, h, t) {
   if (levelText) {
     const shiftConfig = BUILDING_TEXT_SHIFTS[id] || { start: 310, perTier: 10 };
     const getTargetTop = (bTier) => {
+      if (id === "prismatium") {
+        const offsetTop = levelText.parentElement ? levelText.parentElement.offsetTop : 0;
+        return (h / 2) - offsetTop - 22;
+      }
+      
       let shift = shiftConfig.start + (shiftConfig.perTier * bTier);
       if (id === "pure_gold" && bTier >= 4) shift += 35;
+      
       return floorY - shift;
     };
 
