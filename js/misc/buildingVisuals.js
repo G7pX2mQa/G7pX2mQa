@@ -1075,18 +1075,18 @@ function loop(currentTime) {
 }
 
 const BUILDING_TEXT_SHIFTS = {
-  core: { start: 350, perTier: 11 },
-  crystal: { start: 300, perTier: 20 },
+  core: { start: 390, perTier: 11 },
+  crystal: { start: 325, perTier: 20 },
   stone: { start: 310, perTier: 10 },
-  copper: { start: 310, perTier: 10 },
-  iron: { start: 350, perTier: 10 },
-  pure_gold: { start: 380, perTier: 20 },
-  diamond: { start: 330, perTier: 25 },
-  emerald: { start: 310, perTier: 10 },
-  ruby: { start: 310, perTier: 10 },
-  sapphire: { start: 310, perTier: 10 },
+  copper: { start: 305, perTier: 10 },
+  iron: { start: 320, perTier: 20 },
+  pure_gold: { start: 315, perTier: 15 },
+  diamond: { start: 300, perTier: 20 },
+  emerald: { start: 320, perTier: 15 },
+  ruby: { start: 350, perTier: 15 },
+  sapphire: { start: 395, perTier: 23 },
   unobtainium: { start: 310, perTier: 10 },
-  prismatium: { start: 310, perTier: 10 },
+  prismatium: { start: 310, perTier: 0 },
 };
 
 function updateDomOverlays(w, h, t) {
@@ -1099,7 +1099,7 @@ function updateDomOverlays(w, h, t) {
     animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
   }
   
-  const floorY = h / 2 + 150;
+  const floorY = h - 260;
 
   const levelText = document.getElementById("building-detail-level-text");
   let shakeAlphaText = 0;
