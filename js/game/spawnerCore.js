@@ -695,8 +695,9 @@ export function createBaseSpawner(config = {}) {
         let rawDt = now - last;
 
         // If rawDt is very large (e.g. > 500ms), we likely just woke up from suspension or background tab
-        // Adjust timestamps for active items so they don't instantly expire because the visual animation was paused
-        if (rawDt > 500) {
+        if (rawDt > 500) { // If the frame delta is suspiciously large (>500ms)
+            staticCanvasDirty = true; // Force redraw of offscreen canvases in case Firefox discarded them
+            // Adjust all start and end times forward by the paused duration
             const pausedDuration = rawDt - (0.1 * 1000); // subtract the max allowed frame time
             for (let i = 0; i < activeItems.length; i++) {
                 const c = activeItems[i];
