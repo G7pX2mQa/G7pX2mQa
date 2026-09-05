@@ -113,6 +113,11 @@ export function getPreRenderedItem(src, size) {
             dpr = baseDpr * resolutionScale;
         }
 
+        if (IS_FIREFOX) {
+            sizeMap.set(size, img);
+            return img;
+        }
+
         canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.floor(size * dpr));
         canvas.height = Math.max(1, Math.floor(size * dpr));
@@ -122,37 +127,7 @@ export function getPreRenderedItem(src, size) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
 
-        let curWidth = img.naturalWidth;
-        let curHeight = img.naturalHeight;
-        let targetWidth = size * dpr;
-
-        if (IS_FIREFOX && curWidth > targetWidth * 2) {
-            let tempCanvas = document.createElement("canvas");
-            tempCanvas.width = curWidth;
-            tempCanvas.height = curHeight;
-            let tempCtx = tempCanvas.getContext("2d");
-            tempCtx.drawImage(img, 0, 0);
-
-            while (curWidth > targetWidth * 2) {
-                let nextWidth = Math.max(1, Math.floor(curWidth / 2));
-                let nextHeight = Math.max(1, Math.floor(curHeight / 2));
-
-                let nextCanvas = document.createElement("canvas");
-                nextCanvas.width = nextWidth;
-                nextCanvas.height = nextHeight;
-                let nextCtx = nextCanvas.getContext("2d");
-                nextCtx.imageSmoothingEnabled = true;
-                nextCtx.imageSmoothingQuality = getCanvasSmoothingQuality();
-                nextCtx.drawImage(tempCanvas, 0, 0, curWidth, curHeight, 0, 0, nextWidth, nextHeight);
-
-                curWidth = nextWidth;
-                curHeight = nextHeight;
-                tempCanvas = nextCanvas;
-            }
-            ctx.drawImage(tempCanvas, 0, 0, curWidth, curHeight, 0, 0, size, size);
-        } else {
-            ctx.drawImage(img, 0, 0, size, size);
-        }
+        ctx.drawImage(img, 0, 0, size, size);
 
         sizeMap.set(size, canvas);
     }
