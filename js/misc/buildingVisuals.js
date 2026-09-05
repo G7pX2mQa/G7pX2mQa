@@ -1381,7 +1381,7 @@ function drawCavern(ctx, w, h, t) {
     window.currentCavernLayout = { stalactites, cracks };
   }
 
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  const grad = ctx.createLinearGradient(0, -50, 0, h + 50);
   if (currentBuildingId === 'prismatium') {
     grad.addColorStop(0, "rgba(255, 0, 0, 1)");
     grad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
@@ -1416,7 +1416,7 @@ function drawCavern(ctx, w, h, t) {
     const sx = st.xFrac * w;
     const tipX = sx + Math.sin(st.dropPhase) * 10;
 
-    const stalactiteGrad = ctx.createLinearGradient(sx, 0, sx, st.length);
+    const stalactiteGrad = ctx.createLinearGradient(sx, -50, sx, st.length);
     if (currentBuildingId === 'prismatium') {
       stalactiteGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
       stalactiteGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
