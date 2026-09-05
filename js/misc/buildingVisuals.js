@@ -1088,6 +1088,20 @@ const BUILDING_TEXT_SHIFTS = {
   unobtainium: { start: 310, perTier: 10 },
 };
 
+  const BUILDING_VIEWPORT_BOUNDS = {
+    core: { w: 600, h: 600 },
+    crystal: { w: 600, h: 600 },
+    stone: { w: 700, h: 650 },
+    copper: { w: 600, h: 600 },
+    iron: { w: 800, h: 700 },
+    pure_gold: { w: 950, h: 780 },
+    diamond: { w: 850, h: 800 },
+    emerald: { w: 875, h: 875 },
+    ruby: { w: 1400, h: 1500 },
+    sapphire: { w: 1400, h: 1000 },
+    unobtainium: { w: 1100, h: 1000 }
+  };
+
 function updateDomOverlays(w, h, t) {
   if (!currentBuildingId) return;
   const id = currentBuildingId;
@@ -1114,10 +1128,16 @@ function updateDomOverlays(w, h, t) {
         return (h / 2) - offsetTop - 22;
       }
       
+      let viewportScale = 1.0;
+      if (BUILDING_VIEWPORT_BOUNDS[id]) {
+        const bounds = BUILDING_VIEWPORT_BOUNDS[id];
+        viewportScale = Math.min(1.0, w / bounds.w, h / bounds.h);
+      }
+      
       let shift = shiftConfig.start + (shiftConfig.perTier * bTier);
       if (id === "pure_gold" && bTier >= 4) shift += 35;
       
-      return floorY - shift;
+      return floorY - (shift * viewportScale);
     };
 
     const targetTop = getTargetTop(tier);
@@ -1434,9 +1454,16 @@ function drawCavern(ctx, w, h, t) {
       const startScale = 1.0 + previousTier * 0.1;
       const scale = startScale + (targetScale - startScale) * animProgress;
       
+      let viewportScale = 1.0;
+      if (typeof BUILDING_VIEWPORT_BOUNDS !== "undefined" && BUILDING_VIEWPORT_BOUNDS["sapphire"]) {
+        const bounds = BUILDING_VIEWPORT_BOUNDS["sapphire"];
+        viewportScale = Math.min(1.0, w / bounds.w, h / bounds.h);
+      }
+      const finalScale = scale * viewportScale;
+      
       ctx.save();
       ctx.translate(cx, floorY);
-      ctx.scale(scale, scale);
+      ctx.scale(finalScale, finalScale);
       
       ctx.globalAlpha = t7;
       
@@ -1706,8 +1733,16 @@ function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress)
 
   const targetScale = 1.0 + tier * 0.1;
   const startScale = 1.0 + prevTier * 0.1;
-  const scale = startScale + (targetScale - startScale) * animProgress;
-  ctx.scale(scale, scale);
+  let scale = startScale + (targetScale - startScale) * animProgress;
+  
+  let viewportScale = 1.0;
+  if (id !== "prismatium" && typeof BUILDING_VIEWPORT_BOUNDS !== "undefined" && BUILDING_VIEWPORT_BOUNDS[id]) {
+    const bounds = BUILDING_VIEWPORT_BOUNDS[id];
+    viewportScale = Math.min(1.0, w / bounds.w, h / bounds.h);
+  }
+  const finalScale = scale * viewportScale;
+
+  ctx.scale(finalScale, finalScale);
 
   let bounce = 0;
 
@@ -5924,11 +5959,18 @@ function handleVaultCanvasClick(e) {
     }
   } else {
     const scale = 1.0 + getTier() * 0.1;
+    let viewportScale = 1.0;
+    if (typeof BUILDING_VIEWPORT_BOUNDS !== "undefined" && BUILDING_VIEWPORT_BOUNDS["pure_gold"]) {
+      const bounds = BUILDING_VIEWPORT_BOUNDS["pure_gold"];
+      viewportScale = Math.min(1.0, w / bounds.w, h / bounds.h);
+    }
+    const finalScale = scale * viewportScale;
+    
     const dy = 15;
-    const left = centerX - 48 * scale;
-    const right = centerX - 23 * scale;
-    const top = floorY - (88 + dy) * scale;
-    const bottom = floorY - (52 + dy) * scale;
+    const left = centerX - 48 * finalScale;
+    const right = centerX - 23 * finalScale;
+    const top = floorY - (88 + dy) * finalScale;
+    const bottom = floorY - (52 + dy) * finalScale;
 
     if (cx >= left && cx <= right && cy >= top && cy <= bottom) {
       if (getTier() >= 2) {
