@@ -60,28 +60,16 @@ export function getPreRenderedItemUrl(src, size) {
 
     let url = sizeMap.get(size);
     if (!url) {
-        const renderable = getPreRenderedItem(src, size);
-        if (renderable) {
-            if (renderable instanceof HTMLCanvasElement) {
-                url = renderable.toDataURL("image/webp");
+        const canvas = getPreRenderedItem(src, size);
+        if (canvas && canvas instanceof HTMLCanvasElement) {
+            try {
+                url = canvas.toDataURL("image/webp");
                 sizeMap.set(size, url);
-            } else if (renderable instanceof ImageBitmap || (renderable instanceof HTMLImageElement && renderable.complete)) {
-                try {
-                    const tempCanvas = document.createElement("canvas");
-                    tempCanvas.width = renderable.width || renderable.naturalWidth;
-                    tempCanvas.height = renderable.height || renderable.naturalHeight;
-                    const tempCtx = tempCanvas.getContext("2d");
-                    tempCtx.drawImage(renderable, 0, 0);
-                    url = tempCanvas.toDataURL("image/webp");
-                    sizeMap.set(size, url);
-                } catch (e) {
-                    return src;
-                }
-            } else {
-                return src; // Fallback if still loading
+            } catch (e) {
+                return src;
             }
         } else {
-            return src;
+            return src; // Fallback if still loading
         }
     }
 
@@ -166,24 +154,39 @@ export function getPreRenderedItem(src, size) {
                 tempCanvas = nextCanvas;
             }
             ctx.drawImage(tempCanvas, 0, 0, curWidth, curHeight, 0, 0, size, size);
-
-            if (typeof createImageBitmap === "function") {
-                createImageBitmap(canvas).then(bmp => {
-                    sizeMap.set(size, bmp);
-                }).catch(() => {});
-                // Temporarily return the raw img so we don't lag during the 1-2 frames it takes to generate the bitmap
-                sizeMap.set(size, img);
-                return img;
-            } else {
-                sizeMap.set(size, canvas);
-            }
         } else {
             ctx.drawImage(img, 0, 0, size, size);
-            sizeMap.set(size, canvas);
         }
+        
+        sizeMap.set(size, canvas);
     }
 
     return canvas;
+}
+
+const preRenderedImageBitmaps = new Map();
+export function getPreRenderedImageBitmap(src, size) {
+    let sizeMap = preRenderedImageBitmaps.get(src);
+    if (!sizeMap) {
+        sizeMap = new Map();
+        preRenderedImageBitmaps.set(src, sizeMap);
+    }
+    
+    let bmp = sizeMap.get(size);
+    if (!bmp) {
+        const canvas = getPreRenderedItem(src, size);
+        if (canvas && canvas instanceof HTMLCanvasElement) {
+            sizeMap.set(size, canvas); 
+            if (typeof createImageBitmap === "function") {
+                createImageBitmap(canvas).then(bitmap => {
+                    sizeMap.set(size, bitmap);
+                }).catch(() => {});
+            }
+            return canvas;
+        }
+        return canvas;
+    }
+    return bmp;
 }
 
 export function createBaseSpawner(config = {}) {
