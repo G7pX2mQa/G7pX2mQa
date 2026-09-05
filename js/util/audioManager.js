@@ -113,8 +113,11 @@ export function initAudio() {
     });
 }
 
+let lastInteractionTime = 0;
+
 // "Warm" the context on user interaction
 function warm() {
+  lastInteractionTime = Date.now();
   if (audioContext && audioContext.state === 'suspended') {
     audioContext.resume().catch(() => {});
   }
@@ -194,23 +197,16 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
       return null;
   }
 
-  if (type === 'sfx') {
-      let activeSfxCount = 0;
-      for (const audio of activeAudios) {
-          if (audio.type === 'sfx') activeSfxCount++;
-      }
-      // Cap maximum simultaneous sound effects to prevent blasting and audio tearing
-      if (activeSfxCount >= 10) {
-          for (const audio of activeAudios) {
-              if (audio.type === 'sfx') {
-                  if (audio.stop) audio.stop();
-                  break;
-              }
-          }
+  const ctx = getAudioContext();
+  
+  // Prevent sounds from silently queueing up in a suspended context (which causes them to all blast at once when context resumes).
+  // Allow queueing ONLY if the user interacted recently, meaning a ctx.resume() is likely pending.
+  if (ctx && ctx.state === 'suspended' && type === 'sfx') {
+      if (Date.now() - lastInteractionTime > 1000) {
+          return null;
       }
   }
 
-  const ctx = getAudioContext();
   const url = new URL(src, document.baseURI).href;
   
   // Try Web Audio first
