@@ -109,7 +109,7 @@ function populateShortcutsOverlay(overlayEl) {
             desc: "Inside any overlay, pressing Esc will instantly close all currently open overlays with a few exceptions.",
         },
         {
-            key: "Backspace",
+            key: "Tab",
             desc: "Does a similar thing as Esc, but only closes the highest overlay.",
         }
     );
