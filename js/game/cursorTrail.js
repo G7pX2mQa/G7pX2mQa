@@ -307,7 +307,7 @@ export function createCursorTrail(playfield, options = {}) {
     };
 
     const onPointerMove = (e) => {
-        if (destroyed) return;
+        if (destroyed || (typeof document !== 'undefined' && document.hidden)) return;
         lastMoveTime = performance.now();
         if (!rafId) {
             lastTime = 0;
