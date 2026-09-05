@@ -22,8 +22,6 @@ import { settingsManager } from "../../game/settingsManager.js";
 import { safeMultiplyBigNum } from "../../game/upgrades.js";
 import { getRpValueMultiplierBn } from "../../game/upgradeEffects.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
-import { consumeGhostTapGuard } from "../../util/ghostTapGuard.js";
-
 const CAM_MAX_COORD = 1e308;
 const CAM_MAX_ZOOM = 1e300;
 const CAM_MIN_ZOOM = 1e-300;
@@ -483,9 +481,15 @@ class LabSystem {
     }
     setupInput() {
         this.addBind(this.canvas, "contextmenu", (e) => e.preventDefault());
-        this.addBind(this.canvas, "mousedown", this.onMouseDown.bind(this));
-        this.addBind(window, "mousemove", this.onMouseMove.bind(this));
-        this.addBind(window, "mouseup", this.onMouseUp.bind(this));
+        if (typeof window !== "undefined" && "PointerEvent" in window) {
+            this.addBind(this.canvas, "pointerdown", (e) => { if (e.pointerType === "mouse") this.onMouseDown(e); });
+            this.addBind(window, "pointermove", (e) => { if (e.pointerType === "mouse") this.onMouseMove(e); });
+            this.addBind(window, "pointerup", (e) => { if (e.pointerType === "mouse") this.onMouseUp(e); });
+        } else {
+            this.addBind(this.canvas, "mousedown", this.onMouseDown.bind(this));
+            this.addBind(window, "mousemove", this.onMouseMove.bind(this));
+            this.addBind(window, "mouseup", this.onMouseUp.bind(this));
+        }
         this.addBind(this.canvas, "wheel", this.onWheel.bind(this), { passive: false });
         this.addBind(this.canvas, "touchstart", this.onTouchStart.bind(this), { passive: false });
         this.addBind(this.canvas, "touchmove", this.onTouchMove.bind(this), { passive: false });
@@ -1146,9 +1150,6 @@ class LabSystem {
         }
     }
     onMouseDown(e) {
-        if (typeof consumeGhostTapGuard === "function" && consumeGhostTapGuard(e.target)) {
-            return;
-        }
         if (e.button === 2) {
             this.handleRightClick(e.clientX, e.clientY);
             return;
