@@ -154,13 +154,3 @@
   transform: translateZ(0);
   will-change: transform;
 }
-
-/* TEMPORARY: Hide UC backgrounds */
-.area-cavern .playfield {
-    background: #111 !important;
-}
-.area-cavern .playfield::before,
-.area-cavern .playfield::after,
-.area-cavern .rubble-layer {
-    display: none !important;
-}
