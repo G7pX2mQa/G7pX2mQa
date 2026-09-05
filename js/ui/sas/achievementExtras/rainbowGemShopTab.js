@@ -298,7 +298,6 @@ export function openAchievementExtras() {
             sheetEl.style.transition = "";
             sheetEl.style.transform = "";
             overlayEl.classList.add("is-open");
-            blockInteraction(140);
             if (closeBtn && typeof closeBtn.focus === "function") {
                 try {
                     closeBtn.focus({ preventScroll: true });
@@ -313,9 +312,6 @@ export function closeOverlay(force = false) {
     if (IS_MOBILE) {
         try {
             suppressNextGhostTap(100);
-        } catch {}
-        try {
-            blockInteraction(80);
         } catch {}
     }
     isOpen = false;
