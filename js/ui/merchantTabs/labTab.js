@@ -1059,11 +1059,12 @@ class LabSystem {
     }
     closeNodeOverlay() {
         this.activeOverlayId = null;
-        if (this.overlay) {
-            this.overlay.classList.remove("is-open");
+        const closingOverlay = this.overlay;
+        if (closingOverlay) {
+            closingOverlay.classList.remove("is-open");
             setTimeout(() => {
-                if (this.overlay) {
-                    this.overlay.remove();
+                closingOverlay.remove();
+                if (this.overlay === closingOverlay) {
                     this.overlay = null;
                 }
             }, 300);
