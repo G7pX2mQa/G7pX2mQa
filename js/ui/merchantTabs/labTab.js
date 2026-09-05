@@ -22,6 +22,8 @@ import { settingsManager } from "../../game/settingsManager.js";
 import { safeMultiplyBigNum } from "../../game/upgrades.js";
 import { getRpValueMultiplierBn } from "../../game/upgradeEffects.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
+import { consumeGhostTapGuard } from "../../util/ghostTapGuard.js";
+
 const CAM_MAX_COORD = 1e308;
 const CAM_MAX_ZOOM = 1e300;
 const CAM_MIN_ZOOM = 1e-300;
@@ -1144,6 +1146,9 @@ class LabSystem {
         }
     }
     onMouseDown(e) {
+        if (typeof consumeGhostTapGuard === "function" && consumeGhostTapGuard(e.target)) {
+            return;
+        }
         if (e.button === 2) {
             this.handleRightClick(e.clientX, e.clientY);
             return;
