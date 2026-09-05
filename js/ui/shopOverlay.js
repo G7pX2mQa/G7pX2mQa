@@ -1214,11 +1214,7 @@ class ShopInstance {
                 if (needsTwoLines) badge.classList.add("two-line");
                 if (hasPlus || showUnlockableBadge) badge.classList.add("can-buy");
                 if (capReached) badge.classList.add("is-maxed");
-                if (badgeHtml === badgePlain) {
-                    if (badge.textContent !== badgeHtml) badge.textContent = badgeHtml;
-                } else {
-                    setHtmlOrText(badge, badgeHtml);
-                }
+                setHtmlOrText(badge, badgeHtml);
             } else if (badge) badge.remove();
             if (settingsManager.get("hide_maxed_upgrades") && capReached && !showEvolveReady) {
                 btn.style.display = "none";
@@ -1461,6 +1457,7 @@ export function openShop(mode = "standard") {
 export function closeShop(force = false) {
     // Attempt to close all open shops
     Object.values(shops).forEach((s) => s.close(force));
+    if (upgOpen) closeUpgradeMenu();
 }
 
 export function closeDelveSpecificOverlays() {
