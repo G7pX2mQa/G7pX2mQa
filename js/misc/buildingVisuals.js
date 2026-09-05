@@ -1,4 +1,4 @@
-import { IS_MOBILE } from "../util/platformChecker.js";
+import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
@@ -563,6 +563,32 @@ export function startCanvasLoop(id, canvasEl) {
   window.currentCavernLayout = null;
   activeCanvas = canvasEl;
   activeCtx = canvasEl.getContext("2d");
+  
+  if (IS_FIREFOX) {
+    activeCtx = new Proxy(activeCtx, {
+      set(target, prop, value) {
+        if (prop === 'shadowBlur') {
+          return true; 
+        }
+        if (prop === 'globalCompositeOperation') {
+          if (value === 'lighter' || value === 'screen') {
+            target.globalCompositeOperation = 'source-over';
+            return true;
+          }
+        }
+        target[prop] = value;
+        return true;
+      },
+      get(target, prop) {
+        const val = target[prop];
+        if (typeof val === 'function') {
+          return val.bind(target);
+        }
+        return val;
+      }
+    });
+  }
+
   currentBuildingId = id;
   lastTime = performance.now();
   lastDrawTime = 0;
