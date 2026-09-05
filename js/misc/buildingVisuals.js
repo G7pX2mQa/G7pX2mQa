@@ -9216,7 +9216,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t7;
     domePath();
-    ctx.clip(); // Ensure petals stay inside dome
+    if (!window.IS_FIREFOX) ctx.clip(); // Ensure petals stay inside dome
     // Falling petals (Drifting from branches) - BACKSIDE
     drawWhirlwindPetals(false);
     ctx.restore();
@@ -9339,7 +9339,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t7;
 
     domePath();
-    ctx.clip(); // Ensure petals stay inside dome
+    if (!window.IS_FIREFOX) ctx.clip(); // Ensure petals stay inside dome
 
     // Draw blossom canopy branches stretching inward from the top edges
     ctx.strokeStyle = '#3a2110';
@@ -9638,31 +9638,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
 
-    // Cross-fade out the plant when T8 comes in
-    ctx.globalAlpha = t4 * (1 - t8);
-
-    // Bioluminescent glow behind the flower
-    const glowInt = 0.35 + Math.sin(t * 1.8) * 0.15;
-    const podGlow = ctx.createRadialGradient(flowerCX, flowerCY, 5, flowerCX, flowerCY, 100 * blossomScale);
-    podGlow.addColorStop(0, `rgba(255, 100, 200, ${glowInt})`);
-    podGlow.addColorStop(0.5, `rgba(180, 50, 180, ${glowInt * 0.4})`);
-    podGlow.addColorStop(1, 'rgba(100, 0, 150, 0)');
-    ctx.fillStyle = podGlow;
-    ctx.beginPath(); ctx.arc(flowerCX, flowerCY, 100 * blossomScale, 0, Math.PI * 2); ctx.fill();
-
-    ctx.save();
-    ctx.translate(flowerCX, flowerCY);
-    ctx.scale(blossomScale, blossomScale);
-
-    // Sepals (Green base leaves cupping the flower)
-    ctx.fillStyle = '#3aad30'; // Matches Tier 0-3 stem color
-    for (let i=0; i<4; i++) {
-        ctx.save();
-        ctx.rotate(i * Math.PI/2 + Math.PI/4);
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(20, 20, 0, 45); ctx.quadraticCurveTo(-20, 20, 0, 0); ctx.fill();
-        ctx.restore();
-    }
-
     // Helper to draw a full radial layer of beautiful petals
     const drawPetalLayer = (num, radius, width, colA, colB, offset, pulsePhase) => {
         const pGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
@@ -9690,35 +9665,62 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         }
     };
 
-    // Layer 1: Back dark petals
-    drawPetalLayer(6, 45, 25, '#4b0082', '#1a0033', 0, 0);
-    // Layer 2: Mid vibrant petals
-    drawPetalLayer(8, 38, 20, '#d860d0', '#660099', Math.PI/8, 2);
-    // Layer 3: Inner bright petals
-    drawPetalLayer(5, 28, 15, '#ffb0f0', '#b300b3', Math.PI/5, 4);
+    // Cross-fade out the plant when T8 comes in
+    const t4Alpha = t4 * (1 - t8);
+    if (t4Alpha > 0.01) {
+        ctx.globalAlpha = t4Alpha;
 
-    // Center Stigma / Energy Core
-    const spotAlpha = 0.7 + Math.sin(t * 3.6) * 0.3;
-    ctx.fillStyle = `rgba(255, 200, 255, ${spotAlpha})`;
-    ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = `rgba(255, 255, 255, ${spotAlpha})`;
-    ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+        // Bioluminescent glow behind the flower
+        const glowInt = 0.35 + Math.sin(t * 1.8) * 0.15;
+        const podGlow = ctx.createRadialGradient(flowerCX, flowerCY, 5, flowerCX, flowerCY, 100 * blossomScale);
+        podGlow.addColorStop(0, `rgba(255, 100, 200, ${glowInt})`);
+        podGlow.addColorStop(0.5, `rgba(180, 50, 180, ${glowInt * 0.4})`);
+        podGlow.addColorStop(1, 'rgba(100, 0, 150, 0)');
+        ctx.fillStyle = podGlow;
+        ctx.beginPath(); ctx.arc(flowerCX, flowerCY, 100 * blossomScale, 0, Math.PI * 2); ctx.fill();
 
-    // Outward reaching Anthers
-    ctx.strokeStyle = '#ff99ff';
-    ctx.lineWidth = 1.5;
-    for (let i=0; i<7; i++) {
-        const a = (i/7) * Math.PI*2 + t;
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*14, Math.sin(a)*14); ctx.stroke();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.arc(Math.cos(a)*14, Math.sin(a)*14, 2, 0, Math.PI*2); ctx.fill();
+        ctx.save();
+        ctx.translate(flowerCX, flowerCY);
+        ctx.scale(blossomScale, blossomScale);
+
+        // Sepals (Green base leaves cupping the flower)
+        ctx.fillStyle = '#3aad30'; // Matches Tier 0-3 stem color
+        for (let i=0; i<4; i++) {
+            ctx.save();
+            ctx.rotate(i * Math.PI/2 + Math.PI/4);
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(20, 20, 0, 45); ctx.quadraticCurveTo(-20, 20, 0, 0); ctx.fill();
+            ctx.restore();
+        }
+
+        // Layer 1: Back dark petals
+        drawPetalLayer(6, 45, 25, '#4b0082', '#1a0033', 0, 0);
+        // Layer 2: Mid vibrant petals
+        drawPetalLayer(8, 38, 20, '#d860d0', '#660099', Math.PI/8, 2);
+        // Layer 3: Inner bright petals
+        drawPetalLayer(5, 28, 15, '#ffb0f0', '#b300b3', Math.PI/5, 4);
+
+        // Center Stigma / Energy Core
+        const spotAlpha = 0.7 + Math.sin(t * 3.6) * 0.3;
+        ctx.fillStyle = `rgba(255, 200, 255, ${spotAlpha})`;
+        ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255, 255, 255, ${spotAlpha})`;
+        ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+
+        // Outward reaching Anthers
+        ctx.strokeStyle = '#ff99ff';
+        ctx.lineWidth = 1.5;
+        for (let i=0; i<7; i++) {
+            const a = (i/7) * Math.PI*2 + t;
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*14, Math.sin(a)*14); ctx.stroke();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(Math.cos(a)*14, Math.sin(a)*14, 2, 0, Math.PI*2); ctx.fill();
+        }
+
+        ctx.restore();
     }
-
-    ctx.restore();
+    
     ctx.restore();
   }
-
-
 
   // --- Tier 8: The Apex Flora ---
   if (t8 > 0) {
@@ -9771,11 +9773,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
             // Intricate neon veining inside petals
             ctx.strokeStyle = `rgba(255, 200, 255, ${0.4 + flutter})`;
             ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, radius*0.85); ctx.stroke();
+            ctx.beginPath(); 
+            ctx.moveTo(0,0); 
+            ctx.lineTo(0, radius*0.85); 
             for(let v=0.2; v<0.8; v+=0.15) {
-                ctx.beginPath(); ctx.moveTo(0, radius*v); ctx.quadraticCurveTo(w*0.4, radius*(v+0.1), w*0.3, radius*(v+0.2)); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, radius*v); ctx.quadraticCurveTo(-w*0.4, radius*(v+0.1), -w*0.3, radius*(v+0.2)); ctx.stroke();
+                ctx.moveTo(0, radius*v); ctx.quadraticCurveTo(w*0.4, radius*(v+0.1), w*0.3, radius*(v+0.2)); 
+                ctx.moveTo(0, radius*v); ctx.quadraticCurveTo(-w*0.4, radius*(v+0.1), -w*0.3, radius*(v+0.2)); 
             }
+            ctx.stroke();
             ctx.restore();
         }
     };
@@ -9809,7 +9814,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t7;
 
     domePath();
-    ctx.clip(); // Ensure petals stay inside dome
+    if (!window.IS_FIREFOX) ctx.clip(); // Ensure petals stay inside dome
 
     // Falling petals (Drifting from branches) - FRONTSIDE
     drawWhirlwindPetals(true);
@@ -9879,7 +9884,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   const drawAsh = (isRisingPass) => {
       if (t6 <= 0) return;
       
-      const numAsh = window.IS_FIREFOX ? 150 : 400;
+      const numAsh = window.IS_FIREFOX ? 30 : 400;
       const maxLifetime = 5.0; // seconds
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
       const ashImg = getAshCanvas();
@@ -10107,7 +10112,9 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       // 3. Clip the symbol so it doesn't draw below the ground (y = 120)
       ctx.beginPath();
       ctx.rect(-3000, -3000, 6000, 3000 + 120);
-      ctx.clip();
+      if (!window.IS_FIREFOX) {
+          ctx.clip();
+      }
 
       // 1. Exact same rotation as center symbol
       ctx.rotate(t * 0.5); 
