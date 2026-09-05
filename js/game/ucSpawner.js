@@ -4,6 +4,7 @@ import {
     CUBIC_BEZIER,
     getPreRenderedItem,
     getPreRenderedItemUrl,
+    getPreRenderedImageBitmap,
     clearPreRenderedItems,
 } from "./spawnerCore.js";
 import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
@@ -655,7 +656,7 @@ export function createUcSpawner(config = {}) {
         onDrawSingleSettledItem: (ctx, c) => {
             const size = c.size || baseSize;
             if (c.src) {
-                const renderable = getPreRenderedItem(c.src, size);
+                const renderable = getPreRenderedImageBitmap(c.src, size);
                 if (renderable) {
                     if (c.rot || c.scale !== 1) {
                         let halfSize = size / 2;
