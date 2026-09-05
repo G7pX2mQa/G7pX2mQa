@@ -660,24 +660,14 @@ export function createUcSpawner(config = {}) {
                 if (renderable) {
                     if (c.rot || c.scale !== 1) {
                         let halfSize = size / 2;
-                        if (IS_FIREFOX) halfSize = halfSize | 0;
                         ctx.save();
-                        ctx.translate(
-                            IS_FIREFOX ? (c.x + halfSize) | 0 : c.x + halfSize,
-                            IS_FIREFOX ? (c.y + halfSize) | 0 : c.y + halfSize,
-                        );
+                        ctx.translate(c.x + halfSize, c.y + halfSize);
                         if (c.rot) ctx.rotate((c.rot * Math.PI) / 180);
                         if (c.scale !== 1) ctx.scale(c.scale, c.scale);
                         ctx.drawImage(renderable, -halfSize, -halfSize, size, size);
                         ctx.restore();
                     } else {
-                        ctx.drawImage(
-                            renderable,
-                            IS_FIREFOX ? Math.round(c.x) : c.x,
-                            IS_FIREFOX ? Math.round(c.y) : c.y,
-                            size,
-                            size,
-                        );
+                        ctx.drawImage(renderable, c.x, c.y, size, size);
                     }
                 }
             }
