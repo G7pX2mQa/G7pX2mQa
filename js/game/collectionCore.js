@@ -188,7 +188,7 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
   };
 
   const updatePointerFromEvent = (e) => {
-    if (!e || destroyed) return;
+    if (!e || destroyed || (typeof document !== 'undefined' && document.hidden)) return;
     if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return;
     hasPointer = true;
     pointerClientX = e.clientX;
