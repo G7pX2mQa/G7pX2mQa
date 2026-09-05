@@ -1277,11 +1277,19 @@ export async function processOfflineProgress() {
             lsRemoveItem(`ccc:simInterrupted:${slot}`);
         }
     } catch {}
+
+    const seconds = diff / 1000;
+    if (window.progressTime !== undefined) {
+        window.progressTime += seconds;
+        try {
+            lsSetItem(`ccc:progressTime:${slot}`, String(window.progressTime));
+        } catch {}
+    }
+
     if (isSimulatedOfflineEnabled()) {
         const started = await startSimulatedOffline(diff, { wasInterrupted });
         if (started) return true;
     }
-    const seconds = diff / 1000;
     if (!hasDoneInfuseReset()) {
         const rewards = calculatePreAutomationRewards(seconds);
         const hasRewards = Object.keys(rewards).length > 0;
