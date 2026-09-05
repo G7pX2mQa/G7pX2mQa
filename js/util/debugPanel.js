@@ -1868,6 +1868,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
 
     input.addEventListener("focus", () => {
         editing = true;
+        input.select();
     });
     input.addEventListener("change", commitValue);
     input.addEventListener("keydown", (event) => {
@@ -2086,6 +2087,9 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
             input.className = "debug-panel-input";
             input.placeholder = config.label || "";
             input.value = config.defaultValue ?? "";
+            input.addEventListener("focus", () => {
+                input.select();
+            });
             input.addEventListener("input", recompute);
             input.addEventListener("keydown", (event) => {
                 if (event.key === "Enter") {
