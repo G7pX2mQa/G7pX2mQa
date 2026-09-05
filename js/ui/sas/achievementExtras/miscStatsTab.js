@@ -69,6 +69,17 @@ export function updateMiscStatsTab() {
                 label: `${capitalizedResetName} resets performed`,
                 value: formatNumber(val),
             });
+            try {
+                const timeResetStr = lsGetItem(`ccc:stats:timeSinceReset:${resetName}:${slot}`);
+                if (timeResetStr) {
+                    const timeReset = Number(timeResetStr);
+                    const diffSeconds = (window.progressTime || 0) - timeReset;
+                    statsData.push({
+                        label: `Time since last ${capitalizedResetName}`,
+                        value: formatTimeCompact(Math.max(0, diffSeconds) * 1000)
+                    });
+                }
+            } catch {}
         }
     }
 
