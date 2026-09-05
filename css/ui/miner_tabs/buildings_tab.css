@@ -157,7 +157,7 @@
   font-size: clamp(13px, calc(3.66vw - 15.8px), 50px) !important;
 }
 #building-detail-level-text {
-  font-size: clamp(16px, 4vw, 28px) !important;
+  font-size: 28px !important;
 }
 #building-detail-overlay .upg-costs {
   bottom: clamp(167px, calc(1vw + 162px), 177px) !important;
