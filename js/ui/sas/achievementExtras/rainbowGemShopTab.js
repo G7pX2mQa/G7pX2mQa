@@ -77,7 +77,7 @@ function syncVoidTabUnlockState() {
 
 function selectTab(key) {
     const def = TABS_DEF.find((t) => t.key === key);
-    const unlocked = tabUnlockState.get(key);
+    const unlocked = tabUnlockState.get(key) ?? !!def?.unlocked;
     if (!def || !unlocked) key = "rainbow";
     for (const k in tabsState.buttons) {
         tabsState.buttons[k].classList.toggle("is-active", k === key);
