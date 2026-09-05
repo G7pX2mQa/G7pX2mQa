@@ -1074,6 +1074,21 @@ function loop(currentTime) {
   animationFrameId = requestAnimationFrame(loop);
 }
 
+const BUILDING_TEXT_SHIFTS = {
+  core: { start: 350, perTier: 11 },
+  crystal: { start: 300, perTier: 20 },
+  stone: { start: 310, perTier: 10 },
+  copper: { start: 310, perTier: 10 },
+  iron: { start: 350, perTier: 10 },
+  pure_gold: { start: 380, perTier: 20 },
+  diamond: { start: 330, perTier: 25 },
+  emerald: { start: 310, perTier: 10 },
+  ruby: { start: 310, perTier: 10 },
+  sapphire: { start: 310, perTier: 10 },
+  unobtainium: { start: 310, perTier: 10 },
+  prismatium: { start: 310, perTier: 10 },
+};
+
 function updateDomOverlays(w, h, t) {
   if (!currentBuildingId) return;
   const id = currentBuildingId;
@@ -1084,37 +1099,7 @@ function updateDomOverlays(w, h, t) {
     animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
   }
   
-  let scale = 1;
-  if (id === "core") scale = 0.8;
-  else if (id === "crystal") scale = 0.7;
-  else if (id === "stone") scale = 0.7;
-  else if (id === "copper") scale = 0.7;
-  else if (id === "iron") scale = 0.65;
-  else if (id === "pure_gold") scale = 0.6;
-  else if (id === "diamond") scale = 0.55;
-  else if (id === "emerald") scale = 0.6;
-  else if (id === "ruby") scale = 0.7;
-  else if (id === "sapphire") scale = 0.7;
-  else if (id === "unobtainium") scale = 0.65;
-  else if (id === "prismatium") scale = 0.65;
-  
   const floorY = h / 2 + 150;
-  let topY = 0;
-  if (id === "core") topY = -200;
-  else if (id === "crystal") topY = -(100 + tier * 10) - 30;
-  else if (id === "stone") topY = -140;
-  else if (id === "copper") topY = -90;
-  else if (id === "iron") topY = -100;
-  else if (id === "pure_gold") topY = -100;
-  else if (id === "diamond") topY = -120;
-  else if (id === "emerald") topY = -130;
-  else if (id === "ruby") topY = -200;
-  else if (id === "sapphire") topY = -80;
-  else if (id === "unobtainium") topY = -160;
-  else if (id === "prismatium") topY = -150;
-  else topY = -100;
-  
-  const finalHighestY = floorY + topY * scale;
 
   const levelText = document.getElementById("building-detail-level-text");
   let shakeAlphaText = 0;
@@ -1123,22 +1108,19 @@ function updateDomOverlays(w, h, t) {
   }
 
   if (levelText) {
-    const getOffset = (bId, bTier) => {
-      if (bId === "core") return 150 - bTier * 2;
-      if (bId === "crystal") return 180 - bTier * 8;
-      if (bId === "copper") return 180 + bTier * 8;
-      if (bId === "iron") return 220;
-      if (bId === "pure_gold") return 250 + bTier * 10 + (bTier >= 4 ? 35 : 0);
-      if (bId === "diamond") return 200 + bTier * 15;
-      return 180;
+    const shiftConfig = BUILDING_TEXT_SHIFTS[id] || { start: 310, perTier: 10 };
+    const getTargetTop = (bTier) => {
+      let shift = shiftConfig.start + (shiftConfig.perTier * bTier);
+      if (id === "pure_gold" && bTier >= 4) shift += 35;
+      return floorY - shift;
     };
 
-    const targetOffset = getOffset(id, tier);
-    const startOffset = prevTier >= 0 ? getOffset(id, prevTier) : getOffset(id, 0);
-    const offset = startOffset + (targetOffset - startOffset) * animProgress;
+    const targetTop = getTargetTop(tier);
+    const startTop = prevTier >= 0 ? getTargetTop(prevTier) : getTargetTop(0);
+    const currentTop = startTop + (targetTop - startTop) * animProgress;
 
     levelText.style.position = "absolute";
-    levelText.style.top = Math.max(50, finalHighestY - offset) + "px";
+    levelText.style.top = Math.max(50, currentTop) + "px";
     levelText.style.left = "0";
     levelText.style.width = "100%";
     levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
