@@ -270,12 +270,12 @@ function initDiamondPattern(ctx) {
     
     // Smooth random mix of light blues and cyans
     // Mix between #5acde2 (90, 205, 226) and #b2f0f8 (178, 240, 248)
-    const baseR = 90 + noise * 88;
-    const baseG = 205 + noise * 35;
-    const baseB = 226 + noise * 22;
+    const baseR = 103 + noise * 62;
+    const baseG = 210 + noise * 25;
+    const baseB = 229 + noise * 16;
     
     // Add tiny extra noise for that grainy feel
-    const speckle = (Math.random() - 0.5) * 20;
+    const speckle = (Math.random() - 0.5) * 14;
 
     data[i] = Math.max(0, Math.min(255, baseR + speckle));
     data[i+1] = Math.max(0, Math.min(255, baseG + speckle));
@@ -313,11 +313,11 @@ function initDarkDiamondPattern(ctx) {
     const noise = Math.random();
     
     // Darker mix for dark diamond
-    const baseR = 43 + noise * 33;
-    const baseG = 120 + noise * 51;
-    const baseB = 134 + noise * 57;
+    const baseR = 48 + noise * 23;
+    const baseG = 127 + noise * 37;
+    const baseB = 142 + noise * 41;
     
-    const speckle = (Math.random() - 0.5) * 15;
+    const speckle = (Math.random() - 0.5) * 10;
 
     data[i] = Math.max(0, Math.min(255, baseR + speckle));
     data[i+1] = Math.max(0, Math.min(255, baseG + speckle));
@@ -8005,11 +8005,6 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         ctx.lineTo(-wTop, yTop);
     }
     ctx.stroke();
-
-    // Top Platform / Crown Block
-    ctx.fillRect(-25, -200, 50, 20);
-    ctx.strokeRect(-25, -200, 50, 20);
-    
     ctx.restore();
   }
 
@@ -8026,6 +8021,17 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       let spinOffsetX = Math.round(t * 80) % 64;
       let spinOffsetY = Math.round(t * 40) % 64;
       
+// Cables suspending the top drive from the crown block
+      let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
+      ctx.strokeStyle = fillDiamond;
+      ctx.lineWidth = 2 * widthScale; // Increase the width (thickness) of the cables gradually
+      ctx.beginPath();
+      ctx.moveTo(-10 * cablePosScale, -170 * (scale || 1));
+      ctx.lineTo(-10 * cablePosScale, topDriveTop + drillY);
+      ctx.moveTo(10 * cablePosScale, -170 * (scale || 1));
+      ctx.lineTo(10 * cablePosScale, topDriveTop + drillY);
+      ctx.stroke();
+
       // Top Drive Mechanism (motor that spins the drill, origin of the laser)
       let topDriveH = Math.round(topDriveBottom - topDriveTop);
       let topDriveW = Math.round(30 * widthScale);
@@ -8083,55 +8089,22 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
       ctx.restore(); // Popping the clip mask
       
       // Cables suspending the top drive from the crown block
-      let cablePosScale = 1.0 + (widthScale - 1.0) * 0.5;
-      ctx.strokeStyle = fillDiamond;
-      ctx.lineWidth = 2 * widthScale; // Increase the width (thickness) of the cables gradually
-      ctx.beginPath();
-      ctx.moveTo(-10 * cablePosScale, -200 * (scale || 1));
-      ctx.lineTo(-10 * cablePosScale, topDriveTop + drillY);
-      ctx.moveTo(10 * cablePosScale, -200 * (scale || 1));
-      ctx.lineTo(10 * cablePosScale, topDriveTop + drillY);
-      ctx.stroke();
-
-      // Tier 8 Wider Emitter
-      if (t8 > 0) {
-          ctx.save();
-          ctx.globalAlpha = t8;
-          let lensPulse = 0.5 + 0.5 * Math.sin(t * 25);
-          
-          // Wider Lens casing
-          ctx.fillStyle = fillDarkDiamond;
-          ctx.beginPath();
-          ctx.moveTo(-15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(15 * widthScale, topDriveBottom + drillY);
-          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.closePath();
-          ctx.fill();
-
-          // Glowing emitter crystal
-          ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + 0.2 * lensPulse})`;
-          ctx.beginPath();
-          ctx.moveTo(-11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(11.25 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(6 * widthScale, topDriveBottom + drillY + 18);
-          ctx.lineTo(-6 * widthScale, topDriveBottom + drillY + 18);
-          ctx.closePath();
-          ctx.fill();
-          
-          // White hot core in the crystal
-          ctx.fillStyle = `rgba(255, 255, 255, 0.95)`;
-          ctx.beginPath();
-          ctx.moveTo(-6.75 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(6.75 * widthScale, topDriveBottom + drillY + 12);
-          ctx.lineTo(3 * widthScale, topDriveBottom + drillY + 16);
-          ctx.lineTo(-3 * widthScale, topDriveBottom + drillY + 16);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-      }
-      
       ctx.restore();
+  }
+
+  // --- Tier 0: Diamond Derrick Top Platform (Drawn over cables) ---
+  if (t0 > 0) {
+    ctx.save();
+    ctx.translate(0, -1.5);
+    ctx.fillStyle = fillDiamond;
+    ctx.strokeStyle = fillDiamond;
+    ctx.lineWidth = 3;
+    
+    // Top Platform / Crown Block
+    ctx.fillRect(-25, -200, 50, 20);
+    ctx.strokeRect(-25, -200, 50, 20);
+    
+    ctx.restore();
   }
 
   // --- Tier 3: Auxiliary Pumpjacks ---
