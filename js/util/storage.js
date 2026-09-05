@@ -998,6 +998,9 @@ export function incrementResetStat(resetName) {
         // Store as BigNum string, checking for infinity explicitly to match BN representation
         const valToStore = count.inf ? "BN:infinite" : count.toString();
         lsSetItem(statKey, valToStore);
+        if (window.progressTime !== undefined) {
+            lsSetItem(`ccc:stats:timeSinceReset:${resetName}:${slot}`, String(window.progressTime));
+        }
         // Add to list of performed resets
         const listKey = `ccc:stats:performedResets:${slot}`;
         const listRaw = lsGetItem(listKey);
