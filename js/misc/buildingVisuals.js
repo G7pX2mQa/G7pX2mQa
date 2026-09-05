@@ -2034,7 +2034,34 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
     ctx.rotate(Math.PI / 4); // Angled to the right
 
     const beamW = 20 + 10 * Math.abs(Math.sin(t * 12));
-    const beamHeight = 600; // Extends way past viewport
+    
+    let beamHeight = 600;
+    try {
+      const transform = ctx.getTransform();
+      if (transform && typeof transform.a === 'number') {
+        const { a, b, c, d, e, f } = transform;
+        const det = a * d - b * c;
+        if (det !== 0) {
+          const invB = -b / det;
+          const invD = a / det;
+          const invF = (b * e - a * f) / det;
+          const w = ctx.canvas.width;
+          const h = ctx.canvas.height;
+          const corners = [
+            { x: 0, y: 0 },
+            { x: w, y: 0 },
+            { x: 0, y: h },
+            { x: w, y: h }
+          ];
+          let maxAbsY = 0;
+          for (const pt of corners) {
+            const localY = invB * pt.x + invD * pt.y + invF;
+            if (Math.abs(localY) > maxAbsY) maxAbsY = Math.abs(localY);
+          }
+          beamHeight = maxAbsY + 100;
+        }
+      }
+    } catch (e) {}
 
     // Intense purple/white beam gradient
     const beamGrad = ctx.createLinearGradient(-beamW / 2, 0, beamW / 2, 0);
