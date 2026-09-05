@@ -176,7 +176,7 @@ function displayNotification(text, iconSrc, duration) {
 
         parent.appendChild(el);
 
-        const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+        const audio = playAudio("sounds/notification.ogg", { volume: 0.5 });
 
         const notifTracker = {
             element: el,
@@ -293,7 +293,7 @@ export function showWelcomePopup(isMobile, onComplete) {
     parent.appendChild(el);
     document.body.appendChild(parent);
 
-    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+    const audio = playAudio("sounds/notification.ogg", { volume: 0.5 });
 
     const popupTracker = {
         element: parent,
@@ -431,7 +431,7 @@ export function showRareNotification(isMobile = IS_MOBILE) {
     parent.appendChild(el);
     document.body.appendChild(parent);
 
-    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+    const audio = playAudio("sounds/notification.ogg", { volume: 0.5 });
     const DURATION = 31000;
 
     const popupTracker = {
@@ -530,7 +530,7 @@ export function showWideNotification(text, duration = 9000, options = {}) {
 
     let audio = null;
     if (!options.muteSound) {
-        audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+        audio = playAudio("sounds/notification.ogg", { volume: 0.5 });
     }
 
     const popupTracker = {
@@ -593,7 +593,7 @@ export function showLandscapeWarningPopup() {
     parent.appendChild(el);
     document.body.appendChild(parent);
 
-    const audio = playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+    const audio = playAudio("sounds/notification.ogg", { volume: 0.5 });
 
     landscapeWarningTracker = {
         element: parent,
