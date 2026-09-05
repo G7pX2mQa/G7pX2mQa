@@ -8,7 +8,7 @@ import { waterSystem } from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../util/bigCoinManager.js';
 import { settingsManager } from './settingsManager.js';
 import { AREAS, currentArea } from '../main.js';
-import { createBaseSpawner, CUBIC_BEZIER, getPreRenderedItem, getPreRenderedItemUrl, clearPreRenderedItems } from './spawnerCore.js';
+import { createBaseSpawner, CUBIC_BEZIER, getPreRenderedItem, getPreRenderedItemUrl, getPreRenderedImageBitmap, clearPreRenderedItems } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0;
@@ -695,7 +695,7 @@ export function createSpawner(config = {}) {
 
         onDrawSingleSettledItem: (ctx, c) => {
             const size = c.size || baseCoinSize;
-            const renderable = getPreRenderedItem(c.src, size);
+            const renderable = getPreRenderedImageBitmap(c.src, size);
             if (renderable) {
                 const draw = (img) => {
                     if (c.rot || c.scale !== 1) {
@@ -711,7 +711,7 @@ export function createSpawner(config = {}) {
                         ctx.drawImage(img, IS_FIREFOX ? Math.round(c.x) : c.x, IS_FIREFOX ? Math.round(c.y) : c.y, size, size);
                     }
                 };
-                if (renderable instanceof HTMLCanvasElement) {
+                if (renderable instanceof HTMLCanvasElement || (typeof ImageBitmap !== "undefined" && renderable instanceof ImageBitmap)) {
                     draw(renderable);
                 } else if (renderable.complete && renderable.naturalWidth > 0) {
                     draw(renderable);
