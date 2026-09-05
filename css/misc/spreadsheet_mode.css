@@ -74,6 +74,14 @@ body.spreadsheet-mode:not(.menu-bg) .map-bubbles-container {
   display: none !important;
 }
 
+/* Grayscale game backgrounds */
+body.spreadsheet-mode:not(.menu-bg) .playfield::before,
+body.spreadsheet-mode:not(.menu-bg) .playfield::after,
+body.spreadsheet-mode:not(.menu-bg) .rubble-layer,
+body.spreadsheet-mode:not(.menu-bg) .rubble-layer::after {
+  filter: grayscale(1) !important;
+}
+
 body.hide-building-visuals:not(.menu-bg) #building-detail-canvas,
 body.hide-building-visuals:not(.menu-bg) #building-keypad-canvas {
   display: none !important;
