@@ -1154,6 +1154,7 @@ export function initBuildingOverlay() {
     content.style.zIndex = "1";
     content.style.position = "relative";
     content.style.pointerEvents = "none";
+    content.style.overflow = "hidden";
     const levelTextContainer = document.createElement("div");
     levelTextContainer.style.textAlign = "center";
     levelTextContainer.style.marginBottom = "10px";
