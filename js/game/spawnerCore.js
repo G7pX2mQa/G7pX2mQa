@@ -215,6 +215,7 @@ export function createBaseSpawner(config = {}) {
     const contexts = [];
     const inMemoryCanvases = [];
     const inMemoryContexts = [];
+    const inMemoryCanvasHasContent = [];
     let staticCanvasDirty = false;
 
     const _reusableStaticBuckets = [];
@@ -523,6 +524,7 @@ export function createBaseSpawner(config = {}) {
                     const layer = c.sizeIndex || 0;
                     const ctx = getInMemoryContext(layer, w, h, dpr);
                     onDrawSingleSettledItem(ctx, c);
+                    inMemoryCanvasHasContent[layer] = true;
                 }
             }
             newlySettledBuffer.length = 0;
@@ -539,6 +541,7 @@ export function createBaseSpawner(config = {}) {
                     inMemoryContexts[i].setTransform(1, 0, 0, 1, 0, 0);
                     inMemoryContexts[i].clearRect(0, 0, inMemoryCanvases[i].width, inMemoryCanvases[i].height);
                     inMemoryContexts[i].restore();
+                    inMemoryCanvasHasContent[i] = false;
                 }
             }
 
@@ -565,6 +568,7 @@ export function createBaseSpawner(config = {}) {
                 for (let i = 0; i < bucket.length; i++) {
                     onDrawSingleSettledItem(ctx, bucket[i]);
                 }
+                if (bucket.length > 0) inMemoryCanvasHasContent[b] = true;
             }
 
             staticCanvasDirty = false;
@@ -595,7 +599,7 @@ export function createBaseSpawner(config = {}) {
 
         for (let layer = 0; layer < maxLayer; layer++) {
             // Draw static/settled items for this layer
-            if (inMemoryCanvases[layer]) {
+            if (inMemoryCanvases[layer] && inMemoryCanvasHasContent[layer]) {
                 mainCtx.save();
                 mainCtx.setTransform(1, 0, 0, 1, 0, 0); // drawImage works 1:1 on device pixels
                 mainCtx.drawImage(inMemoryCanvases[layer], 0, 0);
