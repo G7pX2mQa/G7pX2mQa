@@ -1824,6 +1824,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     const input = document.createElement("input");
     input.type = "text";
     input.className = "debug-panel-input";
+    input.spellcheck = false;
     let editing = false;
     let pendingValue = null;
     let skipBlurCommit = false;
@@ -2085,6 +2086,7 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
             const input = document.createElement("input");
             input.type = "text";
             input.className = "debug-panel-input";
+            input.spellcheck = false;
             input.placeholder = config.label || "";
             input.value = config.defaultValue ?? "";
             input.addEventListener("focus", () => {
