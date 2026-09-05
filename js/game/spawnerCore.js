@@ -60,12 +60,28 @@ export function getPreRenderedItemUrl(src, size) {
 
     let url = sizeMap.get(size);
     if (!url) {
-        const canvas = getPreRenderedItem(src, size);
-        if (canvas && canvas instanceof HTMLCanvasElement) {
-            url = canvas.toDataURL("image/webp");
-            sizeMap.set(size, url);
+        const renderable = getPreRenderedItem(src, size);
+        if (renderable) {
+            if (renderable instanceof HTMLCanvasElement) {
+                url = renderable.toDataURL("image/webp");
+                sizeMap.set(size, url);
+            } else if (renderable instanceof ImageBitmap || (renderable instanceof HTMLImageElement && renderable.complete)) {
+                try {
+                    const tempCanvas = document.createElement("canvas");
+                    tempCanvas.width = renderable.width || renderable.naturalWidth;
+                    tempCanvas.height = renderable.height || renderable.naturalHeight;
+                    const tempCtx = tempCanvas.getContext("2d");
+                    tempCtx.drawImage(renderable, 0, 0);
+                    url = tempCanvas.toDataURL("image/webp");
+                    sizeMap.set(size, url);
+                } catch (e) {
+                    return src;
+                }
+            } else {
+                return src; // Fallback if still loading
+            }
         } else {
-            return src; // Fallback if still loading
+            return src;
         }
     }
 
