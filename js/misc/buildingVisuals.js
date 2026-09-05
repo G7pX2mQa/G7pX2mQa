@@ -567,7 +567,11 @@ export function startCanvasLoop(id, canvasEl) {
   if (IS_FIREFOX) {
     activeCtx = new Proxy(activeCtx, {
       set(target, prop, value) {
-        if (prop === 'shadowBlur') {
+        if (currentBuildingId === 'crystal') {
+          target[prop] = value;
+          return true;
+        }
+        if (prop === 'shadowBlur' || prop === 'shadowColor') {
           return true; 
         }
         if (prop === 'globalCompositeOperation') {
@@ -9661,15 +9665,14 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     // Helper to draw a full radial layer of beautiful petals
     const drawPetalLayer = (num, radius, width, colA, colB, offset, pulsePhase) => {
+        const pGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        pGrad.addColorStop(0, colA);
+        pGrad.addColorStop(1, colB);
         for(let i=0; i<num; i++) {
             ctx.save();
             const angle = (i/num) * Math.PI * 2 + offset;
             const wobble = Math.sin(t * 1.2 + pulsePhase + i) * 0.1;
             ctx.rotate(angle + wobble);
-            
-            const pGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-            pGrad.addColorStop(0, colA);
-            pGrad.addColorStop(1, colB);
             
             ctx.fillStyle = pGrad;
             ctx.beginPath();
@@ -9746,16 +9749,15 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
     // Fractal / Geometric Petal Generation for the Apex Flora
     const drawApexPetals = (numPetals, radius, widthMult, colorCenter, colorEdge, zRot, pulseSpeed) => {
+        const pGrad = ctx.createLinearGradient(0, 0, 0, radius);
+        pGrad.addColorStop(0, colorCenter);
+        pGrad.addColorStop(1, colorEdge);
         for(let i=0; i<numPetals; i++) {
             ctx.save();
             const angle = (i/numPetals) * Math.PI * 2 + zRot;
             // Complex petal flutter animation
             const flutter = Math.sin(t * pulseSpeed + i * 1.5) * 0.15;
             ctx.rotate(angle + flutter);
-            
-            const pGrad = ctx.createLinearGradient(0, 0, 0, radius);
-            pGrad.addColorStop(0, colorCenter);
-            pGrad.addColorStop(1, colorEdge);
             
             ctx.fillStyle = pGrad;
             ctx.beginPath();
@@ -10830,13 +10832,15 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
     }
 
     // --- Tier 8: Micro-Galaxy ---
-    if (t8 > 0) {
+        if (t8 > 0) {
         ctx.save();
         ctx.globalAlpha = t8;
         
         ctx.beginPath();
         ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
-        ctx.clip();
+        if (!window.IS_FIREFOX) {
+            ctx.clip();
+        }
         
         // Deep space void
         ctx.fillStyle = '#01020a';
@@ -13509,20 +13513,15 @@ function drawTesseract(ctx, w, h, t, tier, prevTier, animProgress) {
         const baseHue = ((vertParam * 360 + t * 60) % 360 + 360) % 360;
         if (window.IS_FIREFOX) {
           const pStart = history[0];
-          const pEnd = history[history.length - 1];
-          const grad = ctx.createLinearGradient(pStart.x, pStart.y, pEnd.x, pEnd.y);
-          // Increased opacity to 1.0 and added an intermediate stop for better visibility
-          grad.addColorStop(0, `hsla(${baseHue}, 100%, 75%, 1.0)`);
-          grad.addColorStop(0.5, `hsla(${baseHue}, 100%, 65%, 0.5)`);
-          grad.addColorStop(1, `hsla(${baseHue}, 100%, 65%, 0)`);
           
           ctx.beginPath();
           ctx.moveTo(pStart.x, pStart.y);
           for (let j = step; j < history.length; j += step) {
             ctx.lineTo(history[j].x, history[j].y);
           }
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = (2.5 + pStart.scale * 1.5) * 4.0; // Doubled thickness
+          // Use a solid color instead of a gradient for massive performance gain and high visibility
+          ctx.strokeStyle = `hsla(${baseHue}, 100%, 75%, 0.8)`;
+          ctx.lineWidth = (2.5 + pStart.scale * 1.5) * 4.0;
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
           ctx.stroke();
