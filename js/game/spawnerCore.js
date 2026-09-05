@@ -880,6 +880,16 @@ export function createBaseSpawner(config = {}) {
                 return;
             staticCanvasDirty = true;
             if (!rafId) start();
+
+            if (IS_FIREFOX) {
+                // Firefox lazily pages ImageBitmaps back to the GPU when returning to a tab.
+                // Redraw again after 2 frames to ensure they are visible.
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        staticCanvasDirty = true;
+                    });
+                });
+            }
         }
     });
 
