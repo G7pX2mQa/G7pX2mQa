@@ -591,7 +591,7 @@ export function createCursorTrail(playfield, options = {}) {
             document.removeEventListener("visibilitychange", updateBounds);
         } catch {}
         try {
-            document.removeEventListener("ccc:upgrades:changed", generateTexture);
+            document.removeEventListener("ccc:upgrades:changed", updateColors);
         } catch {}
         if (activeTrailUnsub) {
             try {
