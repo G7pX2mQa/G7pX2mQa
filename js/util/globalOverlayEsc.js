@@ -18,9 +18,9 @@ const PRIORITY_SELECTORS = [
 ];
 
 function handleEsc(e) {
-  if (e.key !== 'Escape' && e.key !== 'Backspace') return;
+  if (e.key !== 'Escape' && e.key !== 'Tab') return;
 
-  if (e.key === 'Backspace') {
+  if (e.key === 'Tab') {
     const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
     if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
     if (document.activeElement && document.activeElement.isContentEditable) return;
@@ -36,7 +36,7 @@ function handleEsc(e) {
   let yields = false;
   let closedAny = false;
 
-  if (e.key === 'Backspace') {
+  if (e.key === 'Tab') {
     let allCandidates = [];
     for (const info of PRIORITY_SELECTORS) {
       const els = document.querySelectorAll(info.sel);
