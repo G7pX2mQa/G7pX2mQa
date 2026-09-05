@@ -28,7 +28,7 @@ body.spreadsheet-mode:not(.menu-bg) {
 }
 
 /* Strip background images, shadows, and curves globally */
-body.spreadsheet-mode:not(.menu-bg) *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb):not(.reward-icon):not(.sim-progress-text):not(.sim-progress-fill) {
+body.spreadsheet-mode:not(.menu-bg) *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb):not(.reward-icon):not(.sim-progress-text):not(.sim-progress-fill):not([class*="text-"]) {
   border-radius: 0 !important;
   box-shadow: none !important;
   text-shadow: none !important;
@@ -37,7 +37,7 @@ body.spreadsheet-mode:not(.menu-bg) *:not(.shop-scrollbar):not(.shop-scrollbar__
   animation: none !important;
 }
 
-body.spreadsheet-transition-override *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb):not(.reward-icon):not(.sim-progress-text):not(.sim-progress-fill) {
+body.spreadsheet-transition-override *:not(.shop-scrollbar):not(.shop-scrollbar__thumb):not(.merchant-scrollbar):not(.merchant-scrollbar__thumb):not(.reward-icon):not(.sim-progress-text):not(.sim-progress-fill):not([class*="text-"]) {
   transition: none !important;
   animation: none !important;
 }
@@ -153,12 +153,6 @@ body.spreadsheet-mode:not(.menu-bg) .sim-progress-fill {
 }
 body.spreadsheet-mode:not(.menu-bg) .sim-progress-text {
   text-shadow: 0 2px 6px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,0.8) !important;
-}
-
-/* Ensure colored texts remain readable without background gradient */
-body.spreadsheet-mode:not(.menu-bg) [class*="text-"] {
-  -webkit-text-fill-color: initial !important;
-  color: inherit !important;
 }
 
 /* Ensure custom magnet indicators are square and not animated in spreadsheet mode */
