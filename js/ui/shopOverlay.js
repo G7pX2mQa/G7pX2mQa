@@ -1323,7 +1323,6 @@ class ShopInstance {
         closeBtn.addEventListener(
             "click",
             () => {
-                if (IS_MOBILE) blockInteraction(80);
                 this.close();
             },
             { passive: true },
@@ -1567,10 +1566,6 @@ function ensureUpgradeOverlay() {
         upgSheetEl.style.transition = "transform 160ms ease";
         upgSheetEl.style.transform = shouldClose ? "translateY(100%)" : "translateY(0)";
         if (shouldClose) {
-            if (IS_MOBILE && (!e || e.pointerType !== "mouse"))
-                try {
-                    blockInteraction(120);
-                } catch {}
             const delay = document.body.classList.contains("no-overlay-transitions") ? 0 : 160;
             setTimeout(closeUpgradeMenu, delay);
         }
@@ -1583,10 +1578,6 @@ function ensureUpgradeOverlay() {
 }
 
 function closeUpgradeMenu() {
-    if (IS_MOBILE)
-        try {
-            blockInteraction(160);
-        } catch {}
     if (typeof upgOverlayCleanup === "function") {
         const fn = upgOverlayCleanup;
         upgOverlayCleanup = null;
@@ -2805,7 +2796,6 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
     upgOverlayEl.classList.toggle("is-manual-material-value", mode === "automation" && upgDef.id === 11);
     upgOverlayEl.classList.toggle("is-effective-auto-sell", mode === "automation" && upgDef.id === 12);
     upgOverlayEl.style.pointerEvents = "auto";
-    blockInteraction(140);
     upgSheetEl.style.transition = "none";
     upgSheetEl.style.transform = "translateY(100%)";
     void upgSheetEl.offsetHeight;
@@ -2850,7 +2840,6 @@ export function setupDragToClose(grabberEl, sheetEl, isOpenFn, performCloseFn) {
         const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
         if (shouldClose) {
             suppressNextGhostTap(100);
-            blockInteraction(80);
             sheetEl.style.transition = "transform 140ms ease-out";
             sheetEl.style.transform = "translateY(100%)";
             performCloseFn();
