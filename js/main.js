@@ -1678,7 +1678,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         container.appendChild(el);
                         
                         try {
-                            playAudio("sounds/notif_ding.ogg", { volume: 0.5 });
+                            playAudio("sounds/notification.ogg", { volume: 0.5 });
                         } catch (e) {}
                         
                         requestAnimationFrame(() => {
@@ -2033,7 +2033,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "sounds/lightning_strike.ogg",
             "sounds/lightning_zap.ogg",
             "sounds/merchant_typing.ogg",
-            "sounds/notif_ding.ogg",
+            "sounds/notification.ogg",
             "sounds/opening.ogg",
             "sounds/pickup.ogg",
             "sounds/projectile_spawn.ogg",
