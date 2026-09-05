@@ -1096,10 +1096,10 @@ const BUILDING_TEXT_SHIFTS = {
     iron: { w: 800, h: 700 },
     pure_gold: { w: 1050, h: 850 },
     diamond: { w: 850, h: 800 },
-    emerald: { w: 1000, h: 1000 },
-    ruby: { w: 1400, h: 1500 },
-    sapphire: { w: 1600, h: 1200 },
-    unobtainium: { w: 1300, h: 1100 }
+    emerald: { w: 1050, h: 950 },
+    ruby: { w: 1200, h: 950 },
+    sapphire: { w: 1616, h: 950 },
+    unobtainium: { w: 1600, h: 950 }
   };
 
 function updateDomOverlays(w, h, t) {
