@@ -529,11 +529,18 @@ export function createCursorTrail(playfield, options = {}) {
         rafId = requestAnimationFrame(loop);
     };
 
-    // --- Listeners ---
+    const onFocusBlurOrVisibility = () => {
+        updateBounds();
+        if (typeof document !== "undefined" && (document.hidden || !document.hasFocus())) {
+            onPointerLeave();
+        }
+    };
+
     window.addEventListener("resize", resize);
     window.addEventListener("scroll", updateBounds, { passive: true });
-    window.addEventListener("focus", updateBounds, { passive: true });
-    document.addEventListener("visibilitychange", updateBounds, { passive: true });
+    window.addEventListener("focus", onFocusBlurOrVisibility, { passive: true });
+    window.addEventListener("blur", onFocusBlurOrVisibility, { passive: true });
+    document.addEventListener("visibilitychange", onFocusBlurOrVisibility, { passive: true });
 
     const opts = { passive: true };
 
@@ -585,10 +592,13 @@ export function createCursorTrail(playfield, options = {}) {
             window.removeEventListener("scroll", updateBounds);
         } catch {}
         try {
-            window.removeEventListener("focus", updateBounds);
+            window.removeEventListener("focus", onFocusBlurOrVisibility);
         } catch {}
         try {
-            document.removeEventListener("visibilitychange", updateBounds);
+            window.removeEventListener("blur", onFocusBlurOrVisibility);
+        } catch {}
+        try {
+            document.removeEventListener("visibilitychange", onFocusBlurOrVisibility);
         } catch {}
         try {
             document.removeEventListener("ccc:upgrades:changed", updateColors);
