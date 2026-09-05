@@ -6710,7 +6710,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   ctx.save();
   // Move building up for T1 reinforcements (with cross-fade for T0)
   if (tier >= 1) {
-    if (prevTier === 0 && tier === 1 && !isVaultOpening && !isVaultOpen) {
+    if (prevTier === 0 && tier >= 1 && !isVaultOpening && !isVaultOpen) {
       drawT0Vault(1 - t1);
       ctx.translate(0, -15);
       
