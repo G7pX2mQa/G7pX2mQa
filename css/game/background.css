@@ -149,6 +149,7 @@
    causing massive lag spikes. */
 .playfield::before,
 .playfield::after,
+.rubble-layer,
 .rubble-layer::after {
   transform: translateZ(0);
   will-change: transform;
