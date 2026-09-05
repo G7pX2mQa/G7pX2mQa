@@ -509,6 +509,7 @@ if (typeof document !== "undefined") {
 }
 
 export let activePlaytime = 0;
+export let progressTime = 0;
 export let coinsCollected = 0;
 window.coinsCollected = coinsCollected;
 
@@ -528,6 +529,7 @@ window.globalCoinsCollected = globalCoinsCollected;
 
 let activePlaytimeUnsub = null;
 let activePlaytimeStorageAccumulator = 0;
+let progressTimeStorageAccumulator = 0;
 let globalActivePlaytimeStorageAccumulator = 0;
 
 let unpauseNotifications = null;
@@ -2456,6 +2458,15 @@ There are many ways to mark a save slot other than just using the debug panel.`)
         }
 
         try {
+            const storedProgress = lsGetItem(`ccc:progressTime:${slot}`);
+            progressTime = storedProgress ? Number(storedProgress) : 0;
+            window.progressTime = progressTime;
+        } catch {
+            progressTime = 0;
+            window.progressTime = progressTime;
+        }
+
+        try {
             const storedCoins = lsGetItem(`ccc:coinsCollected:${slot}`);
             coinsCollected = storedCoins ? Number(storedCoins) : 0;
             window.coinsCollected = coinsCollected;
@@ -2470,9 +2481,21 @@ There are many ways to mark a save slot other than just using the debug panel.`)
         }
 
         activePlaytimeStorageAccumulator = 0;
+        progressTimeStorageAccumulator = 0;
         globalActivePlaytimeStorageAccumulator = 0;
         if (typeof registerTick === "function") {
             activePlaytimeUnsub = registerTick((dt) => {
+                progressTimeStorageAccumulator += dt;
+                if (progressTimeStorageAccumulator >= 1) {
+                    const wholeSeconds = Math.floor(progressTimeStorageAccumulator);
+                    progressTime = (window.progressTime || progressTime) + wholeSeconds;
+                    window.progressTime = progressTime;
+                    try {
+                        lsSetItem(`ccc:progressTime:${slot}`, String(progressTime));
+                    } catch {}
+                    progressTimeStorageAccumulator -= wholeSeconds;
+                }
+
                 if (!document.hidden) {
                     activePlaytimeStorageAccumulator += dt;
                     globalActivePlaytimeStorageAccumulator += dt;
