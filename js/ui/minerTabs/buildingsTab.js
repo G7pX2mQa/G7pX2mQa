@@ -1099,6 +1099,7 @@ export function initBuildingOverlay() {
     canvasContainer.style.height = "100%";
     canvasContainer.style.zIndex = "0";
     canvasContainer.style.pointerEvents = "auto";
+    canvasContainer.style.overflow = "hidden";
     const canvas = document.createElement("canvas");
     canvas.id = "building-detail-canvas";
     canvas.style.width = "100%";
