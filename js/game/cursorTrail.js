@@ -308,6 +308,7 @@ export function createCursorTrail(playfield, options = {}) {
 
     const onPointerMove = (e) => {
         if (destroyed) return;
+        if (e && e.target && e.target.nodeType === 1 && e.target.closest(".no-cursor-trail")) return;
         lastMoveTime = performance.now();
         if (!rafId) {
             lastTime = 0;
@@ -346,7 +347,7 @@ export function createCursorTrail(playfield, options = {}) {
         }
     };
 
-    const onPointerLeave = () => {
+    const onPointerLeave = (e) => {
         if (!isBossFight) {
             pointerInside = false;
             lastSpawnX = null;
@@ -538,12 +539,14 @@ export function createCursorTrail(playfield, options = {}) {
     const opts = { passive: true };
 
     const onPointerEnter = (e) => {
+        if (e && e.pointerType === "touch") return;
         if (isBossFight) isNewTouch = true;
         updateBounds();
         onPointerMove(e);
     };
 
     const onPointerDown = (e) => {
+        if (e && e.target && e.target.nodeType === 1 && e.target.closest(".no-cursor-trail")) return;
         if (isBossFight) isNewTouch = true;
         updateBounds();
         onPointerMove(e);
