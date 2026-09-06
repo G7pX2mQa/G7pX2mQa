@@ -1,3 +1,5 @@
+import { IS_MOBILE } from "../util/platformChecker.js";
+
 export const MERCHANT_DIALOGUES = {
     0: {
         start: "n0",
@@ -900,9 +902,9 @@ export const MERCHANT_DIALOGUES = {
             c6b: {
                 type: "choice",
                 options: [
-                    { label: "*Click here to be exploded*", to: "end_explosion" },
-                    { label: "*Click here to be exploded*", to: "end_explosion" },
-                    { label: "*Click here to be exploded*", to: "end_explosion" },
+                    { label: IS_MOBILE ? "*Tap here to be exploded*" : "*Click here to be exploded*", to: "end_explosion" },
+                    { label: IS_MOBILE ? "*Tap here to be exploded*" : "*Click here to be exploded*", to: "end_explosion" },
+                    { label: IS_MOBILE ? "*Tap here to be exploded*" : "*Click here to be exploded*", to: "end_explosion" },
                 ],
             },
 			
