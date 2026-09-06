@@ -730,7 +730,7 @@ export const MERCHANT_DIALOGUES = {
             c2b: {
                 type: "choice",
                 options: [
-                    { label: 'And tell me more about this "warp" thing that it unlocked.', to: "m4d" },
+                    { label: 'Can you prove it?', to: "m4d" },
                     { label: "And tell me more about what these surge milestones can do.", to: "m4e" },
                     { label: "Cool.", to: "m6a" },
                 ],
@@ -749,8 +749,7 @@ export const MERCHANT_DIALOGUES = {
                 type: "choice",
                 options: [
                     {
-                        label: "Alright then. I'd like to learn more about the surge reset stuff, can you help me with that?",
-                        to: "m2d",
+                        label: "Okay. I'd like to learn more about the surge reset stuff.", to: "m2d",
                     },
                     { label: "Understood.", to: "m6a" },
                     { label: "Okay.", to: "m6a" },
@@ -782,9 +781,9 @@ export const MERCHANT_DIALOGUES = {
             c3b: {
                 type: "choice",
                 options: [
-                    { label: 'Tell me more about this "warp" thing that it unlocked.', to: "m4d" },
                     { label: "Tell me more about what these surge milestones can do.", to: "m4e" },
                     { label: "Was it really necessary for it to wipe all of my progress?", to: "m4c" },
+                    { label: "Nothing. Nevermind.", to: "m6a" },
                 ],
             },
 
@@ -804,7 +803,7 @@ export const MERCHANT_DIALOGUES = {
                 say: "Yes. And also, you didn't lose all of your progress. The Workshop wasn't reset at all.",
                 next: "c4b",
             },
-            m4d: { type: "line", say: "It warps you forward in space time, a brilliant thing.", next: "c4d" },
+            m4d: { type: "line", say: "No.", next: "c4c" },
             m4e: {
                 type: "line",
                 say: "Surge Milestones are very powerful things. You'll unlock new mechanics, new Coin abilities, new upgrades within my Shop, it's all very glorious.",
@@ -832,16 +831,7 @@ export const MERCHANT_DIALOGUES = {
             c4c: {
                 type: "choice",
                 options: [
-                    { label: "Do it, I dare you.", to: "m6b" },
-                    { label: "Okay.", to: "m6a" },
-                    { label: "Understood.", to: "m6a" },
-                ],
-            },
-
-            c4d: {
-                type: "choice",
-                options: [
-                    { label: "I thought time travel was impossible.", to: "m5c" },
+                    { label: "Come on, just do it.", to: "m6b" },
                     { label: "Okay.", to: "m6a" },
                     { label: "Understood.", to: "m6a" },
                 ],
@@ -861,7 +851,7 @@ export const MERCHANT_DIALOGUES = {
 
             m5a: { type: "line", say: 'If you say "Hey." one more time, I am going to explode you.', next: "c5a" },
             m5b: { type: "line", say: "No it's not.", next: "c5b" },
-            m5c: { type: "line", say: "Nothing is impossible here on The Cove.", next: "c5c" },
+            // m5c removed
             m5d: { type: "line", say: "Err, well, I don't know off the top of my head what they are.", next: "c5d" },
 
             c5a: {
@@ -881,15 +871,8 @@ export const MERCHANT_DIALOGUES = {
                     { label: "Alright.", to: "m6a" },
                 ],
             },
-
-            c5c: {
-                type: "choice",
-                options: [
-                    { label: "Why?", to: "m6c" },
-                    { label: "If you say so.", to: "m6a" },
-                    { label: "True.", to: "m6a" },
-                ],
-            },
+			
+			// c5c removed
 
             c5d: {
                 type: "choice",
@@ -902,7 +885,7 @@ export const MERCHANT_DIALOGUES = {
 
             m6a: { type: "line", say: "Here, I'll give you 5 extra Waves just because I can.", next: "c6a" },
             m6b: { type: "line", say: "I am going to explode you.", next: "c6b" },
-            m6c: { type: "line", say: "Why not?", next: "c6c" },
+            // m6c removed
             m6d: { type: "line", say: "Just know that the future milestones are powerful.", next: "c6d" },
 
             c6a: {
@@ -922,15 +905,8 @@ export const MERCHANT_DIALOGUES = {
                     { label: "*Click here to be exploded*", to: "end_explosion" },
                 ],
             },
-
-            c6c: {
-                type: "choice",
-                options: [
-                    { label: "Entropy, causality, energy, paradoxes, spacetime, you know.", to: "m7a" },
-                    { label: "I guess I won't question it.", to: "m6a" },
-                    { label: "Fair enough.", to: "m6a" },
-                ],
-            },
+			
+			// c6c removed
 
             c6d: {
                 type: "choice",
@@ -941,17 +917,10 @@ export const MERCHANT_DIALOGUES = {
                 ],
             },
 
-            m7a: { type: "line", say: "Boring. Not how we do things here on The Cove.", next: "c7a" },
+            // m7a removed
 
-            c7a: {
-                type: "choice",
-                options: [
-                    { label: "...", to: "m6a" },
-                    { label: "...", to: "m6a" },
-                    { label: "...", to: "m6a" },
-                ],
-            },
-        },
+            // c7a removed
+		},
     },
     1000: {
         start: "n0",
