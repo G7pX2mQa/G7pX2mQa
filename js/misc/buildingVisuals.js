@@ -1385,21 +1385,25 @@ function drawCavern(ctx, w, h, t) {
     window.currentCavernLayout = { stalactites, cracks };
   }
 
-  const grad = ctx.createLinearGradient(0, -51, 0, Math.floor(h + 51));
-  if (currentBuildingId === 'prismatium') {
-    grad.addColorStop(0, "rgba(255, 0, 0, 1)");
-    grad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
-    grad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
-    grad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
-    grad.addColorStop(0.66, "rgba(0, 255, 255, 1)");
-    grad.addColorStop(0.83, "rgba(0, 0, 255, 1)");
-    grad.addColorStop(1, "rgba(148, 0, 211, 1)");
+  if (window.IS_FIREFOX && currentBuildingId !== 'prismatium') {
+    ctx.fillStyle = "#24140b"; // Solid color to prevent banding on Firefox
   } else {
-    grad.addColorStop(0, "#2e1c11");
-    grad.addColorStop(1, "#1a0d05");
+    const grad = ctx.createLinearGradient(0, -51, 0, Math.floor(h + 51));
+    if (currentBuildingId === 'prismatium') {
+      grad.addColorStop(0, "rgba(255, 0, 0, 1)");
+      grad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
+      grad.addColorStop(0.33, "rgba(255, 255, 0, 1)");
+      grad.addColorStop(0.5, "rgba(0, 255, 0, 1)");
+      grad.addColorStop(0.66, "rgba(0, 255, 255, 1)");
+      grad.addColorStop(0.83, "rgba(0, 0, 255, 1)");
+      grad.addColorStop(1, "rgba(148, 0, 211, 1)");
+    } else {
+      grad.addColorStop(0, "#2e1c11");
+      grad.addColorStop(1, "#1a0d05");
+    }
+    ctx.fillStyle = grad;
   }
-
-  ctx.fillStyle = grad;
+  
   ctx.fillRect(-51, -51, Math.ceil(w + 102), Math.ceil(h + 102));
 
   // Draw cracky crumbly background details
@@ -9892,7 +9896,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.save();
       // On Firefox, screen composition with large particles is a huge GPU bottleneck
       if (window.IS_FIREFOX) {
-          ctx.globalCompositeOperation = 'screen';
+          ctx.globalCompositeOperation = 'source-over';
       } else {
           ctx.globalCompositeOperation = 'screen';
       }
