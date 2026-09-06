@@ -533,6 +533,15 @@ export function createCursorTrail(playfield, options = {}) {
         updateBounds();
         if (typeof document !== "undefined" && (document.hidden || !document.hasFocus())) {
             onPointerLeave();
+            if (typeof window !== "undefined") {
+                window.globalMouseInside = false;
+            }
+            if (!isBossFight) {
+                lastSpawnX = null;
+                lastSpawnY = null;
+                lastEmitX = null;
+                lastEmitY = null;
+            }
         }
     };
 
