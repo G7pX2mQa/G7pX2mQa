@@ -319,7 +319,10 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
   window.addEventListener('blur', resetPointerHistory, { passive: true });
   const visibilityHandler = () => {
       updatePlayfieldRect();
-      if (document.hidden) resetPointerHistory();
+      if (document.hidden) {
+          handlePointerLeave();
+          resetPointerHistory();
+      }
   };
   document.addEventListener('visibilitychange', visibilityHandler, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
