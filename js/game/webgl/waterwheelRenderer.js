@@ -1,4 +1,4 @@
-import { settingsManager } from '../settingsManager.js';
+import { settingsManager } from "../settingsManager.js";
 
 const VERTEX_SHADER = `
 precision mediump float;
@@ -110,20 +110,21 @@ export class WaterwheelRenderer {
         this.instances = []; // Array of DOM canvas contexts: { canvas, ctx }
         this.currentImageUrl = null;
         this.image = null; // Image object
-        this.layerCount = 30; this._qualityChecked = false;
-        
+        this.layerCount = 30;
+        this._qualityChecked = false;
+
         this.thickness = 0.4; // Thickness of the stack
-        
+
         this.rotation = Math.PI / 2;
         this.speed = 1.0;
-        this._dpr = typeof window !== 'undefined' ? Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1) : 1; // Cap DPR to 1.5 to save GPU memory
+        this._dpr = typeof window !== "undefined" ? Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1) : 1; // Cap DPR to 1.5 to save GPU memory
 
         this._setupOffscreenWebGL();
     }
 
     _updateQualitySetting() {
-        if (typeof settingsManager !== 'undefined' && settingsManager.get) {
-            const quality = settingsManager.get('graphics_quality');
+        if (typeof settingsManager !== "undefined" && settingsManager.get) {
+            const quality = settingsManager.get("graphics_quality");
             if (quality !== undefined) {
                 this.layerCount = Math.max(1, Math.floor(30 * (quality / 10)));
             }
@@ -131,21 +132,29 @@ export class WaterwheelRenderer {
     }
 
     _setupOffscreenWebGL() {
-        if (typeof document === 'undefined') return;
-        
-        this.offscreenCanvas = document.createElement('canvas');
+        if (typeof document === "undefined") return;
+
+        this.offscreenCanvas = document.createElement("canvas");
         // Initial size, will be resized on render based on max dimensions needed
-        this.offscreenCanvas.width = 128; 
+        this.offscreenCanvas.width = 128;
         this.offscreenCanvas.height = 128;
 
-        const gl = this.offscreenCanvas.getContext('webgl', { alpha: true, depth: true, antialias: true }) || 
-                   this.offscreenCanvas.getContext('experimental-webgl');
-        
+        const gl =
+            this.offscreenCanvas.getContext("webgl", { alpha: true, depth: true, antialias: true }) ||
+            this.offscreenCanvas.getContext("experimental-webgl");
+
         if (!gl) {
-            if (!settingsManager.get("disable_webgl")) { console.error('WebGL not supported for waterwheel'); }
+            // Guard against undefined settingsManager during initial module evaluation
+            if (typeof settingsManager !== "undefined" && settingsManager.get) {
+                if (!settingsManager.get("disable_webgl")) {
+                    console.error("WebGL not supported for waterwheel");
+                }
+            } else {
+                console.error("WebGL not supported for waterwheel");
+            }
             return;
         }
-        
+
         this.gl = gl;
 
         this.program = createProgram(gl, VERTEX_SHADER, FRAGMENT_SHADER);
@@ -153,10 +162,7 @@ export class WaterwheelRenderer {
 
         const vertices = new Float32Array([
             // X, Y, U, V
-            -1, -1, 0, 1,
-             1, -1, 1, 1,
-            -1,  1, 0, 0,
-             1,  1, 1, 0
+            -1, -1, 0, 1, 1, -1, 1, 1, -1, 1, 0, 0, 1, 1, 1, 0,
         ]);
 
         this.buffer = gl.createBuffer();
@@ -180,14 +186,14 @@ export class WaterwheelRenderer {
             canvas.height = Math.round(rect.height * this._dpr);
         }
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         if (!ctx) {
-            console.error('2D context not supported for waterwheel canvas instance');
+            console.error("2D context not supported for waterwheel canvas instance");
             return;
         }
 
         this.instances.push({ canvas, ctx });
-        
+
         // If we already have an image loaded, upload it to the main GL context (handled in constructor/setImage)
         if (this.image && this.image.complete && !this.texture) {
             this.uploadTexture(this.image);
@@ -197,7 +203,7 @@ export class WaterwheelRenderer {
     setImage(url) {
         if (this.currentImageUrl === url) return;
         this.currentImageUrl = url;
-        
+
         const img = new Image();
         img.crossOrigin = "Anonymous";
         img.src = url;
@@ -206,23 +212,23 @@ export class WaterwheelRenderer {
             this.uploadTexture(img);
         };
     }
-    
+
     uploadTexture(image) {
         if (!this.gl) return;
         const gl = this.gl;
 
         if (this.texture) gl.deleteTexture(this.texture);
-        
+
         const tex = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-        
+
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        
+
         this.texture = tex;
     }
 
@@ -245,7 +251,7 @@ export class WaterwheelRenderer {
 
         // Rotate
         this.rotation += dt * this.speed;
-        
+
         // Determine the maximum size needed for all instances
         let maxWidth = 0;
         let maxHeight = 0;
@@ -279,32 +285,32 @@ export class WaterwheelRenderer {
         gl.viewport(0, 0, maxWidth, maxHeight);
         gl.clearColor(0, 0, 0, 0); // Transparent background
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        
+
         gl.useProgram(program);
-        
+
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        gl.uniform1i(gl.getUniformLocation(program, 'uTexture'), 0);
-        
-        gl.uniform1f(gl.getUniformLocation(program, 'uRotation'), this.rotation);
-        gl.uniform1f(gl.getUniformLocation(program, 'uThickness'), this.thickness);
-        
+        gl.uniform1i(gl.getUniformLocation(program, "uTexture"), 0);
+
+        gl.uniform1f(gl.getUniformLocation(program, "uRotation"), this.rotation);
+        gl.uniform1f(gl.getUniformLocation(program, "uThickness"), this.thickness);
+
         const minX = (2.5 / Math.max(1, maxWidth)) * 2.0;
-        gl.uniform1f(gl.getUniformLocation(program, 'uMinX'), minX);
-        
-        const uLayerLoc = gl.getUniformLocation(program, 'uLayer');
-        
+        gl.uniform1f(gl.getUniformLocation(program, "uMinX"), minX);
+
+        const uLayerLoc = gl.getUniformLocation(program, "uLayer");
+
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-        
-        const aPos = gl.getAttribLocation(program, 'aPosition');
-        const aUv = gl.getAttribLocation(program, 'aUv');
-        
+
+        const aPos = gl.getAttribLocation(program, "aPosition");
+        const aUv = gl.getAttribLocation(program, "aUv");
+
         gl.enableVertexAttribArray(aPos);
         gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 16, 0);
-        
+
         gl.enableVertexAttribArray(aUv);
         gl.vertexAttribPointer(aUv, 2, gl.FLOAT, false, 16, 8);
-        
+
         for (let i = 0; i < this.layerCount; i++) {
             const layerNorm = this.layerCount <= 1 ? 0.5 : i / (this.layerCount - 1);
             gl.uniform1f(uLayerLoc, layerNorm);
@@ -320,14 +326,14 @@ export class WaterwheelRenderer {
             if (w === 0 || h === 0) continue;
 
             ctx.clearRect(0, 0, w, h);
-            
+
             // Draw the offscreen canvas to the DOM canvas.
             // Since the offscreen canvas might be larger than this instance's canvas (if there are varying sizes),
             // we scale it to fit.
             ctx.drawImage(this.offscreenCanvas, 0, 0, maxWidth, maxHeight, 0, 0, w, h);
         }
     }
-    
+
     clear() {
         this.instances = [];
     }
