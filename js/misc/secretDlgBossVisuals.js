@@ -447,6 +447,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             btn.style.pointerEvents = "auto";
             btn.style.userSelect = "none";
             btn.style.webkitUserSelect = "none";
+            btn.classList.add("no-cursor-trail");
             const img = document.createElement("img");
             img.src = src;
             img.style.maxWidth = "60%";
