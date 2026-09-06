@@ -1928,6 +1928,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/misc/mysterious.webp",
             "img/misc/mysterious_plus_base.webp",
             "img/misc/pickaxe.webp",
+			"img/misc/sad_merchant.webp",
             "img/misc/safety_first.webp",
             "img/misc/sell.webp",
             "img/misc/sell_base.webp",
