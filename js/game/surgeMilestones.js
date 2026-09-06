@@ -749,7 +749,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                 milestone.description[0] = `Does not generate any DNA with a tsunami exponent of 0.00`;
             } else {
                 const newPct = Math.pow(parseFloat(valStr), 1 / tNerf);
-                const newValStr = Number(newPct.toFixed(6));
+                const newValStr = newPct.toFixed(7).replace(/\.?0+$/, '');
                 milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${newValStr}%</span> (${valStr}^(1/${tNerf.toFixed(2)})) of pending DNA per second`;
                 if (m.surgeLevel <= currentLevel && pendingVals.pendingDna) {
                     try {
