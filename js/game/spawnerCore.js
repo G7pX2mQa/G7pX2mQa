@@ -696,7 +696,15 @@ export function createBaseSpawner(config = {}) {
 
         // If rawDt is very large (e.g. > 500ms), we likely just woke up from suspension or background tab
         if (rawDt > 500) { // If the frame delta is suspiciously large (>500ms)
-            staticCanvasDirty = true; // Force redraw of offscreen canvases in case Firefox discarded them
+            if (typeof IS_FIREFOX !== "undefined" && IS_FIREFOX) {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        staticCanvasDirty = true;
+                    });
+                });
+            } else {
+                staticCanvasDirty = true; // Force redraw of offscreen canvases in case Firefox discarded them
+            }
             // Adjust all start and end times forward by the paused duration
             const pausedDuration = rawDt - (0.1 * 1000); // subtract the max allowed frame time
             for (let i = 0; i < activeItems.length; i++) {
@@ -878,17 +886,18 @@ export function createBaseSpawner(config = {}) {
                     window.__wasJustMapSequence)
             )
                 return;
-            staticCanvasDirty = true;
             if (!rafId) start();
 
             if (IS_FIREFOX) {
                 // Firefox lazily pages ImageBitmaps back to the GPU when returning to a tab.
-                // Redraw again after 2 frames to ensure they are visible.
+                // Redraw after 2 frames to ensure they are visible.
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         staticCanvasDirty = true;
                     });
                 });
+            } else {
+                staticCanvasDirty = true;
             }
         }
     });
