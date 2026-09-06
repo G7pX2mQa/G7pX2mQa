@@ -246,6 +246,7 @@ export function createBaseSpawner(config = {}) {
     const inMemoryContexts = [];
     const inMemoryCanvasHasContent = [];
     let staticCanvasDirty = false;
+    let forceRedrawFrames = 0;
 
     const _reusableStaticBuckets = [];
     const _reusableDynamicBuckets = [];
@@ -562,15 +563,22 @@ export function createBaseSpawner(config = {}) {
             newlySettledBuffer.length = 0;
         }
 
+        if (forceRedrawFrames > 0) {
+            forceRedrawFrames--;
+            staticCanvasDirty = true;
+        }
+
         if (staticCanvasDirty) {
             // Clear all offscreen layer canvases
-            for (let i = 0; i < inMemoryCanvases.length; i++) {
-                if (inMemoryContexts[i] && inMemoryCanvases[i]) {
-                    inMemoryContexts[i].save();
-                    inMemoryContexts[i].setTransform(1, 0, 0, 1, 0, 0);
-                    inMemoryContexts[i].clearRect(0, 0, inMemoryCanvases[i].width, inMemoryCanvases[i].height);
-                    inMemoryContexts[i].restore();
-                    inMemoryCanvasHasContent[i] = false;
+            if (forceRedrawFrames === 0) {
+                for (let i = 0; i < inMemoryCanvases.length; i++) {
+                    if (inMemoryContexts[i] && inMemoryCanvases[i]) {
+                        inMemoryContexts[i].save();
+                        inMemoryContexts[i].setTransform(1, 0, 0, 1, 0, 0);
+                        inMemoryContexts[i].clearRect(0, 0, inMemoryCanvases[i].width, inMemoryCanvases[i].height);
+                        inMemoryContexts[i].restore();
+                        inMemoryCanvasHasContent[i] = false;
+                    }
                 }
             }
 
@@ -697,11 +705,7 @@ export function createBaseSpawner(config = {}) {
         // If rawDt is very large (e.g. > 500ms), we likely just woke up from suspension or background tab
         if (rawDt > 500) { // If the frame delta is suspiciously large (>500ms)
             if (typeof IS_FIREFOX !== "undefined" && IS_FIREFOX) {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        staticCanvasDirty = true;
-                    });
-                });
+                forceRedrawFrames = 3; // Keep redrawing offscreen items without clearing immediately
             } else {
                 staticCanvasDirty = true; // Force redraw of offscreen canvases in case Firefox discarded them
             }
@@ -890,12 +894,8 @@ export function createBaseSpawner(config = {}) {
 
             if (IS_FIREFOX) {
                 // Firefox lazily pages ImageBitmaps back to the GPU when returning to a tab.
-                // Redraw after 2 frames to ensure they are visible.
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        staticCanvasDirty = true;
-                    });
-                });
+                // Force continuous redraws for a few frames to populate them without clearing.
+                forceRedrawFrames = 3;
             } else {
                 staticCanvasDirty = true;
             }
