@@ -15,7 +15,7 @@ export const MERCHANT_DIALOGUES = {
                 options: [
                     { label: "Who are you?", to: "r_who" },
                     { label: "Where am I?", to: "r_where" },
-                    { label: "I just clicked on this green button and now I’m confused.", to: "r_confused" },
+                    { label: IS_MOBILE ? "I just tapped this green button and now I'm confused." : "I just clicked this green button and now I'm confused", to: "r_confused" },
                 ],
             },
 
