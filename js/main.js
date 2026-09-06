@@ -38,7 +38,7 @@ export const FONT_MAP = {
     64: "font-quicksand",
     67: "font-fira-sans",
     70: "font-dosis",
-    73: "font-rajdhani",
+    73: "font-comic-neue-angular-bold",
 };
 
 export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
