@@ -396,10 +396,11 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
 
     const supportsTimelineScope = CSS.supports("timeline-scope", "none");
     const useCssTimeline = !checkSpreadsheetMode() && supportsTimelineScope && CSS.supports("animation-timeline", "scroll()");
+    let timelineName = null;
     if (useCssTimeline) {
         injectScrollTimelineStyles();
         const uniqueId = Math.random().toString(36).slice(2, 8);
-        const timelineName = `--merchant-scroll-${uniqueId}`;
+        timelineName = `--custom-scroll-${uniqueId}`;
         sheetEl.style.timelineScope = timelineName;
         scroller.style.scrollTimelineName = timelineName;
         scroller.style.scrollTimelineAxis = "block"; // Merchant only has vertical
@@ -496,8 +497,32 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
                 thumb.style.setProperty("animation-timeline", "none", "important");
                 thumb.style.setProperty("transform", `translateY(${y}px)`, "important");
             } else {
-                thumb.style.transform = `translateY(${y}px)`;
+                thumb.style.removeProperty("animation");
+                thumb.style.removeProperty("animation-name");
+                thumb.style.removeProperty("animation-timeline");
+
+                if (useCssTimeline && timelineName) {
+                    thumb.style.removeProperty("transform");
+                    thumb.style.animationName = "scroll-thumb-move";
+                    thumb.style.animationTimeline = timelineName;
+                    thumb.style.animationDuration = "1ms";
+                    thumb.style.animationTimingFunction = "linear";
+                    thumb.style.animationFillMode = "both";
+                } else {
+                    thumb.style.transform = `translateY(${y}px)`;
+                }
             }
+        } else if (useCssTimeline && timelineName && !isSpreadsheetActive) {
+            thumb.style.removeProperty("animation");
+            thumb.style.removeProperty("animation-name");
+            thumb.style.removeProperty("animation-timeline");
+            thumb.style.removeProperty("transform");
+            
+            thumb.style.animationName = "scroll-thumb-move";
+            thumb.style.animationTimeline = timelineName;
+            thumb.style.animationDuration = "1ms";
+            thumb.style.animationTimingFunction = "linear";
+            thumb.style.animationFillMode = "both";
         }
         if (IS_MOBILE) showBar();
     };
