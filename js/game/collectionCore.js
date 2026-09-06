@@ -188,7 +188,7 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
   };
 
   const updatePointerFromEvent = (e) => {
-    if (!e || destroyed || (typeof document !== 'undefined' && document.hidden)) return;
+    if (!e || destroyed) return;
     if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return;
     hasPointer = true;
     pointerClientX = e.clientX;
@@ -319,10 +319,7 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
   window.addEventListener('blur', resetPointerHistory, { passive: true });
   const visibilityHandler = () => {
       updatePlayfieldRect();
-      if (document.hidden) {
-          handlePointerLeave();
-          resetPointerHistory();
-      }
+      if (document.hidden) resetPointerHistory();
   };
   document.addEventListener('visibilitychange', visibilityHandler, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
