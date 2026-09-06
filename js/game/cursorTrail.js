@@ -541,6 +541,7 @@ export function createCursorTrail(playfield, options = {}) {
                 lastSpawnY = null;
                 lastEmitX = null;
                 lastEmitY = null;
+                pointsQueue.length = 0;
             }
         }
     };
