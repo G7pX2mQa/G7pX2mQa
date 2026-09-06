@@ -1729,6 +1729,14 @@ export function openMerchant() {
                     merchantCloseBtn.focus({ preventScroll: true });
                 } catch {}
             }
+            if (forcedDialogueTab) {
+                try {
+                    const scroller = merchantOverlayEl.querySelector(".merchant-content .simplebar-content-wrapper") || merchantOverlayEl.querySelector(".merchant-content");
+                    if (scroller) {
+                        scroller.scrollTop = scroller.scrollHeight;
+                    }
+                } catch (e) {}
+            }
         });
     });
 }
