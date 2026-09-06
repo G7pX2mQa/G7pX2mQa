@@ -1385,7 +1385,7 @@ function drawCavern(ctx, w, h, t) {
     window.currentCavernLayout = { stalactites, cracks };
   }
 
-  const grad = ctx.createLinearGradient(0, -50, 0, h + 50);
+  const grad = ctx.createLinearGradient(0, -51, 0, h + 51);
   if (currentBuildingId === 'prismatium') {
     grad.addColorStop(0, "rgba(255, 0, 0, 1)");
     grad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
@@ -1400,7 +1400,7 @@ function drawCavern(ctx, w, h, t) {
   }
 
   ctx.fillStyle = grad;
-  ctx.fillRect(-50, -50, w + 100, h + 100);
+  ctx.fillRect(-51, -51, w + 102, h + 102);
 
   // Draw cracky crumbly background details
   ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
@@ -1420,7 +1420,7 @@ function drawCavern(ctx, w, h, t) {
     const sx = st.xFrac * w;
     const tipX = sx + Math.sin(st.dropPhase) * 10;
 
-    const stalactiteGrad = ctx.createLinearGradient(sx, -50, sx, st.length);
+    const stalactiteGrad = ctx.createLinearGradient(sx, -51, sx, st.length);
     if (currentBuildingId === 'prismatium') {
       stalactiteGrad.addColorStop(0, "rgba(255, 0, 0, 1)");
       stalactiteGrad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
@@ -1437,9 +1437,9 @@ function drawCavern(ctx, w, h, t) {
 
     ctx.beginPath();
     // perfect triangle
-    ctx.moveTo(sx - st.width / 2, -50);
+    ctx.moveTo(sx - st.width / 2, -51);
     ctx.lineTo(tipX, st.length); // The tip
-    ctx.lineTo(sx + st.width / 2, -50);
+    ctx.lineTo(sx + st.width / 2, -51);
     ctx.closePath();
     ctx.fill();
 
@@ -9884,13 +9884,18 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   const drawAsh = (isRisingPass) => {
       if (t6 <= 0) return;
       
-      const numAsh = window.IS_FIREFOX ? 30 : 400;
+      const numAsh = window.IS_FIREFOX ? 50 : 400;
       const maxLifetime = 5.0; // seconds
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
       const ashImg = getAshCanvas();
       
       ctx.save();
-      ctx.globalCompositeOperation = 'screen';
+      // On Firefox, screen composition with large particles is a huge GPU bottleneck
+      if (window.IS_FIREFOX) {
+          ctx.globalCompositeOperation = 'lighter';
+      } else {
+          ctx.globalCompositeOperation = 'screen';
+      }
       
       for (let i = 0; i < numAsh; i++) {
           const rand1 = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
@@ -9935,7 +9940,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           let brightness = 0.2 + (pulse * 0.8) + (t8 * 0.5);
           
           // Spawn size strictly based on spawn oscillation, scaled up for lower particle count on Firefox
-          let baseSize = (3 + (rand1 * 2) + (spawnPulse * 6) + (t8 * 4)) * (window.IS_FIREFOX ? 1.6 : 1.0);
+          let baseSize = (3 + (rand1 * 2) + (spawnPulse * 6) + (t8 * 4)) * (window.IS_FIREFOX ? 1.0 : 1.0);
           
           // Peak real-time oscillation doubles the current size of the particle
           let size = baseSize * (1.0 + 1.0 * pulse); 
