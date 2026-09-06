@@ -307,7 +307,7 @@ export function createCursorTrail(playfield, options = {}) {
     };
 
     const onPointerMove = (e) => {
-        if (destroyed || (typeof document !== 'undefined' && document.hidden)) return;
+        if (destroyed) return;
         lastMoveTime = performance.now();
         if (!rafId) {
             lastTime = 0;
@@ -529,28 +529,11 @@ export function createCursorTrail(playfield, options = {}) {
         rafId = requestAnimationFrame(loop);
     };
 
-    const onFocusBlurOrVisibility = () => {
-        updateBounds();
-        if (typeof document !== "undefined" && (document.hidden || !document.hasFocus())) {
-            onPointerLeave();
-            if (typeof window !== "undefined") {
-                window.globalMouseInside = false;
-            }
-            if (!isBossFight) {
-                lastSpawnX = null;
-                lastSpawnY = null;
-                lastEmitX = null;
-                lastEmitY = null;
-                pointsQueue.length = 0;
-            }
-        }
-    };
-
+    // --- Listeners ---
     window.addEventListener("resize", resize);
     window.addEventListener("scroll", updateBounds, { passive: true });
-    window.addEventListener("focus", onFocusBlurOrVisibility, { passive: true });
-    window.addEventListener("blur", onFocusBlurOrVisibility, { passive: true });
-    document.addEventListener("visibilitychange", onFocusBlurOrVisibility, { passive: true });
+    window.addEventListener("focus", updateBounds, { passive: true });
+    document.addEventListener("visibilitychange", updateBounds, { passive: true });
 
     const opts = { passive: true };
 
@@ -602,13 +585,10 @@ export function createCursorTrail(playfield, options = {}) {
             window.removeEventListener("scroll", updateBounds);
         } catch {}
         try {
-            window.removeEventListener("focus", onFocusBlurOrVisibility);
+            window.removeEventListener("focus", updateBounds);
         } catch {}
         try {
-            window.removeEventListener("blur", onFocusBlurOrVisibility);
-        } catch {}
-        try {
-            document.removeEventListener("visibilitychange", onFocusBlurOrVisibility);
+            document.removeEventListener("visibilitychange", updateBounds);
         } catch {}
         try {
             document.removeEventListener("ccc:upgrades:changed", updateColors);
