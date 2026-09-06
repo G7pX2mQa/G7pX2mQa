@@ -1385,7 +1385,7 @@ function drawCavern(ctx, w, h, t) {
     window.currentCavernLayout = { stalactites, cracks };
   }
 
-  const grad = ctx.createLinearGradient(0, -51, 0, h + 51);
+  const grad = ctx.createLinearGradient(0, -51, 0, Math.floor(h + 51));
   if (currentBuildingId === 'prismatium') {
     grad.addColorStop(0, "rgba(255, 0, 0, 1)");
     grad.addColorStop(0.16, "rgba(255, 127, 0, 1)");
@@ -1400,7 +1400,7 @@ function drawCavern(ctx, w, h, t) {
   }
 
   ctx.fillStyle = grad;
-  ctx.fillRect(-51, -51, w + 102, h + 102);
+  ctx.fillRect(-51, -51, Math.ceil(w + 102), Math.ceil(h + 102));
 
   // Draw cracky crumbly background details
   ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
@@ -9892,7 +9892,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.save();
       // On Firefox, screen composition with large particles is a huge GPU bottleneck
       if (window.IS_FIREFOX) {
-          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalCompositeOperation = 'screen';
       } else {
           ctx.globalCompositeOperation = 'screen';
       }
