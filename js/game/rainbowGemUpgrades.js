@@ -1355,8 +1355,8 @@ export const RAINBOW_GEM_UPGRADES = [
   {
     area: RAINBOW_GEM_AREA_KEY,
     id: 73,
-    title: "Rajdhani",
-    desc: "Changes the game's font to Rajdhani",
+    title: "Comic Neue Angular Bold",
+    desc: "Changes the game's font to Comic Neue Angular Bold",
     lvlCap: 1,
     costType: "rainbowGems",
     upgType: "TM",
