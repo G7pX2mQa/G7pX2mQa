@@ -1828,6 +1828,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     let editing = false;
     let pendingValue = null;
     let skipBlurCommit = false;
+    let originalValueOnFocus = null;
     const lockToggle = storageKey ? createLockToggle(storageKey, { onToggle: onLockChange }) : null;
 
     const setValue = (value) => {
@@ -1850,6 +1851,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     }
 
     const commitValue = () => {
+        if (input.value === originalValueOnFocus) return;
         const parsed = parseBigNumInput(input.value);
         if (!parsed) {
             setInputValidity(input, false);
@@ -1865,10 +1867,12 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
             if (wasLocked) lockStorageKey(storageKey);
             if (lockToggle) lockToggle.refresh();
         }
+        originalValueOnFocus = input.value;
     };
 
     input.addEventListener("focus", () => {
         editing = true;
+        originalValueOnFocus = input.value;
         input.select();
     });
     input.addEventListener("change", commitValue);
