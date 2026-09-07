@@ -553,7 +553,22 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         updateBounds();
         updateMetrics();
     };
-    if (scroller.__customScroll) scroller.__customScroll.update = updateAll;
+    if (scroller.__customScroll) {
+        scroller.__customScroll.update = updateAll;
+        scroller.__customScroll.suppress = (ms = 300) => {
+            scroller.__suppressShowBar = true;
+            sheetEl.classList.remove("is-scrolling");
+            clearTimeout(scroller.__fadeTimer);
+            bar.style.transition = "none";
+            bar.style.opacity = "0";
+            setTimeout(() => {
+                scroller.__suppressShowBar = false;
+                bar.style.transition = "";
+                bar.style.opacity = "";
+                sheetEl.classList.remove("is-scrolling");
+            }, ms);
+        };
+    }
     // Debounce for mutation observer to prevent layout thrashing on frequent updates
     let debounceTimer;
     const debouncedUpdateAll = () => {
@@ -659,27 +674,10 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     });
     function onSettingChanged(e) {
         if (e?.detail?.key === "spreadsheet_mode") {
-            updateAll();
-            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
-                sheetEl.classList.remove("is-scrolling");
-                clearTimeout(scroller.__fadeTimer);
-                scroller.__suppressShowBar = true;
-                bar.style.transition = "none";
-                bar.style.opacity = "0";
-                
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        sheetEl.classList.remove("is-scrolling");
-                        clearTimeout(scroller.__fadeTimer);
-                        
-                        setTimeout(() => {
-                            scroller.__suppressShowBar = false;
-                            bar.style.transition = "";
-                            bar.style.opacity = "";
-                        }, 300);
-                    });
-                });
+            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode") && scroller.__customScroll?.suppress) {
+                scroller.__customScroll.suppress(500);
             }
+            updateAll();
         }
     }
     window.addEventListener("setting:changed", onSettingChanged);
