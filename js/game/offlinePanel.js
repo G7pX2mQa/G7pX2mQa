@@ -299,7 +299,7 @@ export const RESOURCE_REGISTRY = [
         bgGradient: "linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)",
         fillGradient: "linear-gradient(90deg, rgba(0,237,237,1) 0%, rgba(2,177,212,1) 50%, rgba(2,48,115,1) 100%)",
         barOutline: "3px",
-        borderColor: "#023340",
+        borderColor: "#000000",
         barBoxShadow: "inset 0 6px 10px rgba(0,237,237,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
         glassBg: "linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0))",
         glassOpacity: "0.55",
@@ -310,7 +310,7 @@ export const RESOURCE_REGISTRY = [
             let isUnlocked = isSurgeUnlocked();
             let ratio = 0;
             if (req.isInfinite?.()) {
-                ratio = 0;
+                ratio = 1;
             } else if (progress.isInfinite?.()) {
                 ratio = 1;
             } else if (!req.isZero?.()) {
