@@ -677,7 +677,7 @@ const paintbrush = createPaintbrush({
         { key: "pinned", label: "Pinned" },
     ],
     descriptionText:
-        "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply arbitrary customizations of settings to an arbitrary amount of currencies quickly. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.",
+        "Left click and drag over any currency row to apply specific changes in accordance with the dropdown options listed right above this text. Use this tool to apply arbitrary customizations of settings to an arbitrary amount of currencies quickly. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.",
     onApply: (affectedRows, paintbrushState) => {
         let changedAny = false;
         let changedPins = false;
