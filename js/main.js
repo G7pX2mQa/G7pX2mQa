@@ -2729,10 +2729,15 @@ function generateMenuBackground(manifest) {
             document.head.appendChild(styleEl);
         }
         styleEl.textContent = `
+      @keyframes ccc-drift-sync {
+        from { background-position: 0 0; }
+        to   { background-position: var(--coin-step) calc(var(--coin-step) * -1); }
+      }
       body.menu-bg::before,
       #boot-loader.with-bg::before {
         background-image: url("${dataUrl}") !important;
         background-size: var(--coin-step) var(--coin-step) !important;
+        animation: ccc-drift-sync var(--coin-speed) linear infinite !important;
       }
       #boot-loader.with-bg {
         isolation: isolate;
@@ -2745,10 +2750,10 @@ function generateMenuBackground(manifest) {
         pointer-events: none;
         background-repeat: repeat;
         will-change: background-position;
-        animation: ccc-drift var(--coin-speed) linear infinite;
       }
       @media (prefers-reduced-motion: reduce) {
-        #boot-loader.with-bg::before { animation: none; }
+        body.menu-bg::before,
+        #boot-loader.with-bg::before { animation: none !important; }
       }
     `;
     }
