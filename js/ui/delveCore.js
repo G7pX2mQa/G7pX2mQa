@@ -547,14 +547,16 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
 
     const onScroll = (e) => {
         performScrollUpdate();
-        if (e && e.isTrusted) {
+        const isProgrammatic = scroller.__programmaticScrollTime && typeof performance !== "undefined" && (performance.now() - scroller.__programmaticScrollTime < 100);
+        if (e && e.isTrusted && !isProgrammatic) {
             showBar();
             scheduleHide(FADE_SCROLL_MS);
         }
     };
 
     const onScrollEnd = (e) => {
-        if (e && e.isTrusted) {
+        const isProgrammatic = scroller.__programmaticScrollTime && typeof performance !== "undefined" && (performance.now() - scroller.__programmaticScrollTime < 100);
+        if (e && e.isTrusted && !isProgrammatic) {
             scheduleHide(FADE_SCROLL_MS);
         }
     };
