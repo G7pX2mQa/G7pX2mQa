@@ -5526,6 +5526,82 @@ function setAllAutomationToggles(targetState) {
     return count;
 }
 
+function setAllAutomationTogglesUntil(maxId) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    let count = 0;
+
+    // 1. Max Automation Upgrades up to maxId
+    const automationUpgrades = getUpgradesForArea(AUTOMATION_AREA_KEY);
+    const enabledAutobuyUpgrades = new Set();
+    batchUpgradeOperations(() => {
+        automationUpgrades.forEach((upg) => {
+            if (upg.id <= maxId) {
+                try {
+                    setLevel(AUTOMATION_AREA_KEY, upg.id, upg.lvlCap);
+                    enabledAutobuyUpgrades.add(upg.id);
+                    count++;
+                } catch (e) {
+                    console.warn("Failed to set automation level", upg, e);
+                }
+            } else {
+                try {
+                    setLevel(AUTOMATION_AREA_KEY, upg.id, 0);
+                    count++;
+                } catch (e) {}
+            }
+        });
+    });
+
+    // 2. Set Master Switches (UI state)
+    const masterTypes = Object.entries(MASTER_AUTOBUY_IDS);
+    const automatedCostTypes = new Set();
+    
+    masterTypes.forEach(([idStr, type]) => {
+        const id = parseInt(idStr, 10);
+        if (enabledAutobuyUpgrades.has(id)) {
+            settingsManager.set(`currency_${type}_automated`, true);
+            automatedCostTypes.add(type);
+        } else {
+            settingsManager.set(`currency_${type}_automated`, false);
+        }
+    });
+
+    // 3. Set Individual Toggles (Logic state)
+    // Iterate over ALL areas to support future upgrades
+    Object.values(AREA_KEYS).forEach((areaKey) => {
+        if (areaKey === AUTOMATION_AREA_KEY) return;
+
+        const upgrades = getUpgradesForArea(areaKey);
+        upgrades.forEach((upg) => {
+            if (Object.values(MASTER_AUTOBUY_IDS).includes(upg.costType)) {
+                if (automatedCostTypes.has(upg.costType)) {
+                    setAutobuyerToggle(areaKey, upg.id, "1");
+                } else {
+                    setAutobuyerToggle(areaKey, upg.id, "0");
+                }
+                count++;
+            }
+        });
+    });
+
+    // 4. Workshop Special Case
+    if (enabledAutobuyUpgrades.has(AUTOBUY_WORKSHOP_LEVELS_ID)) {
+        setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, "1");
+    } else {
+        setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, "0");
+    }
+    count++;
+
+    // Force UI refresh if shop is open
+    try {
+        window.dispatchEvent(new CustomEvent("debug:change", { detail: { slot } }));
+    } catch {}
+
+    return count;
+}
+
 function buildMiscContent(content) {
     content.innerHTML = "";
 
@@ -5612,6 +5688,21 @@ function buildMiscContent(content) {
                 const count = setAllAutomationToggles(true);
                 flagDebugUsage();
                 logAction(`Enabled automation for ${count} upgrades`);
+            },
+        },
+        {
+            label: "All Auto Until X",
+            onClick: () => {
+                const maxIdStr = prompt("Input the automation upgrade id you want to max until (inclusive):");
+                if (maxIdStr === null) return;
+                const maxId = parseInt(maxIdStr, 10);
+                if (isNaN(maxId)) {
+                    alert("Invalid ID.");
+                    return;
+                }
+                const count = setAllAutomationTogglesUntil(maxId);
+                flagDebugUsage();
+                logAction(`Enabled automation up to ID ${maxId}`);
             },
         },
         {
