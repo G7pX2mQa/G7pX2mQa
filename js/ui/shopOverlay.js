@@ -659,6 +659,16 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     function onSettingChanged(e) {
         if (e?.detail?.key === "spreadsheet_mode") {
             updateAll();
+            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
+                sheetEl.classList.remove("is-scrolling");
+                clearTimeout(scroller.__fadeTimer);
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        sheetEl.classList.remove("is-scrolling");
+                        clearTimeout(scroller.__fadeTimer);
+                    });
+                });
+            }
         }
     }
     window.addEventListener("setting:changed", onSettingChanged);
