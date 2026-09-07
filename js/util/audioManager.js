@@ -174,7 +174,7 @@ export async function loadAudio(src) {
  * @param {boolean} [options.loop=false] - Whether to loop.
  * @param {string} [options.type='sfx'] - 'sfx', 'music', or 'spawn_vessel'.
  */
-export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0 } = {}) {
+export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0, persistOnHide = false } = {}) {
   if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
 
   if (typeof window !== 'undefined' && typeof window.isMutedByVault === 'function' && window.isMutedByVault()) {
@@ -193,7 +193,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
       type = 'sfx';
   }
 
-  if (document.hidden && type === 'sfx') {
+  if (document.hidden && type === 'sfx' && !persistOnHide) {
       return null;
   }
 
@@ -259,6 +259,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         let currentBaseVolume = originalBaseVolume;
         
         const retObj = {
+            persistOnHide,
             stop: (fadeOutDuration = 0) => {
                 if (stopTimeout) clearTimeout(stopTimeout);
                 if (fadeOutDuration > 0) {
@@ -372,6 +373,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
       a.play().catch(() => {});
       
       const retObj = {
+          persistOnHide,
           stop: (fadeOutDuration = 0) => {
               if (fadeInterval) clearInterval(fadeInterval);
               if (stopTimeout) clearTimeout(stopTimeout);
@@ -449,7 +451,7 @@ export function setAudioSuspended(suspended) {
     if (suspended) {
       // Stop all active SFX immediately so they don't resume later
       for (const audio of activeAudios) {
-        if (audio.type === 'sfx' && audio.stop) {
+        if (audio.type === 'sfx' && !audio.persistOnHide && audio.stop) {
           audio.stop();
         }
       }
