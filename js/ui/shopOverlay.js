@@ -570,6 +570,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     let startScrollPos = 0;
     const showBar = () => {
         if (!IS_MOBILE) return;
+        if (scroller.__suppressShowBar) return;
         sheetEl.classList.add("is-scrolling");
         clearTimeout(scroller.__fadeTimer);
     };
@@ -662,10 +663,20 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
             if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
                 sheetEl.classList.remove("is-scrolling");
                 clearTimeout(scroller.__fadeTimer);
+                scroller.__suppressShowBar = true;
+                bar.style.transition = "none";
+                bar.style.opacity = "0";
+                
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         sheetEl.classList.remove("is-scrolling");
                         clearTimeout(scroller.__fadeTimer);
+                        
+                        setTimeout(() => {
+                            scroller.__suppressShowBar = false;
+                            bar.style.transition = "";
+                            bar.style.opacity = "";
+                        }, 300);
                     });
                 });
             }
