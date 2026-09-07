@@ -2249,7 +2249,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // No longer using pendingPreloadedAudio since audioManager handles buffering internally
 
-    window.addEventListener("beforeunload", () => {
+    function handleTsunamiWipe() {
         if (window.__tsunamiActive) {
             const slot = getActiveSlot();
             if (slot != null) {
@@ -2288,6 +2288,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                     window.flushLocalStorageBuffer();
                 }
             }
+        }
+    }
+
+    window.addEventListener("beforeunload", handleTsunamiWipe);
+    window.addEventListener("pagehide", handleTsunamiWipe);
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            handleTsunamiWipe();
         }
     });
 
