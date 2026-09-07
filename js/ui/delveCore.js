@@ -625,6 +625,16 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
     const onSettingChanged = (e) => {
         if (e?.detail?.key === "spreadsheet_mode") {
             updateAll();
+            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
+                sheetEl.classList.remove("is-scrolling");
+                if (fadeTimer) clearTimeout(fadeTimer);
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        sheetEl.classList.remove("is-scrolling");
+                        if (fadeTimer) clearTimeout(fadeTimer);
+                    });
+                });
+            }
         }
     };
     window.addEventListener("setting:changed", onSettingChanged);
