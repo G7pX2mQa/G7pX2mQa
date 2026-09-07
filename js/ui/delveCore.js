@@ -524,7 +524,6 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
             thumb.style.animationTimingFunction = "linear";
             thumb.style.animationFillMode = "both";
         }
-        if (IS_MOBILE) showBar();
     };
 
     const updateAll = () => {
@@ -546,12 +545,19 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         }, delay);
     };
 
-    const onScroll = () => {
+    const onScroll = (e) => {
         performScrollUpdate();
-        scheduleHide(FADE_SCROLL_MS);
+        if (e && e.isTrusted) {
+            showBar();
+            scheduleHide(FADE_SCROLL_MS);
+        }
     };
 
-    const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
+    const onScrollEnd = (e) => {
+        if (e && e.isTrusted) {
+            scheduleHide(FADE_SCROLL_MS);
+        }
+    };
     // Always listen to scroll for shadows and visibility
     scroller.addEventListener("scroll", onScroll, { passive: true });
     if (supportsScrollEnd) {
