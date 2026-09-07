@@ -50,6 +50,7 @@ let initialized = false;
 let unregisterCoinMultiplierProvider = null;
 let unregisterXpGainMultiplierProvider = null;
 const mutationGainMultiplierProviders = new Set();
+const finalMutationGainMultiplierProviders = new Set();
 let externalMutationGainMultiplierProvider = null;
 function applyMutationMultipliers(amount) {
     let inc = amount;
@@ -61,6 +62,22 @@ function applyMutationMultipliers(amount) {
                   ? [externalMutationGainMultiplierProvider]
                   : [];
         for (const provider of providers) {
+            if (typeof provider !== "function") continue;
+            try {
+                const maybe = provider({
+                    baseGain: inc.clone?.() ?? inc,
+                    mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
+                    mutationUnlocked: mutationState.unlocked,
+                });
+                if (maybe instanceof BN) {
+                    inc = maybe.clone?.() ?? maybe;
+                } else if (maybe != null) {
+                    inc = BigNum.fromAny(maybe);
+                }
+            } catch {}
+        }
+        
+        for (const provider of finalMutationGainMultiplierProviders) {
             if (typeof provider !== "function") continue;
             try {
                 const maybe = provider({
@@ -1049,6 +1066,21 @@ export function getMutationGainMultiplier() {
             } catch {}
         }
     }
+    for (const provider of finalMutationGainMultiplierProviders) {
+        if (typeof provider !== "function") continue;
+        try {
+            const maybe = provider({
+                baseGain: mult.clone?.() ?? mult,
+                mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
+                mutationUnlocked: mutationState.unlocked,
+            });
+            if (maybe instanceof BN) {
+                mult = maybe.clone?.() ?? maybe;
+            } else if (maybe != null) {
+                mult = BigNum.fromAny(maybe);
+            }
+        } catch {}
+    }
     return mult;
 }
 
@@ -1130,6 +1162,14 @@ export function addExternalMutationGainMultiplierProvider(fn) {
         mutationGainMultiplierProviders.delete(fn);
     };
 }
+
+export function addFinalMutationGainMultiplierProvider(fn) {
+    if (typeof fn !== "function") return () => {};
+    finalMutationGainMultiplierProviders.add(fn);
+    return () => {
+        finalMutationGainMultiplierProviders.delete(fn);
+    };
+}
 if (typeof window !== "undefined") {
     window.mutationSystem = window.mutationSystem || {};
     Object.assign(window.mutationSystem, {
@@ -1141,6 +1181,7 @@ if (typeof window !== "undefined") {
         isMutationUnlocked,
         getTotalCumulativeMp,
         addExternalMutationGainMultiplierProvider,
+        addFinalMutationGainMultiplierProvider,
         getMutationGainMultiplier,
     });
 }
