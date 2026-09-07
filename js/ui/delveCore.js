@@ -534,6 +534,7 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
 
     const showBar = () => {
         if (!IS_MOBILE) return;
+        if (scroller.__suppressShowBar) return;
         sheetEl.classList.add("is-scrolling");
         if (fadeTimer) clearTimeout(fadeTimer);
     };
@@ -628,10 +629,20 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
             if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
                 sheetEl.classList.remove("is-scrolling");
                 if (fadeTimer) clearTimeout(fadeTimer);
+                scroller.__suppressShowBar = true;
+                bar.style.transition = "none";
+                bar.style.opacity = "0";
+                
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         sheetEl.classList.remove("is-scrolling");
                         if (fadeTimer) clearTimeout(fadeTimer);
+                        
+                        setTimeout(() => {
+                            scroller.__suppressShowBar = false;
+                            bar.style.transition = "";
+                            bar.style.opacity = "";
+                        }, 300);
                     });
                 });
             }
