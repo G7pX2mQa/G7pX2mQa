@@ -1733,6 +1733,7 @@ export function openMerchant() {
                 try {
                     const scroller = merchantOverlayEl.querySelector(".merchant-content .simplebar-content-wrapper") || merchantOverlayEl.querySelector(".merchant-content");
                     if (scroller) {
+                        if (typeof performance !== "undefined") scroller.__programmaticScrollTime = performance.now();
                         scroller.scrollTop = scroller.scrollHeight;
                     }
                 } catch (e) {}
