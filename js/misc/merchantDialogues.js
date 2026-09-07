@@ -947,265 +947,503 @@ export const MERCHANT_DIALOGUES = {
             c0: {
                 type: "choice",
                 options: [
-                    { label: "You're not nonchalant like that.", to: "m1a" }, // [cite: 2]
-                    { label: "What is the lab?", to: "m1b" }, // [cite: 3]
-                    { label: "What even happened?", to: "m1c" }, // [cite: 3]
+                    { label: "You're not nonchalant like that.", to: "m1a" },
+                    { label: "What is the lab?", to: "m1b" },
+                    { label: "What even happened?", to: "m1c" },
                 ],
             },
 
-            m1a: { type: "line", say: "Yes I am.", next: "c1a" }, // [cite: 4]
-            m1b: { type: "line", say: "placeholder", next: "c1b" }, // [cite: 4]
-            m1c: { type: "line", say: "placeholder", next: "c1c" },
+            m1a: { type: "line", say: "Yes I am.", next: "c1a" },
+            m1b: { type: "line", say: "The Lab is where you do Lab things.", next: "c1b" },
+            m1c: { type: "line", say: "The Tsunami.", next: "c1c" },
 
             c1a: {
                 type: "choice",
                 options: [
-                    { label: "No you're not.", to: "m2a" }, // [cite: 5]
-                    { label: "placeholder", to: "m2b" }, // [cite: 5]
-                    { label: "placeholder", to: "m2c" }, // [cite: 5]
+                    { label: "No.", to: "m2a" },
+                    { label: "Are you sure?", to: "m2b" },
+                    { label: "Okay.", to: "m7a" },
                 ],
             },
 
             c1b: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m2d" }, // [cite: 6]
-                    { label: "placeholder.", to: "m2e" }, // [cite: 6]
-                    { label: "placeholder", to: "m2f" }, // [cite: 6]
+                    { label: "Okay, well what are these lab things?", to: "m2c" },
+                    { label: "Okay, that isn't helpful.", to: "m5d" },
+                    { label: "Uh huh. Got it.", to: "m9c" },
                 ],
             },
 
             c1c: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
+                    { label: "Well it obliterated my multipliers so I hate it.", to: "m2d" },
+                    { label: "I don't collect coins just for a tsunami to delete them.", to: "m2e" },
+                    { label: "Okay actually I don't care, I need to get back to collecting coins.", to: "m9c" },
                 ],
             },
 
-            m2a: { type: "line", say: "You are very defiant.", next: "c2a" }, // [cite: 6]
-            m2b: { type: "line", say: "placeholder", next: "c2b" }, // [cite: 6]
-            m2c: { type: "line", say: "placeholder", next: "c2c" }, // [cite: 6]
-            m2d: { type: "line", say: "placeholder", next: "c2d" }, // [cite: 6]
-            m2e: { type: "line", say: "placeholder", next: "c2e" }, // [cite: 6]
-            m2f: { type: "line", say: "placeholder", next: "c2f" }, // [cite: 6]
+            m2a: { type: "line", say: "You are very defiant.", next: "c2a" },
+            m2b: { type: "line", say: "Yes I am very sure.", next: "c2b" },
+            m2c: { type: "line", say: "Didn't you hear what I said when you visited the Lab?", next: "c2c" },
+            m2d: { type: "line", say: "You just don't understand. It's a necessary sacrifice.", next: "c2d" },
+            m2e: { type: "line", say: "Well, actually, you did just that.", next: "c2d" },
 
             c2a: {
                 type: "choice",
                 options: [
-                    { label: "Yeah? It's because you're wrong.", to: "m3a" }, // [cite: 7]
-                    { label: "placeholder", to: "m3b" }, // [cite: 7]
-                    { label: "placeholder", to: "m3c" }, // [cite: 7]
+                    { label: "Yeah? It's because you're wrong.", to: "m3a" },
+                    { label: "Yeah? It's because I'm correct.", to: "m3d" },
+                    { label: "Yeah? Maybe that's true.", to: "m7a" },
                 ],
             },
 
             c2b: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m3d" }, // [cite: 8]
-                    { label: "placeholder", to: "m3e" }, // [cite: 8]
-                    { label: "placeholder", to: "m3f" }, // [cite: 8]
+                    { label: "You are the opposite of nonchalant.", to: "m3b" },
+                    { label: "Prove it then.", to: "m3c" },
+                    { label: "If you say so.", to: "m7a" },
                 ],
             },
 
             c2c: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 9]
-                    { label: "placeholder", to: "end" },
+                    { label: "I think your message at the lab was terrible and explained nothing.", to: "m3e" },
+                    { label: "Well, yes, but I wanted further clarifications on some things.", to: "m3f" },
+                    { label: "Well, yes, but I wanted to ask you more in-depth questions.", to: "m3f" },
                 ],
             },
 
             c2d: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 10]
-                ],
-            },
-
-            c2e: {
-                type: "choice",
-                options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 11]
+                    { label: "I hate the tsunami.", to: "m3g" },
+                    { label: "This is stupid.", to: "m9c" },
+                    { label: "Whatever.", to: "m9c" },
                 ],
             },
 
             m3a: {
                 type: "line",
-                say: 'I am never wrong. I am never wrong. I am never wrong. I am never wrong. I am never wr<span style="overflow-wrap: anywhere; word-break: break-all;">ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿ⨦Š௉౿♯⨍ᤒ⫚⟢⣹╼ⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᛝфᤌৄưཎ៣ᙴঢ়ଫઢǉϵཅᎽड़⋻ᓕᤛᙖዶ⡓໗⽵ཉӗɸ᳋ᙆဤᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭</span>',
+                say: 'I am never wrong. I am never wrong. I am never wrong. I am never wrong. I am never wr<span style="overflow-wrap: anywhere; word-break: break-all;">ල፫ᶰ⌰⽶ᱣᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤ᚈ௮ᤙᕘ᧤⢞ॿ⨦Š౿♯⨍ᤒ⫚⟢⣹╼ⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᛝфᤌৄưཎ៣ᙴঢ়ଫઢǉϵཅᎽड़⋻ᓕᤛᙖዶ⡓໗⽵ཉӗɸᙆဤᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ༡᭭⋚ᬭᠴ⩭</span>',
                 next: "start_boss_fight",
-            }, // [cite: 11]
-            m3b: { type: "line", say: "placeholder", next: "c3b" }, // [cite: 11]
-            m3c: { type: "line", say: "placeholder", next: "c3c" }, // [cite: 11]
-            m3d: { type: "line", say: "placeholder", next: "c3d" }, // [cite: 11]
-            m3e: { type: "line", say: "placeholder", next: "c3e" }, // [cite: 11]
-            m3f: { type: "line", say: "placeholder", next: "c3f" }, // [cite: 11]
+            },
+            m3b: { type: "line", say: "I am the true embodiment of nonchalance.", next: "c3a" },
+            m3c: { type: "line", say: "I don't need to prove my nonchalance.", next: "c3b" },
+            m3d: { type: "line", say: "You think you're correct about disproving my nonchalance?", next: "c3c" },
+            m3e: { type: "line", say: "Fine then. Figure things out yourself. You don't need my help.", next: "c3d" },
+            m3f: { type: "line", say: "Okay sure, what do you want to know?", next: "c3e" },
+            m3g: { type: "line", say: "Hey now, don't say such things. That's very rude to the Tsunami.", next: "c3f" },
 
             c3a: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m4a" }, // [cite: 12]
-                    { label: "placeholder", to: "m4b" }, // [cite: 12]
-                    { label: "placeholder", to: "m4c" }, // [cite: 12]
+                    { label: "By saying that, you're indirectly confirming that you lack nonchalance.", to: "m4a" },
+                    { label: "Okay, actually I don't care about this anymore.", to: "m7a" },
+                    { label: "Okay, whatever you say.", to: "m7a" },
                 ],
             },
 
             c3b: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m4d" },
-                    { label: "placeholder", to: "m4e" }, // [cite: 13]
-                    { label: "placeholder", to: "end" },
+                    { label: "Yes you do.", to: "m4b" },
+                    { label: "Whatever, I know you can't prove it anyway.", to: "m7a" },
+                    { label: "You're right, maybe I should just believe you.", to: "m7a" },
                 ],
             },
 
             c3c: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 14]
+                    { label: "Without a doubt.", to: "m4b" },
+                    { label: "Certainly.", to: "m4b" },
+                    { label: "Possibly.", to: "m4d" },
                 ],
             },
 
-            m4a: { type: "line", say: "placeholder", next: "c4a" }, // [cite: 14]
-            m4b: { type: "line", say: "placeholder", next: "c4b" }, // [cite: 14]
-            m4c: { type: "line", say: "placeholder", next: "c4c" }, // [cite: 14]
-            m4d: { type: "line", say: "placeholder", next: "c4d" }, // [cite: 14]
-            m4e: { type: "line", say: "placeholder", next: "c4e" }, // [cite: 14]
+            c3d: {
+                type: "choice",
+                options: [
+                    { label: "I've never needed your help.", to: "m4e" },
+                    { label: "You're right I don't.", to: "m4b" },
+                    { label: "Yes I do.", to: "m4d" },
+                ],
+            },
+
+            c3e: {
+                type: "choice",
+                options: [
+                    { label: "What is the tsunami exponent?", to: "m4f" },
+                    { label: "What is the purpose of researching lab nodes?", to: "m4g" },
+                    { label: "So, I want to get a lot of coins to research lab nodes faster, right?", to: "m4h" },
+                ],
+            },
+
+            c3f: {
+                type: "choice",
+                options: [
+                    { label: "Well, at least the tsunami will never strike again.", to: "replay_tsunami_then:m4i" },
+                    { label: "Whatever, I guess.", to: "m9c" },
+                    { label: "Okay, you're right.", to: "m9c" },
+                ],
+            },
+
+            m4a: { type: "line", say: "Well that's ridiculous.", next: "c4a" },
+            m4b: { type: "line", say: "No.", next: "c4b" },
+            m4c: { type: "line", say: "Yes.", next: "c4b" },
+            m4d: { type: "line", say: "And what is that supposed to mean?", next: "c4c" },
+            m4e: { type: "line", say: "You've... never needed my help?", next: "c4d", sprite: "img/misc/sad_merchant.webp", stallMs: 3000, muteAudio: true },
+            m4f: { type: "line", say: "When the Tsunami was invoked, all of your Surge Milestones were temporarily sacrificed, nullifying their effects. So a milestone that used to multiply your Coins by 10x now only multiplies it by 10 raised to the power of your Tsunami Exponent.", next: "c4e" },
+            m4g: { type: "line", say: "The Lab, and its nodes, will be very pivotal to increasing your Coin output. You'll have to research many things in order to recover from the Tsunami's impact.", next: "c4f" },
+            m4h: { type: "line", say: "Yes. I love Coins.", next: "c4g" },
+            m4i: { type: "line", say: "I'm sure that will never happen.", next: "c4h" },
 
             c4a: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m5a" }, // [cite: 15]
-                    { label: "placeholder", to: "m5b" }, // [cite: 15]
-                    { label: "placeholder", to: "m5c" }, // [cite: 15]
+                    { label: "Just face the facts: You're not nonchalant.", to: "m5a" },
+                    { label: "Is it though?", to: "m4b" },
+                    { label: "Maybe it doesn't matter.", to: "m7a" },
                 ],
             },
 
             c4b: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m5d" },
-                    { label: "placeholder", to: "end" }, // [cite: 16]
-                    { label: "placeholder", to: "end" },
+                    { label: "No.", to: "m4b" },
+                    { label: "Yes.", to: "m4c" },
+                    { label: "Maybe.", to: "m7a" },
                 ],
             },
 
             c4c: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 17]
+                    { label: "I forgot.", to: "m7a" },
+                    { label: "I don't know.", to: "m7a" },
+                    { label: "I lost the plot.", to: "m7a" },
+                ],
+            },
+
+            c4d: {
+                type: "choice",
+                options: [
+                    { label: "Uhh I don't think that came out the way I meant...", to: "m5c" },
+                    { label: "No I didn't mean it like that!", to: "m5c" },
+                    { label: "No! I sincerely apologize!", to: "m5b" },
                 ],
             },
 
             c4e: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" }, // [cite: 18]
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 19]
+                    { label: "Wow, you were actually helpful for once.", to: "m5d" },
+                    { label: "What about unlock-based milestones?", to: "m5e" },
+                    { label: "Really informative!", to: "m6c" },
                 ],
             },
 
-            m5a: { type: "line", say: "placeholder", next: "c5a" }, // [cite: 19]
-            m5b: { type: "line", say: "placeholder", next: "c5b" }, // [cite: 19]
-            m5c: { type: "line", say: "placeholder", next: "c5c" }, // [cite: 19]
-            m5d: { type: "line", say: "placeholder", next: "c5d" }, // [cite: 19]
+            c4f: {
+                type: "choice",
+                options: [
+                    { label: "Like what?", to: "m5f" },
+                    { label: "I already know that.", to: "m5g" },
+                    { label: "Okay.", to: "m9c" },
+                ],
+            },
+
+            c4g: {
+                type: "choice",
+                options: [
+                    { label: "Why though?", to: "m5h" },
+                    { label: "Yeah I know.", to: "m9c" },
+                    { label: "Good to know.", to: "m9c" },
+                ],
+            },
+
+            c4h: {
+                type: "choice",
+                options: [
+                    { label: "...", to: "m9c" },
+                    { label: "...", to: "m9c" },
+                    { label: "...", to: "m9c" },
+                ],
+            },
+
+            m5a: { type: "line", say: "This is an outrage! I will not stand for this!", next: "c5a" },
+            m5b: { type: "line", say: "Good. You better appreciate my help.", next: "c5b" },
+            m5c: { type: "line", say: "Then what did you mean???", next: "c5b", sprite: "img/misc/evil_merchant.webp", muteAudio: true },
+            m5d: { type: "line", say: "Well I'm always helpful.", next: "c5c" },
+            m5e: { type: "line", say: "Any milestones that don't have a double blue arrow on them were not affected by the Tsunami, because they don't have any multipliers to nerf.", next: "c5d" },
+            m5f: { type: "line", say: "Like... Coin value.", next: "c5e" },
+            m5g: { type: "line", say: "Okay well I've already told you everything you need to know then.", next: "c5f" },
+            m5h: { type: "line", say: "That's just how it works.", next: "c5g" },
 
             c5a: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m6a" }, // [cite: 20]
-                    { label: "placeholder", to: "m6b" }, // [cite: 20]
-                    { label: "placeholder", to: "m6c" }, // [cite: 20]
+                    { label: "Oh yeah? What are you gonna do about it?", to: "start_boss_fight" },
+                    { label: "You've reached peak anti-nonchalance.", to: "m6a" },
+                    { label: "Okay okay I take it back, please calm down.", to: "m7a" },
                 ],
             },
 
             c5b: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m6d" }, // [cite: 21]
-                    { label: "placeholder", to: "end" }, // [cite: 21]
-                    { label: "placeholder", to: "end" }, // [cite: 21]
+                    { label: "Ah...", to: "m6c" },
+                    { label: "Uh...", to: "m6c" },
+                    { label: "Um...", to: "m6c" },
                 ],
             },
 
             c5c: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 22]
-                    { label: "placeholder", to: "end" },
+                    { label: "I'll agree to disagree on that one.", to: "m6c" },
+                    { label: "Right...", to: "m6c" },
+                    { label: "Okay...", to: "m6c" },
                 ],
             },
 
             c5d: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 23]
+                    { label: "So informative, no purposely misleading me, this isn't like you.", to: "m6b" },
+                    { label: "Great. I want to learn more about the lab now.", to: "m4g" },
+                    { label: "Thanks for all the information.", to: "m6c" },
                 ],
             },
 
-            m6a: { type: "line", say: "placeholder", next: "c6a" }, // [cite: 23]
-            m6b: { type: "line", say: "placeholder", next: "c6b" }, // [cite: 23]
-            m6c: { type: "line", say: "placeholder", next: "c6c" }, // [cite: 23]
-            m6d: { type: "line", say: "placeholder", next: "c6d" }, // [cite: 23]
+            c5e: {
+                type: "choice",
+                options: [
+                    { label: "Well I don't really care about coins.", to: "m6d" },
+                    { label: "How about things other than coins?", to: "m6e" },
+                    { label: "Okay, I guess.", to: "m9c" },
+                ],
+            },
+
+            c5f: {
+                type: "choice",
+                options: [
+                    { label: "No you haven't.", to: "m6f" },
+                    { label: "How about my surge milestones? What happened to them?", to: "m4f" },
+                    { label: "Okay, I guess.", to: "m9c" },
+                ],
+            },
+
+            c5g: {
+                type: "choice",
+                options: [
+                    { label: "I need a concrete reason.", to: "m6g" },
+                    { label: "I won't question it.", to: "m9c" },
+                    { label: "Okay, I guess.", to: "m9c" },
+                ],
+            },
+
+            m6a: { type: "line", say: "What are you even talking about anymore?", next: "c6a" },
+            m6b: { type: "line", say: "I'm always this helpful.", next: "c5c" },
+            m6c: { type: "line", say: "Anyway, I assume you must want some sort of reward for talking to me, is that correct? Seeing as I've made it a habit.", next: "c6b" },
+            m6d: { type: "line", say: "Blasphemy!", next: "c6c" },
+            m6e: { type: "line", say: "Well, there are nodes that boost things that aren't Coins, but surely Coins are the most important thing you'd care about? Coins are what makes the world go round.", next: "c6d" },
+            m6f: { type: "line", say: "Yes I have.", next: "c6e" },
+            m6g: { type: "line", say: "Coins are what makes the world go round.", next: "c6f" },
 
             c6a: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "m7a" }, // [cite: 24]
-                    { label: "placeholder", to: "end" }, // [cite: 24]
-                    { label: "placeholder", to: "end" }, // [cite: 24]
+                    { label: "Very serious things.", to: "m7a" },
+                    { label: "I don't even know.", to: "m7a" },
+                    { label: "Good point.", to: "m7a" },
                 ],
             },
 
             c6b: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" }, // [cite: 25]
-                    { label: "placeholder", to: "end" }, // [cite: 25]
-                    { label: "placeholder", to: "end" }, // [cite: 25]
+                    { label: "No, actually I don't want any sort of reward.", to: "m7c" },
+                    { label: "What reward?", to: "m7b" },
+                    { label: "Yes. Give me the reward right now.", to: "m7b" },
                 ],
             },
 
             c6c: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 26]
-                    { label: "placeholder", to: "end" },
+                    { label: "No, it's true. I don't care in the slightest to collect coins.", to: "m7d" },
+                    { label: "No, it's true. I don't even know why I'm collecting coins.", to: "m7d" },
+                    { label: "I was just kidding, relax.", to: "m9c" },
                 ],
             },
 
             c6d: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 27]
+                    { label: "Nah, I don't care about coins or collecting them.", to: "m6d" },
+                    { label: "Well, things that aren't coins boost coins you know.", to: "m7e" },
+                    { label: "I suppose you're right.", to: "m9c" },
                 ],
             },
 
-            m7a: { type: "line", say: "placeholder", next: "c7a" }, // [cite: 27]
+            c6e: {
+                type: "choice",
+                options: [
+                    { label: "No.", to: "m7f" },
+                    { label: "Whatever.", to: "m9c" },
+                    { label: "Okay fine I guess.", to: "m9c" },
+                ],
+            },
+
+            c6f: {
+                type: "choice",
+                options: [
+                    { label: "No.", to: "m6d" },
+                    { label: "Fair enough.", to: "m9c" },
+                    { label: "I suppose you're right.", to: "m9c" },
+                ],
+            },
+
+            m7a: { type: "line", say: "Anyway, I assume you must've come to me for something else than just to argue over how nonchalant I am, so, what do you want to know?", next: "c7a" },
+            m7b: { type: "line", say: "I have some DNA from the Lab in my pockets, I can give you that.", next: "c7b" },
+            m7c: { type: "line", say: "Oh, you just wanted to chat with me. How nice. But are you really sure you don't want a reward?", next: "c6b" },
+            m7d: { type: "line", say: "Well, you're collecting Coins to... You know... You're just supposed to do it because you want to.", next: "c7c" },
+            m7e: { type: "line", say: "Clever observation. I suppose you're correct then.", next: "c7d" },
+            m7f: { type: "line", say: "Yes.", next: "c6e" },
 
             c7a: {
                 type: "choice",
                 options: [
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" },
-                    { label: "placeholder", to: "end" }, // [cite: 28]
+                    { label: "What is the lab?", to: "m4g" },
+                    { label: "What happened to my surge milestones?", to: "m4f" },
+                    { label: "Actually, I came here precisely to argue with you over how nonchalant you are.", to: "m8a" },
+                ],
+            },
+
+            c7b: {
+                type: "choice",
+                options: [
+                    { label: "DNA? From the lab? That doesn't sound very useful to me.", to: "m8b" },
+                    { label: "I don't think that will be very useful but give me it please.", to: "end" },
+                    { label: "Yes. Give me the reward right now.", to: "end" },
+                ],
+            },
+
+            c7c: {
+                type: "choice",
+                options: [
+                    { label: "Well I don't want to.", to: "m8c" },
+                    { label: "I suppose that's true.", to: "m9c" },
+                    { label: "I suppose you're right.", to: "m9c" },
+                ],
+            },
+
+            c7d: {
+                type: "choice",
+                options: [
+                    { label: "I'm always correct.", to: "m8d" },
+                    { label: "That's correct.", to: "m9c" },
+                    { label: "Yes.", to: "m9c" },
+                ],
+            },
+
+            m8a: { type: "line", say: "No... Stop doing that... Waste of time...", next: "c8a" },
+            m8b: { type: "line", say: "DNA is very useful though.", next: "c8b" },
+            m8c: { type: "line", say: 'Well, then why are you here, <span style="color:#00e5ff">Player</span>?', next: "c8c" },
+            m8d: { type: "line", say: "Well, I wouldn't go that far.", next: "c8d" },
+
+            c8a: {
+                type: "choice",
+                options: [
+                    { label: "I won't stop.", to: "m9b" },
+                    { label: "Okay I'll stop.", to: "m9a" },
+                    { label: "I'm just kidding of course, I just wanted a reaction from you.", to: "m9a" },
+                ],
+            },
+
+            c8b: {
+                type: "choice",
+                options: [
+                    { label: "Hmm, nah, I think I'll decline the offer this time.", to: "end_nr" },
+                    { label: "Hmm, okay I'll take it I guess.", to: "end" },
+                    { label: "Hmm, sounds good.", to: "end" },
+                ],
+            },
+
+            c8c: {
+                type: "choice",
+                options: [
+                    { label: "Couldn't tell ya.", to: "m9c" },
+                    { label: "I don't really know.", to: "m9c" },
+                    { label: "To have fun, I guess.", to: "m9c" },
+                ],
+            },
+
+            c8d: {
+                type: "choice",
+                options: [
+                    { label: "Why not? I know best.", to: "m9d" },
+                    { label: "You do know best.", to: "m9c" },
+                    { label: "Fair enough.", to: "m9c" },
+                ],
+            },
+
+            m9a: { type: "line", say: "Okay, well... I have a bunch of DNA from the Lab in my pockets if you want to take it from me.", next: "c9a" },
+            m9b: { type: "line", say: "Take some DNA from the Lab I have in my pockets, and go back to collecting Coins please.", next: "c9a" },
+            m9c: { type: "line", say: "Anyway, I can give you a gift, something from the Lab, if you'd like.", next: "c9b" },
+            m9d: { type: "line", say: "Whatever you say.", next: "c9c" },
+
+            c9a: {
+                type: "choice",
+                options: [
+                    { label: "Hmm, no I think I'm fine.", to: "m10a" },
+                    { label: "DNA? From the lab?", to: "m10b" },
+                    { label: "Yeah sure I'll take it.", to: "end" },
+                ],
+            },
+
+            c9b: {
+                type: "choice",
+                options: [
+                    { label: "Hmm, no I don't think I need anything from you.", to: "m10d" },
+                    { label: "What is it?", to: "m10c" },
+                    { label: "I'll gladly accept anything you offer me.", to: "m10c" },
+                ],
+            },
+
+            c9c: {
+                type: "choice",
+                options: [
+                    { label: "You understand.", to: "m9c" },
+                    { label: "That's right.", to: "m9c" },
+                    { label: "Thank you.", to: "m9c" },
+                ],
+            },
+
+            m10a: { type: "line", say: "You sure? I'm sure it'll boost your Coin output a ton.", next: "c10a" },
+            m10b: { type: "line", say: "Yes. DNA. From the Lab. So, do you want it? It will boost your Coin output a ton.", next: "c10a" },
+            m10c: { type: "line", say: "The gift is DNA, from the Lab. I have some in my pockets right now. Do you want it?", next: "c10b" },
+            m10d: { type: "line", say: "You sure? The gift is DNA, from the Lab. I have some in my pockets right now.", next: "c10b" },
+
+            c10a: {
+                type: "choice",
+                options: [
+                    { label: "No. This will not be helpful to me, I don't want it.", to: "end_nr" },
+                    { label: "I doubt it'll even be helpful, but I guess sure.", to: "end" },
+                    { label: "Well when you put it like that, I guess sure.", to: "end" },
+                ],
+            },
+
+            c10b: {
+                type: "choice",
+                options: [
+                    { label: "I think I'm fine. I decline the offer.", to: "end_nr" },
+                    { label: "I suppose I could take it.", to: "end" },
+                    { label: "Yes, absolutely I want it.", to: "end" },
                 ],
             },
         },
