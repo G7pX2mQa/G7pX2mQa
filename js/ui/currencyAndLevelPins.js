@@ -407,12 +407,22 @@ window.addEventListener('currency:change', (e) => {
 
 function getLevelStatValue(prefix) {
     const slot = getActiveSlot() || 'default';
-    return levelStateCache[slot]?.[prefix]?.level || 0;
+    let val = levelStateCache[slot]?.[prefix]?.level;
+    if (val === undefined && prefix.endsWith('_levels')) {
+        const basePrefix = prefix.replace('_levels', '');
+        val = levelStateCache[slot]?.[basePrefix]?.level;
+    }
+    return val !== undefined ? val : 0;
 }
 
 function getLevelProgRatio(prefix) {
     const slot = getActiveSlot() || 'default';
-    return levelStateCache[slot]?.[prefix]?.ratio || 0;
+    let val = levelStateCache[slot]?.[prefix]?.ratio;
+    if (val === undefined && prefix.endsWith('_levels')) {
+        const basePrefix = prefix.replace('_levels', '');
+        val = levelStateCache[slot]?.[basePrefix]?.ratio;
+    }
+    return val !== undefined ? val : 0;
 }
 export function initPinnedLevels(parentEl) {
   if (pinnedLevelsContainer) return;
