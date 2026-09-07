@@ -1012,22 +1012,6 @@ export function initSurgeEffects() {
         }
         return baseGain.mulBigNumInteger(mult);
     });
-    addExternalMutationGainMultiplierProvider(({ baseGain }) => {
-        if (!isSurgeActive(10)) return baseGain;
-        if (baseGain.cmp(BigNum.fromInt(1)) <= 0) return baseGain;
-        
-        let logVal = approxLog10BigNum(baseGain);
-        if (isSurgeActive(8)) {
-            const effective = getTsunamiExponent();
-            if (effective > 0) {
-                const unnerfedLog = logVal / effective;
-                logVal = logVal + unnerfedLog;
-            }
-        } else {
-            logVal = logVal * 2;
-        }
-        return bigNumFromLog10(logVal);
-    });
     addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
         if (!isSurgeActive(6)) return baseMultiplier;
         const wealth = getSurge6WealthMultipliers();
