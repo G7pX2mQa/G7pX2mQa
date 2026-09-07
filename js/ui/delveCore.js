@@ -625,30 +625,27 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
     // mark so we don't double-init
     const onSettingChanged = (e) => {
         if (e?.detail?.key === "spreadsheet_mode") {
-            updateAll();
-            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
-                sheetEl.classList.remove("is-scrolling");
-                if (fadeTimer) clearTimeout(fadeTimer);
-                scroller.__suppressShowBar = true;
-                bar.style.transition = "none";
-                bar.style.opacity = "0";
-                
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        sheetEl.classList.remove("is-scrolling");
-                        if (fadeTimer) clearTimeout(fadeTimer);
-                        
-                        setTimeout(() => {
-                            scroller.__suppressShowBar = false;
-                            bar.style.transition = "";
-                            bar.style.opacity = "";
-                        }, 300);
-                    });
-                });
+            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode") && scroller.__customScroll?.suppress) {
+                scroller.__customScroll.suppress(500);
             }
+            updateAll();
         }
     };
     window.addEventListener("setting:changed", onSettingChanged);
+    const suppress = (ms = 300) => {
+        scroller.__suppressShowBar = true;
+        sheetEl.classList.remove("is-scrolling");
+        if (fadeTimer) clearTimeout(fadeTimer);
+        bar.style.transition = "none";
+        bar.style.opacity = "0";
+        setTimeout(() => {
+            scroller.__suppressShowBar = false;
+            bar.style.transition = "";
+            bar.style.opacity = "";
+            sheetEl.classList.remove("is-scrolling");
+        }, ms);
+    };
+
     const destroy = () => {
         if (ro) ro.disconnect();
         if (obs) obs.disconnect();
@@ -662,7 +659,7 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         bar.remove();
         delete scroller.__customScroll;
     };
-    scroller.__customScroll = { bar, thumb, ro, updateAll, destroy };
+    scroller.__customScroll = { bar, thumb, ro, updateAll, destroy, suppress };
     updateAll();
 }
 
