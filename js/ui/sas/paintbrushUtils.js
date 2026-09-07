@@ -152,7 +152,7 @@ export function createPaintbrush({
             return;
         }
 
-        const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+        const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row), .debug-unlock-row');
         const affectedRows = [];
         rows.forEach(row => {
             const overlay = row.querySelector('.paintbrush-row-overlay');
@@ -176,7 +176,7 @@ export function createPaintbrush({
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
         
-        const row = e.target.closest('.currency-row:not(.universal-row)');
+        const row = e.target.closest('.currency-row:not(.universal-row), .debug-unlock-row');
         const overlayEl = getOverlayEl();
         if (row && overlayEl && overlayEl.contains(row)) {
             flipRowStateFromElement(row);
@@ -207,7 +207,7 @@ export function createPaintbrush({
 
         const clampedY = Math.max(scrollerRect.top + 1, Math.min(scrollerRect.bottom - 1, lastMouseY));
 
-        const allRows = Array.from(overlayEl.querySelectorAll('.currency-row:not(.universal-row)'));
+        const allRows = Array.from(overlayEl.querySelectorAll('.currency-row:not(.universal-row), .debug-unlock-row'));
         let hitRow = null;
         for (const r of allRows) {
             const rect = r.getBoundingClientRect();
@@ -323,7 +323,7 @@ export function createPaintbrush({
         const overlayEl = getOverlayEl();
         if (!overlayEl) return;
 
-        const allRows = Array.from(overlayEl.querySelectorAll('.currency-row:not(.universal-row)'));
+        const allRows = Array.from(overlayEl.querySelectorAll('.currency-row:not(.universal-row), .debug-unlock-row'));
         const currentIndex = allRows.indexOf(row);
         
         if (currentIndex !== -1 && lastToggledRow) {
@@ -348,7 +348,7 @@ export function createPaintbrush({
 
     function toggleRowState(row) {
         const overlay = row.querySelector('.paintbrush-row-overlay');
-        const dataId = row.dataset.currency || row.dataset.level;
+        const dataId = row.dataset.currency || row.dataset.level || row.dataset.unlockId;
         
         if (overlay) {
             if (overlay.dataset.state === 'red') {
@@ -375,7 +375,7 @@ export function createPaintbrush({
             
             overlayEl.style.userSelect = 'none';
 
-            const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+            const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row), .debug-unlock-row');
             rows.forEach(r => {
                 if (window.getComputedStyle(r).position === 'static') {
                     r.style.position = 'relative';
@@ -392,7 +392,7 @@ export function createPaintbrush({
                 overlay.style.zIndex = '10';
                 overlay.style.pointerEvents = 'none'; 
                 
-                const dataId = r.dataset.currency || r.dataset.level;
+                const dataId = r.dataset.currency || r.dataset.level || r.dataset.unlockId;
                 if (dataId && paintbrushRowStates[dataId] === 'green') {
                     overlay.style.background = 'rgba(0, 255, 0, 0.5)';
                     overlay.style.border = '5px solid rgba(0, 255, 0, 1)';
@@ -420,7 +420,7 @@ export function createPaintbrush({
             
             overlayEl.style.userSelect = '';
 
-            const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+            const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row), .debug-unlock-row');
             rows.forEach(r => {
                 const overlay = r.querySelector('.paintbrush-row-overlay');
                 if (overlay) overlay.remove();
