@@ -206,6 +206,7 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
 
   const handlePointerLeave = () => {
     pointerInside = false;
+    hasPointer = false; // Added to prevent scroll/resize from reviving stale coordinates
     hideIndicator();
     lastLocalX = null;
     lastLocalY = null;
@@ -300,7 +301,7 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
     try { playfield.removeEventListener('pointerenter', handlePointerEnter); } catch {}
     try { playfield.removeEventListener('pointerleave', handlePointerLeave); } catch {}
     try { playfield.removeEventListener('pointercancel', handlePointerLeave); } catch {}
-    try { window.removeEventListener('blur', resetPointerHistory); } catch {}
+    try { window.removeEventListener('blur', handlePointerLeave); } catch {}
     try { window.removeEventListener('focus', updatePlayfieldRect); } catch {}
     try { document.removeEventListener('visibilitychange', visibilityHandler); } catch {}
     try { indicator.remove(); } catch {}
@@ -316,10 +317,10 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
   window.addEventListener('resize', handleResize);
   window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('focus', updatePlayfieldRect, { passive: true });
-  window.addEventListener('blur', resetPointerHistory, { passive: true });
+  window.addEventListener('blur', handlePointerLeave, { passive: true });
   const visibilityHandler = () => {
       updatePlayfieldRect();
-      if (document.hidden) resetPointerHistory();
+      if (document.hidden) handlePointerLeave();
   };
   document.addEventListener('visibilitychange', visibilityHandler, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
