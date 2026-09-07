@@ -13,7 +13,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     let explosionAudioTriggered = false;
 
     // Start Ambience Immediately (Wind/Storm Buildup)
-    ambienceAudio = playAudio('sounds/tsu_storm_ambience.ogg', { volume: 0.8 });
+    ambienceAudio = playAudio('sounds/tsu_storm_ambience.ogg', { volume: 0.8, persistOnHide: true });
 
     // --- BG Canvas (Sky, Sand) ---
     const bgCanvas = document.createElement('canvas');
@@ -471,12 +471,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     function drawDunes(ctx, width, height, sandY, palette) {
         // Base Background
         ctx.fillStyle = palette.sandDark;
-        ctx.beginPath();
-        ctx.moveTo(-50, height + 100);
-        ctx.lineTo(-50, sandY);
-        ctx.bezierCurveTo(width*0.3, sandY - 20, width*0.7, sandY + 20, width + 50, sandY);
-        ctx.lineTo(width + 50, height + 100);
-        ctx.fill();
+        ctx.fillRect(-50, sandY, width + 100, height - sandY);
 
         // Dune 1 (Back)
         ctx.fillStyle = palette.sandDark;
@@ -649,7 +644,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         if (elapsed > STRIKE_TIME) audioImpactFactor = 1;
 
         if (audioImpactFactor > 0.1 && !rumbleAudio) {
-            rumbleAudio = playAudio('sounds/tsu_rumble.ogg', { volume: 0.8 });
+            rumbleAudio = playAudio('sounds/tsu_rumble.ogg', { volume: 0.8, persistOnHide: true });
         }
 
         // Visual: Waves/Shake
@@ -951,7 +946,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                     
                     if (!explosionAudioTriggered) {
                         explosionAudioTriggered = true;
-                        playAudio('sounds/tsu_explosion.ogg', { volume: 1.0 });
+                        playAudio('sounds/tsu_explosion.ogg', { volume: 1.0, persistOnHide: true });
                         
                         // Stop hum/charge
                         if (humAudio) humAudio.stop();
@@ -1018,7 +1013,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         
         // Audio: Hum Loop
         if (!humAudio) {
-            humAudio = playAudio('sounds/tsu_beacon_hum.ogg', { loop: true, volume: 0.6 });
+            humAudio = playAudio('sounds/tsu_beacon_hum.ogg', { loop: true, volume: 0.6, persistOnHide: true });
         }
     }
 
