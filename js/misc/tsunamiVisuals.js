@@ -489,7 +489,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         ctx.beginPath();
         ctx.moveTo(-50, height + 100);
         ctx.lineTo(-50, sandY);
-        ctx.bezierCurveTo(width*0.3, sandY - 20, width*0.7, sandY + 20, width + 50, sandY);
+        ctx.bezierCurveTo(width*0.3, sandY, width*0.7, sandY + 20, width + 50, sandY);
         ctx.lineTo(width + 50, height + 100);
         ctx.fill();
 
@@ -499,7 +499,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         ctx.beginPath();
         ctx.moveTo(-50, height + 100);
         ctx.lineTo(-50, d2y);
-        ctx.bezierCurveTo(width*0.4, d2y + 40, width*0.6, d2y - 10, width + 50, d2y + 20);
+        ctx.bezierCurveTo(width*0.4, d2y + 40, width*0.6, d2y, width + 50, d2y + 20);
         ctx.lineTo(width + 50, height + 100);
         ctx.fill();
         
@@ -509,7 +509,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         ctx.beginPath();
         ctx.moveTo(-50, height + 100);
         ctx.lineTo(-50, d3y);
-        ctx.bezierCurveTo(width*0.2, d3y - 10, width*0.8, d3y + 30, width + 50, d3y + 10);
+        ctx.bezierCurveTo(width*0.2, d3y, width*0.8, d3y + 30, width + 50, d3y + 10);
         ctx.lineTo(width + 50, height + 100);
         ctx.fill();
 
