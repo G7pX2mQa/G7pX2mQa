@@ -553,9 +553,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         updateBounds();
         updateMetrics();
     };
-    if (scroller.__customScroll) {
-        scroller.__customScroll.update = updateAll;
-    }
+    if (scroller.__customScroll) scroller.__customScroll.update = updateAll;
     // Debounce for mutation observer to prevent layout thrashing on frequent updates
     let debounceTimer;
     const debouncedUpdateAll = () => {
@@ -572,7 +570,6 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     let startScrollPos = 0;
     const showBar = () => {
         if (!IS_MOBILE) return;
-        if (scroller.__suppressShowBar) return;
         sheetEl.classList.add("is-scrolling");
         clearTimeout(scroller.__fadeTimer);
     };
@@ -659,31 +656,22 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         showBar();
         scheduleHide(FADE_SCROLL_MS);
     });
-    const suppress = (ms = 300) => {
-        scroller.__suppressShowBar = true;
-        clearTimeout(scroller.__fadeTimer);
-        bar.style.transition = "none";
-        bar.style.opacity = "0";
-        sheetEl.classList.remove("is-scrolling");
-        
-        setTimeout(() => {
-            scroller.__suppressShowBar = false;
-            bar.style.transition = "";
-            bar.style.opacity = "";
-            sheetEl.classList.remove("is-scrolling");
-        }, ms);
-    };
-
     function onSettingChanged(e) {
         if (e?.detail?.key === "spreadsheet_mode") {
-            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
-                suppress(500);
-            }
             updateAll();
+            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
+                sheetEl.classList.remove("is-scrolling");
+                clearTimeout(scroller.__fadeTimer);
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        sheetEl.classList.remove("is-scrolling");
+                        clearTimeout(scroller.__fadeTimer);
+                    });
+                });
+            }
         }
     }
     window.addEventListener("setting:changed", onSettingChanged);
-    scroller.__customScroll = { bar, thumb, ro, updateAll, suppress };
     updateAll();
 }
 // --- Logic Helpers ---
