@@ -1394,7 +1394,7 @@ export const MERCHANT_DIALOGUES = {
 
             m9a: { type: "line", say: "Okay, well... I have a bunch of DNA from the Lab in my pockets if you want to take it from me.", next: "c9a" },
             m9b: { type: "line", say: "Take some DNA from the Lab I have in my pockets, and go back to collecting Coins please.", next: "c9a" },
-            m9c: { type: "line", say: "Anyway, I can give you a gift, something from the Lab, if you'd like.", next: "c9b" },
+            m9c: { type: "line", say: "Anyway, I can give you a gift if you'd like.", next: "c9b" },
             m9d: { type: "line", say: "Whatever you say.", next: "c9c" },
 
             c9a: {
