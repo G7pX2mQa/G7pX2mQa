@@ -135,6 +135,7 @@ import {
     removeComboChangeListener,
 } from "../game/comboSystem.js";
 import { setHtmlOrText } from "./uiHelpers.js";
+import { createPaintbrush } from "../ui/sas/paintbrushUtils.js";
 
 const debugPanelStatSetters = [];
 let isBuildingStats = false;
@@ -305,6 +306,11 @@ function refreshLiveBindings(predicate) {
 }
 
 function setupLiveBindingListeners() {
+    window.addEventListener("debug:reinit_paintbrush", () => {
+        if (typeof unlocksPaintbrush !== "undefined" && unlocksPaintbrush.isActive()) {
+            unlocksPaintbrush.reinit?.();
+        }
+    });
     if (typeof window === "undefined") return;
 
     const currencyHandler = (event) => {
@@ -1912,6 +1918,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
 function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable, slot }) {
     const row = document.createElement("div");
     row.className = "debug-panel-row debug-unlock-row";
+    row.dataset.unlockId = labelText;
 
     const toggle = document.createElement("label");
     toggle.className = "flag-toggle";
@@ -5626,6 +5633,24 @@ function buildMiscContent(content) {
             },
         },
         {
+            label: "UAU Multi-Toggle",
+            onClick: () => {
+                unlocksPaintbrush.open();
+                
+                // If the section isn't open, open it
+                const unlocksSection = document.querySelector("#debug-unlocks");
+                if (unlocksSection && unlocksSection.style.display === "none") {
+                    const toggleBtn = document.querySelector("[aria-expanded][aria-controls='debug-unlocks']");
+                    if (toggleBtn) toggleBtn.click();
+                }
+                
+                // Ensure events bind correctly if not already 
+                if (unlocksPaintbrush.isActive()) {
+                    unlocksPaintbrush.reinit?.();
+                }
+            },
+        },
+        {
             label: "Lock All Unlocks",
             onClick: () => {
                 const { locks, toggles } = lockAllUnlockUpgrades();
@@ -5796,7 +5821,19 @@ function buildMiscContent(content) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "debug-panel-toggle debug-misc-button";
-        btn.textContent = cfg.label;
+        if (cfg.className) {
+            btn.className += " " + cfg.className;
+        }
+        
+        if (cfg.className === "paintbrush-btn-anim") {
+            const span = document.createElement("span");
+            span.className = "paintbrush-text";
+            span.textContent = cfg.label;
+            btn.appendChild(span);
+        } else {
+            btn.textContent = cfg.label;
+        }
+        
         btn.addEventListener("click", cfg.onClick);
         buttonGrid.appendChild(btn);
     });
@@ -5997,6 +6034,54 @@ function buildMiscContent(content) {
     }
 }
 
+
+const unlocksPaintbrush = createPaintbrush({
+    getOverlayEl: () => {
+        return document.querySelector("#debug-unlocks");
+    },
+    getInitialState: () => {
+        return { unlock: true };
+    },
+    togglesConfig: [
+        { key: "unlock", label: "Unlocked (True)" },
+    ],
+    descriptionText:
+        "Left click and drag over any unlock toggle to apply specific changes in accordance with the singular option listed right above this text. Use this tool to quickly change the states of arbitrary unlock toggles. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.",
+    onApply: (affectedRows, paintbrushState) => {
+        const slot = getActiveSlot();
+        if (slot == null) return;
+        const allDefs = getUnlockRowDefinitions(slot);
+        const targetState = paintbrushState.unlock;
+        
+        let toggled = 0;
+        affectedRows.forEach(row => {
+            const unlockId = row.dataset.unlockId;
+            const def = allDefs.find(d => d.labelText === unlockId);
+            if (!def) return;
+            
+            let unlocked = false;
+            try {
+                unlocked = typeof def.isUnlocked === "function" ? !!def.isUnlocked() : false;
+            } catch {}
+            
+            if (unlocked !== targetState) {
+                try {
+                    if (targetState) {
+                        def.onEnable?.();
+                    } else {
+                        def.onDisable?.();
+                    }
+                    toggled += 1;
+                } catch {}
+            }
+        });
+        try {
+            refreshLiveBindings();
+        } catch {}
+        logAction(`Paintbrush applied unlock state: ${targetState} to ${toggled} entries.`);
+    }
+});
+
 function buildUnlocksContent(content) {
     content.innerHTML = "";
 
@@ -6024,6 +6109,11 @@ function buildUnlocksContent(content) {
     rows.forEach((rowDef) => {
         content.appendChild(createUnlockToggleRow(rowDef));
     });
+    
+    // In case the unlocks content is rebuilt while paintbrush is active
+    try {
+        window.dispatchEvent(new CustomEvent("debug:reinit_paintbrush"));
+    } catch {}
 }
 
 function buildDebugPanel() {
