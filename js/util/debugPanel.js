@@ -6112,7 +6112,9 @@ function buildUnlocksContent(content) {
     
     // In case the unlocks content is rebuilt while paintbrush is active
     try {
-        window.dispatchEvent(new CustomEvent("debug:reinit_paintbrush"));
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("debug:reinit_paintbrush"));
+        }, 0);
     } catch {}
 }
 
@@ -6436,6 +6438,9 @@ window.addEventListener("saveSlot:change", () => {
     createDebugPanelToggleButton();
     if (debugPanelOpen) {
         buildDebugPanel();
+    }
+    if (typeof unlocksPaintbrush !== "undefined" && unlocksPaintbrush.isActive()) {
+        unlocksPaintbrush.close();
     }
 });
 
