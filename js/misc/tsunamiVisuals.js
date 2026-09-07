@@ -64,7 +64,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             }
         } else {
             // Single XP or MP, or thin viewport stacking
-            if (type === 'mp') wrapper.style.top = '66%';
+            if (type === 'mp') wrapper.style.top = '67%';
             else if (type === 'xp') wrapper.style.top = '72%';
             wrapper.style.transform = `translateX(-50%) ${transformBase}`;
         }
