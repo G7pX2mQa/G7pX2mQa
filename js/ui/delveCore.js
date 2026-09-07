@@ -534,7 +534,6 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
 
     const showBar = () => {
         if (!IS_MOBILE) return;
-        if (scroller.__suppressShowBar) return;
         sheetEl.classList.add("is-scrolling");
         if (fadeTimer) clearTimeout(fadeTimer);
     };
@@ -622,27 +621,20 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         showBar();
         scheduleHide(FADE_SCROLL_MS);
     });
-    const suppress = (ms = 300) => {
-        scroller.__suppressShowBar = true;
-        if (fadeTimer) clearTimeout(fadeTimer);
-        bar.style.transition = "none";
-        bar.style.opacity = "0";
-        sheetEl.classList.remove("is-scrolling");
-        setTimeout(() => {
-            scroller.__suppressShowBar = false;
-            bar.style.transition = "";
-            bar.style.opacity = "";
-            sheetEl.classList.remove("is-scrolling");
-        }, ms);
-    };
-
     // mark so we don't double-init
     const onSettingChanged = (e) => {
         if (e?.detail?.key === "spreadsheet_mode") {
-            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode") && scroller.__customScroll?.suppress) {
-                scroller.__customScroll.suppress(500);
-            }
             updateAll();
+            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
+                sheetEl.classList.remove("is-scrolling");
+                if (fadeTimer) clearTimeout(fadeTimer);
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        sheetEl.classList.remove("is-scrolling");
+                        if (fadeTimer) clearTimeout(fadeTimer);
+                    });
+                });
+            }
         }
     };
     window.addEventListener("setting:changed", onSettingChanged);
@@ -659,7 +651,7 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
         bar.remove();
         delete scroller.__customScroll;
     };
-    scroller.__customScroll = { bar, thumb, ro, updateAll, destroy, suppress };
+    scroller.__customScroll = { bar, thumb, ro, updateAll, destroy };
     updateAll();
 }
 
