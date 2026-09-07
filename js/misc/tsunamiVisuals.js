@@ -46,10 +46,12 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         const hasXp = !!options.xpHTML;
         const hasMp = !!options.mpHTML;
 
+        const isThinViewport = window.innerWidth <= 600 && window.innerHeight > window.innerWidth;
+
         if (type === 'coin') {
             wrapper.style.top = '77%';
             wrapper.style.transform = `translateX(-50%) ${transformBase}`;
-        } else if (hasXp && hasMp) {
+        } else if (hasXp && hasMp && !isThinViewport) {
             // Both XP and MP: Side-by-side centered
             // Compromise vertical position
             wrapper.style.top = '72.5%';
@@ -61,12 +63,11 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                 wrapper.style.transform = `translateX(44px) ${transformBase}`;
             }
         } else {
-            // Single XP or MP
+            // Single XP or MP, or thin viewport stacking
             if (type === 'mp') wrapper.style.top = '66%';
             else if (type === 'xp') wrapper.style.top = '72%';
             wrapper.style.transform = `translateX(-50%) ${transformBase}`;
         }
-        
         wrapper.style.transformOrigin = 'center center';
         
         const counter = wrapper.firstElementChild;
