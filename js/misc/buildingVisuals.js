@@ -6103,7 +6103,6 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   }
 
   const fillGold = pureGoldPattern ? pureGoldPattern : "#FFD700";
-  const darkMetal = "#000000";
   
   // Progress helpers for smooth fading
   const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
@@ -6376,7 +6375,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     if (isVaultOpening || isVaultOpen) {
       ctx.fillStyle = "#111111";
       ctx.fillRect(-50, -90, 100, 80);
-      ctx.strokeStyle = darkMetal;
+      ctx.strokeStyle = "#000000";
       ctx.lineWidth = 2;
       ctx.strokeRect(-50, -90, 100, 80);
       
@@ -6411,12 +6410,12 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.fillRect(-50, -90, 100, 80);
     
     // Vault door outline
-    ctx.strokeStyle = darkMetal;
+    ctx.strokeStyle = "#000000";
     ctx.lineWidth = 2;
     ctx.strokeRect(-50, -90, 100, 80);
     
     // Central mechanical dial
-    ctx.fillStyle = darkMetal;
+    ctx.fillStyle = "#000000";
     ctx.beginPath();
     ctx.arc(0, -50, 20, 0, Math.PI * 2);
     ctx.fill();
@@ -6455,7 +6454,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     drawRoundRect(31, -62, 8, 24, 4);
     ctx.fillStyle = "#000000";
     ctx.fill();
-    ctx.strokeStyle = darkMetal;
+    ctx.strokeStyle = "#000000";
     ctx.lineWidth = 1.5;
     ctx.stroke();
     
@@ -6691,7 +6690,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       
       if (renderPass === "both" || renderPass === "body") {
         // Drone Body (Sleek black & gold)
-        ctx.fillStyle = darkMetal;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
         ctx.moveTo(-15, 0);
         ctx.lineTo(0, -10);
@@ -6870,7 +6869,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.strokeRect(-67.5, -107.5, 135, 115);
     
     // Draw 1px black outline on edges of the thick frame
-    ctx.strokeStyle = darkMetal;
+    ctx.strokeStyle = "#000000";
     ctx.lineWidth = 1;
     ctx.strokeRect(-75, -115, 150, 130); // outer bound
     ctx.strokeRect(-60, -100, 120, 100); // inner bound
