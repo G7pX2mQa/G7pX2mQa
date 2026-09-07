@@ -1012,6 +1012,13 @@ export function initSurgeEffects() {
         }
         return baseGain.mulBigNumInteger(mult);
     });
+    addExternalMutationGainMultiplierProvider(({ baseGain }) => {
+        if (!isSurgeActive(10)) return baseGain;
+        if (baseGain.cmp(BigNum.fromInt(1)) <= 0) return baseGain;
+        
+        const logVal = approxLog10BigNum(baseGain);
+        return bigNumFromLog10(logVal * 2);
+    });
     addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
         if (!isSurgeActive(6)) return baseMultiplier;
         const wealth = getSurge6WealthMultipliers();
