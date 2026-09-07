@@ -5807,6 +5807,56 @@ function buildMiscContent(content) {
             },
         },
         {
+            label: "Ultra Lazy Button",
+            onClick: () => {
+                const raw = window.prompt("Unlocks all unlocks, enables all automation, and maxes all Lab nodes. Input a number that you want to set your Surge to.");
+                if (raw == null || raw.trim() === "") return;
+                
+                let limitStr = "0";
+                
+                if (/^inf(?:inity)?$/i.test(raw.trim())) {
+                    limitStr = "Infinity";
+                } else {
+                    try {
+                        const parsed = BigNum.fromAny(raw).floorToInteger();
+                        if (parsed.isNegative && parsed.isNegative()) {
+                            limitStr = "0";
+                        } else if (parsed.isInfinite && parsed.isInfinite()) {
+                            limitStr = "Infinity";
+                        } else {
+                            limitStr = parsed.inf || parsed.e >= BigNum.DEFAULT_PRECISION ? "Infinity" : parsed.toPlainIntegerString();
+                        }
+                    } catch {
+                        return;
+                    }
+                }
+
+                unlockAllUnlocks();
+                setAllAutomationToggles(true);
+
+                RESEARCH_NODES.forEach((node) => {
+                    if (Number.isFinite(node.maxLevel)) {
+                        setResearchNodeLevel(node.id, node.maxLevel, true);
+                    }
+                });
+                window.dispatchEvent(new CustomEvent("lab:node:change", { detail: { suppressNotify: false } }));
+
+                const slot = getActiveSlot();
+                const surgeLevelKey = getSurgeBarLevelKey(slot);
+                if (surgeLevelKey) {
+                    lsSetItem(surgeLevelKey, limitStr);
+                    window.dispatchEvent(
+                        new CustomEvent("surge:level:change", {
+                            detail: { slot },
+                        }),
+                    );
+                }
+
+                flagDebugUsage();
+                logAction(`Used Ultra Lazy Button. Set Surge to ${limitStr}`);
+            },
+        },
+        {
             label: "Wipe Action Log",
             onClick: () => {
                 persistActionLog([], slot);
