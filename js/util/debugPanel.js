@@ -6111,11 +6111,10 @@ function buildUnlocksContent(content) {
     });
     
     // In case the unlocks content is rebuilt while paintbrush is active
-    try {
-        setTimeout(() => {
-            window.dispatchEvent(new CustomEvent("debug:reinit_paintbrush"));
-        }, 0);
-    } catch {}
+    // We defer the event using setTimeout if the panel is not yet in the DOM. 
+    // This wastes a frame if the panel is just opening.
+    // However, buildUnlocksContent can also be called synchronously when the panel is already open.
+    // To solve this properly, buildDebugPanel will dispatch this event at the end of building.
 }
 
 function buildDebugPanel() {
@@ -6310,6 +6309,9 @@ function buildDebugPanel() {
     }
     setupLiveBindingListeners();
     debugPanelOpen = true;
+    try {
+        window.dispatchEvent(new CustomEvent("debug:reinit_paintbrush"));
+    } catch {}
 }
 
 function openDebugPanel() {
