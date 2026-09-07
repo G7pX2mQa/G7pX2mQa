@@ -471,7 +471,12 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     function drawDunes(ctx, width, height, sandY, palette) {
         // Base Background
         ctx.fillStyle = palette.sandDark;
-        ctx.fillRect(-50, sandY, width + 100, height - sandY);
+        ctx.beginPath();
+        ctx.moveTo(-50, height + 100);
+        ctx.lineTo(-50, sandY);
+        ctx.bezierCurveTo(width*0.3, sandY - 20, width*0.7, sandY + 20, width + 50, sandY);
+        ctx.lineTo(width + 50, height + 100);
+        ctx.fill();
 
         // Dune 1 (Back)
         ctx.fillStyle = palette.sandDark;
