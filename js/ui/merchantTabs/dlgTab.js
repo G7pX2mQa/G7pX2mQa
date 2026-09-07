@@ -23,8 +23,10 @@ import { isLabUnlocked, getTsunamiSequencePlayed } from "../../game/surgeEffects
 import { blockInteraction } from "../shopOverlay.js";
 import { suppressNextGhostTap } from "../../util/ghostTapGuard.js";
 import { IS_MOBILE } from "../../util/platformChecker.js";
-import { playAudio, setAudioUnderwater } from "../../util/audioManager.js";
+import { playAudio, setAudioUnderwater, setMusicVolume, setSfxVolume } from "../../util/audioManager.js";
+import { settingsManager } from "../../game/settingsManager.js";
 import { playSecretDlgBossFightSequence } from "../../misc/secretDlgBossVisuals.js";
+import { playTsunamiSequence } from "../../misc/tsunamiVisuals.js";
 import { getLifetimeBossBeaten } from "../../game/secretAchievements.js";
 import { RESOURCE_REGISTRY } from "../../game/offlinePanel.js";
 import {
@@ -474,6 +476,14 @@ function grantReward(reward) {
         }
         return;
     }
+    if (reward.type === "dna") {
+        try {
+            bank.dna.add(reward.amount);
+        } catch (e) {
+            console.warn("Failed to grant DNA reward:", reward, e);
+        }
+        return;
+    }
     try {
         window.dispatchEvent(new CustomEvent("merchantReward", { detail: reward }));
     } catch {}
@@ -585,8 +595,8 @@ export const DLG_CATALOG = {
         title: "A Terrible Tsunami",
         blurb: "Discuss the aftermath of invoking the Tsunami with the Merchant",
         scriptId: 6,
-        reward: { type: "coins", amount: 2 },
-        rewardNode: "n0",
+        reward: { type: "dna", amount: 100 },
+        rewardNode: ["m7b", "m9a", "m9c"],
         once: true,
         unlock: (progress) => {
             if (typeof isLabUnlocked === "function" && isLabUnlocked()) {
@@ -818,6 +828,8 @@ function openDialogueModal(id, meta) {
             cancelWithoutReward();
         }
     });
+    const iconEl = overlay.querySelector(".merchant-firstchat__icon");
+    const defaultSpriteSrc = MERCHANT_ICON_SRC;
     const engine = new DialogueEngine({
         textEl,
         choicesEl,
@@ -828,6 +840,58 @@ function openDialogueModal(id, meta) {
                 setJeffUnlocked(true);
             }
         },
+        onNodeEnter: (nodeId, node) => {
+            // Sprite swap
+            if (node.sprite && iconEl) {
+                iconEl.src = node.sprite;
+            }
+            // Clear text before stalling
+            if (node.stallMs && node.stallMs > 0) {
+                textEl.innerHTML = "";
+            }
+            // Mute background audio (M4E sad merchant, M5C evil merchant)
+            if (node.muteAudio) {
+                setMusicVolume(0);
+                setSfxVolume(0);
+                // Intentionally NOT stopping the typing SFX so it can still be heard
+            }
+        },
+        onNodeLeave: (nodeId, node) => {
+            // Restore default sprite when leaving a sprite-swapped node
+            if (node.sprite && iconEl) {
+                iconEl.src = defaultSpriteSrc;
+            }
+            // Restore audio when leaving a muted node
+            if (node.muteAudio) {
+                const initialMusicVolume = settingsManager.get("music_volume");
+                setMusicVolume(initialMusicVolume !== false && initialMusicVolume !== undefined ? initialMusicVolume : 100);
+                
+                const initialSfxVolume = settingsManager.get("sfx_volume");
+                setSfxVolume(initialSfxVolume !== false && initialSfxVolume !== undefined ? initialSfxVolume : 100);
+            }
+        },
+        onTsunamiReplay: (continuationId, eng) => {
+            // Hide dialogue modal during replay
+            overlay.style.display = "none";
+            setAudioUnderwater(false);
+            window.dispatchEvent(new CustomEvent("audio:stopMusic"));
+            // Create full-screen container for tsunami replay
+            const tsunamiOverlay = document.createElement("div");
+            tsunamiOverlay.style.position = "fixed";
+            tsunamiOverlay.style.inset = "0";
+            tsunamiOverlay.style.zIndex = "2147483645";
+            tsunamiOverlay.style.backgroundColor = "black";
+            document.body.appendChild(tsunamiOverlay);
+            const controls = playTsunamiSequence(tsunamiOverlay, 5000, () => {
+                // After 5 seconds: cleanup and resume dialogue
+                if (controls && controls.cleanup) controls.cleanup();
+                if (tsunamiOverlay.parentNode) tsunamiOverlay.remove();
+                overlay.style.display = "";
+                window.dispatchEvent(new CustomEvent("audio:restartMusic"));
+                setAudioUnderwater(true);
+                eng.goto(continuationId);
+            });
+        },
         onEnd: (info) => {
             if (ended) return;
             ended = true;
@@ -837,15 +901,15 @@ function openDialogueModal(id, meta) {
                 playDialogueExplosion();
                 return;
             }
-            if (info && info.noReward) {
-                renderDialogueList();
-                closeModal();
-                return;
-            }
             if (info && info.startBossFight) {
                 renderDialogueList();
                 closeModal();
                 startBossFightSequence();
+                return;
+            }
+            if (info && info.noReward) {
+                renderDialogueList();
+                closeModal();
                 return;
             }
             completeDialogueOnce(id, meta);
@@ -906,20 +970,24 @@ function openDialogueModal(id, meta) {
         throw new Error(`Dialogue ${id} has a reward but no rewardNode declared.`);
     }
     if (claimed && meta.reward && meta.rewardNode) {
-        const rNode = script.nodes[meta.rewardNode];
-        if (rNode) {
-            const capText =
-                String(meta.reward.type || "")
-                    .charAt(0)
-                    .toUpperCase() + String(meta.reward.type || "").slice(1);
-            rNode.say = `I've already given you ${capText}, goodbye.`;
-            const nextNode = script.nodes[rNode.next];
-            if (nextNode && nextNode.type === "choice") {
-                nextNode.options = [
-                    { label: "Goodbye.", to: "end_nr" },
-                    { label: "Goodbye.", to: "end_nr" },
-                    { label: "Goodbye.", to: "end_nr" },
-                ];
+        const rewardNodes = Array.isArray(meta.rewardNode) ? meta.rewardNode : [meta.rewardNode];
+        let capText = String(meta.reward.type || "").charAt(0).toUpperCase() + String(meta.reward.type || "").slice(1);
+        const rConfig = RESOURCE_REGISTRY.find((r) => r.key === meta.reward.type);
+        if (rConfig) {
+            capText = Number(meta.reward.amount) === 1 ? rConfig.singular : rConfig.plural;
+        }
+        for (const rnId of rewardNodes) {
+            const rNode = script.nodes[rnId];
+            if (rNode) {
+                rNode.say = `I've already given you ${capText}, goodbye.`;
+                const nextNode = script.nodes[rNode.next];
+                if (nextNode && nextNode.type === "choice") {
+                    nextNode.options = [
+                        { label: "Goodbye.", to: "end_nr" },
+                        { label: "Goodbye.", to: "end_nr" },
+                        { label: "Goodbye.", to: "end_nr" },
+                    ];
+                }
             }
         }
     }
@@ -1240,14 +1308,16 @@ function renderDialogueList() {
                 const amtEl = rewardEl.querySelector(".amt");
                 const amtText = String(meta.reward.amount);
                 if (amtEl && amtEl.textContent !== amtText) amtEl.textContent = amtText;
+                let capText = String(meta.reward.type || "").charAt(0).toUpperCase() + String(meta.reward.type || "").slice(1);
+                if (config) {
+                    capText = Number(meta.reward.amount) === 1 ? config.singular : config.plural;
+                }
                 const nameEl = rewardEl.querySelector(".currency-name");
                 if (nameEl) {
-                    const typeStr = String(meta.reward.type || "");
-                    const capText = typeStr.charAt(0).toUpperCase() + typeStr.slice(1);
                     if (nameEl.textContent !== capText) nameEl.textContent = capText;
                 }
 
-                const rewardLabelText = `Reward: ${meta.reward.amount} ${meta.reward.type}`;
+                const rewardLabelText = `Reward: ${meta.reward.amount} ${capText}`;
                 if (rewardEl.getAttribute("aria-label") !== rewardLabelText) {
                     rewardEl.setAttribute("aria-label", rewardLabelText);
                 }
@@ -1460,15 +1530,15 @@ function startConversation(id, meta) {
                 playDialogueExplosion();
                 return;
             }
-            if (info && info.noReward) {
-                textEl.textContent = "...";
-                renderDialogueList();
-                return;
-            }
             if (info && info.startBossFight) {
                 textEl.textContent = "...";
                 renderDialogueList();
                 startBossFightSequence();
+                return;
+            }
+            if (info && info.noReward) {
+                textEl.textContent = "...";
+                renderDialogueList();
                 return;
             }
             completeDialogueOnce(id, meta);
