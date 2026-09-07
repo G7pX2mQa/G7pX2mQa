@@ -666,6 +666,12 @@ function showLoader(text = "Loading assets...", onSkip) {
         document.body.appendChild(root);
     }
 
+    if (text === "Loading assets...") {
+        root.classList.add("with-bg");
+    } else {
+        root.classList.remove("with-bg");
+    }
+
     root.innerHTML = "";
     Object.assign(root.style, {
         position: "fixed",
@@ -2723,9 +2729,26 @@ function generateMenuBackground(manifest) {
             document.head.appendChild(styleEl);
         }
         styleEl.textContent = `
-      body.menu-bg::before {
+      body.menu-bg::before,
+      #boot-loader.with-bg::before {
         background-image: url("${dataUrl}") !important;
         background-size: var(--coin-step) var(--coin-step) !important;
+      }
+      #boot-loader.with-bg {
+        isolation: isolate;
+      }
+      #boot-loader.with-bg::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background-repeat: repeat;
+        will-change: background-position;
+        animation: ccc-drift var(--coin-speed) linear infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-loader.with-bg::before { animation: none; }
       }
     `;
     }
