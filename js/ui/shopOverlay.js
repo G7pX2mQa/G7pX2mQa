@@ -555,19 +555,6 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     };
     if (scroller.__customScroll) {
         scroller.__customScroll.update = updateAll;
-        scroller.__customScroll.suppress = (ms = 300) => {
-            scroller.__suppressShowBar = true;
-            sheetEl.classList.remove("is-scrolling");
-            clearTimeout(scroller.__fadeTimer);
-            bar.style.transition = "none";
-            bar.style.opacity = "0";
-            setTimeout(() => {
-                scroller.__suppressShowBar = false;
-                bar.style.transition = "";
-                bar.style.opacity = "";
-                sheetEl.classList.remove("is-scrolling");
-            }, ms);
-        };
     }
     // Debounce for mutation observer to prevent layout thrashing on frequent updates
     let debounceTimer;
@@ -672,15 +659,31 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         showBar();
         scheduleHide(FADE_SCROLL_MS);
     });
+    const suppress = (ms = 300) => {
+        scroller.__suppressShowBar = true;
+        clearTimeout(scroller.__fadeTimer);
+        bar.style.transition = "none";
+        bar.style.opacity = "0";
+        sheetEl.classList.remove("is-scrolling");
+        
+        setTimeout(() => {
+            scroller.__suppressShowBar = false;
+            bar.style.transition = "";
+            bar.style.opacity = "";
+            sheetEl.classList.remove("is-scrolling");
+        }, ms);
+    };
+
     function onSettingChanged(e) {
         if (e?.detail?.key === "spreadsheet_mode") {
-            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode") && scroller.__customScroll?.suppress) {
-                scroller.__customScroll.suppress(500);
+            if (IS_MOBILE && !settingsManager.get("spreadsheet_mode")) {
+                suppress(500);
             }
             updateAll();
         }
     }
     window.addEventListener("setting:changed", onSettingChanged);
+    scroller.__customScroll = { bar, thumb, ro, updateAll, suppress };
     updateAll();
 }
 // --- Logic Helpers ---
