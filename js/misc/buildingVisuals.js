@@ -9973,12 +9973,25 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           let glowRadius = 30 + 15 * pulse + 15 * t8Alpha; 
           ctx.beginPath();
           ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-          let bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, glowRadius);
-          bgGrad.addColorStop(0, `rgba(255, 0, 0, ${Math.min(1, 0.9 * pulse + 0.5 * t8Alpha)})`);
-          bgGrad.addColorStop(0.5, `rgba(200, 0, 0, ${Math.min(1, 0.5 * pulse + 0.3 * t8Alpha)})`);
-          bgGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          ctx.fillStyle = bgGrad;
-          ctx.fill();
+          if (!window.cachedReactorBeam) {
+              const c = document.createElement('canvas');
+              c.width = 512; c.height = 512;
+              const cCtx = c.getContext('2d');
+              const g = cCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
+              g.addColorStop(0, 'rgba(255, 0, 0, 1)');
+              g.addColorStop(0.5, 'rgba(200, 0, 0, 0.55)');
+              g.addColorStop(1, 'rgba(255, 0, 0, 0)');
+              cCtx.fillStyle = g;
+              cCtx.fillRect(0, 0, 512, 512);
+              window.cachedReactorBeam = c;
+          }
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.globalAlpha *= Math.min(1, 0.9 * pulse + 0.5 * t8Alpha);
+          ctx.drawImage(window.cachedReactorBeam, -glowRadius, -glowRadius, glowRadius*2, glowRadius*2);
+          ctx.restore();
           ctx.restore();
       }
 
@@ -10054,7 +10067,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       
       const maxAlpha = Math.max(overdriveAlpha, t8Alpha);
       ctx.globalAlpha = ctx.globalAlpha * maxAlpha;
-      ctx.globalCompositeOperation = 'screen';
+      ctx.globalCompositeOperation = window.IS_FIREFOX ? 'source-over' : 'screen';
       let bladeRadius = 32 + 12 * pulse + 8 * t8Alpha; 
       let starterSpread = (Math.PI/6) + (0.1 * t8Alpha);
       let beamSpread = starterSpread + 0.05;
@@ -10075,17 +10088,27 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
           ctx.save();
           let beamLength = (180 + 140 * pulse) * (1 + t8Alpha);
-          let beamGrad = ctx.createRadialGradient(0, 0, bladeRadius, 0, 0, beamLength);
-          beamGrad.addColorStop(0, `rgba(255, 0, 0, ${Math.min(1, 0.9 * pulse + 0.5 * t8Alpha)})`);
-          beamGrad.addColorStop(0.5, `rgba(200, 0, 0, ${Math.min(1, 0.5 * pulse + 0.3 * t8Alpha)})`);
-          beamGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-          
-          ctx.fillStyle = beamGrad;
+          if (!window.cachedReactorBeam) {
+              const c = document.createElement('canvas');
+              c.width = 512; c.height = 512;
+              const cCtx = c.getContext('2d');
+              const g = cCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
+              g.addColorStop(0, 'rgba(255, 0, 0, 1)');
+              g.addColorStop(0.5, 'rgba(200, 0, 0, 0.55)');
+              g.addColorStop(1, 'rgba(255, 0, 0, 0)');
+              cCtx.fillStyle = g;
+              cCtx.fillRect(0, 0, 512, 512);
+              window.cachedReactorBeam = c;
+          }
+          ctx.save();
           ctx.beginPath();
           ctx.arc(0, 0, bladeRadius - 1, -beamSpread, beamSpread);
           ctx.arc(0, 0, beamLength, beamSpread, -beamSpread, true);
           ctx.closePath();
-          ctx.fill();
+          ctx.clip();
+          ctx.globalAlpha *= Math.min(1, 0.9 * pulse + 0.5 * t8Alpha);
+          ctx.drawImage(window.cachedReactorBeam, -beamLength, -beamLength, beamLength*2, beamLength*2);
+          ctx.restore();
 
           // Removed the smaller inner beam of light per user request
           
@@ -10646,7 +10669,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
     hazeGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     
     ctx.fillStyle = hazeGrad;
-    ctx.globalCompositeOperation = 'screen';
+    ctx.globalCompositeOperation = window.IS_FIREFOX ? 'source-over' : 'screen';
     ctx.beginPath();
     ctx.arc(cx, cy, hazeRadius, 0, Math.PI * 2);
     ctx.fill();
