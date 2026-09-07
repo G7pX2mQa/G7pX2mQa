@@ -1733,6 +1733,9 @@ export function openMerchant() {
                 try {
                     const scroller = merchantOverlayEl.querySelector(".merchant-content .simplebar-content-wrapper") || merchantOverlayEl.querySelector(".merchant-content");
                     if (scroller) {
+                        if (IS_MOBILE && scroller.__customScroll && typeof scroller.__customScroll.suppress === "function") {
+                            scroller.__customScroll.suppress(500);
+                        }
                         scroller.scrollTop = scroller.scrollHeight;
                     }
                 } catch (e) {}
