@@ -485,11 +485,9 @@ function setupLiveBindingListeners() {
             (binding) => binding.type === "lab-node-level" && binding.slot === targetSlot && binding.id === id,
         );
 
-        if (id === 1) {
-            refreshLiveBindings(
-                (binding) => binding.type === "tsunami-nerf" && (binding.slot == null || binding.slot === targetSlot),
-            );
-        }
+        refreshLiveBindings(
+            (binding) => binding.type === "tsunami-nerf" && (binding.slot == null || binding.slot === targetSlot),
+        );
         if (id === 4) {
             refreshLiveBindings(
                 (binding) => binding.type === "unlock" && (binding.slot == null || binding.slot === targetSlot),
