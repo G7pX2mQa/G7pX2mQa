@@ -109,7 +109,7 @@ export const SURGE_MILESTONES = [
     {
         id: 10,
         surgeLevel: 10,
-        description: ["Unlocks new DNA upgrades"],
+        description: ["Unlocks new DNA upgrades", "<i>Squares</i> MP value (immune to exponent)"],
     },
     {
         id: 11,
@@ -503,7 +503,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                 );
             } else if (m.id === 4) {
                 const log10 = Math.log10(4.444e12);
-                const newVal = bigNumFromLog10(log10 * nerf);
+                const newVal = nerf === 1 ? BigNum.fromAny(4.444e12) : bigNumFromLog10(log10 * nerf);
                 const valStr = formatMultForUi(newVal);
                 milestone.description[0] = milestone.description[0].replace(
                     /<span style="color:#00e5ff">.*?x<\/span>/,
@@ -511,7 +511,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                 );
             } else if (m.id === 14) {
                 const log10 = Math.log10(14.14e6);
-                const newVal = bigNumFromLog10(log10 * nerf);
+                const newVal = nerf === 1 ? BigNum.fromAny(14.14e6) : bigNumFromLog10(log10 * nerf);
                 const valStr = formatMultForUi(newVal);
                 milestone.description[0] = milestone.description[0].replace(
                     /<span style="color:#00e5ff">.*?x<\/span>/,
@@ -520,8 +520,8 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             } else if (m.id === 17) {
                 const logMult = 15;
                 const logDiv = 5;
-                const newMult = bigNumFromLog10(logMult * nerf);
-                const newDiv = bigNumFromLog10(logDiv * nerf);
+                const newMult = nerf === 1 ? BigNum.fromAny(1e15) : bigNumFromLog10(logMult * nerf);
+                const newDiv = nerf === 1 ? BigNum.fromAny(1e5) : bigNumFromLog10(logDiv * nerf);
                 const multStr = formatMultForUi(newMult);
                 const divStr = formatMultForUi(newDiv);
                 milestone.description[0] = milestone.description[0].replace(
@@ -539,8 +539,8 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             } else if (m.id === 18) {
                 const logMult = 15;
                 const logDiv = 5;
-                const newMult = bigNumFromLog10(logMult * nerf);
-                const newDiv = bigNumFromLog10(logDiv * nerf);
+                const newMult = nerf === 1 ? BigNum.fromAny(1e15) : bigNumFromLog10(logMult * nerf);
+                const newDiv = nerf === 1 ? BigNum.fromAny(1e5) : bigNumFromLog10(logDiv * nerf);
                 const multStr = formatMultForUi(newMult);
                 const divStr = formatMultForUi(newDiv);
                 milestone.description[0] = milestone.description[0].replace(
