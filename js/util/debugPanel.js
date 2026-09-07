@@ -6078,7 +6078,7 @@ const unlocksPaintbrush = createPaintbrush({
         try {
             refreshLiveBindings();
         } catch {}
-        logAction(`Paintbrush applied unlock state: ${targetState} to ${toggled} entries.`);
+        logAction(`UAU Multi-Toggle applied unlock state: ${targetState} to ${toggled} entries.`);
     }
 });
 
