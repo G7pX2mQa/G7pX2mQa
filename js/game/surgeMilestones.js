@@ -278,7 +278,7 @@ export const SURGE_MILESTONES = [
         id: 33,
         surgeLevel: 100,
         affectedByTsunami: false,
-        description: ["Experiment no longer resets Lab nodes"],
+        description: ["Experiment no longer resets Lab Nodes"],
     },
     {
         id: 34,
