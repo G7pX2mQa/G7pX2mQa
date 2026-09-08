@@ -469,8 +469,10 @@ export function setAudioSuspended(suspended) {
     } else {
       if (sfxGain) {
         // Restore SFX volume using existing function when un-suspending
-        const sfxv = settingsManager.get('sfx_volume');
-        setSfxVolume(sfxv !== undefined && sfxv !== false ? sfxv : 100);
+        if (!window.__merchantMuteActive) {
+            const sfxv = settingsManager.get('sfx_volume');
+            setSfxVolume(sfxv !== undefined && sfxv !== false ? sfxv : 100);
+        }
       }
       if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
     }
