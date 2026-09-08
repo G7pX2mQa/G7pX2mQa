@@ -798,10 +798,18 @@ function openDialogueModal(id, meta) {
     const cardEl = overlay.querySelector(".merchant-firstchat__card");
     const choicesEl = overlay.querySelector(".merchant-firstchat__choices");
     let ended = false;
+    
     // Close helpers — end (with reward) vs cancel (no reward)
     const closeModal = () => {
         if (meta.scriptId === 6) {
             _isLabDialogueOpen = false;
+        }
+        if (window.__merchantMuteActive) {
+            window.__merchantMuteActive = false;
+            const initialMusicVolume = settingsManager.get("music_volume");
+            setMusicVolume(initialMusicVolume !== false && initialMusicVolume !== undefined ? initialMusicVolume : 100);
+            const initialSfxVolume = settingsManager.get("sfx_volume");
+            setSfxVolume(initialSfxVolume !== false && initialSfxVolume !== undefined ? initialSfxVolume : 100);
         }
         document.removeEventListener("keydown", onEscToCancel, { capture: true });
         overlay.classList.remove("is-visible");
@@ -816,11 +824,8 @@ function openDialogueModal(id, meta) {
         if (ended) return;
         ended = true;
         closeModal(); // no reward
-        stopTypingSfx();
-        setTypingActive(false);
-        setAudioUnderwater(false);
-        renderDialogueList(); // refresh UI state
     };
+    
     overlay.addEventListener("pointerdown", (e) => {
         if (!cardEl.contains(e.target)) {
             e.preventDefault();
@@ -851,6 +856,7 @@ function openDialogueModal(id, meta) {
             }
             // Mute background audio (M4E sad merchant, M5C evil merchant)
             if (node.muteAudio) {
+                window.__merchantMuteActive = true;
                 setMusicVolume(0);
                 setSfxVolume(0);
                 // Intentionally NOT stopping the typing SFX so it can still be heard
@@ -863,6 +869,7 @@ function openDialogueModal(id, meta) {
             }
             // Restore audio when leaving a muted node
             if (node.muteAudio) {
+                window.__merchantMuteActive = false;
                 const initialMusicVolume = settingsManager.get("music_volume");
                 setMusicVolume(initialMusicVolume !== false && initialMusicVolume !== undefined ? initialMusicVolume : 100);
                 
