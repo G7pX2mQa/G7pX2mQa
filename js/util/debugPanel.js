@@ -5809,7 +5809,7 @@ function buildMiscContent(content) {
         {
             label: "Ultra Lazy Button",
             onClick: () => {
-                const raw = window.prompt("Unlocks all unlocks, enables all automation, and maxes all Lab nodes. Input a number that you want to set your Surge to.");
+                const raw = window.prompt("Unlocks all unlocks, enables all automation, and maxes all Lab Nodes. Input a number that you want to set your Surge to.");
                 if (raw == null || raw.trim() === "") return;
                 
                 let limitStr = "0";
