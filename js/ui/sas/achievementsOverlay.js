@@ -12,6 +12,8 @@ import { showWideNotification } from "../notifications.js";
 const MAXED_BASE_OVERLAY_SRC = "img/misc/maxed.webp";
 let currentGrid = null;
 let currentActions = null;
+let currentOpenAchievement = null;
+
 function renderAchievements(gridEl) {
     if (!gridEl) return;
     gridEl.innerHTML = "";
@@ -191,6 +193,12 @@ if (typeof window !== "undefined") {
             renderAchievements(currentGrid);
         }
     });
+    document.addEventListener("ccc:voidLevel:changed", () => {
+        const overlay = document.getElementById("achievement-details-overlay");
+        if (overlay && overlay.classList.contains("is-open") && currentOpenAchievement) {
+            openAchievementDetails(currentOpenAchievement);
+        }
+    });
 }
 // Ensure the achievement details overlay code is also set up
 // We'll define openAchievementDetails below
@@ -221,6 +229,7 @@ function ensureAchievementOverlay() {
 }
 
 function openAchievementDetails(achievement) {
+    currentOpenAchievement = achievement;
     ensureAchievementOverlay();
     const overlay = document.getElementById("achievement-details-overlay");
     const sheet = overlay.querySelector(".upg-sheet");
@@ -300,6 +309,7 @@ function openAchievementDetails(achievement) {
 }
 
 function closeAchievementDetails() {
+    currentOpenAchievement = null;
     const overlay = document.getElementById("achievement-details-overlay");
     if (!overlay) return;
     const sheet = overlay.querySelector(".upg-sheet");
