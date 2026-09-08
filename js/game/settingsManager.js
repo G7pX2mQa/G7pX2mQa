@@ -221,7 +221,7 @@ export const SETTING_DEFINITIONS = {
         type: "toggle",
         label: "Lab Node Insta-Toggle",
         hasExtraInfo: true,
-        info: "Do you hate having to open a lab node overlay, press Toggle, close the overlay, then when it completes, move onto the next and do it all over again? Toggle this setting ON to instantly toggle a node just by tapping on it.",
+        info: "Do you hate having to open a Lab Node overlay, press Toggle, close the overlay, then when it completes, move onto the next and do it all over again? Toggle this setting ON to instantly toggle a node just by tapping on it.",
         default: false,
         unlockCondition: () => {
             try {
