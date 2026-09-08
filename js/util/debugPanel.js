@@ -4334,7 +4334,7 @@ function getUnlockRowDefinitions(slot) {
         },
         {
             labelText: "Unlock Experiment",
-            description: "If true, Lab node 4 is maxed",
+            description: "If true, Lab Node 4 is maxed",
             isUnlocked: () => {
                 try {
                     return getResearchNodeLevel(4) >= 1;
@@ -4368,7 +4368,7 @@ function getUnlockRowDefinitions(slot) {
         },
         {
             labelText: "Unlock Past N4",
-            description: "If true, unlocks Lab nodes past node 4",
+            description: "If true, unlocks Lab Nodes past node 4",
             isUnlocked: () => {
                 try {
                     return !!window.resetSystem?.hasDoneExperimentReset?.();
@@ -4968,7 +4968,7 @@ function buildLabNodesDebug(container) {
     if (slot == null) {
         const msg = document.createElement("div");
         msg.className = "debug-panel-empty";
-        msg.textContent = "Select a save slot to edit lab nodes.";
+        msg.textContent = "Select a save slot to edit Lab Nodes.";
         container.appendChild(msg);
         return;
     }
@@ -4976,7 +4976,7 @@ function buildLabNodesDebug(container) {
     if (!RESEARCH_NODES || RESEARCH_NODES.length === 0) {
         const msg = document.createElement("div");
         msg.className = "debug-panel-empty";
-        msg.textContent = "No lab nodes found.";
+        msg.textContent = "No Lab Nodes found.";
         container.appendChild(msg);
         return;
     }
