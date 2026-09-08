@@ -32,9 +32,10 @@ const GOALS = [
     },
     {
         id: 2,
-        text: "Unlock the XP system, then reach XP Level 31 and unlock a certain upgrade",
+        text: "Unlock the XP system, then reach XP Level 31",
         icon: "img/misc/forge.webp",
         unlocksHelpText: true,
+        unlocksUpgradeText: true,
         mode: GOAL_MODE.NORMAL,
         start: 0,
         target: 31,
@@ -46,14 +47,15 @@ const GOALS = [
         isComplete: () => {
             const xpState = getXpState();
             if (!xpState || !xpState.unlocked) return false;
-            return levelBigNumToNumber(xpState.xpLevel) >= 31 && isForgeUnlocked();
+            return levelBigNumToNumber(xpState.xpLevel) >= 31;
         },
     },
     {
         id: 3,
-        text: "Reach XP Level 101 and unlock a certain upgrade",
+        text: "Reach XP Level 101",
         icon: "img/misc/infuse.webp",
         unlocksHelpText: true,
+        unlocksUpgradeText: true,
         mode: GOAL_MODE.NORMAL,
         start: 0,
         target: 101,
@@ -65,14 +67,15 @@ const GOALS = [
         isComplete: () => {
             const xpState = getXpState();
             if (!xpState || !xpState.unlocked) return false;
-            return levelBigNumToNumber(xpState.xpLevel) >= 101 && isInfuseUnlocked();
+            return levelBigNumToNumber(xpState.xpLevel) >= 101;
         },
     },
     {
         id: 4,
-        text: "Reach XP Level 201 and unlock a certain upgrade",
+        text: "Reach XP Level 201",
         icon: "img/misc/surge.webp",
         unlocksHelpText: true,
+        unlocksUpgradeText: true,
         mode: GOAL_MODE.NORMAL,
         start: 0,
         target: 201,
@@ -84,7 +87,7 @@ const GOALS = [
         isComplete: () => {
             const xpState = getXpState();
             if (!xpState || !xpState.unlocked) return false;
-            return levelBigNumToNumber(xpState.xpLevel) >= 201 && isSurgeUnlocked();
+            return levelBigNumToNumber(xpState.xpLevel) >= 201;
         },
     },
     {
@@ -217,7 +220,7 @@ export function showDelayedGoalNotifications() {
         const showProgress = settingsManager.get("game_progress_bar");
         for (const notif of window.__delayedGoalNotifications) {
             if (showProgress) {
-                showNotification(notif.text, notif.icon);
+                showNotification(notif.text, notif.icon, notif.duration);
             }
             lsSetItem(notif.notifKey, "1");
         }
@@ -256,11 +259,15 @@ export function updateGameProgressBar() {
                 if (goal.unlocksHelpText) {
                     notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
                 }
+                if (goal.unlocksUpgradeText) {
+                    notifText += '<br><span class="notification-subtext">A new upgrade has appeared!</span>';
+                }
                 if (!settingsManager.get("game_progress_bar")) {
                     lsSetItem(notifKey, "1");
                 } else {
                     const shouldDelayForTsunami = goal.id !== 8 && window.__tsunamiActive;
                     const shouldDelayForMap = goal.id === 8 && window.__mapSequenceActive;
+                    const customDuration = goal.unlocksUpgradeText ? 8000 : 5000;
                     if (typeof window !== "undefined" && (shouldDelayForTsunami || shouldDelayForMap)) {
                         window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
                         // Avoid pushing duplicates
@@ -270,10 +277,11 @@ export function updateGameProgressBar() {
                                 text: notifText,
                                 icon: goal.icon,
                                 notifKey,
+                                duration: customDuration,
                             });
                         }
                     } else {
-                        showNotification(notifText, goal.icon);
+                        showNotification(notifText, goal.icon, customDuration);
                         lsSetItem(notifKey, "1");
                     }
                 }
