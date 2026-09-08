@@ -189,7 +189,7 @@ export const SURGE_MILESTONES = [
         surgeLevel: 20,
         description: [
             'Unlocks the <span style="color:#00fffa">Flow</span> tab',
-            "Unlocks new Lab nodes",
+            "Unlocks new Lab Nodes",
             "Unlocks a new Coin upgrade",
             "Unlocks a new Merchant dialogue",
             "Combo no longer decays",
