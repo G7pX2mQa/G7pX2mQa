@@ -3,6 +3,8 @@ import { getActiveSlot } from "../util/storage.js";
 // Configuration
 const DECAY_WINDOW_SEC = 60;
 const COMBO_STORAGE_KEY = (slot) => `ccc:combo:value:${slot}`;
+const COMBO_DECAY_KEY = (slot) => `ccc:combo:decayCounter:${slot}`;
+const COMBO_ACCUM_KEY = (slot) => `ccc:combo:decayAccumulator:${slot}`;
 // State
 const COMBO_INCREMENT_AMOUNT = 0.001;
 let activeComboValue = 0; // The accumulated combo value
@@ -30,37 +32,55 @@ function scheduleSave() {
 function saveComboState() {
     const slot = getActiveSlot();
     if (slot == null) return;
-    // Only save if preservation is active
-    if (!isComboPreservedFn()) return;
+    if (!isSurge14ActiveFn()) return;
     try {
         lsSetItem(COMBO_STORAGE_KEY(slot), activeComboValue.toFixed(3));
+        lsSetItem(COMBO_DECAY_KEY(slot), decayCounter.toString());
+        lsSetItem(COMBO_ACCUM_KEY(slot), decayAccumulator.toFixed(3));
     } catch {}
 }
 
 function loadComboState() {
     const slot = getActiveSlot();
-    if (slot == null) return 0;
+    if (slot == null) return { val: 0, dCounter: 0, dAccum: 0 };
+    let val = 0;
+    let dCounter = 0;
+    let dAccum = 0;
     try {
-        const val = lsGetItem(COMBO_STORAGE_KEY(slot));
-        if (val) {
-            const num = parseFloat(val);
-            return Number.isFinite(num) ? num : 0;
+        const valStr = lsGetItem(COMBO_STORAGE_KEY(slot));
+        if (valStr) {
+            const num = parseFloat(valStr);
+            if (Number.isFinite(num)) val = num;
+        }
+        
+        const dCountStr = lsGetItem(COMBO_DECAY_KEY(slot));
+        if (dCountStr) {
+            const num = parseInt(dCountStr, 10);
+            if (Number.isFinite(num)) dCounter = num;
+        }
+        
+        const dAccumStr = lsGetItem(COMBO_ACCUM_KEY(slot));
+        if (dAccumStr) {
+            const num = parseFloat(dAccumStr);
+            if (Number.isFinite(num)) dAccum = num;
         }
     } catch {}
-    return 0;
+    return { val, dCounter, dAccum };
 }
 
 function resetState() {
     isComboLocked = false;
-    // Check preservation for the NEW slot (getActiveSlot called inside loadComboState/isComboPreservedFn)
-    // However, resetState is called on 'saveSlot:change', at which point getActiveSlot() returns the new slot.
+    
+    const loaded = loadComboState();
+    activeComboValue = loaded.val;
     if (isComboPreservedFn()) {
-        activeComboValue = loadComboState();
+        decayCounter = 0;
+        decayAccumulator = 0;
     } else {
-        activeComboValue = 0;
+        decayCounter = loaded.dCounter;
+        decayAccumulator = loaded.dAccum;
     }
-    decayCounter = 0;
-    decayAccumulator = 0;
+    
     lastGrowthTime = 0;
     lastMaxVal = -1;
     notifyComboChange();
@@ -78,9 +98,14 @@ export function onCoinCollected() {
     if (!isSurge14ActiveFn()) return;
     if (isComboLocked) return;
     const now = performance.now();
-    // Reset decay timer on collection
-    decayCounter = 0;
-    decayAccumulator = 0;
+    
+    let decayReset = false;
+    if (decayCounter > 0 || decayAccumulator > 0) {
+        decayCounter = 0;
+        decayAccumulator = 0;
+        decayReset = true;
+    }
+    
     // Enforce 1 second rate limit for growth
     if (now - lastGrowthTime >= 1000) {
         const maxVal = getMaxComboFn();
@@ -100,9 +125,13 @@ export function onCoinCollected() {
         }
         if (changed) {
             notifyComboChange();
-            if (isComboPreservedFn()) scheduleSave();
+            scheduleSave();
+        } else if (decayReset) {
+            scheduleSave();
         }
         lastGrowthTime = now;
+    } else if (decayReset) {
+        scheduleSave();
     }
 }
 
@@ -112,6 +141,7 @@ export function updateCombo(dt) {
     // Continuous cap check
     const maxVal = getMaxComboFn();
     let changed = false;
+    let decayChanged = false;
     if (activeComboValue > maxVal) {
         activeComboValue = maxVal;
         changed = true;
@@ -130,22 +160,26 @@ export function updateCombo(dt) {
     }
     // 1. Process Decay
     // "change the decay to happen every second, not every game tick"
-    if (decayCounter < DECAY_WINDOW_SEC) {
-        decayAccumulator += dt;
-        while (decayAccumulator >= 1.0) {
-            decayAccumulator -= 1.0;
-            // Only increment if we haven't hit the cap
-            if (decayCounter < DECAY_WINDOW_SEC) {
-                decayCounter += 1;
-                // If we hit the cap (fully decayed), reset value
-                if (decayCounter >= DECAY_WINDOW_SEC) {
-                    activeComboValue = 0;
-                    changed = true;
+    if (!window.__isSimulationActive) {
+        if (decayCounter < DECAY_WINDOW_SEC) {
+            decayAccumulator += dt;
+            while (decayAccumulator >= 1.0) {
+                decayAccumulator -= 1.0;
+                // Only increment if we haven't hit the cap
+                if (decayCounter < DECAY_WINDOW_SEC) {
+                    decayCounter += 1;
+                    decayChanged = true;
+                    // If we hit the cap (fully decayed), reset value
+                    if (decayCounter >= DECAY_WINDOW_SEC) {
+                        activeComboValue = 0;
+                        changed = true;
+                    }
                 }
             }
         }
     }
-    if (changed) notifyComboChange();
+    if (changed || decayChanged) notifyComboChange();
+    if (changed || decayChanged) scheduleSave();
 }
 // Returns the absolute value to add to the nerf exponent
 export function getComboRestorationFactor() {
@@ -190,7 +224,7 @@ export function getComboLocked() {
 export function setActiveCombo(val) {
     activeComboValue = Number(val) || 0;
     notifyComboChange();
-    if (isComboPreservedFn()) scheduleSave();
+    scheduleSave();
 }
 
 export function getActiveCombo() {
