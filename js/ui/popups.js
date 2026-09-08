@@ -25,7 +25,15 @@ if (typeof window !== 'undefined') window.lastKnownAmounts = lastKnownAmounts;
 const activePopups = new Map();
 
 function ensureContainer() {
-  if (container) return container;
+  const gameRoot = document.getElementById('game-root');
+  if (container) {
+    if (gameRoot && container.parentElement !== gameRoot) {
+      gameRoot.appendChild(container);
+    } else if (!gameRoot && container.parentElement !== document.body) {
+      document.body.appendChild(container);
+    }
+    return container;
+  }
   container = document.createElement('div');
   container.className = 'currency-popups';
   container.setAttribute('aria-live', 'polite');
@@ -34,7 +42,11 @@ function ensureContainer() {
   if (typeof window !== 'undefined' && window.pinnedMaxShift != null) {
     container.style.transform = `translateY(${window.pinnedMaxShift}px)`;
   }
-  document.body.appendChild(container);
+  if (gameRoot) {
+    gameRoot.appendChild(container);
+  } else {
+    document.body.appendChild(container);
+  }
   return container;
 }
 
