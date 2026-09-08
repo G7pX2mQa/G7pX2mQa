@@ -2513,15 +2513,29 @@ function bindGlobalEvents() {
 
             let is125 = level === Infinity || (typeof level === "number" && level >= 125);
             setNodeLocked("cavern", !is125);
+            if (is125 && slot != null) {
+                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:cavern", state: true, slot } }));
+            }
+
             let is20 = level === Infinity || (typeof level === "number" && level >= 20);
             let is8 = level === Infinity || (typeof level === "number" && level >= 8);
-            if (!is20 && slot != null) {
+            if (is20 && slot != null) {
+                try {
+                    lsSetItem(`ccc:unlock:flow:${slot}`, "1");
+                } catch {}
+                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "flow", state: true, slot } }));
+            } else if (!is20 && slot != null) {
                 try {
                     lsRemoveItem(`ccc:unlock:flow:${slot}`);
                 } catch {}
                 window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "flow", state: false, slot } }));
             }
-            if (!is8 && slot != null) {
+            if (is8 && slot != null) {
+                try {
+                    lsSetItem(`ccc:unlock:tsunami:${slot}`, "1");
+                } catch {}
+                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "tsunami", state: true, slot } }));
+            } else if (!is8 && slot != null) {
                 try {
                     lsRemoveItem(`ccc:unlock:lab:${slot}`);
                     lsRemoveItem(`ccc:unlock:tsunami:${slot}`);
@@ -2534,6 +2548,9 @@ function bindGlobalEvents() {
             }
             refreshNodesState();
             window.dispatchEvent(new Event("pinnedAreas:changed"));
+            try {
+                checkAchievements();
+            } catch {}
         }
     });
     window.addEventListener("currency:change", (e) => {
