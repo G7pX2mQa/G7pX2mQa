@@ -1178,7 +1178,7 @@ export const MERCHANT_DIALOGUES = {
             m5b: { type: "line", say: "Good. You better appreciate my help.", next: "c5b" },
             m5c: { type: "line", say: "Then what did you mean???", next: "c5b", sprite: "img/misc/evil_merchant.webp", muteAudio: true },
             m5d: { type: "line", say: "Well I'm always helpful.", next: "c5c" },
-            m5e: { type: "line", say: "Any milestones that don't have a double blue arrow on them were not affected by the Tsunami, because they don't have any multipliers to nerf.", next: "c5d" },
+            m5e: { type: "line", say: "Any milestones that don't have a double blue arrow on them were not affected by the Tsunami.", next: "c5d" },
             m5f: { type: "line", say: "Like... Coin value.", next: "c5e" },
             m5g: { type: "line", say: "Okay well I've already told you everything you need to know then.", next: "c5f" },
             m5h: { type: "line", say: "That's just how it works.", next: "c5g" },
