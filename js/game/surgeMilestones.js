@@ -109,7 +109,7 @@ export const SURGE_MILESTONES = [
     {
         id: 10,
         surgeLevel: 10,
-        description: ["Unlocks new DNA upgrades", "<i>Squares</i> MP value (immune to exponent)"],
+        description: ["Unlocks new DNA upgrades"],
     },
     {
         id: 11,
@@ -278,7 +278,7 @@ export const SURGE_MILESTONES = [
         id: 33,
         surgeLevel: 100,
         affectedByTsunami: false,
-        description: ["Experiment no longer resets Lab Nodes"],
+        description: ["Experiment no longer resets Lab Nodes", "<i>Squares</i> MP value (immune to exponent)"],
     },
     {
         id: 34,
