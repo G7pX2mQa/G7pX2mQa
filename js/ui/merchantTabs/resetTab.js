@@ -2424,7 +2424,7 @@ function updateExperimentCard() {
         } else {
             const expected = `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Experimenting for the first time will unlock new Lab nodes
+            Experimenting for the first time will unlock new Lab Nodes
           </span>
          `.trim();
             if (el.status.innerHTML !== expected) el.status.innerHTML = expected;
