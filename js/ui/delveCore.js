@@ -35,7 +35,7 @@ export const DIALOGUE_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
 export const HAS_POINTER_EVENTS = typeof window !== "undefined" && "PointerEvent" in window;
 export const HAS_TOUCH_EVENTS = !HAS_POINTER_EVENTS && typeof window !== "undefined" && "ontouchstart" in window;
 export class DialogueEngine {
-    constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice, pauseMultiplier = 14, getJeffState }) {
+    constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice, pauseMultiplier = 14, getJeffState, onNodeEnter, onNodeLeave, onTsunamiReplay }) {
         this.textEl = textEl;
         this.choicesEl = choicesEl;
         this.skipTargets = skipTargets;
@@ -45,11 +45,15 @@ export class DialogueEngine {
             if (onEnd) onEnd(info);
         };
         this.onChoice = onChoice;
+        this.onNodeEnter = onNodeEnter;
+        this.onNodeLeave = onNodeLeave;
+        this.onTsunamiReplay = onTsunamiReplay;
         this.pauseMultiplier = pauseMultiplier;
         this.nodes = {};
         this.current = null;
         this.deferNextChoices = false;
         this._reservedH = 0;
+        this._prevNodeId = null;
     }
     load(script) {
         this.nodes = script.nodes || {};
@@ -63,8 +67,25 @@ export class DialogueEngine {
     async goto(id) {
         const node = this.nodes[id];
         if (!node) return;
+        // Fire leave callback for previous node
+        if (this._prevNodeId != null) {
+            const prevNode = this.nodes[this._prevNodeId];
+            if (prevNode && this.onNodeLeave) {
+                this.onNodeLeave(this._prevNodeId, prevNode);
+            }
+        }
         this.current = id;
+        this._prevNodeId = id;
         if (node.type === "line") {
+            // Fire enter callback for special interaction nodes
+            if (this.onNodeEnter) {
+                this.onNodeEnter(id, node);
+            }
+            // Handle forced stall (unskippable delay before typing starts)
+            if (node.stallMs && node.stallMs > 0) {
+                await new Promise((r) => setTimeout(r, node.stallMs));
+            }
+
             const nextNode = this.nodes[node.next];
             // Pre-render next choices invisibly to reserve height (unless deferring)
             if (!this.deferNextChoices && nextNode && nextNode.type === "choice") {
@@ -134,6 +155,16 @@ export class DialogueEngine {
                     }
                     if (opt.to === "start_boss_fight") {
                         return this.onEnd({ noReward: true, startBossFight: true });
+                    }
+                    if (typeof opt.to === "string" && opt.to.startsWith("replay_tsunami_then:")) {
+                        const continuationId = opt.to.slice("replay_tsunami_then:".length);
+                        if (this.onTsunamiReplay) {
+                            this.onTsunamiReplay(continuationId, this);
+                            return; // engine will be resumed by the callback
+                        }
+                        // Fallback: skip replay and go directly to continuation
+                        await this.goto(continuationId);
+                        return;
                     }
                     await this.goto(opt.to);
                 },
@@ -277,9 +308,19 @@ export function typeText(el, full, msPerChar = 30, skipTargets = [], pauseMultip
 
                 const seg = segments[segIndex];
                 if (seg.type === "tag") {
-                    buffer += seg.content;
-                    el.innerHTML = buffer;
-                    segIndex++;
+                    if (seg.content.startsWith("<pause ")) {
+                        const match = seg.content.match(/ms="(\d+)"/);
+                        if (match) {
+                            pauseTimeLeft = parseInt(match[1]);
+                            stopTypingSfx();
+                        }
+                        segIndex++;
+                        if (pauseTimeLeft > 0) break;
+                    } else {
+                        buffer += seg.content;
+                        el.innerHTML = buffer;
+                        segIndex++;
+                    }
                     // Tags process instantly, don't consume time
                 } else {
                     // Type text char by char
