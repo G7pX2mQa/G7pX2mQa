@@ -14,15 +14,15 @@ import { settingsManager } from "./settingsManager.js";
 import { bigNumIsInfinite } from "../util/bigNum.js";
 export const UC_MATERIAL_DATA = [
     { name: "stone", start: 0, max: 0, value: 1 },
-    { name: "copper", start: 1, max: 24, value: 10 },
-    { name: "iron", start: 25, max: 49, value: 1000 },
-    { name: "pure_gold", start: 50, max: 99, value: 1e6 },
-    { name: "diamond", start: 100, max: 199, value: 1e10 },
-    { name: "emerald", start: 200, max: 399, value: 1e15 },
-    { name: "ruby", start: 400, max: 799, value: 1e21 },
-    { name: "sapphire", start: 800, max: 1599, value: 1e28 },
-    { name: "unobtainium", start: 1600, max: 3199, value: 1e36 },
-    { name: "prismatium", start: 3200, max: 5000, value: 1e45 },
+    { name: "copper", start: 1, max: 24, value: 1e2 },
+    { name: "iron", start: 25, max: 49, value: 1e4 },
+    { name: "pure_gold", start: 50, max: 99, value: 1e8 },
+    { name: "diamond", start: 100, max: 199, value: 1e16 },
+    { name: "emerald", start: 200, max: 399, value: 1e32 },
+    { name: "ruby", start: 400, max: 799, value: 1e64 },
+    { name: "sapphire", start: 800, max: 1599, value: 1e128 },
+    { name: "unobtainium", start: 1600, max: 3199, value: 1e256 },
+    { name: "prismatium", start: 3200, max: 5000, value: "1e512" },
 ];
 export function resetUcMaterialAccumulators() {
     window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
