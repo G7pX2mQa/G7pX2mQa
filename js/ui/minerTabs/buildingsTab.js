@@ -1418,7 +1418,12 @@ export function updateOverlayUi() {
     const nextBonus = getBuildingBonus(id, nextLevelBn);
     const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" class="building-currency-icon" style="width: 1em; height: 1em; margin-right: -0.1em;">`;
     const resConfig = RESOURCE_REGISTRY.find((r) => r.key === currencyKey);
-    setHtmlOrText(document.getElementById("building-detail-level-text"), `Building Level ${formatNumber(levelBn)}`);
+    let tier = 0;
+    const levelNum = levelBigNumToNumber(levelBn);
+    for (let i = 0; i < TIERS.length; i++) {
+        if (levelNum >= TIERS[i]) tier = i + 1;
+    }
+    setHtmlOrText(document.getElementById("building-detail-level-text"), `Building Level ${formatNumber(levelBn)} (Tier ${tier})`);
     setHtmlOrText(document.getElementById("building-detail-bonus-row"), 
         `${BUILDING_BONUS_TEXTS[id] || "Bonus"}: ${formatMultForUi(currentBonus)}x → ${formatMultForUi(nextBonus)}x`);
     const btnBuy = document.getElementById("building-btn-buy");
