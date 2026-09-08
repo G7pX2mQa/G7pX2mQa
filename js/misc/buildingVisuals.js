@@ -8128,6 +8128,7 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
   if (t6 > 0) {
     ctx.save();
     ctx.globalAlpha = t6;
+    ctx.translate(0, -1.5);
     let baseY = -175; 
     let drawScaffold = (xSign) => {
         let legX = xSign * 20.5; // X pos of leg at y = -175
@@ -8652,23 +8653,19 @@ function drawOilRig(ctx, t, tier, prevTier, animProgress, w, h, scale) {
         
         // --- Single heavy support beam connecting to A-frame ---
         // Drawn first so it tucks neatly behind the capacitor body
-        ctx.strokeStyle = fillDiamond;
-        ctx.lineWidth = 6;
-        ctx.lineJoin = "round";
+        ctx.fillStyle = fillDiamond;
         
         // Start exactly at true midpoint (-150) between Tier 6 platform bottom (-155) and mud pipe upper edge (-145)
         let startX = -xSign * 116.5; // Local x for global x = 23.5
-        let startY = 60; // Local y for global y = -150
-        
-        // Bend horizontally further out (global 125)
-        let bendX = -xSign * 15; // Local x for global x = 125
         
         ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(bendX, startY); 
-        // Offset target X by 2.5 to perfectly counteract the visual shift of the thick angled stroke!
-        ctx.lineTo(xSign * 2.5, height/2); 
-        ctx.stroke();
+        ctx.moveTo(startX, 57);
+        ctx.lineTo(xSign * -16.75, 57);
+        ctx.lineTo(xSign * -2.75, 33);
+        ctx.lineTo(xSign * 4.25, 33);
+        ctx.lineTo(xSign * -13.25, 63);
+        ctx.lineTo(startX, 63);
+        ctx.fill();
         
         // Background/Back housing
         ctx.fillStyle = fillDarkDiamond;
