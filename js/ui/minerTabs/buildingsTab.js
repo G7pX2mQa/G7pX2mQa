@@ -1411,11 +1411,23 @@ export function updateOverlayUi() {
             : "Stone";
         const costRow = document.getElementById("building-detail-cost-row");
         costRow.style.visibility = "";
+        
+        const isOverlayOpen = overlayEl && overlayEl.classList.contains("is-open");
         if (levelNum >= 1000) {
-            setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName}`);
+            if (!isOverlayOpen) {
+                btnBuyCheap.dataset.tier8Hidden = "true";
+            }
         } else {
-            setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next tier: ${imgStr} ${formatNumber(nextTierCostBn)} ${nextTierCostMatName})</span>`);
+            delete btnBuyCheap.dataset.tier8Hidden;
         }
+
+        if (levelNum >= 1000) {
+            setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Max tier)</span>`);
+        } else {
+            const tierPrefix = nextTarget === 1000 ? "Final tier" : "Next tier";
+            setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(${tierPrefix}: ${imgStr} ${formatNumber(nextTierCostBn)} ${nextTierCostMatName})</span>`);
+        }
+
         const walletMatName = resConfig
             ? walletBn.cmp(BigNum.fromInt(1)) === 0
                 ? resConfig.singular
@@ -1424,9 +1436,14 @@ export function updateOverlayUi() {
         const walletRow = document.getElementById("building-detail-wallet-row");
         walletRow.style.visibility = "";
         setHtmlOrText(walletRow, `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`);
+
         btnBuy.style.display = "";
         btnBuyMax.style.display = "";
-        btnBuyCheap.style.display = "";
+        if (btnBuyCheap.dataset.tier8Hidden === "true") {
+            btnBuyCheap.style.setProperty("display", "none", "important");
+        } else {
+            btnBuyCheap.style.display = "";
+        }
         btnBuy.disabled = walletBn.cmp(costBn) < 0;
         btnBuyMax.disabled = walletBn.cmp(costBn) < 0;
         btnBuyCheap.disabled = walletBn.cmp(costBn) < 0;
@@ -1554,7 +1571,9 @@ export function updateOverlayUi() {
                 btnBuyMax.style.visibility = isOnlyBuilding ? "hidden" : "";
             }
             if (btnBuyCheap) {
-                btnBuyCheap.style.removeProperty("display");
+                if (btnBuyCheap.dataset.tier8Hidden !== "true") {
+                    btnBuyCheap.style.removeProperty("display");
+                }
                 btnBuyCheap.style.visibility = isOnlyBuilding ? "hidden" : "";
             }
         }
