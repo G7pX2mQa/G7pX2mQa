@@ -735,6 +735,18 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
         window.addEventListener("surge:level:change", (e) => {
             recomputePendingCoresAndCrystals();
         });
+        window.addEventListener("saveSlot:change", () => {
+            resetState.flagsPrimed = false;
+            ensurePersistentFlagsPrimed();
+            const minerSheetEl = document.querySelector(".merchant-overlay.is-miner .merchant-sheet");
+            if (minerSheetEl) {
+                updateCombinePanelVisibility(minerSheetEl);
+                updateCompressPanelVisibility(minerSheetEl);
+            }
+            updateCombineCard();
+            updateCompressCard();
+            recomputePendingCoresAndCrystals();
+        });
     }
 }
 
