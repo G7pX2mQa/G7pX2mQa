@@ -14,6 +14,8 @@ import { settingsManager } from "../../game/settingsManager.js";
 const BUILDINGS_UNLOCKED_KEY_BASE = "ccc:buildingsUnlocked";
 const BUILDING_ITEM_UNLOCKED_KEY_BASE = "ccc:buildingItemUnlocked";
 const BUILDING_LEVEL_KEY_BASE = "ccc:buildingLevel";
+const BUILDING_TIER_SEEN_KEY_BASE = "ccc:buildingTierSeen";
+export const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 export const BUILDING_IDS = [
     "core",
     "crystal",
@@ -99,6 +101,43 @@ if (typeof window !== "undefined") {
     };
     window.addEventListener("saveSlot:change", invalidateBuildingsCache);
     window.addEventListener("unlock:change", invalidateBuildingsCache);
+}
+
+export function isBuildingTierSeen(buildingId, tier, slot = getActiveSlot()) {
+    if (slot == null) return false;
+    const slotKey = String(slot);
+    try {
+        return lsGetItem(`${BUILDING_TIER_SEEN_KEY_BASE}:${buildingId}:${tier}:${slotKey}`) === "1";
+    } catch {
+        return false;
+    }
+}
+
+export function setBuildingTierSeen(buildingId, tier, value, slot = getActiveSlot()) {
+    if (slot == null) return;
+    const slotKey = String(slot);
+    try {
+        if (value) {
+            lsSetItem(`${BUILDING_TIER_SEEN_KEY_BASE}:${buildingId}:${tier}:${slotKey}`, "1");
+        } else {
+            lsRemoveItem(`${BUILDING_TIER_SEEN_KEY_BASE}:${buildingId}:${tier}:${slotKey}`);
+        }
+    } catch {}
+}
+
+export function setAllBuildingTiersSeen(value, slot = getActiveSlot()) {
+    if (slot == null) return 0;
+    let toggled = 0;
+    for (const id of BUILDING_IDS) {
+        for (let tier = 1; tier <= 8; tier++) {
+            const current = isBuildingTierSeen(id, tier, slot);
+            if (current !== !!value) {
+                setBuildingTierSeen(id, tier, value, slot);
+                toggled++;
+            }
+        }
+    }
+    return toggled;
 }
 
 function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText, level, plusLevel) {
@@ -191,6 +230,14 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     return { btn, baseImg, iconImg };
 }
 
+function executeShortcutPurchase(id, type) {
+    currentBuildingId = id;
+    handlePurchase(type);
+    if (!overlayEl || !overlayEl.classList.contains("is-open")) {
+        currentBuildingId = null;
+    }
+}
+
 export function renderBuildingsGrid(gridEl) {
     gridEl.innerHTML = "";
     let highestDepth = 0;
@@ -281,23 +328,17 @@ export function renderBuildingsGrid(gridEl) {
             card.btn.title = "Left-click: View Building • Right-click: Buy Max";
             card.btn.addEventListener("click", (e) => {
                 if (e.shiftKey) {
-                    currentBuildingId = b.id;
-                    handlePurchase("cheap");
-                    currentBuildingId = null;
+                    executeShortcutPurchase(b.id, "cheap");
                     return;
                 }
                 if (e.ctrlKey) {
-                    currentBuildingId = b.id;
-                    handlePurchase("next");
-                    currentBuildingId = null;
+                    executeShortcutPurchase(b.id, "next");
                     return;
                 }
                 if (IS_MOBILE && settingsManager.get("building_insta_max")) {
                     const affordableBn = getAffordableBuildingLevels(b.id);
                     if (affordableBn && (affordableBn.isInfinite?.() || affordableBn.cmp(0) > 0)) {
-                        currentBuildingId = b.id;
-                        handlePurchase("max");
-                        currentBuildingId = null;
+                        executeShortcutPurchase(b.id, "max");
                         return;
                     }
                 }
@@ -305,9 +346,7 @@ export function renderBuildingsGrid(gridEl) {
             });
             card.btn.addEventListener("contextmenu", (e) => {
                 e.preventDefault();
-                currentBuildingId = b.id;
-                handlePurchase("max");
-                currentBuildingId = null;
+                executeShortcutPurchase(b.id, "max");
             });
         }
         gridEl.appendChild(card.btn);
@@ -924,6 +963,7 @@ let overlayEl = null;
 let currentBuildingId = null;
 let lastBuildingOpenTime = 0;
 let lastMysteriousOpenTime = 0;
+let buildingVisualsModule = null; // Cached reference for synchronous isTierUpLocked checks
 export const BUILDING_NAMES = {
     core: "Black Hole",
     crystal: "Prism",
@@ -1289,9 +1329,18 @@ export function initBuildingOverlay() {
     );
     const closeBtn = actions.querySelector(".shop-close");
     closeBtn.addEventListener("click", closeBuildingDetailOverlay);
-    btnBuy.addEventListener("click", () => handlePurchase("buy"));
-    btnBuyMax.addEventListener("click", () => handlePurchase("max"));
-    btnBuyCheap.addEventListener("click", () => handlePurchase("next"));
+    btnBuy.addEventListener("click", () => {
+        if (buildingVisualsModule?.isTierUpLocked?.()) return;
+        handlePurchase("buy");
+    });
+    btnBuyMax.addEventListener("click", () => {
+        if (buildingVisualsModule?.isTierUpLocked?.()) return;
+        handlePurchase("max");
+    });
+    btnBuyCheap.addEventListener("click", () => {
+        if (buildingVisualsModule?.isTierUpLocked?.()) return;
+        handlePurchase("next");
+    });
 }
 
 export function openBuildingDetailOverlay(id) {
@@ -1321,12 +1370,15 @@ export function openBuildingDetailOverlay(id) {
     updateOverlayUi();
     openBuildingOverlaySheet(overlayEl, sheet);
     import("../../misc/buildingVisuals.js").then((module) => {
+        buildingVisualsModule = module;
         module.startCanvasLoop(id, overlayEl.querySelector("#building-detail-canvas"));
     });
 }
 
 function closeBuildingDetailOverlay() {
     if (!overlayEl) return;
+    // Prevent closing during forced first-seen tier-up transitions
+    if (buildingVisualsModule?.isTierUpLocked?.()) return;
     if (currentBuildingId === "pure_gold") {
         const isVaultMuted = typeof window !== "undefined" && window.isMutedByVault && window.isMutedByVault();
         const isCollected =
@@ -1588,7 +1640,9 @@ export function updateOverlayUi() {
 export function handlePurchaseOuter(id, type) {
     currentBuildingId = id;
     handlePurchase(type);
-    currentBuildingId = null;
+    if (!overlayEl || !overlayEl.classList.contains("is-open")) {
+        currentBuildingId = null;
+    }
 }
 
 function handlePurchase(type) {
@@ -1706,9 +1760,43 @@ function handlePurchase(type) {
         const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
         playPurchaseSfx();
         document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
-        import("../../misc/buildingVisuals.js").then((module) => {
-            module.checkTierUp(id, oldLevel, newLevel);
-        });
+        const oldNum = levelBigNumToNumber(oldLevel);
+        const newNum = levelBigNumToNumber(newLevel);
+        let oldTier = 0;
+        let newTier = 0;
+        for (let i = 0; i < TIERS.length; i++) {
+            if (oldNum >= TIERS[i]) oldTier = i + 1;
+            if (newNum >= TIERS[i]) newTier = i + 1;
+        }
+
+        let hasUnseenTier = false;
+        if (newTier > oldTier) {
+            for (let t = oldTier + 1; t <= newTier; t++) {
+                if (!isBuildingTierSeen(id, t)) {
+                    hasUnseenTier = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasUnseenTier) {
+            if (settingsManager.get("show_building_visuals")) {
+                openBuildingDetailOverlay(id);
+                import("../../misc/buildingVisuals.js").then((module) => {
+                    module.checkTierUp(id, oldLevel, newLevel);
+                });
+            } else {
+                for (let t = oldTier + 1; t <= newTier; t++) {
+                    if (!isBuildingTierSeen(id, t)) {
+                        setBuildingTierSeen(id, t, true);
+                    }
+                }
+            }
+        } else {
+            import("../../misc/buildingVisuals.js").then((module) => {
+                module.checkTierUp(id, oldLevel, newLevel);
+            });
+        }
         updateOverlayUi();
         const gridCardBadge = document.querySelector(`.shop-upgrade[data-building-id="${id}"] .level-badge`);
         if (gridCardBadge) setHtmlOrText(gridCardBadge, formatNumber(newLevel));
