@@ -1205,6 +1205,20 @@ function updateDomOverlays(w, h, t) {
     }
   });
 
+  if (tier >= 8) {
+    const visualsEnabled = settingsManager.get("show_building_visuals");
+    const isPeakFade = shakeAlphaText >= 0.99;
+    const isInstant = !visualsEnabled && tierUpAnimTime > 0;
+    
+    if (isPeakFade || isInstant) {
+      const btnBuyCheap = document.getElementById("building-btn-buy-cheap");
+      if (btnBuyCheap) {
+        btnBuyCheap.dataset.tier8Hidden = "true";
+        btnBuyCheap.style.setProperty("display", "none", "important");
+      }
+    }
+  }
+
   const titleEl = elementsToFade[0];
   if (titleEl) {
     if (id === "prismatium") {
