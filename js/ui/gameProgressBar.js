@@ -122,18 +122,16 @@ const GOALS = [
                 return 4;
             }
 
-            let maxedCount = 0;
+            let fractionSum = 0;
             const relevantNodes = [1, 2, 3, 4];
             for (const nodeId of relevantNodes) {
                 const node = RESEARCH_NODES.find((n) => n.id === nodeId);
                 if (node) {
                     const level = getResearchNodeLevel(node.id);
-                    if (level >= node.maxLevel) {
-                        maxedCount++;
-                    }
+                    fractionSum += Math.min(level / node.maxLevel, 1);
                 }
             }
-            return maxedCount;
+            return fractionSum;
         },
         isComplete: () => {
             const node4 = RESEARCH_NODES.find((n) => n.id === 4);
@@ -141,18 +139,16 @@ const GOALS = [
                 return true;
             }
 
-            let maxedCount = 0;
+            let fractionSum = 0;
             const relevantNodes = [1, 2, 3, 4];
             for (const nodeId of relevantNodes) {
                 const node = RESEARCH_NODES.find((n) => n.id === nodeId);
                 if (node) {
                     const level = getResearchNodeLevel(node.id);
-                    if (level >= node.maxLevel) {
-                        maxedCount++;
-                    }
+                    fractionSum += Math.min(level / node.maxLevel, 1);
                 }
             }
-            return maxedCount >= 4;
+            return fractionSum >= 4;
         },
     },
     {
