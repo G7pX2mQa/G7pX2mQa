@@ -5,7 +5,7 @@
   align-items: flex-start; /* Changed from stretch so inner content isn't forced to 100% */
   position: relative;
   flex: 1;
-  height: 100%;
+  height: auto;
   width: 100%;
   box-sizing: border-box;
   text-align: center;
@@ -13,7 +13,6 @@
   container-type: inline-size;
   -webkit-user-select: text;
   user-select: text;
-  overflow-y: auto;
 }
 
 /* XP/MP Bar Replication Vars */
@@ -36,6 +35,8 @@
   flex: 0 0 auto;
   z-index: 1;
   margin: 0 auto;
+  overflow-y: visible;
+  height: auto;
 }
 
 .flow-side-col {
