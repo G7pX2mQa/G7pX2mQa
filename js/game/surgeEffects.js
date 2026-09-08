@@ -770,7 +770,8 @@ function onTick(dt) {
             const labMult = getLabGoldMultiplier();
             pending = pending.mulDecimal(labMult.toScientific());
             // Multiply by rate and dt
-            const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+            let perSec = pending.mulDecimal(rateMultiplier.toScientific());
+            perSec = perSec.floorToInteger();
             const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
             if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
                 if (bank.gold) bank.gold.add(amountToAdd);
@@ -810,7 +811,8 @@ function onTick(dt) {
                 pending = pending.mulBigNumInteger(surge35Mult);
             }
             // Multiply by rate and dt
-            const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+            let perSec = pending.mulDecimal(rateMultiplier.toScientific());
+            perSec = perSec.floorToInteger();
             const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
             if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
                 if (bank.magic) bank.magic.add(amountToAdd);
@@ -842,7 +844,8 @@ function onTick(dt) {
                 let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
                 pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
                 // Multiply by rate and dt
-                const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+                let perSec = pending.mulDecimal(rateMultiplier.toScientific());
+                perSec = perSec.floorToInteger();
                 const amountToAddDna = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
                 if (amountToAddDna.cmp(1e9) > 0 || amountToAddDna.isInfinite?.()) {
                     if (bank.dna) bank.dna.add(amountToAddDna);
