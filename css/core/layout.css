@@ -17,7 +17,7 @@
   background-repeat: repeat;
   background-size: var(--coin-pattern-size) var(--coin-pattern-size);
   opacity: var(--coin-pattern-opacity);
-  filter: grayscale(100%) brightness(60%) opacity(var(--coin-pattern-opacity));
+  filter: grayscale(100%) brightness(20%) opacity(var(--coin-pattern-opacity));
   animation: coinDrift var(--coin-pattern-speed) linear infinite;
 }
 
@@ -27,8 +27,8 @@
 }
 
 .no-canvas-filters #boot-loader.with-bg::before {
-  filter: grayscale(100%) brightness(25%) opacity(0.5);
-  -webkit-filter: grayscale(100%) brightness(25%) opacity(0.5);
+  filter: grayscale(100%) brightness(37.5%) opacity(0.5);
+  -webkit-filter: grayscale(100%) brightness(37.5%) opacity(0.5);
 }
 
 @keyframes coinDrift {
