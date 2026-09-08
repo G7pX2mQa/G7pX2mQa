@@ -7,6 +7,7 @@ import { createCursorTrail } from "../game/cursorTrail.js";
 import { getPreRenderedItem } from "../game/spawnerCore.js";
 import { settingsManager } from "../game/settingsManager.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
+import { formatNumber } from "../util/numFormat.js";
 import { isBuildingTierSeen, setBuildingTierSeen, TIERS } from "../ui/minerTabs/buildingsTab.js";
 
 let activeCanvas = null;
@@ -1218,6 +1219,8 @@ function updateDomOverlays(w, h, t) {
   }
 
   if (levelText) {
+    setHtmlOrText(levelText, `Building Level ${formatNumber(currentLevelNum)} (Tier ${tier})`);
+    
     const shiftConfig = BUILDING_TEXT_SHIFTS[id] || { start: 310, perTier: 10 };
     const getTargetTop = (bTier) => {
       if (id === "prismatium") {
