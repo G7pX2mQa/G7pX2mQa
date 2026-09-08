@@ -27,8 +27,8 @@
 }
 
 .no-canvas-filters #boot-loader.with-bg::before {
-  filter: grayscale(100%) brightness(40%) opacity(0.25);
-  -webkit-filter: grayscale(100%) brightness(40%) opacity(0.25);
+  filter: grayscale(100%) opacity(0.35);
+  -webkit-filter: grayscale(100%) opacity(0.35);
 }
 
 @keyframes coinDrift {
