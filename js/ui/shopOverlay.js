@@ -2,7 +2,7 @@
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { bank, getActiveSlot } from "../util/storage.js";
 import { BigNum } from "../util/bigNum.js";
-import { formatNumber, SUFFIX_ENTRIES } from "../util/numFormat.js";
+import { formatNumber } from "../util/numFormat.js";
 import { FONT_MAP } from "../main.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import {
@@ -1725,13 +1725,12 @@ function openValcDialog(model) {
         const match = v.match(/^([+-]?\d+(?:\.\d+)?)([a-zA-Z]+)$/);
         if (match) {
             const numPart = match[1];
-            const suffix = match[2];
+            const suffix = match[2].toLowerCase();
             let exp = 0;
-            if (suffix.toLowerCase() === 'k') {
+            if (suffix === 'k') {
                 exp = 3;
-            } else {
-                const entry = SUFFIX_ENTRIES.find(e => e[1] === suffix);
-                if (entry) exp = entry[0];
+            } else if (suffix === 'm') {
+                exp = 6;
             }
             if (exp > 0) v = numPart + 'e' + exp;
         }
@@ -2012,6 +2011,15 @@ function openHmMilestoneDialog(lines) {
         list.appendChild(li);
     }
 
+    const note = document.createElement("div");
+    note.textContent = "Use the Buy Next button to attempt to upgrade directly to the next milestone";
+    note.style.color = "#a0a0a0";
+    note.style.fontSize = "0.8em";
+    note.style.opacity = "0.7";
+    note.style.marginTop = "0px";
+    note.style.marginBottom = "14px";
+    note.style.textAlign = "center";
+
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.className = "hm-milestones-close";
@@ -2032,7 +2040,7 @@ function openHmMilestoneDialog(lines) {
     });
     closeBtn.addEventListener("click", close);
     document.addEventListener("keydown", onKeydown);
-    dialog.append(title, list, closeBtn);
+    dialog.append(title, list, note, closeBtn);
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     if (typeof closeBtn.focus === "function") closeBtn.focus({ preventScroll: true });
