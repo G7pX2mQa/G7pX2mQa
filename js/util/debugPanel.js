@@ -93,6 +93,9 @@ import {
     BUILDING_IDS,
     isBuildingUnlocked,
     setBuildingUnlocked as setBuildingUnlockedById,
+    isBuildingTierSeen,
+    setBuildingTierSeen,
+    setAllBuildingTiersSeen,
 } from "../ui/minerTabs/buildingsTab.js";
 import { updateWarpTab } from "../ui/merchantTabs/warpTab.js";
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMult } from "../ui/merchantTabs/labTab.js";
@@ -4424,6 +4427,11 @@ function setAllUnlockToggles(targetState) {
         refreshLiveBindings();
     } catch {}
 
+    // Also toggle all 96 building tier-seen flags
+    try {
+        toggled += setAllBuildingTiersSeen(targetState);
+    } catch {}
+
     return toggled;
 }
 
@@ -5491,32 +5499,34 @@ function setAllAutomationToggles(targetState) {
         });
     });
 
-    // 2. Set Master Switches (UI state)
-    // Keys: ccc:autobuy:master:{type}:{slot}
-    const masterTypes = Object.values(MASTER_AUTOBUY_IDS);
-    const automatedCostTypes = new Set(masterTypes);
+    if (targetState) {
+        // 2. Set Master Switches (UI state)
+        // Keys: ccc:autobuy:master:{type}:{slot}
+        const masterTypes = Object.values(MASTER_AUTOBUY_IDS);
+        const automatedCostTypes = new Set(masterTypes);
 
-    masterTypes.forEach((type) => {
-        settingsManager.set(`currency_${type}_automated`, val === "1");
-    });
-
-    // 3. Set Individual Toggles (Logic state)
-    // Iterate over ALL areas to support future upgrades
-    Object.values(AREA_KEYS).forEach((areaKey) => {
-        if (areaKey === AUTOMATION_AREA_KEY) return; // Handled separately below (or via specific logic)
-
-        const upgrades = getUpgradesForArea(areaKey);
-        upgrades.forEach((upg) => {
-            if (automatedCostTypes.has(upg.costType)) {
-                setAutobuyerToggle(areaKey, upg.id, val);
-                count++;
-            }
+        masterTypes.forEach((type) => {
+            settingsManager.set(`currency_${type}_automated`, val === "1");
         });
-    });
 
-    // 4. Workshop Special Case
-    setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, val);
-    count++;
+        // 3. Set Individual Toggles (Logic state)
+        // Iterate over ALL areas to support future upgrades
+        Object.values(AREA_KEYS).forEach((areaKey) => {
+            if (areaKey === AUTOMATION_AREA_KEY) return; // Handled separately below (or via specific logic)
+
+            const upgrades = getUpgradesForArea(areaKey);
+            upgrades.forEach((upg) => {
+                if (automatedCostTypes.has(upg.costType)) {
+                    setAutobuyerToggle(areaKey, upg.id, val);
+                    count++;
+                }
+            });
+        });
+
+        // 4. Workshop Special Case
+        setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, val);
+        count++;
+    }
 
     // Force UI refresh if shop is open
     try {
@@ -5563,8 +5573,6 @@ function setAllAutomationTogglesUntil(maxId) {
         if (enabledAutobuyUpgrades.has(id)) {
             settingsManager.set(`currency_${type}_automated`, true);
             automatedCostTypes.add(type);
-        } else {
-            settingsManager.set(`currency_${type}_automated`, false);
         }
     });
 
@@ -5578,8 +5586,6 @@ function setAllAutomationTogglesUntil(maxId) {
             if (Object.values(MASTER_AUTOBUY_IDS).includes(upg.costType)) {
                 if (automatedCostTypes.has(upg.costType)) {
                     setAutobuyerToggle(areaKey, upg.id, "1");
-                } else {
-                    setAutobuyerToggle(areaKey, upg.id, "0");
                 }
                 count++;
             }
@@ -5589,8 +5595,6 @@ function setAllAutomationTogglesUntil(maxId) {
     // 4. Workshop Special Case
     if (enabledAutobuyUpgrades.has(AUTOBUY_WORKSHOP_LEVELS_ID)) {
         setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, "1");
-    } else {
-        setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, "0");
     }
     count++;
 
@@ -5739,6 +5743,14 @@ function buildMiscContent(content) {
                 if (unlocksPaintbrush.isActive()) {
                     unlocksPaintbrush.reinit?.();
                 }
+            },
+        },
+        {
+            label: "UAU For Buildings",
+            onClick: () => {
+                const toggled = setAllBuildingTiersSeen(true);
+                flagDebugUsage();
+                logAction(`UAU For Buildings applied unlock state: true to ${toggled} entries.`);
             },
         },
         {
@@ -6253,6 +6265,37 @@ function buildUnlocksContent(content) {
     rows.forEach((rowDef) => {
         content.appendChild(createUnlockToggleRow(rowDef));
     });
+
+    // Buildings tier-seen subsection: 12 buildings × 8 tiers = 96 flags
+    content.appendChild(createSubsection("Buildings", (buildingsContent) => {
+        BUILDING_IDS.forEach((id) => {
+            let buildingName = BUILDING_NAMES[id] || id;
+            const subsectionTitle = buildingName;
+
+            buildingsContent.appendChild(createSubsection(subsectionTitle, (buildingContent) => {
+                for (let tier = 1; tier <= 8; tier++) {
+                    let tierLabel;
+                    if (id === "prismatium") {
+                        if (tier >= 8) tierLabel = "Hexeract";
+                        else if (tier >= 4) tierLabel = "Penteract";
+                        else tierLabel = "Tesseract";
+                    } else {
+                        tierLabel = buildingName;
+                    }
+
+                    const rowDef = {
+                        labelText: `${tierLabel} Tier ${tier}`,
+                        description: `If true, ${tierLabel} tier ${tier} has been seen`,
+                        isUnlocked: () => isBuildingTierSeen(id, tier),
+                        onEnable: () => setBuildingTierSeen(id, tier, true),
+                        onDisable: () => setBuildingTierSeen(id, tier, false),
+                        slot,
+                    };
+                    buildingContent.appendChild(createUnlockToggleRow(rowDef));
+                }
+            }));
+        });
+    }));
     
     // In case the unlocks content is rebuilt while paintbrush is active
     // We defer the event using setTimeout if the panel is not yet in the DOM. 
