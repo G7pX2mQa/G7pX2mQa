@@ -8,7 +8,7 @@
   flex-direction: column;
   align-items: flex-end;
   pointer-events: none;
-  z-index: 1600;
+  z-index: 990;
   font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
 }
 
