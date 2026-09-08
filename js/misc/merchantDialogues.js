@@ -1181,7 +1181,7 @@ export const MERCHANT_DIALOGUES = {
             m5e: { type: "line", say: "Any milestones that don't have a double blue arrow on them were not affected by the Tsunami.", next: "c5d" },
             m5f: { type: "line", say: "Like... Coin value.", next: "c5e" },
             m5g: { type: "line", say: "Okay well I've already told you everything you need to know then.", next: "c5f" },
-            m5h: { type: "line", say: "That's just how it works.", next: "c5g" },
+            m5h: { type: "line", say: "I just do.", next: "c5g" },
 
             c5a: {
                 type: "choice",
