@@ -1214,7 +1214,7 @@ export function initBuildingOverlay() {
     const btnBuyCheap = document.createElement("button");
     btnBuyCheap.className = "shop-delve";
     btnBuyCheap.id = "building-btn-buy-cheap";
-    btnBuyCheap.textContent = "Buy Cheap";
+    btnBuyCheap.textContent = "Buy Next";
     const btnBuyMax = document.createElement("button");
     btnBuyMax.className = "shop-delve";
     btnBuyMax.id = "building-btn-buy-max";
@@ -1291,7 +1291,7 @@ export function initBuildingOverlay() {
     closeBtn.addEventListener("click", closeBuildingDetailOverlay);
     btnBuy.addEventListener("click", () => handlePurchase("buy"));
     btnBuyMax.addEventListener("click", () => handlePurchase("max"));
-    btnBuyCheap.addEventListener("click", () => handlePurchase("cheap"));
+    btnBuyCheap.addEventListener("click", () => handlePurchase("next"));
 }
 
 export function openBuildingDetailOverlay(id) {
@@ -1389,10 +1389,18 @@ export function updateOverlayUi() {
                 : levelBn.inf
                   ? Infinity
                   : levelBn.sig * Math.pow(10, levelBn.e);
-        const next25Log10 = getBuildingTotalCostLog10(getBuildingRatio(id), levelNum, 25);
-        const next25CostBn = bigNumFromLog10(next25Log10).floorToInteger();
-        const next25CostMatName = resConfig
-            ? next25CostBn.cmp(BigNum.fromInt(1)) === 0
+        const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
+        let nextTarget = 10;
+        for (let t of TIERS) {
+            if (levelNum < t) {
+                nextTarget = t;
+                break;
+            }
+        }
+        const nextTierLog10 = getBuildingTotalCostLog10(getBuildingRatio(id), levelNum, nextTarget - levelNum);
+        const nextTierCostBn = bigNumFromLog10(nextTierLog10).floorToInteger();
+        const nextTierCostMatName = resConfig
+            ? nextTierCostBn.cmp(BigNum.fromInt(1)) === 0
                 ? resConfig.singular
                 : resConfig.plural
             : "Stone";
@@ -1403,7 +1411,11 @@ export function updateOverlayUi() {
             : "Stone";
         const costRow = document.getElementById("building-detail-cost-row");
         costRow.style.visibility = "";
-        setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`);
+        if (levelNum >= 1000) {
+            setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName}`);
+        } else {
+            setHtmlOrText(costRow, `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next tier: ${imgStr} ${formatNumber(nextTierCostBn)} ${nextTierCostMatName})</span>`);
+        }
         const walletMatName = resConfig
             ? walletBn.cmp(BigNum.fromInt(1)) === 0
                 ? resConfig.singular
