@@ -1188,10 +1188,25 @@ function updateDomOverlays(w, h, t) {
     levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
   }
 
-  const titleEl = document.querySelector("#building-detail-overlay .upg-title");
+  const elementsToFade = [
+    document.querySelector("#building-detail-overlay .upg-title"),
+    document.querySelector("#building-detail-overlay .upg-costs"),
+    document.getElementById("building-btn-buy"),
+    document.getElementById("building-btn-buy-max"),
+    document.getElementById("building-btn-buy-cheap"),
+    document.querySelector("#building-detail-overlay .shop-close"),
+    document.querySelector("#building-detail-overlay .only-building-btn"),
+    document.querySelector("#building-detail-overlay .grab-handle")
+  ];
+
+  elementsToFade.forEach(el => {
+    if (el) {
+      el.style.opacity = Math.max(0, 1 - shakeAlphaText);
+    }
+  });
+
+  const titleEl = elementsToFade[0];
   if (titleEl) {
-    titleEl.style.opacity = Math.max(0, 1 - shakeAlphaText);
-    
     if (id === "prismatium") {
       let text = "Tesseract";
       if (tier >= 8) text = "Hexeract";
