@@ -1096,7 +1096,7 @@ export const MERCHANT_DIALOGUES = {
             m4b: { type: "line", say: "No.", next: "c4b" },
             m4c: { type: "line", say: "Yes.", next: "c4b" },
             m4d: { type: "line", say: "And what is that supposed to mean?", next: "c4c" },
-            m4e: { type: "line", say: "You've... never needed my help?", next: "c4d", sprite: "img/misc/sad_merchant.webp", stallMs: 3000, muteAudio: true },
+            m4e: { type: "line", say: "You've...<pause ms=\"2000\"> never needed my help?", next: "c4d", sprite: "img/misc/sad_merchant.webp", stallMs: 3000, muteAudio: true },
             m4f: { type: "line", say: "When the Tsunami was invoked, all of your Surge Milestones were temporarily sacrificed, nullifying their effects. So a milestone that used to multiply your Coins by 10x now only multiplies it by 10 raised to the power of your Tsunami Exponent.", next: "c4e" },
             m4g: { type: "line", say: "The Lab, and its nodes, will be very pivotal to increasing your Coin output. You'll have to research many things in order to recover from the Tsunami's impact.", next: "c4f" },
             m4h: { type: "line", say: "Yes. I love Coins.", next: "c4g" },
