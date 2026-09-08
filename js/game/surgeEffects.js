@@ -1013,7 +1013,7 @@ export function initSurgeEffects() {
         return baseGain.mulBigNumInteger(mult);
     });
     addFinalMutationGainMultiplierProvider(({ baseGain }) => {
-        if (!isSurgeActive(10)) return baseGain;
+        if (!isSurgeActive(100)) return baseGain;
         if (baseGain.isInfinite?.()) return BigNum.fromAny("Infinity");
         if (baseGain.cmp(BigNum.fromInt(1)) <= 0) return baseGain;
         return baseGain.mulBigNumInteger(baseGain);
