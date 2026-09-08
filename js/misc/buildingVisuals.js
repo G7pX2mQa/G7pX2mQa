@@ -1179,7 +1179,7 @@ const BUILDING_TEXT_SHIFTS = {
   copper: { start: 305, perTier: 10 },
   iron: { start: 320, perTier: 20 },
   pure_gold: { start: 315, perTier: 15 },
-  diamond: { start: 300, perTier: 20 },
+  diamond: { start: 315, perTier: 17 },
   emerald: { start: 320, perTier: 15 },
   ruby: { start: 350, perTier: 15 },
   sapphire: { start: 395, perTier: 23 },
