@@ -7,6 +7,7 @@ import { createCursorTrail } from "../game/cursorTrail.js";
 import { getPreRenderedItem } from "../game/spawnerCore.js";
 import { settingsManager } from "../game/settingsManager.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
+import { isBuildingTierSeen, setBuildingTierSeen, TIERS } from "../ui/minerTabs/buildingsTab.js";
 
 let activeCanvas = null;
 let activeCtx = null;
@@ -19,6 +20,9 @@ let lastDrawTime = 0;
 let currentLevelNum = 0;
 let tierUpAnimTime = 0;
 let previousTier = 0;
+let tierUpQueue = []; // Queue of { fromTier, toTier } for sequential tier-up animations
+let isForcedTierView = false; // True when player must watch a first-seen tier transition
+let currentAnimTargetTier = 0; // The tier currently being animated towards in a forced view
 let globalDiskAngle = 0; // Integrated angle for smooth accretion disk rotation
 let globalPrismAngle = 0; // Integrated angle for smooth prism rotation
 let globalRefineryAnimTime = 0; // Integrated time for smooth refinery animations
@@ -55,8 +59,6 @@ let oilPhysicsLastWidth = 0;
 let canvasResizeObserver = null;
 let canvasIntersectionObserver = null;
 let isCanvasIntersecting = false;
-
-const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
 let wasRunningBeforeHide = false;
 document.addEventListener('visibilitychange', () => {
@@ -683,8 +685,13 @@ export function startCanvasLoop(id, canvasEl) {
       try {
         currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
         let currentTier = getTier();
-        previousTier = currentTier;
-        tierUpAnimTime = 0;
+        if (tierUpAnimTime === 0 && !isForcedTierView) {
+          previousTier = currentTier;
+          tierUpAnimTime = 0;
+          tierUpQueue = [];
+          isForcedTierView = false;
+          currentAnimTargetTier = 0;
+        }
       } catch {
         currentLevelNum = 1;
       }
@@ -767,6 +774,9 @@ export function stopCanvasLoop() {
   activeCtx = null;
   currentBuildingId = null;
   tierUpAnimTime = 0;
+  tierUpQueue = [];
+  isForcedTierView = false;
+  currentAnimTargetTier = 0;
   keypadZoomedIn = false;
   isVaultOpening = false;
   vaultOpeningTime = 0;
@@ -789,6 +799,10 @@ export function stopCanvasLoop() {
   }
 }
 
+export function isTierUpLocked() {
+  return isForcedTierView;
+}
+
 export function checkTierUp(id, oldLevelBn, newLevelBn) {
   if (id !== currentBuildingId) return;
 
@@ -807,8 +821,41 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
   if (newTier < oldTier) {
     previousTier = newTier;
     tierUpAnimTime = 0;
-  } else if (newTier > oldTier) {
+    tierUpQueue = [];
+    isForcedTierView = false;
+    currentAnimTargetTier = 0;
+    return;
+  }
+
+  if (newTier <= oldTier) return;
+
+  // Check which crossed tiers are unseen (first-time views)
+  let hasUnseenTier = false;
+  const transitions = [];
+  for (let t = oldTier + 1; t <= newTier; t++) {
+    const unseen = !isBuildingTierSeen(id, t);
+    if (unseen) {
+      setBuildingTierSeen(id, t, true);
+      hasUnseenTier = true;
+    }
+    transitions.push({ fromTier: t - 1, toTier: t, forced: unseen });
+  }
+
+  if (hasUnseenTier) {
+    // Queue all transitions for sequential playback
+    tierUpQueue = transitions.slice(1); // remaining after the first
+    isForcedTierView = true;
+
+    // Start the first transition
+    const first = transitions[0];
+    previousTier = first.fromTier;
+    currentAnimTargetTier = first.toTier;
+    tierUpAnimTime = 6.0;
+    playAudio("sounds/building_tier_up.ogg");
+  } else {
+    // All tiers already seen — play a single normal transition (existing behavior)
     previousTier = oldTier;
+    currentAnimTargetTier = 0;
     if (newTier >= 1) {
       tierUpAnimTime = 6.0;
       playAudio("sounds/building_tier_up.ogg");
@@ -846,7 +893,27 @@ function loop(currentTime) {
   lastTime = currentTime;
   time += dt;
 
-  if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
+  if (tierUpAnimTime > 0) {
+    tierUpAnimTime -= dt;
+
+    // Check if the current transition just completed
+    if (tierUpAnimTime <= 0) {
+      tierUpAnimTime = 0;
+
+      if (tierUpQueue.length > 0) {
+        // Start the next queued transition
+        const next = tierUpQueue.shift();
+        previousTier = next.fromTier;
+        currentAnimTargetTier = next.toTier;
+        tierUpAnimTime = 6.0;
+        playAudio("sounds/building_tier_up.ogg");
+      } else {
+        // All transitions complete — release the forced view lock
+        isForcedTierView = false;
+        currentAnimTargetTier = 0;
+      }
+    }
+  }
 
   // Smoothly integrate global disk angle
   // We calculate the speed multiplier here if it's the core building
@@ -1285,6 +1352,9 @@ function updateDomOverlays(w, h, t) {
 }
 
 function getTier() {
+  if (isForcedTierView && currentAnimTargetTier > 0) {
+    return currentAnimTargetTier;
+  }
   let t = 0;
   for (let i = 0; i < TIERS.length; i++) {
     if (currentLevelNum >= TIERS[i]) t = i + 1;
