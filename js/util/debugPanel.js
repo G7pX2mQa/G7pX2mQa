@@ -1707,9 +1707,10 @@ function updateActionLogDisplay() {
                 /\b(?:Level|Lv)\s?(\d+)\b/g,
                 '<span class="action-log-level">Lv$1</span>',
             );
-            formattedMessage = formattedMessage.replace(/(?:\b[eE]\d|\d)[a-zA-Z\d.,+-]*/g, (match) =>
-                /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match,
-            );
+            formattedMessage = formattedMessage.replace(/(?:\b[eE]\d|\d)[a-zA-Z\d.,+-]*/g, (match, offset, str) => {
+                if (str.slice(Math.max(0, offset - 5), offset) === "Tier ") return match;
+                return /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match;
+            });
             formattedMessage = formattedMessage.replace(
                 /<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g,
                 '<span class="action-log-number">inf</span>',
@@ -4424,6 +4425,14 @@ function setAllUnlockToggles(targetState) {
     });
 
     try {
+        toggled += setAllBuildingTiersSeen(targetState);
+    } catch {}
+
+    try {
+        document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+    } catch {}
+
+    try {
         refreshLiveBindings();
     } catch {}
 
@@ -5749,6 +5758,12 @@ function buildMiscContent(content) {
             label: "UAU For Buildings",
             onClick: () => {
                 const toggled = setAllBuildingTiersSeen(true);
+                try {
+                    document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+                } catch {}
+                try {
+                    refreshLiveBindings();
+                } catch {}
                 flagDebugUsage();
                 logAction(`UAU For Buildings applied unlock state: true to ${toggled} entries.`);
             },
