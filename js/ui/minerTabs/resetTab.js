@@ -191,6 +191,12 @@ export function performCompressReset() {
     } catch {}
     // Resets everything Combine does
     applyCombineResetLogic({ playSurgeEffects: false });
+    // Reset Cores
+    try {
+        if (bank.CORES?.set) {
+            bank.CORES.set(0);
+        }
+    } catch {}
     // Reset all buildings except crystal
     const slot = ensureResetSlot();
     const isBuildingsUnl = isBuildingsUnlocked();
@@ -634,7 +640,7 @@ function initCombineTabUI(panel) {
             <div class="merchant-reset__content">
               <div class="merchant-reset__titles">
                 <p data-reset-desc="compress">
-                  Resets everything Combine does as well as all Buildings (except Crystal's) and sets your Surge to 200 (and Waves to 0) for Crystals<br>
+                  Resets everything Combine does as well as Cores, all Buildings (except Crystal's), and sets your Surge to 200 (and Waves to 0) for Crystals<br>
                   Increase pending Crystal amount by increasing Scrap and Surge past 200
                 </p>
               </div>
