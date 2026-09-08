@@ -449,3 +449,10 @@
   backdrop-filter: saturate(1.05) blur(6px);
   -webkit-backdrop-filter: saturate(1.05) blur(6px);
 }
+
+@media (max-width: 499px) {
+  html.is-mobile .coin-o {
+    position: relative;
+    top: -0.5px;
+  }
+}
