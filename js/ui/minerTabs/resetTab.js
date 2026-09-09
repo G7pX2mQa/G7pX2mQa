@@ -772,16 +772,16 @@ function checkCompressRequirements() {
 
 export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
     const totalScrap = scrapBn;
-    // Scale start at 1e33 Scrap instead
+    // Scale start at 1e36 Scrap instead
     const logScrap = approxLog10BigNum(totalScrap);
     if (!Number.isFinite(logScrap)) {
         if (logScrap > 0) return BigNum.fromAny("Infinity");
     }
     if (surgeLevel === Infinity) {
-        if (logScrap >= 33) return BigNum.fromAny("Infinity");
+        if (logScrap >= 36) return BigNum.fromAny("Infinity");
     }
 
-    const logScaled = Math.max(0, logScrap - 33);
+    const logScaled = Math.max(0, logScrap - 36);
     const pow2 = logScaled <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(logScaled * Math.log10(2));
     const floorLog = Math.floor(logScaled);
     const pow115 = floorLog <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(floorLog * Math.log10(1.15));
