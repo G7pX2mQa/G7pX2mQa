@@ -1473,9 +1473,14 @@ export function updateOverlayUi() {
         if (levelNum >= 1000) {
             if (!isOverlayOpen) {
                 btnBuyCheap.dataset.tier8Hidden = "true";
+                btnBuyCheap.style.display = "none";
+            } else if (!settingsManager.get("show_building_visuals")) {
+                btnBuyCheap.dataset.tier8Hidden = "true";
+                btnBuyCheap.style.display = "none";
             }
         } else {
             delete btnBuyCheap.dataset.tier8Hidden;
+            if (btnBuyCheap.style.display === "none") btnBuyCheap.style.display = "";
         }
 
         if (levelNum >= 1000) {
