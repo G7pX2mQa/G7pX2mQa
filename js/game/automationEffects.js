@@ -424,6 +424,7 @@ registerPassiveSystem({
         }
         return ucRate;
     },
+	// to clarify, Underwater Cavern EAC should NOT be buffed by the EAC buffs to the Cove's EAC
     onTick: (collectCount, dt) => {
         let dpLevelNum = 0;
         try {
