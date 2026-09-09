@@ -209,8 +209,8 @@ const HM_MILESTONES_STARTER_COVE = [
 const HM_MILESTONES_UNDERWATER_CAVERN = [
     { level: 10, multiplier: 1.5, target: "self" },
     { level: 25, multiplier: 2, target: "self" },
-    { level: 50, multiplier: 5, target: "scrap" },
-    { level: 100, multiplier: 10, target: "dp" },
+    { level: 50, multiplier: 5, target: "dp" },
+    { level: 100, multiplier: 10, target: "scrap" },
     { level: 200, multiplier: 15, target: "allMaterials" },
     { level: 400, multiplier: 25, target: "self" },
     { level: 800, multiplier: 100, target: "self" },
