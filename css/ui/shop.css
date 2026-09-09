@@ -806,7 +806,7 @@
 
 .hm-milestones-dialog {
   width: min(520px, 90vw);
-  max-height: min(calc(90vh + var(--safe-bottom)), 720px);
+  max-height: min(calc(95vh + var(--safe-bottom)), 720px);
   overflow: auto;
   background: linear-gradient(150deg, rgba(15, 22, 38, 0.96), rgba(18, 26, 42, 0.94));
   border: 1px solid #ffe6c7;
