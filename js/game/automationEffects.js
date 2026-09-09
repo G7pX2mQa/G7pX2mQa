@@ -618,9 +618,23 @@ registerPassiveSystem({
                 }
             }
         }
-        // Multiply by collectCount to account for ticks elapsed (and efficiency handled by updateAutomation wrapper)
-        totalScrapGain = totalScrapGain.mulBigNumInteger(BigNum.fromAny(collectCount));
-        scrapAutoSellAccumulator = scrapAutoSellAccumulator.add(totalScrapGain);
+        // The efficiency is included in collectCount (collectCount = ticks * efficiency).
+        // Since we want to drop fractions on the final per-second rate, we need to extract efficiency.
+        const autoSellSetting = settingsManager.get("auto_sell_efficiency");
+        const autoSellMult = autoSellSetting !== undefined ? autoSellSetting / 100 : 1;
+        
+        let totalGain;
+        if (autoSellMult === 0) {
+            totalGain = BigNum.fromInt(0);
+        } else {
+            // Calculate the actual floored per-second gain including efficiency
+            let perSecGain = totalScrapGain.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE)).floorToInteger();
+            // Since efficiency is already applied to collectCount, we need to divide it back out for the per-tick accumulator
+            let effectiveTickCount = collectCount / autoSellMult;
+            totalGain = perSecGain.mulDecimal(effectiveTickCount / TICK_RATE);
+        }
+        
+        scrapAutoSellAccumulator = scrapAutoSellAccumulator.add(totalGain);
         const toAdd = scrapAutoSellAccumulator.floorToInteger();
         if (toAdd.cmp(0) > 0) {
             if (!toAdd.isInfinite?.() || !bank.scrap.value.isInfinite?.()) {
@@ -657,9 +671,21 @@ registerPassiveSystem({
             }
         }
 
-        const totalOfflineScrap = totalScrapGainPerTick
-            .mulBigNumInteger(BigNum.fromAny(totalPassives))
-            .floorToInteger();
+        const autoSellSetting = settingsManager.get("auto_sell_efficiency");
+        const autoSellMult = autoSellSetting !== undefined ? autoSellSetting / 100 : 1;
+
+        let totalOfflineScrap;
+        if (autoSellMult === 0) {
+            totalOfflineScrap = BigNum.fromInt(0);
+        } else {
+            let perSecGain = totalScrapGainPerTick.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE)).floorToInteger();
+            
+            // Since totalPassives includes efficiency already, we extract ticks
+            let ticks = totalPassives / autoSellMult;
+            totalOfflineScrap = perSecGain
+                .mulDecimal(ticks / TICK_RATE)
+                .floorToInteger();
+        }
         if (totalOfflineScrap.cmp(0) > 0) {
             return { scrap: totalOfflineScrap };
         }
