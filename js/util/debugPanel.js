@@ -4,7 +4,7 @@
 import { lsSetItem, lsRemoveItem, lsSetItemForce, lsRemoveItemForce, setDebugStorageLockChecker, lsGetItem } from "../main.js";
 import { settingsManager } from "../game/settingsManager.js";
 import { BigNum } from "./bigNum.js";
-import { formatNumber } from "./numFormat.js";
+import { formatNumber, parseSuffixToExponent } from "./numFormat.js";
 import { SECRET_ACHIEVEMENTS, SECRET_ACHIEVEMENT_STATES, setSecretAchievementState } from "../game/secretAchievements.js";
 import {
     bank,
@@ -1600,6 +1600,16 @@ export function parseBigNumInput(raw) {
                     if (parsed2 && parsed2.isNegative()) return null;
                     return parsed2;
                 }
+            }
+        }
+
+        const suffixMatch = trimmed.match(/^([+-]?\d+(?:\.\d+)?)\s*([a-zA-Z]+)$/);
+        if (suffixMatch) {
+            const numPart = suffixMatch[1];
+            const suffixPart = suffixMatch[2];
+            const exp = parseSuffixToExponent(suffixPart);
+            if (exp !== null) {
+                trimmed = `${numPart}e${exp}`;
             }
         }
 
@@ -6369,8 +6379,8 @@ function buildDebugPanel() {
     const infoLines = [
         { text: "C: Close and preserve panels", hideOnMobile: true },
         { text: "Shift+C: Close and collapse panels", hideOnMobile: true },
-        { text: "Input fields can take a normal, scientific, or BN number as input" },
-        { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
+        { text: "Input fields can parse normal, standard, scientific, and BN input" },
+        { text: "Input value \"inf\" sets a value to infinity or an upgrade to its level cap" },
         { text: "Toggle UL/L (Unlocked/Locked) on a value to freeze it from accruing normally" },
         { text: "Press N to nuke all notifications, press Shift+N to nuke only the current notification" },
     ];
