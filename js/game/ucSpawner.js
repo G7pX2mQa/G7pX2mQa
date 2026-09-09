@@ -11,6 +11,7 @@ import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
 import { playAudio } from "../util/audioManager.js";
 import { getActiveSlot, UC_MATERIALS } from "../util/storage.js";
 import { settingsManager } from "./settingsManager.js";
+import { hasDoneCompressReset } from "../ui/minerTabs/resetTab.js";
 import { bigNumIsInfinite } from "../util/bigNum.js";
 export const UC_MATERIAL_DATA = [
     { name: "stone", start: 0, max: 0, value: 1 },
@@ -128,6 +129,12 @@ export function createUcSpawner(config = {}) {
     }
     window.addEventListener("resize", updatePickaxeSize);
     updatePickaxeSize();
+    window.addEventListener("compress:status", (e) => {
+        const pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+        if (pickaxe) {
+            pickaxe.src = e.detail?.completed ? "img/misc/prismatic_pickaxe.webp" : "img/misc/pickaxe.webp";
+        }
+    });
     let cachedRate = -1;
     let cachedVolume = basePickaxeSoundVolume;
     function getPickaxeSoundVolume() {
@@ -360,7 +367,7 @@ export function createUcSpawner(config = {}) {
                         pickaxe = document.createElement("img");
                         window._ucPickaxeElement = pickaxe;
                         pickaxe.id = "uc-pickaxe";
-                        pickaxe.src = "img/misc/pickaxe.webp";
+                        pickaxe.src = hasDoneCompressReset() ? "img/misc/prismatic_pickaxe.webp" : "img/misc/pickaxe.webp";
                         pickaxe.style.position = "absolute";
                         pickaxe.style.width = `${pickaxeSize}px`;
                         pickaxe.style.height = `${pickaxeSize}px`;
