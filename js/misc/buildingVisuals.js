@@ -693,7 +693,7 @@ export function startCanvasLoop(id, canvasEl) {
           isForcedTierView = false;
           currentAnimTargetTier = 0;
         }
-      } catch {
+      } catch (e) {
         currentLevelNum = 1;
       }
     })
@@ -842,6 +842,15 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
     transitions.push({ fromTier: t - 1, toTier: t, forced: unseen });
   }
 
+  if (!settingsManager.get("show_building_visuals")) {
+    previousTier = newTier;
+    currentAnimTargetTier = 0;
+    tierUpAnimTime = 0;
+    tierUpQueue = [];
+    isForcedTierView = false;
+    return;
+  }
+
   if (hasUnseenTier) {
     // Queue all transitions for sequential playback
     tierUpQueue = transitions.slice(1); // remaining after the first
@@ -895,23 +904,30 @@ function loop(currentTime) {
   time += dt;
 
   if (tierUpAnimTime > 0) {
-    tierUpAnimTime -= dt;
-
-    // Check if the current transition just completed
-    if (tierUpAnimTime <= 0) {
+    if (!settingsManager.get("show_building_visuals")) {
       tierUpAnimTime = 0;
+      tierUpQueue = [];
+      isForcedTierView = false;
+      currentAnimTargetTier = 0;
+    } else {
+      tierUpAnimTime -= dt;
 
-      if (tierUpQueue.length > 0) {
-        // Start the next queued transition
-        const next = tierUpQueue.shift();
-        previousTier = next.fromTier;
-        currentAnimTargetTier = next.toTier;
-        tierUpAnimTime = 6.0;
-        playAudio("sounds/building_tier_up.ogg");
-      } else {
-        // All transitions complete — release the forced view lock
-        isForcedTierView = false;
-        currentAnimTargetTier = 0;
+      // Check if the current transition just completed
+      if (tierUpAnimTime <= 0) {
+        tierUpAnimTime = 0;
+
+        if (tierUpQueue.length > 0) {
+          // Start the next queued transition
+          const next = tierUpQueue.shift();
+          previousTier = next.fromTier;
+          currentAnimTargetTier = next.toTier;
+          tierUpAnimTime = 6.0;
+          playAudio("sounds/building_tier_up.ogg");
+        } else {
+          // All transitions complete — release the forced view lock
+          isForcedTierView = false;
+          currentAnimTargetTier = 0;
+        }
       }
     }
   }
@@ -1218,7 +1234,7 @@ function updateDomOverlays(w, h, t) {
     shakeAlphaText = tierUpAnimTime > 2.5 ? (6.0 - tierUpAnimTime) / 3.5 : tierUpAnimTime / 2.5;
   }
 
-  if (levelText) {
+  if (levelText && settingsManager.get("show_building_visuals")) {
     setHtmlOrText(levelText, `Building Level ${formatNumber(currentLevelNum)} (Tier ${tier})`);
     
     const shiftConfig = BUILDING_TEXT_SHIFTS[id] || { start: 310, perTier: 10 };
@@ -1278,7 +1294,7 @@ function updateDomOverlays(w, h, t) {
   if (tier >= 8) {
     const visualsEnabled = settingsManager.get("show_building_visuals");
     const isPeakFade = shakeAlphaText >= 0.99;
-    const isInstant = !visualsEnabled && tierUpAnimTime > 0;
+    const isInstant = !visualsEnabled;
     
     if (isPeakFade || isInstant) {
       const btnBuyCheap = document.getElementById("building-btn-buy-cheap");
