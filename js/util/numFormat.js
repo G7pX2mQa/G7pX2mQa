@@ -88,6 +88,18 @@ const SUFFIX_ENTRIES = [
 ];
 const SUFFIX_BY_EXP = new Map(SUFFIX_ENTRIES);
 
+export function parseSuffixToExponent(suffix) {
+  if (!suffix) return 0;
+  if (suffix === 'k' || suffix === 'K') return 3;
+  for (let i = 0; i < SUFFIX_ENTRIES.length; i++) {
+    if (SUFFIX_ENTRIES[i][1] === suffix) return SUFFIX_ENTRIES[i][0];
+  }
+  for (let illion = 100; illion <= 10000; illion++) {
+    if (getExtendedSuffix(illion) === suffix) return (illion + 1) * 3;
+  }
+  return null;
+}
+
 const NF_INT = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0, useGrouping: true });
 function localeInt(s) {
   const num = Number(s);
