@@ -9,6 +9,7 @@ import { applyStatMultiplierOverride } from "../util/debugPanel.js";
 import { getPpState, isPpSystemUnlocked } from "./ppSystem.js";
 import { addExternalFpMultiplierProvider } from "../ui/merchantTabs/flowTab.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
+import { hasDoneCompressReset } from "../ui/minerTabs/resetTab.js";
 const externalDpMultiplierProviders = [];
 export function addExternalDpMultiplierProvider(fn) {
     if (typeof fn === "function") externalDpMultiplierProviders.push(fn);
@@ -548,7 +549,21 @@ function updateHud() {
         fill.style.width = pct;
     }
     if (dpLevelValue) {
-        setHtmlOrText(dpLevelValue, formatNumber(dpState.dpLevel));
+        let text = formatNumber(dpState.dpLevel);
+        let next = dpLevelValue.nextSibling;
+        if (!hasDoneCompressReset() && dpState.dpLevel.cmp(BigNum.fromInt(99)) >= 0 && ratio >= 1) {
+            text += "m (MAX)";
+            if (next && next.nodeType === 3 && next.nodeValue.startsWith("m")) {
+                next.originalText = next.nodeValue;
+                next.nodeValue = next.nodeValue.replace(/^m/, "");
+            }
+        } else {
+            if (next && next.nodeType === 3 && next.originalText) {
+                next.nodeValue = next.originalText;
+                next.originalText = null;
+            }
+        }
+        setHtmlOrText(dpLevelValue, text);
     }
     if (progress) {
         const currentHtml = formatNumber(dpState.progress);
@@ -907,7 +922,13 @@ export function addDp(amount, { silent = false } = {}) {
 
             const estimatedGain = best - currentLevelNum;
             if (estimatedGain > 10) {
-                const safeGain = Math.max(0, estimatedGain - 5);
+                let safeGain = Math.max(0, estimatedGain - 5);
+                if (!hasDoneCompressReset()) {
+                    const maxAllowedGain = 99 - currentLevelNum;
+                    if (safeGain > maxAllowedGain) {
+                        safeGain = Math.max(0, maxAllowedGain);
+                    }
+                }
                 if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
                     if (!levelLocked) {
                         const safeGainBn = BigNum.fromAny(safeGain.toString());
@@ -932,12 +953,31 @@ export function addDp(amount, { silent = false } = {}) {
         if (isInfinite(requirementBn) || isInfinite(dpState.progress)) break;
         if (isInfinite(requirementBn)) break;
         if (levelLocked) break;
+        if (!hasDoneCompressReset() && dpState.dpLevel.cmp(BigNum.fromInt(99)) >= 0) {
+            break;
+        }
         dpState.progress = dpState.progress.sub(requirementBn);
         dpState.dpLevel = dpState.dpLevel.add(bnOne());
         dpLevelsGained = dpLevelsGained.add(bnOne());
         updateDpRequirement();
         guard += 1;
     }
+    
+    if (!hasDoneCompressReset() && dpState.dpLevel.cmp(BigNum.fromInt(99)) >= 0) {
+        if (dpState.progress.cmp(requirementBn) >= 0) {
+            dpState.progress = requirementBn.clone();
+            
+            const justReachedCap = !dpLevelsGained.isZero?.();
+            if (typeof window !== "undefined" && justReachedCap) {
+                const rainbowStyle = "background: repeating-linear-gradient(-45deg, #ff0000 0px, #ff7f00 14.28px, #ffff00 28.57px, #00ff00 42.85px, #3131d6 57.14px, #a224ff 71.42px, #e29eff 85.71px, #ff0000 100px); background-size: 141.42px 141.42px; animation: rainbowTextScroll 4s linear infinite; color: transparent !important; -webkit-background-clip: text; background-clip: text; text-shadow: none !important; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); -webkit-text-fill-color: transparent !important; font-weight: bold; display: inline-block;";
+                const msg = `<span style="display: block; font-size: 85% !important; line-height: 1.4 !important;">Oh no! Your current pickaxe is<br>not strong enough to mine to 100m!<br>You'll need the <span style="${rainbowStyle}">Prismatic Pickaxe</span><br>to dig further, which can be obtained at Surge 200.</span>`;
+                if (window.showNotification) {
+                    window.showNotification(msg, "img/misc/prismatic_pickaxe.webp", 15000);
+                }
+            }
+        }
+    }
+
     if (guard >= limit && dpState.progress.cmp?.(requirementBn) >= 0 && !isInfinite(requirementBn)) {
         updateDpRequirement();
     }
