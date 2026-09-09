@@ -162,6 +162,9 @@ export function setCompressResetCompleted(value, slot = getActiveSlot()) {
         } catch {}
     }
     resetState.hasDoneCompressReset = !!value;
+    try {
+        window.dispatchEvent(new CustomEvent("compress:status", { detail: { completed: !!value } }));
+    } catch {}
 }
 
 export function performCompressReset() {
@@ -566,11 +569,13 @@ function updateCompressCard() {
         } else {
             const expected = `
               <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-                Compressing for the first time will unlock new Shop upgrades and <strong style="color:#ff66d9; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">Pressure</strong><br>
+                Compressing for the first time will unlock new Shop upgrades, <strong style="color:#ff66d9; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">Pressure</strong>, and the <span style="background: repeating-linear-gradient(-45deg, #ff0000 0px, #ff7f00 14.28px, #ffff00 28.57px, #00ff00 42.85px, #3131d6 57.14px, #a224ff 71.42px, #e29eff 85.71px, #ff0000 100px); background-size: 141.42px 141.42px; animation: rainbowTextScroll 4s linear infinite; color: transparent !important; -webkit-background-clip: text; background-clip: text; font-weight: bold; text-shadow: none !important; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); display: inline-block;">Prismatic Pickaxe</span><br>
                 Collect Materials to get PP; increasing Pressure will yield double DP and Material value per atm of Pressure<br>
                 Compressing for the first time will also replace the Surge 200 milestone with something new<br>
                 Additionally, the Surge requirement to perform Compress will be moved to Surge 250 once Pressure is unlocked<br>
 				Purchasing the "Unlock Compress" upgrade unlocked the Crystal building; spend Crystals there<br>
+                Compressing for the first time will also unlock new Lab nodes<br>
+                And of course, don't forget about the <span style="background: repeating-linear-gradient(-45deg, #ff0000 0px, #ff7f00 14.28px, #ffff00 28.57px, #00ff00 42.85px, #3131d6 57.14px, #a224ff 71.42px, #e29eff 85.71px, #ff0000 100px); background-size: 141.42px 141.42px; animation: rainbowTextScroll 4s linear infinite; color: transparent !important; -webkit-background-clip: text; background-clip: text; font-weight: bold; text-shadow: none !important; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); display: inline-block;">Prismatic Pickaxe</span>, which can mine infinitely deep, with no bounds
               </span>
             `.trim();
         if (!el.status.innerHTML.includes("Pressure")) setHtmlOrText(el.status, expected);
@@ -580,7 +585,7 @@ function updateCompressCard() {
         const reqSurge = hasDoneCompressReset() ? 250 : 200;
         updateResetButtonContent(el.btn, {
             disabled: true,
-            msg: `Reach Depth: 101m and Surge ${reqSurge} to perform a Compress reset`,
+            msg: `Reach Surge ${reqSurge} to perform a Compress reset`,
         });
     } else {
         updateResetButtonContent(el.btn, { disabled: false }, COMPRESS_ICON_SRC, resetState.pendingCrystals);
@@ -757,17 +762,12 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
 }
 
 function checkCompressRequirements() {
-    let dpLevelNum = 0;
-    try {
-        const state = getDpState();
-        dpLevelNum = state.dpLevel.inf ? Infinity : state.dpLevel.sig * Math.pow(10, state.dpLevel.e);
-    } catch {}
     let surgeLevel = 0;
     try {
         surgeLevel = getCurrentSurgeLevel();
     } catch {}
     const reqSurge = hasDoneCompressReset() ? 250 : 200;
-    return dpLevelNum >= 101 && surgeLevel >= reqSurge;
+    return surgeLevel >= reqSurge;
 }
 
 export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
