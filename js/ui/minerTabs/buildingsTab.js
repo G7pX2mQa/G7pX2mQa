@@ -942,7 +942,7 @@ export function getBuildingBonus(id, levelBn) {
     if (!levelBn || levelBn.isZero?.()) return BigNum.fromInt(1);
     const levelNum = levelBigNumToNumber(levelBn);
     if (id === "crystal") {
-        return bigNumFromLog10(levelNum); // because the bonus scales 10x which in log is exactly 1 (levelNum * 1 is redundant)
+        return bigNumFromLog10(levelNum * 3); // because the bonus scales 1e3x which in log is exactly 3
     }
     if (levelNum <= 100) {
         let val = 1;
