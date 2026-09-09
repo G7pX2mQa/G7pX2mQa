@@ -512,7 +512,8 @@ export function updateSellTab() {
             }
         }
 
-        const scrapPerSec = totalScrapGain.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE));
+        let scrapPerSec = totalScrapGain.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE));
+        scrapPerSec = scrapPerSec.floorToInteger();
         const formattedScrapPerSec = formatNumber(scrapPerSec);
         sellPanelDomCache.infoAuto.style.display = "";
         setHtmlOrText(sellPanelDomCache.infoAuto, `Current Scrap/sec: ${formattedScrapPerSec}`);
