@@ -314,21 +314,30 @@ export const UC_REGISTRY = [
         area: UC_AREA_KEY,
         id: 8,
         tie: "scrap_5",
-        title: "Endless Materials",
-        desc: "Doubles the value of ALL Materials per level\nThis upgrade is very strong so it will scale just slightly faster than usual",
-        lvlCap: HM_EVOLUTION_INTERVAL,
-        baseCost: 1e9,
+        title: "XP Value IV",
+        get desc() {
+            let text = `Multiplies XP value by 100x per level`;
+            let sl = 0;
+            try {
+                sl = getCurrentSurgeLevel();
+            } catch (e) {}
+            if (sl < 200) {
+                text += "\nThis will make it easier to reach Surge 200";
+            }
+            return text;
+        },
+        lvlCap: 10,
+        baseCost: 1e14,
         costType: "scrap",
-        upgType: "HM",
-        effectType: "all_materials_value",
-        scalingPreset: "HM",
-        scalingHarshness: 1e15,
-        icon: "img/uc_upg_icons/allmat_val_hm.webp",
+        upgType: "NM",
+        effectType: "xp_value",
+        icon: "img/sc_upg_icons/xp_val1.webp",
         costAtLevel(level) {
-            return costAtLevelUsingScaling(this, level);
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            return BigNum.fromAny(this.baseCost).mulBigNumInteger(E.powPerLevel(100)(normalizedLevel));
         },
         nextCostAfter(_, nextLevel) {
-            return costAtLevelUsingScaling(this, nextLevel);
+            return this.costAtLevel(nextLevel);
         },
         computeLockState() {
             let dp31 = false;
@@ -353,11 +362,11 @@ export const UC_REGISTRY = [
         },
         effectSummary(level) {
             const mult = this.effectMultiplier(level);
-            return `Material value bonus: ${formatMultForUi(mult)}x`;
+            return `XP value bonus: ${formatMultForUi(mult)}x`;
         },
         effectMultiplier(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
-            return E.powPerLevel(2)(normalizedLevel);
+            return E.powPerLevel(100)(normalizedLevel);
         },
     },
     {
@@ -367,7 +376,7 @@ export const UC_REGISTRY = [
         title: "Advanced Researching",
         desc: `Improves RP value by ${formatNumber(BigNum.fromAny("1e1000"))}x per level`,
         lvlCap: 10,
-        baseCost: 1e21,
+        baseCost: 1e19,
         costType: "scrap",
         upgType: "NM",
         effectType: "rp_value",
@@ -383,7 +392,7 @@ export const UC_REGISTRY = [
         },
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
-            const log10 = 3 * normalizedLevel;
+            const log10 = 9 * normalizedLevel;
             const thousands = bigNumFromLog10(log10);
             return BigNum.fromAny(this.baseCost).mulBigNumInteger(thousands);
         },
@@ -415,64 +424,6 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 10,
-        tie: "scrap_7",
-        title: "XP Value IV",
-        get desc() {
-            let text = `Multiplies XP value by ${formatNumber(BigNum.fromInt(1e10))}x`;
-            let sl = 0;
-            try {
-                sl = getCurrentSurgeLevel();
-            } catch (e) {}
-            if (sl < 200) {
-                text += "\nThis will make it easier to reach Surge 200";
-            }
-            return text;
-        },
-        lvlCap: 1,
-        baseCost: 1e30,
-        costType: "scrap",
-        upgType: "NM",
-        effectType: "xp_value",
-        icon: "img/sc_upg_icons/xp_val1.webp",
-        costAtLevel(level) {
-            return BigNum.fromAny(this.baseCost);
-        },
-        nextCostAfter(_, nextLevel) {
-            return BigNum.fromAny(this.baseCost);
-        },
-        computeLockState() {
-            let dp31 = false;
-            try {
-                const dpState = getDpState();
-                dp31 =
-                    (bigNumIsInfinite(dpState.dpLevel)
-                        ? Infinity
-                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)) >= 31;
-            } catch {}
-
-            if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-                return { state: "unlocked" };
-            }
-
-            if (!dp31) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Perform a Combine reset to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `XP value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return normalizedLevel > 0 ? 1e10 : 1;
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 11,
         tie: "none_8",
         title: "Unlock Compress",
         desc: "Unlocks the Compress reset and the Crystal building",
@@ -480,7 +431,7 @@ export const UC_REGISTRY = [
         upgType: "NM",
         icon: "",
         baseIconOverride: "img/misc/compress_plus_base.webp",
-        revealRequirement: "Reach Depth: 101m to reveal this upgrade",
+        revealRequirement: "Reach Surge 200 to reveal this upgrade",
         unlockUpgrade: true,
         costAtLevel() {
             return BigNum.fromInt(0);
@@ -489,16 +440,12 @@ export const UC_REGISTRY = [
             return BigNum.fromInt(0);
         },
         computeLockState() {
-            let dp101 = false;
+            let surge200 = false;
             try {
-                const dpState = getDpState();
-                dp101 =
-                    (bigNumIsInfinite(dpState.dpLevel)
-                        ? Infinity
-                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)) >= 101;
+                surge200 = getCurrentSurgeLevel() >= 200;
             } catch {}
 
-            if (dp101) {
+            if (surge200) {
                 return { state: "unlocked" };
             }
 
@@ -506,7 +453,7 @@ export const UC_REGISTRY = [
                 return { state: "locked" };
             }
 
-            const revealText = "Reach Depth: 101m to reveal this upgrade";
+            const revealText = "Reach Surge 200 to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
         onLevelChange({ newLevel }) {
