@@ -422,15 +422,8 @@ registerPassiveSystem({
         if (!ucEacUpgDef || !ucEacUpgDef.requiredNodeId || !isNodeLocked(ucEacUpgDef.requiredNodeId, true)) {
             ucRate = ucEacLevel;
         }
-        for (const provider of externalEacProviders) {
-            try {
-                const val = provider();
-                if (Number.isFinite(val)) ucRate *= val;
-            } catch {}
-        }
         return ucRate;
     },
-    getAmountMultiplier: getEacAmountMultiplier,
     onTick: (collectCount, dt) => {
         let dpLevelNum = 0;
         try {
@@ -484,10 +477,10 @@ registerPassiveSystem({
         }
         if (totalMaterialsSpawned > 0) {
             if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
-                window.dpSystem.addDp(totalMaterialsSpawned);
+                window.dpSystem.addDp(collectCount);
             }
             if (isPpSystemUnlocked()) {
-                addPp(totalMaterialsSpawned);
+                addPp(collectCount);
             }
         }
 
@@ -551,9 +544,9 @@ registerPassiveSystem({
         }
         if (anyGain) {
             rewards.uc_eac_progress = ucEacProgress;
-            rewards.dp = totalMaterialsSpawned;
+            rewards.dp = totalPassives;
             if (isPpSystemUnlocked()) {
-                rewards.pp = totalMaterialsSpawned;
+                rewards.pp = totalPassives;
             }
         }
         return rewards;
