@@ -580,13 +580,19 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             } else {
                 totalMult = mults.coins * mults.books * mults.gold * mults.magic;
             }
-            milestone.description = [
-                `Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span>`,
-                `Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span>`,
-                `Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span>`,
-                `Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span>`,
-                `Total boost to Coins: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`,
-            ];
+            if (typeof window !== "undefined" && window.innerWidth <= 450) {
+                milestone.description = [
+                    `Coins, Books, Gold, and Magic influence Coin value: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`,
+                ];
+            } else {
+                milestone.description = [
+                    `Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span>`,
+                    `Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span>`,
+                    `Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span>`,
+                    `Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span>`,
+                    `Total boost to Coins: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`,
+                ];
+            }
         }
         if (m.id === 9) {
             if (milestone === m) {
