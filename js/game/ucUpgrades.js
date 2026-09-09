@@ -316,7 +316,7 @@ export const UC_REGISTRY = [
         tie: "scrap_5",
         title: "XP Value IV",
         get desc() {
-            let text = `Multiplies XP value by 100x per level`;
+            let text = `Multiplies XP value by 200x per level`;
             let sl = 0;
             try {
                 sl = getCurrentSurgeLevel();
@@ -334,7 +334,7 @@ export const UC_REGISTRY = [
         icon: "img/sc_upg_icons/xp_val1.webp",
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
-            return BigNum.fromAny(this.baseCost).mulBigNumInteger(E.powPerLevel(100)(normalizedLevel));
+            return BigNum.fromAny(this.baseCost).mulBigNumInteger(E.powPerLevel(200)(normalizedLevel));
         },
         nextCostAfter(_, nextLevel) {
             return this.costAtLevel(nextLevel);
@@ -366,7 +366,7 @@ export const UC_REGISTRY = [
         },
         effectMultiplier(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
-            return E.powPerLevel(100)(normalizedLevel);
+            return E.powPerLevel(200)(normalizedLevel);
         },
     },
     {
@@ -392,7 +392,7 @@ export const UC_REGISTRY = [
         },
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
-            const log10 = 9 * normalizedLevel;
+            const log10 = 15 * normalizedLevel;
             const thousands = bigNumFromLog10(log10);
             return BigNum.fromAny(this.baseCost).mulBigNumInteger(thousands);
         },
