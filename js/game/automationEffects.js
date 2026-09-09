@@ -411,10 +411,9 @@ registerPassiveSystem({
 // Register Underwater Cavern EAC
 registerPassiveSystem({
     id: "uc_eac",
-    getEfficiencyMultiplier: () => {
-        const eacEfficiency = settingsManager.get("eac_efficiency");
-        return eacEfficiency !== undefined ? eacEfficiency / 100 : 1;
-    },
+    // Always return 1 so the automation loop ticks at full speed;
+    // UC EAC applies the efficiency slider as a yield multiplier internally.
+    getEfficiencyMultiplier: () => 1,
     getRate: () => {
         const ucEacLevel = getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID) || 0;
         const ucEacUpgDef = getUpgrade(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID);
@@ -426,6 +425,11 @@ registerPassiveSystem({
     },
 	// to clarify, Underwater Cavern EAC should NOT be buffed by the EAC buffs to the Cove's EAC
     onTick: (collectCount, dt) => {
+        // Read the shared EAC efficiency slider as a yield multiplier (0–1)
+        const eacEfficiency = settingsManager.get("eac_efficiency");
+        const yieldMult = eacEfficiency !== undefined ? eacEfficiency / 100 : 1;
+        if (yieldMult === 0) return;
+
         let dpLevelNum = 0;
         try {
             const dpState = getDpState();
@@ -452,6 +456,7 @@ registerPassiveSystem({
                 }
             }
             if (gain > 0) {
+                // Accumulators tick at full speed (collectCount is unmodified)
                 const totalGain = gain * collectCount;
                 const newAcc = accs[j] + totalGain;
                 const integerGain = Math.floor(newAcc);
@@ -461,6 +466,7 @@ registerPassiveSystem({
                     const matKey = UC_MATERIALS[j];
                     if (bank[matKey] && !globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matKey}`)) {
                         const mult = bank[matKey].mult.get();
+                        // Materials are integer-only; efficiency yield multiplier applies to DP/PP only
                         const finalVal = BigNum.fromInt(1)
                             .mulBigNumInteger(mult)
                             .mulBigNumInteger(BigNum.fromAny(integerGain));
@@ -476,12 +482,16 @@ registerPassiveSystem({
                 scheduleHudUpdate();
             } catch {}
         }
-        if (totalMaterialsSpawned > 0) {
-            if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
-                window.dpSystem.addDp(collectCount);
-            }
-            if (isPpSystemUnlocked()) {
-                addPp(collectCount);
+        if (collectCount > 0) {
+            // DP and PP also scaled by the yield multiplier
+            const scaledCount = collectCount * yieldMult;
+            if (scaledCount > 0) {
+                if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
+                    window.dpSystem.addDp(scaledCount);
+                }
+                if (isPpSystemUnlocked()) {
+                    addPp(scaledCount);
+                }
             }
         }
 
