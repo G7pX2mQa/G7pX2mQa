@@ -18,7 +18,7 @@ import {
 import { getMpValueMultiplierBn } from "./upgrades.js";
 import { playAudio } from "../util/audioManager.js";
 import { onCoinCollected, addComboChangeListener, removeComboChangeListener } from "./comboSystem.js";
-import { getComboUiString } from "./surgeEffects.js";
+import { getComboUiString, isSurgeActive, getTsunamiExponentWithCombo } from "./surgeEffects.js";
 import { settingsManager } from "./settingsManager.js";
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from "./collectionCore.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
@@ -668,8 +668,18 @@ export function initCoinPickup({
 
             const base = el ? resolveCoinBase(el) : BASE_COIN_VALUE;
             const spawnLevelStr = coinObj?.mutationLevel ?? (el?.dataset?.mutationLevel || null);
-            const valMult =
-                coinObj && coinObj.valueMultiplier && coinObj.valueMultiplier > 1 ? coinObj.valueMultiplier : 1;
+            let valMult = 1;
+            if (coinObj && coinObj.sizeIndex !== undefined) {
+                if (isSurgeActive(8)) {
+                    let nerf = getTsunamiExponentWithCombo();
+                    const baseNerf = Math.pow(25, nerf);
+                    valMult = Math.pow(baseNerf, coinObj.sizeIndex);
+                } else {
+                    valMult = Math.pow(25, coinObj.sizeIndex);
+                }
+            } else {
+                valMult = coinObj && coinObj.valueMultiplier && coinObj.valueMultiplier > 1 ? coinObj.valueMultiplier : 1;
+            }
             const baseKey = base && typeof base.toString === "function" ? base.toString() : "1";
             const groupKey = `${baseKey}|v${valMult}|m${spawnLevelStr}`;
             if (!coinGroups[groupKey]) {
