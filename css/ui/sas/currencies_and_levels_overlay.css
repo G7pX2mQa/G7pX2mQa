@@ -287,6 +287,18 @@
 }
 
 
+.multipliers-note {
+  color: white;
+  text-align: center;
+  font-size: 18px;
+}
+
+@media (max-width: 450px) {
+  .multipliers-note {
+    font-size: 14px;
+  }
+}
+
 /* Shared Level Bar Styles inside SAS Overlay */
 .currency-amount .level-row-bar {
   flex: 1;
