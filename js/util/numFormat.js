@@ -387,6 +387,9 @@ function mantissaFourDigits(sci) {
 
 function _formatNumber(bn) {
   if (!(bn instanceof BigNum)) {
+    if (typeof bn === 'number' && Number.isFinite(bn)) {
+      return _formatNumber(BigNum.fromAny(bn));
+    }
     if (bn === Infinity) return '<span class="infinity-symbol">∞</span>';
     if (bn === -Infinity) return '-<span class="infinity-symbol">∞</span>';
     return String(bn);
