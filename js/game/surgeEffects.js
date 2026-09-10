@@ -445,9 +445,15 @@ export function getSurge200Multiplier() {
     const baseMult = 1 + effective;
     const diffBN = levelBN.sub(BigNum.fromInt(200));
     const logBase = Math.log10(baseMult);
-    const exponent = diffBN.inf ? Infinity : diffBN.sig * Math.pow(10, diffBN.e);
     if (logBase === 0) return BigNum.fromInt(1);
-    return bigNumFromLog10(exponent * logBase);
+    const log10ResultBn = diffBN.mulDecimal(logBase);
+    let log10ResultNum;
+    if (bigNumIsInfinite(log10ResultBn)) {
+        log10ResultNum = Infinity;
+    } else {
+        log10ResultNum = parseFloat(log10ResultBn.toScientific(10));
+    }
+    return bigNumFromLog10(log10ResultNum);
 }
 
 export function getSurge40Multiplier() {
