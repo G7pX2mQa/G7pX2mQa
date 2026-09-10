@@ -1371,7 +1371,9 @@ export function openBuildingDetailOverlay(id) {
     openBuildingOverlaySheet(overlayEl, sheet);
     import("../../misc/buildingVisuals.js").then((module) => {
         buildingVisualsModule = module;
-        module.startCanvasLoop(id, overlayEl.querySelector("#building-detail-canvas"));
+        const levelBn = getBuildingLevel(id);
+        const levelNum = levelBigNumToNumber(levelBn);
+        module.startCanvasLoop(id, overlayEl.querySelector("#building-detail-canvas"), levelNum);
     });
 }
 
