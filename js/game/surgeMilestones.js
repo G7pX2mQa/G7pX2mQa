@@ -721,8 +721,14 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                         const diffBN = currentLevelBN.sub(BigNum.fromInt(200));
                         if (diffBN.cmp(0) > 0) {
                             const logBase = Math.log10(baseMult);
-                            const exponent = diffBN.inf ? Infinity : diffBN.sig * Math.pow(10, diffBN.e);
-                            multBn = bigNumFromLog10(exponent * logBase);
+                            const log10ResultBn = diffBN.mulDecimal(logBase);
+                            let log10ResultNum;
+                            if (log10ResultBn.inf || log10ResultBn.isInfinite?.()) {
+                                log10ResultNum = Infinity;
+                            } else {
+                                log10ResultNum = parseFloat(log10ResultBn.toScientific(10));
+                            }
+                            multBn = bigNumFromLog10(log10ResultNum);
                         }
                     }
 
