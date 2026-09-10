@@ -13,6 +13,8 @@ import {
 import { isBuildingsUnlocked } from "../ui/minerTabs/buildingsTab.js";
 import { hasDoneCombineReset } from "../ui/minerTabs/resetTab.js";
 import { BigNum, bigNumIsInfinite, bigNumFromLog10 } from "../util/bigNum.js";
+import { showWideNotification } from "../ui/notifications.js";
+import { isResearchNodeActive } from "./labNodes.js";
 import { formatNumber } from "../util/numFormat.js";
 import { isSellUnlocked, hasViewedSellTab } from "../ui/minerTabs/sellTab.js";
 import { getCurrentSurgeLevel } from "../ui/merchantTabs/resetTab.js";
@@ -398,6 +400,28 @@ export const UC_REGISTRY = [
         },
         nextCostAfter(_, nextLevel) {
             return this.costAtLevel(nextLevel);
+        },
+        onLevelChange({ oldLevel, newLevel }) {
+            if (oldLevel === 0 && newLevel >= 1) {
+                import("../ui/minerTabs/resetTab.js").then(({ hasDoneCompressReset }) => {
+                    if (hasDoneCompressReset()) return;
+                    if (isResearchNodeActive(19)) return;
+
+                    const notif = showWideNotification("By the way, you need to toggle Lab Node 19 to make some progress", 10000);
+
+                    const listener = (e) => {
+                        if (e.detail.id === 19 && e.detail.active) {
+                            notif.close();
+                            window.removeEventListener("lab:node:active", listener);
+                        }
+                    };
+
+                    window.addEventListener("lab:node:active", listener);
+                    setTimeout(() => {
+                        window.removeEventListener("lab:node:active", listener);
+                    }, 11000);
+                });
+            }
         },
         computeLockState() {
             let dp31 = false;
