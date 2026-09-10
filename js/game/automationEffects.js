@@ -20,7 +20,7 @@ import {
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from "../util/storage.js";
-import { UC_MATERIAL_DATA, getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from "./ucSpawner.js";
+import { UC_MATERIAL_DATA, getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators, getUcEacYieldAccumulators, saveUcEacYieldAccumulators } from "./ucSpawner.js";
 import { BigNum, bigNumIsInfinite } from "../util/bigNum.js";
 import { isSurgeActive, getBaseTsunamiExponent } from "./surgeEffects.js";
 import { settingsManager } from "./settingsManager.js";
@@ -440,6 +440,7 @@ registerPassiveSystem({
             }
         } catch {}
         const accs = getUcEacMaterialAccumulators();
+        const yieldAccs = getUcEacYieldAccumulators();
         let anyGains = false;
         let totalMaterialsSpawned = 0;
         for (let j = 0; j < UC_MATERIALS.length; j++) {
@@ -456,7 +457,7 @@ registerPassiveSystem({
                 }
             }
             if (gain > 0) {
-                // Accumulators tick at full speed (collectCount is unmodified)
+                // Spawn accumulator always ticks at full speed, unaffected by efficiency
                 const totalGain = gain * collectCount;
                 const newAcc = accs[j] + totalGain;
                 const integerGain = Math.floor(newAcc);
@@ -466,12 +467,23 @@ registerPassiveSystem({
                     const matKey = UC_MATERIALS[j];
                     if (bank[matKey] && !globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matKey}`)) {
                         const mult = bank[matKey].mult.get();
-                        // Materials are integer-only; efficiency yield multiplier applies to DP/PP only
-                        const finalVal = BigNum.fromInt(1)
+                        // Compute the full value, then scale by efficiency
+                        const baseVal = BigNum.fromInt(1)
                             .mulBigNumInteger(mult)
                             .mulBigNumInteger(BigNum.fromAny(integerGain));
-                        bank[matKey].add(finalVal);
-                        anyGains = true;
+                        // Convert to number for yield accumulator
+                        const scaledVal = parseFloat(baseVal.toScientific()) * yieldMult;
+                        // Feed into yield accumulator — only deposit whole integers
+                        const newYieldAcc = yieldAccs[j] + scaledVal;
+                        const yieldInt = Math.floor(newYieldAcc);
+                        yieldAccs[j] = newYieldAcc - yieldInt;
+                        if (yieldAccs[j] > baseVal.sig * Math.pow(10, baseVal.e) + 1) {
+                            yieldAccs[j] = 0;
+                        }
+                        if (yieldInt > 0) {
+                            bank[matKey].add(BigNum.fromAny(yieldInt));
+                            anyGains = true;
+                        }
                         totalMaterialsSpawned += integerGain;
                     }
                 }
@@ -499,6 +511,7 @@ registerPassiveSystem({
         if (now - lastUcEacSaveTime > 1000) {
             saveUcEacAccumulator();
             saveUcEacMaterialAccumulators();
+            saveUcEacYieldAccumulators();
             lastUcEacSaveTime = now;
         }
     },
