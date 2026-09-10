@@ -410,9 +410,6 @@ function populateMultipliersOverlay(overlayEl, keysToUpdate = null) {
     if (!noteEl) {
         noteEl = document.createElement("div");
         noteEl.className = "multipliers-note";
-        noteEl.style.color = "white";
-        noteEl.style.textAlign = "center";
-        noteEl.style.fontSize = "18px";
         noteEl.textContent =
             "Note: Currency or stat multipliers will only appear here if they have changed from their default value of 1x";
         grid.parentElement.insertBefore(noteEl, grid);
