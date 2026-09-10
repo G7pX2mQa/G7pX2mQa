@@ -561,7 +561,7 @@ function initUnobtainiumPattern(ctx) {
   }
 }
 
-export function startCanvasLoop(id, canvasEl) {
+export function startCanvasLoop(id, canvasEl, initialLevelNum) {
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   window.currentCavernLayout = null;
   activeCanvas = canvasEl;
@@ -680,26 +680,38 @@ export function startCanvasLoop(id, canvasEl) {
     keypadCanvas.height = rect.height * dpr;
   }
 
-  // Using import for ES modules instead of require for local scope
-  import("../ui/minerTabs/buildingsTab.js")
-    .then((module) => {
-      try {
-        currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
-        let currentTier = getTier();
-        if (tierUpAnimTime === 0 && !isForcedTierView) {
-          previousTier = currentTier;
-          tierUpAnimTime = 0;
-          tierUpQueue = [];
-          isForcedTierView = false;
-          currentAnimTargetTier = 0;
+  if (initialLevelNum !== undefined) {
+    currentLevelNum = initialLevelNum;
+    let currentTier = getTier();
+    if (tierUpAnimTime === 0 && !isForcedTierView) {
+      previousTier = currentTier;
+      tierUpAnimTime = 0;
+      tierUpQueue = [];
+      isForcedTierView = false;
+      currentAnimTargetTier = 0;
+    }
+  } else {
+    // Using import for ES modules instead of require for local scope
+    import("../ui/minerTabs/buildingsTab.js")
+      .then((module) => {
+        try {
+          currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
+          let currentTier = getTier();
+          if (tierUpAnimTime === 0 && !isForcedTierView) {
+            previousTier = currentTier;
+            tierUpAnimTime = 0;
+            tierUpQueue = [];
+            isForcedTierView = false;
+            currentAnimTargetTier = 0;
+          }
+        } catch (e) {
+          currentLevelNum = 1;
         }
-      } catch (e) {
+      })
+      .catch(() => {
         currentLevelNum = 1;
-      }
-    })
-    .catch(() => {
-      currentLevelNum = 1;
-    });
+      });
+  }
 
   if (currentBuildingId === 'pure_gold') {
     canvasEl.style.pointerEvents = 'auto';
