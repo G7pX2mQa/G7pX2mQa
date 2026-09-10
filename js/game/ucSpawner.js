@@ -93,6 +93,35 @@ export function saveUcEacMaterialAccumulators() {
     } catch {}
 }
 
+// Yield accumulators: accumulate fractional material values (from efficiency slider)
+// and only deposit into the bank when a whole integer is reached.
+export function getUcEacYieldAccumulators() {
+    if (!window._ucEacYieldAccumulators) {
+        try {
+            const slot = getActiveSlot();
+            const stored = slot != null ? lsGetItem(`ccc:ucEacYieldAccumulators:${slot}`) : null;
+            if (stored) {
+                window._ucEacYieldAccumulators = JSON.parse(stored);
+            } else {
+                window._ucEacYieldAccumulators = new Array(UC_MATERIALS.length).fill(0);
+            }
+        } catch {
+            window._ucEacYieldAccumulators = new Array(UC_MATERIALS.length).fill(0);
+        }
+    }
+    return window._ucEacYieldAccumulators || new Array(UC_MATERIALS.length).fill(0);
+}
+
+export function saveUcEacYieldAccumulators() {
+    try {
+        if (window._ucEacYieldAccumulators) {
+            const slot = getActiveSlot();
+            if (slot != null)
+                lsSetItem(`ccc:ucEacYieldAccumulators:${slot}`, JSON.stringify(window._ucEacYieldAccumulators));
+        }
+    } catch {}
+}
+
 export function createUcSpawner(config = {}) {
     // If settings are enabled, start with an initialBurst so there's no dead wait at startup.
     const overrides = {};
