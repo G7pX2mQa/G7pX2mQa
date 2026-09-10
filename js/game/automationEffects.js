@@ -467,21 +467,31 @@ registerPassiveSystem({
                     const matKey = UC_MATERIALS[j];
                     if (bank[matKey] && !globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matKey}`)) {
                         const mult = bank[matKey].mult.get();
-                        // Compute the full value, then scale by efficiency
+                        // Compute the full value, then scale by efficiency safely using BigNum
                         const baseVal = BigNum.fromInt(1)
                             .mulBigNumInteger(mult)
                             .mulBigNumInteger(BigNum.fromAny(integerGain));
-                        // Convert to number for yield accumulator
-                        const scaledVal = parseFloat(baseVal.toScientific()) * yieldMult;
-                        // Feed into yield accumulator — only deposit whole integers
-                        const newYieldAcc = yieldAccs[j] + scaledVal;
-                        const yieldInt = Math.floor(newYieldAcc);
-                        yieldAccs[j] = newYieldAcc - yieldInt;
-                        if (yieldAccs[j] > baseVal.sig * Math.pow(10, baseVal.e) + 1) {
+                        const scaledValBn = baseVal.mulDecimal(String(yieldMult));
+                        const yieldIntBn = scaledValBn.floorToInteger();
+                        
+                        let fractionalPart = parseFloat(scaledValBn.sub(yieldIntBn).toScientific());
+                        if (isNaN(fractionalPart)) fractionalPart = 0;
+                        
+                        const newYieldAcc = yieldAccs[j] + fractionalPart;
+                        let extraYieldInt = Math.floor(newYieldAcc);
+                        yieldAccs[j] = newYieldAcc - extraYieldInt;
+                        
+                        if (yieldAccs[j] < 0 || yieldAccs[j] >= 1) {
                             yieldAccs[j] = 0;
                         }
-                        if (yieldInt > 0) {
-                            bank[matKey].add(BigNum.fromAny(yieldInt));
+                        
+                        let finalYieldIntBn = yieldIntBn;
+                        if (extraYieldInt > 0) {
+                            finalYieldIntBn = finalYieldIntBn.add(BigNum.fromInt(extraYieldInt));
+                        }
+                        
+                        if (finalYieldIntBn.cmp(0) > 0) {
+                            bank[matKey].add(finalYieldIntBn);
                             anyGains = true;
                         }
                         totalMaterialsSpawned += integerGain;
