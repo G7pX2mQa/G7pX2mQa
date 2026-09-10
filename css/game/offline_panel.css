@@ -406,7 +406,13 @@
 }
 
 @media (max-width: 450px) {
+    .offline-row {
+        font-size: 17px;
+    }
+}
+
+@media (max-width: 450px) {
     .sim-panel .offline-header {
-        font-size: 19px;
+        font-size: 20px;
     }
 }
