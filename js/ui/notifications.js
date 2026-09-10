@@ -570,6 +570,18 @@ export function showWideNotification(text, duration = 9000, options = {}) {
     };
 
     popupTracker.timeoutId = setTimeout(popupTracker.triggerLeaving, duration);
+
+    return {
+        close: () => {
+            if (popupTracker.timeoutId) {
+                clearTimeout(popupTracker.timeoutId);
+                popupTracker.timeoutId = null;
+            }
+            if (activeWelcomePopups.has(popupTracker)) {
+                popupTracker.triggerLeaving();
+            }
+        },
+    };
 }
 
 export function showWeeklyReminderPopup() {
