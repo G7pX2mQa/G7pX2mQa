@@ -674,11 +674,18 @@ export function getDpMultiplier() {
         if (isPpSystemUnlocked()) {
             const ppLevel = getPpState().ppLevel;
             if (ppLevel && !ppLevel.isZero()) {
-                const ppLevelNum = bigNumIsInfinite(ppLevel) ? Infinity : ppLevel.sig * Math.pow(10, ppLevel.e);
-                if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
+                const log10ResultBn = ppLevel.mulDecimal(Math.log10(2));
+                let log10ResultNum;
+                if (bigNumIsInfinite(log10ResultBn)) {
+                    log10ResultNum = Infinity;
+                } else {
+                    log10ResultNum = parseFloat(log10ResultBn.toScientific(10));
+                }
+                
+                if (!Number.isFinite(log10ResultNum) || log10ResultNum === Infinity) {
                     dpMult = dpMult.mulBigNumInteger(BigNum.fromAny("Infinity"));
                 } else {
-                    const powValBn = bigNumFromLog10(ppLevelNum * Math.log10(2)).floorToInteger();
+                    const powValBn = bigNumFromLog10(log10ResultNum).floorToInteger();
                     dpMult = dpMult.mulBigNumInteger(powValBn);
                 }
             }
