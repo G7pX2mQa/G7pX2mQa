@@ -542,18 +542,14 @@ export function formatMultForUi(value) {
       const log10 = approxLog10BigNum(value);
       if (Number.isFinite(log10) && log10 < 3) {
         const approx = Math.pow(10, log10);
-        return String(approx.toFixed(3))
-          .replace(/\.0+$/, '')
-          .replace(/(\.\d*?)0+$/, '$1');
+        return Number(approx.toPrecision(4)).toString();
       }
       return formatNumber(value);
     }
 
     const n = Number(value) || 0;
     if (Math.abs(n) < 1000) {
-      return String(n.toFixed(3))
-        .replace(/\.0+$/, '')
-        .replace(/(\.\d*?)0+$/, '$1');
+      return Number(n.toPrecision(4)).toString();
     }
     return formatNumber(BigNum.fromAny(n));
   } catch {
