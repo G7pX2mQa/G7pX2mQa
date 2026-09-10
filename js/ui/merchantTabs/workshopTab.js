@@ -404,7 +404,7 @@ function buildWorkshopUI(container) {
             Each increase of your Workshop Level will <span data-workshop="production-verb">double</span> the Gear production rate<br>
             ${descText}<br>
             Spend Gears in the Automation Shop to unlock powerful automation upgrades<br>
-			<b>Automation upgrades will never be reset by any reset layer</b>
+			<strong>Automation upgrades will never be reset by any reset layer</strong>
           </div>
         </div>
         <div class="workshop-doubler-panel">
