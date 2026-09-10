@@ -582,7 +582,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             }
             if (typeof window !== "undefined" && window.innerWidth <= 450) {
                 milestone.description = [
-                    `Coins, Books, Gold, and Magic influence Coin value: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`,
+                    `Coins, Books, Gold, and Magic multiply Coin value: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`,
                 ];
             } else {
                 milestone.description = [
