@@ -577,13 +577,13 @@ function updateCompressCard() {
         } else {
             const expected = `
               <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-                Compressing for the first time will unlock new Shop upgrades, <strong style="color:#ff66d9; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">Pressure</strong>, and the <span class="text-prismatic-pickaxe" style="background: repeating-linear-gradient(-45deg, #ff0000 0px, #ff7f00 14.28px, #ffff00 28.57px, #00ff00 42.85px, #3131d6 57.14px, #a224ff 71.42px, #e29eff 85.71px, #ff0000 100px); background-size: 141.42px 141.42px; animation: rainbowTextScroll 4s linear infinite; color: transparent !important; -webkit-background-clip: text; background-clip: text; font-weight: bold; text-shadow: none !important; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); display: inline-block;">Prismatic Pickaxe</span><br>
+                Compressing for the first time will unlock new Shop upgrades, <strong style="color:#ff66d9; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">Pressure</strong>, and the <span class="text-rainbow-animated">Prismatic Pickaxe</span><br>
                 Collect Materials to get PP; increasing Pressure will yield double DP and Material value per atm of Pressure<br>
                 Compressing for the first time will also replace the Surge 200 milestone with something new<br>
                 Additionally, the Surge requirement to perform Compress will be moved to Surge 250 once Pressure is unlocked<br>
 				Purchasing the "Unlock Compress" upgrade unlocked the Crystal building; spend Crystals there<br>
                 Compressing for the first time will also unlock new Lab nodes<br>
-                And of course, don't forget about the <span class="text-prismatic-pickaxe" style="background: repeating-linear-gradient(-45deg, #ff0000 0px, #ff7f00 14.28px, #ffff00 28.57px, #00ff00 42.85px, #3131d6 57.14px, #a224ff 71.42px, #e29eff 85.71px, #ff0000 100px); background-size: 141.42px 141.42px; animation: rainbowTextScroll 4s linear infinite; color: transparent !important; -webkit-background-clip: text; background-clip: text; font-weight: bold; text-shadow: none !important; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); display: inline-block;">Prismatic Pickaxe</span>, which can mine infinitely deep, with no bounds
+                And of course, don't forget about the <span class="text-rainbow-animated">Prismatic Pickaxe</span>, which can mine infinitely deep, with no bounds
               </span>
             `.trim();
         if (!el.status.innerHTML.includes("Pressure")) setHtmlOrText(el.status, expected);
