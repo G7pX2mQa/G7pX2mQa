@@ -261,6 +261,7 @@ export function createUcSpawner(config = {}) {
         shouldAutoResume,
         numLayers: UC_MATERIALS.length,
         onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems, batchLength = 0) => {
+            if (window._prismaticCinematicActive) return [];
             const MATERIAL_MARGIN = 12;
             const pfW = M.pfW;
             const wRect =
@@ -415,10 +416,11 @@ export function createUcSpawner(config = {}) {
                     const item = newItems[0];
                     const chargeTime = cycleMs * 0.8;
                     const strikeTime = cycleMs * 0.2;
-                    // Convert pickY (which is viewport relative) to local playfield coordinates
-                    // pfRect already obtained above
                     // Y position between 25% and 75% of rubble layer height, relative to viewport
-                    const pickY = rubbleRect.top + rubbleRect.height * 0.5 + window.innerHeight * 0.025;
+                    // Clamp to visible playfield area so bleed extensions outside the viewport don't shift the strike Y
+                    const visibleRubbleTop = Math.max(pfRect.top, rubbleRect.top);
+                    const visibleRubbleHeight = Math.max(0, rubbleRect.bottom - visibleRubbleTop);
+                    const pickY = visibleRubbleTop + visibleRubbleHeight * 0.5 + window.innerHeight * 0.025;
                     // Is left or right half?
                     const itemMiddleAbsoluteX = pfRect.left + item.startX + item.size / 2;
                     const isLeft = itemMiddleAbsoluteX < window.innerWidth / 2;
