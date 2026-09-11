@@ -985,8 +985,7 @@ export function addDp(amount, { silent = false } = {}) {
             
             if (typeof window !== "undefined" && !window.__isDpCappedPreCompress) {
                 window.__isDpCappedPreCompress = true;
-                const rainbowStyle = "background: repeating-linear-gradient(-45deg, #ff0000 0px, #ff7f00 14.28px, #ffff00 28.57px, #00ff00 42.85px, #3131d6 57.14px, #a224ff 71.42px, #e29eff 85.71px, #ff0000 100px); background-size: 141.42px 141.42px; animation: rainbowTextScroll 4s linear infinite; color: transparent !important; -webkit-background-clip: text; background-clip: text; text-shadow: none !important; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); -webkit-text-fill-color: transparent !important; font-weight: bold; display: inline-block;";
-                const msg = `<span style="display: block; font-size: 85% !important; line-height: 1.4 !important;">Oh no! Your current pickaxe is<br>not strong enough to mine to 100m!<br>You'll need the <span class="text-prismatic-pickaxe" style="${rainbowStyle}">Prismatic Pickaxe</span><br>to dig further, which can be obtained at Surge 200.</span>`;
+                const msg = `<span style="display: block; font-size: 85% !important; line-height: 1.4 !important;">Oh no! Your current pickaxe is<br>not strong enough to mine to 100m!<br>You'll need the <span class="text-rainbow-animated">Prismatic Pickaxe</span><br>to dig further, which can be obtained at Surge 200.</span>`;
                 if (window.showNotification) {
                     window.showNotification(msg, "img/misc/prismatic_pickaxe.webp", 15000);
                 }
