@@ -458,6 +458,7 @@ export function createUcSpawner(config = {}) {
             }
         },
         onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
+            if (window._prismaticCinematicActive) return;
             const pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
             if (pickaxe && pickaxe._elapsedTime !== undefined) {
                 const currentCycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
@@ -751,6 +752,25 @@ export function createUcSpawner(config = {}) {
         setRate: (n) => {
             currentRate = Math.max(0, Number(n) || 0);
             base.setRate(currentRate);
+            
+            if (currentRate === 0) {
+                // Instantly cancel any ongoing pickaxe swing
+                const pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+                if (pickaxe) {
+                    pickaxe._elapsedTime = undefined;
+                    pickaxe.style.transform = "rotate(0deg)";
+                }
+                
+                // Clear any pending placeholders so stragglers don't spawn
+                const activeItems = base.getActiveItems();
+                for (let i = activeItems.length - 1; i >= 0; i--) {
+                    const c = activeItems[i];
+                    if (c && (c.isStrikePlaceholder || (c.isPreAllocatedMaterial && c.isHiddenPreAllocated))) {
+                        base.removeItemTarget(c, i);
+                    }
+                }
+            }
+
             if (volumeUpdateTimeout) {
                 clearTimeout(volumeUpdateTimeout);
             }
