@@ -6003,14 +6003,7 @@ function buildMiscContent(content) {
             btn.className += " " + cfg.className;
         }
         
-        if (cfg.className === "paintbrush-btn-anim") {
-            const span = document.createElement("span");
-            span.className = "paintbrush-text";
-            span.textContent = cfg.label;
-            btn.appendChild(span);
-        } else {
-            btn.textContent = cfg.label;
-        }
+        btn.textContent = cfg.label;
         
         btn.addEventListener("click", cfg.onClick);
         buttonGrid.appendChild(btn);
