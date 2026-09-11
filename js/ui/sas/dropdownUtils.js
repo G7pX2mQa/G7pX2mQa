@@ -98,7 +98,7 @@ export function createDropdown(options) {
     textSpan.textContent = labelText;
     // Apply a specific class for the paintbrush button text animation if needed
     if (customClass === "paintbrush-btn-anim") {
-      textSpan.className = "paintbrush-text";
+      textSpan.className = "text-rainbow-animated";
     }
     optionEl.appendChild(textSpan);
 
