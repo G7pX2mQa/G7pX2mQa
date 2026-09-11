@@ -388,6 +388,7 @@ function blockInteractions() {
     // Capturing keydown on window — blocks Escape, Tab, and number keys.
     state.handler = (e) => {
         if (e.key === "Escape" || e.key === "Tab" || /^[0-9]$/.test(e.key)) {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
