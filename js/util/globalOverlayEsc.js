@@ -6,6 +6,10 @@ export function disableGlobalOverlayEsc() {
   isGlobalEscDisabled = true;
 }
 
+export function enableGlobalOverlayEsc() {
+  isGlobalEscDisabled = false;
+}
+
 const PRIORITY_SELECTORS = [
   { sel: '.offline-overlay', btn: '.offline-close-btn' },
   { sel: '.hm-milestones-overlay', btn: '.hm-milestones-close' },
