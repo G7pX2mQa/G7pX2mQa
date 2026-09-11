@@ -174,7 +174,7 @@ export async function loadAudio(src) {
  * @param {boolean} [options.loop=false] - Whether to loop.
  * @param {string} [options.type='sfx'] - 'sfx', 'music', or 'spawn_vessel'.
  */
-export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0, persistOnHide = false } = {}) {
+export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0, persistOnHide = false, bypassFilter = false } = {}) {
   if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
 
   if (typeof window !== 'undefined' && typeof window.isMutedByVault === 'function' && window.isMutedByVault()) {
@@ -246,9 +246,9 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         
         // Routing logic
         if (type === 'music') {
-            gainNode.connect(musicFilter);
+            gainNode.connect(bypassFilter ? musicGain : musicFilter);
         } else if (type === "sfx") {
-            gainNode.connect(sfxFilter);
+            gainNode.connect(bypassFilter ? sfxGain : sfxFilter);
         } else {
             gainNode.connect(masterGain);
         }
@@ -638,5 +638,27 @@ export function removeAudioDrownEffect() {
     if (drownInstances > 0) drownInstances--;
     if (drownInstances === 0) {
         setAudioUnderwater(isUnderwaterState);
+    }
+}
+
+export function fadeAudioUnderwaterToNormal(durationInSeconds) {
+    isUnderwaterState = false;
+    if (!musicFilter && !sfxFilter) return;
+    if (drownInstances > 0) return;
+    const targetFreq = 22050;
+    try {
+        const now = audioContext.currentTime;
+        if (musicFilter) {
+            musicFilter.frequency.cancelScheduledValues(now);
+            musicFilter.frequency.setValueAtTime(musicFilter.frequency.value, now);
+            musicFilter.frequency.linearRampToValueAtTime(targetFreq, now + durationInSeconds);
+        }
+        if (sfxFilter) {
+            sfxFilter.frequency.cancelScheduledValues(now);
+            sfxFilter.frequency.setValueAtTime(sfxFilter.frequency.value, now);
+            sfxFilter.frequency.linearRampToValueAtTime(targetFreq, now + durationInSeconds);
+        }
+    } catch {
+        setAudioUnderwater(false);
     }
 }
