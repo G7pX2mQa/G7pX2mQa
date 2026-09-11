@@ -346,7 +346,11 @@ class SimulatedOfflineRunner {
         while (this._exactRemainingSeconds > 0) {
             const currentDt = Math.min(this.simDt, this._exactRemainingSeconds);
 
-            this._simulateOneTick(currentDt);
+            try {
+                this._simulateOneTick(currentDt);
+            } catch (e) {
+                console.error("SimTick error:", e);
+            }
 
             const nextRemaining = this._exactRemainingSeconds - currentDt;
             // Prevent infinite loop if floating point precision swallows the decrement
@@ -382,36 +386,12 @@ class SimulatedOfflineRunner {
      * Simulate one tick of game time at the current granularity.
      */
     _simulateOneTick(dt) {
-        try {
-            if (_simulateAutomationTick) _simulateAutomationTick(dt);
-        } catch (e) {
-            console.error("SimTick automation error:", e);
-        }
-        try {
-            if (_simulateSurgeTick) _simulateSurgeTick(dt);
-        } catch (e) {
-            console.error("SimTick surge error:", e);
-        }
-        try {
-            if (_simulateLabUpdate) _simulateLabUpdate();
-        } catch (e) {
-            console.error("SimTick lab-update error:", e);
-        }
-        try {
-            if (_simulateLabResearch) _simulateLabResearch(dt);
-        } catch (e) {
-            console.error("SimTick lab-research error:", e);
-        }
-        try {
-            if (_simulateFlowTick) _simulateFlowTick(dt);
-        } catch (e) {
-            console.error("SimTick flow error:", e);
-        }
-        try {
-            if (_simulateWorkshopTick) _simulateWorkshopTick(dt);
-        } catch (e) {
-            console.error("SimTick workshop error:", e);
-        }
+        if (_simulateAutomationTick) _simulateAutomationTick(dt);
+        if (_simulateSurgeTick) _simulateSurgeTick(dt);
+        if (_simulateLabUpdate) _simulateLabUpdate();
+        if (_simulateLabResearch) _simulateLabResearch(dt);
+        if (_simulateFlowTick) _simulateFlowTick(dt);
+        if (_simulateWorkshopTick) _simulateWorkshopTick(dt);
     }
 
     /**
