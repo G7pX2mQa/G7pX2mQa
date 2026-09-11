@@ -100,6 +100,20 @@ export function parseSuffixToExponent(suffix) {
   return null;
 }
 
+
+let decimalSeparator = '.';
+try {
+  const parts = new Intl.NumberFormat().formatToParts(1.1);
+  const decPart = parts.find(p => p.type === 'decimal');
+  if (decPart) {
+    decimalSeparator = decPart.value;
+  } else {
+    const formatted = new Intl.NumberFormat().format(1.1);
+    decimalSeparator = formatted.replace(/\d/g, '')[0] || '.';
+  }
+} catch (e) {
+}
+
 const NF_INT = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0, useGrouping: true });
 function localeInt(s) {
   const num = Number(s);
@@ -161,13 +175,13 @@ function formatExponentString(rawDigits, sign = '') {
         const newHead = '1' + '0'.repeat(totalDigits - 1);
         intStr = newHead.slice(0, newIntDigits);
         fracStr = newHead.slice(newIntDigits);
-        return sign + `${intStr}${newDecimals ? '.' + fracStr : ''}${newSuffix}`;
+        return sign + `${intStr}${newDecimals ? decimalSeparator + fracStr : ''}${newSuffix}`;
       } else {
         intStr = head.slice(0, intDigits);
         fracStr = head.slice(intDigits);
       }
 
-      return sign + `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
+      return sign + `${intStr}${decimals ? decimalSeparator + fracStr : ''}${suffix}`;
     }
   } else if (mode === 'Engineering') {
     const exp = Math.floor(E / 3) * 3;
@@ -192,12 +206,12 @@ function formatExponentString(rawDigits, sign = '') {
       intStr = newHead.slice(0, newIntDigits);
       fracStr = newHead.slice(newIntDigits);
       finalExpStr = formatExponentString(String(newExp));
-      return sign + `${intStr}${newDecimals ? '.' + fracStr : ''}e${finalExpStr}`;
+      return sign + `${intStr}${newDecimals ? decimalSeparator + fracStr : ''}e${finalExpStr}`;
     } else { 
       intStr = head.slice(0, intDigits); 
       fracStr = head.slice(intDigits); 
     }
-    return sign + `${intStr}${decimals ? '.' + fracStr : ''}e${formatExponentString(String(exp))}`;
+    return sign + `${intStr}${decimals ? decimalSeparator + fracStr : ''}e${formatExponentString(String(exp))}`;
   }
 
   // Beyond our table (or Scientific notation within bounds): show scientific-within-exponent with FOUR-digit mantissa
@@ -214,7 +228,7 @@ function formatExponentString(rawDigits, sign = '') {
 
   const mantInt  = head.slice(0, 1);
   const mantFrac = head.slice(1);
-  return sign + `${mantInt}.${mantFrac}e` + formatExponentString(String(finalE));
+  return sign + `${mantInt}${decimalSeparator}${mantFrac}e` + formatExponentString(String(finalE));
 }
 
 
@@ -226,7 +240,7 @@ function formatPowerOf10Exponent(kDigits, sign = '') {
 
   if (ge303) {
     // Scientific inside exponent; pretty-format k itself (locale + suffix rules)
-    return sign + '1.000e' + formatExponentString(kDigits);
+    return sign + '1' + decimalSeparator + '000e' + formatExponentString(kDigits);
   }
 
   // 0..302 → suffix tier plus remainder-driven mantissa
@@ -238,7 +252,7 @@ function formatPowerOf10Exponent(kDigits, sign = '') {
   //  r=0 → "1.000", r=1 → "10.00", r=2 → "100.0"
   const intPart   = (remainder === 0) ? '1' : (remainder === 1) ? '10' : '100';
   const decimals  = 4 - (remainder + 1);      // 3,2,1
-  const fracPart  = decimals ? ('.' + '0'.repeat(decimals)) : '';
+  const fracPart  = decimals ? (decimalSeparator + '0'.repeat(decimals)) : '';
 
   return sign + intPart + fracPart + suffix;
 }
@@ -290,7 +304,7 @@ function formatExponentChain(expRaw) {
     if (four.length > 4) {
       four = "1000";
     }
-    const mant = four.slice(0,1) + '.' + four.slice(1);
+    const mant = four.slice(0,1) + decimalSeparator + four.slice(1);
     const sign2Prefix = (sign2 === '-') ? '-' : '';
     return topSign + mant + 'e' + formatExponentString(localK > k ? String(localK) : kDigits, sign2Prefix);
   } else if (mode === 'Engineering') {
@@ -307,7 +321,7 @@ function formatExponentChain(expRaw) {
     fracStr = four.slice(intDigits);
     
     const sign2Prefix = (sign2 === '-') ? '-' : '';
-    return topSign + sign2Prefix + intStr + (decimals ? ('.' + fracStr) : '') + 'e' + formatExponentString(String(exp));
+    return topSign + sign2Prefix + intStr + (decimals ? (decimalSeparator + fracStr) : '') + 'e' + formatExponentString(String(exp));
   }
 
   // Within our suffix table: choose suffix and place the decimal based on remainder
@@ -330,14 +344,14 @@ function formatExponentChain(expRaw) {
     intStr = newFour.slice(0, newIntDigits);
     fracStr = newFour.slice(newIntDigits);
     const sign2Prefix = (sign2 === '-') ? '-' : '';
-    return topSign + sign2Prefix + intStr + (newDecimals ? ('.' + fracStr) : '') + newSuffix;
+    return topSign + sign2Prefix + intStr + (newDecimals ? (decimalSeparator + fracStr) : '') + newSuffix;
   } else {
     intStr = four.slice(0, intDigits);
     fracStr = four.slice(intDigits);
   }
 
   const sign2Prefix = (sign2 === '-') ? '-' : '';
-  return topSign + sign2Prefix + intStr + (decimals ? ('.' + fracStr) : '') + suffix;
+  return topSign + sign2Prefix + intStr + (decimals ? (decimalSeparator + fracStr) : '') + suffix;
 }
 
 
@@ -355,7 +369,7 @@ function mantissaFourDigits(sci) {
 
   // --- Normalize mantissa to exactly 4 significant digits (1.xxx) with rounding ---
   // Build digit string (no dot)
-  let ds = rawMant.replace('.', '');
+  let ds = rawMant.replace('.', ''); // rawMant comes from toScientific, which always uses '.'
   if (!/^\d+$/.test(ds)) return sci;         // safety: if parsing failed, bail out
 
   // Pad to at least 5 digits (4 kept + 1 for rounding)
@@ -377,7 +391,7 @@ function mantissaFourDigits(sci) {
     }
   }
 
-  const mantissa = head.slice(0,1) + '.' + head.slice(1); // "1.234" style with trailing zeros preserved
+  const mantissa = head.slice(0,1) + decimalSeparator + head.slice(1); // "1.234" style with trailing zeros preserved
 
   // --- Pretty-format the exponent tail (can be "305" or "1e+100" etc.) ---
   return mantissa + 'e' + formatExponentChain(finalExp);
@@ -437,14 +451,14 @@ function _formatNumber(bn) {
       const newHead = "1000";
       intStr = newHead.slice(0, newIntDigits);
       fracStr = newHead.slice(newIntDigits);
-      return `${intStr}${newDecimals ? '.' + fracStr : ''}e${formatExponentString(String(newExp))}`;
+      return `${intStr}${newDecimals ? decimalSeparator + fracStr : ''}e${formatExponentString(String(newExp))}`;
     }
     else { 
       intStr = head.slice(0, intDigits); 
       fracStr = head.slice(intDigits); 
     }
 
-    return `${intStr}${decimals ? '.' + fracStr : ''}e${formatExponentString(String(exp))}`;
+    return `${intStr}${decimals ? decimalSeparator + fracStr : ''}e${formatExponentString(String(exp))}`;
   }
 
   if (mode === 'Extended Suffixes') {
@@ -477,14 +491,14 @@ function _formatNumber(bn) {
       const newHead = "1000";
       intStr = newHead.slice(0, newIntDigits);
       fracStr = newHead.slice(newIntDigits);
-      return E >= 1000000 ? newSuffix : `${intStr}${newDecimals ? '.' + fracStr : ''}${newSuffix}`;
+      return E >= 1000000 ? newSuffix : `${intStr}${newDecimals ? decimalSeparator + fracStr : ''}${newSuffix}`;
     }
     else { 
       intStr = head.slice(0, intDigits); 
       fracStr = head.slice(intDigits); 
     }
 
-    return E >= 1000000 ? suffix : `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
+    return E >= 1000000 ? suffix : `${intStr}${decimals ? decimalSeparator + fracStr : ''}${suffix}`;
   }
 
   // Suffix formatting using the legacy table
@@ -517,14 +531,14 @@ function _formatNumber(bn) {
     const newHead = "1000";
     intStr = newHead.slice(0, newIntDigits);
     fracStr = newHead.slice(newIntDigits);
-    return `${intStr}${newDecimals ? '.' + fracStr : ''}${newSuffix}`;
+    return `${intStr}${newDecimals ? decimalSeparator + fracStr : ''}${newSuffix}`;
   }
   else { 
     intStr = head.slice(0, intDigits); 
     fracStr = head.slice(intDigits); 
   }
 
-  return `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
+  return `${intStr}${decimals ? decimalSeparator + fracStr : ''}${suffix}`;
 }
 
 
