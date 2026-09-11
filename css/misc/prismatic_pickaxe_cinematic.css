@@ -1,0 +1,239 @@
+/* ===================================================================
+   Prismatic Pickaxe First-Compress Cinematic Animation
+   =================================================================== */
+
+/* ---------- Spotlight / vignette overlay ---------- */
+.prismatic-spotlight {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    pointer-events: none;
+    background: radial-gradient(
+        circle at 50% 42%,
+        transparent 12%,
+        rgba(0, 0, 0, 0.35) 30%,
+        rgba(0, 0, 0, 0.82) 65%
+    );
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+.prismatic-spotlight.is-visible {
+    opacity: 1;
+}
+.prismatic-spotlight.is-fading {
+    opacity: 0;
+    transition: opacity 1.2s ease;
+}
+
+/* ---------- Cinematic prismatic pickaxe ---------- */
+.prismatic-cinematic-pickaxe {
+    position: fixed;
+    z-index: 100000;
+    pointer-events: none;
+    will-change: transform, left, top, opacity;
+    filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.8))
+            drop-shadow(0 0 36px rgba(160, 80, 255, 0.55))
+            drop-shadow(0 0 60px rgba(255, 50, 200, 0.3));
+    image-rendering: auto;
+}
+
+/* Phase 1 — the big dance (3 s, ≈10 full rotations + figure-8 + scale pulses) */
+@keyframes prismatic-dance {
+    0%   { transform: scale(0) rotate(0deg); }
+    4%   { transform: scale(1.5) rotate(60deg); }
+    8%   { transform: scale(0.9) rotate(150deg); }
+    12%  { transform: scale(1.3) rotate(300deg) translateX(30px); }
+    16%  { transform: scale(1.0) rotate(450deg) translateX(-50px) translateY(-25px); }
+    20%  { transform: scale(1.5) rotate(600deg) translateX(70px) translateY(15px); }
+    24%  { transform: scale(0.85) rotate(780deg) translateX(-80px) translateY(-50px); }
+    28%  { transform: scale(1.4) rotate(960deg) translateX(55px) translateY(40px); }
+    32%  { transform: scale(1.0) rotate(1140deg) translateX(-30px) translateY(-15px); }
+    36%  { transform: scale(1.6) rotate(1260deg) translateX(60px) translateY(-40px); }
+    40%  { transform: scale(0.75) rotate(1440deg) translateX(-70px) translateY(50px); }
+    44%  { transform: scale(1.35) rotate(1620deg) translateX(40px) translateY(-30px); }
+    48%  { transform: scale(1.0) rotate(1800deg); }
+    52%  { transform: scale(1.5) rotate(1980deg) translateX(-55px) translateY(25px); }
+    56%  { transform: scale(0.9) rotate(2160deg) translateX(75px) translateY(-45px); }
+    60%  { transform: scale(1.45) rotate(2340deg) translateX(-40px) translateY(35px); }
+    64%  { transform: scale(1.0) rotate(2520deg) translateX(50px) translateY(-20px); }
+    68%  { transform: scale(1.6) rotate(2700deg) translateX(-65px); }
+    72%  { transform: scale(0.8) rotate(2880deg) translateX(45px) translateY(30px); }
+    76%  { transform: scale(1.3) rotate(3060deg) translateX(-25px) translateY(-35px); }
+    80%  { transform: scale(1.5) rotate(3240deg) translateX(35px) translateY(20px); }
+    85%  { transform: scale(1.0) rotate(3420deg) translateX(-15px); }
+    90%  { transform: scale(1.35) rotate(3500deg) translateX(10px) translateY(-8px); }
+    95%  { transform: scale(1.15) rotate(3560deg); }
+    100% { transform: scale(1.2) rotate(3600deg); }
+}
+.prismatic-cinematic-pickaxe.is-dancing {
+    animation: prismatic-dance 3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* Phase 3 — drift toward old pickaxe with continuous spin */
+@keyframes prismatic-whirl {
+    0%   { transform: scale(1.1) rotate(0deg) translateX(0); }
+    10%  { transform: scale(1.4) rotate(180deg) translateX(40px) translateY(-20px); }
+    20%  { transform: scale(0.9) rotate(360deg) translateX(-40px) translateY(20px); }
+    30%  { transform: scale(1.3) rotate(540deg) translateX(30px) translateY(40px); }
+    40%  { transform: scale(1.0) rotate(720deg) translateX(-30px) translateY(-30px); }
+    50%  { transform: scale(1.5) rotate(900deg) translateX(50px) translateY(10px); }
+    60%  { transform: scale(0.8) rotate(1080deg) translateX(-40px) translateY(40px); }
+    70%  { transform: scale(1.4) rotate(1260deg) translateX(30px) translateY(-30px); }
+    80%  { transform: scale(1.0) rotate(1440deg) translateX(-20px) translateY(20px); }
+    90%  { transform: scale(1.3) rotate(1620deg) translateX(40px) translateY(10px); }
+    100% { transform: scale(1.1) rotate(1800deg) translateX(0); }
+}
+.prismatic-cinematic-pickaxe.is-drifting {
+    transition: left 1.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+                top  1.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+                width 1.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+                height 1.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+    animation: prismatic-whirl 1.2s linear infinite;
+}
+
+/* Phase 4 — collision slam */
+.prismatic-cinematic-pickaxe.is-colliding {
+    transition: left  0.12s cubic-bezier(0.7, 0, 1, 0.4),
+                top   0.12s cubic-bezier(0.7, 0, 1, 0.4),
+                opacity 0.35s ease 0.12s;
+    animation: none !important;
+    transform: scaleX(-1) rotate(-30deg);
+}
+
+/* ---------- White flash overlay on collision ---------- */
+.prismatic-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 100001;
+    pointer-events: none;
+    background: #fff;
+    opacity: 0;
+}
+@keyframes prismatic-flash-anim {
+    0%   { opacity: 0; }
+    12%  { opacity: 0.95; }
+    30%  { opacity: 0.5; }
+    100% { opacity: 0; }
+}
+.prismatic-flash.is-active {
+    animation: prismatic-flash-anim 0.7s ease-out forwards;
+}
+
+/* ---------- Sparkle particles ---------- */
+.prismatic-sparkle-container {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    pointer-events: none;
+    overflow: hidden;
+}
+.prismatic-sparkle {
+    position: absolute;
+    border-radius: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation: prismatic-sparkle-burst var(--sparkle-duration, 0.8s) ease-out forwards;
+    filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 10px currentColor);
+    clip-path: polygon(50% 0%, 61% 35%, 100% 50%, 61% 65%, 50% 100%, 39% 65%, 0% 50%, 39% 35%);
+}
+@keyframes prismatic-sparkle-burst {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    60% {
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(var(--sparkle-dx, 100px), var(--sparkle-dy, -80px)) scale(0.1);
+        opacity: 0;
+    }
+}
+
+/* ---------- Screen shake on #game-root ---------- */
+@keyframes prismatic-screen-shake {
+    00%  { transform: translate( 2.75vw, -2.45vh); }
+    02%  { transform: translate(-2.37vw, -2.40vh); }
+    04%  { transform: translate( 2.07vw,  2.10vh); }
+    06%  { transform: translate(-2.09vw,  1.72vh); }
+    08%  { transform: translate( 1.63vw, -1.72vh); }
+    10%  { transform: translate(-1.83vw, -1.52vh); }
+    12%  { transform: translate( 1.67vw,  1.37vh); }
+    14%  { transform: translate(-1.53vw,  1.39vh); }
+    16%  { transform: translate( 1.67vw, -1.18vh); }
+    18%  { transform: translate(-1.31vw, -1.75vh); }
+    20%  { transform: translate( 1.21vw,  1.34vh); }
+    22%  { transform: translate(-1.60vw,  1.61vh); }
+    24%  { transform: translate( 1.11vw, -0.91vh); }
+    26%  { transform: translate(-1.23vw, -1.41vh); }
+    28%  { transform: translate( 1.38vw,  1.10vh); }
+    30%  { transform: translate(-1.04vw,  0.92vh); }
+    32%  { transform: translate( 0.84vw, -1.17vh); }
+    34%  { transform: translate(-0.81vw, -0.96vh); }
+    36%  { transform: translate( 0.83vw,  0.62vh); }
+    38%  { transform: translate(-0.76vw,  0.60vh); }
+    40%  { transform: translate( 0.54vw, -0.73vh); }
+    42%  { transform: translate(-0.62vw, -0.66vh); }
+    44%  { transform: translate( 0.61vw,  0.59vh); }
+    46%  { transform: translate(-0.35vw,  0.46vh); }
+    48%  { transform: translate( 0.33vw, -0.32vh); }
+    50%  { transform: translate(-0.44vw, -0.43vh); }
+    52%  { transform: translate( 0.28vw,  0.28vh); }
+    54%  { transform: translate(-0.21vw,  0.31vh); }
+    56%  { transform: translate( 0.19vw, -0.28vh); }
+    58%  { transform: translate(-0.26vw, -0.24vh); }
+    60%  { transform: translate( 0.22vw,  0.17vh); }
+    62%  { transform: translate(-0.20vw,  0.12vh); }
+    64%  { transform: translate( 0.10vw, -0.16vh); }
+    66%  { transform: translate(-0.09vw, -0.09vh); }
+    68%  { transform: translate( 0.09vw,  0.11vh); }
+    70%  { transform: translate(-0.06vw,  0.06vh); }
+    72%  { transform: translate( 0.08vw, -0.08vh); }
+    74%  { transform: translate(-0.04vw, -0.04vh); }
+    76%  { transform: translate( 0.04vw,  0.05vh); }
+    78%  { transform: translate(-0.03vw,  0.04vh); }
+    80%  { transform: translate( 0.02vw, -0.03vh); }
+    82%  { transform: translate(-0.02vw, -0.02vh); }
+    84%  { transform: translate( 0.01vw,  0.01vh); }
+    86%  { transform: translate(-0.01vw,  0.01vh); }
+    88%  { transform: translate( 0.00vw, -0.00vh); }
+    90%  { transform: translate(-0.00vw, -0.00vh); }
+    92%  { transform: translate( 0.00vw,  0.00vh); }
+    94%  { transform: translate(-0.00vw,  0.00vh); }
+    96%  { transform: translate( 0.00vw, -0.00vh); }
+    98%  { transform: translate(-0.00vw, -0.00vh); }
+    100% { transform: translate( 0.00vw,  0.00vh); }
+}
+.prismatic-shake {
+    animation: prismatic-screen-shake 3s ease-out forwards !important;
+}
+
+/* Extend backgrounds beyond viewport to mask shake edges */
+.prismatic-shake,
+.prismatic-shake .area,
+.prismatic-shake .playfield {
+    overflow: visible !important;
+}
+
+
+
+/* 
+   Permanently extend the background textures by 3vw/3vh on all sides. 
+   During normal gameplay, the extra space is safely clipped by .playfield's overflow:hidden.
+   During the screen shake, overflow becomes visible, and this extra space bleeds out to mask the black void.
+   Because the size is permanently extended, there are no layout recalculations or snaps when the shake ends!
+*/
+.playfield::before,
+.playfield::after {
+    top: -3vh !important;
+    bottom: -3vh !important;
+    left: -3vw !important;
+    right: -3vw !important;
+}
+
+.rubble-layer {
+    top: -3vh !important;
+    left: -1.9vw !important;
+    width: calc(100% + 6vw) !important;
+    height: calc(17% + 3vh) !important;
+}
