@@ -78,10 +78,10 @@ const SNAPS = [
 
 function getSimTickGranularity(totalSeconds) {
     // Use a power curve so less offline time scales slightly faster.
-    // Cap at 100,000 ticks maximum so that regardless of how long the user is offline,
+    // Cap at 1,000,000 ticks maximum so that regardless of how long the user is offline,
     // it physically cannot take more than ~1-2 minutes on a normal CPU.
-    let targetTicks = 1000 * Math.pow(totalSeconds, 0.38);
-    targetTicks = Math.min(100000, targetTicks);
+    let targetTicks = Math.sqrt(totalSeconds * 1000);
+    targetTicks = Math.min(1000000, targetTicks);
     const rawDt = totalSeconds / targetTicks;
 
     for (const snap of SNAPS) {
