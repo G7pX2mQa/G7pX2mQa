@@ -23,3 +23,31 @@ body.no-overlay-transitions .upg-sheet,
 body.no-overlay-transitions .map-sheet {
   transition: none !important;
 }
+
+@keyframes rainbowTextScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 141.42px 141.42px; }
+}
+
+.text-rainbow-animated {
+  background: repeating-linear-gradient(
+    -45deg,
+    #ff0000 0px,
+    #ff7f00 14.28px,
+    #ffff00 28.57px,
+    #00ff00 42.85px,
+    #3131d6 57.14px,
+    #a224ff 71.42px,
+    #e29eff 85.71px,
+    #ff0000 100px
+  );
+  background-size: 141.42px 141.42px;
+  animation: rainbowTextScroll 4s linear infinite;
+  color: transparent !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  font-weight: bold;
+  text-shadow: none !important;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8));
+  display: inline-block;
+}
