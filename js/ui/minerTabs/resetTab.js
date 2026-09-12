@@ -797,8 +797,8 @@ export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
     total = total.mulBigNumInteger(pow115);
     if (surgeLevel > 200) {
         const surgeFactor = surgeLevel - 200;
-        // multiply 1.5x compounding each Surge level after 200
-        const surgePowBn = bigNumFromLog10(surgeFactor * Math.log10(1.5));
+        // multiply 1.25x compounding each Surge level after 200
+        const surgePowBn = bigNumFromLog10(surgeFactor * Math.log10(1.25));
         total = total.mulBigNumInteger(surgePowBn);
     }
 
