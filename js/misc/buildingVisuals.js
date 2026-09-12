@@ -1393,6 +1393,40 @@ function getTier() {
   return t; // 0 to 8
 }
 
+function getBuildingTransform(id, w, h, tier, prevTier, animProgress) {
+  const floorY = h - 260; // Match new floor height
+  const cx = w / 2;
+
+  const targetScale = 1.0 + tier * 0.1;
+  const startScale = 1.0 + prevTier * 0.1;
+  let scale = startScale + (targetScale - startScale) * animProgress;
+  
+  let viewportScale = 1.0;
+  if (id !== "prismatium" && typeof BUILDING_VIEWPORT_BOUNDS !== "undefined" && BUILDING_VIEWPORT_BOUNDS[id]) {
+    const bounds = BUILDING_VIEWPORT_BOUNDS[id];
+    viewportScale = Math.min(1.0, w / bounds.w, h / bounds.h);
+  }
+  const finalScale = scale * viewportScale;
+
+  let topY = 0;
+  let glowOffsetX = 0;
+  if (id === "core") topY = -200;
+  else if (id === "crystal") topY = -(100 + tier * 10) - 30;
+  else if (id === "stone") topY = -140;
+  else if (id === "copper") topY = -90;
+  else if (id === "iron") topY = -100;
+  else if (id === "pure_gold") topY = -100; // Fixed vertical height for the glow
+  else if (id === "diamond") topY = -120;
+  else if (id === "emerald") topY = -130;
+  else if (id === "ruby") topY = -200;
+  else if (id === "sapphire") topY = -80;
+  else if (id === "unobtainium") topY = -160;
+  else if (id === "prismatium") topY = 2 * ((h / 2) - floorY) / scale;
+  else topY = -100;
+
+  return { floorY, cx, scale, finalScale, topY, glowOffsetX };
+}
+
 function draw(ctx, keypadCtx, width, height, t) {
   ctx.clearRect(0, 0, width, height);
   if (keypadCtx) {
@@ -1790,6 +1824,39 @@ function drawCavern(ctx, w, h, t) {
 
   const floorH = 260;
 
+  if (currentBuildingId) {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress = tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
+    }
+    
+    const { floorY, cx, scale, finalScale, topY, glowOffsetX } = getBuildingTransform(currentBuildingId, w, h, drawTier, previousTier, animProgress);
+
+    ctx.save();
+    ctx.translate(cx, floorY);
+    ctx.scale(finalScale, finalScale);
+    
+    const glowRadius = Math.abs(topY) * 0.8 + 40;
+    const glowGrad = ctx.createRadialGradient(
+      glowOffsetX,
+      topY / 2,
+      0,
+      glowOffsetX,
+      topY / 2,
+      glowRadius,
+    );
+    glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
+    glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(glowOffsetX, topY / 2, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   if (currentBuildingId === "prismatium") {
     // Custom rainbow ground carving for Tesseract
     const groundY = h - floorH;
@@ -1933,65 +2000,11 @@ function drawCavern(ctx, w, h, t) {
 }
 
 function drawBuilding(ctx, keypadCtx, w, h, t, id, tier, prevTier, animProgress) {
-  const floorY = h - 260; // Match new floor height
-  const cx = w / 2;
-
-  let currentY = floorY;
+  const { floorY, cx, scale, finalScale } = getBuildingTransform(id, w, h, tier, prevTier, animProgress);
 
   ctx.save();
   ctx.translate(cx, floorY);
-
-  const targetScale = 1.0 + tier * 0.1;
-  const startScale = 1.0 + prevTier * 0.1;
-  let scale = startScale + (targetScale - startScale) * animProgress;
-  
-  let viewportScale = 1.0;
-  if (id !== "prismatium" && typeof BUILDING_VIEWPORT_BOUNDS !== "undefined" && BUILDING_VIEWPORT_BOUNDS[id]) {
-    const bounds = BUILDING_VIEWPORT_BOUNDS[id];
-    viewportScale = Math.min(1.0, w / bounds.w, h / bounds.h);
-  }
-  const finalScale = scale * viewportScale;
-
   ctx.scale(finalScale, finalScale);
-
-  let bounce = 0;
-
-  let topY = 0;
-  let glowOffsetX = 0;
-  if (id === "core") topY = -200;
-  else if (id === "crystal") topY = -(100 + tier * 10) - 30;
-  else if (id === "stone") topY = -140;
-  else if (id === "copper") topY = -90;
-  else if (id === "iron") topY = -100;
-  else if (id === "pure_gold") topY = -100; // Fixed vertical height for the glow
-  else if (id === "diamond") topY = -120;
-  else if (id === "emerald") topY = -130;
-  else if (id === "ruby") topY = -200;
-  else if (id === "sapphire") topY = -80;
-  else if (id === "unobtainium") topY = -160;
-  else if (id === "prismatium") topY = 2 * ((h / 2) - floorY) / scale;
-  else topY = -100;
-
-  // Scale the topY
-  let finalHighestY = floorY + topY * scale;
-
-  ctx.save();
-  const glowRadius = Math.abs(topY) * 0.8 + 40;
-  const glowGrad = ctx.createRadialGradient(
-    glowOffsetX,
-    topY / 2,
-    0,
-    glowOffsetX,
-    topY / 2,
-    glowRadius,
-  );
-  glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
-  glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
-  ctx.fillStyle = glowGrad;
-  ctx.beginPath();
-  ctx.arc(glowOffsetX, topY / 2, glowRadius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
 
   if (id === "core") drawBlackHole(ctx, t, tier, prevTier, animProgress);
   else if (id === "crystal") drawPrism(ctx, t, tier, prevTier, animProgress);
