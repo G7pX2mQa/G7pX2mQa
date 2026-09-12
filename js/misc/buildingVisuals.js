@@ -8881,15 +8881,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.lineTo(0, 0);
       ctx.fill();
 
-      if (!window.IS_FIREFOX) {
-          // Clip veins so they don't stick out of the leaf (original high fidelity logic)
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.quadraticCurveTo(-width, -length/2, 0, -length);
-          ctx.quadraticCurveTo(width, -length/2, 0, 0);
-          ctx.clip();
-      }
-
       // Main Center Stem/Vein
       ctx.strokeStyle = veinColor;
       ctx.lineWidth = 1.5;
@@ -8903,10 +8894,15 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       for (let v=0.2; v<0.8; v+=0.15) {
           let vy = -length * v;
+          let endV = v + 0.1; // End Y is vy - length*0.1, which corresponds to t = v + 0.1
+          let edgeX = 2 * endV * (1 - endV) * width; // Math for quadratic curve X at t
+          let ctrlX = edgeX * 0.55; 
+          let endX = edgeX * 0.98; // Stop just a tiny bit before the very edge
+          
           ctx.moveTo(0, vy);
-          ctx.quadraticCurveTo(-width*0.5, vy-2, -width*0.8, vy - length*0.1);
+          ctx.quadraticCurveTo(-ctrlX, vy-2, -endX, vy - length*0.1);
           ctx.moveTo(0, vy);
-          ctx.quadraticCurveTo(width*0.5, vy-2, width*0.8, vy - length*0.1);
+          ctx.quadraticCurveTo(ctrlX, vy-2, endX, vy - length*0.1);
       }
       ctx.stroke();
       ctx.restore();
@@ -9359,7 +9355,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t7;
     domePath();
-    ctx.clip(); // Ensure petals stay inside dome
     // Falling petals (Drifting from branches) - BACKSIDE
     drawWhirlwindPetals(false);
     ctx.restore();
@@ -9482,7 +9477,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t7;
 
     domePath();
-    ctx.clip(); // Ensure petals stay inside dome
 
     // Draw blossom canopy branches stretching inward from the top edges
     ctx.strokeStyle = '#3a2110';
@@ -9957,7 +9951,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t7;
 
     domePath();
-    ctx.clip(); // Ensure petals stay inside dome
 
     // Falling petals (Drifting from branches) - FRONTSIDE
     drawWhirlwindPetals(true);
