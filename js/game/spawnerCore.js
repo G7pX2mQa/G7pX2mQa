@@ -692,13 +692,19 @@ export function createBaseSpawner(config = {}) {
     function loop(now) {
         if (!M.pfRect) computeMetrics();
 
+        if (window._prismaticCinematicActive) {
+            last = now;
+            rafId = requestAnimationFrame(loop);
+            return;
+        }
+
         let rawDt = now - last;
 
-        // If rawDt is very large (e.g. > 500ms), we likely just woke up from suspension or background tab
-        if (rawDt > 500) { // If the frame delta is suspiciously large (>500ms)
+        // If rawDt is larger than the max dt (100ms), we adjust timestamps to prevent desyncs between carry and absolute time
+        if (rawDt > 100) { 
             staticCanvasDirty = true; // Force redraw of offscreen canvases in case Firefox discarded them
             // Adjust all start and end times forward by the paused duration
-            const pausedDuration = rawDt - (0.1 * 1000); // subtract the max allowed frame time
+            const pausedDuration = rawDt - 100; // subtract the max allowed frame time
             for (let i = 0; i < activeItems.length; i++) {
                 const c = activeItems[i];
                 if (c && !c.isRemoved) {
