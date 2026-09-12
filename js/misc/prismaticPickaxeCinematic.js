@@ -4,7 +4,7 @@
 // the player performs a Compress reset.  Purely cosmetic — game state has
 // already been committed before this module runs.
 
-import { playAudio, setAudioUnderwater, fadeAudioUnderwaterToNormal } from "../util/audioManager.js";
+import { playAudio, setAudioUnderwater, fadeAudioUnderwaterToNormal, setCinematicMuffleException } from "../util/audioManager.js";
 import { closeMiner } from "../ui/minerTabs/dlgTab.js";
 import { closeShop } from "../ui/shopOverlay.js";
 import { disableGlobalOverlayEsc, enableGlobalOverlayEsc } from "../util/globalOverlayEsc.js";
@@ -72,6 +72,7 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
 
     // ── 6. Play spinny sound & start underwater music ────────────────────────
     try { playAudio(SPINNY_SFX, { volume: 0.7, type: "sfx", bypassFilter: true }); } catch {}
+    setCinematicMuffleException(true);
     try { setAudioUnderwater(true); } catch {}
 
     // ── 7. Pre-calc collision target (old pickaxe viewport position) ────────
@@ -153,6 +154,7 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
             try { closeMiner(); } catch {}
             try { closeShop(); } catch {}
             // They clear the underwater filter, so re-apply it immediately!
+            setCinematicMuffleException(true);
             try { setAudioUnderwater(true); } catch {}
 
             // Swap animations to begin drifting toward old pickaxe
