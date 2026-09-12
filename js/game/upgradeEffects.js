@@ -2,14 +2,14 @@ import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab
 import { BigNum, bigNumIsInfinite } from '../util/bigNum.js';
 import { bank, UC_MATERIALS } from '../util/storage.js';
 import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
-import { getLabWaveMultiplier, getLabDnaMultiplier } from './labNodes.js';
+import { getLabWaveMultiplier, getLabDnaMultiplier, getLabScrapMultiplier } from './labNodes.js';
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
 import { getSurgeMagicMultiplier, getSurgeWaveMultiplier, getSurgeDnaMultiplier } from './surgeEffects.js';
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
 import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/workshopTab.js";
-import { getPpState, isPpSystemUnlocked } from './ppSystem.js';
+import { getPpState, isPpSystemUnlocked, addExternalPpMultiplierProvider } from './ppSystem.js';
 
 import {
   addExternalCoinMultiplierProvider,
@@ -147,6 +147,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     bookValue: BigNum.fromInt(1),
     fpValue: BigNum.fromInt(1),
     dpValue: BigNum.fromInt(1),
+    ppValue: BigNum.fromInt(1),
     allMaterialsValue: BigNum.fromInt(1),
     coresValue: BigNum.fromInt(1),
     crystalsValue: BigNum.fromInt(1),
@@ -222,6 +223,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.fpValue = safeMultiplyBigNum(acc.fpValue, baseEffect);
     } else if (upg.effectType === 'dp_value') {
       acc.dpValue = safeMultiplyBigNum(acc.dpValue, baseEffect);
+    } else if (upg.effectType === 'pp_value') {
+      acc.ppValue = safeMultiplyBigNum(acc.ppValue, baseEffect);
     } else if (upg.effectType === 'all_materials_value') {
       acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, baseEffect);
     } else if (upg.effectType === 'cores_value') {
@@ -296,6 +299,7 @@ export function computeUpgradeEffects(areaKey) {
     crystalsValueMultiplier: mults.crystalsValue,
     scrapValueMultiplier: mults.scrapValue,
     dpValueMultiplier: mults.dpValue,
+    ppValueMultiplier: mults.ppValue,
     rpValueMultiplier: mults.rpValue,
   };
 }
@@ -334,6 +338,11 @@ export function syncCurrencyMultipliersFromUpgrades() {
       try {
         const stoneBonus = getBuildingBonus('stone', getBuildingLevel('stone'));
         finalScrapValue = safeMultiplyBigNum(finalScrapValue, stoneBonus);
+      } catch {}
+
+      try {
+        const labScrapMult = getLabScrapMultiplier();
+        finalScrapValue = safeMultiplyBigNum(finalScrapValue, labScrapMult);
       } catch {}
 
       bank.scrap.mult.set(finalScrapValue);
@@ -536,6 +545,15 @@ export function registerXpUpgradeEffects() {
       let finalDpValue = dpValue;
       if (!finalDpValue) return mult;
       return safeMultiplyBigNum(mult, finalDpValue);
+    });
+  } catch {}
+
+  try {
+    addExternalPpMultiplierProvider((mult) => {
+      const { ppValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      let finalPpValue = ppValue;
+      if (!finalPpValue) return mult;
+      return safeMultiplyBigNum(mult, finalPpValue);
     });
   } catch {}
 
