@@ -227,7 +227,7 @@ export function performCompressReset() {
     try {
         const surgeKey = getSurgeBarLevelKey(slot);
         lsSetItem(surgeKey, "200");
-        window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: 200 } }));
+        window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: 200, isCompressReset: true } }));
         window.dispatchEvent(
             new CustomEvent("level:change", { detail: { prefix: "waves", level: 200, isUnlocked: true } }),
         );
