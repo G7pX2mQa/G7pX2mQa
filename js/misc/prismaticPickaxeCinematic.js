@@ -96,6 +96,7 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
     let lastNow = null;
     let lastSparkleT = 0;
     let didClose   = false;
+    let didFlashStart = false;
     let didCollide = false;
     let didShake   = false;
 
@@ -178,22 +179,22 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
             dom.spotlight.classList.add("is-fading");
         }
 
+        // ── Pre-collision Flash (starts 500ms early to peak on impact) ──────
+        if (elapsed >= COLLISION - 500 && !didFlashStart) {
+            didFlashStart = true;
+            dom.flash.classList.add("is-active");
+        }
+
         // ── Phase 4 — COLLISION (at 5 s) ────────────────────────────────────
         if (elapsed >= COLLISION && !didCollide) {
             didCollide = true;
 
-            // Slam into target
-            dom.pickaxe.classList.remove("is-drifting");
-            dom.pickaxe.classList.add("is-colliding");
-            dom.pickaxe.style.left = collisionTarget.x + "px";
-            dom.pickaxe.style.top  = collisionTarget.y + "px";
+            // Instantly hide cinematic pickaxe to seamlessly handoff to the real one
+            dom.pickaxe.style.display = "none";
 
             // Explosion SFX & restore music over 10s
             try { playAudio(EXPLOSION_SFX, { volume: 0.85, type: "sfx", bypassFilter: true }); } catch {}
             try { fadeAudioUnderwaterToNormal(10); } catch {}
-
-            // White flash
-            dom.flash.classList.add("is-active");
 
             // Swap old pickaxe image to prismatic (the "upgrade" moment)
             if (oldPickaxe) oldPickaxe.src = PRISMATIC_SRC;
@@ -208,9 +209,6 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
                     );
                 }, i * 6);
             }
-
-            // Fade out cinematic pickaxe
-            setTimeout(() => { dom.pickaxe.style.opacity = "0"; }, 150);
         }
 
         // ── Phase 5 — screen shake (at 5 s) ─────────────────────────────────
@@ -456,13 +454,12 @@ function cleanup(blocked, oldPickaxe, savedOldState, dom) {
     if (oldPickaxe && savedOldState) {
         // The game state already says prismatic — keep that src
         oldPickaxe.src = PRISMATIC_SRC;
-        // Re-arm spawner-driven animation
-        oldPickaxe._elapsedTime = 0;
+        // Prevent ghost swinging: wait for the spawner to schedule the next real strike
+        oldPickaxe._elapsedTime = undefined;
         oldPickaxe._playedSound = true;
-        // Restore transition so the spawner's onCommitBatch can reposition
-        oldPickaxe.style.transition = savedOldState.transition || "";
-        // Don't restore left/top/transform — let the spawner recalculate on
-        // next cycle so the pickaxe returns to its natural position.
+        // Let the spawner know it needs to smoothly fly this pickaxe to its next target 
+        // rather than instantly teleporting it.
+        oldPickaxe._needsFlightToNextTarget = true;
     }
 
     // Unblock user interaction
