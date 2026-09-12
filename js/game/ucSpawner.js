@@ -444,16 +444,30 @@ export function createUcSpawner(config = {}) {
                     
                     if (pickaxe._needsFlightToNextTarget) {
                         pickaxe._needsFlightToNextTarget = false;
-                        pickaxe.style.transition = "left 0.75s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.75s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1)";
-                        setTimeout(() => {
-                            if (pickaxe) pickaxe.style.transition = "";
-                        }, 750);
+                        const flightMs = cycleMs * 0.8;
+                        pickaxe.style.transition = `left ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), top ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), transform ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`;
+                        pickaxe._isFlying = true;
+                        
+                        if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+                        pickaxe._flightTimeoutId = setTimeout(() => {
+                            if (pickaxe) {
+                                pickaxe.style.transition = "";
+                                pickaxe._isFlying = false;
+                            }
+                        }, flightMs);
+                    } else if (pickaxe.style.transition) {
+                        pickaxe.style.transition = "";
+                        pickaxe._isFlying = false;
+                        if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
                     }
 
                     pickaxe.style.left = `${item.startX + offsetX}px`;
                     pickaxe.style.top = `${localPickY + offsetY}px`;
-                    // Reset pickaxe rotation before starting
-                    pickaxe.style.transform = "rotate(0deg)";
+                    if (pickaxe._isFlying) {
+                        pickaxe.style.transform = `rotate(${chargeRotation}deg)`;
+                    } else {
+                        pickaxe.style.transform = "rotate(0deg)";
+                    }
                     // We will not use pickaxe.animate(), but rather synchronize it explicitly with onItemUpdate
                     // Store logic variables onto the pickaxe so onItemUpdate can calculate rotations safely
                     pickaxe._cycleMs = cycleMs;
@@ -497,6 +511,19 @@ export function createUcSpawner(config = {}) {
                     }
                 }
                 pickaxe._elapsedTime += dt * 1000;
+
+                // Sync exactly to the upcoming strike placeholder to avoid dt-capping lag desync
+                for (let i = 0; i < activeItems.length; i++) {
+                    const c = activeItems[i];
+                    if (c && !c.isRemoved && c.isStrikePlaceholder && !c.settled) {
+                        const timeRemaining = c.startTime - now;
+                        if (timeRemaining <= pickaxe._cycleMs) {
+                            pickaxe._elapsedTime = pickaxe._cycleMs - timeRemaining;
+                        }
+                        break;
+                    }
+                }
+
                 // elapsed line replaced
                 const ratio = Math.min(pickaxe._elapsedTime / pickaxe._cycleMs, 1);
                 if (ratio <= 0.8) {
@@ -505,11 +532,16 @@ export function createUcSpawner(config = {}) {
                     const chargeRatio = ratio / 0.8;
                     const easeOutCubic = 1 - Math.pow(1 - chargeRatio, 3);
                     const currentRot = pickaxe._chargeRotation * easeOutCubic;
-                    if (pickaxe.style.display !== "none") {
+                    if (pickaxe.style.display !== "none" && !pickaxe._isFlying) {
                         pickaxe.style.transform = `rotate(${currentRot}deg)`;
                     }
                 } else {
                     // Striking phase
+                    if (pickaxe._isFlying) {
+                        pickaxe.style.transition = "";
+                        pickaxe._isFlying = false;
+                        if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+                    }
                     const strikeRatio = (ratio - 0.8) / 0.2;
                     const easeInCubic = strikeRatio * strikeRatio * strikeRatio;
                     const currentRot =
