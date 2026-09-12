@@ -788,7 +788,7 @@ export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
         if (logScrap >= 36) return BigNum.fromAny("Infinity");
     }
 
-    const logScaled = Math.max(0, logScrap - 36);
+    const logScaled = Math.max(0, logScrap - 36) / 5;
     const pow2 = logScaled <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(logScaled * Math.log10(2));
     const floorLog = Math.floor(logScaled);
     const pow115 = floorLog <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(floorLog * Math.log10(1.15));
