@@ -11,7 +11,7 @@ import {
     E,
 } from "./upgrades.js";
 import { isBuildingsUnlocked } from "../ui/minerTabs/buildingsTab.js";
-import { hasDoneCombineReset } from "../ui/minerTabs/resetTab.js";
+import { hasDoneCombineReset, hasDoneCompressReset } from "../ui/minerTabs/resetTab.js";
 import { BigNum, bigNumIsInfinite, bigNumFromLog10 } from "../util/bigNum.js";
 import { showWideNotification } from "../ui/notifications.js";
 import { isResearchNodeActive } from "./labNodes.js";
@@ -489,6 +489,105 @@ export const UC_REGISTRY = [
         },
         effectSummary() {
             return "";
+        },
+    },
+    {
+        area: UC_AREA_KEY,
+        id: 11,
+        tie: "scrap_8",
+        title: "Endless PP",
+        desc: "Multiplies PP value by 1.1x per level",
+        lvlCap: HM_EVOLUTION_INTERVAL,
+        baseCost: 1e39,
+        costType: "scrap",
+        upgType: "HM",
+        effectType: "pp_value",
+        scalingPreset: "HM",
+        icon: "img/uc_upg_icons/pp_val_hm.webp",
+        costAtLevel(level) {
+            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        computeLockState() {
+            let surge200 = false;
+            try {
+                surge200 = getCurrentSurgeLevel() >= 200;
+            } catch {}
+
+            if (hasDoneCompressReset()) {
+                return { state: "unlocked" };
+            }
+
+            if (!surge200) {
+                return { state: "locked" };
+            }
+
+            const revealText = "Perform a Compress reset to reveal this upgrade";
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `PP value bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            return E.powPerLevel(1.1)(normalizedLevel);
+        },
+    },
+    {
+        area: UC_AREA_KEY,
+        id: 12,
+        tie: "scrap_9",
+        title: "FP Value",
+        get desc() {
+            let text = `Multiplies FP value by 100x`;
+            let surgeLevel = 0;
+            try {
+                surgeLevel = getCurrentSurgeLevel();
+            } catch (e) {}
+            if (surgeLevel < 250) {
+                text += "\nThis will make it easier to reach Surge 250";
+            }
+            return text;
+        },
+        lvlCap: 1,
+        baseCost: 1e50,
+        costType: "scrap",
+        upgType: "NM",
+        effectType: "fp_value",
+        icon: "img/lab_icons/fp_val0.webp",
+        costAtLevel(level) {
+            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        computeLockState() {
+            let surge200 = false;
+            try {
+                surge200 = getCurrentSurgeLevel() >= 200;
+            } catch {}
+
+            if (hasDoneCompressReset()) {
+                return { state: "unlocked" };
+            }
+
+            if (!surge200) {
+                return { state: "locked" };
+            }
+
+            const revealText = "Perform a Compress reset to reveal this upgrade";
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `FP value bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            return normalizedLevel > 0 ? 100 : 1;
         },
     },
 ];
