@@ -9,6 +9,7 @@ import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from "
 import { addExternalEacAmountMultiplierProvider, setTsunamiBonusProvider } from "./automationEffects.js";
 import { isSurgeActive } from "./surgeEffects.js";
 import { addExternalFpMultiplierProvider } from "../ui/merchantTabs/flowTab.js";
+import { addExternalPpMultiplierProvider } from "./ppSystem.js";
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
 export const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${id}:${slot}`;
@@ -26,7 +27,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 0,
-        icon: "img/lab_icons/tsunami_exponent_buff.webp",
+        icon: "img/lab_icons/tsunami_exponent.webp",
         parentIds: [],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`,
     },
@@ -143,7 +144,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: -2000,
-        icon: "img/lab_icons/tsunami_exponent_buff.webp",
+        icon: "img/lab_icons/tsunami_exponent.webp",
         parentIds: [8, 9],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`,
     },
@@ -260,9 +261,35 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 2000,
-        icon: "img/lab_icons/tsunami_exponent_buff.webp",
+        icon: "img/lab_icons/tsunami_exponent.webp",
         parentIds: [11, 12, 13, 14, 15, 16, 17, 18],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`,
+    },
+    {
+        id: 20,
+        title: "Node 20: Experimental Scrap Value",
+        desc: `Multiplies Scrap value by 10x per level\nThis node scales <strong>${formatNumber(6767676767)}x</strong> RP per level`,
+        baseRpReq: "1e99999",
+        scale: "1e99999",
+        maxLevel: 100,
+        x: -2000,
+        y: 2000,
+        icon: "img/lab_icons/scrap_val0.webp",
+        parentIds: [19],
+        bonusLine: (level) => `Scrap value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(10)))}x`,
+    },
+    {
+        id: 21,
+        title: "Node 21: Experimental PP Value",
+        desc: `Multiplies PP value by 10x per level\nThis node scales <strong>${formatNumber(6767676767)}x</strong> RP per level`,
+        baseRpReq: "1e99999",
+        scale: "1e99999",
+        maxLevel: 100,
+        x: 2000,
+        y: 2000,
+        icon: "img/lab_icons/pp_val0.webp",
+        parentIds: [19],
+        bonusLine: (level) => `PP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(10)))}x`,
     },
 ];
 export const NODE_MAP = new Map(RESEARCH_NODES.map((n) => [n.id, n]));
@@ -453,6 +480,11 @@ export function setResearchNodeDiscovered(id, discovered) {
     try {
         lsSetItem(NODE_DISCOVERED_KEY(slot, id), s.discovered ? "1" : "0");
     } catch {}
+}
+
+export function isResearchNodeDiscovered(id) {
+    const s = ensureNodeState(id);
+    return s.discovered;
 }
 // --- Logic ---
 export function isResearchNodeVisible(id) {
@@ -768,6 +800,28 @@ export function getLabFpMultiplier() {
     return bigNumFromLog10(logTotal);
 }
 
+export function getLabScrapMultiplier() {
+    let logTotal = 0;
+    const node20 = NODE_MAP.get(20);
+    if (node20) {
+        const level = getResearchNodeLevel(node20.id);
+        if (level > 0) logTotal += level * LOG10_10;
+    }
+    if (logTotal === 0) return BigNum.fromInt(1);
+    return bigNumFromLog10(logTotal);
+}
+
+export function getLabPpMultiplier() {
+    let logTotal = 0;
+    const node21 = NODE_MAP.get(21);
+    if (node21) {
+        const level = getResearchNodeLevel(node21.id);
+        if (level > 0) logTotal += level * LOG10_10;
+    }
+    if (logTotal === 0) return BigNum.fromInt(1);
+    return bigNumFromLog10(logTotal);
+}
+
 export function getLabSpawnRateBonus() {
     const node = NODE_MAP.get(8);
     if (!node) return 1;
@@ -797,14 +851,19 @@ export function initLabMultipliers() {
         const labMult = getLabFpMultiplier();
         return mult.mulDecimal(labMult.toScientific());
     });
+    addExternalPpMultiplierProvider((mult) => {
+        const labMult = getLabPpMultiplier();
+        return mult.mulDecimal(labMult.toScientific());
+    });
     setTsunamiBonusProvider(() => getTsunamiResearchBonus());
-    if (typeof window !== "undefined") {
+}
+
+if (typeof window !== "undefined") {
         window.addEventListener("lab:node:change", ({ detail }) => {
             if (detail && detail.id === 8) {
                 triggerUpgradesChanged();
             }
         });
-    }
 }
 window.RESEARCH_NODES = RESEARCH_NODES;
 window.isResearchNodeVisible = isResearchNodeVisible;
