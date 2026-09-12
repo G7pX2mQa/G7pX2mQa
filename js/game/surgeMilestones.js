@@ -620,7 +620,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             const effectiveNerf = getTsunamiExponent();
             const mapped = effectiveNerf * 1.5 - 0.5;
             const pct = Math.pow(100, mapped);
-            const valStr = formatMultForUi(pct);
+            const valStr = parseFloat(pct.toFixed(3)).toString();
             milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Gold per second`;
             if (m.surgeLevel <= currentLevel && pendingVals.pendingGold) {
                 try {
@@ -673,7 +673,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             const effectiveNerf = getTsunamiExponent();
             const mapped = effectiveNerf * 1.5 - 0.5;
             const pct = Math.pow(100, mapped);
-            const valStr = formatMultForUi(pct);
+            const valStr = parseFloat(pct.toFixed(3)).toString();
             milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Magic per second`;
             if (m.surgeLevel <= currentLevel && pendingVals.pendingMagic) {
                 try {
@@ -755,7 +755,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             const effectiveNerf = getTsunamiExponent();
             const mapped = effectiveNerf * 1.5 - 0.5;
             const pct = Math.pow(100, mapped);
-            const valStr = formatMultForUi(pct);
+            const valStr = parseFloat(pct.toFixed(3)).toString();
             const tNerf = effectiveNerf;
             if (tNerf === 0) {
                 milestone.description[0] = `Does not generate any DNA with a tsunami exponent of 0.00`;
