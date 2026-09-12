@@ -6651,6 +6651,20 @@ window.addEventListener("saveSlot:change", () => {
     }
 });
 
+window.addEventListener("saveData:imported", (e) => {
+    const slot = e.detail?.slot;
+    if (slot == null) return;
+    const suffix = `:${slot}`;
+    for (const key of lockedStorageKeys) {
+        if (key.endsWith(suffix)) {
+            lockedStorageKeys.delete(key);
+        }
+    }
+    if (debugPanelOpen) {
+        buildDebugPanel();
+    }
+});
+
 window.addEventListener("boot:complete", () => {
     createDebugPanelToggleButton();
 });
