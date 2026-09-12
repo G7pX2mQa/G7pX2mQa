@@ -9,6 +9,7 @@ import { blockInteraction } from "../../shopOverlay.js";
 import { shouldSkipGhostTap, suppressNextGhostTap } from "../../../util/ghostTapGuard.js";
 import { ensureCustomScrollbar } from "../../shopOverlay.js";
 import { setupDragToClose } from "../../shopOverlay.js";
+import { bindDelveTabHotkey } from "../../delveCore.js";
 // Import tabs logic
 import { initSecretAchievementsTab, updateSecretAchievementsTab } from "./secretAchievementsTab.js";
 import { initVoidGemAltarTab, updateVoidGemAltarTab } from "./voidGemAltarTab.js";
@@ -230,6 +231,7 @@ export function ensureOverlay() {
     overlayEl.appendChild(sheetEl);
     document.body.appendChild(overlayEl);
     ensureCustomScrollbar(overlayEl, sheetEl, ".merchant-content");
+    bindDelveTabHotkey(sheetEl);
     if (!eventsBound) {
         eventsBound = true;
         closeBtn.addEventListener("click", () => {
