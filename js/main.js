@@ -1180,6 +1180,9 @@ export function enterArea(areaID, fadeDuration = 0) {
             } else if (areaID === AREAS.UNDERWATER_CAVERN) {
                 gameRoot.classList.remove("area-cove");
                 gameRoot.classList.add("area-cavern");
+                import("./ui/notifications.js").then(({ clearSpecificNotification }) => {
+                    clearSpecificNotification("A new upgrade has appeared in Underwater Cavern!");
+                }).catch(() => {});
             }
             initHudButtons();
         }
