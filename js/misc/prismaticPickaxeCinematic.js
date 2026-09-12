@@ -72,7 +72,7 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
     window.addEventListener("resize", onResize);
 
     // ── 6. Play spinny sound & start underwater music ────────────────────────
-    try { playAudio(SPINNY_SFX, { volume: 0.7, type: "sfx", bypassFilter: true }); } catch {}
+    try { playAudio(SPINNY_SFX, { volume: 0.7, type: "sfx", bypassFilter: true, persistOnHide: true }); } catch {}
     setCinematicMuffleException(true);
     try { setAudioUnderwater(true); } catch {}
 
@@ -196,7 +196,7 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
             dom.pickaxe.style.display = "none";
 
             // Explosion SFX & restore music over 10s
-            try { playAudio(EXPLOSION_SFX, { volume: 0.85, type: "sfx", bypassFilter: true }); } catch {}
+            try { playAudio(EXPLOSION_SFX, { volume: 0.85, type: "sfx", bypassFilter: true, persistOnHide: true }); } catch {}
             try { fadeAudioUnderwaterToNormal(10); } catch {}
 
             // Swap old pickaxe image to prismatic (the "upgrade" moment)
