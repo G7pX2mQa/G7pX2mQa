@@ -1,4 +1,4 @@
-import { NODE_MAP } from "../game/labNodes.js";
+import { NODE_MAP, isResearchNodeDiscovered } from "../game/labNodes.js";
 import { playAudio } from "../util/audioManager.js";
 import { isViewingLabTab } from "./merchantTabs/dlgTab.js";
 import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
@@ -293,9 +293,20 @@ export function initNotifications() {
         // Check if viewing lab
         if (isViewingLabTab()) return;
 
+        let message = `${node.title || "Node"}<br>Maxed!`;
+        let duration = 5000;
+
+        // Check for node 19 new nodes
+        if (id === 19) {
+            const newlyAppeared = !isResearchNodeDiscovered(20) || !isResearchNodeDiscovered(21);
+            if (newlyAppeared) {
+                duration += 1767;
+                message += `<br><span style="font-size: 0.85em; opacity: 0.9; margin-top: 4px; display: block;">New nodes have appeared!</span>`;
+            }
+        }
+
         // Show notification
-        const title = node.title || "Node";
-        showNotification(`${title}<br>Maxed!`, node.icon);
+        showNotification(message, node.icon, duration);
     });
 }
 
