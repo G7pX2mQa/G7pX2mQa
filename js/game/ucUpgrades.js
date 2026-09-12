@@ -450,7 +450,7 @@ export const UC_REGISTRY = [
         id: 10,
         tie: "none_8",
         title: "Unlock Compress",
-        desc: "Unlocks the Compress reset and the Crystal building",
+        desc: "Unlocks the Compress reset and the Crystal Building",
         lvlCap: 1,
         upgType: "NM",
         icon: "",
