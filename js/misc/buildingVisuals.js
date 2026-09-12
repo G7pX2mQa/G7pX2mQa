@@ -10446,7 +10446,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
             for(let i=0; i<3; i++) {
                 let pTime = (t * 0.4 + i * 0.333) % 1; 
                 let steamY = baseY - 280 - pTime * 140;
-                let steamX = -215 + Math.sin(t * 2 + i * 3) * 8;
+                let steamX = -220 + Math.sin(t * 2 + i * 3) * 8;
                 let steamAlpha = (1 - pTime) * 0.5 * (1 - t6);
                 let steamSize = 12 + pTime * 20;
                 
