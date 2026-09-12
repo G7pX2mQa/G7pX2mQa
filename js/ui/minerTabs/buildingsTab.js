@@ -621,7 +621,7 @@ function applyBuildingOnlyMode(enabled) {
 
         const grabHandle = overlay.querySelector(".grab-handle");
         if (grabHandle) {
-            grabHandle.style.opacity = "0";
+            grabHandle.style.visibility = "hidden";
         }
 
         const onlyBuildingBtn = overlay.querySelector(".only-building-btn");
@@ -725,7 +725,7 @@ function applyBuildingOnlyMode(enabled) {
 
         const grabHandle = overlay.querySelector(".grab-handle");
         if (grabHandle) {
-            grabHandle.style.opacity = "1";
+            grabHandle.style.visibility = "";
         }
 
         const onlyBuildingBtn = overlay.querySelector(".only-building-btn");
