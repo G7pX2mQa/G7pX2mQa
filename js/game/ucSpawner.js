@@ -273,7 +273,16 @@ export function createUcSpawner(config = {}) {
             const maxSize = baseSize * Math.pow(1.1, UC_MATERIALS.length - 1);
             const sharedMinX = MATERIAL_MARGIN;
             const sharedMaxX = Math.max(sharedMinX, pfW - maxSize - MATERIAL_MARGIN);
-            const sharedSpawnX = sharedMinX + Math.random() * (sharedMaxX - sharedMinX);
+            
+            let sharedSpawnX;
+            if (window._restrictNextSpawnToLeft) {
+                window._restrictNextSpawnToLeft = false;
+                const limitX = sharedMinX + (sharedMaxX - sharedMinX) * 0.15;
+                sharedSpawnX = sharedMinX + Math.random() * (limitX - sharedMinX);
+            } else {
+                sharedSpawnX = sharedMinX + Math.random() * (sharedMaxX - sharedMinX);
+            }
+
             // Return one placeholder item representing the strike intent.
             const spawns = [
                 {
@@ -394,6 +403,7 @@ export function createUcSpawner(config = {}) {
                 setTimeout(() => {
                     if (base) {
                         if (typeof base.clearBacklog === "function") base.clearBacklog();
+                        window._restrictNextSpawnToLeft = true;
                         if (typeof base.spawnBurst === "function") base.spawnBurst(1);
                     }
                 }, 0);
