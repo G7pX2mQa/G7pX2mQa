@@ -441,6 +441,15 @@ export function createUcSpawner(config = {}) {
                     const scaleFactor = pickaxeSize / 64;
                     const offsetX = (isLeft ? 39 : -103) * scaleFactor;
                     const offsetY = -60 * scaleFactor; // shift up so the tip is at the target Y
+                    
+                    if (pickaxe._needsFlightToNextTarget) {
+                        pickaxe._needsFlightToNextTarget = false;
+                        pickaxe.style.transition = "left 0.75s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.75s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1)";
+                        setTimeout(() => {
+                            if (pickaxe) pickaxe.style.transition = "";
+                        }, 750);
+                    }
+
                     pickaxe.style.left = `${item.startX + offsetX}px`;
                     pickaxe.style.top = `${localPickY + offsetY}px`;
                     // Reset pickaxe rotation before starting
