@@ -6,7 +6,7 @@
 .prismatic-spotlight {
     position: fixed;
     inset: 0;
-    z-index: 99999;
+    z-index: 99994;
     pointer-events: none;
     background: radial-gradient(
         circle at 50% 42%,
@@ -28,7 +28,7 @@
 /* ---------- Cinematic prismatic pickaxe ---------- */
 .prismatic-cinematic-pickaxe {
     position: fixed;
-    z-index: 100000;
+    z-index: 99996;
     pointer-events: none;
     will-change: transform, left, top, opacity;
     filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.8))
@@ -94,8 +94,7 @@
 /* Phase 4 — collision slam */
 .prismatic-cinematic-pickaxe.is-colliding {
     transition: left  0.12s cubic-bezier(0.7, 0, 1, 0.4),
-                top   0.12s cubic-bezier(0.7, 0, 1, 0.4),
-                opacity 0.35s ease 0.12s;
+                top   0.12s cubic-bezier(0.7, 0, 1, 0.4);
     animation: none;
     transform: scaleX(-1) rotate(-30deg);
 }
@@ -104,26 +103,25 @@
 .prismatic-flash {
     position: fixed;
     inset: 0;
-    z-index: 100001;
+    z-index: 99997;
     pointer-events: none;
     background: #fff;
     opacity: 0;
 }
 @keyframes prismatic-flash-anim {
     0%   { opacity: 0; }
-    12%  { opacity: 0.95; }
-    30%  { opacity: 0.5; }
+    99.9% { opacity: 1; }
     100% { opacity: 0; }
 }
 .prismatic-flash.is-active {
-    animation: prismatic-flash-anim 0.7s ease-out forwards;
+    animation: prismatic-flash-anim 0.5s ease-in forwards;
 }
 
 /* ---------- Sparkle particles ---------- */
 .prismatic-sparkle-container {
     position: fixed;
     inset: 0;
-    z-index: 100000;
+    z-index: 99995;
     pointer-events: none;
     overflow: hidden;
 }
