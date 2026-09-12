@@ -17,7 +17,7 @@ import {
 } from "../ui/merchantTabs/resetTab.js";
 import { getLabLevel } from "../ui/merchantTabs/labTab.js";
 import { registerTick, RateAccumulator } from "./gameLoop.js";
-import { bigNumFromLog10, approxLog10BigNum } from "../util/bigNum.js";
+import { bigNumFromLog10, approxLog10BigNum, bigNumIsInfinite } from "../util/bigNum.js";
 import { getTsunamiResearchBonus, getLabGoldMultiplier } from "./labNodes.js";
 import { getComboRestorationFactor, updateCombo, initComboSystem } from "./comboSystem.js";
 import { formatMultForUi } from "../util/numFormat.js";
