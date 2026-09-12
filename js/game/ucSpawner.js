@@ -375,8 +375,41 @@ export function createUcSpawner(config = {}) {
                 }
             }
             refs.c.appendChild(frag);
-            // Pickaxe Logic
-            if (newItems.length > 0) {
+            // Pickaxe Logic moved to onItemUpdate
+        },
+        onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
+            if (window._wasCinematicActive) {
+                window._wasCinematicActive = false;
+                
+                // Discard any stale placeholders that were queued BEFORE the cinematic paused the spawner
+                for (let i = activeItems.length - 1; i >= 0; i--) {
+                    const c = activeItems[i];
+                    if (c && !c.isRemoved && !c.settled) {
+                        if (c.isStrikePlaceholder || c.isPreAllocatedMaterial) {
+                            removeItem(c, i);
+                        }
+                    }
+                }
+
+                setTimeout(() => {
+                    if (base) {
+                        if (typeof base.clearBacklog === "function") base.clearBacklog();
+                        if (typeof base.spawnBurst === "function") base.spawnBurst(1);
+                    }
+                }, 0);
+            }
+            let pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+
+            let firstPlaceholder = null;
+            for (let i = 0; i < activeItems.length; i++) {
+                const c = activeItems[i];
+                if (c && !c.isRemoved && c.isStrikePlaceholder && !c.settled) {
+                    firstPlaceholder = c;
+                    break;
+                }
+            }
+
+            if (firstPlaceholder) {
                 if (!window._cachedUcRubbleRect) {
                     const rl = document.querySelector(".rubble-layer");
                     if (rl) window._cachedUcRubbleRect = rl.getBoundingClientRect();
@@ -384,15 +417,11 @@ export function createUcSpawner(config = {}) {
 
                 const rubbleRect = window._cachedUcRubbleRect;
                 if (rubbleRect) {
-                    // Use cached metrics
                     const pfRect =
                         window._cachedUcPfRect ||
-                        (refs.pf
-                            ? refs.pf.getBoundingClientRect()
-                            : document.querySelector(playfieldSelector).getBoundingClientRect());
+                        document.querySelector(playfieldSelector).getBoundingClientRect();
                     const pfW = pfRect.width;
-                    // Ensure only ONE persistent pickaxe exists at a time
-                    let pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+
                     if (!pickaxe) {
                         pickaxe = document.createElement("img");
                         window._ucPickaxeElement = pickaxe;
@@ -407,82 +436,68 @@ export function createUcSpawner(config = {}) {
                         pickaxe.style.willChange = "transform";
                         document.querySelector(playfieldSelector).appendChild(pickaxe);
                     }
-                    // If the previous animation was interrupted before the sound could play at the end, play it now!
-                    if (pickaxe._elapsedTime !== undefined && !pickaxe._playedSound) {
-                        playSpawnSound();
-                    }
-                    // We only animate the persistent pickaxe based on the first item in the batch
-                    // to prevent multiple overlapping animations
-                    const item = newItems[0];
-                    const chargeTime = cycleMs * 0.8;
-                    const strikeTime = cycleMs * 0.2;
-                    // Y position between 25% and 75% of rubble layer height, relative to viewport
-                    // Clamp to visible playfield area so bleed extensions outside the viewport don't shift the strike Y
-                    const visibleRubbleTop = Math.max(pfRect.top, rubbleRect.top);
-                    const visibleRubbleHeight = Math.max(0, rubbleRect.bottom - visibleRubbleTop);
-                    const pickY = visibleRubbleTop + visibleRubbleHeight * 0.5 + window.innerHeight * 0.025;
-                    // Is left or right half?
-                    const itemMiddleAbsoluteX = pfRect.left + item.startX + item.size / 2;
-                    const isLeft = itemMiddleAbsoluteX < window.innerWidth / 2;
-                    // Right side: negative charge (-60), positive strike (+60)
-                    // Left side: positive charge (+60), negative strike (-60)
-                    const chargeRotation = isLeft ? 60 : -60;
-                    const strikeRotation = isLeft ? -60 : 60;
-                    const localPickY = pickY - pfRect.top;
-                    // Offset pickaxe so the tip hits the spawn location
-                    // For a 64x64 pickaxe with transformOrigin 'bottom center', the tip is near the top corners.
-                    // If striking left (-60), the pivot needs to be moved right and down so the top-left tip hits the target.
-                    // If striking right (+60), the pivot needs to be moved left and down so the top-right tip hits the target.
-                    // Assuming tip is ~71px from pivot horizontally when swung 60 degrees.
-                    // The pivot is at the bottom center of the 64x64 image (so Y is top + 64).
-                    // The rotated tip Y is roughly at the same height as the pivot, meaning top should be ~60px above the target Y.
-                    // For left: tip is at -71px from pivot, so left edge should be at startX + 39.
-                    // For right: tip is at +71px from pivot, so left edge should be at startX - 103.
-                    const scaleFactor = pickaxeSize / 64;
-                    const offsetX = (isLeft ? 39 : -103) * scaleFactor;
-                    const offsetY = -60 * scaleFactor; // shift up so the tip is at the target Y
-                    
-                    if (pickaxe._needsFlightToNextTarget) {
-                        pickaxe._needsFlightToNextTarget = false;
-                        const flightMs = cycleMs * 0.8;
-                        pickaxe.style.transition = `left ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), top ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), transform ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`;
-                        pickaxe._isFlying = true;
-                        
-                        if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
-                        pickaxe._flightTimeoutId = setTimeout(() => {
-                            if (pickaxe) {
-                                pickaxe.style.transition = "";
-                                pickaxe._isFlying = false;
-                            }
-                        }, flightMs);
-                    } else if (pickaxe.style.transition) {
-                        pickaxe.style.transition = "";
-                        pickaxe._isFlying = false;
-                        if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
-                    }
 
-                    pickaxe.style.left = `${item.startX + offsetX}px`;
-                    pickaxe.style.top = `${localPickY + offsetY}px`;
-                    if (pickaxe._isFlying) {
-                        pickaxe.style.transform = `rotate(${chargeRotation}deg)`;
-                    } else {
-                        pickaxe.style.transform = "rotate(0deg)";
+                    if (pickaxe._currentTarget !== firstPlaceholder) {
+                        pickaxe._currentTarget = firstPlaceholder;
+                        const cycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
+
+                        if (pickaxe._elapsedTime !== undefined && !pickaxe._playedSound) {
+                            playSpawnSound();
+                        }
+
+                        const item = firstPlaceholder;
+                        const visibleRubbleTop = Math.max(pfRect.top, rubbleRect.top);
+                        const visibleRubbleHeight = Math.max(0, rubbleRect.bottom - visibleRubbleTop);
+                        const pickY = visibleRubbleTop + visibleRubbleHeight * 0.5 + window.innerHeight * 0.025;
+
+                        const itemMiddleAbsoluteX = pfRect.left + item.startX + item.size / 2;
+                        const isLeft = itemMiddleAbsoluteX < window.innerWidth / 2;
+
+                        const chargeRotation = isLeft ? 60 : -60;
+                        const strikeRotation = isLeft ? -60 : 60;
+                        const localPickY = pickY - pfRect.top;
+
+                        const scaleFactor = pickaxeSize / 64;
+                        const offsetX = (isLeft ? 39 : -103) * scaleFactor;
+                        const offsetY = -60 * scaleFactor;
+
+                        if (pickaxe._needsFlightToNextTarget) {
+                            pickaxe._needsFlightToNextTarget = false;
+                            const flightMs = cycleMs * 0.8;
+                            pickaxe.style.transition = `left ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), top ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), transform ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`;
+                            pickaxe._isFlying = true;
+
+                            if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+                            pickaxe._flightTimeoutId = setTimeout(() => {
+                                if (pickaxe) {
+                                    pickaxe.style.transition = "";
+                                    pickaxe._isFlying = false;
+                                }
+                            }, flightMs);
+                        } else if (pickaxe.style.transition) {
+                            pickaxe.style.transition = "";
+                            pickaxe._isFlying = false;
+                            if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+                        }
+
+                        pickaxe.style.left = `${item.startX + offsetX}px`;
+                        pickaxe.style.top = `${localPickY + offsetY}px`;
+                        if (pickaxe._isFlying) {
+                            pickaxe.style.transform = `rotate(${chargeRotation}deg)`;
+                        } else {
+                            pickaxe.style.transform = "rotate(0deg)";
+                        }
+
+                        pickaxe._cycleMs = cycleMs;
+                        if (!settingsManager.get("spawn_vessels")) pickaxe.style.display = "none";
+                        else pickaxe.style.display = "block";
+                        pickaxe._chargeRotation = chargeRotation;
+                        pickaxe._strikeRotation = strikeRotation;
+                        pickaxe._elapsedTime = 0;
+                        pickaxe._playedSound = false;
                     }
-                    // We will not use pickaxe.animate(), but rather synchronize it explicitly with onItemUpdate
-                    // Store logic variables onto the pickaxe so onItemUpdate can calculate rotations safely
-                    pickaxe._cycleMs = cycleMs;
-                    if (!settingsManager.get("spawn_vessels")) pickaxe.style.display = "none";
-                    else pickaxe.style.display = "block";
-                    pickaxe._chargeRotation = chargeRotation;
-                    pickaxe._strikeRotation = strikeRotation;
-                    pickaxe._elapsedTime = 0;
-                    pickaxe._playedSound = false;
                 }
             }
-        },
-        onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
-            if (window._prismaticCinematicActive) return;
-            const pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
             if (pickaxe && pickaxe._elapsedTime !== undefined) {
                 const currentCycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
                 if (pickaxe._cycleMs !== currentCycleMs) {
