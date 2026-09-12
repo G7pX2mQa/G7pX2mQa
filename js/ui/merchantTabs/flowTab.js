@@ -756,7 +756,7 @@ export function calculateWaterwheelOffline(seconds) {
     if (totalGainBn.isZero()) return {};
     for (const id in state.waterwheels) {
         const ch = state.waterwheels[id];
-        if (!ch.active) continue;
+        if (!ch.active || !ch.unlocked) continue;
         const req = WATERWHEEL_DEFS[id]?.baseReq || 10;
         let currentFpBn;
         if (ch.fp instanceof BigNum) currentFpBn = ch.fp.clone();
@@ -866,7 +866,6 @@ function onTick(dt) {
                     state.waterwheels[id].level = BigNum.fromInt(0);
                     state.waterwheels[id].fp = 0;
                     if (state.waterwheels[id].active) {
-                        state.waterwheels[id].active = false;
                         if (state.visuals[id]) {
                             state.visuals[id].speed = 0;
                             state.visuals[id].isMax = false;
@@ -889,7 +888,6 @@ function onTick(dt) {
                         state.waterwheels[id].level = BigNum.fromInt(0);
                         state.waterwheels[id].fp = 0;
                         if (state.waterwheels[id].active) {
-                            state.waterwheels[id].active = false;
                             // Reset visuals for this one
                             if (state.visuals[id]) {
                                 state.visuals[id].speed = 0;
@@ -905,7 +903,7 @@ function onTick(dt) {
         const ch = state.waterwheels[id];
         // Ensure visual state exists
         if (!state.visuals[id]) state.visuals[id] = { rotation: 0, speed: 0, isMax: false };
-        if (!ch.active) {
+        if (!ch.active || !ch.unlocked) {
             state.visuals[id].speed = 0;
             state.visuals[id].isMax = false;
             continue;
