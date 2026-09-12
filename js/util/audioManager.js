@@ -174,82 +174,89 @@ export async function loadAudio(src) {
  * @param {boolean} [options.loop=false] - Whether to loop.
  * @param {string} [options.type='sfx'] - 'sfx', 'music', or 'spawn_vessel'.
  */
+let isCinematicMuffleException = false;
+export function setCinematicMuffleException(val) {
+    isCinematicMuffleException = val;
+}
+
 export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx', fadeDuration = 0, persistOnHide = false, bypassFilter = false } = {}) {
-  if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
+    if (window.currentArea === AREAS.JAIL || window.__duplicateInstanceDetected) return;
 
-  if (typeof window !== 'undefined' && typeof window.isMutedByVault === 'function' && window.isMutedByVault()) {
-    const isOpeningSfx = src.includes('opening.ogg');
-    const isCoinSfx = src.includes('coin_pickup_size5.ogg');
-    if (!isOpeningSfx && !isCoinSfx) {
-      return null;
-    }
-  }
- 
-  let isSpawnVessel = false;
-  let originalBaseVolume = volume;
-  if (type === 'spawn_vessel') {
-      if (Date.now() < spawnVesselMutedUntil) return null;
-      isSpawnVessel = true;
-      type = 'sfx';
-  }
-
-  if (document.hidden && type === 'sfx' && !persistOnHide) {
-      return null;
-  }
-
-  const ctx = getAudioContext();
-  
-  // Prevent sounds from silently queueing up in a suspended context (which causes them to all blast at once when context resumes).
-  // Allow queueing ONLY if the user interacted recently, meaning a ctx.resume() is likely pending.
-  if (ctx && ctx.state === 'suspended' && type === 'sfx') {
-      if (Date.now() - lastInteractionTime > 1000) {
-          return null;
-      }
-  }
-
-  const url = new URL(src, document.baseURI).href;
-  
-  // Try Web Audio first
-  if (ctx) {
-    if (ctx.state === 'suspended' && !document.hidden) ctx.resume().catch(()=>{});
-    
-    const buffer = buffers.get(url);
-    if (buffer) {
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.detune.value = detune;
-        source.playbackRate.value = playbackRate;
-        source.loop = loop;
-        
-        const gainNode = ctx.createGain();
-
-        let initialVolume = volume;
-        if (isSpawnVessel) {
-            const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
-            initialVolume = initialVolume * (spawnVesselVolumeSetting / 100);
+    if (typeof window !== 'undefined' && typeof window.isMutedByVault === 'function' && window.isMutedByVault()) {
+        const isOpeningSfx = src.includes('opening.ogg');
+        const isCoinSfx = src.includes('coin_pickup_size5.ogg');
+        if (!isOpeningSfx && !isCoinSfx) {
+            return null;
         }
+    }
+ 
+    let isSpawnVessel = false;
+    let originalBaseVolume = volume;
+    if (type === 'spawn_vessel') {
+        if (Date.now() < spawnVesselMutedUntil) return null;
+        isSpawnVessel = true;
+        type = 'sfx';
+    }
+
+    if (document.hidden && type === 'sfx' && !persistOnHide) {
+        return null;
+    }
+
+    const ctx = getAudioContext();
+    
+    // Prevent sounds from silently queueing up in a suspended context (which causes them to all blast at once when context resumes).
+    // Allow queueing ONLY if the user interacted recently, meaning a ctx.resume() is likely pending.
+    if (ctx && ctx.state === 'suspended' && type === 'sfx') {
+        if (Date.now() - lastInteractionTime > 1000) {
+            return null;
+        }
+    }
+
+    const url = new URL(src, document.baseURI).href;
+    
+    // Try Web Audio first
+    if (ctx) {
+        if (ctx.state === 'suspended' && !document.hidden) ctx.resume().catch(()=>{});
         
-        if (fadeDuration > 0) {
-            gainNode.gain.value = 0;
-            try {
-                const now = ctx.currentTime;
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(initialVolume, now + fadeDuration);
-            } catch (e) {
+        const buffer = buffers.get(url);
+        if (buffer) {
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.detune.value = detune;
+            source.playbackRate.value = playbackRate;
+            source.loop = loop;
+            
+            const gainNode = ctx.createGain();
+
+            let initialVolume = volume;
+            if (isSpawnVessel) {
+                const spawnVesselVolumeSetting = settingsManager.get('spawn_vessel_volume');
+                initialVolume = initialVolume * (spawnVesselVolumeSetting / 100);
+            }
+            
+            if (fadeDuration > 0) {
+                gainNode.gain.value = 0;
+                try {
+                    const now = ctx.currentTime;
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(initialVolume, now + fadeDuration);
+                } catch (e) {
+                    gainNode.gain.value = initialVolume;
+                }
+            } else {
                 gainNode.gain.value = initialVolume;
             }
-        } else {
-            gainNode.gain.value = initialVolume;
-        }
-        
-        source.connect(gainNode);
-        
-        // Routing logic
-        if (type === 'music') {
-            gainNode.connect(bypassFilter ? musicGain : musicFilter);
-        } else if (type === "sfx") {
-            gainNode.connect(bypassFilter ? sfxGain : sfxFilter);
-        } else {
+            
+            source.connect(gainNode);
+            
+            // Routing logic
+            if (type === 'music') {
+                gainNode.connect(bypassFilter ? musicGain : musicFilter);
+            } else if (type === "sfx") {
+                const isCompressReset = src.includes("compress_reset.ogg");
+                const bypass = bypassFilter || (isCinematicMuffleException && !isCompressReset);
+                gainNode.connect(bypass ? sfxGain : sfxFilter);
+            } else {
             gainNode.connect(masterGain);
         }
 
@@ -658,7 +665,11 @@ export function fadeAudioUnderwaterToNormal(durationInSeconds) {
             sfxFilter.frequency.setValueAtTime(sfxFilter.frequency.value, now);
             sfxFilter.frequency.linearRampToValueAtTime(targetFreq, now + durationInSeconds);
         }
+        setTimeout(() => {
+            isCinematicMuffleException = false;
+        }, durationInSeconds * 1000 + 100);
     } catch {
         setAudioUnderwater(false);
+        isCinematicMuffleException = false;
     }
 }
