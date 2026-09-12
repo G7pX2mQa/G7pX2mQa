@@ -582,7 +582,6 @@ function updateCompressCard() {
                 Compressing for the first time will also replace the Surge 200 milestone with something new<br>
                 Additionally, the Surge requirement to perform Compress will be moved to Surge 250 once Pressure is unlocked<br>
 				Purchasing the "Unlock Compress" upgrade unlocked the Crystal building; spend Crystals there<br>
-                Compressing for the first time will also unlock new Lab nodes<br>
                 And of course, don't forget about the <span class="text-rainbow-animated">Prismatic Pickaxe</span>, which can mine infinitely deep, with no bounds
               </span>
             `.trim();
