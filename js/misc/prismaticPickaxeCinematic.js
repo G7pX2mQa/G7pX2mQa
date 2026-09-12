@@ -51,6 +51,7 @@ export function playPrismaticPickaxeCinematic(compressBtnEl) {
 
     // ── 3. Pause material spawning ──────────────────────────────────────────
     window._prismaticCinematicActive = true;
+    window._wasCinematicActive = true;
 
     // ── 4. Setup old pickaxe (freeze, teleport, force-show) ─────────────────
     const oldPickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
