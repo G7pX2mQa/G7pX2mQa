@@ -2519,6 +2519,12 @@ function bindGlobalEvents() {
 
             let is20 = level === Infinity || (typeof level === "number" && level >= 20);
             let is8 = level === Infinity || (typeof level === "number" && level >= 8);
+            if (level === 200 && !isPpSystemUnlocked()) {
+                import("../notifications.js").then(({ showNotification }) => {
+                    showNotification("A new upgrade has appeared in Underwater Cavern!", "img/misc/compress_plus_base.webp", 8000);
+                }).catch(() => {});
+            }
+            
             if (is20 && slot != null) {
                 try {
                     lsSetItem(`ccc:unlock:flow:${slot}`, "1");
