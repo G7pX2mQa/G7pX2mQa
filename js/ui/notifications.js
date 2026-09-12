@@ -66,6 +66,25 @@ export function nukeNotifications(clearAll = true) {
     }
 }
 
+export function clearSpecificNotification(textSubstring) {
+    for (const notif of activeNotifications) {
+        if (notif.element && notif.element.innerHTML.includes(textSubstring)) {
+            if (notif.timeoutId) {
+                clearTimeout(notif.timeoutId);
+                notif.timeoutId = null;
+            }
+            if (typeof notif.triggerLeaving === "function") {
+                notif.triggerLeaving();
+            }
+        }
+    }
+    for (let i = queue.length - 1; i >= 0; i--) {
+        if (queue[i].text && queue[i].text.includes(textSubstring)) {
+            queue.splice(i, 1);
+        }
+    }
+}
+
 function ensureContainer() {
     if (container) return container;
     container = document.createElement("div");
