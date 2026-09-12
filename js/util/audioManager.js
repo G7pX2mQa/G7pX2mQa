@@ -665,10 +665,21 @@ export function fadeAudioUnderwaterToNormal(durationInSeconds) {
             sfxFilter.frequency.setValueAtTime(sfxFilter.frequency.value, now);
             sfxFilter.frequency.linearRampToValueAtTime(targetFreq, now + durationInSeconds);
         }
-        setTimeout(() => {
-            isCinematicMuffleException = false;
-        }, durationInSeconds * 1000 + 100);
+        const endTime = now + durationInSeconds;
+        
+        if (window._cinematicMuffleInterval) clearInterval(window._cinematicMuffleInterval);
+        window._cinematicMuffleInterval = setInterval(() => {
+            if (audioContext && audioContext.currentTime >= endTime) {
+                isCinematicMuffleException = false;
+                clearInterval(window._cinematicMuffleInterval);
+                window._cinematicMuffleInterval = null;
+            }
+        }, 100);
     } catch {
+        if (window._cinematicMuffleInterval) {
+            clearInterval(window._cinematicMuffleInterval);
+            window._cinematicMuffleInterval = null;
+        }
         setAudioUnderwater(false);
         isCinematicMuffleException = false;
     }
