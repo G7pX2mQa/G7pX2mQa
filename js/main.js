@@ -2005,6 +2005,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/uc_upg_icons/effective_auto_sell.webp",
             "img/uc_upg_icons/faster_materials.webp",
             "img/uc_upg_icons/manual_collect_value_uc.webp",
+			"img/uc_upg_icons/pp_val_hm.webp",
             "img/uc_upg_icons/rp_val1.webp",
             "img/waterwheels/waterwheel_coin.webp",
             "img/waterwheels/waterwheel_gold.webp",
