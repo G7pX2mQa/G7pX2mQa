@@ -470,6 +470,14 @@ export function setAudioSuspended(suspended) {
           sfxGain.gain.cancelScheduledValues(now);
           sfxGain.gain.setValueAtTime(0, now);
         }
+      } else if (window._prismaticCinematicActive) {
+        // Mute master output but keep context running to maintain sync with visual animation
+        window._wasMutedForCinematic = true;
+        if (masterGain) {
+          const now = audioContext.currentTime;
+          masterGain.gain.cancelScheduledValues(now);
+          masterGain.gain.setValueAtTime(0, now);
+        }
       } else {
         if (audioContext.state === 'running') audioContext.suspend().catch(()=>{});
       }
@@ -480,6 +488,11 @@ export function setAudioSuspended(suspended) {
             const sfxv = settingsManager.get('sfx_volume');
             setSfxVolume(sfxv !== undefined && sfxv !== false ? sfxv : 100);
         }
+      }
+      if (window._wasMutedForCinematic) {
+        window._wasMutedForCinematic = false;
+        const mv = settingsManager.get('master_volume');
+        setMasterVolume(mv !== undefined && mv !== false ? mv : 100);
       }
       if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
     }
