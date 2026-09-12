@@ -752,16 +752,6 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
         });
         window.addEventListener("surge:level:change", (e) => {
             recomputePendingCoresAndCrystals();
-            
-            const slot = e.detail?.slot ?? getActiveSlot();
-            const level = e.detail?.level ?? 0;
-            if (slot != null && level === 200) {
-                if (!isPpSystemUnlocked()) {
-                    import("../notifications.js").then(({ showNotification }) => {
-                        showNotification("A new upgrade has appeared in Underwater Cavern!", "img/misc/compress_plus_base.webp", 8000);
-                    }).catch(() => {});
-                }
-            }
         });
         window.addEventListener("saveSlot:change", () => {
             resetState.flagsPrimed = false;
