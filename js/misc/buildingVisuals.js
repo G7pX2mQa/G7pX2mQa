@@ -9359,7 +9359,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t7;
     domePath();
-    if (!window.IS_FIREFOX) ctx.clip(); // Ensure petals stay inside dome
+    ctx.clip(); // Ensure petals stay inside dome
     // Falling petals (Drifting from branches) - BACKSIDE
     drawWhirlwindPetals(false);
     ctx.restore();
@@ -9482,7 +9482,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t7;
 
     domePath();
-    if (!window.IS_FIREFOX) ctx.clip(); // Ensure petals stay inside dome
+    ctx.clip(); // Ensure petals stay inside dome
 
     // Draw blossom canopy branches stretching inward from the top edges
     ctx.strokeStyle = '#3a2110';
@@ -9957,7 +9957,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t7;
 
     domePath();
-    if (!window.IS_FIREFOX) ctx.clip(); // Ensure petals stay inside dome
+    ctx.clip(); // Ensure petals stay inside dome
 
     // Falling petals (Drifting from branches) - FRONTSIDE
     drawWhirlwindPetals(true);
@@ -9991,6 +9991,7 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
 
 let cachedAshCanvas = null;
+let cachedAshImg = null;
 function getAshCanvas() {
     if (!cachedAshCanvas) {
         cachedAshCanvas = document.createElement('canvas');
@@ -10004,6 +10005,15 @@ function getAshCanvas() {
         grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
         pCtx.fillStyle = grad;
         pCtx.fillRect(0, 0, 16, 16);
+        
+        if (window.IS_FIREFOX) {
+            cachedAshImg = new Image();
+            cachedAshImg.src = cachedAshCanvas.toDataURL();
+        }
+    }
+    
+    if (window.IS_FIREFOX && cachedAshImg && cachedAshImg.complete && cachedAshImg.naturalWidth > 0) {
+        return cachedAshImg;
     }
     return cachedAshCanvas;
 }
@@ -10027,7 +10037,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
   const drawAsh = (isRisingPass) => {
       if (t6 <= 0) return;
       
-      const numAsh = window.IS_FIREFOX ? 50 : 400;
+      const numAsh = 400;
       const maxLifetime = 5.0; // seconds
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
       const ashImg = getAshCanvas();
@@ -10089,7 +10099,16 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           let size = baseSize * (1.0 + 1.0 * pulse); 
           
           ctx.globalAlpha = t6 * alpha * Math.min(1, 0.4 + 0.6 * brightness);
-          ctx.drawImage(ashImg, finalX - size, finalY - size, size * 2, size * 2);
+          
+          let dX = finalX - size;
+          let dY = finalY - size;
+          let dS = size * 2;
+          if (window.IS_FIREFOX) {
+              dX = Math.round(dX);
+              dY = Math.round(dY);
+              dS = Math.round(dS);
+          }
+          ctx.drawImage(ashImg, dX, dY, dS, dS);
       }
       ctx.restore();
   };
@@ -10283,9 +10302,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       // 3. Clip the symbol so it doesn't draw below the ground (y = 120)
       ctx.beginPath();
       ctx.rect(-3000, -3000, 6000, 3000 + 120);
-      if (!window.IS_FIREFOX) {
-          ctx.clip();
-      }
+      ctx.clip();
 
       // 1. Exact same rotation as center symbol
       ctx.rotate(t * 0.5); 
@@ -10802,16 +10819,46 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
     // 1. Ambient Toxic Radiation Haze (Fast screen overlay)
     let hazeRadius = 400 + 200 * pulse;
-    let hazeGrad = ctx.createRadialGradient(cx, cy, 50, cx, cy, hazeRadius);
-    hazeGrad.addColorStop(0, `rgba(255, 0, 0, ${0.15 * pulse})`);
-    hazeGrad.addColorStop(0.5, `rgba(200, 0, 0, ${0.05 * pulse})`);
-    hazeGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     
-    ctx.fillStyle = hazeGrad;
+    if (!window.cachedTier6HazeCanvas) {
+        const c = document.createElement('canvas');
+        c.width = 512; c.height = 512;
+        const cCtx = c.getContext('2d');
+        const g = cCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
+        g.addColorStop(0, 'rgba(255, 0, 0, 0.15)');
+        g.addColorStop(0.5, 'rgba(200, 0, 0, 0.05)');
+        g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        cCtx.fillStyle = g;
+        cCtx.fillRect(0, 0, 512, 512);
+        window.cachedTier6HazeCanvas = c;
+        
+        if (window.IS_FIREFOX) {
+            let img = new Image();
+            img.src = c.toDataURL();
+            window.cachedTier6HazeImg = img;
+        }
+    }
+
+    ctx.save();
+    ctx.globalAlpha = t6 * pulse;
     ctx.globalCompositeOperation = window.IS_FIREFOX ? 'source-over' : 'screen';
-    ctx.beginPath();
-    ctx.arc(cx, cy, hazeRadius, 0, Math.PI * 2);
-    ctx.fill();
+    
+    let hazeSrc = window.cachedTier6HazeCanvas;
+    if (window.IS_FIREFOX && window.cachedTier6HazeImg && window.cachedTier6HazeImg.complete && window.cachedTier6HazeImg.naturalWidth > 0) {
+        hazeSrc = window.cachedTier6HazeImg;
+    }
+    
+    let hX = cx - hazeRadius;
+    let hY = cy - hazeRadius;
+    let hS = hazeRadius * 2;
+    if (window.IS_FIREFOX) {
+        hX = Math.round(hX);
+        hY = Math.round(hY);
+        hS = Math.round(hS);
+    }
+    
+    ctx.drawImage(hazeSrc, hX, hY, hS, hS);
+    ctx.restore();
 
     ctx.globalCompositeOperation = 'source-over';
     
