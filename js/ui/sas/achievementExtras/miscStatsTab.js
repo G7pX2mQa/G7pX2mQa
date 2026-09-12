@@ -5,6 +5,8 @@ import { BigNum } from "../../../util/bigNum.js";
 import { formatTimeCompact } from "../../../game/offlinePanel.js";
 import { setHtmlOrText } from "../../../util/uiHelpers.js";
 
+let miscStatsInterval = null;
+
 export function initMiscStatsTab(panel) {
     if (!panel || panel.__msInit) return;
     panel.__msInit = true;
@@ -16,7 +18,10 @@ export function initMiscStatsTab(panel) {
         </div>
     `;
 
-    setInterval(() => {
+    if (miscStatsInterval) {
+        clearInterval(miscStatsInterval);
+    }
+    miscStatsInterval = setInterval(() => {
         const overlay = document.getElementById("achievement-extras-overlay");
         if (!overlay || !overlay.classList.contains("is-open")) return;
 
