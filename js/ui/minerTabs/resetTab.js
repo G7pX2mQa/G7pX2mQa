@@ -306,7 +306,6 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
             setWaterwheelLevel(id, 0);
             setWaterwheelFp(id, 0);
         }
-        stopAllWaterwheels();
     } catch {}
     // Core/Scrap upgrades reset
     try {
