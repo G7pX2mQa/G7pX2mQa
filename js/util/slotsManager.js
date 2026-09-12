@@ -259,6 +259,7 @@ async function verifyAndImport(slot, data) {
     }
     delete data.__ccc_signature;
     applySaveDataToSlot(slot, data);
+    window.dispatchEvent(new CustomEvent("saveData:imported", { detail: { slot } }));
     if (isTampered) {
         markSaveSlotModified(slot);
         alert(
