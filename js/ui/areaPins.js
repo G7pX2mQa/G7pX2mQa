@@ -3,7 +3,6 @@ import { settingsManager } from '../game/settingsManager.js';
 import { currentArea, enterArea, AREAS } from '../main.js';
 import { blockInteraction } from './shopOverlay.js';
 import { IS_MOBILE } from '../util/platformChecker.js';
-import { shouldSkipGhostTap } from '../util/ghostTapGuard.js';
 
 export function initPinnedAreas() {
     let container = document.getElementById('pinned-areas-container');
@@ -47,7 +46,6 @@ function renderPinnedAreas() {
             const isLocked = isNodeLocked(node.id, node.defaultLocked);
             const btn = document.createElement('button');
             btn.className = 'game-btn area-pin-btn';
-            btn.setAttribute("data-ghost-tap-target", "true");
             btn.style.position = 'relative';
             btn.style.width = 'max(6vw, 50px)';
             btn.style.height = 'auto';
@@ -97,8 +95,7 @@ function renderPinnedAreas() {
                 window.dispatchEvent(new CustomEvent('pinnedAreas:changed'));
             };
 
-            btn.onclick = (e) => {
-                if (e && e.isTrusted && shouldSkipGhostTap(btn)) return;
+            btn.onclick = () => {
                 if (isLocked) return;
                 
                 if (currentArea === node.areaId || node.areaId == null) {
