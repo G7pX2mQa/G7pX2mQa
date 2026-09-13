@@ -3850,6 +3850,36 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
+            labelText: "Unlock Collapse",
+            description: "If true, unlocks the Collapse tab",
+            isUnlocked: () => {
+                try {
+                    return !!window.resetSystem?.isCollapseUnlocked?.();
+                } catch {
+                    return false;
+                }
+            },
+            onEnable: () => {
+                try {
+                    window.resetSystem?.setCollapseUnlocked?.(true);
+                } catch {}
+                try {
+                    const minerSheetEl = document.querySelector(".merchant-overlay.is-miner .merchant-sheet");
+                    if (minerSheetEl) window.resetSystem?.updateCollapsePanelVisibility?.(minerSheetEl);
+                } catch {}
+            },
+            onDisable: () => {
+                try {
+                    window.resetSystem?.setCollapseUnlocked?.(false);
+                } catch {}
+                try {
+                    const minerSheetEl = document.querySelector(".merchant-overlay.is-miner .merchant-sheet");
+                    if (minerSheetEl) window.resetSystem?.updateCollapsePanelVisibility?.(minerSheetEl);
+                } catch {}
+            },
+            slot,
+        },
+        {
             labelText: "Unlock Buildings",
             description: "If true, unlocks the Buildings tab",
             isUnlocked: () => {
