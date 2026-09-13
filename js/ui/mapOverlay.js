@@ -174,6 +174,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         const isLocked = isSequenceTarget ? true : isNodeLocked(node.id, node.defaultLocked);
         const btn = document.createElement("button");
         btn.className = "map-node-btn";
+        btn.setAttribute("data-ghost-tap-target", "true");
         btn.dataset.nodeId = node.id;
         btn.dataset.defaultLocked = node.defaultLocked;
         btn.dataset.icon = node.icon;
