@@ -1,4 +1,5 @@
 import { unlockDpSystem, isDpSystemUnlocked, getDpState } from "./dpSystem.js";
+import { getPpState, isPpSystemUnlocked } from "./ppSystem.js";
 import {
     AREA_KEYS,
     HM_EVOLUTION_INTERVAL,
@@ -588,6 +589,53 @@ export const UC_REGISTRY = [
         effectMultiplier(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
             return normalizedLevel > 0 ? 100 : 1;
+        },
+    },
+    {
+        area: UC_AREA_KEY,
+        id: 13,
+        tie: "none_8",
+        title: "Unlock Collapse",
+        desc: "Unlocks the Collapse tab",
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "",
+        baseIconOverride: "img/currencies/rubble/rubble_plus_base.webp",
+        revealRequirement: "Reach Pressure: 31atm to reveal this upgrade",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            const unlocked = isPpSystemUnlocked();
+            if (!unlocked) {
+                return { state: "locked" };
+            }
+            
+            const ppState = getPpState();
+            let ppLevel = 0;
+            if (ppState && ppState.ppLevel) {
+                ppLevel = Number(ppState.ppLevel.toString());
+            }
+
+            if (ppLevel >= 31) {
+                return { state: "unlocked" };
+            }
+
+            const revealText = "Reach Pressure: 31atm to reveal this upgrade";
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    if (typeof window !== "undefined" && window.onCollapseUpgradeUnlocked) {
+                        window.onCollapseUpgradeUnlocked();
+                    }
+                } catch {}
+            }
         },
     },
 ];
