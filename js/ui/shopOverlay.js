@@ -2490,6 +2490,8 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             valcBtn.style.color = "rgb(245, 230, 160)";
             valcBtn.style.padding = "10px 14px";
             valcBtn.style.width = "160px";
+            valcBtn.style.userSelect = "none";
+            valcBtn.style.WebkitUserSelect = "none";
             valcBtn.style.transition = "background 100ms ease, transform 100ms ease";
             valcBtn.addEventListener("click", (e) => {
                 if (valcBtn._onClick) valcBtn._onClick(e);
@@ -2500,6 +2502,8 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             btn.className = "hm-view-milestones";
             btn.textContent = "View Milestones";
             btn.style.width = "160px";
+            btn.style.userSelect = "none";
+            btn.style.WebkitUserSelect = "none";
             btn.addEventListener("click", (e) => {
                 // Use _onClick pattern
                 if (btn._onClick) btn._onClick(e);
