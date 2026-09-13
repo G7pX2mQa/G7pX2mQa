@@ -8885,8 +8885,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.strokeStyle = veinColor;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(0, 0.5);
-      ctx.lineTo(0, -length + 0.5);
+      ctx.moveTo(0, 1);
+      ctx.lineTo(0, -length + 1);
       ctx.stroke();
 
       // Side branching veins
