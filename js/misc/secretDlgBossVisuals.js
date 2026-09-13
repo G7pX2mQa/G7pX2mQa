@@ -272,7 +272,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     hpBar.appendChild(hpBarFrame);
     healthBarWrapper.appendChild(hpBar);
     uiContainer.appendChild(healthBarWrapper);
-    const INITIAL_PLAYER_LIVES = 50;
+    const INITIAL_PLAYER_LIVES = 5;
     let playerLives = INITIAL_PLAYER_LIVES;
     const livesContainer = document.createElement("div");
     livesContainer.style.position = "absolute";
