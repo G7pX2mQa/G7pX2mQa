@@ -1,0 +1,12 @@
+.collapse-tab .merchant-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+}
+
+.collapse-empty-text {
+    text-align: center;
+    opacity: 0.5;
+    margin-top: 20px;
+}
