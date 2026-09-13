@@ -1225,6 +1225,34 @@ export function getSurgeMagicMultiplier() {
     }
     return result;
 }
+
+export function getSurge300ScrapMultiplier(preview = false) {
+    if (!preview && !isSurgeActive(300)) return BigNum.fromInt(1);
+
+    const coins = bank.coins?.value;
+    if (!coins) return BigNum.fromInt(1);
+
+    const calc = (amount) => {
+        if (!amount) return BigNum.fromInt(1);
+        if (amount.isInfinite?.()) return BigNum.fromAny("Infinity");
+        const log10Bn = approxLog10BigNum(amount);
+        let finalLog10 = log10Bn;
+        if (!Number.isFinite(log10Bn) || finalLog10 <= 0) return BigNum.fromInt(1);
+        
+        // Formula: 2 ^ (log10(amount) / 6)
+        const power = finalLog10 / 6;
+        if (power <= 0) return BigNum.fromInt(1);
+        const log10Result = power * Math.log10(2);
+        return bigNumFromLog10(log10Result);
+    };
+
+    let mult = calc(coins);
+    if (isSurgeActive(8)) {
+        mult = applyTsunamiNerf(mult);
+    }
+    return mult;
+}
+
 if (typeof window !== "undefined") {
     window.surgeWaveSystem = window.surgeWaveSystem || {};
     Object.assign(window.surgeWaveSystem, {
