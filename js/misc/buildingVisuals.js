@@ -891,7 +891,7 @@ function loop(currentTime) {
   const fpsInterval = 1000 / 60;
   const elapsedSinceLastDraw = currentTime - lastDrawTime;
 
-  if (elapsedSinceLastDraw < fpsInterval) {
+  if (elapsedSinceLastDraw < (fpsInterval - 1)) {
     animationFrameId = requestAnimationFrame(loop);
     return;
   }
