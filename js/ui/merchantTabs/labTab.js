@@ -261,7 +261,7 @@ export function getRpMultBase() {
         const exponentFromBase = level.mulDecimal(log10Base, BigNum.DEFAULT_PRECISION);
         let exponent = exponentFromBase.add(BigNum.fromAny(String(multLog10)));
         if (isSurgeActive(400)) {
-            let surge400Mult = 34.83 * effectiveNerf;
+            let surge400Mult = 34.84 * effectiveNerf;
             if (surge400Mult < 1) surge400Mult = 1;
             exponent = exponent.mulDecimal(surge400Mult, BigNum.DEFAULT_PRECISION);
         }
