@@ -272,7 +272,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     hpBar.appendChild(hpBarFrame);
     healthBarWrapper.appendChild(hpBar);
     uiContainer.appendChild(healthBarWrapper);
-    const INITIAL_PLAYER_LIVES = 5;
+    const INITIAL_PLAYER_LIVES = 50;
     let playerLives = INITIAL_PLAYER_LIVES;
     const livesContainer = document.createElement("div");
     livesContainer.style.position = "absolute";
@@ -1163,7 +1163,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     function loop(timestamp) {
         if (!isRunning) return;
         if (!lastFrameTime) lastFrameTime = timestamp;
-        if (playerLives === 1) {
+        if (playerLives === 1 && !isBossDead) {
             if (!heartbeatAudio) {
                 heartbeatAudio = playAudio("sounds/heartbeat.ogg", { loop: true });
             }
@@ -2408,13 +2408,13 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
         // Draw distress effects
-        if (playerLives === 2 || playerLives === 1) {
+        if (!isBossDead && (playerLives === 2 || playerLives === 1)) {
             ctx.restore();
             ctx.save();
             const currentDpr = window.devicePixelRatio || 1;
             ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0); // Reset transform to screen coordinates considering DPR
             // 1 HP specific effects (vignette)
-            if (playerLives === 1) {
+            if (playerLives === 1 && !isBossDead) {
                 const grad = ctx.createRadialGradient(
                     width / 2,
                     height / 2,
