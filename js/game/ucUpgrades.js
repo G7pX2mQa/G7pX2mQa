@@ -594,7 +594,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 13,
-        tie: "none_8",
+        tie: "none_9",
         title: "Unlock Collapse",
         desc: "Unlocks the Collapse tab",
         lvlCap: 1,
