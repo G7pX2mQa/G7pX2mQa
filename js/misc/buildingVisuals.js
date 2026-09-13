@@ -14052,16 +14052,7 @@ function drawTesseract(ctx, w, h, t, tier, prevTier, animProgress) {
   drawCubeHalo();
   drawSatellites(false);
 
-  const glowRadius = baseSize * 4.4;
-  const auraGrad = ctx.createRadialGradient(0, 0, baseSize * 1.0, 0, 0, glowRadius);
-  const glowHue = ((t * 40) % 360 + 360) % 360;
-  auraGrad.addColorStop(0, `hsla(${glowHue}, 100%, 70%, 0.15)`);
-  auraGrad.addColorStop(0.5, `hsla(${(glowHue + 120) % 360}, 100%, 60%, 0.07)`);
-  auraGrad.addColorStop(1, `hsla(${(glowHue + 240) % 360}, 100%, 50%, 0)`);
-  ctx.fillStyle = auraGrad;
-  ctx.beginPath();
-  ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-  ctx.fill();
+
 
   if (tier >= 8 && prevTier < 8) {
     if (prevTier < 4) {
