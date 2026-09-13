@@ -316,6 +316,12 @@ export const SURGE_MILESTONES = [
         affectedByTsunami: true,
         description: ["Unspent Coins boosts Scrap"],
     },
+    {
+        id: 39,
+        surgeLevel: 400,
+        affectedByTsunami: true,
+        description: ["Significantly boosts the effect Lab Level has on RP value"],
+    },
 ];
 export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES.filter((m) => m.affectedByTsunami).map((m) => m.id);
 const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
