@@ -1345,7 +1345,7 @@ export function enterArea(areaID, fadeDuration = 0) {
 
             syncXpMpHudLayout();
 
-            startAreaMusic(AREAS.STARTER_COVE, "sounds/The_Cove.ogg", 1.0, fadeDuration);
+            startAreaMusic(AREAS.STARTER_COVE, "sounds/The_Cove.ogg", 0.9, fadeDuration);
 
             // Config for water layers
             const FG_LAYER_COUNT = 1;
@@ -1470,7 +1470,7 @@ export function enterArea(areaID, fadeDuration = 0) {
 
             document.body.style.backgroundColor = "#000";
 
-            startAreaMusic(AREAS.UNDERWATER_CAVERN, "sounds/Underwater_Cavern.ogg", 0.75, fadeDuration);
+            startAreaMusic(AREAS.UNDERWATER_CAVERN, "sounds/Underwater_Cavern.ogg", 0.6, fadeDuration);
 
             if (spawner) {
                 spawner.stop();
@@ -2256,10 +2256,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 currentMusic = null;
             }
             if (currentArea === AREAS.STARTER_COVE) {
-                currentMusic = playAudio("sounds/The_Cove.ogg", { loop: true, type: "music" });
+                currentMusic = playAudio("sounds/The_Cove.ogg", { loop: true, type: "music", volume: 0.9 });
                 window.dispatchEvent(new CustomEvent("music:started"));
             } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
-                currentMusic = playAudio("sounds/Underwater_Cavern.ogg", { loop: true, type: "music", volume: 0.75 });
+                currentMusic = playAudio("sounds/Underwater_Cavern.ogg", { loop: true, type: "music", volume: 0.6 });
                 window.dispatchEvent(new CustomEvent("music:started"));
             }
         });
