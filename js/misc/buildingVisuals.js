@@ -8885,8 +8885,8 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
       ctx.strokeStyle = veinColor;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(0, 2);
-      ctx.lineTo(0, -length + 2);
+      ctx.moveTo(0, 0.5);
+      ctx.lineTo(0, -length + 0.5);
       ctx.stroke();
 
       // Side branching veins
@@ -9071,6 +9071,11 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.translate(0, -20);     
     ctx.scale(sproutScale, sproutScale);
     
+    // Leaves attach exactly where they originally were (y=-23).
+    let leafOffsetX = tipX * 0.6;
+    drawDetailedLeaf(-1 + leafOffsetX, -23, -0.9 + swayAngle, 21, 9.5, '#55d048', '#3aad30', '#2d8a24'); // Left leaf (Bright outside, Dark inside)
+    drawDetailedLeaf(1 + leafOffsetX, -23, 0.9 + swayAngle, 21, 9.5, '#3aad30', '#55d048', '#2d8a24'); // Right leaf (Dark inside, Bright outside)
+
     // Organic Stem
     ctx.strokeStyle = '#3aad30';
     ctx.lineWidth = 4;
@@ -9079,11 +9084,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     ctx.moveTo(0, 0);
     ctx.bezierCurveTo(0, -15, tipX * 0.5, -25, tipX, -35);
     ctx.stroke();
-    
-    // Leaves attach exactly where they originally were (y=-23).
-    let leafOffsetX = tipX * 0.6;
-    drawDetailedLeaf(-1 + leafOffsetX, -23, -0.9 + swayAngle, 21, 9.5, '#55d048', '#3aad30', '#2d8a24'); // Left leaf (Bright outside, Dark inside)
-    drawDetailedLeaf(1 + leafOffsetX, -23, 0.9 + swayAngle, 21, 9.5, '#3aad30', '#55d048', '#2d8a24'); // Right leaf (Dark inside, Bright outside)
 
     ctx.restore();
     ctx.restore();
@@ -9098,18 +9098,18 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
     // Leaving the center clear for the main Tier 4/8 flower!
     const leafClusters = [
         // Left Side Group (Scaled down and pushed in slightly)
-        {x: -220, y: -26, r: -0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0},
-        {x: -200, y: -26, r: -0.5, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.1},
+        {x: -220, y: -26, r: -0.8, l: 55, w: 23, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 0},
+        {x: -200, y: -26, r: -0.5, l: 72, w: 29, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.0, phase: 1.1},
         {x: -160, y: -26, r: -0.3, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.2},
-        {x: -120, y: -26, r: -0.6, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.3, phase: 0.5},
-        {x: -80, y: -26, r: -0.4, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.1, phase: 1.5},
+        {x: -120, y: -26, r: -0.6, l: 63, w: 25, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.3, phase: 0.5},
+        {x: -95, y: -26, r: -0.4, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.1, phase: 1.5},
 
         // Right Side Group (Perfectly mirrored coordinates)
-        {x: 220, y: -26, r: 0.8, l: 55, w: 23, ca: '#287522', cb: '#1c5e20', cv: '#134716', sway: 1.2, phase: 0.5},
-        {x: 200, y: -26, r: 0.4, l: 72, w: 29, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.0, phase: 1.6},
+        {x: 220, y: -26, r: 0.8, l: 55, w: 23, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 0.5},
+        {x: 200, y: -26, r: 0.4, l: 72, w: 29, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.0, phase: 1.6},
         {x: 160, y: -26, r: 0.25, l: 85, w: 34, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 0.8, phase: 2.7},
-        {x: 120, y: -26, r: 0.5, l: 63, w: 25, ca: '#2e8a2a', cb: '#21731f', cv: '#155217', sway: 1.4, phase: 1.0},
-        {x: 80, y: -26, r: 0.35, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 2.0}
+        {x: 120, y: -26, r: 0.5, l: 63, w: 25, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.4, phase: 1.0},
+        {x: 95, y: -26, r: 0.35, l: 45, w: 20, ca: '#35a133', cb: '#278525', cv: '#1a611b', sway: 1.2, phase: 2.0}
     ];
 
     for (let c of leafClusters) {
@@ -9124,14 +9124,19 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo((c.x > 0 ? -20 : 20), -c.l*0.6, (c.x > 0 ? -30 : 30), -c.l*0.9);
+        let endX = (c.x > 0 ? -30 : 30);
+        let endY = -c.l * 0.9;
+        let ctrlX = (c.x > 0 ? -20 : 20);
+        let ctrlY = -c.l * 0.6;
+        ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
         ctx.stroke();
         // Tiny fern leaflets along the stalk
         ctx.fillStyle = c.ca;
         ctx.beginPath();
-        for(let f=0.1; f<0.9; f+=0.1) {
-            let fx = (c.x > 0 ? -20 : 20) * f;
-            let fy = -c.l * 0.9 * f;
+        let step = 8.5 / c.l;
+        for(let f=0.1; f<0.9; f+=step) {
+            let fx = 2 * (1 - f) * f * ctrlX + f * f * endX;
+            let fy = 2 * (1 - f) * f * ctrlY + f * f * endY;
             ctx.moveTo(fx - 4, fy - 2);
             ctx.ellipse(fx - 4, fy - 2, 6, 2, -0.4, 0, Math.PI*2);
             ctx.moveTo(fx + 4, fy - 2);
