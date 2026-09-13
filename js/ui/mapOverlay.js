@@ -6,6 +6,7 @@ import { checkAchievements, showDelayedAchievementNotifications } from "../game/
 import { showDelayedGoalNotifications } from "./gameProgressBar.js";
 import { currentArea, AREAS, enterArea } from "../main.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
+import { shouldSkipGhostTap } from "../util/ghostTapGuard.js";
 import { MAP_NODES } from "../game/mapNodesData.js";
 const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 export function isNodeLocked(id, defaultLocked) {
@@ -262,6 +263,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 updatePinBtn(settingsManager.get(`area_pinned_${node.id}`));
             });
             pinBtn.onclick = (e) => {
+                if (e && e.isTrusted && shouldSkipGhostTap(pinBtn)) return;
                 e.stopPropagation();
                 const currentlyPinned = settingsManager.get(`area_pinned_${node.id}`);
                 settingsManager.set(`area_pinned_${node.id}`, !currentlyPinned);
@@ -271,7 +273,8 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         });
         btn.appendChild(pinBtn);
         overlay._nodeButtons[node.id] = { btn, node };
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+            if (e && e.isTrusted && shouldSkipGhostTap(btn)) return;
             if (window.__mapSequenceActive) return;
             if (isNodeLocked(node.id, node.defaultLocked)) return;
             if (currentArea === node.areaId || node.areaId == null) {
