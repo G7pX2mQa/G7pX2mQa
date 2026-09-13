@@ -263,11 +263,6 @@ export function renderBuildingsGrid(gridEl) {
     let crystalLocked = true;
     if (isBuildingUnlocked("crystal")) {
         crystalLocked = false;
-    } else {
-        if (highestDepth >= 101) {
-            setBuildingUnlocked("crystal", true);
-            crystalLocked = false;
-        }
     }
     buildings.push({
         id: "crystal",
@@ -414,7 +409,7 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
     });
     // Listen for depth changes and check if any new building unlocks
     window.addEventListener("dp:change", () => {
-        if (panel.classList.contains("is-active") && isBuildingsUnlocked()) {
+        if (isBuildingsUnlocked()) {
             let highestDepth = 0;
             try {
                 const dpState = getDpState();
@@ -435,7 +430,7 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
                     }
                 }
             }
-            if (newlyUnlocked) {
+            if (newlyUnlocked && panel.classList.contains("is-active")) {
                 renderBuildingsGrid(grid);
             }
         }
