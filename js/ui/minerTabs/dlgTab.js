@@ -14,6 +14,7 @@ import {
 } from "../delveCore.js";
 import { initSellPanel, updateSellPanelVisibility } from "./sellTab.js";
 import { initBuildingsPanel, updateBuildingsPanelVisibility } from "./buildingsTab.js";
+import { initCollapsePanel, updateCollapsePanelVisibility } from "./collapseTab.js";
 import { initCombinePanel, updateCombinePanelVisibility } from "./resetTab.js";
 const MINER_ICON_SRC = "img/misc/miner.webp";
 const MINER_MET_KEY_BASE = "ccc:minerMet";
@@ -81,6 +82,7 @@ function ensureMinerOverlay() {
     initSellPanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
     initCombinePanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
     initBuildingsPanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
+    initCollapsePanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
     const actions = document.createElement("div");
     actions.className = "merchant-actions";
     const closeBtn = document.createElement("button");
@@ -127,6 +129,7 @@ function ensureMinerOverlay() {
                 updateSellPanelVisibility(minerSheetEl);
                 updateCombinePanelVisibility(minerSheetEl);
                 updateBuildingsPanelVisibility(minerSheetEl);
+                if (typeof updateCollapsePanelVisibility === "function") updateCollapsePanelVisibility(minerSheetEl);
             }
         };
         window.addEventListener("unlock:change", handleUnlockChange, { passive: true });
@@ -231,6 +234,7 @@ export function openMiner() {
     updateSellPanelVisibility(minerSheetEl);
     updateCombinePanelVisibility(minerSheetEl);
     updateBuildingsPanelVisibility(minerSheetEl);
+    if (typeof updateCollapsePanelVisibility === "function") updateCollapsePanelVisibility(minerSheetEl);
     if (!met) {
         minerOverlayEl.classList.add("firstchat-instant");
     }
