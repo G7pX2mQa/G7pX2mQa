@@ -46,6 +46,7 @@ function renderPinnedAreas() {
             const isLocked = isNodeLocked(node.id, node.defaultLocked);
             const btn = document.createElement('button');
             btn.className = 'game-btn area-pin-btn';
+            btn.setAttribute("data-ghost-tap-target", "true");
             btn.style.position = 'relative';
             btn.style.width = 'max(6vw, 50px)';
             btn.style.height = 'auto';
