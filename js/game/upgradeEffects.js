@@ -4,7 +4,7 @@ import { bank, UC_MATERIALS } from '../util/storage.js';
 import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
 import { getLabWaveMultiplier, getLabDnaMultiplier, getLabScrapMultiplier } from './labNodes.js';
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
-import { getSurgeMagicMultiplier, getSurgeWaveMultiplier, getSurgeDnaMultiplier } from './surgeEffects.js';
+import { getSurgeMagicMultiplier, getSurgeWaveMultiplier, getSurgeDnaMultiplier, getSurge300ScrapMultiplier } from './surgeEffects.js';
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
 import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
@@ -343,6 +343,11 @@ export function syncCurrencyMultipliersFromUpgrades() {
       try {
         const labScrapMult = getLabScrapMultiplier();
         finalScrapValue = safeMultiplyBigNum(finalScrapValue, labScrapMult);
+      } catch {}
+
+      try {
+        const surge300ScrapMult = getSurge300ScrapMultiplier();
+        finalScrapValue = safeMultiplyBigNum(finalScrapValue, surge300ScrapMult);
       } catch {}
 
       bank.scrap.mult.set(finalScrapValue);
