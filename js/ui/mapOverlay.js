@@ -6,7 +6,6 @@ import { checkAchievements, showDelayedAchievementNotifications } from "../game/
 import { showDelayedGoalNotifications } from "./gameProgressBar.js";
 import { currentArea, AREAS, enterArea } from "../main.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
-import { shouldSkipGhostTap } from "../util/ghostTapGuard.js";
 import { MAP_NODES } from "../game/mapNodesData.js";
 const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 export function isNodeLocked(id, defaultLocked) {
@@ -175,7 +174,6 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         const isLocked = isSequenceTarget ? true : isNodeLocked(node.id, node.defaultLocked);
         const btn = document.createElement("button");
         btn.className = "map-node-btn";
-        btn.setAttribute("data-ghost-tap-target", "true");
         btn.dataset.nodeId = node.id;
         btn.dataset.defaultLocked = node.defaultLocked;
         btn.dataset.icon = node.icon;
@@ -238,7 +236,6 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         pinBtn.style.transition = "none";
         pinBtn.style.whiteSpace = "nowrap";
         pinBtn.style.pointerEvents = "auto";
-        pinBtn.setAttribute("data-ghost-tap-target", "true");
         if (isLocked || window.__mapSequenceActive) {
             pinBtn.style.display = "none";
         }
@@ -263,7 +260,6 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 updatePinBtn(settingsManager.get(`area_pinned_${node.id}`));
             });
             pinBtn.onclick = (e) => {
-                if (e && e.isTrusted && shouldSkipGhostTap(pinBtn)) return;
                 e.stopPropagation();
                 const currentlyPinned = settingsManager.get(`area_pinned_${node.id}`);
                 settingsManager.set(`area_pinned_${node.id}`, !currentlyPinned);
@@ -273,8 +269,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         });
         btn.appendChild(pinBtn);
         overlay._nodeButtons[node.id] = { btn, node };
-        btn.onclick = (e) => {
-            if (e && e.isTrusted && shouldSkipGhostTap(btn)) return;
+        btn.onclick = () => {
             if (window.__mapSequenceActive) return;
             if (isNodeLocked(node.id, node.defaultLocked)) return;
             if (currentArea === node.areaId || node.areaId == null) {
@@ -303,11 +298,9 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 enterArea(node.areaId, 0.5);
                 if (typeof window !== "undefined") {
                     if (currentArea === AREAS.STARTER_COVE) {
-                        setTimeout(() => {
-                            if (window.spawner && typeof window.spawner.start === "function") {
-                                window.spawner.start();
-                            }
-                        }, 50);
+                        if (window.spawner && typeof window.spawner.start === "function") {
+                            window.spawner.start();
+                        }
                     } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
                         if (window.spawner) {
                             if (typeof window.spawner.stop === "function") window.spawner.stop();
