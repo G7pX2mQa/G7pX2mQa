@@ -54,17 +54,11 @@ export function initCollapsePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWr
 
     const content = document.createElement("div");
     content.className = "merchant-content";
-    content.style.flex = "1";
-    content.style.overflowY = "auto";
-    content.style.overflowX = "hidden";
-    content.style.padding = "20px";
-    
+
     // Add temporary empty content for now as per requirements
     const emptyText = document.createElement("div");
     emptyText.textContent = "Collapse tab content coming soon.";
-    emptyText.style.textAlign = "center";
-    emptyText.style.opacity = "0.5";
-    emptyText.style.marginTop = "20px";
+    emptyText.className = "collapse-empty-text";
     
     content.appendChild(emptyText);
     panel.appendChild(content);
@@ -124,9 +118,9 @@ export function updateCollapsePanelVisibility(minerSheetEl) {
     tabBtn.classList.toggle("is-locked", !unlocked);
 
     if (!unlocked && tabBtn.classList.contains("is-active")) {
-        const resetBtn = tabsEl.querySelector('[data-tab="reset"]');
-        if (resetBtn) {
-            resetBtn.click();
+        const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
+        if (dlgTab) {
+            dlgTab.click();
         }
     }
 }
