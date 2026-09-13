@@ -1443,8 +1443,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         if (!isBossDead && !isPlayerDead) checkBombColumnThresholds(timestamp);
         // Update camera position continuously
         const timeScale = (realDt / (1000 / 120)) * timeScaleMod;
-        if (keys.left) cameraX -= cameraSpeed * timeScale;
-        if (keys.right) cameraX += cameraSpeed * timeScale;
+        
+        let adjustedCameraSpeed = cameraSpeed;
+        if (width < 1920) {
+            adjustedCameraSpeed = cameraSpeed * (width / 1920);
+        }
+
+        if (keys.left) cameraX -= adjustedCameraSpeed * timeScale;
+        if (keys.right) cameraX += adjustedCameraSpeed * timeScale;
         // Determine which chunks are visible
         const startChunk = Math.floor(cameraX / CHUNK_WIDTH) - 1;
         const endChunk = Math.floor((cameraX + width) / CHUNK_WIDTH) + 1;
