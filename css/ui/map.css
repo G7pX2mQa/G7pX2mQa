@@ -104,7 +104,7 @@
 
 .map-water-body {
     position: absolute;
-    top: 19px; /* Overlap by 1px to prevent seam */
+    top: 15px; /* Overlap by 5px to prevent seam */
     bottom: 0;
     left: 0;
     right: 0;
@@ -224,7 +224,7 @@
     pointer-events: none;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
     .area-label {
         -webkit-text-stroke: 0 !important;
         text-stroke: 0 !important;
