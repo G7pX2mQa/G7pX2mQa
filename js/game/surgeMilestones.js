@@ -27,6 +27,7 @@ import {
     getSurge50Multiplier,
     getBookProductionRate,
     getSurge6WealthMultipliers,
+    getSurge300ScrapMultiplier,
 } from "./surgeEffects.js";
 import { getTsunamiResearchBonus, getResearchNodeLevel } from "./labNodes.js";
 import { getActiveSlot } from "../util/storage.js";
@@ -308,6 +309,12 @@ export const SURGE_MILESTONES = [
         surgeLevel: 250,
         affectedByTsunami: false,
         description: ["The key to a lock"],
+    },
+    {
+        id: 38,
+        surgeLevel: 300,
+        affectedByTsunami: true,
+        description: ["Unspent Coins boosts Scrap"],
     },
 ];
 export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES.filter((m) => m.affectedByTsunami).map((m) => m.id);
@@ -593,6 +600,15 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                     `Total boost to Coins: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`,
                 ];
             }
+        }
+        if (m.id === 38 && m.surgeLevel <= currentLevel) {
+            if (milestone === m) {
+                milestone = { ...m, description: [...m.description] };
+            }
+            const mult = getSurge300ScrapMultiplier();
+            milestone.description = [
+                `Unspent Coins boosts Scrap: <span style="color:#00e5ff">${formatMultForUi(mult)}x</span>`,
+            ];
         }
         if (m.id === 9) {
             if (milestone === m) {
