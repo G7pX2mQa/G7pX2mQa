@@ -236,6 +236,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         pinBtn.style.transition = "none";
         pinBtn.style.whiteSpace = "nowrap";
         pinBtn.style.pointerEvents = "auto";
+        pinBtn.setAttribute("data-ghost-tap-target", "true");
         if (isLocked || window.__mapSequenceActive) {
             pinBtn.style.display = "none";
         }
