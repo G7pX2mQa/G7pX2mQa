@@ -1446,7 +1446,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         
         let adjustedCameraSpeed = cameraSpeed;
         if (width < 1920) {
-            adjustedCameraSpeed = cameraSpeed * (width / 1920);
+            adjustedCameraSpeed = Math.max(cameraSpeed / 2.5, cameraSpeed * (width / 1920));
         }
 
         if (keys.left) cameraX -= adjustedCameraSpeed * timeScale;
