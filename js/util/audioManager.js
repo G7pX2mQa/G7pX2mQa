@@ -591,10 +591,12 @@ export function setAudioUnderwater(underwater) {
         if (musicFilter) {
             musicFilter.frequency.cancelScheduledValues(now);
             musicFilter.frequency.setValueAtTime(frequency, now);
+            musicFilter.frequency.value = frequency;
         }
         if (sfxFilter) {
             sfxFilter.frequency.cancelScheduledValues(now);
             sfxFilter.frequency.setValueAtTime(frequency, now);
+            sfxFilter.frequency.value = frequency;
         }
     } catch {
         if (musicFilter) {
