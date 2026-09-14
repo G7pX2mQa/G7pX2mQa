@@ -1,6 +1,6 @@
 import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab.js';
 import { BigNum, bigNumIsInfinite } from '../util/bigNum.js';
-import { bank, UC_MATERIALS, inCollapseChallenge } from '../util/storage.js';
+import { bank, UC_MATERIALS } from '../util/storage.js';
 import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
 import { getLabWaveMultiplier, getLabDnaMultiplier, getLabScrapMultiplier } from './labNodes.js';
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
@@ -132,12 +132,6 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
         const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
         additionalUpgrades.push(...ucUpgrades);
     }
-    
-    // Also include Collapse upgrades
-    if (AREA_KEYS.COLLAPSE) {
-        const collapseUpgrades = getUpgradesForArea(AREA_KEYS.COLLAPSE);
-        additionalUpgrades.push(...collapseUpgrades);
-    }
   }
   const allUpgrades = [...upgrades, ...additionalUpgrades];
 
@@ -165,11 +159,6 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
 
   for (const upg of allUpgrades) {
     if (!upg.effectType) continue;
-
-    // Upgrades that increase Rubble value or are inside Collapse Challenge are only active during a CC
-    if (upg.area === 'collapse') {
-        if (!inCollapseChallenge) continue;
-    }
 
     const effectiveArea = upg.area || areaKey;
     const lvlBn = getLevel(effectiveArea, upg.id);
@@ -286,15 +275,6 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
         acc.coinSpawn *= val;
       }
     } catch {}
-  }
-
-  // CC1 Effect: Coin value is divided by 1e100x
-  if (inCollapseChallenge) {
-      const activeChallenge = require('../util/storage.js').getActiveCollapseChallenge();
-      if (activeChallenge === 1) {
-          acc.coinValue = acc.coinValue.div(BigNum.fromAny("1e100"));
-          if (acc.coinValue.cmp(1) < 0) acc.coinValue = BigNum.fromInt(1);
-      }
   }
 
   _cachedUpgradeMultipliers[areaKey] = acc;
