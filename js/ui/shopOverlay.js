@@ -227,6 +227,19 @@ const SHOP_ADAPTERS = {
         evolve: (id) => evolveUpgrade("rainbow_gem_shop", id),
         events: ["ccc:upgrades:changed", "currency:change"],
     },
+    collapse: {
+        title: "Collapse Shop",
+        delveButtonVisible: false,
+        getUiData: () => getShopUiData("collapse"),
+        getUiModel: (id) => upgradeUiModel("collapse", id),
+        buyOne: (id) => buyOne("collapse", id),
+        buyMax: (id) => buyMax("collapse", id),
+        buyCheap: (id) => buyCheap("collapse", id),
+        buyNext: (id, amount) => buyTowards("collapse", id, amount),
+        getLockState: (id) => getUpgradeLockState("collapse", id),
+        evolve: (id) => evolveUpgrade("collapse", id),
+        events: ["ccc:upgrades:changed", "currency:change"],
+    },
 };
 
 function getAdapter(mode) {
@@ -1273,6 +1286,9 @@ class ShopInstance {
         } else if (this.mode === "dna") {
             this.overlayEl.classList.add("dna-shop-overlay");
             this.overlayEl.id = "dna-shop-overlay";
+        } else if (this.mode === "collapse") {
+            this.overlayEl.classList.add("collapse-shop-overlay");
+            this.overlayEl.id = "collapse-shop-overlay";
         } else {
             this.overlayEl.id = "shop-overlay";
         }
@@ -1481,6 +1497,7 @@ const shops = {
     standard: new ShopInstance("standard"),
     automation: new ShopInstance("automation"),
     dna: new ShopInstance("dna"),
+    collapse: new ShopInstance("collapse"),
 };
 
 export function openShop(mode = "standard") {
