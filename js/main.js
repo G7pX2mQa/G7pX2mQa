@@ -2034,6 +2034,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "sounds/coin_pickup_size4.ogg",
             "sounds/coin_pickup_size5.ogg",
             "sounds/coin_pickup_size6.ogg",
+			"sounds/collapse.ogg",
             "sounds/combine_reset.ogg",
             "sounds/compress_reset.ogg",
             "sounds/correct.ogg",
