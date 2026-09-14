@@ -3,10 +3,129 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.collapse-empty-text {
+.collapse-main-card {
+    width: 100%;
+    max-width: 800px;
+    background: linear-gradient(180deg, hsl(30 40% 25% / 0.96), hsl(20 50% 15% / 0.98));
+    border: 1px solid hsl(30 40% 35% / 0.85);
+    border-radius: 18px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-shadow: 0 18px 40px hsl(215 75% 2% / 0.85), inset 0 1px 0 rgba(255,255,255,0.10);
+    color: #f5f8ff;
+}
+
+.collapse-header {
     text-align: center;
-    opacity: 0.5;
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.collapse-general-desc {
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    margin-bottom: 15px;
+    color: #ffdcb5;
+}
+
+.collapse-challenges-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.collapse-challenge-item {
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.collapse-challenge-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.collapse-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    color: #ffdcb5;
+    text-decoration: underline;
+}
+
+.collapse-text-content {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #e0e0e0;
+}
+
+.collapse-text-content strong {
+    color: #fff;
+}
+
+.collapse-shop-btn-container {
     margin-top: 20px;
+    text-align: center;
+}
+
+.collapse-shop-instruction {
+    font-size: 14px;
+    color: #ffdcb5;
+    margin-bottom: 10px;
+}
+
+.btn-collapse-shop {
+    appearance: none;
+    border: 4px solid #000;
+    border-radius: 8px;
+    padding: 10px 20px;
+    margin: 0 auto;
+    
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    outline: none;
+    
+    background: linear-gradient(180deg,#7a4b3a,#4a2b1a);
+    
+    font-weight: 900;
+    font-size: clamp(18px, 2.5cqw, 32px);
+    color: #fff;
+    
+    -webkit-text-stroke: 1px #000;
+}
+
+.collapse-challenge-action {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.btn-enter-challenge {
+    background: linear-gradient(180deg, #5c3a21, #382010);
+    border: 2px solid #8c5a35;
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+.btn-enter-challenge:hover {
+    filter: brightness(1.2);
 }
