@@ -336,6 +336,14 @@ export const RESOURCE_REGISTRY = [
         barText: 'Surge <span class="waves-level-value">{val}</span>',
     },
     {
+        key: "research_levels",
+        icon: "img/stats/rp/rp.webp",
+        singular: "Level",
+        plural: "Levels",
+        type: "levelStat",
+        barText: 'Level<span class="research-level-value">{val}</span>',
+    },
+    {
         key: "dna",
         bgGradient: "repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px)",
         icon: "img/currencies/dna/dna.webp",
@@ -343,14 +351,6 @@ export const RESOURCE_REGISTRY = [
         singular: "DNA",
         plural: "DNA",
         type: "currency",
-    },
-    {
-        key: "research_levels",
-        icon: "img/stats/rp/rp.webp",
-        singular: "Level",
-        plural: "Levels",
-        type: "levelStat",
-        barText: 'Level<span class="research-level-value">{val}</span>',
     },
     {
         key: "waterwheel_levels",
@@ -531,15 +531,6 @@ export const RESOURCE_REGISTRY = [
         type: "currency",
     },
     {
-        key: "rubble",
-        bgGradient: "linear-gradient(to bottom, #1a120b 0%, #22160e 15%, #2f2015 50%, #22160e 85%, #1a120b 100%)",
-        icon: "img/currencies/rubble/rubble.webp",
-        baseIcon: "img/currencies/rubble/rubble_plus_base.webp",
-        singular: "Rubble",
-        plural: "Rubble",
-        type: "currency",
-    },
-    {
         key: "pp",
         icon: "img/stats/pp/pp.webp",
         singular: "PP",
@@ -578,6 +569,15 @@ export const RESOURCE_REGISTRY = [
         type: "levelStat",
         barText: 'Pressure:<span class="pp-level-value">{val}</span>atm',
         noTextGap: true,
+    },
+    {
+        key: "rubble",
+        bgGradient: "linear-gradient(to bottom, #1a120b 0%, #22160e 15%, #2f2015 50%, #22160e 85%, #1a120b 100%)",
+        icon: "img/currencies/rubble/rubble.webp",
+        baseIcon: "img/currencies/rubble/rubble_plus_base.webp",
+        singular: "Rubble",
+        plural: "Rubble",
+        type: "currency",
     },
 ];
 export function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
