@@ -18,6 +18,7 @@ import {
     isSurgeUnlocked,
 } from "../ui/merchantTabs/resetTab.js";
 import { UC_REGISTRY } from "./ucUpgrades.js";
+import { RUBBLE_REGISTRY } from "./rubbleUpgrades.js";
 import {
     REGISTRY as AUTOMATION_REGISTRY,
     AUTOMATION_AREA_KEY,
@@ -54,6 +55,7 @@ export const AREA_KEYS = {
     AUTOMATION: AUTOMATION_AREA_KEY,
     DNA: DNA_AREA_KEY,
     RAINBOW_GEM_SHOP: RAINBOW_GEM_AREA_KEY,
+    COLLAPSE: "collapse",
 };
 
 let isBatching = false;
@@ -2986,6 +2988,7 @@ export const REGISTRY = [
     ...DNA_REGISTRY,
     ...RAINBOW_GEM_UPGRADES,
     ...UC_REGISTRY,
+    ...RUBBLE_REGISTRY,
 ];
 for (const upg of REGISTRY) {
     const tieKey = normalizeUpgradeTie(upg.tie ?? upg.tieKey);
