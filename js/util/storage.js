@@ -445,28 +445,6 @@ export const CURRENCY_AREAS = {
     [CURRENCIES.RUBBLE]: "underwater_cavern",
 };
 
-export function getActiveCollapseChallenge(slot = getActiveSlot()) {
-    if (slot == null) return 0;
-    const raw = lsGetItem(`ccc:active_collapse_challenge:${slot}`);
-    const n = parseInt(raw, 10);
-    return Number.isFinite(n) && n > 0 ? n : 0;
-}
-
-export function setActiveCollapseChallenge(challengeNumber, slot = getActiveSlot()) {
-    if (slot == null) return;
-    lsSetItem(`ccc:active_collapse_challenge:${slot}`, String(challengeNumber));
-    if (typeof window !== "undefined") {
-        try {
-            window.dispatchEvent(new CustomEvent("collapseChallenge:change", { detail: { slot, challengeNumber } }));
-        } catch {}
-    }
-}
-
-export let inCollapseChallenge = false;
-export function setInCollapseChallenge(val) {
-    inCollapseChallenge = val;
-}
-
 let _activeSlotCache = undefined;
 const _myInstanceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 export function getActiveSlot() {
