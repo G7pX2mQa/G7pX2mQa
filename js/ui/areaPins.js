@@ -58,7 +58,6 @@ function renderPinnedAreas() {
             btn.style.pointerEvents = 'none';
             btn.style.userSelect = 'none';
             btn.style.WebkitUserSelect = 'none';
-            btn.style.touchAction = 'manipulation';
             if (isLocked) {
                 btn.style.opacity = '0.5';
             }
@@ -71,7 +70,6 @@ function renderPinnedAreas() {
             iconWrapper.style.height = '100%';
             iconWrapper.style.borderRadius = '50%';
             iconWrapper.style.pointerEvents = 'auto';
-            iconWrapper.style.touchAction = 'manipulation';
             iconWrapper.style.cursor = isLocked ? 'not-allowed' : 'pointer';
 
             const img = document.createElement('img');
