@@ -192,6 +192,7 @@ export const UPGRADE_TIES = {
     UNLOCK_COMBINE: "none_7",
     UNLOCK_COMPRESS: "none_8",
     UNLOCK_COLLAPSE: "none_9",
+    RUBBLE_COIN_VALUE: "rubble_1",
     ENDLESS_COINS: "book_4",
     ENDLESS_COINS_II: "gold_5",
     ENDLESS_COINS_III: "magic_5",
