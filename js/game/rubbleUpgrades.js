@@ -16,8 +16,9 @@ const E = {
 
 export const RUBBLE_REGISTRY = [
     {
-        area: AREA_KEYS.COLLAPSE,
+        area: "collapse",
         id: 1,
+        tie: "rubble_1",
         title: "Rubble Coin Value",
         desc: "Multiplies Coin value by 10x per level",
         lvlCap: 100,
