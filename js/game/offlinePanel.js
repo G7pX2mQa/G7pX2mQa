@@ -531,6 +531,15 @@ export const RESOURCE_REGISTRY = [
         type: "currency",
     },
     {
+        key: "rubble",
+        bgGradient: "linear-gradient(to bottom, #1a120b 0%, #22160e 15%, #2f2015 50%, #22160e 85%, #1a120b 100%)",
+        icon: "img/currencies/rubble/rubble.webp",
+        baseIcon: "img/currencies/rubble/rubble_plus_base.webp",
+        singular: "Rubble",
+        plural: "Rubble",
+        type: "currency",
+    },
+    {
         key: "pp",
         icon: "img/stats/pp/pp.webp",
         singular: "PP",
