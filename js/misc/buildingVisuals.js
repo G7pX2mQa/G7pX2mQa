@@ -843,15 +843,13 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
   if (newTier <= oldTier) return;
 
   // Check which crossed tiers are unseen (first-time views)
-  let hasUnseenTier = false;
-  const transitions = [];
+  let firstUnseenTier = -1;
   for (let t = oldTier + 1; t <= newTier; t++) {
     const unseen = !isBuildingTierSeen(id, t);
     if (unseen) {
+      if (firstUnseenTier === -1) firstUnseenTier = t;
       setBuildingTierSeen(id, t, true);
-      hasUnseenTier = true;
     }
-    transitions.push({ fromTier: t - 1, toTier: t, forced: unseen });
   }
 
   if (!settingsManager.get("show_building_visuals")) {
@@ -863,7 +861,12 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
     return;
   }
 
-  if (hasUnseenTier) {
+  if (firstUnseenTier !== -1) {
+    const transitions = [];
+    for (let t = firstUnseenTier; t <= newTier; t++) {
+      transitions.push({ fromTier: t - 1, toTier: t });
+    }
+
     // Queue all transitions for sequential playback
     tierUpQueue = transitions.slice(1); // remaining after the first
     isForcedTierView = true;
