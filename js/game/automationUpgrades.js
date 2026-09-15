@@ -17,6 +17,7 @@ export const AUTOBUY_SCRAP_UPGRADES_ID = 9;
 export const UNDERWATER_CAVERN_EAC_ID = 10;
 export const MANUAL_MATERIAL_VALUE_ID = 11;
 export const EFFECTIVE_AUTO_SELL_ID = 12;
+export const AUTOBUY_CORE_BUILDING_ID = 13;
 
 // Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
 export const MASTER_AUTOBUY_IDS = {
@@ -26,6 +27,7 @@ export const MASTER_AUTOBUY_IDS = {
     [AUTOBUY_MAGIC_UPGRADES_ID]: "magic",
     [AUTOBUY_DNA_UPGRADES_ID]: "dna",
     [AUTOBUY_SCRAP_UPGRADES_ID]: "scrap",
+    [AUTOBUY_CORE_BUILDING_ID]: "cores",
 };
 
 const UPGRADE_DEFINITIONS = [
@@ -394,6 +396,45 @@ const UPGRADE_DEFINITIONS = [
             }
 
             const revealText = "Reach Surge 150 to reveal this upgrade";
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+    },
+    {
+        area: AUTOMATION_AREA_KEY,
+        id: AUTOBUY_CORE_BUILDING_ID,
+        title: "Autobuy Core Building",
+        desc: "Automatically buys levels of the Core Building",
+        icon: "img/sc_upg_icons/autobuy_core.webp",
+        lvlCap: 1,
+        baseCost: "1e99999",
+        costType: "gears",
+        upgType: "NM",
+        costAtLevel() {
+            return BigNum.fromAny("1e99999");
+        },
+        effectSummary() {
+            return null;
+        },
+        computeLockState(ctx) {
+            const sl = ctx.surgeLevel;
+            let isUnlocked = false;
+
+            if (typeof sl === "number") {
+                if (sl >= 500 || sl === Infinity) isUnlocked = true;
+            } else if (typeof sl === "string") {
+                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
+                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 500) isUnlocked = true;
+            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
+                isUnlocked = true;
+            }
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            if (!isSurgeUnlocked()) {
+                return { state: "locked" };
+            }
+
+            const revealText = "Reach Surge 500 to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
     },
