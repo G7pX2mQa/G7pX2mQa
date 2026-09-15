@@ -153,6 +153,19 @@ function startRewardTracking() {
     _levelGainHandlers["waterwheel_levels"] = { eventName: "waterwheel:change", handler: _wwGainHandler };
     window.addEventListener("waterwheel:change", _wwGainHandler);
 
+    const _buildingGainHandler = (e) => {
+        const id = e.detail?.id;
+        const levels = e.detail?.levelsGained;
+        if (id && levels) {
+            if (!simulationLevelTracker.building_levels) simulationLevelTracker.building_levels = {};
+            if (!simulationLevelTracker.building_levels[id])
+                simulationLevelTracker.building_levels[id] = BigNum.fromInt(0);
+            simulationLevelTracker.building_levels[id] = simulationLevelTracker.building_levels[id].add(levels);
+        }
+    };
+    _levelGainHandlers["building_levels"] = { eventName: "building:change", handler: _buildingGainHandler };
+    document.addEventListener("building:change", _buildingGainHandler);
+
     setBankAddInterceptor((key, amt) => {
         if (!simulationRewardsTracker[key]) {
             simulationRewardsTracker[key] = BigNum.fromInt(0);
@@ -165,10 +178,13 @@ function stopRewardTracking() {
     setBankAddInterceptor(null);
     for (const key in _levelGainHandlers) {
         const { eventName, handler } = _levelGainHandlers[key];
-        window.removeEventListener(eventName, handler);
+        if (eventName === "building:change") {
+            document.removeEventListener(eventName, handler);
+        } else {
+            window.removeEventListener(eventName, handler);
+        }
     }
 
-    // Format waterwheels as array for UI
     if (simulationLevelTracker.waterwheel_levels && _WATERWHEEL_DEFS) {
         const wwArr = [];
         for (const id in simulationLevelTracker.waterwheel_levels) {
@@ -179,6 +195,32 @@ function stopRewardTracking() {
             });
         }
         simulationLevelTracker.waterwheel_levels = wwArr;
+    }
+
+    if (simulationLevelTracker.building_levels) {
+        const bldArr = [];
+        const nameMap = {
+            "core": "Core Building",
+            "crystal": "Crystal Building",
+            "stone": "Stone Building",
+            "copper": "Copper Building",
+            "iron": "Iron Building",
+            "pure_gold": "Pure Gold Building",
+            "diamond": "Diamond Building",
+            "emerald": "Emerald Building",
+            "ruby": "Ruby Building",
+            "sapphire": "Sapphire Building",
+            "unobtainium": "Unobtainium Building",
+            "prismatium": "Prismatium Building",
+        };
+        for (const id in simulationLevelTracker.building_levels) {
+            bldArr.push({
+                id: id,
+                name: nameMap[id] || id,
+                levels: simulationLevelTracker.building_levels[id],
+            });
+        }
+        simulationLevelTracker.building_levels = bldArr;
     }
 
     return { ...simulationRewardsTracker, ...simulationLevelTracker };
@@ -431,6 +473,11 @@ function _makeLiveRow(config, key, id, name) {
     let iconSrc = config.icon;
     if (key === "waterwheel_levels" && _WATERWHEEL_DEFS && _WATERWHEEL_DEFS[id]) {
         iconSrc = _WATERWHEEL_DEFS[id].image;
+    } else if (key === "building_levels") {
+        const styleMap = { core: "cores", crystal: "crystals" };
+        const mapped = styleMap[id] || id;
+        const matched = RESOURCE_REGISTRY.find((r) => r.key === mapped);
+        if (matched && matched.icon) iconSrc = matched.icon;
     }
     icon.src = iconSrc;
     icon.alt = config.singular;
@@ -452,6 +499,9 @@ function _makeLiveRow(config, key, id, name) {
         let styleKey = key;
         if (key === "waterwheel_levels" && _WATERWHEEL_DEFS && _WATERWHEEL_DEFS[id]) {
             styleKey = _WATERWHEEL_DEFS[id].styleKey || "coins";
+        } else if (key === "building_levels") {
+            const styleMap = { core: "cores", crystal: "crystals" };
+            styleKey = styleMap[id] || id;
         }
         const matchedConfig = RESOURCE_REGISTRY.find((r) => r.key === styleKey);
         applyAutoColor(plus, text, styleKey, matchedConfig);
@@ -472,6 +522,7 @@ function _makeLiveRow(config, key, id, name) {
         name,
         isResearch: key === "research_levels",
         isWaterwheel: key === "waterwheel_levels",
+        isBuilding: key === "building_levels",
     };
 }
 
@@ -624,6 +675,21 @@ function createSimulationOverlay(
 
     const liveRowInfos = [];
 
+    const _BUILDING_DEFS_MAP = {
+        core: "Core Building",
+        crystal: "Crystal Building",
+        stone: "Stone Building",
+        copper: "Copper Building",
+        iron: "Iron Building",
+        pure_gold: "Pure Gold Building",
+        diamond: "Diamond Building",
+        emerald: "Emerald Building",
+        ruby: "Ruby Building",
+        sapphire: "Sapphire Building",
+        unobtainium: "Unobtainium Building",
+        prismatium: "Prismatium Building",
+    };
+
     for (const config of RESOURCE_REGISTRY) {
         const key = config.key;
         if (key === "research_levels" && _RESEARCH_NODES) {
@@ -639,6 +705,15 @@ function createSimulationOverlay(
             for (const id of Object.keys(_WATERWHEEL_DEFS)) {
                 const def = _WATERWHEEL_DEFS[id];
                 const info = _makeLiveRow(config, key, id, def.name);
+                liveRowInfos.push(info);
+                rewardsList.appendChild(info.row);
+            }
+            continue;
+        }
+        if (key === "building_levels") {
+            for (const id of Object.keys(_BUILDING_DEFS_MAP)) {
+                const name = _BUILDING_DEFS_MAP[id];
+                const info = _makeLiveRow(config, key, id, name);
                 liveRowInfos.push(info);
                 rewardsList.appendChild(info.row);
             }
@@ -675,6 +750,8 @@ function createSimulationOverlay(
                 if (delta > 0) val = BigNum.fromAny(delta);
             } else if (info.isWaterwheel) {
                 val = simulationLevelTracker.waterwheel_levels?.[info.id] || null;
+            } else if (info.isBuilding) {
+                val = simulationLevelTracker.building_levels?.[info.id] || null;
             } else if (info.config.type === "levelStat") {
                 val = simulationLevelTracker[info.key] || null;
             } else {
@@ -694,7 +771,7 @@ function createSimulationOverlay(
             info.row.style.display = shouldShow ? "" : "none";
             if (!shouldShow) continue;
 
-            if (info.isResearch || info.isWaterwheel) {
+            if (info.isResearch || info.isWaterwheel || info.isBuilding) {
                 const levelCount = BigNum.fromAny(val);
                 const label = !levelCount.isInfinite() && levelCount.cmp(BigNum.fromInt(1)) === 0 ? "Level" : "Levels";
                 let diffText = "";
