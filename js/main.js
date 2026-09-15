@@ -1956,6 +1956,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/misc/the_vaults_secret.webp",
             "img/sc_upg_icons/autobuy_book.webp",
             "img/sc_upg_icons/autobuy_coin.webp",
+			"img/sc_upg_icons/autobuy_core.webp",
             "img/sc_upg_icons/autobuy_dna.webp",
             "img/sc_upg_icons/autobuy_evolve.webp",
             "img/sc_upg_icons/autobuy_gold.webp",
