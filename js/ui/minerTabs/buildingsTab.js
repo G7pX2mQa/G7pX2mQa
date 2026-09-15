@@ -1,5 +1,5 @@
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
-import { getActiveSlot } from "../../util/storage.js";
+import { getActiveSlot, isStorageKeyLocked } from "../../util/storage.js";
 import { getDpState } from "../../game/dpSystem.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
 import { setupDragToClose } from "../shopOverlay.js";
@@ -174,15 +174,16 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     
     let isAutomated = false;
     if (!isLocked && !isInfiniteLevel) {
-        if (id === "core") {
-            // Check if the Autobuy Core Building automation upgrade (id 13) has been purchased.
+        if (id === "core" || id === "crystal") {
+            // Check if the Autobuy Building automation upgrade has been purchased.
             // We read the level directly from localStorage to avoid circular dependency issues
             // with getLevelNumber from upgrades.js.
             let hasAutobuyer = false;
             try {
                 const slot = getActiveSlot();
                 if (slot != null) {
-                    const raw = lsGetItem(`ccc:upgrades:automation:13:${slot}`);
+                    const upgradeId = id === "core" ? 13 : 14;
+                    const raw = lsGetItem(`ccc:upgrades:automation:${upgradeId}:${slot}`);
                     if (raw) {
                         const parsed = JSON.parse(raw);
                         if (parsed && parsed.lvl) {
@@ -194,7 +195,8 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
                 }
             } catch {}
             if (hasAutobuyer) {
-                isAutomated = settingsManager.get("currency_cores_automated") !== false;
+                const settingKey = id === "core" ? "currency_cores_automated" : "currency_crystals_automated";
+                isAutomated = settingsManager.get(settingKey) !== false;
             }
         }
     }
@@ -494,12 +496,13 @@ function updateBuildingGridBadges(gridEl) {
         
         let isAutomated = false;
         if (!isInfiniteLevel) {
-            if (id === "core") {
+            if (id === "core" || id === "crystal") {
                 let hasAutobuyer = false;
                 try {
                     const slot = getActiveSlot();
                     if (slot != null) {
-                        const raw = lsGetItem(`ccc:upgrades:automation:13:${slot}`);
+                        const upgradeId = id === "core" ? 13 : 14;
+                        const raw = lsGetItem(`ccc:upgrades:automation:${upgradeId}:${slot}`);
                         if (raw) {
                             const parsed = JSON.parse(raw);
                             if (parsed && parsed.lvl) {
@@ -510,7 +513,8 @@ function updateBuildingGridBadges(gridEl) {
                     }
                 } catch {}
                 if (hasAutobuyer) {
-                    isAutomated = settingsManager.get("currency_cores_automated") !== false;
+                    const settingKey = id === "core" ? "currency_cores_automated" : "currency_crystals_automated";
+                    isAutomated = settingsManager.get(settingKey) !== false;
                 }
             }
         }
@@ -1719,6 +1723,8 @@ export function handlePurchaseOuter(id, type) {
 
 export function performFreeBuildingAutobuy(id) {
     if (!isBuildingUnlocked(id)) return { bought: 0 };
+    const slotKey = String(getActiveSlot() ?? "default");
+    if (isStorageKeyLocked(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`)) return { bought: 0 };
     const currencyKey = BUILDING_CURRENCY_KEYS[id];
     const walletHandle = window.bank?.[currencyKey];
     if (!walletHandle) return { bought: 0 };
@@ -1738,6 +1744,7 @@ export function performFreeBuildingAutobuy(id) {
     if (levelsToAddCmp) {
         const oldLevel = getBuildingLevel(id);
         const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
+        document.dispatchEvent(new CustomEvent("building:change", { detail: { id, levelsGained: BigNum.fromAny(levelsToAdd) } }));
         document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
         const oldNum = levelBigNumToNumber(oldLevel);
         const newNum = levelBigNumToNumber(newLevel);
@@ -1780,6 +1787,8 @@ export function performFreeBuildingAutobuy(id) {
 function handlePurchase(type) {
     if (!currentBuildingId) return;
     const id = currentBuildingId;
+    const slotKey = String(getActiveSlot() ?? "default");
+    if (isStorageKeyLocked(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`)) return;
     const currencyKey = BUILDING_CURRENCY_KEYS[id];
     const walletHandle = window.bank?.[currencyKey];
     if (!walletHandle) return;
