@@ -15,6 +15,7 @@ import {
     computeInfuseMagicFromInputs,
     computePendingDnaFromInputs,
 } from "../ui/merchantTabs/resetTab.js";
+import { getPendingCores } from "../ui/minerTabs/resetTab.js";
 import { getLabLevel } from "../ui/merchantTabs/labTab.js";
 import { registerTick, RateAccumulator } from "./gameLoop.js";
 import { bigNumFromLog10, approxLog10BigNum, bigNumIsInfinite } from "../util/bigNum.js";
@@ -865,6 +866,30 @@ function onTick(dt) {
                         if (bank.dna) bank.dna.add(BigNum.fromInt(whole));
                     }
                 }
+            }
+        }
+    }
+    if (isSurgeActive(500)) {
+        const effectiveNerf = getTsunamiExponent();
+        const mapped = effectiveNerf * 1.5 - 0.5;
+        const log10Rate = 2 * mapped - 2;
+        const rateMultiplier = bigNumFromLog10(log10Rate);
+        const pending = getPendingCores() ?? BigNum.fromInt(0);
+        let perSec = pending.mulDecimal(rateMultiplier.toScientific());
+        perSec = perSec.floorToInteger();
+        const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
+        if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
+            if (bank.cores) bank.cores.add(amountToAdd);
+            else if (bank.CORES) bank.CORES.add(amountToAdd);
+        } else {
+            const rateNum = Number(amountToAdd.toScientific());
+            if (!window.__coreResidue) window.__coreResidue = 0;
+            window.__coreResidue += rateNum;
+            if (window.__coreResidue >= 1) {
+                const whole = Math.floor(window.__coreResidue);
+                window.__coreResidue -= whole;
+                if (bank.cores) bank.cores.add(BigNum.fromInt(whole));
+                else if (bank.CORES) bank.CORES.add(BigNum.fromInt(whole));
             }
         }
     }
