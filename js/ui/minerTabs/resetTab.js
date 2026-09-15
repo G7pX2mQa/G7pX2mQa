@@ -831,6 +831,11 @@ export function recomputePendingCrystals() {
     resetState.pendingCrystals = computeCompressCrystals(scrap, potentialScrap, surgeLevel);
 }
 
+export function getPendingCrystals() {
+    recomputePendingCrystals();
+    return resetState.pendingCrystals;
+}
+
 export function recomputePendingCoresAndCrystals() {
     recomputePendingCores();
     recomputePendingCrystals();
