@@ -15,7 +15,7 @@ import {
     computeInfuseMagicFromInputs,
     computePendingDnaFromInputs,
 } from "../ui/merchantTabs/resetTab.js";
-import { getPendingCores } from "../ui/minerTabs/resetTab.js";
+import { getPendingCores, getPendingCrystals } from "../ui/minerTabs/resetTab.js";
 import { getLabLevel } from "../ui/merchantTabs/labTab.js";
 import { registerTick, RateAccumulator } from "./gameLoop.js";
 import { bigNumFromLog10, approxLog10BigNum, bigNumIsInfinite } from "../util/bigNum.js";
@@ -890,6 +890,28 @@ function onTick(dt) {
                 window.__coreResidue -= whole;
                 if (bank.cores) bank.cores.add(BigNum.fromInt(whole));
                 else if (bank.CORES) bank.CORES.add(BigNum.fromInt(whole));
+            }
+        }
+    }
+    if (isSurgeActive(750)) {
+        const effectiveNerf = getTsunamiExponent();
+        const mapped = effectiveNerf * 1.5 - 0.5;
+        const log10Rate = 2 * mapped - 2;
+        const rateMultiplier = bigNumFromLog10(log10Rate);
+        const pending = getPendingCrystals() ?? BigNum.fromInt(0);
+        let perSec = pending.mulDecimal(rateMultiplier.toScientific());
+        perSec = perSec.floorToInteger();
+        const amountToAdd = perSec.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
+        if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
+            if (bank.crystals) bank.crystals.add(amountToAdd);
+        } else {
+            const rateNum = Number(amountToAdd.toScientific());
+            if (!window.__crystalResidue) window.__crystalResidue = 0;
+            window.__crystalResidue += rateNum;
+            if (window.__crystalResidue >= 1) {
+                const whole = Math.floor(window.__crystalResidue);
+                window.__crystalResidue -= whole;
+                if (bank.crystals) bank.crystals.add(BigNum.fromInt(whole));
             }
         }
     }
