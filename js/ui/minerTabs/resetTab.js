@@ -424,6 +424,11 @@ export function recomputePendingCores() {
     updateCombineCard();
 }
 
+export function getPendingCores() {
+    recomputePendingCores();
+    return resetState.pendingCores;
+}
+
 function checkCombineRequirements() {
     let uniqueCount = 0;
     for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
