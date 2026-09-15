@@ -322,6 +322,15 @@ export const SURGE_MILESTONES = [
         affectedByTsunami: true,
         description: ["Significantly boosts the effect Lab Level has on RP value"],
     },
+    {
+        id: 40,
+        surgeLevel: 500,
+        affectedByTsunami: true,
+        description: [
+            'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Cores per second',
+            "Unlocks a new automation upgrade",
+        ],
+    },
 ];
 export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES.filter((m) => m.affectedByTsunami).map((m) => m.id);
 const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
@@ -803,6 +812,27 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                             `<span style="color:#00ff00">Can't generate DNA at the moment</span>`,
                         );
                     }
+                }
+            }
+        }
+        if (m.id === 40) {
+            if (milestone === m) {
+                milestone = { ...m, description: [...m.description] };
+            }
+
+            const effectiveNerf = getTsunamiExponent();
+            const mapped = effectiveNerf * 1.5 - 0.5;
+            const pct = Math.pow(100, mapped);
+            const valStr = parseFloat(pct.toFixed(3)).toString();
+            milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Cores per second`;
+            if (m.surgeLevel <= currentLevel && pendingVals.pendingCores) {
+                try {
+                    const log10Rate = 2 * mapped - 2;
+                    const rateMultiplier = bigNumFromLog10(log10Rate);
+                    const coresPerSec = pendingVals.pendingCores.mulDecimal(rateMultiplier.toScientific());
+                    milestone.description.push(`Current Cores/sec: ${formatNumber(coresPerSec.floorToInteger())}`);
+                } catch (e) {
+                    milestone.description.push(`<span style="color:#00ff00">Can't generate Cores at the moment</span>`);
                 }
             }
         }
