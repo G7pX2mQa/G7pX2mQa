@@ -18,6 +18,7 @@ import {
     UNDERWATER_CAVERN_EAC_ID,
     EFFECTIVE_AUTO_SELL_ID,
     AUTOBUY_CORE_BUILDING_ID,
+    AUTOBUY_CRYSTAL_BUILDING_ID,
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { performFreeBuildingAutobuy } from "../ui/minerTabs/buildingsTab.js";
@@ -286,6 +287,13 @@ function updateAutobuyers(dt) {
             // Check master switch for cores (it's what gets toggled by the UI since buildings aren't standard upgrades)
             if (getCollectiveAutobuyerState("cores") === 1) {
                 performFreeBuildingAutobuy("core");
+            }
+        }
+        // Process Crystal Building Autobuy
+        const crystalBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_CRYSTAL_BUILDING_ID) > 0;
+        if (crystalBuildingAutobuy) {
+            if (getCollectiveAutobuyerState("crystals") === 1) {
+                performFreeBuildingAutobuy("crystal");
             }
         }
     });
