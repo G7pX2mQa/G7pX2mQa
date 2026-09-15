@@ -46,6 +46,7 @@ import {
     getSurgeRequirement,
     isSurgeUnlocked,
 } from "../ui/merchantTabs/resetTab.js";
+import { getPendingCores } from "../ui/minerTabs/resetTab.js";
 import { getLabGoldMultiplier } from "./labNodes.js";
 import { getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from "./ucSpawner.js";
 import { bigNumFromLog10, approxLog10BigNum } from "../util/bigNum.js";
@@ -985,8 +986,8 @@ export function calculateOfflineRewards(seconds) {
             }
         }
     }
-    // Surge 13 (Gold), Surge 16 (Magic), and Surge 80 (DNA)
-    if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(80)) {
+    // Surge 13 (Gold), Surge 16 (Magic), Surge 80 (DNA), Surge 500 (Cores)
+    if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(80) || isSurgeActive(500)) {
         const effectiveNerf = getTsunamiExponent();
         const mapped = effectiveNerf * 1.5 - 0.5;
         const log10Rate = 2 * mapped - 2;
@@ -1037,6 +1038,13 @@ export function calculateOfflineRewards(seconds) {
                         rewards.dna = dnaEarned;
                     }
                 }
+            }
+        }
+        if (isSurgeActive(500)) {
+            const pending = getPendingCores() ?? BigNum.fromInt(0);
+            const coresEarned = pending.mulBigNumInteger(totalMultiplier);
+            if (coresEarned.cmp(0) > 0 && !isCurrencyLocked("cores", slot) && !isCurrencyLocked("CORES", slot)) {
+                rewards.CORES = coresEarned;
             }
         }
     }
