@@ -57,6 +57,7 @@ import {
     getWaterwheelLevel,
 } from "../ui/merchantTabs/flowTab.js";
 import { startSimulatedOffline, isSimulatedOfflineEnabled } from "./simulatedOffline.js";
+import { BUILDING_IDS, getBuildingLevel } from "../ui/minerTabs/buildingsTab.js";
 let initialized = false;
 export function formatTimeCompact(ms) {
     const msBn = BigNum.fromAny(ms);
@@ -142,6 +143,14 @@ export const RESOURCE_REGISTRY_EXTRAS = {
         icon: "img/stats/fp/fp.webp",
         bgGradient: "linear-gradient(to bottom, #00b0b0 0%, #00d9d9 25%, #00ffff 50%, #00d9d9 75%, #00b0b0 100%)",
         showInMultipliers: true,
+    },
+    building_levels: {
+        key: "building_levels",
+        singular: "Core",
+        plural: "Cores",
+        icon: "img/currencies/core/core.webp",
+        bgGradient: "linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 15%, #2a2a2a 50%, #1a1a1a 85%, #0a0a0a 100%)",
+        showInMultipliers: false,
     },
 };
 export const RESOURCE_REGISTRY = [
@@ -523,6 +532,14 @@ export const RESOURCE_REGISTRY = [
         type: "currency",
     },
     {
+        key: "building_levels",
+        icon: "img/currencies/core/core.webp",
+        singular: "Level",
+        plural: "Levels",
+        type: "levelStat",
+        barText: 'Level<span class="building-level-value">{val}</span>',
+    },
+    {
         key: "crystals",
         bgGradient: "linear-gradient(to bottom, #943276 0%, #bd53a3 15%, #e979d0 50%, #bd53a3 85%, #943276 100%)",
         icon: "img/currencies/crystal/crystal.webp",
@@ -639,6 +656,9 @@ export function getCurrentVal(key, id) {
     if (key === "waterwheel_levels" && id !== undefined) {
         return getWaterwheelLevel(id);
     }
+    if (key === "building_levels" && id !== undefined) {
+        return getBuildingLevel(id);
+    }
     return undefined;
 }
 export function captureTotals() {
@@ -661,6 +681,13 @@ export function captureTotals() {
         for (const id of Object.keys(WATERWHEEL_DEFS)) {
             const val = getWaterwheelLevel(id);
             totals.waterwheel_levels[id] = val instanceof BigNum ? val.clone() : val;
+        }
+    }
+    totals.building_levels = {};
+    if (typeof BUILDING_IDS !== "undefined" && typeof getBuildingLevel === "function") {
+        for (const id of BUILDING_IDS) {
+            const val = getBuildingLevel(id);
+            totals.building_levels[id] = val instanceof BigNum ? val.clone() : val;
         }
     }
     return totals;
@@ -723,6 +750,11 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
                 let itemIcon = item.icon || item.image || config.icon;
                 if (key === "waterwheel_levels" && WATERWHEEL_DEFS[item.id]) {
                     itemIcon = WATERWHEEL_DEFS[item.id].image;
+                } else if (key === "building_levels") {
+                    const styleMap = { core: "cores", crystal: "crystals" };
+                    const mapped = styleMap[item.id] || item.id;
+                    const matched = RESOURCE_REGISTRY.find((r) => r.key === mapped);
+                    if (matched && matched.icon) itemIcon = matched.icon;
                 }
                 icon.src = itemIcon;
                 icon.alt = config.singular;
@@ -735,6 +767,9 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
                 } else {
                     if (key === "waterwheel_levels" && WATERWHEEL_DEFS[item.id]) {
                         styleKey = WATERWHEEL_DEFS[item.id].styleKey || "coins";
+                    } else if (key === "building_levels") {
+                        const styleMap = { core: "cores", crystal: "crystals" };
+                        styleKey = styleMap[item.id] || item.id;
                     }
                     const matchedConfig = RESOURCE_REGISTRY.find((r) => r.key === styleKey);
                     applyAutoColor(plus, text, styleKey, matchedConfig);
