@@ -171,14 +171,49 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     tile.appendChild(iconImg);
     const levelBn = getBuildingLevel(id);
     const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
-    if (isInfiniteLevel) {
-        const maxedOverlay = document.createElement("img");
-        maxedOverlay.className = "maxed-overlay";
-        maxedOverlay.src = "img/misc/maxed.webp";
-        maxedOverlay.alt = "";
-        maxedOverlay.draggable = false;
-        tile.appendChild(maxedOverlay);
+    
+    let isAutomated = false;
+    if (!isLocked && !isInfiniteLevel) {
+        if (id === "core") {
+            // Check if the Autobuy Core Building automation upgrade (id 13) has been purchased.
+            // We read the level directly from localStorage to avoid circular dependency issues
+            // with getLevelNumber from upgrades.js.
+            let hasAutobuyer = false;
+            try {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    const raw = lsGetItem(`ccc:upgrades:automation:13:${slot}`);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && parsed.lvl) {
+                            // lvl is a BigNum storage string like "BN:1:1:0" or "BN:zero"
+                            const lvlStr = String(parsed.lvl);
+                            hasAutobuyer = lvlStr !== "BN:zero" && lvlStr !== "BN:0::0" && lvlStr !== "BN:NaN";
+                        }
+                    }
+                }
+            } catch {}
+            if (hasAutobuyer) {
+                isAutomated = settingsManager.get("currency_cores_automated") !== false;
+            }
+        }
     }
+
+    if (isAutomated) {
+        btn.classList.add("is-automated");
+    } else {
+        btn.classList.remove("is-automated");
+    }
+
+    if (isInfiniteLevel || isAutomated) {
+        const overlayImg = document.createElement("img");
+        overlayImg.className = "maxed-overlay";
+        overlayImg.src = isInfiniteLevel ? "img/misc/maxed.webp" : "img/misc/green_border.webp";
+        overlayImg.alt = "";
+        overlayImg.draggable = false;
+        tile.appendChild(overlayImg);
+    }
+    
     if (!isLocked && level !== undefined) {
         const badge = document.createElement("div");
         badge.className = "level-badge";
@@ -456,21 +491,51 @@ function updateBuildingGridBadges(gridEl) {
         let levelStr = formatNumber(levelBn);
         let plusLevelStr = formatNumber(plusLevelBn);
         const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
+        
+        let isAutomated = false;
+        if (!isInfiniteLevel) {
+            if (id === "core") {
+                let hasAutobuyer = false;
+                try {
+                    const slot = getActiveSlot();
+                    if (slot != null) {
+                        const raw = lsGetItem(`ccc:upgrades:automation:13:${slot}`);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (parsed && parsed.lvl) {
+                                const lvlStr = String(parsed.lvl);
+                                hasAutobuyer = lvlStr !== "BN:zero" && lvlStr !== "BN:0::0" && lvlStr !== "BN:NaN";
+                            }
+                        }
+                    }
+                } catch {}
+                if (hasAutobuyer) {
+                    isAutomated = settingsManager.get("currency_cores_automated") !== false;
+                }
+            }
+        }
+        
+        if (isAutomated) {
+            card.classList.add("is-automated");
+        } else {
+            card.classList.remove("is-automated");
+        }
+
         const tile = card.querySelector(".shop-tile");
         if (tile) {
-            let maxedOverlay = tile.querySelector(".maxed-overlay");
-            if (isInfiniteLevel) {
-                if (!maxedOverlay) {
-                    maxedOverlay = document.createElement("img");
-                    maxedOverlay.className = "maxed-overlay";
-                    maxedOverlay.src = "img/misc/maxed.webp";
-                    maxedOverlay.alt = "";
-                    maxedOverlay.draggable = false;
-                    tile.appendChild(maxedOverlay);
+            let overlayImg = tile.querySelector(".maxed-overlay");
+            if (isInfiniteLevel || isAutomated) {
+                if (!overlayImg) {
+                    overlayImg = document.createElement("img");
+                    overlayImg.className = "maxed-overlay";
+                    overlayImg.alt = "";
+                    overlayImg.draggable = false;
+                    tile.appendChild(overlayImg);
                 }
+                overlayImg.src = isInfiniteLevel ? "img/misc/maxed.webp" : "img/misc/green_border.webp";
             } else {
-                if (maxedOverlay) {
-                    maxedOverlay.remove();
+                if (overlayImg) {
+                    overlayImg.remove();
                 }
             }
         }
@@ -1650,6 +1715,66 @@ export function handlePurchaseOuter(id, type) {
     if (!overlayEl || !overlayEl.classList.contains("is-open")) {
         currentBuildingId = null;
     }
+}
+
+export function performFreeBuildingAutobuy(id) {
+    if (!isBuildingUnlocked(id)) return { bought: 0 };
+    const currencyKey = BUILDING_CURRENCY_KEYS[id];
+    const walletHandle = window.bank?.[currencyKey];
+    if (!walletHandle) return { bought: 0 };
+    let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
+    let startLevelBn = getBuildingLevel(id);
+    const ratio = getBuildingRatio(id);
+    const maxEval = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
+    let n = maxEval.count;
+    if (typeof n !== "number") n = n.toNumber ? n.toNumber() : n.inf ? Infinity : n.sig * Math.pow(10, n.e);
+    let levelsToAdd = BigNum.fromInt(0);
+    if (n === Number.POSITIVE_INFINITY) {
+        levelsToAdd = BigNum.fromAny("Infinity");
+    } else if (n > 0) {
+        levelsToAdd = BigNum.fromAny(n);
+    }
+    const levelsToAddCmp = typeof levelsToAdd === "number" ? levelsToAdd > 0 : levelsToAdd.cmp(0) > 0;
+    if (levelsToAddCmp) {
+        const oldLevel = getBuildingLevel(id);
+        const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
+        document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+        const oldNum = levelBigNumToNumber(oldLevel);
+        const newNum = levelBigNumToNumber(newLevel);
+        let oldTier = 0;
+        let newTier = 0;
+        for (let i = 0; i < TIERS.length; i++) {
+            if (oldNum >= TIERS[i]) oldTier = i + 1;
+            if (newNum >= TIERS[i]) newTier = i + 1;
+        }
+
+        let hasUnseenTier = false;
+        if (newTier > oldTier) {
+            for (let t = oldTier + 1; t <= newTier; t++) {
+                if (!isBuildingTierSeen(id, t)) {
+                    hasUnseenTier = true;
+                    break;
+                }
+            }
+        }
+        
+        if (hasUnseenTier) {
+            openBuildingDetailOverlay(id);
+            import("../../misc/buildingVisuals.js").then((module) => {
+                module.checkTierUp(id, oldLevel, newLevel);
+            });
+        } else {
+            import("../../misc/buildingVisuals.js").then((module) => {
+                module.checkTierUp(id, oldLevel, newLevel);
+            });
+        }
+        
+        updateOverlayUi();
+        const gridCardBadge = document.querySelector(`.shop-upgrade[data-building-id="${id}"] .level-badge`);
+        if (gridCardBadge) setHtmlOrText(gridCardBadge, formatNumber(newLevel));
+        return { bought: levelsToAdd };
+    }
+    return { bought: 0 };
 }
 
 function handlePurchase(type) {
