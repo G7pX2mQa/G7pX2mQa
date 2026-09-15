@@ -74,6 +74,7 @@ import { openMapOverlay, setNodeLocked, refreshNodesState, isNodeLocked } from "
 import { getWaterwheelGoldMultiplier } from "./flowTab.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { checkAchievements } from "../../game/achievements.js";
+import { getPendingCores } from "../minerTabs/resetTab.js";
 const BN = BigNum;
 const LOG1_1 = Math.log10(1.1);
 const bnZero = () => BN.fromInt(0);
@@ -2215,6 +2216,7 @@ function updateSurgeCard() {
             pendingGold: getPendingGoldWithMultiplier(),
             pendingMagic: getPendingMagicWithMultiplier(),
             pendingDna: resetState.pendingDna,
+            pendingCores: getPendingCores(),
         });
         const existingItems = Array.from(el.milestones.children);
         visible.forEach((m, i) => {
@@ -2231,7 +2233,8 @@ function updateSurgeCard() {
                         d.includes("Current Books/sec:") ||
                         d.includes("Current Gold/sec:") ||
                         d.includes("Current Magic/sec:") ||
-                        d.includes("Current DNA/sec:")
+                        d.includes("Current DNA/sec:") ||
+                        d.includes("Current Cores/sec:")
                     ) {
                         return `<div style="color:#02e815">- ${d.replace(/<span style="color:#02e815">(.*?)<\/span>/g, "$1")}</div>`;
                     }
