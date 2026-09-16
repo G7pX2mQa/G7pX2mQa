@@ -128,7 +128,7 @@ text-shadow: 0 1px 0 rgba(0,0,0,0.35); /* small helper shadow for browsers witho
 
 /* Touch devices: smoother fake stroke for the coin counter only */
 @media (pointer: coarse) {
-   .coin-amount, .scrap-amount, .game-btn {
+   .coin-amount, .scrap-amount, .sell-currency-amount, .game-btn {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     -webkit-text-fill-color: #fff;
@@ -390,7 +390,7 @@ height: max(var(--coin-plus-size), var(--coin-h));
 pointer-events: none;
 }
 
-.coin-plus, .scrap-plus{
+.coin-plus, .scrap-plus, .sell-currency-plus{
 position:absolute;
 top:50%;
 left: calc((var(--bar-underlap) - 1) * var(--coin-plus-size));
@@ -434,7 +434,7 @@ inset 0 -6px 10px rgba(0,0,0,.15);
 pointer-events:none;
 }
 
-.coin-amount, .scrap-amount{
+.coin-amount, .scrap-amount, .sell-currency-amount{
 position: relative;
 left: -1px;
 z-index: 1;
@@ -454,7 +454,7 @@ top: -1px;
 }
 
 @media (hover: none) and (pointer: coarse) {
-  .coin-counter, .scrap-counter, .coin-plus, .scrap-plus, .xp-counter, .xp-plus, .dp-counter,
+  .coin-counter, .scrap-counter, .coin-plus, .scrap-plus, .sell-currency-plus, .xp-counter, .xp-plus, .dp-counter,
   .pp-counter, .dp-plus,
   .pp-plus, .pp-counter, .pp-plus {
     filter: none !important;
@@ -492,7 +492,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 }
 
 @media (pointer: coarse){
-  .hud-top .coin-amount, .hud-top .scrap-amount{
+  .hud-top .coin-amount, .hud-top .scrap-amount, .sell-currency-amount{
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     -webkit-text-fill-color: #fff;
@@ -1116,11 +1116,11 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   -webkit-text-fill-color: currentColor;
 }
 
-.coin-amount .infinity-symbol, .scrap-amount .infinity-symbol {
+.coin-amount .infinity-symbol, .scrap-amount, .sell-currency-amount .infinity-symbol {
   top: calc(-0.11em + 1px);
 }
 
-.is-mobile .coin-amount, .is-mobile .scrap-amount {
+.is-mobile .coin-amount, .is-mobile .scrap-amount, .sell-currency-amount {
   top: -0.5px;
 }
 
@@ -1149,12 +1149,14 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 }
 
 body.custom-font-active .coin-amount,
-body.custom-font-active .scrap-amount {
+body.custom-font-active .scrap-amount, .sell-currency-amount,
+body.custom-font-active .sell-currency-amount {
   transform: translateY(1px);
 }
 
 body.custom-font-active .coin-amount .infinity-symbol,
-body.custom-font-active .scrap-amount .infinity-symbol {
+body.custom-font-active .scrap-amount, .sell-currency-amount .infinity-symbol,
+body.custom-font-active .sell-currency-amount .infinity-symbol {
   top: calc(-0.11em + 3px);
 }
 
