@@ -5,13 +5,15 @@ import { RESOURCE_REGISTRY } from "../../game/offlinePanel.js";
 import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from "../../game/ucSpawner.js";
 import { getDpState, isDpSystemUnlocked } from "../../game/dpSystem.js";
 import { createDropdown } from "../sas/dropdownUtils.js";
-import { playPurchaseSfx } from "../shopOverlay.js";
+import { playPurchaseSfx, openShop } from "../shopOverlay.js";
 import { registerTick, registerUiFrame, TICK_RATE } from "../../game/gameLoop.js";
 import { BigNum } from "../../util/bigNum.js";
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID } from "../../game/automationUpgrades.js";
 import { getLevelNumber } from "../../game/upgrades.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
+import { IS_MOBILE } from "../../util/platformChecker.js";
+import { isCollapseChallengeActive } from "./collapseTab.js";
 const SELL_UNLOCKED_KEY_BASE = "ccc:sellUnlocked";
 const SELL_VIEWED_KEY_BASE = "ccc:sellViewed";
 let cachedViewedState = {};
@@ -309,9 +311,9 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
         formatted = bank.scrap?.fmt?.(bank.scrap.value) ?? "0";
     } catch {}
     scrapCounterWrap.innerHTML = `
-    <img src="img/currencies/scrap/scrap_plus_base.webp" alt="" class="scrap-plus"/>
+    <img src="img/currencies/scrap/scrap_plus_base.webp" alt="" class="sell-currency-plus"/>
     <div class="scrap-bar">
-      <span class="scrap-amount">${formatted}</span>
+      <span class="sell-currency-amount">${formatted}</span>
     </div>
   `;
     const infoBox = document.createElement("div");
@@ -333,6 +335,66 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
     infoAuto.style.color = "#02e815";
     infoAuto.style.fontWeight = "bold";
     infoBox.appendChild(infoAuto);
+
+    // Rubble toggle state
+    const RUBBLE_TOGGLE_KEY = "ccc:sellTypeRubble";
+    function isRubbleSellMode(slot = getActiveSlot()) {
+        if (slot == null) return false;
+        try {
+            return lsGetItem(`${RUBBLE_TOGGLE_KEY}:${slot}`) === "1";
+        } catch {
+            return false;
+        }
+    }
+    function toggleRubbleSellMode(slot = getActiveSlot()) {
+        if (slot == null) return;
+        try {
+            const current = isRubbleSellMode(slot);
+            lsSetItem(`${RUBBLE_TOGGLE_KEY}:${slot}`, current ? "0" : "1");
+        } catch {}
+    }
+
+    const infoRubbleSection = document.createElement("div");
+    infoRubbleSection.className = "sell-collapse-section";
+    
+    const rubbleSep = document.createElement("hr");
+    rubbleSep.className = "sell-collapse-separator";
+    infoRubbleSection.appendChild(rubbleSep);
+
+    const rubbleDesc = document.createElement("div");
+    rubbleDesc.className = "sell-collapse-info";
+    const clickWord = IS_MOBILE ? "Tap" : "Click";
+    rubbleDesc.textContent = `While inside a Collapse Challenge, you have the option to sell Materials for Rubble instead of Scrap.
+Rubble value is unaffected by Scrap value; each Material only sells for 1 Rubble at base
+This is to say, Stone will produce the most Rubble by far because of its abundance
+For how to increase Rubble value, you'll need to buy the temporary Rubble upgrades
+${clickWord} the button below to toggle what your Manual Sell and Auto-Sell produce`.trim();
+    infoRubbleSection.appendChild(rubbleDesc);
+
+    const rubbleToggleBtn = document.createElement("button");
+    rubbleToggleBtn.className = "sell-mode-toggle-btn";
+    rubbleToggleBtn.addEventListener("click", () => {
+        toggleRubbleSellMode();
+        // Immediately trigger an update
+        updateSellTab();
+    });
+    infoRubbleSection.appendChild(rubbleToggleBtn);
+
+    const rubbleShopDesc = document.createElement("div");
+    rubbleShopDesc.className = "sell-collapse-info";
+    rubbleShopDesc.textContent = "Spend Rubble on powerful, temporary upgrades (cleared on Collapse Challenge completion) below:";
+    infoRubbleSection.appendChild(rubbleShopDesc);
+
+    const rubbleShopBtn = document.createElement("button");
+    rubbleShopBtn.className = "btn-rubble-shop";
+    rubbleShopBtn.textContent = "Rubble";
+    rubbleShopBtn.addEventListener("click", () => {
+        openShop("rubble");
+    });
+    infoRubbleSection.appendChild(rubbleShopBtn);
+
+    infoBox.appendChild(infoRubbleSection);
+
     const listContainer = document.createElement("div");
     listContainer.className = "sell-list";
     const header = document.createElement("div");
@@ -351,12 +413,17 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
     panel.appendChild(centerCol);
     panel.appendChild(sideRight);
     sellPanelDomCache = {
+        scrapCounterWrap,
+        currencyIcon: scrapCounterWrap.querySelector(".sell-currency-plus"),
+        currencyAmount: scrapCounterWrap.querySelector(".sell-currency-amount"),
         infoBox,
         infoDp,
         infoDp1,
         infoDp2,
         infoDp3,
         infoAuto,
+        infoRubbleSection,
+        rubbleToggleBtn,
         listContainer,
         rows: {},
         sideLeft,
@@ -364,6 +431,7 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
         canvasLeft,
         canvasRight,
     };
+    sellPanelDomCache.isRubbleSellMode = isRubbleSellMode;
     tabBtn.addEventListener("click", () => {
         const allTabs = tabsEl.querySelectorAll(".merchant-tab");
         const allPanels = panelsWrapEl.querySelectorAll(".merchant-panel");
@@ -480,6 +548,26 @@ export function updateSellTab() {
         sellPanelDomCache.infoDp.style.display = "none";
     }
 
+    const inCollapse = isCollapseChallengeActive();
+    if (inCollapse) {
+        sellPanelDomCache.infoRubbleSection.classList.add("is-visible");
+        sellPanelDomCache.infoBox.classList.add("collapse-active");
+        
+        const isRubbleMode = sellPanelDomCache.isRubbleSellMode();
+        if (isRubbleMode) {
+            setHtmlOrText(sellPanelDomCache.rubbleToggleBtn, "Mode: Rubble");
+            sellPanelDomCache.rubbleToggleBtn.classList.remove("mode-scrap");
+            sellPanelDomCache.rubbleToggleBtn.classList.add("mode-rubble");
+        } else {
+            setHtmlOrText(sellPanelDomCache.rubbleToggleBtn, "Mode: Scrap");
+            sellPanelDomCache.rubbleToggleBtn.classList.remove("mode-rubble");
+            sellPanelDomCache.rubbleToggleBtn.classList.add("mode-scrap");
+        }
+    } else {
+        sellPanelDomCache.infoRubbleSection.classList.remove("is-visible");
+        sellPanelDomCache.infoBox.classList.remove("collapse-active");
+    }
+
     const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
     const autoSellSetting = settingsManager.get("auto_sell_efficiency");
     const autoSellMult = autoSellSetting !== undefined ? autoSellSetting / 100 : 1;
@@ -492,33 +580,71 @@ export function updateSellTab() {
         else if (autoSellLevel === 3)
             eff = 0.01; // 1%
         else if (autoSellLevel >= 4) eff = 1.0;
+        
+        const isRubbleMode = inCollapse && sellPanelDomCache.isRubbleSellMode();
         const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
-        let totalScrapGain = BigNum.fromInt(0);
+        let totalGainPerTick = BigNum.fromInt(0);
         for (let j = 0; j < UC_MATERIALS.length; j++) {
             const matKey = UC_MATERIALS[j];
             const matData = UC_MATERIAL_DATA[j];
             if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
                 const owned = bank[matKey].value;
-                const materialValue = BigNum.fromAny(matData.value || 0);
-                const valPerMaterial = materialValue
-                    .mulBigNumInteger(scrapMultiplier)
-                    .mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
-                const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
-                if (eff === 1.0) {
-                    totalScrapGain = totalScrapGain.add(potentialScrap);
+                let potentialOutput;
+                
+                if (isRubbleMode) {
+                    // Rubble is 1 per material
+                    potentialOutput = owned;
                 } else {
-                    totalScrapGain = totalScrapGain.add(potentialScrap.mulDecimal(eff));
+                    const materialValue = BigNum.fromAny(matData.value || 0);
+                    const valPerMaterial = materialValue
+                        .mulBigNumInteger(scrapMultiplier)
+                        .mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
+                    potentialOutput = owned.mulBigNumInteger(valPerMaterial);
+                }
+                
+                if (eff === 1.0) {
+                    totalGainPerTick = totalGainPerTick.add(potentialOutput);
+                } else {
+                    totalGainPerTick = totalGainPerTick.add(potentialOutput.mulDecimal(eff));
                 }
             }
         }
 
-        let scrapPerSec = totalScrapGain.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE));
-        scrapPerSec = scrapPerSec.floorToInteger();
-        const formattedScrapPerSec = formatNumber(scrapPerSec);
+        let gainPerSec = totalGainPerTick.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE));
+        gainPerSec = gainPerSec.floorToInteger();
+        const formattedGainPerSec = formatNumber(gainPerSec);
         sellPanelDomCache.infoAuto.style.display = "";
-        setHtmlOrText(sellPanelDomCache.infoAuto, `Current Scrap/sec: ${formattedScrapPerSec}`);
+        
+        // Always keep the EAS text color green
+        sellPanelDomCache.infoAuto.style.color = "#02e815";
+        
+        if (isRubbleMode) {
+            setHtmlOrText(sellPanelDomCache.infoAuto, `Current Rubble/sec: ${formattedGainPerSec}`);
+        } else {
+            setHtmlOrText(sellPanelDomCache.infoAuto, `Current Scrap/sec: ${formattedGainPerSec}`);
+        }
     } else {
         sellPanelDomCache.infoAuto.style.display = "none";
+    }
+
+    // Update the currency bar UI
+    const isRubbleModeForBar = inCollapse && sellPanelDomCache.isRubbleSellMode();
+    if (isRubbleModeForBar) {
+        sellPanelDomCache.scrapCounterWrap.classList.add("is-rubble");
+        if (sellPanelDomCache.currencyIcon.src.indexOf("rubble_plus_base.webp") === -1) {
+            sellPanelDomCache.currencyIcon.src = "img/currencies/rubble/rubble_plus_base.webp";
+        }
+        if (bank.RUBBLE && sellPanelDomCache.currencyAmount) {
+            setHtmlOrText(sellPanelDomCache.currencyAmount, bank.RUBBLE.fmt?.(bank.RUBBLE.value) ?? "0");
+        }
+    } else {
+        sellPanelDomCache.scrapCounterWrap.classList.remove("is-rubble");
+        if (sellPanelDomCache.currencyIcon.src.indexOf("scrap_plus_base.webp") === -1) {
+            sellPanelDomCache.currencyIcon.src = "img/currencies/scrap/scrap_plus_base.webp";
+        }
+        if (bank.scrap && sellPanelDomCache.currencyAmount) {
+            setHtmlOrText(sellPanelDomCache.currencyAmount, bank.scrap.fmt?.(bank.scrap.value) ?? "0");
+        }
     }
 
     const accumulators = getUcMaterialAccumulators();
@@ -559,14 +685,25 @@ export function updateSellTab() {
         const owned = bank[matKey]?.value || BigNum.fromInt(0);
         const ownedStr = formatNumber(owned);
         setHtmlOrText(rowCache.ownedEl, ownedStr);
-        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
-        const materialValue = BigNum.fromAny(t.value || 0);
-        const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
+        
+        const isRubbleMode = isCollapseChallengeActive() && sellPanelDomCache.isRubbleSellMode();
+        
+        let val;
+        if (isRubbleMode) {
+            val = BigNum.fromInt(1); // 1 Rubble per material
+        } else {
+            const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
+            const materialValue = BigNum.fromAny(t.value || 0);
+            val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
+        }
+        
         const localAmountStr = rowCache.localSellAmount || "100%";
         const theoreticalAmt = calculateTheoreticalSellAmount(owned, localAmountStr);
         const displayVal = theoreticalAmt.mulBigNumInteger(val);
         const valStr = formatNumber(displayVal);
         setHtmlOrText(rowCache.valEl, valStr);
+        
+        rowCache.valEl.style.color = "";
         rowCache.currentVal = val;
         rowCache.currentOwned = owned;
     }
@@ -657,7 +794,15 @@ function createSellRow(matKey, index) {
         }
 
         const totalValue = amt.mulBigNumInteger(rowCache.currentVal);
-        bank.scrap.add(totalValue);
+        const isRubbleMode = isCollapseChallengeActive() && sellPanelDomCache.isRubbleSellMode();
+        if (isRubbleMode) {
+            if (bank.rubble) {
+                bank.rubble.add(totalValue);
+            }
+        } else {
+            bank.scrap.add(totalValue);
+        }
+        
         playPurchaseSfx();
         updateSellTab();
         // Visual items spawn
