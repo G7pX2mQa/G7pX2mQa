@@ -1,7 +1,11 @@
 import { lsSetItem, lsGetItem } from "../../main.js";
 import { getActiveSlot } from "../../util/storage.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
-import { setupDragToClose } from "../shopOverlay.js";
+import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
+import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
+import { isBuildingUnlocked } from "./buildingsTab.js";
+import { BigNum } from "../../util/bigNum.js";
+import { formatNumber } from "../../util/numFormat.js";
 
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
@@ -36,6 +40,308 @@ if (typeof window !== "undefined") {
     window.addEventListener("unlock:change", invalidateCollapseCache);
 }
 
+let overlayEl = null;
+let lastChallengeOpenTime = 0;
+let lastMysteriousOpenTime = 0;
+
+function applyChallengeOverlayTransition(sheet, transition = "transform var(--shop-anim)") {
+    if (!sheet) return;
+    sheet.style.transition = transition;
+}
+
+function openChallengeOverlaySheet(overlay, sheet) {
+    if (!overlay || !sheet) return;
+    applyChallengeOverlayTransition(sheet);
+    overlay.classList.add("is-open");
+    overlay.style.pointerEvents = "auto";
+    sheet.style.transform = "translateY(100%)";
+    void sheet.offsetHeight;
+    sheet.style.transform = "translateY(0)";
+}
+
+function finishChallengeOverlayClose(overlay, onClosed) {
+    const delay = document.body.classList.contains("no-overlay-transitions") ? 0 : 120;
+    setTimeout(() => {
+        overlay.classList.remove("is-open");
+        if (typeof onClosed === "function") onClosed();
+    }, delay);
+}
+
+function ensureMysteriousChallengeOverlay() {
+    if (document.getElementById("mysterious-challenge-overlay")) return;
+    const overlay = document.createElement("div");
+    overlay.id = "mysterious-challenge-overlay";
+    overlay.className = "upg-overlay";
+    const sheet = document.createElement("div");
+    sheet.className = "upg-sheet";
+    applyChallengeOverlayTransition(sheet);
+    sheet.style.display = "flex";
+    sheet.style.flexDirection = "column";
+    const grabber = document.createElement("div");
+    grabber.className = "upg-grabber";
+    grabber.innerHTML = `<div class="grab-handle"></div>`;
+    grabber.style.zIndex = "1";
+    const header = document.createElement("header");
+    header.className = "upg-header";
+    header.style.zIndex = "1";
+    header.style.background = "transparent";
+    header.style.borderBottom = "none";
+    const content = document.createElement("div");
+    content.className = "upg-content shop-scroller";
+    const actions = document.createElement("div");
+    actions.className = "upg-actions";
+    sheet.append(grabber, header, content, actions);
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    ensureCustomScrollbar(overlay, sheet, ".shop-scroller");
+    overlay.addEventListener("pointerdown", (e) => {
+        if (e.target === overlay) {
+            if (Date.now() - lastMysteriousOpenTime < 300) return;
+            closeMysteriousChallengeOverlay();
+        }
+    });
+    setupDragToClose(grabber, sheet, () => overlay.classList.contains("is-open"), closeMysteriousChallengeOverlay);
+}
+
+function openMysteriousChallengeOverlay(mysteriousText) {
+    const existingOverlay = document.getElementById("mysterious-challenge-overlay");
+    if (existingOverlay && existingOverlay.classList.contains("is-open")) return;
+    lastMysteriousOpenTime = Date.now();
+    ensureMysteriousChallengeOverlay();
+    const overlay = document.getElementById("mysterious-challenge-overlay");
+    const sheet = overlay.querySelector(".upg-sheet");
+    const header = overlay.querySelector(".upg-header");
+    const content = overlay.querySelector(".upg-content");
+    const actions = overlay.querySelector(".upg-actions");
+    header.innerHTML = `
+        <div class="upg-title">Hidden Challenge</div>
+    `;
+    content.innerHTML = `
+        <div class="upg-desc centered lock-desc">${mysteriousText}</div>
+    `;
+    actions.innerHTML = `
+        <button type="button" class="shop-close">Close</button>
+    `;
+    const closeBtn = actions.querySelector(".shop-close");
+    closeBtn.addEventListener("click", closeMysteriousChallengeOverlay);
+    openChallengeOverlaySheet(overlay, sheet);
+}
+
+function closeMysteriousChallengeOverlay() {
+    const overlay = document.getElementById("mysterious-challenge-overlay");
+    if (!overlay) return;
+    if (overlay.style.pointerEvents === "none") return;
+    overlay.style.pointerEvents = "none";
+    const sheet = overlay.querySelector(".upg-sheet");
+    applyChallengeOverlayTransition(sheet);
+    sheet.style.transform = "translateY(100%)";
+    finishChallengeOverlayClose(overlay);
+}
+
+function initChallengeOverlay() {
+    if (document.getElementById("collapse-challenge-overlay")) return;
+    overlayEl = document.createElement("div");
+    overlayEl.id = "collapse-challenge-overlay";
+    overlayEl.className = "upg-overlay";
+    overlayEl.style.zIndex = "9999";
+    const sheet = document.createElement("div");
+    sheet.className = "upg-sheet";
+    applyChallengeOverlayTransition(sheet);
+    sheet.style.display = "flex";
+    sheet.style.flexDirection = "column";
+
+    const grabber = document.createElement("div");
+    grabber.className = "upg-grabber";
+    grabber.innerHTML = `<div class="grab-handle"></div>`;
+    grabber.style.zIndex = "1";
+    
+    const header = document.createElement("header");
+    header.className = "upg-header";
+    header.style.zIndex = "1";
+    header.style.background = "transparent";
+    header.style.borderBottom = "none";
+    
+    const content = document.createElement("div");
+    content.className = "upg-content shop-scroller";
+    content.style.flex = "1";
+    content.style.display = "flex";
+    content.style.flexDirection = "column";
+    content.style.zIndex = "1";
+    
+    const actions = document.createElement("div");
+    actions.className = "upg-actions";
+    actions.style.zIndex = "1";
+    actions.style.display = "flex";
+    actions.style.gap = "10px";
+    actions.style.flexWrap = "wrap";
+    actions.style.justifyContent = "center";
+    
+    const btnClose = document.createElement("button");
+    btnClose.type = "button";
+    btnClose.className = "shop-close";
+    btnClose.textContent = "Close";
+    actions.appendChild(btnClose);
+    
+    sheet.append(grabber, header, content, actions);
+    overlayEl.appendChild(sheet);
+    document.body.appendChild(overlayEl);
+    
+    ensureCustomScrollbar(overlayEl, sheet, ".shop-scroller");
+    
+    overlayEl.addEventListener("pointerdown", (e) => {
+        if (e.target === overlayEl) {
+            if (Date.now() - lastChallengeOpenTime < 300) return;
+            closeChallengeOverlay();
+        }
+    });
+    
+    setupDragToClose(
+        grabber,
+        sheet,
+        () => overlayEl.classList.contains("is-open"),
+        closeChallengeOverlay
+    );
+    
+    btnClose.addEventListener("click", closeChallengeOverlay);
+}
+
+function openChallengeOverlay(id) {
+    if (overlayEl && overlayEl.classList.contains("is-open")) return;
+    lastChallengeOpenTime = Date.now();
+    initChallengeOverlay();
+    
+    const sheet = overlayEl.querySelector(".upg-sheet");
+    const header = overlayEl.querySelector(".upg-header");
+    const content = overlayEl.querySelector(".upg-content");
+    
+    header.innerHTML = `<div class="upg-title">Challenge of Stone</div>`;
+    
+    const desc = document.createElement("div");
+    desc.className = "collapse-overlay-desc";
+    
+    const formattedNum = formatNumber(BigNum.fromAny("1e100"));
+    
+    desc.innerHTML = `Welcome to Collapse Challenges; there are 10 total Collapse Challenges you must complete
+Collapse Challenge completions are permanent (never will be reset) and each completion unlocks something new
+
+The Challenge of Stone; the first Collapse Challenge
+Starting a Collapse Challenge resets everything Compress does as well as Crystals and the Crystal Building
+Once you have started this Collapse Challenge, visit the Sell tab for required information to complete it (important)
+
+This first Collapse Challenge will be easy because the Lab is not reset, so recovery will be fast
+
+Effect: Coin value is divided by ${formattedNum}x
+Goal: Reach Pressure: 31atm
+Reward: An upgrade which unlocks the third area + new automation upgrade`.trim();
+
+    const btnWrapper = document.createElement("div");
+    btnWrapper.className = "collapse-btn-wrapper";
+    const startBtn = document.createElement("button");
+    startBtn.className = "collapse-start-btn";
+    startBtn.textContent = "Start Challenge of Stone";
+    btnWrapper.appendChild(startBtn);
+
+    const centerWrapper = document.createElement("div");
+    centerWrapper.style.display = "flex";
+    centerWrapper.style.flexDirection = "column";
+    centerWrapper.style.alignItems = "center";
+    centerWrapper.style.width = "100%";
+
+    centerWrapper.appendChild(desc);
+    centerWrapper.appendChild(btnWrapper);
+
+    content.innerHTML = "";
+    content.appendChild(centerWrapper);
+    
+    openChallengeOverlaySheet(overlayEl, sheet);
+}
+
+function closeChallengeOverlay() {
+    if (!overlayEl) return;
+    if (overlayEl.style.pointerEvents === "none") return;
+    overlayEl.style.pointerEvents = "none";
+    const sheet = overlayEl.querySelector(".upg-sheet");
+    applyChallengeOverlayTransition(sheet);
+    sheet.style.transform = "translateY(100%)";
+    finishChallengeOverlayClose(overlayEl);
+}
+
+export function renderCollapseGrid(gridEl) {
+    gridEl.innerHTML = "";
+    
+    if (!UC_MATERIAL_DATA || !Array.isArray(UC_MATERIAL_DATA) || UC_MATERIAL_DATA.length === 0) {
+        return;
+    }
+
+    for (let i = 0; i < 10; i++) {
+        const mat = UC_MATERIAL_DATA[i];
+        if (!mat) break;
+        
+        const isFirst = i === 0;
+        const isLocked = !isFirst;
+        
+        const btn = document.createElement("button");
+        btn.className = "shop-upgrade";
+        if (isLocked) {
+            btn.classList.add("is-locked");
+        }
+        btn.type = "button";
+        
+        const tile = document.createElement("div");
+        tile.className = "shop-tile";
+        
+        const baseImg = document.createElement("img");
+        baseImg.className = "base";
+        baseImg.src = isLocked ? "img/misc/mysterious_plus_base.webp" : "img/currencies/scrap/scrap_base.webp";
+        baseImg.alt = "";
+        baseImg.draggable = false;
+        
+        const iconImg = document.createElement("img");
+        iconImg.className = "icon";
+        iconImg.src = `img/materials/${mat.name}.webp`;
+        iconImg.alt = "";
+        iconImg.draggable = false;
+        if (isLocked) {
+            iconImg.style.display = "none";
+            iconImg.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="; // Transparent 1x1 gif
+        }
+        
+        tile.appendChild(baseImg);
+        tile.appendChild(iconImg);
+        
+        if (!isLocked) {
+            const fractureImg = document.createElement("img");
+            fractureImg.className = "fracture-overlay";
+            fractureImg.src = "img/misc/fracture_pattern.webp";
+            fractureImg.alt = "";
+            fractureImg.draggable = false;
+            tile.appendChild(fractureImg);
+        }
+        
+        btn.appendChild(tile);
+        
+        if (isLocked) {
+            const buildingUnlocked = isBuildingUnlocked(mat.name);
+            const properName = buildingUnlocked 
+                ? mat.name.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+                : "[Unknown]";
+            
+            const mysteriousText = `You will know when you are ready to attempt the Challenge of ${properName}`;
+            btn.title = "Hidden Challenge";
+            btn.addEventListener("click", () => {
+                openMysteriousChallengeOverlay(mysteriousText);
+            });
+        } else {
+            btn.title = "Challenge of Stone";
+            btn.addEventListener("click", () => {
+                openChallengeOverlay('stone');
+            });
+        }
+        
+        gridEl.appendChild(btn);
+        }
+}
+
 export function initCollapsePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl) {
     // Create tab button
     const tabBtn = document.createElement("button");
@@ -52,16 +358,16 @@ export function initCollapsePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWr
     panel.className = "merchant-panel collapse-tab";
     panel.dataset.panel = "collapse";
 
-    const content = document.createElement("div");
-    content.className = "merchant-content";
+    const scroller = document.createElement("div");
+    scroller.className = "shop-scroller";
+    scroller.style.position = "relative";
 
-    // Add temporary empty content for now as per requirements
-    const emptyText = document.createElement("div");
-    emptyText.textContent = "Collapse tab content coming soon.";
-    emptyText.className = "collapse-empty-text";
+    const grid = document.createElement("div");
+    grid.className = "shop-grid collapse-grid";
+    grid.setAttribute("role", "grid");
     
-    content.appendChild(emptyText);
-    panel.appendChild(content);
+    scroller.appendChild(grid);
+    panel.appendChild(scroller);
 
     const grabber = document.createElement("div");
     grabber.className = "merchant-grabber";
@@ -92,9 +398,15 @@ export function initCollapsePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWr
 
         tabBtn.classList.add("is-active");
         panel.classList.add("is-active");
+        
+        renderCollapseGrid(grid);
     });
 
     updateCollapsePanelVisibility(minerSheetEl);
+    
+    if (isCollapseUnlocked()) {
+        renderCollapseGrid(grid);
+    }
 }
 
 export function updateCollapsePanelVisibility(minerSheetEl) {
