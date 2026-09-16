@@ -35,6 +35,72 @@ export function muteSpawnVesselSounds(durationMs) {
     activeSpawnVesselAudios.clear();
 }
 
+let suspendTimeout = null;
+
+/**
+ * Suspends (pauses) all game audio for the given duration.
+ * The AudioContext is suspended so all sources freeze in place, then resumed after durationMs.
+ * @param {number} durationMs - Duration in milliseconds to keep audio suspended.
+ * @returns {Promise<void>} Resolves when audio has been resumed.
+ */
+export function suspendAllAudioFor(durationMs, fadeDurationMs = 0) {
+    const ctx = getAudioContext();
+    if (!ctx) return Promise.resolve();
+    
+    if (suspendTimeout) {
+        clearTimeout(suspendTimeout);
+        suspendTimeout = null;
+    }
+    
+    window._isAudioExplicitlySuspended = true;
+    
+    const timeBeforeResume = Math.max(0, durationMs - fadeDurationMs);
+    
+    return ctx.suspend().then(() => {
+        return new Promise((resolve) => {
+            suspendTimeout = setTimeout(() => {
+                if (fadeDurationMs > 0 && masterGain) {
+                    const targetVol = (settingsManager.get('master_volume') !== false ? settingsManager.get('master_volume') : 100) / 100;
+                    const now = ctx.currentTime;
+                    try {
+                        masterGain.gain.cancelScheduledValues(now);
+                        masterGain.gain.setValueAtTime(0, now);
+                        masterGain.gain.linearRampToValueAtTime(targetVol, now + fadeDurationMs / 1000);
+                    } catch {}
+                }
+                
+                const finishSuspension = () => {
+                    suspendTimeout = null;
+                    window._isAudioExplicitlySuspended = false;
+                    if (fadeDurationMs > 0 && masterGain) {
+                        const targetVol = (settingsManager.get('master_volume') !== false ? settingsManager.get('master_volume') : 100) / 100;
+                        try {
+                            masterGain.gain.cancelScheduledValues(ctx.currentTime);
+                            masterGain.gain.value = targetVol;
+                        } catch {}
+                    }
+                    resolve();
+                };
+                
+                if (!document.hidden) {
+                    ctx.resume().then(() => {
+                        if (fadeDurationMs > 0) {
+                            suspendTimeout = setTimeout(finishSuspension, fadeDurationMs);
+                        } else {
+                            finishSuspension();
+                        }
+                    }).catch(finishSuspension);
+                } else {
+                    finishSuspension();
+                }
+            }, timeBeforeResume);
+        });
+    }).catch(() => {
+        window._isAudioExplicitlySuspended = false;
+    });
+}
+
+
 // Helper to get or create context
 function getAudioContext() {
   if (audioContext) return audioContext;
@@ -118,6 +184,7 @@ let lastInteractionTime = 0;
 // "Warm" the context on user interaction
 function warm() {
   lastInteractionTime = Date.now();
+  if (window._isAudioExplicitlySuspended) return;
   if (audioContext && audioContext.state === 'suspended') {
     audioContext.resume().catch(() => {});
   }
@@ -216,7 +283,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
     
     // Try Web Audio first
     if (ctx) {
-        if (ctx.state === 'suspended' && !document.hidden) ctx.resume().catch(()=>{});
+        if (ctx.state === 'suspended' && !document.hidden && !window._isAudioExplicitlySuspended) ctx.resume().catch(()=>{});
         
         const buffer = buffers.get(url);
         if (buffer) {
@@ -494,7 +561,7 @@ export function setAudioSuspended(suspended) {
         const mv = settingsManager.get('master_volume');
         setMasterVolume(mv !== undefined && mv !== false ? mv : 100);
       }
-      if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
+      if (audioContext.state === 'suspended' && !window._isAudioExplicitlySuspended) audioContext.resume().catch(()=>{});
     }
   }
 }
