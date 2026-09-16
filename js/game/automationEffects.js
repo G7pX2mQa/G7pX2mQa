@@ -639,23 +639,40 @@ registerPassiveSystem({
         else if (autoSellLevel === 3)
             eff = 0.01; // 1%
         else if (autoSellLevel >= 4) eff = 1.0;
+        
+        // Check for Rubble mode
+        let isRubbleMode = false;
+        if (window.resetSystem && window.resetSystem.isCollapseChallengeActive && window.resetSystem.isCollapseChallengeActive()) {
+            try {
+                const slot = getActiveSlot();
+                isRubbleMode = lsGetItem(`ccc:sellTypeRubble:${slot}`) === "1";
+            } catch {}
+        }
+        
         // User efficiency mult is handled by system wrapper now
         const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
-        let totalScrapGain = BigNum.fromInt(0);
+        let totalGainPerTick = BigNum.fromInt(0);
         for (let j = 0; j < UC_MATERIALS.length; j++) {
             const matKey = UC_MATERIALS[j];
             const matData = UC_MATERIAL_DATA[j];
             if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
                 const owned = bank[matKey].value;
-                const materialValue = BigNum.fromAny(matData.value || 0);
-                const valPerMaterial = materialValue
-                    .mulBigNumInteger(scrapMultiplier)
-                    .mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
-                const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
-                if (eff === 1.0) {
-                    totalScrapGain = totalScrapGain.add(potentialScrap);
+                let potentialOutput;
+                
+                if (isRubbleMode) {
+                    potentialOutput = owned;
                 } else {
-                    totalScrapGain = totalScrapGain.add(potentialScrap.mulDecimal(eff));
+                    const materialValue = BigNum.fromAny(matData.value || 0);
+                    const valPerMaterial = materialValue
+                        .mulBigNumInteger(scrapMultiplier)
+                        .mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
+                    potentialOutput = owned.mulBigNumInteger(valPerMaterial);
+                }
+                
+                if (eff === 1.0) {
+                    totalGainPerTick = totalGainPerTick.add(potentialOutput);
+                } else {
+                    totalGainPerTick = totalGainPerTick.add(potentialOutput.mulDecimal(eff));
                 }
             }
         }
@@ -669,7 +686,7 @@ registerPassiveSystem({
             totalGain = BigNum.fromInt(0);
         } else {
             // Calculate the actual floored per-second gain including efficiency
-            let perSecGain = totalScrapGain.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE)).floorToInteger();
+            let perSecGain = totalGainPerTick.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE)).floorToInteger();
             // Since efficiency is already applied to collectCount, we need to divide it back out for the per-tick accumulator
             let effectiveTickCount = collectCount / autoSellMult;
             totalGain = perSecGain.mulDecimal(effectiveTickCount / TICK_RATE);
@@ -678,8 +695,14 @@ registerPassiveSystem({
         scrapAutoSellAccumulator = scrapAutoSellAccumulator.add(totalGain);
         const toAdd = scrapAutoSellAccumulator.floorToInteger();
         if (toAdd.cmp(0) > 0) {
-            if (!toAdd.isInfinite?.() || !bank.scrap.value.isInfinite?.()) {
-                bank.scrap.add(toAdd);
+            if (isRubbleMode) {
+                if (bank.rubble && (!toAdd.isInfinite?.() || !bank.rubble.value.isInfinite?.())) {
+                    bank.rubble.add(toAdd);
+                }
+            } else {
+                if (!toAdd.isInfinite?.() || !bank.scrap.value.isInfinite?.()) {
+                    bank.scrap.add(toAdd);
+                }
             }
             scrapAutoSellAccumulator = scrapAutoSellAccumulator.sub(toAdd);
         }
@@ -691,23 +714,39 @@ registerPassiveSystem({
         else if (autoSellLevel === 2) eff = 0.0001;
         else if (autoSellLevel === 3) eff = 0.01;
         else if (autoSellLevel >= 4) eff = 1.0;
+        
+        let isRubbleMode = false;
+        if (window.resetSystem && window.resetSystem.isCollapseChallengeActive && window.resetSystem.isCollapseChallengeActive()) {
+            try {
+                const slot = getActiveSlot();
+                isRubbleMode = lsGetItem(`ccc:sellTypeRubble:${slot}`) === "1";
+            } catch {}
+        }
+        
         // User efficiency mult is handled by system wrapper now
         const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
-        let totalScrapGainPerTick = BigNum.fromInt(0);
+        let totalGainPerTick = BigNum.fromInt(0);
         for (let j = 0; j < UC_MATERIALS.length; j++) {
             const matKey = UC_MATERIALS[j];
             const matData = UC_MATERIAL_DATA[j];
             if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
                 const owned = bank[matKey].value;
-                const materialValue = BigNum.fromAny(matData.value || 0);
-                const valPerMaterial = materialValue
-                    .mulBigNumInteger(scrapMultiplier)
-                    .mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
-                const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
-                if (eff === 1.0) {
-                    totalScrapGainPerTick = totalScrapGainPerTick.add(potentialScrap);
+                let potentialOutput;
+                
+                if (isRubbleMode) {
+                    potentialOutput = owned;
                 } else {
-                    totalScrapGainPerTick = totalScrapGainPerTick.add(potentialScrap.mulDecimal(eff));
+                    const materialValue = BigNum.fromAny(matData.value || 0);
+                    const valPerMaterial = materialValue
+                        .mulBigNumInteger(scrapMultiplier)
+                        .mulScaledIntFloor(1, BigNum.DEFAULT_PRECISION);
+                    potentialOutput = owned.mulBigNumInteger(valPerMaterial);
+                }
+                
+                if (eff === 1.0) {
+                    totalGainPerTick = totalGainPerTick.add(potentialOutput);
+                } else {
+                    totalGainPerTick = totalGainPerTick.add(potentialOutput.mulDecimal(eff));
                 }
             }
         }
@@ -715,20 +754,38 @@ registerPassiveSystem({
         const autoSellSetting = settingsManager.get("auto_sell_efficiency");
         const autoSellMult = autoSellSetting !== undefined ? autoSellSetting / 100 : 1;
 
-        let totalOfflineScrap;
+        let totalOfflineGain;
         if (autoSellMult === 0) {
-            totalOfflineScrap = BigNum.fromInt(0);
+            totalOfflineGain = BigNum.fromInt(0);
         } else {
-            let perSecGain = totalScrapGainPerTick.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE)).floorToInteger();
+            let perSecGain = totalGainPerTick.mulDecimal(autoSellMult).mulBigNumInteger(BigNum.fromAny(TICK_RATE)).floorToInteger();
             
             // Since totalPassives includes efficiency already, we extract ticks
             let ticks = totalPassives / autoSellMult;
-            totalOfflineScrap = perSecGain
+            totalOfflineGain = perSecGain
                 .mulDecimal(ticks / TICK_RATE)
                 .floorToInteger();
         }
-        if (totalOfflineScrap.cmp(0) > 0) {
-            return { scrap: totalOfflineScrap };
+        if (totalOfflineGain.cmp(0) > 0) {
+            if (isRubbleMode) {
+                if (bank.rubble) {
+                    bank.rubble.add(totalOfflineGain);
+                    if (isPpSystemUnlocked()) {
+                        let rewards = { rubble: totalOfflineGain };
+                        rewards.pp = totalPassives;
+                        return rewards;
+                    }
+                    return { rubble: totalOfflineGain };
+                }
+            } else {
+                bank.scrap.add(totalOfflineGain);
+                if (isPpSystemUnlocked()) {
+                    let rewards = { scrap: totalOfflineGain };
+                    rewards.pp = totalPassives;
+                    return rewards;
+                }
+                return { scrap: totalOfflineGain };
+            }
         }
         return {};
     },
