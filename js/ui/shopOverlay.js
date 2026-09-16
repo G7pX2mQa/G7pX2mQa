@@ -52,6 +52,7 @@ import {
     getCollectiveAutobuyerState,
 } from "../game/automationEffects.js";
 import { DNA_AREA_KEY } from "../game/dnaUpgrades.js";
+import { RUBBLE_AREA_KEY } from "../game/rubbleUpgrades.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
 import { parseBigNumInput } from "../util/debugPanel.js";
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
@@ -225,6 +226,19 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards("rainbow_gem_shop", id, amount),
         getLockState: (id) => getUpgradeLockState("rainbow_gem_shop", id),
         evolve: (id) => evolveUpgrade("rainbow_gem_shop", id),
+        events: ["ccc:upgrades:changed", "currency:change"],
+    },
+    rubble: {
+        title: "Rubble Upgrades",
+        delveButtonVisible: false,
+        getUiData: () => getShopUiData(RUBBLE_AREA_KEY),
+        getUiModel: (id) => upgradeUiModel(RUBBLE_AREA_KEY, id),
+        buyOne: (id) => buyOne(RUBBLE_AREA_KEY, id),
+        buyMax: (id) => buyMax(RUBBLE_AREA_KEY, id),
+        buyCheap: (id) => buyCheap(RUBBLE_AREA_KEY, id),
+        buyNext: (id, amount) => buyTowards(RUBBLE_AREA_KEY, id, amount),
+        getLockState: (id) => getUpgradeLockState(RUBBLE_AREA_KEY, id),
+        evolve: () => ({ evolved: false }),
         events: ["ccc:upgrades:changed", "currency:change"],
     },
 };
@@ -1481,6 +1495,7 @@ const shops = {
     standard: new ShopInstance("standard"),
     automation: new ShopInstance("automation"),
     dna: new ShopInstance("dna"),
+    rubble: new ShopInstance("rubble"),
 };
 
 export function openShop(mode = "standard") {
