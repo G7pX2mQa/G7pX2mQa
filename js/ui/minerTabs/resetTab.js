@@ -10,8 +10,7 @@ import {
 } from "../../util/storage.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { getDpState, isDpSystemUnlocked, resetDpProgress } from "../../game/dpSystem.js";
-import { isPpSystemUnlocked } from "../../game/ppSystem.js";
-import { unlockPpSystem } from "../../game/ppSystem.js";
+import { isPpSystemUnlocked, resetPpProgress, unlockPpSystem } from "../../game/ppSystem.js";
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../../util/bigNum.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { resetUcEacAccumulator } from "../../game/automationEffects.js";
@@ -250,6 +249,70 @@ export function performCompressReset() {
             playPrismaticPickaxeCinematic(resetState.elements.compress.btn);
         }).catch(() => {});
     }
+    
+    return true;
+}
+
+export function performCollapseReset(slot = getActiveSlot()) {
+    // 1. Wipe everything Combine does
+    applyCombineResetLogic({ playSurgeEffects: false });
+
+    // 1.5. Wipe Pressure / PP
+    try {
+        if (typeof resetPpProgress === "function") {
+            resetPpProgress({ keepUnlock: true });
+        }
+    } catch {}
+
+    // 2. Wipe Cores
+    try {
+        if (bank.CORES?.set) bank.CORES.set(0);
+    } catch {}
+
+    // 3. Wipe ALL buildings, including Crystal
+    const isBuildingsUnl = isBuildingsUnlocked();
+    if (isBuildingsUnl) {
+        if (typeof localStorage !== "undefined") {
+            for (const buildingId of BUILDING_IDS) {
+                lsRemoveItem(`ccc:buildingLevel:${buildingId}:${slot}`);
+            }
+        }
+        try {
+            if (typeof window !== "undefined") {
+                if (window.resetSystem?.updateBuildingsPanelVisibility) {
+                    window.resetSystem.updateBuildingsPanelVisibility();
+                }
+                if (window.resetSystem?.updateBuildingsOverlayUi) {
+                    window.resetSystem.updateBuildingsOverlayUi();
+                }
+            }
+        } catch {}
+    }
+
+    // 4. Wipe Crystals
+    try {
+        if (bank.CRYSTALS?.set) bank.CRYSTALS.set(0);
+    } catch {}
+
+    // 5. Set surge to 200
+    try {
+        const surgeKey = getSurgeBarLevelKey(slot);
+        lsSetItem(surgeKey, "200");
+        window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: 200, isCompressReset: true } }));
+        window.dispatchEvent(
+            new CustomEvent("level:change", { detail: { prefix: "waves", level: 200, isUnlocked: true } }),
+        );
+    } catch {}
+
+    // 6. Reset waves to 0
+    try {
+        if (bank.waves?.set) bank.waves.set(0);
+    } catch {}
+
+    // 7. Dispatch compress reset event
+    try {
+        window.dispatchEvent(new CustomEvent("compress:reset", { detail: { slot } }));
+    } catch {}
     
     return true;
 }
