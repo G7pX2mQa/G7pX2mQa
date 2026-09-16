@@ -26,6 +26,7 @@ import {
 import { getEacAmountMultiplier } from "./automationEffects.js";
 import { REGISTRY as DNA_REGISTRY, DNA_AREA_KEY } from "./dnaUpgrades.js";
 import { RAINBOW_GEM_UPGRADES, RAINBOW_GEM_AREA_KEY } from "./rainbowGemUpgrades.js";
+import { RUBBLE_REGISTRY, RUBBLE_AREA_KEY } from "./rubbleUpgrades.js";
 import {
     invalidateEffectsCache,
     triggerUpgradesChanged,
@@ -54,6 +55,7 @@ export const AREA_KEYS = {
     AUTOMATION: AUTOMATION_AREA_KEY,
     DNA: DNA_AREA_KEY,
     RAINBOW_GEM_SHOP: RAINBOW_GEM_AREA_KEY,
+    RUBBLE: RUBBLE_AREA_KEY,
 };
 
 let isBatching = false;
@@ -2986,6 +2988,7 @@ export const REGISTRY = [
     ...DNA_REGISTRY,
     ...RAINBOW_GEM_UPGRADES,
     ...UC_REGISTRY,
+    ...RUBBLE_REGISTRY,
 ];
 for (const upg of REGISTRY) {
     const tieKey = normalizeUpgradeTie(upg.tie ?? upg.tieKey);
