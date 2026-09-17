@@ -289,7 +289,6 @@ export function ensureMapOverlay(unlockedNodeId = null) {
             if (typeof window !== "undefined") {
                 window.__wasJustMapSequence = false;
             }
-            if (IS_MOBILE) blockInteraction(500);
             requestAnimationFrame(() => {
                 closeMapOverlay(overlay, sheet);
                 if (window.spawner && typeof window.spawner.stopAllWaveSounds === "function") {
