@@ -687,7 +687,7 @@
 }
 
 /* Ensure Custom Scrollbar Visible on Touch for Surge Milestones */
-@media (hover: none) and (pointer: coarse) {
+html.is-mobile {
   .surge-milestone-wrapper .shop-scrollbar {
     opacity: 1 !important;
     pointer-events: auto !important;
@@ -846,7 +846,6 @@
   white-space: normal;
   line-height: 1.1;
   text-align: center;
-  box-sizing: border-box;
 
   /* Double Helix Animation */
   position: relative;
@@ -912,7 +911,7 @@
         max-width: none;
     }
 }
-@media(pointer: coarse) {
+html.is-mobile {
     .btn-dna-shop .dna-label {
         -webkit-text-stroke: 0 !important;
         text-stroke: 0 !important;
