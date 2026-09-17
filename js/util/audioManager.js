@@ -258,6 +258,11 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         }
     }
  
+    let applyMobileReduction = IS_MOBILE && (type === 'sfx' || type === 'ui' || type === 'spawn_vessel');
+    if (applyMobileReduction) {
+        volume *= 0.7;
+    }
+    
     let isSpawnVessel = false;
     let originalBaseVolume = volume;
     if (type === 'spawn_vessel') {
@@ -354,6 +359,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
             },
             source,
             gainNode, type, originalPlaybackRate: playbackRate, get baseVolume() { return currentBaseVolume; }, setVolume: (newVolumeBase) => {
+                if (applyMobileReduction) newVolumeBase *= 0.7;
                 currentBaseVolume = newVolumeBase;
                 let actualVolume = newVolumeBase;
                 if (isSpawnVessel) {
@@ -475,6 +481,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
           },
           get baseVolume() { return currentBaseVolume; },
           setVolume: (newVolumeBase) => {
+              if (applyMobileReduction) newVolumeBase *= 0.7;
               currentBaseVolume = newVolumeBase;
               let actualVolume = newVolumeBase;
               if (isSpawnVessel) {
