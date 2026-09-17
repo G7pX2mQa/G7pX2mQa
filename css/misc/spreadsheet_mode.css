@@ -95,7 +95,6 @@ body.spreadsheet-mode:not(.menu-bg) .merchant-scrollbar {
   opacity: 1 !important;
   pointer-events: auto !important;
   width: 10px !important;
-  box-sizing: border-box !important;
   z-index: 100 !important;
 }
 
@@ -110,7 +109,6 @@ body.spreadsheet-mode:not(.menu-bg) .merchant-scrollbar__thumb {
   background: #e0e0e0 !important;
   border: 1px solid #666 !important;
   opacity: 1 !important;
-  box-sizing: border-box !important;
   animation: none !important;
   transition: none !important;
 }
