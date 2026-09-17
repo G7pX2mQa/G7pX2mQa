@@ -2,9 +2,11 @@
 
 import { settingsManager } from './settingsManager.js';
 import { MAGNET_MOD_TO_PALETTE, injectMagnetStyles, PALETTES } from './mutationColorPalettes.js';
+import { IS_MOBILE } from '../util/platformChecker.js';
 
 export const MAGNET_UNIT_RATIO = 0.05;
 export const MAGNET_COLLECTION_BUFFER = 8; // Small buffer for collection feel
+export const PICKUP_VOLUME = IS_MOBILE ? 0.18 : 0.3;
 
 export function computeMagnetUnitPx() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return 0;
