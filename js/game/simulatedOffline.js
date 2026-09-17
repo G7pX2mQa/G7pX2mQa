@@ -480,7 +480,7 @@ function _makeLiveRow(config, key, id, name) {
         if (matched && matched.icon) iconSrc = matched.icon;
     }
     icon.src = iconSrc;
-    icon.alt = config.singular;
+    icon.alt = "";
 
     const text = document.createElement("span");
     text.className = "offline-text";
