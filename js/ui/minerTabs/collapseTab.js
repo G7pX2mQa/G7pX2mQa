@@ -88,6 +88,7 @@ function setCollapseChallengeActive(materialName, slot = getActiveSlot()) {
             lsRemoveItem(`${CHALLENGE_ACTIVE_KEY_BASE}:${slot}`);
             cachedChallengeActive[slot] = false;
         }
+        window.dispatchEvent(new CustomEvent("rubbleMode:toggled"));
     } catch {}
 }
 
