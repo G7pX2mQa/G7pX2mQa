@@ -102,7 +102,7 @@ body.is-hidden.menu-bg::before {
 .menu-header,
 .menu-panel { position: relative; z-index: 1; }
 
-@media (pointer: coarse) {
+html.is-mobile {
   * {
   -webkit-user-select: none;  /* Safari / iOS */
   -moz-user-select: none;     /* Firefox */
