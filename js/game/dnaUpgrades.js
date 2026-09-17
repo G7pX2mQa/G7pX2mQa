@@ -18,7 +18,7 @@ export const REGISTRY = [
     icon: "img/sc_upg_icons/coin_val_dna.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
     effectType: "coin_value",
-    _dnaEffectVal: 1.1,
+    _baseEffectVal: 1.1,
     _costScaling: 'HM',
     bonusLine: (level, total) => `Coin value bonus: ${formatMultForUi(total)}x`
   },
@@ -35,7 +35,7 @@ export const REGISTRY = [
     icon: "img/sc_upg_icons/xp_val_dna.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
     effectType: "xp_value",
-    _dnaEffectVal: 1.1,
+    _baseEffectVal: 1.1,
     _costScaling: 'HM',
     bonusLine: (level, total) => `XP value bonus: ${formatMultForUi(total)}x`
   },
@@ -52,7 +52,7 @@ export const REGISTRY = [
     icon: "img/sc_upg_icons/gold_val_dna.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
     effectType: "gold_value",
-    _dnaEffectVal: 1.1,
+    _baseEffectVal: 1.1,
     _costScaling: 'HM',
     bonusLine: (level, total) => `Gold value bonus: ${formatMultForUi(total)}x`,
     computeLockState(ctx) {
@@ -87,7 +87,7 @@ export const REGISTRY = [
     icon: "img/sc_upg_icons/magic_val_dna.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
     effectType: "magic_value",
-    _dnaEffectVal: 1.1,
+    _baseEffectVal: 1.1,
     _costScaling: 'HM',
     bonusLine: (level, total) => `Magic value bonus: ${formatMultForUi(total)}x`,
     computeLockState(ctx) {
@@ -122,7 +122,7 @@ export const REGISTRY = [
     icon: "img/sc_upg_icons/dna_val_dna.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
     effectType: "dna_value",
-    _dnaEffectVal: 1.1,
+    _baseEffectVal: 1.1,
     _costScaling: 'HM',
     bonusLine: (level, total) => `DNA value bonus: ${formatMultForUi(total)}x`,
     computeLockState(ctx) {
