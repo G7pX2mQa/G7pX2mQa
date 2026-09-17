@@ -450,6 +450,7 @@ function renderHelpContent(force = false) {
     const newSidebar = container.querySelector(".help-sidebar");
     if (newSidebar) {
         newSidebar.scrollLeft = savedScrollLeft;
+        ensureCustomScrollbar(overlayEl, sheetEl, ".help-sidebar", { orientation: "horizontal" });
     }
     // Add event listeners to sidebar buttons
     const buttons = container.querySelectorAll(".help-layer");
