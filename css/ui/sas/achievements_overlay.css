@@ -10,7 +10,7 @@
   justify-content: center;
 }
 
-@media (hover: none) and (pointer: coarse) {
+html.is-mobile {
   .achievements-grid {
     --grid-pad: clamp(2px, 2.5vw, 8px);
     --gap: clamp(8px, 3.5vw, 14px);
@@ -28,7 +28,6 @@
     grid-template-columns: repeat(auto-fit, minmax(var(--shop-tile), 1fr));
     padding-inline: var(--grid-pad);
     gap: var(--gap);
-    box-sizing: border-box;
   }
 }
 
