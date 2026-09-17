@@ -19,7 +19,8 @@
   user-select: none;
 }
 
-.dna-shop-overlay {
+.dna-shop-overlay,
+.rubble-shop-overlay {
   z-index: 4005;
 }
 
