@@ -508,7 +508,15 @@
     padding-top: 12px;
     margin-top: -12px; /* Pull back to edge */
     z-index: 10;
+    scrollbar-width: none; /* Firefox */
   }
+
+  .merchant-reset__sidebar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
 
   .merchant-reset__layer {
     min-width: 140px;
