@@ -413,13 +413,44 @@ function updateScrapHudCounter() {
     const amountEls = document.querySelectorAll(".scrap-amount");
     if (!amountEls.length) return;
 
+    let isRubbleMode = false;
+    if (window.resetSystem?.isCollapseChallengeActive?.()) {
+        const slot = typeof getActiveSlot === 'function' ? getActiveSlot() : null;
+        if (slot != null) {
+            try {
+                isRubbleMode = lsGetItem(`ccc:sellTypeRubble:${slot}`) === "1";
+            } catch {}
+        }
+    }
+
     let formatted = "0";
-    try {
-        formatted = bank.scrap?.fmt?.(bank.scrap.value) ?? "0";
-    } catch {}
+    let iconSrc = "img/currencies/scrap/scrap_plus_base.webp";
+
+    if (isRubbleMode) {
+        try {
+            formatted = bank.rubble?.fmt?.(bank.rubble.value) ?? "0";
+        } catch {}
+        iconSrc = "img/currencies/rubble/rubble_plus_base.webp";
+    } else {
+        try {
+            formatted = bank.scrap?.fmt?.(bank.scrap.value) ?? "0";
+        } catch {}
+    }
 
     amountEls.forEach((amountEl) => {
         setHtmlOrText(amountEl, formatted);
+        const counterWrap = amountEl.closest(".scrap-counter");
+        if (counterWrap) {
+            if (isRubbleMode) {
+                counterWrap.classList.add("is-rubble");
+            } else {
+                counterWrap.classList.remove("is-rubble");
+            }
+            const iconEl = counterWrap.querySelector(".scrap-plus");
+            if (iconEl && iconEl.src.indexOf(iconSrc) === -1) {
+                iconEl.src = iconSrc;
+            }
+        }
     });
 }
 function initScrapHudCounter() {
@@ -427,7 +458,7 @@ function initScrapHudCounter() {
     if (scrapHudListenerBound || typeof window === "undefined") return;
     scrapHudListenerBound = true;
     window.addEventListener("currency:change", (event) => {
-        if (event?.detail?.key !== "scrap") return;
+        if (event?.detail?.key !== "scrap" && event?.detail?.key !== "rubble") return;
         updateScrapHudCounter();
     });
     window.addEventListener("setting:changed", (event) => {
@@ -436,6 +467,7 @@ function initScrapHudCounter() {
         }
     });
     window.addEventListener("saveSlot:change", updateScrapHudCounter);
+    window.addEventListener("rubbleMode:toggled", updateScrapHudCounter);
 }
 
 let initResetSystemGame;
