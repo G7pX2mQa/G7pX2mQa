@@ -135,7 +135,6 @@
 }
 
 .setting-toggle-label {
-  box-sizing: border-box;
   display: flex;
   align-items: center;
   width: 100px;
@@ -179,7 +178,7 @@
   align-items: center;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
   .setting-toggle-label::before {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
@@ -198,7 +197,6 @@
   left: 0;
   width: 50%;
   height: 100%;
-  box-sizing: border-box;
   background: repeating-linear-gradient(
     90deg,
     transparent,
@@ -233,7 +231,7 @@
   text-shadow: none;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
   .setting-toggle-input:checked + .setting-toggle-label::before {
     text-shadow:
       0     0.5px 0 #000,   0    -0.5px 0 #000,
@@ -289,7 +287,6 @@
   height: 12px;
   border-radius: 6px;
   border: 1px solid #555;
-  box-sizing: border-box;
   /* Vibrant colors: #ff2a2a, #ffea00, #24e524 */
   background-image: linear-gradient(to right, transparent var(--slider-progress, 50%), #333 var(--slider-progress, 50%)), linear-gradient(to right, #ff2a2a, #ffea00 50%, #24e524);
   background-color: #333;
@@ -338,7 +335,6 @@
 .setting-slider-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  box-sizing: border-box;
   width: var(--thumb-size);
   height: var(--thumb-size);
   border-radius: 50%;
@@ -355,7 +351,6 @@
 }
 
 .setting-slider-input::-moz-range-thumb {
-  box-sizing: border-box;
   width: var(--thumb-size);
   height: var(--thumb-size);
   border-radius: 50%;
@@ -415,7 +410,7 @@
   text-shadow: none;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
   .setting-slider-thumb-label {
     /* Mobile fake text stroke (FTS) */
     -webkit-text-stroke: 0 !important;
