@@ -411,7 +411,7 @@ height: var(--coin-h);
 width: 100%;
 border: var(--coin-outline) solid #000;
 border-radius: 0;
-background: linear-gradient(180deg,#ffd34c,#ffb800);
+background: #ffb800 linear-gradient(180deg,#ffd34c,#ffb800);
 
 display:flex;
 align-items:center;
@@ -1133,7 +1133,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   }
 }
 .scrap-bar {
-  background: linear-gradient(180deg, #666666, #555555);
+  background: #555555 linear-gradient(180deg, #666666, #555555);
 }
 
 .area:not(.area-cove) [data-xp-hud],
