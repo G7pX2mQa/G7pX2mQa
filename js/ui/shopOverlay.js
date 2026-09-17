@@ -70,6 +70,7 @@ const BASE_ICON_SRC_BY_COST = {
     gears: "img/currencies/gear/gear_base.webp",
     dna: "img/currencies/dna/dna_base.webp",
     scrap: "img/currencies/scrap/scrap_base.webp",
+    rubble: "img/currencies/rubble/rubble_base.webp",
 };
 
 const LOCKED_BASE_ICON_SRC = "img/misc/locked_base.webp";
@@ -85,6 +86,7 @@ const CURRENCY_ICON_SRC = {
     dna: "img/currencies/dna/dna.webp",
     scrap: "img/currencies/scrap/scrap.webp",
     rainbowGems: "img/currencies/rainbow_gem.webp",
+    rubble: "img/currencies/rubble/rubble.webp",
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
@@ -418,24 +420,15 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     let scrollTimeout = null;
     const updateBounds = () => {
         if (!scroller.isConnected || !sheetEl.isConnected) return;
+        if (!isVertical) return;
         const scrollerRect = scroller.getBoundingClientRect();
         const sheetRect = sheetEl.getBoundingClientRect();
-        if (isVertical) {
-            const top = Math.max(0, scrollerRect.top - sheetRect.top);
-            const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
-            bar.style.top = top + "px";
-            bar.style.bottom = bottom + "px";
-            bar.style.left = "";
-            bar.style.right = "";
-        } else {
-            const left = Math.max(0, scrollerRect.left - sheetRect.left);
-            const right = Math.max(0, sheetRect.right - scrollerRect.right);
-            bar.style.left = left + "px";
-            bar.style.right = right + "px";
-            bar.style.top = "";
-            bar.style.bottom = "";
-            bar.style.height = "";
-        }
+        const top = Math.max(0, scrollerRect.top - sheetRect.top);
+        const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
+        bar.style.top = top + "px";
+        bar.style.bottom = bottom + "px";
+        bar.style.left = "";
+        bar.style.right = "";
     };
 
     const updateMetrics = () => {
@@ -577,12 +570,12 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     if (scroller.__customScroll) scroller.__customScroll.update = updateAll;
     // Debounce for mutation observer to prevent layout thrashing on frequent updates
     let debounceTimer;
-    const debouncedUpdateAll = () => {
+    const debouncedUpdateMetrics = () => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(updateAll, 100);
+        debounceTimer = setTimeout(updateMetrics, 100);
     };
     if (typeof MutationObserver !== "undefined") {
-        obs = new MutationObserver(() => debouncedUpdateAll());
+        obs = new MutationObserver(() => debouncedUpdateMetrics());
         obs.observe(scroller, { childList: true, subtree: true, characterData: true });
     }
     // Drag logic
@@ -1294,6 +1287,9 @@ class ShopInstance {
         } else if (this.mode === "dna") {
             this.overlayEl.classList.add("dna-shop-overlay");
             this.overlayEl.id = "dna-shop-overlay";
+        } else if (this.mode === "rubble") {
+            this.overlayEl.classList.add("rubble-shop-overlay");
+            this.overlayEl.id = "rubble-shop-overlay";
         } else {
             this.overlayEl.id = "shop-overlay";
         }
