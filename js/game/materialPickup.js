@@ -9,7 +9,7 @@ import { playAudio } from "../util/audioManager.js";
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from "./collectionCore.js";
 import { settingsManager } from "./settingsManager.js";
 import { getLevelNumber } from "./upgrades.js";
-import { AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID } from "./automationUpgrades.js";
+import { AUTOMATION_AREA_KEY } from "./automationUpgrades.js";
 import { addPp, isPpSystemUnlocked } from "./ppSystem.js";
 import { MAX_VISUALS } from "./spawnerCore.js";
 import { PICKUP_VOLUME } from "./coinPickup.js";
@@ -222,10 +222,6 @@ export function initUcPickup({
         if (collectedCount > 0) {
             playSound();
             
-            const manualValueLevel = getLevelNumber(AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID);
-            const manualValueMultiplierBn = BigNum.fromInt(1 + manualValueLevel);
-            const manualValueMultiplierNum = 1 + manualValueLevel;
-
             // Add to bank
             for (const [matType, count] of Object.entries(gains)) {
                 // Check if currency is locked (from debug)
@@ -238,15 +234,14 @@ export function initUcPickup({
                 if (handle) {
                     const mult = handle.mult.get();
                     const totalGain = BASE_MATERIAL_VALUE.mulBigNumInteger(BigNum.fromAny(count))
-                        .mulBigNumInteger(mult)
-                        .mulBigNumInteger(manualValueMultiplierBn);
+                        .mulBigNumInteger(mult);
                     queueMaterialGain(handle, totalGain);
                 }
             }
             if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
-                window.dpSystem.addDp(collectedCount * manualValueMultiplierNum);
+                window.dpSystem.addDp(collectedCount);
                 if (isPpSystemUnlocked()) {
-                    addPp(collectedCount * manualValueMultiplierNum);
+                    addPp(collectedCount);
                 }
             }
             if (
