@@ -352,6 +352,7 @@ if (typeof window !== "undefined") {
 let overlayEl = null;
 let lastChallengeOpenTime = 0;
 let lastMysteriousOpenTime = 0;
+let challengeResizeCleanup = null;
 
 function applyChallengeOverlayTransition(sheet, transition = "transform var(--shop-anim)") {
     if (!sheet) return;
@@ -532,7 +533,7 @@ function openChallengeOverlay(id) {
     
     const formattedNum = formatNumber(BigNum.fromAny("1e100"));
     
-    desc.innerHTML = `Welcome to Collapse Challenges; there are 10 total Collapse Challenges you must complete
+    const baseDescText = `Welcome to Collapse Challenges; there are 10 total Collapse Challenges you must complete
 Collapse Challenge completions are permanent (never will be reset) and each completion unlocks something new
 
 The Challenge of ${capitalName}; the first Collapse Challenge
@@ -544,6 +545,8 @@ This first Collapse Challenge will be easy because the Lab is not reset, so reco
 Effect: Coin value is divided by ${formattedNum}x
 Goal: Reach Pressure: 31atm
 Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim();
+
+    desc.textContent = baseDescText;
 
     const btnWrapper = document.createElement("div");
     btnWrapper.className = "collapse-btn-wrapper";
@@ -634,9 +637,63 @@ Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim
     content.appendChild(centerWrapper);
     
     openChallengeOverlaySheet(overlayEl, sheet);
+
+    function updateScrollNotice() {
+        if (!actionBtn || !content || !desc) return;
+        const currentScroll = content.scrollTop;
+        desc.textContent = baseDescText;
+        content.scrollTop = 0;
+        const contentRect = content.getBoundingClientRect();
+        const btnRect = actionBtn.getBoundingClientRect();
+        const isEntirelyVisible = (
+            btnRect.top >= contentRect.top - 1 &&
+            btnRect.bottom <= contentRect.bottom + 1
+        );
+        if (!isEntirelyVisible) {
+            desc.textContent = `Scroll down further to see everything\n\n${baseDescText}`;
+        }
+        if (currentScroll > 0) {
+            content.scrollTop = currentScroll;
+        }
+        if (content.__customScroll && typeof content.__customScroll.update === "function") {
+            content.__customScroll.update();
+        }
+    }
+
+    updateScrollNotice();
+
+    requestAnimationFrame(() => {
+        updateScrollNotice();
+        if (content.scrollHeight > content.clientHeight + 1 && typeof sheet.classList !== "undefined") {
+            sheet.classList.add("is-scrolling");
+            clearTimeout(content.__fadeTimer);
+            content.__fadeTimer = setTimeout(() => {
+                sheet.classList.remove("is-scrolling");
+            }, 1000);
+        }
+    });
+
+    if (challengeResizeCleanup) {
+        challengeResizeCleanup();
+        challengeResizeCleanup = null;
+    }
+
+    const onResize = () => {
+        if (overlayEl && overlayEl.classList.contains("is-open")) {
+            updateScrollNotice();
+        }
+    };
+    window.addEventListener("resize", onResize);
+    challengeResizeCleanup = () => {
+        window.removeEventListener("resize", onResize);
+    };
 }
 
 function closeChallengeOverlay() {
+    if (challengeResizeCleanup) {
+        challengeResizeCleanup();
+        challengeResizeCleanup = null;
+    }
     if (!overlayEl) return;
     if (overlayEl.style.pointerEvents === "none") return;
     overlayEl.style.pointerEvents = "none";
@@ -731,6 +788,7 @@ export function initCollapsePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWr
 
     const scroller = document.createElement("div");
     scroller.className = "shop-scroller";
+    scroller.style.height = "100%";
     scroller.style.position = "relative";
 
     const grid = document.createElement("div");
@@ -739,23 +797,6 @@ export function initCollapsePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWr
     
     scroller.appendChild(grid);
     panel.appendChild(scroller);
-
-    const grabber = document.createElement("div");
-    grabber.className = "merchant-grabber";
-    panel.appendChild(grabber);
-    
-    if (minerSheetEl) {
-        setupDragToClose(
-            grabber,
-            minerSheetEl,
-            () => minerOverlayEl && minerOverlayEl.classList.contains("is-open"),
-            () => {
-                if (minerOverlayEl) minerOverlayEl.classList.remove("is-open");
-                if (minerSheetEl) minerSheetEl.style.transform = "";
-                if (window.closeMinerOverlay) window.closeMinerOverlay();
-            }
-        );
-    }
 
     panelsWrapEl.appendChild(panel);
 
