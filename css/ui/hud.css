@@ -127,7 +127,7 @@ text-shadow: 0 1px 0 rgba(0,0,0,0.35); /* small helper shadow for browsers witho
 }
 
 /* Touch devices: smoother fake stroke for the coin counter only */
-@media (pointer: coarse) {
+html.is-mobile {
    .coin-amount, .scrap-amount, .sell-currency-amount, .game-btn {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
@@ -144,7 +144,8 @@ text-shadow: 0 1px 0 rgba(0,0,0,0.35); /* small helper shadow for browsers witho
 
 
 /* Portrait / phone: 2x2 layout, keep gaps, adjust sizes */
-@media (hover: none) and (pointer: coarse) and (max-aspect-ratio: 1/1) {
+@media (max-aspect-ratio: 1/1) {
+  html.is-mobile {
 .hud-bottom {
 grid-template-columns: repeat(2, 1fr);
 grid-auto-rows: minmax(72px, 1fr);
@@ -159,6 +160,7 @@ padding-bottom: 8px;
 .game-btn {
 font-size: clamp(16px, 6.4vw, 30px);
 }
+  }
 }
 
 /* Corner rounding: keep outermost corners rounded, inner seams remain sharp */
@@ -174,7 +176,8 @@ font-size: clamp(16px, 6.4vw, 30px);
 }
 
 /* Portrait fine-tuning */
-@media (pointer: coarse) and (max-aspect-ratio: 1/1) {
+@media (max-aspect-ratio: 1/1) {
+  html.is-mobile {
 .hud-bottom {
 height: min(20svh, 160px);
 grid-auto-rows: minmax(48px, 1fr);
@@ -187,6 +190,7 @@ padding-bottom: calc(env(safe-area-inset-bottom) + 6px);
 font-size: clamp(15px, 4.8vw, 24px);
 line-height: 1.1;
 }
+  }
 }
 
 .hud-bottom { container-type: inline-size; }
@@ -208,7 +212,8 @@ grid-column: 1 / -1; /* takes both columns */
   JS sets grid-template-columns inline and positions the two items.) */
 
 /* Landscape fine-tuning for small-height devices */
-@media (pointer: coarse) and (orientation: landscape) and (max-height: 480px) {
+@media (orientation: landscape) and (max-height: 480px) {
+  html.is-mobile {
 .hud-bottom {
 height: auto;
 grid-template-columns: repeat(4, 1fr);
@@ -235,6 +240,7 @@ text-shadow:
 .hud-bottom [data-btn="stats"] {
 font-size: clamp(13px, 2.0vw, 20px);
 }
+  }
 }
 
 /* ===== Top HUD: Coin Counter + Other stuff ===== */
@@ -417,7 +423,6 @@ display:flex;
 align-items:center;
 justify-content:center;
 padding: 0 16px;
-box-sizing: border-box;
 overflow: hidden;
 
 transform: translateY(var(--bar-y-nudge));
@@ -453,7 +458,7 @@ font-feature-settings: "tnum" 1, "lnum" 1;
 top: -1px;
 }
 
-@media (hover: none) and (pointer: coarse) {
+html.is-mobile {
   .coin-counter, .scrap-counter, .coin-plus, .scrap-plus, .sell-currency-plus, .xp-counter, .xp-plus, .dp-counter,
   .pp-counter, .dp-plus,
   .pp-plus, .pp-counter, .pp-plus {
@@ -461,7 +466,8 @@ top: -1px;
   }
 }
 
-@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px){
+@media (orientation: portrait) and (max-width: 600px) {
+  html.is-mobile {
 .hud-top{
 --pp-gutter: max(7vw, 24px);
 --pp-reserve: max(
@@ -471,27 +477,32 @@ calc((1 - var(--bar-underlap)) * var(--coin-plus-size) + 10px)
 padding-left:  max(env(safe-area-inset-left),  var(--pp-reserve));
 padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 }
-:root{
+&{
 --coin-bar-w: clamp(240px, 65vw, 320px);
 --coin-plus-extra: 4px;
 --bar-underlap: 0.48;
 --bar-y-nudge: 2px; 
 }
+  }
 }
 
-@media (pointer: coarse) and (orientation: landscape){
-:root{
+@media (orientation: landscape) {
+  html.is-mobile {
+&{
 --coin-bar-w: clamp(220px, 38vw, 560px);
 }
+  }
 }
 
-@media (pointer: coarse) and (orientation: portrait) and (min-width: 768px) and (max-width: 1024px){
-:root{
+@media (orientation: portrait) and (min-width: 768px) and (max-width: 1024px) {
+  html.is-mobile {
+&{
 --coin-bar-w: min(72vw, 560px);
 }
+  }
 }
 
-@media (pointer: coarse){
+html.is-mobile {
   .hud-top .coin-amount, .hud-top .scrap-amount, .sell-currency-amount{
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
@@ -600,7 +611,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   text-align: center;
   text-shadow: 0 1px 2px rgba(0,0,0,0.75);
   pointer-events: none;
-  box-sizing: border-box;
 }
 
 .mp-bar__level{
@@ -717,7 +727,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   text-align: center;
   text-shadow: 0 1px 2px rgba(0,0,0,0.75);
   pointer-events: none;
-  box-sizing: border-box;
 }
 
 .dp-bar__level{
@@ -837,7 +846,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   text-align: center;
   text-shadow: 0 1px 2px rgba(0,0,0,0.75);
   pointer-events: none;
-  box-sizing: border-box;
 }
 
 .pp-bar__level{
@@ -878,7 +886,8 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   opacity: 0.8;
 }
 
-@media (pointer: coarse) and (orientation: portrait){
+@media (orientation: portrait) {
+  html.is-mobile {
   .mp-counter{
     --mp-bar-h: clamp(32px, 8vw, 44px);
     --mp-plus-size: clamp(48px, 15vw, 70px);
@@ -900,9 +909,11 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
     --dp-bar-underlap: 0.46;
     width: min(var(--coin-bar-w), clamp(200px, 82vw, 360px));
   }
+  }
 }
 
-@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px) {
+@media (orientation: portrait) and (max-width: 600px) {
+  html.is-mobile {
   .mp-counter {
     --mp-plus-size: var(--coin-plus-size);
   }
@@ -926,6 +937,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   .dp-plus {
     transform: translateY(-50%);
     left: calc((var(--dp-bar-underlap) - 1) * var(--dp-plus-size));
+  }
   }
 }
 
@@ -986,10 +998,9 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   text-align: center;
   text-shadow: 0 1px 2px rgba(0,0,0,0.75);
   pointer-events: none;
-  box-sizing: border-box;
 }
 
-@media (pointer: fine) {
+html:not(.is-mobile) {
   .dp-counter,
   .pp-counter,
   .dp-bar,
@@ -1067,7 +1078,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   opacity: 0.8;
 }
 
-@media (pointer: fine) {
+html:not(.is-mobile) {
   .mp-counter,
   .mp-bar,
   .mp-bar__frame {
@@ -1090,22 +1101,26 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 
 
 
-@media (pointer: coarse) and (orientation: portrait){
+@media (orientation: portrait) {
+  html.is-mobile {
   .xp-counter{
     --xp-bar-h: clamp(32px, 8vw, 44px);
     --xp-plus-size: clamp(48px, 15vw, 70px);
     --xp-bar-underlap: 0.46;
     width: min(var(--coin-bar-w), clamp(200px, 82vw, 360px));
   }
+  }
 }
 
-@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px) {
+@media (orientation: portrait) and (max-width: 600px) {
+  html.is-mobile {
   .xp-counter {
     --xp-plus-size: var(--coin-plus-size);
   }
   .xp-plus {
     transform: translateY(-50%);
     left: calc((var(--xp-bar-underlap) - 1) * var(--xp-plus-size));
+  }
   }
 }
 
