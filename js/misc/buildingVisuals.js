@@ -10138,7 +10138,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
               const cCtx = c.getContext('2d');
               const g = cCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
               g.addColorStop(0, 'rgba(255, 0, 0, 1)');
-              g.addColorStop(0.5, 'rgba(200, 0, 0, 0.55)');
+              g.addColorStop(0.5, 'rgba(255, 0, 0, 0.55)');
               g.addColorStop(1, 'rgba(255, 0, 0, 0)');
               cCtx.fillStyle = g;
               cCtx.fillRect(0, 0, 512, 512);
@@ -10159,7 +10159,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       
       // Basic Symbol Blades
       ctx.fillStyle = radColor;
-      let coreSpread = (Math.PI/6) + (0.1 * t8Alpha) + 0.05;
+      let coreSpread = (Math.PI/6) + (0.1 * t8Alpha);
       for(let i=0; i<3; i++) {
           ctx.beginPath();
           ctx.moveTo(0, 0);
@@ -10229,9 +10229,44 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       ctx.globalCompositeOperation = window.IS_FIREFOX ? 'source-over' : 'screen';
       let bladeRadius = 32 + 12 * pulse + 8 * t8Alpha; 
       let starterSpread = (Math.PI/6) + (0.1 * t8Alpha);
-      let beamSpread = starterSpread + 0.05;
+      let currentLineWidth = 1 + 3 * pulse + 2 * t8Alpha;
+      let beamSpread = starterSpread + (currentLineWidth / 2) / bladeRadius;
       
       for(let i=0; i<3; i++) {
+          // --- 1. Draw the beam underneath ---
+          ctx.save();
+          let beamLength = (180 + 140 * pulse) * (1 + t8Alpha);
+          if (!window.cachedReactorBeam) {
+              const c = document.createElement('canvas');
+              c.width = 512; c.height = 512;
+              const cCtx = c.getContext('2d');
+              const g = cCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
+              g.addColorStop(0, 'rgba(255, 0, 0, 1)');
+              g.addColorStop(0.5, 'rgba(255, 0, 0, 0.55)');
+              g.addColorStop(1, 'rgba(255, 0, 0, 0)');
+              cCtx.fillStyle = g;
+              cCtx.fillRect(0, 0, 512, 512);
+              window.cachedReactorBeam = c;
+          }
+          let wHalf = currentLineWidth / 2;
+          let beamStartRadius = bladeRadius + wHalf - 0.2;
+          
+          let leftInner = -starterSpread - Math.asin(wHalf / beamStartRadius);
+          let rightInner = starterSpread + Math.asin(wHalf / beamStartRadius);
+          let leftOuter = -starterSpread - Math.asin(wHalf / beamLength);
+          let rightOuter = starterSpread + Math.asin(wHalf / beamLength);
+          
+          ctx.beginPath();
+          ctx.arc(0, 0, beamStartRadius, leftInner, rightInner);
+          ctx.lineTo(beamLength * Math.cos(rightOuter), beamLength * Math.sin(rightOuter));
+          ctx.arc(0, 0, beamLength, rightOuter, leftOuter, true);
+          ctx.closePath();
+          ctx.clip();
+          ctx.globalAlpha *= Math.min(1, 0.9 * pulse + 0.5 * t8Alpha);
+          ctx.drawImage(window.cachedReactorBeam, -beamLength, -beamLength, beamLength*2, beamLength*2);
+          ctx.restore();
+
+          // --- 2. Draw the solid blade on top ---
           ctx.beginPath();
           ctx.arc(0, 0, bladeRadius, -starterSpread, starterSpread);
           ctx.lineTo(innerGapRadius * Math.cos(starterSpread), innerGapRadius * Math.sin(starterSpread));
@@ -10241,37 +10276,10 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           ctx.fillStyle = `rgba(255, 0, 0, ${Math.min(1, 0.6 * pulse + 0.4 * t8Alpha)})`;
           ctx.fill();
           
-          ctx.lineWidth = 1 + 3 * pulse + 2 * t8Alpha;
+          ctx.lineWidth = currentLineWidth;
           ctx.strokeStyle = `rgba(255, 0, 0, ${Math.min(1, 0.9 * pulse + 0.5 * t8Alpha)})`;
           ctx.stroke();
 
-          ctx.save();
-          let beamLength = (180 + 140 * pulse) * (1 + t8Alpha);
-          if (!window.cachedReactorBeam) {
-              const c = document.createElement('canvas');
-              c.width = 512; c.height = 512;
-              const cCtx = c.getContext('2d');
-              const g = cCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
-              g.addColorStop(0, 'rgba(255, 0, 0, 1)');
-              g.addColorStop(0.5, 'rgba(200, 0, 0, 0.55)');
-              g.addColorStop(1, 'rgba(255, 0, 0, 0)');
-              cCtx.fillStyle = g;
-              cCtx.fillRect(0, 0, 512, 512);
-              window.cachedReactorBeam = c;
-          }
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(0, 0, bladeRadius - 1, -beamSpread, beamSpread);
-          ctx.arc(0, 0, beamLength, beamSpread, -beamSpread, true);
-          ctx.closePath();
-          ctx.clip();
-          ctx.globalAlpha *= Math.min(1, 0.9 * pulse + 0.5 * t8Alpha);
-          ctx.drawImage(window.cachedReactorBeam, -beamLength, -beamLength, beamLength*2, beamLength*2);
-          ctx.restore();
-
-          // Removed the smaller inner beam of light per user request
-          
-          ctx.restore();
           ctx.rotate((Math.PI * 2) / 3);
       }
       ctx.restore(); // Undo spin
@@ -10314,7 +10322,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       
       const bladeRadius = 32; // Kept constant, no extension ever
       const innerGapRadius = 12;
-      let t7Spread = (Math.PI/6) + (0.1 * t8) + 0.05;
+      let t7Spread = (Math.PI/6) + (0.1 * t8);
 
       for(let i=0; i<3; i++) {
           // Hollow hologram blade path
