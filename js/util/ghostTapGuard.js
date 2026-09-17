@@ -253,8 +253,7 @@ function handleInstantClick(event) {
         buttonLike.closest(".achievements-grid") ||
         buttonLike.closest(".merchant-reset__sidebar") ||
         buttonLike.closest(".help-sidebar") ||
-        buttonLike.closest(".sas-scroller") ||
-        buttonLike.closest("#pinned-areas-container");
+        buttonLike.closest(".sas-scroller");
 
     if (isScrollable) {
         if (buttonLike.dataset.noGhost === "true") return;
