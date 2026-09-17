@@ -7,7 +7,7 @@ import { formatNumber } from "../util/numFormat.js";
 import { BigNum } from "../util/bigNum.js";
 import { setLifetimeBossBeaten, getLifetimeBossBeaten, checkSecretAchievements } from "../game/secretAchievements.js";
 import { collectActiveBigCoins } from "../util/bigCoinManager.js";
-import { PICKUP_VOLUME } from "../game/coinPickup.js";
+import { PICKUP_VOLUME } from "../game/collectionCore.js";
 // Reusing palette from tsunamiVisuals for consistency
 const PALETTE = {
     skyTop: "#4fa8ff",
