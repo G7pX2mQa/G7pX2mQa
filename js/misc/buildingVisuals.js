@@ -10278,7 +10278,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           ctx.fill();
           
           ctx.lineWidth = currentLineWidth;
-          ctx.strokeStyle = `rgba(255, 0, 0, ${Math.min(1, 0.9 * pulse + 0.5 * t8Alpha)})`;
+          ctx.strokeStyle = 'rgba(255, 0, 0, 1)';
           ctx.stroke();
 
           ctx.rotate((Math.PI * 2) / 3);
