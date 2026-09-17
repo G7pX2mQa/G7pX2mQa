@@ -11,6 +11,7 @@ import { RESOURCE_REGISTRY } from "../../game/offlinePanel.js";
 import { playPurchaseSfx } from "../shopOverlay.js";
 import { IS_MOBILE } from "../../util/platformChecker.js";
 import { settingsManager } from "../../game/settingsManager.js";
+import { MASTER_AUTOBUY_IDS } from "../../game/automationUpgrades.js";
 const BUILDINGS_UNLOCKED_KEY_BASE = "ccc:buildingsUnlocked";
 const BUILDING_ITEM_UNLOCKED_KEY_BASE = "ccc:buildingItemUnlocked";
 const BUILDING_LEVEL_KEY_BASE = "ccc:buildingLevel";
@@ -30,6 +31,54 @@ export const BUILDING_IDS = [
     "unobtainium",
     "prismatium",
 ];
+export const BUILDING_CURRENCY_KEYS = {
+    core: "cores",
+    crystal: "crystals",
+    stone: "stone",
+    copper: "copper",
+    iron: "iron",
+    pure_gold: "pure_gold",
+    diamond: "diamond",
+    emerald: "emerald",
+    ruby: "ruby",
+    sapphire: "sapphire",
+    unobtainium: "unobtainium",
+    prismatium: "prismatium",
+};
+
+export function getAutobuyUpgradeIdForBuilding(buildingId) {
+    const currency = BUILDING_CURRENCY_KEYS[buildingId];
+    if (!currency) return null;
+    for (const [autoId, costType] of Object.entries(MASTER_AUTOBUY_IDS)) {
+        if (costType === currency) return Number(autoId);
+    }
+    return null;
+}
+
+export function isBuildingAutomated(buildingId) {
+    const upgradeId = getAutobuyUpgradeIdForBuilding(buildingId);
+    if (!upgradeId) return false;
+
+    const slot = getActiveSlot();
+    if (slot == null) return false;
+
+    let hasAutobuyer = false;
+    try {
+        const raw = lsGetItem(`ccc:upgrades:automation:${upgradeId}:${slot}`);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.lvl) {
+                const lvlStr = String(parsed.lvl);
+                hasAutobuyer = lvlStr !== "BN:zero" && lvlStr !== "BN:0::0" && lvlStr !== "BN:NaN";
+            }
+        }
+    } catch {}
+
+    if (!hasAutobuyer) return false;
+
+    const currencyKey = BUILDING_CURRENCY_KEYS[buildingId];
+    return settingsManager.get(`currency_${currencyKey}_automated`) !== false;
+}
 export function isBuildingUnlocked(id) {
     if (id === "crystal") {
         return window.resetSystem?.isCompressUnlocked?.() ?? false;
@@ -172,34 +221,7 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     const levelBn = getBuildingLevel(id);
     const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
     
-    let isAutomated = false;
-    if (!isLocked && !isInfiniteLevel) {
-        if (id === "core" || id === "crystal") {
-            // Check if the Autobuy Building automation upgrade has been purchased.
-            // We read the level directly from localStorage to avoid circular dependency issues
-            // with getLevelNumber from upgrades.js.
-            let hasAutobuyer = false;
-            try {
-                const slot = getActiveSlot();
-                if (slot != null) {
-                    const upgradeId = id === "core" ? 13 : 14;
-                    const raw = lsGetItem(`ccc:upgrades:automation:${upgradeId}:${slot}`);
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (parsed && parsed.lvl) {
-                            // lvl is a BigNum storage string like "BN:1:1:0" or "BN:zero"
-                            const lvlStr = String(parsed.lvl);
-                            hasAutobuyer = lvlStr !== "BN:zero" && lvlStr !== "BN:0::0" && lvlStr !== "BN:NaN";
-                        }
-                    }
-                }
-            } catch {}
-            if (hasAutobuyer) {
-                const settingKey = id === "core" ? "currency_cores_automated" : "currency_crystals_automated";
-                isAutomated = settingsManager.get(settingKey) !== false;
-            }
-        }
-    }
+    const isAutomated = !isLocked && !isInfiniteLevel && isBuildingAutomated(id);
 
     if (isAutomated) {
         btn.classList.add("is-automated");
@@ -494,30 +516,7 @@ function updateBuildingGridBadges(gridEl) {
         let plusLevelStr = formatNumber(plusLevelBn);
         const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
         
-        let isAutomated = false;
-        if (!isInfiniteLevel) {
-            if (id === "core" || id === "crystal") {
-                let hasAutobuyer = false;
-                try {
-                    const slot = getActiveSlot();
-                    if (slot != null) {
-                        const upgradeId = id === "core" ? 13 : 14;
-                        const raw = lsGetItem(`ccc:upgrades:automation:${upgradeId}:${slot}`);
-                        if (raw) {
-                            const parsed = JSON.parse(raw);
-                            if (parsed && parsed.lvl) {
-                                const lvlStr = String(parsed.lvl);
-                                hasAutobuyer = lvlStr !== "BN:zero" && lvlStr !== "BN:0::0" && lvlStr !== "BN:NaN";
-                            }
-                        }
-                    }
-                } catch {}
-                if (hasAutobuyer) {
-                    const settingKey = id === "core" ? "currency_cores_automated" : "currency_crystals_automated";
-                    isAutomated = settingsManager.get(settingKey) !== false;
-                }
-            }
-        }
+        const isAutomated = !isInfiniteLevel && isBuildingAutomated(id);
         
         if (isAutomated) {
             card.classList.add("is-automated");
@@ -1167,21 +1166,6 @@ const BUILDING_CURRENCY_IMAGES = {
     sapphire: "img/materials/sapphire.webp",
     unobtainium: "img/materials/unobtainium.webp",
     prismatium: "img/materials/prismatium.webp",
-};
-
-const BUILDING_CURRENCY_KEYS = {
-    core: "cores",
-    crystal: "crystals",
-    stone: "stone",
-    copper: "copper",
-    iron: "iron",
-    pure_gold: "pure_gold",
-    diamond: "diamond",
-    emerald: "emerald",
-    ruby: "ruby",
-    sapphire: "sapphire",
-    unobtainium: "unobtainium",
-    prismatium: "prismatium",
 };
 
 export function initBuildingOverlay() {
