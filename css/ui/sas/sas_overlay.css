@@ -214,7 +214,7 @@
   transform: translateY(1px) scale(0.997);
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
   .sas-btn {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
@@ -325,7 +325,7 @@
 .shop-scrollbar__thumb { cursor: grab; }
 .shop-scrollbar__thumb.dragging { cursor: grabbing; }
 
-@media (hover: none) and (pointer: coarse) {
+html.is-mobile {
   .shop-scrollbar {
     opacity: 0;
     pointer-events: none;
