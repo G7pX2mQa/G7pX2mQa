@@ -20,9 +20,11 @@ export const RUBBLE_REGISTRY = [
         baseCost: "1e99999",
         costType: "rubble",
         upgType: "NM",
+        scalingPreset: 'NM',
         effectType: "coin_value",
         icon: "img/lab_icons/coin_val0.webp",
         baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        _baseEffectVal: 10,
         costAtLevel(level) {
             // Each level costs 1e99999 more (multiplicative)
             const lvl = Math.max(0, Number(level) || 0);
@@ -35,17 +37,6 @@ export const RUBBLE_REGISTRY = [
         nextCostAfter(_, nextLevel) {
             return this.costAtLevel(nextLevel);
         },
-        effectSummary(level) {
-            const lvl = Math.max(0, Number(level) || 0);
-            if (lvl === 0) return "Coin value bonus: 1x";
-            const mult = BigNum.fromAny("1e" + lvl);
-            return `Coin value bonus: ${formatNumber(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const lvl = Math.max(0, Number(level) || 0);
-            if (lvl === 0) return 1;
-            // 10^level
-            return BigNum.fromAny("1e" + lvl);
-        },
+        bonusLine: (level, total) => `Coin value bonus: ${formatMultForUi(total)}x`
     },
 ];
