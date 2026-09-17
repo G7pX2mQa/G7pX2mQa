@@ -689,15 +689,6 @@ export function renderCollapseGrid(gridEl) {
         tile.appendChild(baseImg);
         tile.appendChild(iconImg);
         
-        if (!isLocked) {
-            const fractureImg = document.createElement("img");
-            fractureImg.className = "fracture-overlay";
-            fractureImg.src = "img/misc/fracture_pattern.webp";
-            fractureImg.alt = "";
-            fractureImg.draggable = false;
-            tile.appendChild(fractureImg);
-        }
-        
         btn.appendChild(tile);
         
         const buildingUnlocked = isBuildingUnlocked(mat.name);
