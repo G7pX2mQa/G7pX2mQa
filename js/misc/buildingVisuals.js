@@ -10234,7 +10234,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
       
       for(let i=0; i<3; i++) {
           // --- 1. Draw the beam underneath ---
-          ctx.save();
           let beamLength = (180 + 140 * pulse) * (1 + t8Alpha);
           if (!window.cachedReactorBeam) {
               const c = document.createElement('canvas');
@@ -10248,6 +10247,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
               cCtx.fillRect(0, 0, 512, 512);
               window.cachedReactorBeam = c;
           }
+          
           let wHalf = currentLineWidth / 2;
           let beamStartRadius = bladeRadius + wHalf - 0.2;
           
@@ -10256,6 +10256,7 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
           let leftOuter = -starterSpread - Math.asin(wHalf / beamLength);
           let rightOuter = starterSpread + Math.asin(wHalf / beamLength);
           
+          ctx.save();
           ctx.beginPath();
           ctx.arc(0, 0, beamStartRadius, leftInner, rightInner);
           ctx.lineTo(beamLength * Math.cos(rightOuter), beamLength * Math.sin(rightOuter));
