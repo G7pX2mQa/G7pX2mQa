@@ -111,7 +111,6 @@ function renderPinnedAreas() {
                     }
                 }
                 
-                if (IS_MOBILE) blockInteraction(500);
                 requestAnimationFrame(() => {
                     if (window.spawner && typeof window.spawner.stopAllWaveSounds === 'function') {
                         window.spawner.stopAllWaveSounds();
