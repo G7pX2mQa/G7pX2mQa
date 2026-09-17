@@ -1860,6 +1860,10 @@ function buildPanel(panelEl) {
     if (resetState.elements.surge.milestones && surgeWrapper) {
         ensureCustomScrollbar(panelEl, surgeWrapper, '[data-reset-milestones="surge"]', { orientation: "horizontal" });
     }
+    const sidebarWrapper = panelEl.querySelector(".merchant-reset__sidebar");
+    if (sidebarWrapper) {
+        ensureCustomScrollbar(panelEl, panelEl, ".merchant-reset__sidebar", { orientation: "horizontal" });
+    }
     // Sidebar Buttons
     resetState.layerButtons = {
         forge: panelEl.querySelector('[data-reset-layer="forge"]'),
