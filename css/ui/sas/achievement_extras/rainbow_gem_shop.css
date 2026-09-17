@@ -19,7 +19,7 @@
   height: 100%;
 }
 
-@media (hover: none) and (pointer: coarse) {
+html.is-mobile {
   #ae-rainbow-shop-grid {
     --grid-pad: clamp(2px, 2.5vw, 8px);
     --gap: clamp(8px, 3.5vw, 14px);
@@ -36,7 +36,6 @@
     --shop-tile: clamp(72px, var(--tile-fit), 124px);
     padding-inline: var(--grid-pad);
     gap: var(--gap);
-    box-sizing: border-box;
   }
 }
 
@@ -68,7 +67,7 @@
   text-shadow: -0.75px -0.75px 0 #000, 0.75px -0.75px 0 #000, -0.75px 0.75px 0 #000, 0.75px 0.75px 0 #000, 0 1.5px 3px rgba(0,0,0,0.8);
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
   #ae-rainbow-shop-grid .shop-upgrade .shop-tile .rainbow-upgrade-text {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
