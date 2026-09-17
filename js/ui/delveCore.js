@@ -538,32 +538,39 @@ export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = "
                 thumb.style.setProperty("animation-timeline", "none", "important");
                 thumb.style.setProperty("transform", `translateY(${y}px)`, "important");
             } else {
-                thumb.style.removeProperty("animation");
-                thumb.style.removeProperty("animation-name");
-                thumb.style.removeProperty("animation-timeline");
-
                 if (useCssTimeline && timelineName) {
-                    thumb.style.removeProperty("transform");
-                    thumb.style.animationName = "scroll-thumb-move";
-                    thumb.style.animationTimeline = timelineName;
-                    thumb.style.animationDuration = "1ms";
-                    thumb.style.animationTimingFunction = "linear";
-                    thumb.style.animationFillMode = "both";
+                    if (thumb.style.animationName !== "scroll-thumb-move") {
+                        thumb.style.removeProperty("animation");
+                        thumb.style.removeProperty("animation-name");
+                        thumb.style.removeProperty("animation-timeline");
+                        thumb.style.removeProperty("transform");
+
+                        thumb.style.animationName = "scroll-thumb-move";
+                        thumb.style.animationTimeline = timelineName;
+                        thumb.style.animationDuration = "1ms";
+                        thumb.style.animationTimingFunction = "linear";
+                        thumb.style.animationFillMode = "both";
+                    }
                 } else {
+                    thumb.style.removeProperty("animation");
+                    thumb.style.removeProperty("animation-name");
+                    thumb.style.removeProperty("animation-timeline");
                     thumb.style.transform = `translateY(${y}px)`;
                 }
             }
         } else if (useCssTimeline && timelineName && !isSpreadsheetActive) {
-            thumb.style.removeProperty("animation");
-            thumb.style.removeProperty("animation-name");
-            thumb.style.removeProperty("animation-timeline");
-            thumb.style.removeProperty("transform");
-            
-            thumb.style.animationName = "scroll-thumb-move";
-            thumb.style.animationTimeline = timelineName;
-            thumb.style.animationDuration = "1ms";
-            thumb.style.animationTimingFunction = "linear";
-            thumb.style.animationFillMode = "both";
+            if (thumb.style.animationName !== "scroll-thumb-move") {
+                thumb.style.removeProperty("animation");
+                thumb.style.removeProperty("animation-name");
+                thumb.style.removeProperty("animation-timeline");
+                thumb.style.removeProperty("transform");
+                
+                thumb.style.animationName = "scroll-thumb-move";
+                thumb.style.animationTimeline = timelineName;
+                thumb.style.animationDuration = "1ms";
+                thumb.style.animationTimingFunction = "linear";
+                thumb.style.animationFillMode = "both";
+            }
         }
     };
 
