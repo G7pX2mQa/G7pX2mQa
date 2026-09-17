@@ -1,6 +1,7 @@
 // js/util/audioManager.js
 import { settingsManager } from '../game/settingsManager.js';
 import { AREAS } from '../main.js';
+import { IS_MOBILE } from './platformChecker.js';
 
 let audioContext = null;
 let masterGain = null;
@@ -406,8 +407,9 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
           }
       }
       if (type === 'music') {
-          const musicVolumeSetting = settingsManager.get('music_volume');
+          let musicVolumeSetting = settingsManager.get('music_volume');
           if (musicVolumeSetting !== undefined && musicVolumeSetting !== null) {
+              if (IS_MOBILE) musicVolumeSetting *= 0.7;
               finalVolume = finalVolume * (musicVolumeSetting / 100);
           }
       } else if (type === 'sfx') {
@@ -482,8 +484,11 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
               const mvs = settingsManager.get('master_volume');
               let finalVol = mvs !== undefined && mvs !== null ? actualVolume * (mvs / 100) : actualVolume;
               if (type === 'music') {
-                  const musv = settingsManager.get('music_volume');
-                  if (musv !== undefined && musv !== null) finalVol = finalVol * (musv / 100);
+                  let musv = settingsManager.get('music_volume');
+                  if (musv !== undefined && musv !== null) {
+                      if (IS_MOBILE) musv *= 0.7;
+                      finalVol = finalVol * (musv / 100);
+                  }
               } else if (type === 'sfx') {
                   const sfxv = settingsManager.get('sfx_volume');
                   if (sfxv !== undefined && sfxv !== null) finalVol = finalVol * (sfxv / 100);
@@ -583,6 +588,10 @@ export function setMasterVolume(volumePercentage) {
 
 export function setMusicVolume(volumePercentage) {
     if (!musicGain) return;
+    
+    if (IS_MOBILE) {
+        volumePercentage *= 0.7;
+    }
     
     // Map 0-100 to 0.0-1.0
     const gainValue = Math.max(0, Math.min(100, volumePercentage)) / 100.0;
