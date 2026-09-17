@@ -3,7 +3,7 @@
 	margin-left: 4px;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
     .lab-bar-text {
         -webkit-text-stroke: 0 !important;
         text-stroke: 0 !important;
