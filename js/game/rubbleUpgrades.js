@@ -1,8 +1,7 @@
 import {
     AREA_KEYS,
     formatMultForUi,
-    computeDefaultUpgradeCost,
-    E,
+    computeDefaultUpgradeCost
 } from "./upgrades.js";
 import { BigNum } from "../util/bigNum.js";
 import { formatNumber } from "../util/numFormat.js";
