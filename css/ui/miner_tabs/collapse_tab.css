@@ -267,3 +267,10 @@
         grid-template-rows: repeat(5, minmax(128px, 1fr));
     }
 }
+
+html.is-mobile #collapse-challenge-overlay .upg-content {
+    display: block !important;
+    transform: none;
+    padding-top: 2vh;
+    padding-bottom: 4vh;
+}
