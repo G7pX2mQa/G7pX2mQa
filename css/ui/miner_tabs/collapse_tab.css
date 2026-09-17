@@ -117,11 +117,6 @@
     background-repeat: no-repeat;
 }
 
-@media (max-width: 600px) {
-    .collapse-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 
 .collapse-fracture-overlay.is-animating {
     animation: fractureSprawl 200ms ease-out forwards;
@@ -158,12 +153,6 @@
     }
 }
 
-.merchant-panels:has(.collapse-tab.is-active) {
-    display: flex;
-    flex-direction: column;
-    flex: 1 0 auto;
-}
-
 .collapse-tab {
   display: none;
 }
@@ -171,34 +160,33 @@
 .collapse-tab.is-active {
   display: flex;
   flex-direction: column;
-  flex: 1 0 auto;
+  height: 100%;
 }
 
 .collapse-tab .shop-scroller {
-    display: flex;
-    flex-direction: column;
-    flex: 1 0 auto;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .collapse-grid {
-    display: grid;
-    overflow-x: hidden;
-    justify-content: stretch;
-    align-content: start;
-    justify-items: center;
-    gap: clamp(8px, 4vw, 32px);
-    padding: clamp(16px, 4vw, 32px);
-    width: 100%;
-    margin: auto;
-    grid-template-columns: repeat(5, minmax(128px, 1fr));
-    grid-template-rows: repeat(2, minmax(128px, 1fr));
+  display: grid;
+  justify-content: stretch;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(8px, 4vw, 32px);
+  padding: clamp(16px, 4vw, 32px);
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+  grid-template-columns: repeat(5, minmax(128px, 1fr));
+  grid-template-rows: repeat(2, minmax(128px, 1fr));
 }
 
 .collapse-tab .shop-upgrade {
-  width: 100%;
-  max-width: 28vh;
-  max-height: 28vh;
-  aspect-ratio: 1 / 1;
+  align-self: stretch;
+  justify-self: stretch;
   min-width: 128px;
   min-height: 128px;
   display: flex;
@@ -216,6 +204,16 @@
   justify-content: center;
   align-items: center;
   container-type: inline-size;
+}
+
+html.is-mobile .collapse-tab .shop-tile {
+  max-width: min(100cqb, 128px);
+}
+
+html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar,
+html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .collapse-tab .shop-upgrade .shop-tile img.base,
@@ -249,9 +247,17 @@
     }
 }
 
-@media (max-width: 880px) {
+@media (max-aspect-ratio: 1/1) {
     .collapse-grid {
         grid-template-columns: repeat(2, minmax(128px, 1fr));
         grid-template-rows: repeat(5, minmax(128px, 1fr));
     }
 }
+
+@media (max-width: 880px) {
+    .collapse-grid {
+        grid-template-columns: repeat(2, minmax(128px, 1fr)) !important;
+        grid-template-rows: repeat(5, minmax(128px, 1fr)) !important;
+    }
+}
+
