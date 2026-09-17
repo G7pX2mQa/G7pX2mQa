@@ -30,6 +30,7 @@
     margin: 0 auto;
     overflow-y: visible;
     height: auto;
+    scrollbar-width: none;
 }
 .sell-center-col::-webkit-scrollbar {
     display: none;
