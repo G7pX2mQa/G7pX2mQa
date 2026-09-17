@@ -69,7 +69,7 @@
     margin-top: 2px;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
     .debug-panel-info-mobile-hidden {
         display: none;
     }
@@ -567,7 +567,6 @@
 }
 
 .debug-panel-input.debug-reset-values-select {
-    box-sizing: border-box;
     flex: 0 0 230px;
 
     /* Custom scrollbar (matches other debug panel scroll areas) */
