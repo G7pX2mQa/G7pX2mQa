@@ -757,7 +757,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
                     if (matched && matched.icon) itemIcon = matched.icon;
                 }
                 icon.src = itemIcon;
-                icon.alt = config.singular;
+                icon.alt = "";
                 const text = document.createElement("span");
                 text.className = "offline-text";
                 let styleKey = item.styleKey || config.key;
@@ -806,7 +806,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
         const icon = document.createElement("img");
         icon.className = "offline-icon";
         icon.src = config.icon;
-        icon.alt = key;
+        icon.alt = "";
         // Amount
         const text = document.createElement("span");
         text.className = "offline-text";
