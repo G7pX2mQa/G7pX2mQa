@@ -933,7 +933,8 @@ export function openDelveOverlay(overlayEl, sheetEl) {
                             targetTab &&
                             targetPanel &&
                             !targetTab.disabled &&
-                            !targetTab.classList.contains("is-locked")
+                            !targetTab.classList.contains("is-locked") &&
+                            !targetTab.classList.contains("is-active")
                         ) {
                             targetTab.click();
                         }
