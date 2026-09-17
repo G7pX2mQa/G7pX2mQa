@@ -364,11 +364,11 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
     const rubbleDesc = document.createElement("div");
     rubbleDesc.className = "sell-collapse-info";
     const clickWord = IS_MOBILE ? "Tap" : "Click";
-    rubbleDesc.textContent = `While inside a Collapse Challenge, you have the option to sell Materials for Rubble instead of Scrap.
+    rubbleDesc.textContent = `While inside a Collapse Challenge, you have the option to sell Materials for Rubble instead of Scrap
 Rubble value is unaffected by Scrap value; each Material only sells for 1 Rubble at base
 This is to say, Stone will produce the most Rubble by far because of its abundance
-For how to increase Rubble value, you'll need to buy the temporary Rubble upgrades
-${clickWord} the button below to toggle what your Manual Sell and Auto-Sell produce`.trim();
+For how to increase Rubble value, open The Cove's Shop and you'll find new upgrades
+${clickWord} the button below to toggle whether you sell Materials for Scrap or Rubble`.trim();
     infoRubbleSection.appendChild(rubbleDesc);
 
     const rubbleToggleBtn = document.createElement("button");
