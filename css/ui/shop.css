@@ -470,6 +470,7 @@ html.is-mobile {
   .merchant-panel.is-scrolling .shop-scrollbar,
   .merchant-sheet.is-scrolling .shop-scrollbar,
   .shop-sheet.is-scrolling .shop-scrollbar,
+  .upg-sheet.is-scrolling .shop-scrollbar,
   .shop-scrollbar__thumb.dragging {
     opacity: 1;
     pointer-events: auto;              /* interactive when visible */
