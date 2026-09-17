@@ -377,6 +377,7 @@ ${clickWord} the button below to toggle whether you sell Materials for Scrap or 
         toggleRubbleSellMode();
         // Immediately trigger an update
         updateSellTab();
+        window.dispatchEvent(new CustomEvent("rubbleMode:toggled"));
     });
     infoRubbleSection.appendChild(rubbleToggleBtn);
 
