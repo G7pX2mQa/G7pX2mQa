@@ -154,6 +154,13 @@
     margin-left: calc(-1 * clamp(12px, 2.5vw, 16px));
     margin-right: -16px;
     padding-left: clamp(12px, 2.5vw, 16px);
+    scrollbar-width: none;
+  }
+
+  .help-sidebar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   .help-sidebar::after {
