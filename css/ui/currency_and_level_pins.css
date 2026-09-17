@@ -93,7 +93,7 @@
 }
 
 /* FTS for mobile touch devices */
-@media (pointer: coarse) {
+html.is-mobile {
   .pinned-currency-value {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
@@ -167,7 +167,7 @@
   font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
   .pinned-level-value {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
