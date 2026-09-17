@@ -440,6 +440,7 @@ html.is-mobile {
   display: grid;
   gap: 10px;
   padding-right: 2px;
+  scrollbar-width: none;
 }
 
 .merchant-dialogue-list::-webkit-scrollbar { width: 0; height: 0; }
