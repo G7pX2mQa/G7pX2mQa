@@ -5439,13 +5439,20 @@ function buildAreasContent(content) {
             }
 
             let buildingsSection = null;
-            if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+            let rubbleSection = null;
+            if (area.key === "underwater_cavern" || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
                 buildingsSection = createSubsection("Buildings", (sub) => {
                     buildBuildingsDebug(sub);
+                });
+                rubbleSection = createSubsection("Rubble Upgrades", (sub) => {
+                    buildAreaUpgrades(sub, { key: AREA_KEYS.RUBBLE, title: "Rubble" });
                 });
             }
             if (buildingsSection) {
                 areaContent.appendChild(buildingsSection);
+            }
+            if (rubbleSection) {
+                areaContent.appendChild(rubbleSection);
             }
         });
         areaContainer.classList.add("debug-panel-area");
