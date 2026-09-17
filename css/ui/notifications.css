@@ -135,7 +135,7 @@
     word-break: break-word;
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
     .welcome-popup-text {
         -webkit-text-stroke: 0 !important;
         text-stroke: 0 !important;
@@ -242,7 +242,6 @@
     pointer-events: auto;
     display: flex;
     flex-direction: column;
-    box-sizing: border-box;
 }
 
 .jackpot-notice-content {
