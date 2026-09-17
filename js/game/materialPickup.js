@@ -6,13 +6,12 @@ import { BigNum } from "../util/bigNum.js";
 import { currentArea, AREAS } from "../main.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import { playAudio } from "../util/audioManager.js";
-import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from "./collectionCore.js";
+import { createMagnetController, initInteractionBrush, computeMagnetUnitPx, PICKUP_VOLUME } from "./collectionCore.js";
 import { settingsManager } from "./settingsManager.js";
 import { getLevelNumber } from "./upgrades.js";
 import { AUTOMATION_AREA_KEY } from "./automationUpgrades.js";
 import { addPp, isPpSystemUnlocked } from "./ppSystem.js";
 import { MAX_VISUALS } from "./spawnerCore.js";
-import { PICKUP_VOLUME } from "./coinPickup.js";
 let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
 // Queue helpers moved to module scope
