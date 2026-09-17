@@ -415,8 +415,8 @@
   appearance: none;
   border: 3px solid #000;
   border-radius: 8px;
-  padding: 10px 24px;
-  margin:  14px 0;
+  padding: 11px 24px 9px;
+  margin: 14px 0 11px;
   cursor: pointer;
   touch-action: manipulation;
   outline: none;
@@ -443,7 +443,7 @@
 }
 
 .scrap-counter.is-rubble .scrap-bar {
-  background: linear-gradient(180deg, #4d392b, #241b14);
+  background: #241b14 linear-gradient(180deg, #4d392b, #241b14);
 }
 
 .btn-rubble-shop {
