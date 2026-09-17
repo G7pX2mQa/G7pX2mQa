@@ -261,7 +261,7 @@ const UPGRADE_DEFINITIONS = [
         area: AUTOMATION_AREA_KEY,
         id: UNDERWATER_CAVERN_EAC_ID,
         title: "Underwater Cavern EAC",
-        desc: "Generates the equivalent of whatever comes from a pickaxe strike on an interval\nDependent on Depth, UC EAC has its own separate accumulators\nEach level of this upgrade will reduce the generation interval",
+        desc: "Generates the equivalent of collecting a Material on an interval\nUC EAC also generates its own Materials dependent on Depth\nEach level of this upgrade will reduce the generation interval",
         icon: "img/uc_upg_icons/eac_uc.webp",
         requiredNodeId: "cavern",
         lvlCap: 20,
