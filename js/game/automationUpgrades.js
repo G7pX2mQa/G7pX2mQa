@@ -37,7 +37,7 @@ const UPGRADE_DEFINITIONS = [
         area: AUTOMATION_AREA_KEY,
         id: EFFECTIVE_AUTO_COLLECT_ID,
         title: "Effective Auto-Collect",
-        desc: "Generates the equivalent of picking up a Coin on an interval\nEach level of this upgrade will reduce the generation interval\nAs a bonus, anything passively generated accumulates offline",
+        desc: "Generates the equivalent of collecting a Coin on an interval\nEach level of this upgrade will reduce the generation interval\nAs a bonus, anything passively generated accumulates offline",
         icon: "img/sc_upg_icons/effective_auto_collect.webp",
         lvlCap: 20,
         baseCost: 100,
