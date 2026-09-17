@@ -590,7 +590,7 @@ export const RESOURCE_REGISTRY = [
     },
     {
         key: "rubble",
-        bgGradient: "linear-gradient(to bottom, #1a120b 0%, #22160e 15%, #2f2015 50%, #22160e 85%, #1a120b 100%)",
+        bgGradient: "linear-gradient(to bottom, #2b1f15 0%, #362519 15%, #4a3e32 50%, #362519 85%, #2b1f15 100%)",
         icon: "img/currencies/rubble/rubble.webp",
         baseIcon: "img/currencies/rubble/rubble_plus_base.webp",
         singular: "Rubble",
