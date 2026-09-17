@@ -2997,8 +2997,8 @@ for (const upg of REGISTRY) {
     }
     upg.baseCost = toUpgradeBigNum(upg.baseCost ?? 0, 0);
     upg.baseCostBn = upg.baseCost;
-    if (upg._dnaEffectVal) {
-        if (upg._costScaling === "HM") {
+    if (upg._baseEffectVal) {
+        if (upg._costScaling) {
             upg.costAtLevel = function (level) {
                 return costAtLevelUsingScaling(this, level);
             };
@@ -3007,7 +3007,7 @@ for (const upg of REGISTRY) {
             };
         }
         if (typeof upg.effectMultiplier !== "function") {
-            upg.effectMultiplier = E.powPerLevel(upg._dnaEffectVal);
+            upg.effectMultiplier = E.powPerLevel(upg._baseEffectVal);
         }
         if (typeof upg.effectSummary !== "function") {
             upg.effectSummary = function (level) {
