@@ -189,7 +189,7 @@
     transform: translateY(1px);
 }
 
-@media (pointer: coarse) {
+html.is-mobile {
     .offline-icon {
         top: 0px;
     }
@@ -211,7 +211,7 @@
     flex-shrink: 0;
 }
 
-@media (hover: none) and (pointer: coarse) {
+html.is-mobile {
     .offline-content-wrapper.is-scrolling .shop-scrollbar {
         opacity: 1;
         pointer-events: auto;
