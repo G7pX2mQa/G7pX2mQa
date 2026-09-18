@@ -141,9 +141,10 @@ function getShopUiData(areaKey) {
     const defs = getUpgradesForArea(areaKey);
     const upgrades = {};
     for (const def of defs) {
+        const lockState = getUpgradeLockState(areaKey, def.id);
+        if (lockState?.state === "hidden") continue;
         const lvlBn = getLevel(areaKey, def.id);
         const lvlNum = getLevelNumber(areaKey, def.id);
-        const lockState = getUpgradeLockState(areaKey, def.id);
         const icon = lockState.iconOverride ?? getIconUrl(def);
         const title = lockState.titleOverride ?? def.title;
         const desc = lockState.descOverride ?? def.desc;
@@ -189,6 +190,8 @@ const SHOP_ADAPTERS = {
             MINER_MET_EVENT,
             "forge:completed",
             "unlock:change",
+            "collapse:challenge:start",
+            "collapse:challenge:exit",
         ],
     },
     automation: {
@@ -215,7 +218,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
         evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
-        events: ["ccc:upgrades:changed", "currency:change"],
+        events: ["ccc:upgrades:changed", "currency:change", "collapse:challenge:start", "collapse:challenge:exit"],
     },
     rainbow_gem_shop: {
         title: "Rainbow Gem Shop",
@@ -1533,6 +1536,9 @@ export function updateShopOverlay(force = false) {
     Object.values(shops).forEach((s) => s.update(force));
 }
 
+window.addEventListener("collapse:challenge:start", () => updateShopOverlay(true));
+window.addEventListener("collapse:challenge:exit", () => updateShopOverlay(true));
+
 export function setUpgradeCount() {
     updateShopOverlay(true);
 }
@@ -2080,6 +2086,10 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             initialLockState.hideCost ||
             (typeof initialLockState.iconOverride === "string" &&
                 initialLockState.iconOverride.includes("mysterious")));
+    if (initialLockState.state === "hidden") {
+        closeUpgradeMenu();
+        return;
+    }
     if (initialLocked && !initialMysterious) {
         upgOpen = false;
         return;
