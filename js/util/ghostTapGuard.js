@@ -276,6 +276,14 @@ function handleInstantClick(event) {
     // If a specific element asked to avoid this logic, bail
     if (buttonLike.dataset.noGhost === "true") return;
 
+    if (
+        buttonLike.tagName === "TEXTAREA" ||
+        buttonLike.tagName === "SELECT" ||
+        (buttonLike.tagName === "INPUT" && buttonLike.type !== "checkbox" && buttonLike.type !== "radio" && buttonLike.type !== "button" && buttonLike.type !== "submit")
+    ) {
+        return;
+    }
+
     // Manually "click" it immediately to bypass the 300ms delay or touch-drag threshold
     // Mark it so we don't double-fire if the browser also sends a click later.
     // We use a long timeout (2000ms) for the element to prevent "hold" double-taps,
@@ -348,6 +356,14 @@ function handleSwipeSafeEnd(event) {
 
     // If movement is very small, it's a tap, not a scroll
     if (dx < 10 && dy < 10) {
+        if (
+            buttonLike.tagName === "TEXTAREA" ||
+            buttonLike.tagName === "SELECT" ||
+            (buttonLike.tagName === "INPUT" && buttonLike.type !== "checkbox" && buttonLike.type !== "radio" && buttonLike.type !== "button" && buttonLike.type !== "submit")
+        ) {
+            return;
+        }
+
         const isInputOrLabel = buttonLike.tagName === "INPUT" || buttonLike.tagName === "LABEL";
         markGhostTapTarget(buttonLike, isInputOrLabel ? 300 : 2000, 300);
         if (event.cancelable) event.preventDefault();
