@@ -1675,7 +1675,7 @@ function generateDnaSvgDataUri() {
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-function buildPanel(panelEl) {
+function buildPanel(panelEl, deferUpdate = false) {
     panelEl.innerHTML = `
     <div class="merchant-reset">
       <div class="merchant-reset__sidebar-wrapper">
@@ -1994,13 +1994,15 @@ function buildPanel(panelEl) {
             window.addEventListener("resize", syncLayout);
         }
     }
-    updateResetPanel();
+    if (!deferUpdate) {
+        updateResetPanel();
+    }
 }
 
-export function initResetPanel(panelEl) {
+export function initResetPanel(panelEl, deferUpdate = false) {
     if (!panelEl || panelEl.__resetInit) return;
     panelEl.__resetInit = true;
-    buildPanel(panelEl);
+    buildPanel(panelEl, deferUpdate);
 }
 
 function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge = false) {
