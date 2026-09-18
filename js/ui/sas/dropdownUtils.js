@@ -80,6 +80,7 @@ export function createDropdown(options) {
 
     if (colorBoxStr) {
       const box = document.createElement("div");
+      box.className = "setting-color-box";
       box.style.width = "1.2em";
       box.style.height = "1.2em";
       box.style.borderRadius = "4px";
@@ -185,6 +186,7 @@ export function createDropdown(options) {
     
     if (colorBoxStr) {
       const box = document.createElement("div");
+      box.className = "setting-color-box";
       box.style.width = "1.2em";
       box.style.height = "1.2em";
       box.style.borderRadius = "4px";
