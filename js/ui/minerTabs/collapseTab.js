@@ -1,19 +1,21 @@
 import { lsSetItem, lsGetItem, lsRemoveItem } from "../../main.js";
 import { getActiveSlot, bank } from "../../util/storage.js";
+import { getSaveDataForSlot, applySaveDataToSlot } from "../../util/slotsManager.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
-import { isBuildingUnlocked } from "./buildingsTab.js";
+import { formatMultForUi, getLevelNumber, AREA_KEYS, UPGRADE_TIES, setLevel } from "../../game/upgrades.js";
+import { getCurrencyMultiplierBN } from "../../util/storage.js";
 import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
-import { suspendAllAudioFor } from "../../util/audioManager.js";
-import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
-import { getLevelNumber, AREA_KEYS, UPGRADE_TIES, setLevel } from "../../game/upgrades.js";
 import { setRubbleSellMode } from "./sellTab.js";
 import { RUBBLE_AREA_KEY } from "../../game/rubbleUpgrades.js";
 import { DNA_AREA_KEY } from "../../game/dnaUpgrades.js";
 import { disableGlobalOverlayEsc, enableGlobalOverlayEsc } from "../../util/globalOverlayEsc.js";
 import { performCollapseReset } from "./resetTab.js";
+import { isBuildingUnlocked } from "./buildingsTab.js";
+import { suspendAllAudioFor } from "../../util/audioManager.js";
+import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
 let cachedCollapseUnlockedStates = {};
@@ -238,14 +240,94 @@ function hideFractureOverlay() {
     }
 }
 
+function getWhitelistPrefixes() {
+    return [
+        "ccc:upgrade:starter_cove:",
+        "ccc:upgrade:underwater_cavern:",
+        "ccc:upgrade:dna:",
+        "ccc:upgrade:rubble:",
+        "ccc:buildingLevel:",
+        "ccc:lab:node:level:",
+        "ccc:lab:node:rp:",
+        "ccc:lab:node:active:",
+        "ccc:lab:node:discovered:",
+        "ccc:lab:level:",
+        "ccc:flow:level:",
+        "ccc:flow:fp:",
+        "ccc:reset:surge:barLevel:",
+        "ccc:dp:level:",
+        "ccc:dp:progress:",
+        "ccc:ppLevel:",
+        "ccc:ppProgress:",
+        "ccc:hmEvolutions:",
+        "ccc:mutation:level:",
+        "ccc:mutation:progress:",
+        "ccc:xp:level:",
+        "ccc:xp:progress:",
+        "ccc:ucMaterialAccumulators:",
+        "ccc:ucEacMaterialAccumulators:",
+        "ccc:ucEacAccumulator:",
+        "ccc:ucEacYieldAccumulators:",
+        "ccc:waves:",
+        "ccc:gold:",
+        "ccc:magic:",
+        "ccc:coins:",
+        "ccc:books:",
+        "ccc:dna:",
+        "ccc:scrap:",
+        "ccc:stone:",
+        "ccc:copper:",
+        "ccc:iron:",
+        "ccc:pure_gold:",
+        "ccc:diamond:",
+        "ccc:emerald:",
+        "ccc:ruby:",
+        "ccc:sapphire:",
+        "ccc:unobtainium:",
+        "ccc:prismatium:",
+        "ccc:cores:",
+        "ccc:crystals:",
+        "ccc:rubble:",
+        "ccc:mult:"
+    ];
+}
+
 // --- Challenge Start/Exit ---
-function startCollapseChallenge(materialName) {
+export function startCollapseChallenge(materialName) {
 
     // Block interactions to prevent spamming
     blockCollapseInteractions();
 
     if (fractureTimeout) clearTimeout(fractureTimeout);
     if (fractureFadeTimeout) clearTimeout(fractureFadeTimeout);
+
+    // Backup current state
+    try {
+        const slot = getActiveSlot();
+        if (slot != null) {
+            const backupData = getSaveDataForSlot(slot);
+            delete backupData[`ccc:challengeBackup:${slot}`];
+            
+            const allowedPrefixes = getWhitelistPrefixes();
+            
+            for (const key of Object.keys(backupData)) {
+                let keep = false;
+                for (const prefix of allowedPrefixes) {
+                    if (key.startsWith(prefix)) {
+                        keep = true;
+                        break;
+                    }
+                }
+                if (!keep) {
+                    delete backupData[key];
+                }
+            }
+            
+            lsSetItem(`ccc:challengeBackup:${slot}`, JSON.stringify(backupData));
+        }
+    } catch (e) {
+        console.error("Failed to backup save before challenge:", e);
+    }
 
     // Set active state
     setCollapseChallengeActive(materialName);
@@ -285,9 +367,30 @@ function startCollapseChallenge(materialName) {
         unblockCollapseInteractions();
     }, 4000);
 
+    // We must preserve lab state during a collapse reset since lab nodes are not supposed to be reset by it
+    let preChallengeLabData = {};
+    try {
+        const slot = getActiveSlot();
+        if (slot != null) {
+            const data = getSaveDataForSlot(slot);
+            for (const key of Object.keys(data)) {
+                if (key.startsWith("ccc:lab:")) {
+                    preChallengeLabData[key] = data[key];
+                }
+            }
+        }
+    } catch {}
+
     // Perform Challenge-tier reset
     try {
         performCollapseReset();
+    } catch {}
+
+    // Restore lab state
+    try {
+        for (const [key, value] of Object.entries(preChallengeLabData)) {
+            lsSetItem(key, value);
+        }
     } catch {}
 
     // Dispatch event so other systems can react
@@ -316,13 +419,89 @@ function exitCollapseChallenge(materialName) {
     unregisterRubbleCoinValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 
-    // Perform Challenge-tier reset
+    let restoredBackup = false;
     try {
-        performCollapseReset();
-    } catch {}
+        const slot = getActiveSlot();
+        if (slot != null) {
+            const backupStr = lsGetItem(`ccc:challengeBackup:${slot}`);
+            if (backupStr) {
+                const backupData = JSON.parse(backupStr);
+                
+                // --- Lab Node Smart Merge ---
+                let currentMaxLab = 0;
+                let backupMaxLab = 0;
+                
+                // 1. Find backup max lab
+                for (const key of Object.keys(backupData)) {
+                    if (key.startsWith("ccc:lab:node:level:")) {
+                        const val = parseInt(backupData[key], 10) || 0;
+                        if (val > backupMaxLab) backupMaxLab = val;
+                    }
+                }
+                
+                // 2. Find current max lab & capture current lab data
+                const currentData = getSaveDataForSlot(slot);
+                const currentLabData = {};
+                for (const key of Object.keys(currentData)) {
+                    if (key.startsWith("ccc:lab:")) {
+                        currentLabData[key] = currentData[key];
+                        if (key.startsWith("ccc:lab:node:level:")) {
+                            const val = parseInt(currentData[key], 10) || 0;
+                            if (val > currentMaxLab) currentMaxLab = val;
+                        }
+                    }
+                }
+                
+                const keepCurrentLab = currentMaxLab >= backupMaxLab && Object.keys(currentLabData).length > 0;
+                
+                if (keepCurrentLab) {
+                    // Remove all lab keys from backupData so we don't restore them
+                    for (const key of Object.keys(backupData)) {
+                        if (key.startsWith("ccc:lab:")) {
+                            delete backupData[key];
+                        }
+                    }
+                }
+                
+                // Wipe temporary challenge stats via normal reset
+                try {
+                    performCollapseReset();
+                } catch {}
+                
+                // Overwrite wiped state with our progression-only backup
+                for (const [key, value] of Object.entries(backupData)) {
+                    lsSetItem(key, value);
+                }
+                
+                // If we kept current lab, restore it (since performCollapseReset wiped it)
+                if (keepCurrentLab) {
+                    for (const [key, value] of Object.entries(currentLabData)) {
+                        lsSetItem(key, value);
+                    }
+                }
+                
+                lsRemoveItem(`${CHALLENGE_ACTIVE_KEY_BASE}:${slot}`);
+                lsRemoveItem(`ccc:challengeBackup:${slot}`);
+                
+                cachedChallengeActive[slot] = false;
+                restoredBackup = true;
+                
+                if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+                    window.dispatchEvent(new CustomEvent("currency:multiplier"));
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to restore save backup:", e);
+    }
 
-    // Remove fracture overlay
-    hideFractureOverlay();
+    if (!restoredBackup) {
+        // Perform Challenge-tier reset
+        try {
+            performCollapseReset();
+        } catch {}
+    }
 
     // Clear rubble upgrade levels (temporary upgrades)
     try {
@@ -341,6 +520,11 @@ function exitCollapseChallenge(materialName) {
             setRubbleSellMode(false, slot);
         }
     } catch {}
+
+    // Remove fracture overlay
+    hideFractureOverlay();
+
+
 
     // Dispatch event
     if (typeof window !== "undefined") {
