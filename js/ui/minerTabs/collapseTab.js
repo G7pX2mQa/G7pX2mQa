@@ -197,10 +197,16 @@ function showFractureOverlay(animate = true) {
         el.classList.remove("is-active", "is-fading");
         void el.offsetWidth;
         el.classList.add("is-animating");
-        el.addEventListener("animationend", () => {
+        let done = false;
+        const onEnd = () => {
+            if (done) return;
+            done = true;
+            el.removeEventListener("animationend", onEnd);
             el.classList.remove("is-animating");
             el.classList.add("is-active");
-        }, { once: true });
+        };
+        el.addEventListener("animationend", onEnd, { once: true });
+        setTimeout(onEnd, 250);
     } else {
         el.classList.remove("is-animating", "is-fading");
         el.classList.add("is-active");
@@ -212,9 +218,15 @@ function fadeFractureOverlay() {
     if (el) {
         el.classList.add("is-fading");
         el.classList.remove("is-active");
-        el.addEventListener("animationend", () => {
+        let done = false;
+        const onEnd = () => {
+            if (done) return;
+            done = true;
+            el.removeEventListener("animationend", onEnd);
             hideFractureOverlay();
-        }, { once: true });
+        };
+        el.addEventListener("animationend", onEnd, { once: true });
+        setTimeout(onEnd, 1050);
     }
 }
 
