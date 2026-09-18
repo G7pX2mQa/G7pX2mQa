@@ -199,11 +199,10 @@ export const UPGRADE_TIES = {
     ENDLESS_DP: "scrap_4",
     ENDLESS_MATERIALS: "scrap_5",
     ADVANCED_RESEARCHING: "scrap_6",
-    COIN_RUBBLE_VALUE: "coin_rubble",
-    BOOK_RUBBLE_VALUE: "book_rubble",
-    GOLD_RUBBLE_VALUE: "gold_rubble",
-    MAGIC_RUBBLE_VALUE: "magic_rubble",
-    DNA_RUBBLE_VALUE: "dna_rubble",
+    COIN_RUBBLE_VALUE: "coin_6",
+    BOOK_RUBBLE_VALUE: "book_5",
+    GOLD_RUBBLE_VALUE: "gold_6",
+    MAGIC_RUBBLE_VALUE: "magic_6",
 };
 
 const HM_MILESTONES_STARTER_COVE = [
