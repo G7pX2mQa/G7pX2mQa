@@ -797,8 +797,8 @@ function initChallengeOverlay() {
     btnClose.addEventListener("click", closeChallengeOverlay);
 }
 
-function openChallengeOverlay(id) {
-    if (overlayEl && overlayEl.classList.contains("is-open")) return;
+function openChallengeOverlay(id, forceRedraw = false) {
+    if (!forceRedraw && overlayEl && overlayEl.classList.contains("is-open")) return;
     lastChallengeOpenTime = Date.now();
     initChallengeOverlay();
     
@@ -861,6 +861,7 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
 
     if (isCompleted) {
         btnWrapper.style.visibility = "hidden";
+        actionBtn.textContent = `Complete Challenge`;
     } else if (isThisChallengeActive) {
         if (isGoalReached) {
             actionBtn.textContent = `Complete Challenge`;
@@ -977,7 +978,7 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
 
     currentDebugChallengeListener = (e) => {
         if (e.detail && e.detail.id === id) {
-            openChallengeOverlay(id);
+            openChallengeOverlay(id, true);
         }
     };
     window.addEventListener("debug:challenge:change", currentDebugChallengeListener);
