@@ -1,4 +1,4 @@
-/* css/ui/merchantTabs/resetTab.css */
+/* css/ui/merchantTabs/reset_tab.css */
 
 /* Reset Tab Layout */
 .merchant-reset {
@@ -513,7 +513,7 @@
   .merchant-reset__sidebar-wrapper .shop-scrollbar.is-horizontal {
     right: 12px !important;
     left: 12px !important;
-    bottom: 0px !important;
+    bottom: 2px !important;
     height: 8px !important;
   }
   
@@ -529,7 +529,7 @@
   .merchant-reset__sidebar {
     flex-direction: row;
     overflow-x: auto;
-    padding-bottom: 8px; /* space for scrollbar if any */
+    padding-bottom: 14px; /* space for scrollbar to not overlap buttons */
     padding-top: 12px;
     scrollbar-width: none; /* Firefox */
   }
