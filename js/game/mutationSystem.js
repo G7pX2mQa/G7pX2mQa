@@ -795,14 +795,16 @@ export function initMutationSystem({ forceReload = false } = {}) {
     bindStorageWatchers(slot);
     updateHud();
     if (typeof window !== "undefined") {
-        window.addEventListener("saveSlot:change", () => {
+        const handleMutationReload = () => {
             const nextSlot = getActiveSlot();
             mutationState.slot = nextSlot;
             readStateFromStorage(nextSlot);
             bindStorageWatchers(nextSlot);
             updateHud();
             emitChange("slot");
-        });
+        };
+        window.addEventListener("saveSlot:change", handleMutationReload);
+        window.addEventListener("collapse:challenge:exit", handleMutationReload);
     }
     return getMutationState();
 }
@@ -1087,10 +1089,12 @@ export function getMutationGainMultiplier() {
 let cachedHighestLevelRef = null;
 let cachedHighestVisual = 0;
 if (typeof window !== "undefined") {
-    window.addEventListener("saveSlot:change", () => {
+    const clearMutationCache = () => {
         cachedHighestLevelRef = null;
         cachedHighestVisual = 0;
-    });
+    };
+    window.addEventListener("saveSlot:change", clearMutationCache);
+    window.addEventListener("collapse:challenge:exit", clearMutationCache);
 }
 
 export function getRandomMutationCoinId() {
