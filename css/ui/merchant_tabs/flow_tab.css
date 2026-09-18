@@ -392,14 +392,14 @@
 
   .flow-row {
     /* Keep padding symmetrical. The overhang is on the left, so we add equal padding on both left and right to center everything visually */
-    padding: 16px max(12px, calc(var(--flow-plus-size) * 0.5 + 8px));
+    padding: 16px max(8px, calc(var(--flow-plus-size) * 0.5 + 4px));
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     justify-content: space-between;
     grid-template-areas: 
       "lvl effect state"
       "line line line"
       "bar bar bar";
-    gap: clamp(8px, 3vw, 16px);
+    gap: clamp(4px, 2vw, 12px);
     
     border: 1px solid rgba(72, 209, 204, 0.4);
     border-radius: 12px;
