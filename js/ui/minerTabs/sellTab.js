@@ -402,8 +402,8 @@ ${clickWord} the button below to toggle whether you sell Materials for Scrap or 
     header.className = "sell-list-header";
     header.innerHTML = `
     <div class="list-head-name">Material</div>
-    <div>Owned</div>
-    <div>Value</div>
+    <div>Owned:</div>
+    <div>Value:</div>
     <div>Sell</div>
   `;
     listContainer.appendChild(header);
