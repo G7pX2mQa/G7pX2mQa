@@ -302,8 +302,8 @@ html.is-mobile .collapse-tab .shop-upgrade {
 }
 
 html.is-mobile .collapse-tab .shop-tile {
-    width: 85cqi;
-    max-width: 85cqb;
+    width: 100cqi;
+    max-width: 100cqb;
 }
 
 html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar,
