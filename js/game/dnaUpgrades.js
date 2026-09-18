@@ -147,6 +147,7 @@ export const REGISTRY = [
     area: DNA_AREA_KEY,
     id: 6,
     title: "DNA Rubble Value",
+    tie: "dna_1",
     desc: "Multiplies Rubble value by 1.1x per level",
     lvlCap: 1000,
     baseCost: "1e99999",
@@ -162,7 +163,7 @@ export const REGISTRY = [
     computeLockState(ctx) {
         const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
         if (inChallenge) return { state: "unlocked" };
-        return { state: "locked", locked: true, hidden: true };
+        return { state: "hidden", locked: true, hidden: true };
     },
     hmMilestones: [
         { level: 10, multiplier: 1.5, target: "self" },
