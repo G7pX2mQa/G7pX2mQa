@@ -1,8 +1,7 @@
 import { formatMultForUi } from '../util/numFormat.js';
-
+import { BigNum } from "../util/bigNum.js";
 
 export const DNA_AREA_KEY = 'dna';
-
 
 export const REGISTRY = [
   {
@@ -143,5 +142,36 @@ export const REGISTRY = [
         const revealText = "Reach Surge 19 to reveal this upgrade";
         return { state: 'mysterious', unlockReqText: revealText };
     }
+  },
+  {
+    area: DNA_AREA_KEY,
+    id: 6,
+    title: "DNA Rubble Value",
+    desc: "Multiplies Rubble value by 1.1x per level",
+    lvlCap: 1000,
+    baseCost: "1e99999",
+    costType: "dna",
+    upgType: "HM",
+    scalingPreset: 'HM',
+    icon: "img/misc/rubble_value.webp",
+    baseIconOverride: "img/currencies/dna/dna_base.webp",
+    effectType: "rubble_value",
+    _baseEffectVal: 1.1,
+    _costScaling: "HM",
+    bonusLine: (level, total) => `Rubble value bonus: ${formatMultForUi(total)}x`,
+    computeLockState(ctx) {
+        const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
+        if (inChallenge) return { state: "unlocked" };
+        return { state: "locked", locked: true, hidden: true };
+    },
+    hmMilestones: [
+        { level: 10, multiplier: 1.5, target: "self" },
+        { level: 25, multiplier: 2, target: "self" },
+        { level: 50, multiplier: 5, target: "self" },
+        { level: 100, multiplier: 10, target: "self" },
+        { level: 200, multiplier: 15, target: "self" },
+        { level: 400, multiplier: 25, target: "self" },
+        { level: 800, multiplier: 100, target: "self" }
+    ]
   }
 ];
