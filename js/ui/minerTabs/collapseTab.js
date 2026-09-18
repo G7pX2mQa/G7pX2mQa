@@ -8,8 +8,9 @@ import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { suspendAllAudioFor } from "../../util/audioManager.js";
 import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
-import { getLevelNumber } from "../../game/upgrades.js";
+import { getLevelNumber, AREA_KEYS } from "../../game/upgrades.js";
 import { RUBBLE_AREA_KEY } from "../../game/rubbleUpgrades.js";
+import { DNA_AREA_KEY } from "../../game/dnaUpgrades.js";
 import { disableGlobalOverlayEsc, enableGlobalOverlayEsc } from "../../util/globalOverlayEsc.js";
 import { performCollapseReset } from "./resetTab.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
@@ -315,6 +316,13 @@ function exitCollapseChallenge(materialName) {
         if (slot != null) {
             // Clear the rubble coin value upgrade level
             lsRemoveItem(`ccc:upg:${RUBBLE_AREA_KEY}:1:${slot}`);
+            // Clear the 4 new Cove HM upgrades
+            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:24:${slot}`);
+            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:25:${slot}`);
+            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:26:${slot}`);
+            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:27:${slot}`);
+            // Clear the 1 new DNA HM upgrade
+            lsRemoveItem(`ccc:upg:${DNA_AREA_KEY}:6:${slot}`);
         }
     } catch {}
 
