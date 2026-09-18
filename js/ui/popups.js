@@ -155,6 +155,7 @@ function showPopup(type, amount, overrides = {}) {
 
   const bnAmount = bnFromAny(amount);
   if (!bnAmount || isZero(bnAmount)) return;
+  if (typeof bnAmount.cmp === 'function' && bnAmount.cmp(BigNum.fromInt(1)) < 0) return;
 
   const existing = meta.accumulate !== false ? activePopups.get(type) : null;
 
