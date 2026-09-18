@@ -1,9 +1,35 @@
+
+
+@media (max-width: 600px) {
+    .collapse-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.fracture-overlay {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    height: 50%;
+    z-index: 4;
+    pointer-events: none;
+    object-fit: contain;
+    opacity: 1;
+    filter: brightness(0) contrast(200%);
+}
+
 #collapse-challenge-overlay .upg-content {
-    display: grid !important;
-    place-items: center;
-    padding: 0;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 24px 16px;
     margin: 0;
-    transform: translateY(-1.5vh); /* Optically shift the entire block up to offset the header's baseline whitespace */
+}
+
+#collapse-challenge-overlay .upg-content > div {
+    margin: auto 0;
 }
 
 .collapse-overlay-desc {
@@ -11,12 +37,12 @@
     color: #fff;
     white-space: pre-line;
     font-size: clamp(17px, 2.7vmin, 28px);
-    line-height: 1.25;
+    line-height: 1.4;
     margin: 0;
     margin-bottom: 1.7em;
 }
 
-@media (min-width: 1350px) {
+@media (min-width: 1366px) {
     .collapse-overlay-desc {
         white-space: pre;
         font-size: min(1.7vw, 34px);
@@ -111,9 +137,6 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-color: transparent;
-    transform: translateZ(0);
-    will-change: clip-path;
 }
 
 .collapse-fracture-overlay.is-animating {
@@ -242,72 +265,9 @@
     }
 }
 
-@media (max-aspect-ratio: 1/1) {
+@media (max-width: 880px) {
     .collapse-grid {
         grid-template-columns: repeat(2, minmax(128px, 1fr));
         grid-template-rows: repeat(5, minmax(128px, 1fr));
     }
-}
-
-@media (max-width: 880px) {
-    .collapse-grid {
-        grid-template-columns: repeat(2, minmax(128px, 1fr)) !important;
-        grid-template-rows: repeat(5, minmax(128px, 1fr)) !important;
-    }
-}
-
-/* Mobile-Specific Overrides */
-html.is-mobile #collapse-challenge-overlay .upg-content {
-    display: flex !important;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding: 24px 16px;
-    margin: 0;
-    transform: none;
-}
-
-html.is-mobile #collapse-challenge-overlay .upg-content > div {
-    margin: auto 0;
-}
-
-html.is-mobile .collapse-overlay-desc {
-    line-height: 1.4;
-}
-
-html.is-mobile .collapse-tab.is-active {
-    height: 100%;
-}
-
-html.is-mobile .collapse-tab .shop-scroller {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-html.is-mobile .collapse-grid {
-    align-content: center;
-    height: 100%;
-    margin: 0 auto;
-    overflow-x: visible;
-}
-
-html.is-mobile .collapse-tab .shop-upgrade {
-    align-self: stretch;
-    justify-self: stretch;
-    width: auto;
-    max-width: none;
-    max-height: none;
-    aspect-ratio: auto;
-}
-
-html.is-mobile .collapse-tab .shop-tile {
-    width: 100cqi;
-    max-width: 100cqb;
-}
-
-html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling > .shop-scrollbar,
-html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling > .shop-scrollbar {
-  opacity: 1 !important;
-  pointer-events: auto !important;
 }
