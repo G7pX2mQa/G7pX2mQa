@@ -514,7 +514,7 @@
   .merchant-reset__sidebar-wrapper .shop-scrollbar.is-horizontal {
     right: 12px !important;
     left: 12px !important;
-    bottom: 2px !important;
+    bottom: 4px !important;
     height: 8px !important;
   }
   
