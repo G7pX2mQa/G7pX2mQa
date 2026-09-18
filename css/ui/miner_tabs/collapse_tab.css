@@ -188,10 +188,8 @@
 }
 
 .collapse-tab .shop-upgrade {
-  width: 100%;
-  max-width: 28vh;
-  max-height: 28vh;
-  aspect-ratio: 1 / 1;
+  align-self: stretch;
+  justify-self: stretch;
   min-width: 128px;
   min-height: 128px;
   display: flex;
@@ -292,21 +290,8 @@ html.is-mobile .collapse-grid {
     overflow-x: visible;
 }
 
-html.is-mobile .collapse-tab .shop-upgrade {
-    align-self: stretch;
-    justify-self: stretch;
-    width: auto;
-    max-width: none;
-    max-height: none;
-    aspect-ratio: auto;
-}
-
-html.is-mobile .collapse-tab .shop-tile {
-    max-width: min(100cqb, 128px);
-}
-
-html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling .shop-scroller,
-html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling .shop-scroller {
+html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar,
+html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar {
     opacity: 1;
     pointer-events: auto;
 }
