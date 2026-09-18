@@ -1860,10 +1860,6 @@ function buildPanel(panelEl) {
     if (resetState.elements.surge.milestones && surgeWrapper) {
         ensureCustomScrollbar(panelEl, surgeWrapper, '[data-reset-milestones="surge"]', { orientation: "horizontal" });
     }
-    const sidebarWrapper = panelEl.querySelector(".merchant-reset__sidebar");
-    if (sidebarWrapper) {
-        ensureCustomScrollbar(panelEl, panelEl, ".merchant-reset__sidebar", { orientation: "horizontal" });
-    }
     // Sidebar Buttons
     resetState.layerButtons = {
         forge: panelEl.querySelector('[data-reset-layer="forge"]'),
@@ -1972,7 +1968,6 @@ function buildPanel(panelEl) {
                             if (dnaBg && dnaBg.style.animationPlayState !== "running") {
                                 dnaBg.style.animationPlayState = "running";
                             }
-                            syncLayout();
                         } else {
                             if (dnaBg && dnaBg.style.animationPlayState !== "paused") {
                                 dnaBg.style.animationPlayState = "paused";
@@ -1989,10 +1984,8 @@ function buildPanel(panelEl) {
             const hud = document.querySelector(".hud-bottom");
             if (hud) ro.observe(hud);
             window.addEventListener("resize", syncLayout);
-            requestAnimationFrame(syncLayout);
         } else {
             window.addEventListener("resize", syncLayout);
-            requestAnimationFrame(syncLayout);
         }
     }
     updateResetPanel();
@@ -2291,8 +2284,8 @@ function updateSurgeCard() {
             }
             // Update Description
             const descEl = itemEl.querySelector(".surge-milestone-desc");
-            if (descEl && descEl.innerHTML !== desc) {
-                descEl.innerHTML = desc;
+            if (descEl) {
+                setHtmlOrText(descEl, desc);
             }
             // Update Arrow
             const arrowEl = itemEl.querySelector(".surge-milestone-nerf-arrow");
@@ -2314,41 +2307,41 @@ function updateSurgeCard() {
         while (el.milestones.children.length > visible.length) {
             el.milestones.lastChild.remove();
         }
-        // Force scrollbar update if content changed
-        requestAnimationFrame(() => {
-            if (
-                el.milestones &&
-                el.milestones.__customScroll &&
-                typeof el.milestones.__customScroll.update === "function"
-            ) {
-                el.milestones.__customScroll.update();
-            }
-        });
         if (resetState.lastRenderedSurgeLevel !== barLevel) {
             resetState.lastRenderedSurgeLevel = barLevel;
             if (el.milestones) el.milestones.dataset.scrolled = "0";
         }
         if (el.milestones.dataset.scrolled !== "1") {
-            requestAnimationFrame(() => {
+            const doScroll = () => {
+                if (!el.milestones) return;
+                if (el.milestones.offsetParent === null) return;
+                const reachedItems = el.milestones.querySelectorAll(
+                    '.surge-milestone-item[data-is-reached="true"]',
+                );
+                if (reachedItems.length > 0) {
+                    const lastReached = reachedItems[reachedItems.length - 1];
+                    const allItems = el.milestones.children;
+                    const isLastItem = lastReached === allItems[allItems.length - 1];
+                    const scrollBehavior = IS_MOBILE ? "auto" : "smooth";
+                    if (isLastItem) {
+                        el.milestones.scrollTo({ left: el.milestones.scrollWidth, behavior: scrollBehavior });
+                    } else {
+                        el.milestones.scrollTo({ left: lastReached.offsetLeft - 12, behavior: scrollBehavior });
+                    }
+                    el.milestones.dataset.scrolled = "1";
+                }
+            };
+            if (IS_MOBILE && el.milestones.offsetParent !== null) {
+                doScroll();
+            } else {
                 requestAnimationFrame(() => {
-                    if (!el.milestones) return;
-                    if (el.milestones.offsetParent === null) return;
-                    const reachedItems = el.milestones.querySelectorAll(
-                        '.surge-milestone-item[data-is-reached="true"]',
-                    );
-                    if (reachedItems.length > 0) {
-                        const lastReached = reachedItems[reachedItems.length - 1];
-                        const allItems = el.milestones.children;
-                        const isLastItem = lastReached === allItems[allItems.length - 1];
-                        if (isLastItem) {
-                            el.milestones.scrollTo({ left: el.milestones.scrollWidth, behavior: "smooth" });
-                        } else {
-                            el.milestones.scrollTo({ left: lastReached.offsetLeft - 12, behavior: "smooth" });
-                        }
-                        el.milestones.dataset.scrolled = "1";
+                    if (IS_MOBILE) {
+                        doScroll();
+                    } else {
+                        requestAnimationFrame(doScroll);
                     }
                 });
-            });
+            }
         }
     }
     el.card.classList.toggle("is-complete", !!resetState.hasDoneSurgeReset);
@@ -2402,12 +2395,10 @@ function updateExperimentCard() {
         displayChanged = true;
     }
     if (displayChanged && typeof resetState.syncDnaLayout === "function") {
-        resetState.syncDnaLayout();
-        requestAnimationFrame(() => {
-            if (typeof resetState.syncDnaLayout === "function") {
-                resetState.syncDnaLayout();
-            }
-        });
+        const dnaBtn = el.card?.querySelector(".btn-dna-shop");
+        if (!dnaBtn?.style?.width) {
+            resetState.syncDnaLayout();
+        }
     }
     ensurePersistentFlagsPrimed();
     // Dynamic description update for Surge 100
@@ -2450,6 +2441,10 @@ function updateExperimentCard() {
 
 export function updateResetPanel({ goldMult = null } = {}) {
     if (!resetState.panel) return;
+    const overlay = resetState.panel.closest(".merchant-overlay");
+    if (!overlay || !overlay.classList.contains("is-open")) {
+        if (!resetState.panel.classList.contains("is-active")) return;
+    }
     // We no longer block updates during scrolling because we have efficient visibility checks
     // for each card. This ensures values update even while holding scrollbars.
     updateForgeCard({ goldMult });
