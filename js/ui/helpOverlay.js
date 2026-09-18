@@ -373,7 +373,7 @@ function renderHelpContent(force = false) {
     lastRenderedNerdMode = isNerdMode;
     const currentEntry = HELP_ENTRIES.find((e) => e.id === currentEntryId) || HELP_ENTRIES[0];
     // Build Sidebar
-    let sidebarHtml = '<aside class="help-sidebar">';
+    let sidebarHtml = '<div class="help-sidebar-wrapper"><aside class="help-sidebar">';
     visibleEntries.forEach((entry) => {
         const isActive = entry.id === currentEntryId ? "is-active" : "";
         // map id to class string
@@ -393,7 +393,7 @@ function renderHelpContent(force = false) {
       <span>${entry.title}</span>
     </button>`;
     });
-    sidebarHtml += "</aside>";
+    sidebarHtml += "</aside></div>";
     // Build Content
     const classMap = {
         1: "is-welcome",
@@ -448,9 +448,10 @@ function renderHelpContent(force = false) {
     const savedScrollLeft = existingSidebar ? existingSidebar.scrollLeft : 0;
     container.innerHTML = sidebarHtml + contentHtml + spacerHtml;
     const newSidebar = container.querySelector(".help-sidebar");
-    if (newSidebar) {
+    const sidebarWrapper = container.querySelector(".help-sidebar-wrapper");
+    if (newSidebar && sidebarWrapper) {
         newSidebar.scrollLeft = savedScrollLeft;
-        ensureCustomScrollbar(overlayEl, sheetEl, ".help-sidebar", { orientation: "horizontal" });
+        ensureCustomScrollbar(sidebarWrapper, sidebarWrapper, ".help-sidebar", { orientation: "horizontal" });
     }
     // Add event listeners to sidebar buttons
     const buttons = container.querySelectorAll(".help-layer");
