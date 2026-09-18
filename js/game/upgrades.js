@@ -199,6 +199,11 @@ export const UPGRADE_TIES = {
     ENDLESS_DP: "scrap_4",
     ENDLESS_MATERIALS: "scrap_5",
     ADVANCED_RESEARCHING: "scrap_6",
+    COIN_RUBBLE_VALUE: "coin_rubble",
+    BOOK_RUBBLE_VALUE: "book_rubble",
+    GOLD_RUBBLE_VALUE: "gold_rubble",
+    MAGIC_RUBBLE_VALUE: "magic_rubble",
+    DNA_RUBBLE_VALUE: "dna_rubble",
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -391,6 +396,7 @@ function shopStatusRank(status) {
 }
 
 function classifyUpgradeStatus(lockState) {
+    if (lockState && lockState.state === "hidden") return "hidden";
     if (!lockState || lockState.locked === false) return "unlocked";
     if (lockState.hidden) return "mysterious";
     return "locked";
@@ -915,6 +921,10 @@ function mergeLockStates(base, override) {
         if (override.state === "locked") {
             merged.locked = true;
             merged.hidden = false;
+        } else if (override.state === "hidden") {
+            merged.locked = true;
+            merged.hidden = true;
+            merged.state = "hidden";
         } else if (override.state === "mysterious") {
             merged.locked = true;
             merged.hidden = true;
@@ -2988,6 +2998,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 24,
         title: "Coin Rubble Value",
+        tie: UPGRADE_TIES.COIN_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level",
         lvlCap: 1000,
         baseCost: "1e99999",
@@ -3003,7 +3014,7 @@ export const REGISTRY = [
         computeLockState(ctx) {
             const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
             if (inChallenge) return { state: "unlocked" };
-            return { state: "locked", locked: true, hidden: true };
+            return { state: "hidden", locked: true, hidden: true };
         },
         hmMilestones: [
             { level: 10, multiplier: 1.5, target: "self" },
@@ -3019,6 +3030,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 25,
         title: "Book Rubble Value",
+        tie: UPGRADE_TIES.BOOK_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level",
         lvlCap: 1000,
         baseCost: "1e99999",
@@ -3034,7 +3046,7 @@ export const REGISTRY = [
         computeLockState(ctx) {
             const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
             if (inChallenge) return { state: "unlocked" };
-            return { state: "locked", locked: true, hidden: true };
+            return { state: "hidden", locked: true, hidden: true };
         },
         hmMilestones: [
             { level: 10, multiplier: 1.5, target: "self" },
@@ -3050,6 +3062,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 26,
         title: "Gold Rubble Value",
+        tie: UPGRADE_TIES.GOLD_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level",
         lvlCap: 1000,
         baseCost: "1e99999",
@@ -3065,7 +3078,7 @@ export const REGISTRY = [
         computeLockState(ctx) {
             const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
             if (inChallenge) return { state: "unlocked" };
-            return { state: "locked", locked: true, hidden: true };
+            return { state: "hidden", locked: true, hidden: true };
         },
         hmMilestones: [
             { level: 10, multiplier: 1.5, target: "self" },
@@ -3081,6 +3094,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 27,
         title: "Magic Rubble Value",
+        tie: UPGRADE_TIES.MAGIC_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level",
         lvlCap: 1000,
         baseCost: "1e99999",
@@ -3096,7 +3110,7 @@ export const REGISTRY = [
         computeLockState(ctx) {
             const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
             if (inChallenge) return { state: "unlocked" };
-            return { state: "locked", locked: true, hidden: true };
+            return { state: "hidden", locked: true, hidden: true };
         },
         hmMilestones: [
             { level: 10, multiplier: 1.5, target: "self" },
@@ -3761,7 +3775,7 @@ function computeUpgradeLockStateFor(areaKey, upg) {
     try {
         currentLevel = upg && typeof upg.id !== "undefined" ? getLevelNumber(areaKey, upg.id) : 0;
     } catch {}
-    if (currentLevel >= 1 || permaUnlocked) {
+    if ((currentLevel >= 1 || permaUnlocked) && state.state !== "hidden") {
         state.locked = false;
         state.hidden = false;
         state.hideCost = false;
@@ -3771,7 +3785,7 @@ function computeUpgradeLockStateFor(areaKey, upg) {
         delete state.descOverride;
         delete state.reason;
     }
-    if (state.locked) {
+    if (state.locked && state.state !== "hidden") {
         const hiddenState = !!state.hidden;
         if (hiddenState) {
             if (!state.iconOverride) state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
@@ -4592,6 +4606,7 @@ export function upgradeUiModel(areaKey, upgId) {
     const haveRaw = bank[upg.costType]?.value;
     const have = haveRaw instanceof BigNum ? haveRaw : BigNum.fromAny(haveRaw ?? 0);
     const lockState = getUpgradeLockState(areaKey, upgId);
+    if (lockState?.state === "hidden") return null;
     const locked = !!lockState.locked;
     const displayTitle = lockState.titleOverride ?? upg.title;
     let rawDesc = lockState.descOverride ?? upg.desc;
