@@ -287,12 +287,14 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
             }
         });
         const endAnim = (e) => {
-            if (e.target === minerOverlayEl || e.target === minerSheetEl) {
-                minerOverlayEl.classList.remove("is-animating");
-            }
+            if (e && e.target !== minerOverlayEl && e.target !== minerSheetEl) return;
+            minerOverlayEl.classList.remove("is-animating");
+            minerOverlayEl.removeEventListener("transitionend", endAnim);
+            minerOverlayEl.removeEventListener("transitioncancel", endAnim);
         };
         minerOverlayEl.addEventListener("transitionend", endAnim);
         minerOverlayEl.addEventListener("transitioncancel", endAnim);
+        setTimeout(() => endAnim({ target: minerOverlayEl }), 450); // fallback
     }
 
     const tabBtn = document.createElement("button");
