@@ -19,6 +19,9 @@ import { isResearchNodeActive } from "./labNodes.js";
 import { formatNumber } from "../util/numFormat.js";
 import { isSellUnlocked, hasViewedSellTab } from "../ui/minerTabs/sellTab.js";
 import { getCurrentSurgeLevel } from "../ui/merchantTabs/resetTab.js";
+import { isCollapseUnlocked } from "../ui/minerTabs/collapseTab.js";
+import { getActiveSlot } from "../util/storage.js";
+import { lsGetItem } from "../main.js";
 
 export const UC_AREA_KEY = "underwater_cavern";
 
@@ -636,6 +639,47 @@ export const UC_REGISTRY = [
                     }
                 } catch {}
             }
+        },
+    },
+    {
+        area: UC_AREA_KEY,
+        id: 14,
+        tie: "none_10",
+        title: "Unlock Coral Reef",
+        desc: "Unlocks new area: Coral Reef",
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "",
+        baseIconOverride: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            let isUnlocked = false;
+            try {
+                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:stone:${getActiveSlot()}`) === "1";
+            } catch {}
+
+            if (isUnlocked) {
+                return { state: "unlocked" };
+            }
+
+            if (!isCollapseUnlocked()) {
+                return { state: "locked" };
+            }
+
+            const revealText = "Complete the Challenge of Stone to reveal this upgrade";
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+        onLevelChange({ newLevel }) {
+            // no-op for now, functionality to be implemented later
+        },
+        effectSummary() {
+            return "";
         },
     },
 ];
