@@ -860,7 +860,8 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
     } catch {}
 
     if (isCompleted) {
-        btnWrapper.style.visibility = "hidden";
+        btnWrapper.style.display = "none";
+        desc.style.marginBottom = "0";
         actionBtn.textContent = `Complete Challenge`;
     } else if (isThisChallengeActive) {
         if (isGoalReached) {
