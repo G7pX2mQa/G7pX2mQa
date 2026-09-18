@@ -217,15 +217,22 @@
     background: linear-gradient(to bottom, #1e7e34, #145523);
 }
 @media (max-width: 900px) {
+    .sell-center-col {
+        padding-left: 0;
+        padding-right: 0;
+    }
     .sell-list-header {
         display: none;
     }
     .sell-list {
         width: 100%;
-        align-items: center;
+        align-items: stretch;
     }
     .sell-row {
-        padding: 16px max(8px, calc(var(--sell-plus-size) * .5 + 4px));
+        padding-top: 16px;
+        padding-bottom: 16px;
+        padding-left: max(8px, calc(var(--sell-plus-size) * 0.5 + 4px));
+        padding-right: 8px;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
         justify-content: space-between;
         grid-template-areas: "owned val state" "line line line" "bar bar bar";
@@ -234,7 +241,7 @@
         border-radius: 12px;
         background: #8888880d;
         width: 100%;
-        max-width: 800px;
+        max-width: none;
         position: relative;
         margin: 0 auto;
     }
