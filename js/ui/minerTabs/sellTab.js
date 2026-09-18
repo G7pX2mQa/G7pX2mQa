@@ -15,6 +15,27 @@ import { settingsManager } from "../../game/settingsManager.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { IS_MOBILE } from "../../util/platformChecker.js";
 import { isCollapseChallengeActive } from "./collapseTab.js";
+
+export function setRubbleSellMode(enabled, slot = getActiveSlot()) {
+    if (slot == null) return;
+    try {
+        if (enabled) {
+            lsSetItem(`ccc:sellTypeRubble:${slot}`, "1");
+        } else {
+            lsRemoveItem(`ccc:sellTypeRubble:${slot}`);
+        }
+        updateSellTab();
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("rubbleMode:toggled"));
+        }
+    } catch {}
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("collapse:challenge:exit", () => {
+        setRubbleSellMode(false);
+    });
+}
 const SELL_UNLOCKED_KEY_BASE = "ccc:sellUnlocked";
 const SELL_VIEWED_KEY_BASE = "ccc:sellViewed";
 let cachedViewedState = {};
