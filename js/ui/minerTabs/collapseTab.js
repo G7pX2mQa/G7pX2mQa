@@ -326,18 +326,24 @@ function exitCollapseChallenge(materialName) {
     return true;
 }
 
-// On page load: restore challenge state if active
+// On page load or slot change: restore or clear challenge state
 function restoreCollapseChallengeState() {
     const slot = getActiveSlot();
     if (slot == null) return;
     const activeMat = getActiveCollapseChallengeType(slot);
-    if (!activeMat) return;
+    if (!activeMat) {
+        unregisterCoinDebuff();
+        unregisterRubbleCoinValueProvider();
+        syncCoinMultiplierWithXpLevel(true);
+        return;
+    }
     // Re-register providers
     registerCoinDebuff();
     registerRubbleCoinValueProvider();
+    syncCoinMultiplierWithXpLevel(true);
 }
 
-// Restore on script load
+// Restore on script load and handle save slot changes
 if (typeof window !== "undefined") {
     // Use a slight delay to ensure xpSystem has initialized
     if (document.readyState === "complete" || document.readyState === "interactive") {
@@ -347,6 +353,10 @@ if (typeof window !== "undefined") {
             setTimeout(restoreCollapseChallengeState, 0);
         });
     }
+    
+    window.addEventListener("saveSlot:change", () => {
+        restoreCollapseChallengeState();
+    });
 }
 
 let overlayEl = null;
