@@ -153,7 +153,7 @@ function buildSubmenu() {
     return container;
 }
 
-function getSaveDataForSlot(slot) {
+export function getSaveDataForSlot(slot) {
     if (typeof flushLocalStorageBuffer === "function") flushLocalStorageBuffer();
     const re = new RegExp(`^ccc:.*:${slot}$`);
     const data = {};
@@ -166,7 +166,7 @@ function getSaveDataForSlot(slot) {
     return data;
 }
 
-function clearSaveDataForSlot(slot) {
+export function clearSaveDataForSlot(slot) {
     const re = new RegExp(`^ccc:.*:${slot}$`);
     const toRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -181,7 +181,7 @@ function clearSaveDataForSlot(slot) {
     }
 }
 
-function applySaveDataToSlot(slot, data) {
+export function applySaveDataToSlot(slot, data) {
     clearSaveDataForSlot(slot);
     for (const [key, value] of Object.entries(data)) {
         // Ensure the key actually belongs to the target slot
