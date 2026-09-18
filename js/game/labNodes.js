@@ -379,6 +379,8 @@ function saveLabNodes() {
 // Initialize
 if (typeof window !== "undefined") {
     window.addEventListener("saveSlot:change", reloadLabNodes);
+    window.addEventListener("collapse:challenge:start", reloadLabNodes);
+    window.addEventListener("collapse:challenge:exit", reloadLabNodes);
     // Auto-save every second
     setInterval(saveLabNodes, 1000);
     // Save on unload
