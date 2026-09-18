@@ -255,6 +255,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
     .sell-col-owned:before {
         content: "Owned:";
@@ -264,12 +266,14 @@
     }
     .sell-col-val {
         grid-area: val;
-        justify-self: center;
-        padding-left: 15px;
+        justify-self: flex-end;
+        padding-right: 15px;
         text-align: center;
         display: flex;
         flex-direction: column;
         align-items: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
     .sell-col-val:before {
         content: "Value:";
