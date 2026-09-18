@@ -709,6 +709,10 @@ export function unlockPpSystem() {
     return true;
 }
 if (typeof window !== "undefined") {
+    window.addEventListener("collapse:challenge:exit", () => {
+        ensureStateLoaded(true);
+        updateHud();
+    });
     window.ppSystem = window.ppSystem || {};
     Object.assign(window.ppSystem, {
         addExternalPpMultiplierProvider,
