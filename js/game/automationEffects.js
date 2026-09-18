@@ -22,6 +22,7 @@ import {
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { performFreeBuildingAutobuy } from "../ui/minerTabs/buildingsTab.js";
+import { calculateUpgradeMultipliers } from "./upgradeEffects.js";
 import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from "../util/storage.js";
 import { UC_MATERIAL_DATA, getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators, getUcEacYieldAccumulators, saveUcEacYieldAccumulators } from "./ucSpawner.js";
 import { BigNum, bigNumIsInfinite } from "../util/bigNum.js";
@@ -660,7 +661,9 @@ registerPassiveSystem({
                 let potentialOutput;
                 
                 if (isRubbleMode) {
-                    potentialOutput = owned;
+                    const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+                    const rubbleVal = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1);
+                    potentialOutput = owned.mulBigNumInteger(rubbleVal);
                 } else {
                     const materialValue = BigNum.fromAny(matData.value || 0);
                     const valPerMaterial = materialValue
@@ -734,7 +737,9 @@ registerPassiveSystem({
                 let potentialOutput;
                 
                 if (isRubbleMode) {
-                    potentialOutput = owned;
+                    const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+                    const rubbleVal = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1);
+                    potentialOutput = owned.mulBigNumInteger(rubbleVal);
                 } else {
                     const materialValue = BigNum.fromAny(matData.value || 0);
                     const valPerMaterial = materialValue
