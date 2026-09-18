@@ -1998,6 +1998,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/sc_upg_icons/autobuy_evolve.webp",
             "img/sc_upg_icons/autobuy_gold.webp",
             "img/sc_upg_icons/autobuy_magic.webp",
+			"img/sc_upg_icons/autobuy_stone.webp",
             "img/sc_upg_icons/autobuy_workshop_level.webp",
             "img/sc_upg_icons/book_val1.webp",
             "img/sc_upg_icons/coin_val1.webp",
