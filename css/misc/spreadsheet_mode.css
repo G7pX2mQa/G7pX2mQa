@@ -205,3 +205,11 @@ body.spreadsheet-mode:not(.menu-bg) .achievement-btn .shop-tile {
   width: 100% !important;
   height: 100% !important;
 }
+/* Make HUD bars transparent in spreadsheet mode */
+body.spreadsheet-mode:not(.menu-bg) .hud-top [class$="-bar"],
+body.spreadsheet-mode:not(.menu-bg) .hud-bottom [class$="-bar"] {
+  background-color: transparent !important;
+}
+
+
+
