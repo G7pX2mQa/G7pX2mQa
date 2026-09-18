@@ -225,11 +225,11 @@
         align-items: center;
     }
     .sell-row {
-        padding: 16px max(12px, calc(var(--sell-plus-size) * .5 + 8px));
+        padding: 16px max(8px, calc(var(--sell-plus-size) * .5 + 4px));
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
         justify-content: space-between;
         grid-template-areas: "owned val state" "line line line" "bar bar bar";
-        gap: clamp(8px, 3vw, 16px);
+        gap: clamp(4px, 2vw, 12px);
         border: 1px solid rgba(136, 136, 136, 0.4);
         border-radius: 12px;
         background: #8888880d;
@@ -264,8 +264,8 @@
     }
     .sell-col-val {
         grid-area: val;
-        justify-self: flex-end;
-        padding-right: 15px;
+        justify-self: center;
+        padding-left: 15px;
         text-align: center;
         display: flex;
         flex-direction: column;
