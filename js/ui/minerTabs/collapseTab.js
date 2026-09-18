@@ -642,16 +642,16 @@ Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim
         if (!actionBtn || !content || !desc) return;
         const currentScroll = content.scrollTop;
         desc.textContent = baseDescText;
-        content.scrollTop = 0;
-        const contentRect = content.getBoundingClientRect();
-        const btnRect = actionBtn.getBoundingClientRect();
-        const isEntirelyVisible = (
-            btnRect.top >= contentRect.top - 1 &&
-            btnRect.bottom <= contentRect.bottom + 1
-        );
+        
+        // Force reflow
+        void content.offsetHeight;
+        
+        const isEntirelyVisible = content.scrollHeight <= content.clientHeight + 1;
+        
         if (!isEntirelyVisible) {
             desc.textContent = `Scroll down further to see everything\n\n${baseDescText}`;
         }
+        
         if (currentScroll > 0) {
             content.scrollTop = currentScroll;
         }
