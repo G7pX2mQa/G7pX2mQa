@@ -9,13 +9,17 @@
 }
 
 /* Sticky Sidebar */
+.merchant-reset__sidebar-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 100%;
+}
+
 .merchant-reset__sidebar {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  position: sticky;
-  top: 0;
-  z-index: 5;
 }
 
 .merchant-reset__list {
@@ -498,16 +502,30 @@
   }
 
   /* Make sidebar horizontal scroll on mobile */
+  .merchant-reset__sidebar-wrapper {
+    position: sticky;
+    top: -12px;
+    z-index: 10;
+    margin-top: -12px;
+    background: var(--merchant-bg);
+  }
+  
+  .merchant-reset__sidebar-wrapper .shop-scrollbar.is-horizontal {
+    right: 12px !important;
+    left: 12px !important;
+    bottom: 0px !important;
+    height: 8px !important;
+  }
+  
+  .merchant-reset__sidebar-wrapper .shop-scrollbar.is-horizontal .shop-scrollbar__thumb {
+    min-height: 0 !important;
+  }
+
   .merchant-reset__sidebar {
     flex-direction: row;
     overflow-x: auto;
     padding-bottom: 8px; /* space for scrollbar if any */
-    position: sticky;
-    top: -12px; /* slight offset */
-    background: var(--merchant-bg); /* Opaque bg to cover content behind sticky header */
     padding-top: 12px;
-    margin-top: -12px; /* Pull back to edge */
-    z-index: 10;
     scrollbar-width: none; /* Firefox */
   }
 
@@ -667,7 +685,11 @@
 /* Horizontal Custom Scrollbar */
 .shop-scrollbar.is-horizontal {
   width: auto;
-  height: 8px;
+  right: 12px !important;
+  left: 12px !important;
+  top: auto;
+  bottom: 12px;
+  height: 18px;
 }
 
 .shop-scrollbar.is-horizontal .shop-scrollbar__thumb {
