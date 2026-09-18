@@ -12,8 +12,7 @@ export const RUBBLE_REGISTRY = [
     {
         area: RUBBLE_AREA_KEY,
         id: 1,
-        tie: "rubble_coin_val",
-        title: "Rubble Coin Value",
+        title: "rubble_coin_value",
         desc: "Multiplies Coin value by 10x per level",
         lvlCap: 100,
         baseCost: "1e99999",
