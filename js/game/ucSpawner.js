@@ -420,9 +420,14 @@ export function createUcSpawner(config = {}) {
             }
 
             if (firstPlaceholder) {
-                if (!window._cachedUcRubbleRect) {
+                if (!window._cachedUcRubbleRect || window._cachedUcRubbleRect.height === 0) {
                     const rl = document.querySelector(".rubble-layer");
-                    if (rl) window._cachedUcRubbleRect = rl.getBoundingClientRect();
+                    if (rl) {
+                        const rect = rl.getBoundingClientRect();
+                        if (rect.height > 0 || !window._cachedUcRubbleRect) {
+                            window._cachedUcRubbleRect = rect;
+                        }
+                    }
                 }
 
                 const rubbleRect = window._cachedUcRubbleRect;
@@ -447,11 +452,12 @@ export function createUcSpawner(config = {}) {
                         document.querySelector(playfieldSelector).appendChild(pickaxe);
                     }
 
-                    if (pickaxe._currentTarget !== firstPlaceholder) {
+                    const isNewTarget = pickaxe._currentTarget !== firstPlaceholder;
+                    if (isNewTarget || pickaxe._isInvalidlyHigh) {
                         pickaxe._currentTarget = firstPlaceholder;
                         const cycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
 
-                        if (pickaxe._elapsedTime !== undefined && !pickaxe._playedSound) {
+                        if (isNewTarget && pickaxe._elapsedTime !== undefined && !pickaxe._playedSound) {
                             playSpawnSound();
                         }
 
@@ -503,8 +509,11 @@ export function createUcSpawner(config = {}) {
                         else pickaxe.style.display = "block";
                         pickaxe._chargeRotation = chargeRotation;
                         pickaxe._strikeRotation = strikeRotation;
-                        pickaxe._elapsedTime = 0;
-                        pickaxe._playedSound = false;
+                        if (isNewTarget) {
+                            pickaxe._elapsedTime = 0;
+                            pickaxe._playedSound = false;
+                        }
+                        pickaxe._isInvalidlyHigh = (visibleRubbleHeight === 0);
                     }
                 }
             }
