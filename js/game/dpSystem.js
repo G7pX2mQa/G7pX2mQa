@@ -277,11 +277,13 @@ function ensureDpStorageWatchers() {
     dpStorageWatchersInitialized = true;
     bindDpStorageWatchersForSlot(getActiveSlot());
     if (typeof window !== "undefined") {
-        window.addEventListener("saveSlot:change", () => {
+        const handleDpReload = () => {
             bindDpStorageWatchersForSlot(getActiveSlot());
             ensureStateLoaded(true);
             updateHud();
-        });
+        };
+        window.addEventListener("saveSlot:change", handleDpReload);
+        window.addEventListener("collapse:challenge:exit", handleDpReload);
     }
 }
 
