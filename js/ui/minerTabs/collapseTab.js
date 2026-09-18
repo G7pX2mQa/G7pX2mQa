@@ -1,5 +1,5 @@
 import { lsSetItem, lsGetItem, lsRemoveItem } from "../../main.js";
-import { getActiveSlot } from "../../util/storage.js";
+import { getActiveSlot, bank } from "../../util/storage.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
@@ -8,7 +8,8 @@ import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { suspendAllAudioFor } from "../../util/audioManager.js";
 import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
-import { getLevelNumber, AREA_KEYS } from "../../game/upgrades.js";
+import { getLevelNumber, AREA_KEYS, UPGRADE_TIES, setLevel } from "../../game/upgrades.js";
+import { setRubbleSellMode } from "./sellTab.js";
 import { RUBBLE_AREA_KEY } from "../../game/rubbleUpgrades.js";
 import { DNA_AREA_KEY } from "../../game/dnaUpgrades.js";
 import { disableGlobalOverlayEsc, enableGlobalOverlayEsc } from "../../util/globalOverlayEsc.js";
@@ -315,15 +316,17 @@ function exitCollapseChallenge(materialName) {
     try {
         const slot = getActiveSlot();
         if (slot != null) {
-            // Clear the rubble coin value upgrade level
-            lsRemoveItem(`ccc:upg:${RUBBLE_AREA_KEY}:1:${slot}`);
-            // Clear the 4 new Cove HM upgrades
-            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:24:${slot}`);
-            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:25:${slot}`);
-            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:26:${slot}`);
-            lsRemoveItem(`ccc:upg:${AREA_KEYS.STARTER_COVE}:27:${slot}`);
-            // Clear the 1 new DNA HM upgrade
-            lsRemoveItem(`ccc:upg:${DNA_AREA_KEY}:6:${slot}`);
+            setLevel(RUBBLE_AREA_KEY, 1, 0);
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.GOLD_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MAGIC_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(DNA_AREA_KEY, UPGRADE_TIES.DNA_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            
+            if (bank?.rubble?.set) {
+                bank.rubble.set(0);
+            }
+            setRubbleSellMode(false, slot);
         }
     } catch {}
 
@@ -344,6 +347,10 @@ function restoreCollapseChallengeState() {
         unregisterCoinDebuff();
         unregisterRubbleCoinValueProvider();
         syncCoinMultiplierWithXpLevel(true);
+        setRubbleSellMode(false, slot);
+        if (bank?.rubble?.value > 0) {
+            bank.rubble.set(0);
+        }
         return;
     }
     // Re-register providers
