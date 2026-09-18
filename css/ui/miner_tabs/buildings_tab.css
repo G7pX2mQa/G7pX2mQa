@@ -159,6 +159,12 @@
 #building-detail-level-text {
   font-size: 28px !important;
 }
+
+@media (max-width: 599px) {
+  #building-detail-level-text {
+    font-size: 25.2px !important;
+  }
+}
 #building-detail-overlay .upg-costs {
   bottom: clamp(167px, calc(1vw + 162px), 177px) !important;
 }
