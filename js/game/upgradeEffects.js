@@ -148,6 +148,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     fpValue: BigNum.fromInt(1),
     dpValue: BigNum.fromInt(1),
     ppValue: BigNum.fromInt(1),
+    rubbleValue: BigNum.fromInt(1),
     allMaterialsValue: BigNum.fromInt(1),
     coresValue: BigNum.fromInt(1),
     crystalsValue: BigNum.fromInt(1),
@@ -225,6 +226,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.dpValue = safeMultiplyBigNum(acc.dpValue, baseEffect);
     } else if (upg.effectType === 'pp_value') {
       acc.ppValue = safeMultiplyBigNum(acc.ppValue, baseEffect);
+    } else if (upg.effectType === 'rubble_value') {
+      acc.rubbleValue = safeMultiplyBigNum(acc.rubbleValue, baseEffect);
     } else if (upg.effectType === 'all_materials_value') {
       acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, baseEffect);
     } else if (upg.effectType === 'cores_value') {
