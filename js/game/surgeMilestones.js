@@ -1086,5 +1086,45 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             future.push(milestone);
         }
     }
-    return [...reached, ...future.slice(0, 2)];
+
+    let maxSurgeLevelReached = 0;
+    const MAX_SURGE_KEY = `ccc:surge:maxLevel:${slot}`;
+    if (currentLevel === Infinity) {
+        maxSurgeLevelReached = Infinity;
+        try {
+            if (slot != null) lsSetItem(MAX_SURGE_KEY, "Infinity");
+        } catch {}
+    } else {
+        try {
+            const val = lsGetItem(MAX_SURGE_KEY);
+            if (val) {
+                if (val === "Infinity") {
+                    maxSurgeLevelReached = Infinity;
+                } else {
+                    maxSurgeLevelReached = parseFloat(val);
+                    if (isNaN(maxSurgeLevelReached)) maxSurgeLevelReached = 0;
+                }
+            }
+        } catch {}
+        
+        if (currentLevel > maxSurgeLevelReached) {
+            maxSurgeLevelReached = currentLevel;
+            try {
+                if (slot != null) lsSetItem(MAX_SURGE_KEY, maxSurgeLevelReached.toString());
+            } catch {}
+        }
+    }
+
+    let maxSeenFutureIndex = 2;
+    if (maxSurgeLevelReached > currentLevel && maxSurgeLevelReached !== Infinity) {
+        let countAtMax = 0;
+        for (const m of SURGE_MILESTONES) {
+            if (m.surgeLevel <= maxSurgeLevelReached) countAtMax++;
+        }
+        maxSeenFutureIndex = (countAtMax + 2) - reached.length;
+    } else if (maxSurgeLevelReached === Infinity) {
+        maxSeenFutureIndex = future.length;
+    }
+
+    return [...reached, ...future.slice(0, Math.max(2, maxSeenFutureIndex))];
 }
