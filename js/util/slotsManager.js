@@ -166,7 +166,7 @@ export function getSaveDataForSlot(slot) {
     return data;
 }
 
-export function clearSaveDataForSlot(slot) {
+function clearSaveDataForSlot(slot) {
     const re = new RegExp(`^ccc:.*:${slot}$`);
     const toRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
