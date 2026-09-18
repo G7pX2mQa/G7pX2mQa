@@ -111,6 +111,9 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    background-color: transparent;
+    transform: translateZ(0);
+    will-change: clip-path;
 }
 
 .collapse-fracture-overlay.is-animating {
