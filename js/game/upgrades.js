@@ -2984,6 +2984,130 @@ export const REGISTRY = [
         },
         effectMultiplier: E.powPerLevel(1.1),
     },
+    {
+        area: AREA_KEYS.STARTER_COVE,
+        id: 24,
+        title: "Coin Rubble Value",
+        desc: "Multiplies Rubble value by 1.1x per level",
+        lvlCap: 1000,
+        baseCost: "1e99999",
+        costType: "coins",
+        upgType: "HM",
+        scalingPreset: "HM",
+        icon: "img/misc/rubble_value.webp",
+        baseIconOverride: "img/currencies/coin/coin_base.webp",
+        effectType: "rubble_value",
+        _baseEffectVal: 1.1,
+        _costScaling: "HM",
+        bonusLine: (level, total) => `Rubble value bonus: ${formatMultForUi(total)}x`,
+        computeLockState(ctx) {
+            const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
+            if (inChallenge) return { state: "unlocked" };
+            return { state: "locked", locked: true, hidden: true };
+        },
+        hmMilestones: [
+            { level: 10, multiplier: 1.5, target: "self" },
+            { level: 25, multiplier: 2, target: "self" },
+            { level: 50, multiplier: 5, target: "self" },
+            { level: 100, multiplier: 10, target: "self" },
+            { level: 200, multiplier: 15, target: "self" },
+            { level: 400, multiplier: 25, target: "self" },
+            { level: 800, multiplier: 100, target: "self" }
+        ]
+    },
+    {
+        area: AREA_KEYS.STARTER_COVE,
+        id: 25,
+        title: "Book Rubble Value",
+        desc: "Multiplies Rubble value by 1.1x per level",
+        lvlCap: 1000,
+        baseCost: "1e99999",
+        costType: "books",
+        upgType: "HM",
+        scalingPreset: "HM",
+        icon: "img/misc/rubble_value.webp",
+        baseIconOverride: "img/currencies/book/book_base.webp",
+        effectType: "rubble_value",
+        _baseEffectVal: 1.1,
+        _costScaling: "HM",
+        bonusLine: (level, total) => `Rubble value bonus: ${formatMultForUi(total)}x`,
+        computeLockState(ctx) {
+            const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
+            if (inChallenge) return { state: "unlocked" };
+            return { state: "locked", locked: true, hidden: true };
+        },
+        hmMilestones: [
+            { level: 10, multiplier: 1.5, target: "self" },
+            { level: 25, multiplier: 2, target: "self" },
+            { level: 50, multiplier: 5, target: "self" },
+            { level: 100, multiplier: 10, target: "self" },
+            { level: 200, multiplier: 15, target: "self" },
+            { level: 400, multiplier: 25, target: "self" },
+            { level: 800, multiplier: 100, target: "self" }
+        ]
+    },
+    {
+        area: AREA_KEYS.STARTER_COVE,
+        id: 26,
+        title: "Gold Rubble Value",
+        desc: "Multiplies Rubble value by 1.1x per level",
+        lvlCap: 1000,
+        baseCost: "1e99999",
+        costType: "gold",
+        upgType: "HM",
+        scalingPreset: "HM",
+        icon: "img/misc/rubble_value.webp",
+        baseIconOverride: "img/currencies/gold/gold_base.webp",
+        effectType: "rubble_value",
+        _baseEffectVal: 1.1,
+        _costScaling: "HM",
+        bonusLine: (level, total) => `Rubble value bonus: ${formatMultForUi(total)}x`,
+        computeLockState(ctx) {
+            const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
+            if (inChallenge) return { state: "unlocked" };
+            return { state: "locked", locked: true, hidden: true };
+        },
+        hmMilestones: [
+            { level: 10, multiplier: 1.5, target: "self" },
+            { level: 25, multiplier: 2, target: "self" },
+            { level: 50, multiplier: 5, target: "self" },
+            { level: 100, multiplier: 10, target: "self" },
+            { level: 200, multiplier: 15, target: "self" },
+            { level: 400, multiplier: 25, target: "self" },
+            { level: 800, multiplier: 100, target: "self" }
+        ]
+    },
+    {
+        area: AREA_KEYS.STARTER_COVE,
+        id: 27,
+        title: "Magic Rubble Value",
+        desc: "Multiplies Rubble value by 1.1x per level",
+        lvlCap: 1000,
+        baseCost: "1e99999",
+        costType: "magic",
+        upgType: "HM",
+        scalingPreset: "HM",
+        icon: "img/misc/rubble_value.webp",
+        baseIconOverride: "img/currencies/magic/magic_base.webp",
+        effectType: "rubble_value",
+        _baseEffectVal: 1.1,
+        _costScaling: "HM",
+        bonusLine: (level, total) => `Rubble value bonus: ${formatMultForUi(total)}x`,
+        computeLockState(ctx) {
+            const inChallenge = window.resetSystem?.isCollapseChallengeActive?.() || false;
+            if (inChallenge) return { state: "unlocked" };
+            return { state: "locked", locked: true, hidden: true };
+        },
+        hmMilestones: [
+            { level: 10, multiplier: 1.5, target: "self" },
+            { level: 25, multiplier: 2, target: "self" },
+            { level: 50, multiplier: 5, target: "self" },
+            { level: 100, multiplier: 10, target: "self" },
+            { level: 200, multiplier: 15, target: "self" },
+            { level: 400, multiplier: 25, target: "self" },
+            { level: 800, multiplier: 100, target: "self" }
+        ]
+    },
     ...AUTOMATION_REGISTRY,
     ...DNA_REGISTRY,
     ...RAINBOW_GEM_UPGRADES,
