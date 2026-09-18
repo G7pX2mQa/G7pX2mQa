@@ -420,15 +420,24 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
     let scrollTimeout = null;
     const updateBounds = () => {
         if (!scroller.isConnected || !sheetEl.isConnected) return;
-        if (!isVertical) return;
         const scrollerRect = scroller.getBoundingClientRect();
         const sheetRect = sheetEl.getBoundingClientRect();
-        const top = Math.max(0, scrollerRect.top - sheetRect.top);
-        const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
-        bar.style.top = top + "px";
-        bar.style.bottom = bottom + "px";
-        bar.style.left = "";
-        bar.style.right = "";
+        if (isVertical) {
+            const top = Math.max(0, scrollerRect.top - sheetRect.top);
+            const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
+            bar.style.top = top + "px";
+            bar.style.bottom = bottom + "px";
+            bar.style.left = "";
+            bar.style.right = "";
+        } else {
+            const left = Math.max(0, scrollerRect.left - sheetRect.left);
+            const right = Math.max(0, sheetRect.right - scrollerRect.right);
+            const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
+            bar.style.left = (left + 12) + "px";
+            bar.style.right = (right + 12) + "px";
+            bar.style.bottom = bottom + "px";
+            bar.style.top = "auto";
+        }
     };
 
     const updateMetrics = () => {
