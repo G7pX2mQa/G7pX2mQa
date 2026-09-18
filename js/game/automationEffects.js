@@ -19,6 +19,7 @@ import {
     EFFECTIVE_AUTO_SELL_ID,
     AUTOBUY_CORE_BUILDING_ID,
     AUTOBUY_CRYSTAL_BUILDING_ID,
+    AUTOBUY_STONE_BUILDING_ID,
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { performFreeBuildingAutobuy } from "../ui/minerTabs/buildingsTab.js";
@@ -295,6 +296,13 @@ function updateAutobuyers(dt) {
         if (crystalBuildingAutobuy) {
             if (getCollectiveAutobuyerState("crystals") === 1) {
                 performFreeBuildingAutobuy("crystal");
+            }
+        }
+        // Process Stone Building Autobuy
+        const stoneBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_STONE_BUILDING_ID) > 0;
+        if (stoneBuildingAutobuy) {
+            if (getCollectiveAutobuyerState("stone") === 1) {
+                performFreeBuildingAutobuy("stone");
             }
         }
     });
