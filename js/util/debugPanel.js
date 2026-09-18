@@ -6351,6 +6351,29 @@ function buildUnlocksContent(content) {
             }));
         });
     }));
+
+    // Collapse Challenges subsection
+    content.appendChild(createSubsection("Collapse Challenges", (collapseContent) => {
+        UC_MATERIALS.forEach((materialName) => {
+            const capitalName = materialName.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+            const challengeTitle = `Challenge of ${capitalName}`;
+            const storageKey = `ccc:collapseChallengeCompleted:${materialName}:${slot}`;
+            
+            const rowDef = {
+                labelText: challengeTitle,
+                description: `If true, the ${challengeTitle} is marked as completed`,
+                isUnlocked: () => lsGetItem(storageKey) === "1",
+                onEnable: () => {
+                    lsSetItemForce(storageKey, "1");
+                },
+                onDisable: () => {
+                    lsSetItemForce(storageKey, "0");
+                },
+                slot,
+            };
+            collapseContent.appendChild(createUnlockToggleRow(rowDef));
+        });
+    }));
     
     // In case the unlocks content is rebuilt while paintbrush is active
     // We defer the event using setTimeout if the panel is not yet in the DOM. 
