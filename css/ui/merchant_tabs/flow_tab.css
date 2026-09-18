@@ -392,7 +392,7 @@
 
   .flow-row {
     /* Keep padding symmetrical. The overhang is on the left, so we add equal padding on both left and right to center everything visually */
-    padding: 16px max(8px, calc(var(--flow-plus-size) * 0.5 - 4px));
+    padding: 16px max(8px, calc(var(--flow-plus-size) * 0.5 - 6px));
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     justify-content: space-between;
     grid-template-areas: 
