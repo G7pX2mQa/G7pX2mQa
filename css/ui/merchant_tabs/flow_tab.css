@@ -415,8 +415,7 @@
   .flow-bar-container {
     grid-area: bar;
     margin: 0;
-    /* 80% screen width constraint */
-    width: min(80vw, 100%);
+    width: 100%;
     justify-self: center;
   }
   
@@ -545,4 +544,18 @@
 /* Flow custom scrollbar integration */
 .merchant-sheet:not(.is-flow-active) .flow-scrollbar {
   display: none !important;
+}
+
+/* Added mobile override for wider containers */
+html.is-mobile .flow-center-col {
+  padding-left: 0;
+  padding-right: 0;
+}
+html.is-mobile .flow-list {
+  align-items: stretch;
+}
+html.is-mobile .flow-row {
+  max-width: none;
+  padding-left: max(8px, calc(var(--flow-plus-size) * 0.5 - 2px));
+  padding-right: 8px;
 }
