@@ -4484,7 +4484,7 @@ function setAllUnlockToggles(targetState) {
     return toggled;
 }
 
-function unlockAllUnlocks() {
+function unlockAllUnlocks(excludeChal = false) {
     const slot = getActiveSlot();
     if (slot == null) return { unlocks: 0, toggles: 0 };
     let unlocked = 0;
@@ -4506,7 +4506,19 @@ function unlockAllUnlocks() {
     try {
         unlockMap();
     } catch {}
-    const toggled = setAllUnlockToggles(true);
+    let toggled = setAllUnlockToggles(true);
+
+    if (!excludeChal) {
+        UC_MATERIALS.forEach((materialName) => {
+            const storageKey = `ccc:collapseChallengeCompleted:${materialName}:${slot}`;
+            if (lsGetItem(storageKey) !== "1") {
+                lsSetItemForce(storageKey, "1");
+                window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: materialName, completed: true } }));
+                toggled += 1;
+            }
+        });
+    }
+
     return { unlocks: unlocked, toggles: toggled };
 }
 
@@ -5812,7 +5824,17 @@ function buildMiscContent(content) {
                     refreshLiveBindings();
                 } catch {}
                 flagDebugUsage();
-                logAction(`UAU For Buildings applied unlock state: true to ${toggled} entries.`);
+                logAction(`UAU For Buildings applied unlock state: true to ${toggled} entries`);
+            },
+        },
+        {
+            label: "UAU Exclude CCs",
+            onClick: () => {
+                const { unlocks, toggles } = unlockAllUnlocks(true);
+                flagDebugUsage();
+                logAction(
+                    `Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled) while excluding Collapse Challenges`,
+                );
             },
         },
         {
@@ -5883,7 +5905,7 @@ function buildMiscContent(content) {
         {
             label: "Ultra Lazy Button",
             onClick: () => {
-                const raw = window.prompt("Unlocks all unlocks, enables all automation, and maxes all Lab Nodes. Input a number that you want to set your Surge to.");
+                const raw = window.prompt("Unlocks all unlocks, enables all automation, and maxes all Lab Nodes. Input a number that you want to set your Surge to:");
                 if (raw == null || raw.trim() === "") return;
                 
                 let limitStr = "0";
@@ -6365,9 +6387,11 @@ function buildUnlocksContent(content) {
                 isUnlocked: () => lsGetItem(storageKey) === "1",
                 onEnable: () => {
                     lsSetItemForce(storageKey, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: materialName, completed: true } }));
                 },
                 onDisable: () => {
                     lsSetItemForce(storageKey, "0");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: materialName, completed: false } }));
                 },
                 slot,
             };
