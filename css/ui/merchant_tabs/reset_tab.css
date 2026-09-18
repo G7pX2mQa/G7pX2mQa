@@ -521,6 +521,11 @@
     min-height: 0 !important;
   }
 
+  html.is-mobile .merchant-reset__sidebar-wrapper.is-scrolling .shop-scrollbar {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
   .merchant-reset__sidebar {
     flex-direction: row;
     overflow-x: auto;
