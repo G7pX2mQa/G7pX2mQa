@@ -16,7 +16,7 @@
     margin-bottom: 1.7em;
 }
 
-@media (min-width: 1366px) {
+@media (min-width: 1350px) {
     .collapse-overlay-desc {
         white-space: pre;
         font-size: min(1.7vw, 34px);
@@ -306,8 +306,8 @@ html.is-mobile .collapse-tab .shop-tile {
     max-width: 100cqb;
 }
 
-html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar,
-html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar {
-    opacity: 1;
-    pointer-events: auto;
+html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling > .shop-scrollbar,
+html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling > .shop-scrollbar {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
