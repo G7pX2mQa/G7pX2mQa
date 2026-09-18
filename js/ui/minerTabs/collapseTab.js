@@ -250,7 +250,6 @@ function getWhitelistPrefixes() {
         "ccc:lab:node:level:",
         "ccc:lab:node:rp:",
         "ccc:lab:node:active:",
-        "ccc:lab:node:discovered:",
         "ccc:lab:level:",
         "ccc:flow:level:",
         "ccc:flow:fp:",
@@ -374,7 +373,7 @@ export function startCollapseChallenge(materialName) {
         if (slot != null) {
             const data = getSaveDataForSlot(slot);
             for (const key of Object.keys(data)) {
-                if (key.startsWith("ccc:lab:")) {
+                if (key.startsWith("ccc:lab:") && !key.startsWith("ccc:lab:node:discovered:")) {
                     preChallengeLabData[key] = data[key];
                 }
             }
@@ -443,7 +442,7 @@ function exitCollapseChallenge(materialName) {
                 const currentData = getSaveDataForSlot(slot);
                 const currentLabData = {};
                 for (const key of Object.keys(currentData)) {
-                    if (key.startsWith("ccc:lab:")) {
+                    if (key.startsWith("ccc:lab:") && !key.startsWith("ccc:lab:node:discovered:")) {
                         currentLabData[key] = currentData[key];
                         if (key.startsWith("ccc:lab:node:level:")) {
                             const val = parseInt(currentData[key], 10) || 0;
@@ -457,7 +456,7 @@ function exitCollapseChallenge(materialName) {
                 if (keepCurrentLab) {
                     // Remove all lab keys from backupData so we don't restore them
                     for (const key of Object.keys(backupData)) {
-                        if (key.startsWith("ccc:lab:")) {
+                        if (key.startsWith("ccc:lab:") && !key.startsWith("ccc:lab:node:discovered:")) {
                             delete backupData[key];
                         }
                     }
