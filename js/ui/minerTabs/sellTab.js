@@ -9,7 +9,8 @@ import { playPurchaseSfx, openShop } from "../shopOverlay.js";
 import { registerTick, registerUiFrame, TICK_RATE } from "../../game/gameLoop.js";
 import { BigNum } from "../../util/bigNum.js";
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID } from "../../game/automationUpgrades.js";
-import { getLevelNumber } from "../../game/upgrades.js";
+import { getLevelNumber, AREA_KEYS } from "../../game/upgrades.js";
+import { calculateUpgradeMultipliers } from "../../game/upgradeEffects.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { IS_MOBILE } from "../../util/platformChecker.js";
@@ -593,8 +594,9 @@ export function updateSellTab() {
                 let potentialOutput;
                 
                 if (isRubbleMode) {
-                    // Rubble is 1 per material
-                    potentialOutput = owned;
+                    const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+                    const rubbleVal = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1);
+                    potentialOutput = owned.mulBigNumInteger(rubbleVal);
                 } else {
                     const materialValue = BigNum.fromAny(matData.value || 0);
                     const valPerMaterial = materialValue
@@ -691,7 +693,8 @@ export function updateSellTab() {
         
         let val;
         if (isRubbleMode) {
-            val = BigNum.fromInt(1); // 1 Rubble per material
+            const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+            val = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1); // Rubble per material
         } else {
             const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
             const materialValue = BigNum.fromAny(t.value || 0);
