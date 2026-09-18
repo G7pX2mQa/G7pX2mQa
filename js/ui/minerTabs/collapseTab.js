@@ -533,6 +533,65 @@ function exitCollapseChallenge(materialName) {
     return true;
 }
 
+function completeCollapseChallenge(materialName) {
+    const slot = getActiveSlot();
+    
+    // Record completion
+    if (typeof localStorage !== "undefined") {
+        lsSetItem(`ccc:collapseChallengeCompleted:${materialName}:${slot}`, "1");
+    }
+
+    if (fractureTimeout) clearTimeout(fractureTimeout);
+    if (fractureFadeTimeout) clearTimeout(fractureFadeTimeout);
+    unblockCollapseInteractions();
+
+    // Clear active state
+    setCollapseChallengeActive(null);
+
+    // Unregister coin debuff
+    unregisterCoinDebuff();
+    // Unregister Rubble Coin Value provider
+    unregisterRubbleCoinValueProvider();
+    syncCoinMultiplierWithXpLevel(true);
+
+    if (slot != null) {
+        lsRemoveItem(`ccc:challengeBackup:${slot}`);
+        cachedChallengeActive[slot] = false;
+    }
+
+    // Wipe temporary challenge stats via normal reset
+    try {
+        performCollapseReset();
+    } catch {}
+
+    // Clear rubble upgrade levels
+    try {
+        if (slot != null) {
+            setLevel(RUBBLE_AREA_KEY, 1, 0);
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.GOLD_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MAGIC_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(DNA_AREA_KEY, UPGRADE_TIES.DNA_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            
+            if (bank?.rubble?.set) {
+                bank.rubble.set(0);
+            }
+            setRubbleSellMode(false, slot);
+        }
+    } catch {}
+
+    hideFractureOverlay();
+
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("collapse:challenge:complete", { detail: { material: materialName } }));
+        window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+        window.dispatchEvent(new CustomEvent("currency:multiplier"));
+    }
+
+    return true;
+}
+
 // On page load or slot change: restore or clear challenge state
 function restoreCollapseChallengeState() {
     const slot = getActiveSlot();
@@ -574,6 +633,7 @@ let overlayEl = null;
 let lastChallengeOpenTime = 0;
 let lastMysteriousOpenTime = 0;
 let challengeResizeCleanup = null;
+let currentPpChangeListener = null;
 
 function applyChallengeOverlayTransition(sheet, transition = "transform var(--shop-anim)") {
     if (!sheet) return;
@@ -765,7 +825,7 @@ This first Collapse Challenge will be easy because the Lab is not reset, so reco
 
 Effect: Coin value is divided by ${formattedNum}x
 Goal: Reach Pressure: 31atm
-Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim();
+Reward: New UC upgrade which unlocks the third area + new automation upgrade`.trim();
 
     desc.textContent = baseDescText;
 
@@ -778,19 +838,58 @@ Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim
     const challengeActive = isCollapseChallengeActive();
     const activeMat = getActiveCollapseChallengeType();
     const isThisChallengeActive = activeMat === id;
+    
+    let isGoalReached = false;
+    if (isThisChallengeActive && id === "stone") {
+        try {
+            if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(31) >= 0) {
+                isGoalReached = true;
+            }
+        } catch {}
+    }
 
-    if (isThisChallengeActive) {
-        actionBtn.textContent = `Exit Challenge`;
+    const slot = getActiveSlot();
+    let isCompleted = false;
+    try {
+        isCompleted = lsGetItem(`ccc:collapseChallengeCompleted:${id}:${slot}`) === "1";
+    } catch {}
+
+    if (isCompleted) {
+        btnWrapper.style.display = "none";
+    } else if (isThisChallengeActive) {
+        if (isGoalReached) {
+            actionBtn.textContent = `Complete Challenge`;
+        } else {
+            actionBtn.textContent = `Exit Challenge`;
+        }
     } else {
         actionBtn.textContent = `Start Challenge`;
     }
 
     actionBtn.addEventListener("click", () => {
+        if (isCompleted) return;
+        
         if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === id) {
-            // Exit
-            if (exitCollapseChallenge(id)) {
-                actionBtn.textContent = `Start Challenge`;
-                actionBtn.blur();
+            let currentGoalReached = false;
+            try {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(31) >= 0) {
+                    currentGoalReached = true;
+                }
+            } catch {}
+
+            if (currentGoalReached) {
+                // Complete
+                if (completeCollapseChallenge(id)) {
+                    isCompleted = true;
+                    btnWrapper.style.display = "none";
+                    updateScrollNotice();
+                }
+            } else {
+                // Exit
+                if (exitCollapseChallenge(id)) {
+                    actionBtn.textContent = `Start Challenge`;
+                    actionBtn.blur();
+                }
             }
         } else {
             // Start
@@ -859,10 +958,47 @@ Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim
     
     openChallengeOverlaySheet(overlayEl, sheet);
 
+    if (currentPpChangeListener) {
+        window.removeEventListener("level:change", currentPpChangeListener);
+        window.removeEventListener("pp:change", currentPpChangeListener);
+        window.removeEventListener("debug:change", currentPpChangeListener);
+        currentPpChangeListener = null;
+    }
+
+    if (!isCompleted && isThisChallengeActive) {
+        currentPpChangeListener = () => {
+            if (isCompleted) return;
+            // Defer slightly to ensure debug panel or other systems have fully applied their state changes
+            setTimeout(() => {
+                try {
+                    if (isCompleted) return;
+                    let levelBn = null;
+                    if (typeof window.ppSystem !== "undefined") {
+                        levelBn = window.ppSystem.getPpState().ppLevel;
+                    }
+                    if (levelBn) {
+                        if (levelBn.cmp(31) >= 0) {
+                            isGoalReached = true;
+                            actionBtn.textContent = `Complete Challenge`;
+                        } else {
+                            isGoalReached = false;
+                            actionBtn.textContent = `Exit Challenge`;
+                        }
+                    }
+                } catch {}
+            }, 0);
+        };
+        window.addEventListener("level:change", currentPpChangeListener);
+        window.addEventListener("pp:change", currentPpChangeListener);
+        window.addEventListener("debug:change", currentPpChangeListener);
+    }
+
     function updateScrollNotice() {
         if (!actionBtn || !content || !desc) return;
         const currentScroll = content.scrollTop;
-        desc.textContent = baseDescText;
+        
+        let textToUse = baseDescText;
+        desc.textContent = textToUse;
         
         // Force reflow
         void content.offsetHeight;
@@ -870,8 +1006,17 @@ Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim
         const isEntirelyVisible = content.scrollHeight <= content.clientHeight + 1;
         
         if (!isEntirelyVisible) {
-            desc.textContent = `Scroll down further to see everything\n\n${baseDescText}`;
+            textToUse = `Scroll down further to see everything\n\n${baseDescText}`;
         }
+        
+        let finalHtml = textToUse.replace(/\n/g, "<br>");
+        if (isCompleted) {
+            finalHtml = finalHtml.replace(
+                "Reward: New UC upgrade which unlocks the third area + new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: New UC upgrade which unlocks the third area + new automation upgrade</span>`
+            );
+        }
+        desc.innerHTML = finalHtml;
         
         if (currentScroll > 0) {
             content.scrollTop = currentScroll;
@@ -907,6 +1052,12 @@ function closeChallengeOverlay() {
     if (challengeResizeCleanup) {
         challengeResizeCleanup();
         challengeResizeCleanup = null;
+    }
+    if (currentPpChangeListener) {
+        window.removeEventListener("level:change", currentPpChangeListener);
+        window.removeEventListener("pp:change", currentPpChangeListener);
+        window.removeEventListener("debug:change", currentPpChangeListener);
+        currentPpChangeListener = null;
     }
     if (!overlayEl) return;
     if (overlayEl.style.pointerEvents === "none") return;
