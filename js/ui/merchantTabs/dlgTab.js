@@ -1801,7 +1801,7 @@ export function openMerchant() {
             if (merchantOverlayEl.classList.contains("firstchat-instant")) {
                 merchantSheetEl.style.transition = "none";
             }
-            if (merchantCloseBtn && typeof merchantCloseBtn.focus === "function") {
+            if (!IS_MOBILE && merchantCloseBtn && typeof merchantCloseBtn.focus === "function") {
                 try {
                     merchantCloseBtn.focus({ preventScroll: true });
                 } catch {}
@@ -1944,11 +1944,16 @@ function selectMerchantTab(key) {
         } catch {}
     }
     if (key === "reset") {
+        const isOpening = IS_MOBILE && merchantOverlayEl && !merchantOverlayEl.classList.contains("is-open");
         try {
-            initResetPanel(merchantTabs.panels["reset"]);
+            initResetPanel(merchantTabs.panels["reset"], isOpening);
         } catch {}
         try {
-            updateResetPanel();
+            if (isOpening) {
+                setTimeout(() => updateResetPanel(), 100);
+            } else {
+                updateResetPanel();
+            }
         } catch {}
     }
     if (key === "workshop") {
