@@ -194,6 +194,7 @@ function showFractureOverlay(animate = true) {
     }
     if (animate) {
         el.classList.remove("is-active", "is-fading");
+        void el.offsetWidth;
         el.classList.add("is-animating");
         el.addEventListener("animationend", () => {
             el.classList.remove("is-animating");
