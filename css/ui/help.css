@@ -186,6 +186,11 @@
     min-height: 0 !important;
   }
 
+  html.is-mobile .help-sidebar-wrapper.is-scrolling .shop-scrollbar {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
   .help-layer {
     min-width: 140px;
     justify-content: center;
