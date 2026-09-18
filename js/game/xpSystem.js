@@ -443,12 +443,14 @@ function ensureXpStorageWatchers() {
     xpStorageWatchersInitialized = true;
     bindXpStorageWatchersForSlot(getActiveSlot());
     if (typeof window !== "undefined") {
-        window.addEventListener("saveSlot:change", () => {
+        const handleXpReload = () => {
             bindXpStorageWatchersForSlot(getActiveSlot());
             ensureStateLoaded(true);
             updateHud();
             syncCoinMultiplierWithXpLevel(true);
-        });
+        };
+        window.addEventListener("saveSlot:change", handleXpReload);
+        window.addEventListener("collapse:challenge:exit", handleXpReload);
     }
 }
 
