@@ -271,7 +271,7 @@
     }
     .sell-col-val {
         grid-area: val;
-        padding-right: 32px;
+        padding-right: -8px;
         text-align: center;
         display: flex;
         flex-direction: column;
