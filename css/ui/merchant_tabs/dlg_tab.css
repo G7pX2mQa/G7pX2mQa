@@ -1,4 +1,4 @@
-/* css/ui/merchantTabs/dialogueTab.css */
+/* css/ui/merchantTabs/dlg_tab.css */
 :root {
   --merchant-bg: hsl(220 32% 7% / 1);
   --merchant-card: hsl(220 26% 12% / 1);
@@ -644,4 +644,8 @@ html:not(.is-mobile) {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   height: 100%;
+}
+
+.merchant-sheet.is-lab-active .merchant-scrollbar {
+  display: none !important;
 }
