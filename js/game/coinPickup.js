@@ -23,6 +23,7 @@ import { settingsManager } from "./settingsManager.js";
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx, PICKUP_VOLUME } from "./collectionCore.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
 import { MAX_VISUALS } from "./spawnerCore.js";
+let passiveCoinFractionAcc = 0;
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
 let mutationCurrentLevelStr = "0";
@@ -398,9 +399,19 @@ export function getPassiveCoinReward() {
 export function triggerPassiveCollect(count = 1) {
     if (count <= 0) return;
     const { coinGain, xpGain, mpGain } = calculateCoinValue(null);
-    const totalCoin = coinGain.mulBigNumInteger(BigNum.fromAny(count));
-    const totalXp = xpGain.mulBigNumInteger(BigNum.fromAny(count));
-    const totalMp = mpGain.mulBigNumInteger(BigNum.fromAny(count));
+    
+    const rawTotalCoin = coinGain.mulDecimal(count);
+    const intCoin = rawTotalCoin.floorToInteger();
+    let coinFrac = parseFloat(rawTotalCoin.sub(intCoin).toScientific());
+    if (isNaN(coinFrac)) coinFrac = 0;
+    passiveCoinFractionAcc += coinFrac;
+    const extraCoin = Math.floor(passiveCoinFractionAcc);
+    if (extraCoin > 0) passiveCoinFractionAcc -= extraCoin;
+    const totalCoin = intCoin.add(BigNum.fromInt(extraCoin));
+
+    const totalXp = xpGain.mulDecimal(count);
+    const totalMp = mpGain.mulDecimal(count);
+
     const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
     const incIsZero = typeof totalCoin?.isZero === "function" ? totalCoin.isZero() : false;
     if (!incIsZero && !coinsLocked) {
@@ -471,6 +482,7 @@ export function initCoinPickup({
     window.addEventListener("currency:change", onCurrencyChange);
     const onSaveSlotChange = () => {
         mutationMultiplierCache.clear();
+        passiveCoinFractionAcc = 0;
         coinsVal = bank.coins.value;
         scheduleHudUpdate();
         // Check if shop should be unlocked on slot change
