@@ -188,8 +188,10 @@
 }
 
 .collapse-tab .shop-upgrade {
-  align-self: stretch;
-  justify-self: stretch;
+  width: 100%;
+  max-width: 28vh;
+  max-height: 28vh;
+  aspect-ratio: 1 / 1;
   min-width: 128px;
   min-height: 128px;
   display: flex;
@@ -288,6 +290,20 @@ html.is-mobile .collapse-grid {
     height: 100%;
     margin: 0 auto;
     overflow-x: visible;
+}
+
+html.is-mobile .collapse-tab .shop-upgrade {
+    align-self: stretch;
+    justify-self: stretch;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    aspect-ratio: auto;
+}
+
+html.is-mobile .collapse-tab .shop-tile {
+    width: 85cqi;
+    max-width: 85cqb;
 }
 
 html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling .shop-scrollbar,
