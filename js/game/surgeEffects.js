@@ -90,9 +90,12 @@ export function isLabUnlocked() {
     }
 }
 if (typeof window !== "undefined") {
-    window.addEventListener("saveSlot:change", () => {
+    const clearSurgeCache = () => {
         cachedLabUnlockedStates = {};
-    });
+        cachedSurgeLevel = 0;
+    };
+    window.addEventListener("saveSlot:change", clearSurgeCache);
+    window.addEventListener("collapse:challenge:exit", clearSurgeCache);
     window.addEventListener("unlock:change", () => {
         cachedLabUnlockedStates = {};
     });
@@ -113,11 +116,6 @@ export function setLabUnlocked(value) {
 
 let currentMultiplier = BigNum.fromInt(1);
 let cachedSurgeLevel = 0;
-if (typeof window !== "undefined") {
-    window.addEventListener("saveSlot:change", () => {
-        cachedSurgeLevel = 0;
-    });
-}
 
 let bookRateAccumulator = null;
 let baseTsunamiExponent = 0.0; // declared as mutable because the base tsunami exponent can change over time depending on lab nodes
