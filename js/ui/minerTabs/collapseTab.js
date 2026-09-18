@@ -674,13 +674,6 @@ Reward: An upgrade which unlocks the third area + a new automation upgrade`.trim
 
     requestAnimationFrame(() => {
         updateScrollNotice();
-        if (content.scrollHeight > content.clientHeight + 1 && typeof sheet.classList !== "undefined") {
-            sheet.classList.add("is-scrolling");
-            clearTimeout(content.__fadeTimer);
-            content.__fadeTimer = setTimeout(() => {
-                sheet.classList.remove("is-scrolling");
-            }, 1000);
-        }
     });
 
     if (challengeResizeCleanup) {
