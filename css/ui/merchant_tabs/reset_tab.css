@@ -571,6 +571,7 @@
   position: relative;
   padding: 0 12px;
   margin-bottom: 16px;
+  contain: paint;
 }
 
 .surge-milestone-container {
@@ -603,6 +604,7 @@
   align-items: center;
   justify-content: space-between;
   text-align: center;
+  contain: layout paint;
   transition: background 0.3s ease;
   user-select: none;
   border: 1px solid rgba(0,0,0,0.1);
@@ -722,6 +724,7 @@ html.is-mobile {
   height: 40px;
   animation: nerfArrowBob 1.5s infinite ease-in-out;
   pointer-events: none;
+  will-change: transform;
 }
 
 .surge-milestone-nerf-arrow::before,
