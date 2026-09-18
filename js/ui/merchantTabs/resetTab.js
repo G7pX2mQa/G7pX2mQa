@@ -1678,6 +1678,7 @@ function generateDnaSvgDataUri() {
 function buildPanel(panelEl) {
     panelEl.innerHTML = `
     <div class="merchant-reset">
+      <div class="merchant-reset__sidebar-wrapper">
       <aside class="merchant-reset__sidebar">
         <button type="button" class="merchant-reset__layer" data-reset-layer="forge">
           <img src="${RESET_ICON_SRC}" alt="">
@@ -1696,6 +1697,7 @@ function buildPanel(panelEl) {
           <span>Experiment</span>
         </button>
       </aside>
+      </div>
       <div class="merchant-reset__list">
         <!-- FORGE CARD -->
         <div class="merchant-reset__card merchant-reset__main" id="reset-card-forge">
@@ -1859,6 +1861,10 @@ function buildPanel(panelEl) {
     const surgeWrapper = panelEl.querySelector(".surge-milestone-wrapper");
     if (resetState.elements.surge.milestones && surgeWrapper) {
         ensureCustomScrollbar(panelEl, surgeWrapper, '[data-reset-milestones="surge"]', { orientation: "horizontal" });
+    }
+    const sidebarWrapper = panelEl.querySelector(".merchant-reset__sidebar-wrapper");
+    if (sidebarWrapper) {
+        ensureCustomScrollbar(sidebarWrapper, sidebarWrapper, ".merchant-reset__sidebar", { orientation: "horizontal" });
     }
     // Sidebar Buttons
     resetState.layerButtons = {
