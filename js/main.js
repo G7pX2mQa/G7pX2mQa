@@ -1740,7 +1740,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                             } else {
                                 el.classList.remove("is-visible");
                                 el.classList.add("is-leaving");
-                                el.addEventListener("transitionend", () => el.remove());
+                                el.addEventListener("transitionend", () => el.remove(), { once: true });
+                                setTimeout(() => el.remove(), 400); // safety fallback
                             }
                         };
                         
