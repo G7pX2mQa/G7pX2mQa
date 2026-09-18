@@ -634,6 +634,7 @@ let lastChallengeOpenTime = 0;
 let lastMysteriousOpenTime = 0;
 let challengeResizeCleanup = null;
 let currentPpChangeListener = null;
+let currentDebugChallengeListener = null;
 
 function applyChallengeOverlayTransition(sheet, transition = "transform var(--shop-anim)") {
     if (!sheet) return;
@@ -839,14 +840,18 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
     const activeMat = getActiveCollapseChallengeType();
     const isThisChallengeActive = activeMat === id;
     
-    let isGoalReached = false;
-    if (isThisChallengeActive && id === "stone") {
-        try {
-            if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(31) >= 0) {
-                isGoalReached = true;
-            }
-        } catch {}
+    function checkChallengeGoalReached(challengeId) {
+        if (challengeId === "stone") {
+            try {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(31) >= 0) {
+                    return true;
+                }
+            } catch {}
+        }
+        return false;
     }
+
+    let isGoalReached = isThisChallengeActive && checkChallengeGoalReached(id);
 
     const slot = getActiveSlot();
     let isCompleted = false;
@@ -855,7 +860,7 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
     } catch {}
 
     if (isCompleted) {
-        btnWrapper.style.display = "none";
+        btnWrapper.style.visibility = "hidden";
     } else if (isThisChallengeActive) {
         if (isGoalReached) {
             actionBtn.textContent = `Complete Challenge`;
@@ -898,7 +903,7 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
                 actionBtn.style.animation = "none";
                 setTimeout(() => {
                     const oldText = `Start Challenge`;
-                    const newText = `Exit Challenge`;
+                    const newText = checkChallengeGoalReached(id) ? `Complete Challenge` : `Exit Challenge`;
                     
                     // Measure old dimensions
                     const oldRect = actionBtn.getBoundingClientRect();
@@ -964,6 +969,18 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
         window.removeEventListener("debug:change", currentPpChangeListener);
         currentPpChangeListener = null;
     }
+    
+    if (currentDebugChallengeListener) {
+        window.removeEventListener("debug:challenge:change", currentDebugChallengeListener);
+        currentDebugChallengeListener = null;
+    }
+
+    currentDebugChallengeListener = (e) => {
+        if (e.detail && e.detail.id === id) {
+            openChallengeOverlay(id);
+        }
+    };
+    window.addEventListener("debug:challenge:change", currentDebugChallengeListener);
 
     if (!isCompleted && isThisChallengeActive) {
         currentPpChangeListener = () => {
@@ -1058,6 +1075,10 @@ function closeChallengeOverlay() {
         window.removeEventListener("pp:change", currentPpChangeListener);
         window.removeEventListener("debug:change", currentPpChangeListener);
         currentPpChangeListener = null;
+    }
+    if (currentDebugChallengeListener) {
+        window.removeEventListener("debug:challenge:change", currentDebugChallengeListener);
+        currentDebugChallengeListener = null;
     }
     if (!overlayEl) return;
     if (overlayEl.style.pointerEvents === "none") return;
