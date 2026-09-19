@@ -508,12 +508,13 @@
     z-index: 10;
     margin-top: -12px;
     background: var(--merchant-bg);
+    padding-bottom: 24px; /* Large dedicated padding for the scrollbar to reside in */
   }
   
   .merchant-reset__sidebar-wrapper .shop-scrollbar.is-horizontal {
     right: 12px !important;
     left: 12px !important;
-    bottom: 2px !important;
+    bottom: 4px !important;
     height: 8px !important;
   }
   
@@ -529,7 +530,7 @@
   .merchant-reset__sidebar {
     flex-direction: row;
     overflow-x: auto;
-    padding-bottom: 12px; /* symmetrical padding */
+    padding-bottom: 0px; /* zero padding here, let the wrapper handle spacing */
     padding-top: 12px;
     scrollbar-width: none; /* Firefox */
   }
