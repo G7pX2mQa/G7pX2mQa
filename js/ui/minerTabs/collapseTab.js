@@ -984,13 +984,17 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
     };
     window.addEventListener("debug:challenge:change", currentDebugChallengeListener);
 
-    if (!isCompleted && isThisChallengeActive) {
+    if (!isCompleted) {
         currentPpChangeListener = () => {
             if (isCompleted) return;
             // Defer slightly to ensure debug panel or other systems have fully applied their state changes
             setTimeout(() => {
                 try {
                     if (isCompleted) return;
+                    if (!isCollapseChallengeActive() || getActiveCollapseChallengeType() !== id) return;
+                    
+                    if (actionBtn.textContent === "Start Challenge" || actionBtn.querySelector("span")) return;
+                    
                     let levelBn = null;
                     if (typeof window.ppSystem !== "undefined") {
                         levelBn = window.ppSystem.getPpState().ppLevel;
