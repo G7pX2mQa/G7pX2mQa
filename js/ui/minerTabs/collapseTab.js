@@ -892,6 +892,9 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
                 // Complete
                 if (completeCollapseChallenge(id)) {
                     isCompleted = true;
+                    if (overlayEl.querySelector('.shop-scroller')?.__customScroll?.suppressFadeIn) {
+                        overlayEl.querySelector('.shop-scroller').__customScroll.suppressFadeIn();
+                    }
                     btnWrapper.style.display = "none";
                     updateScrollNotice();
                 }
