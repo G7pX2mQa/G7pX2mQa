@@ -14,7 +14,8 @@ import { isPpSystemUnlocked, resetPpProgress, unlockPpSystem } from "../../game/
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../../util/bigNum.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { resetUcEacAccumulator } from "../../game/automationEffects.js";
-import { resetUcMaterialAccumulators, resetUcEacMaterialAccumulators, UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
+import { resetUcMaterialAccumulators, resetUcEacMaterialAccumulators, resetUcEacYieldAccumulators, UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
+import { resetScrapAutoSellAccumulator } from "../../game/automationEffects.js";
 import { getUpgradesForArea, AREA_KEYS, setLevel } from "../../game/upgrades.js";
 import { resetLab, RESEARCH_NODES } from "../../game/labNodes.js";
 import { applySurgeResetLogic, getCurrentSurgeLevel, getSurgeBarLevelKey } from "../merchantTabs/resetTab.js";
@@ -365,7 +366,9 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
         // Zero accumulators
         resetUcMaterialAccumulators();
         resetUcEacMaterialAccumulators();
+        resetUcEacYieldAccumulators();
         resetUcEacAccumulator();
+        resetScrapAutoSellAccumulator();
     } catch {}
     // Wipe DP/Depth
     try {
@@ -399,6 +402,16 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
             } else {
                 setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, BigNum.fromInt(0), true, { resetHmEvolutions: true });
             }
+        }
+    } catch {}
+
+    // Invalidate effects cache so that stale infinite multipliers from wiped upgrades and buildings don't persist
+    try {
+        if (typeof window !== "undefined" && window.invalidateEffectsCache) {
+            window.invalidateEffectsCache();
+        } else {
+            // Dispatch a custom event to tell upgradeEffects to clear its cache and sync
+            window.dispatchEvent(new CustomEvent("ccc:reset:upgrades:wiped"));
         }
     } catch {}
 }
