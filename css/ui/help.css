@@ -157,7 +157,7 @@
   .help-sidebar {
     flex-direction: row;
     overflow-x: auto;
-    padding-bottom: 8px; /* space for scrollbar if any */
+    padding-bottom: 12px; /* space for scrollbar if any */
     padding-top: 12px;
     max-width: 100vw;
     padding-left: clamp(12px, 2.5vw, 16px);
@@ -181,7 +181,7 @@
   .help-sidebar-wrapper .shop-scrollbar.is-horizontal {
     right: 12px !important;
     left: 12px !important;
-    bottom: 0px !important;
+    bottom: 2px !important;
     height: 8px !important;
   }
   
@@ -306,6 +306,7 @@
 /* Custom Scroller for Help Overlay */
 .help-scroller {
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1 1 auto;
   min-height: 0;
   padding: 12px clamp(12px, 2.5vw, 16px) 16px;
