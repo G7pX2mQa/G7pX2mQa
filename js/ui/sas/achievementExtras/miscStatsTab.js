@@ -23,7 +23,12 @@ export function initMiscStatsTab(panel) {
     }
     miscStatsInterval = setInterval(() => {
         const overlay = document.getElementById("achievement-extras-overlay");
-        if (!overlay || !overlay.classList.contains("is-open")) return;
+        if (!overlay || !overlay.isConnected) {
+            clearInterval(miscStatsInterval);
+            miscStatsInterval = null;
+            return;
+        }
+        if (!overlay.classList.contains("is-open")) return;
 
         const currentPanel = document.getElementById("ae-panel-misc");
         if (!currentPanel || !currentPanel.classList.contains("is-active")) return;
