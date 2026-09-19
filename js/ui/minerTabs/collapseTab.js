@@ -16,6 +16,7 @@ import { performCollapseReset } from "./resetTab.js";
 import { isBuildingUnlocked } from "./buildingsTab.js";
 import { suspendAllAudioFor } from "../../util/audioManager.js";
 import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
+import { showWideNotification } from "../notifications.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
 let cachedCollapseUnlockedStates = {};
@@ -204,8 +205,12 @@ function showFractureOverlay(animate = true) {
             if (done) return;
             done = true;
             el.removeEventListener("animationend", onEnd);
-            el.classList.remove("is-animating");
             el.classList.add("is-active");
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    el.classList.remove("is-animating");
+                });
+            });
         };
         el.addEventListener("animationend", onEnd, { once: true });
         setTimeout(onEnd, 250);
@@ -1260,5 +1265,74 @@ if (typeof window !== "undefined") {
         updateCollapsePanelVisibility,
         isCollapseChallengeActive,
         getActiveCollapseChallengeType,
+    });
+
+    let stoneChallengeNotifyTimeout = null;
+    let stoneChallengeObserver = null;
+    let stoneChallengeNotif = null;
+
+    window.addEventListener("collapse:challenge:start", (e) => {
+        if (e.detail?.material === "stone") {
+            let visited = false;
+
+            const checkVisited = () => {
+                const sheet = document.querySelector(".miner-sheet");
+                if (sheet && sheet.classList.contains("is-sell-active")) {
+                    visited = true;
+                    if (stoneChallengeNotif) {
+                        stoneChallengeNotif.close();
+                        stoneChallengeNotif = null;
+                    }
+                }
+            };
+
+            const observer = new MutationObserver(() => {
+                checkVisited();
+            });
+            stoneChallengeObserver = observer;
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+
+            checkVisited();
+
+            if (stoneChallengeNotifyTimeout) clearInterval(stoneChallengeNotifyTimeout);
+            
+            let timeElapsed = 0;
+            let lastTick = performance.now();
+
+            stoneChallengeNotifyTimeout = setInterval(() => {
+                const now = performance.now();
+                const delta = now - lastTick;
+                lastTick = now;
+
+                if (!document.hidden) {
+                    timeElapsed += Math.min(delta, 1000);
+                }
+
+                if (timeElapsed >= 30000) {
+                    clearInterval(stoneChallengeNotifyTimeout);
+                    if (!visited && isCollapseChallengeActive() && getActiveCollapseChallengeType() === "stone") {
+                        stoneChallengeNotif = showWideNotification(
+                            "Please visit the Sell tab for required information to complete the Challenge of Stone!",
+                            15000
+                        );
+                    } else {
+                        observer.disconnect();
+                    }
+                }
+            }, 250);
+
+            const cleanup = (exitEvent) => {
+                if (!exitEvent || exitEvent.detail?.material === "stone" || !isCollapseChallengeActive()) {
+                    if (stoneChallengeNotifyTimeout) clearInterval(stoneChallengeNotifyTimeout);
+                    observer.disconnect();
+                    if (stoneChallengeNotif) {
+                        stoneChallengeNotif.close();
+                        stoneChallengeNotif = null;
+                    }
+                    window.removeEventListener("collapse:challenge:exit", cleanup);
+                }
+            };
+            window.addEventListener("collapse:challenge:exit", cleanup);
+        }
     });
 }
