@@ -1226,7 +1226,7 @@ class ShopInstance {
                 baseSrc = "img/misc/locked_plus_base.webp";
                 rawIcon = null; // Hide the separate icon since it's now in the base
             }
-            if (baseImgEl.src !== baseSrc) baseImgEl.src = baseSrc;
+            if (baseImgEl.getAttribute("src") !== baseSrc) baseImgEl.src = baseSrc;
             if (!rawIcon) {
                 if (!iconImgEl.hidden) iconImgEl.hidden = true;
             } else {
@@ -1256,7 +1256,7 @@ class ShopInstance {
                     : showMaxed
                       ? MAXED_BASE_OVERLAY_SRC
                       : AUTOMATED_OVERLAY_SRC;
-                if (maxedOverlay.src !== targetSrc) maxedOverlay.src = targetSrc;
+                if (maxedOverlay.getAttribute("src") !== targetSrc) maxedOverlay.src = targetSrc;
             } else if (maxedOverlay) maxedOverlay.remove();
             let badge = tileEl.querySelector(".level-badge");
             if (!locked) {
