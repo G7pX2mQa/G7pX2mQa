@@ -383,6 +383,10 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
         window.removeEventListener("pointercancel", endDrag);
         if (bar) bar.remove();
     };
+    scroller.__customScroll.suppressFadeIn = () => {
+        scroller.__customScroll._suppress = true;
+        setTimeout(() => scroller.__customScroll._suppress = false, 150);
+    };
     const FADE_SCROLL_MS = 150;
     const FADE_DRAG_MS = 120;
     const supportsScrollEnd = "onscrollend" in window;
@@ -610,7 +614,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = ".s
                 window.dispatchEvent(new CustomEvent("menu:scrollStop"));
             }
         }, 150);
-        if (IS_MOBILE) showBar();
+        if (IS_MOBILE && !(scroller.__customScroll && scroller.__customScroll._suppress)) showBar();
         performScrollUpdate();
         scheduleHide(FADE_SCROLL_MS);
     };
