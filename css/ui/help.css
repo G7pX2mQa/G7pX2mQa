@@ -327,6 +327,11 @@
   mask-repeat: no-repeat;
 }
 
+html.is-mobile .sas-sheet.has-scroll-shadow .help-scroller {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 .help-card.is-nerd-mode {
   user-select: text;
   -webkit-user-select: text;
