@@ -40,6 +40,9 @@ let accumulator = 0;
 let ucEacAccumulator = 0;
 let workshopTicker = 0;
 let scrapAutoSellAccumulator = BigNum.fromInt(0);
+export function resetScrapAutoSellAccumulator() {
+    scrapAutoSellAccumulator = BigNum.fromInt(0);
+}
 let tsunamiBonusProvider = () => 0;
 export function setTsunamiBonusProvider(fn) {
     tsunamiBonusProvider = fn;
