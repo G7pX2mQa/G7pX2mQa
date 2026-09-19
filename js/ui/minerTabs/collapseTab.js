@@ -1276,8 +1276,8 @@ if (typeof window !== "undefined") {
             let visited = false;
 
             const checkVisited = () => {
-                const sheet = document.querySelector(".is-sell-active");
-                if (sheet) {
+                const sellPanel = document.getElementById("miner-panel-sell");
+                if (sellPanel && sellPanel.classList.contains("is-active")) {
                     visited = true;
                     if (stoneChallengeNotif) {
                         stoneChallengeNotif.close();
