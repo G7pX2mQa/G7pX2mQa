@@ -24,11 +24,7 @@ window.addEventListener("level:change", (e) => {
     }
 });
 
-setInterval(() => {
-    if (levelsOverlay && levelsOverlay.isOpen) {
-        handleStatChange(null);
-    }
-}, 100);
+let levelsInterval = null;
 
 function getStatIsUnlocked(prefix) {
     const slot = getActiveSlot() || "default";
@@ -464,12 +460,22 @@ const levelsOverlay = createSASOverlay({
         window.addEventListener("level:change", handleStatChange);
         window.addEventListener("currency:change", handleCurrencyChange);
         document.addEventListener("click", handleOutsideClick);
+        if (levelsInterval) clearInterval(levelsInterval);
+        levelsInterval = setInterval(() => {
+            if (levelsOverlay && levelsOverlay.isOpen) {
+                handleStatChange(null);
+            }
+        }, 100);
         handleStatChange();
     },
     onClose: () => {
         window.removeEventListener("level:change", handleStatChange);
         window.removeEventListener("currency:change", handleCurrencyChange);
         document.removeEventListener("click", handleOutsideClick);
+        if (levelsInterval) {
+            clearInterval(levelsInterval);
+            levelsInterval = null;
+        }
         if (levelsOverlay.overlayEl) {
             const rows = levelsOverlay.overlayEl.querySelectorAll(".currency-row");
             rows.forEach((row) => {
