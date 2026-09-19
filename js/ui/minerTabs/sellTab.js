@@ -407,7 +407,7 @@ ${clickWord} the button below to toggle whether you sell Materials for Scrap or 
 
     const rubbleShopDesc = document.createElement("div");
     rubbleShopDesc.className = "sell-collapse-info";
-    rubbleShopDesc.textContent = "Spend Rubble on powerful, temporary upgrades (cleared on Collapse Challenge completion) below:";
+    rubbleShopDesc.textContent = "Spend Rubble on powerful, temporary upgrades (cleared on Collapse Challenge exit/completion) below:";
     infoRubbleSection.appendChild(rubbleShopDesc);
 
     const rubbleShopBtn = document.createElement("button");
@@ -1176,7 +1176,7 @@ registerUiFrame((time, dt) => {
     const isViewed =
         panel &&
         panel.classList.contains("is-active") &&
-        (panel.closest(".merchant-overlay.is-open") || document.querySelector(".miner-sheet.is-sell-active"));
+        (panel.closest(".merchant-overlay.is-open") || document.querySelector(".is-sell-active"));
     const overlay = panel ? panel.closest(".merchant-overlay") : null;
     const isAnimating = overlay && overlay.classList.contains("is-animating");
     let shouldPause = false;
