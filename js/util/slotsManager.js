@@ -184,14 +184,35 @@ function clearSaveDataForSlot(slot) {
 export function applySaveDataToSlot(slot, data) {
     clearSaveDataForSlot(slot);
     for (const [key, value] of Object.entries(data)) {
+        let finalKey = key;
+        let finalValue = value;
         // Ensure the key actually belongs to the target slot
-        if (key.endsWith(`:${slot}`)) {
-            lsSetItem(key, value);
-        } else {
+        if (!key.endsWith(`:${slot}`)) {
             // If the imported data was from a different slot, rewrite the key suffix
             const baseKey = key.substring(0, key.lastIndexOf(":"));
-            lsSetItem(`${baseKey}:${slot}`, value);
+            finalKey = `${baseKey}:${slot}`;
         }
+
+        // Also update keys inside the challenge backup JSON
+        if (finalKey === `ccc:challengeBackup:${slot}`) {
+            try {
+                const parsed = JSON.parse(finalValue);
+                const newParsed = {};
+                for (const [innerKey, innerValue] of Object.entries(parsed)) {
+                    if (innerKey.endsWith(`:${slot}`)) {
+                        newParsed[innerKey] = innerValue;
+                    } else {
+                        const baseInnerKey = innerKey.substring(0, innerKey.lastIndexOf(":"));
+                        newParsed[`${baseInnerKey}:${slot}`] = innerValue;
+                    }
+                }
+                finalValue = JSON.stringify(newParsed);
+            } catch (e) {
+                console.error("Failed to parse challenge backup on import:", e);
+            }
+        }
+
+        lsSetItem(finalKey, finalValue);
     }
     // Fire events so the live game state matches the newly imported local storage
     try {
