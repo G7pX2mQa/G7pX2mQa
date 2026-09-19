@@ -86,6 +86,11 @@ function performWarp() {
     // Reset timer loop to synchronize tick with click
     if (updateTimer) clearInterval(updateTimer);
     updateTimer = setInterval(() => {
+        if (!warpTabPanel || !warpTabPanel.isConnected) {
+            clearInterval(updateTimer);
+            updateTimer = null;
+            return;
+        }
         updateWarpTab();
     }, 1000);
     // warpSfx.play();
@@ -204,6 +209,11 @@ export function initWarpTab(panel) {
     // Start update loop
     if (!updateTimer) {
         updateTimer = setInterval(() => {
+            if (!warpTabPanel || !warpTabPanel.isConnected) {
+                clearInterval(updateTimer);
+                updateTimer = null;
+                return;
+            }
             updateWarpTab();
         }, 1000);
     }
