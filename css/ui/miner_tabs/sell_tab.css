@@ -399,7 +399,7 @@
 }
 
 .sell-collapse-separator {
-  width: min(670px, 100%);
+  width: min(700px, 100%);
   height: 2px;
   background: #3b2c20;
   border: none;
