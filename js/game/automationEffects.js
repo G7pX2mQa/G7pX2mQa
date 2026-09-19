@@ -502,7 +502,7 @@ registerPassiveSystem({
                         const yieldIntBn = scaledValBn.floorToInteger();
                         
                         let fractionalPart = parseFloat(scaledValBn.sub(yieldIntBn).toScientific());
-                        if (isNaN(fractionalPart)) fractionalPart = 0;
+                        if (!Number.isFinite(fractionalPart)) fractionalPart = 0;
                         
                         const newYieldAcc = yieldAccs[j] + fractionalPart;
                         let extraYieldInt = Math.floor(newYieldAcc);
@@ -585,7 +585,8 @@ registerPassiveSystem({
                 const gainBn = totalPassives.mulDecimal(String(gain));
                 const totalGainBn = gainBn.add(BigNum.fromAny(accs[j]));
                 const integerGain = totalGainBn.floorToInteger();
-                const fractionalGain = parseFloat(totalGainBn.sub(integerGain).toScientific());
+                let fractionalGain = parseFloat(totalGainBn.sub(integerGain).toScientific());
+                if (!Number.isFinite(fractionalGain)) fractionalGain = 0;
                 ucEacProgress[j] = fractionalGain;
                 if (!integerGain.isZero()) {
                     const matKey = UC_MATERIALS[j];
