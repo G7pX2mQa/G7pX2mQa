@@ -42,10 +42,21 @@ export function resetUcEacMaterialAccumulators() {
             lsSetItem(`ccc:ucEacMaterialAccumulators:${slot}`, JSON.stringify(window._ucEacMaterialAccumulators));
     } catch {}
 }
+
+export function resetUcEacYieldAccumulators() {
+    window._ucEacYieldAccumulators = new Array(UC_MATERIALS.length).fill(0);
+    try {
+        const slot = getActiveSlot();
+        if (slot != null)
+            lsSetItem(`ccc:ucEacYieldAccumulators:${slot}`, JSON.stringify(window._ucEacYieldAccumulators));
+    } catch {}
+}
+
 if (typeof window !== "undefined") {
     window.addEventListener("saveSlot:change", () => {
         window._ucMaterialAccumulators = null;
         window._ucEacMaterialAccumulators = null;
+        window._ucEacYieldAccumulators = null;
     });
 }
 
