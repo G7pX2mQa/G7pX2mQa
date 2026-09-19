@@ -473,6 +473,7 @@ function restoreChallengeBackup(slot) {
                 if (typeof window !== "undefined") {
                     window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
                     window.dispatchEvent(new CustomEvent("currency:multiplier"));
+                    window.dispatchEvent(new CustomEvent("collapse:challenge:exit"));
                 }
             }
         }
