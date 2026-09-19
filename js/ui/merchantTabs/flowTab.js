@@ -1668,6 +1668,13 @@ export function initFlowSystem() {
                 updateFlowTab();
             }
         });
+        window.addEventListener("collapse:challenge:exit", () => {
+            loadState();
+            refreshMysteriousWatcher();
+            if (flowTabInitialized && flowPanel) {
+                updateFlowTab();
+            }
+        });
     }
     loadState();
     refreshMysteriousWatcher();
