@@ -458,6 +458,10 @@ font-feature-settings: "tnum" 1, "lnum" 1;
 top: -1px;
 }
 
+.scrap-counter .scrap-amount {
+top: -0.5px;
+}
+
 html.is-mobile {
   .coin-counter, .scrap-counter, .coin-plus, .scrap-plus, .sell-currency-plus, .xp-counter, .xp-plus, .dp-counter,
   .pp-counter, .dp-plus,
@@ -1186,4 +1190,11 @@ body.custom-font-active .sell-currency-amount .infinity-symbol {
 
 .hud-bottom-wrapper.hide-ui {
     display: flex !important;
+}
+
+.scrap-counter .scrap-amount {
+  top: -0.5px;
+}
+html.is-mobile .scrap-counter .scrap-amount {
+  top: 0px;
 }
