@@ -17,7 +17,7 @@ import {
     getCurrentSurgeLevel,
     isSurgeUnlocked,
 } from "../ui/merchantTabs/resetTab.js";
-import { UC_REGISTRY } from "./ucUpgrades.js";
+import { UC_REGISTRY, UC_AREA_KEY } from "./ucUpgrades.js";
 import {
     REGISTRY as AUTOMATION_REGISTRY,
     AUTOMATION_AREA_KEY,
@@ -49,9 +49,10 @@ export const HM_EVOLUTION_INTERVAL = 1000;
 const HM_EVOLUTION_EFFECT_MULT_BN = BigNum.fromInt(1000);
 const HM_EVOLUTION_LOG10 = 3; // log10(1000)
 const DEFAULT_AREA_KEY = "";
+export const STARTER_COVE_AREA_KEY = "starter_cove";
 export const AREA_KEYS = {
-    UNDERWATER_CAVERN: "underwater_cavern",
-    STARTER_COVE: "starter_cove",
+    UNDERWATER_CAVERN: UC_AREA_KEY,
+    STARTER_COVE: STARTER_COVE_AREA_KEY,
     AUTOMATION: AUTOMATION_AREA_KEY,
     DNA: DNA_AREA_KEY,
     RAINBOW_GEM_SHOP: RAINBOW_GEM_AREA_KEY,
