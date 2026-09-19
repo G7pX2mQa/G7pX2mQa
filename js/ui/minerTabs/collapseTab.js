@@ -404,27 +404,9 @@ export function startCollapseChallenge(materialName) {
     return true;
 }
 
-function exitCollapseChallenge(materialName) {
-    const capitalName = materialName.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-    const answer = window.confirm(`Are you sure you want to exit the Challenge of ${capitalName}?`);
-    if (!answer) return false;
-
-    if (fractureTimeout) clearTimeout(fractureTimeout);
-    if (fractureFadeTimeout) clearTimeout(fractureFadeTimeout);
-    unblockCollapseInteractions();
-
-    // Clear active state
-    setCollapseChallengeActive(null);
-
-    // Unregister coin debuff
-    unregisterCoinDebuff();
-    // Unregister Rubble Coin Value provider
-    unregisterRubbleCoinValueProvider();
-    syncCoinMultiplierWithXpLevel(true);
-
+function restoreChallengeBackup(slot) {
     let restoredBackup = false;
     try {
-        const slot = getActiveSlot();
         if (slot != null) {
             const backupStr = lsGetItem(`ccc:challengeBackup:${slot}`);
             if (backupStr) {
@@ -498,6 +480,29 @@ function exitCollapseChallenge(materialName) {
     } catch (e) {
         console.error("Failed to restore save backup:", e);
     }
+    return restoredBackup;
+}
+
+function exitCollapseChallenge(materialName) {
+    const capitalName = materialName.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    const answer = window.confirm(`Are you sure you want to exit the Challenge of ${capitalName}?`);
+    if (!answer) return false;
+
+    if (fractureTimeout) clearTimeout(fractureTimeout);
+    if (fractureFadeTimeout) clearTimeout(fractureFadeTimeout);
+    unblockCollapseInteractions();
+
+    // Clear active state
+    setCollapseChallengeActive(null);
+
+    // Unregister coin debuff
+    unregisterCoinDebuff();
+    // Unregister Rubble Coin Value provider
+    unregisterRubbleCoinValueProvider();
+    syncCoinMultiplierWithXpLevel(true);
+
+    const slot = getActiveSlot();
+    const restoredBackup = restoreChallengeBackup(slot);
 
     if (!restoredBackup) {
         // Perform Challenge-tier reset
@@ -559,16 +564,51 @@ function completeCollapseChallenge(materialName) {
     syncCoinMultiplierWithXpLevel(true);
 
     if (slot != null) {
+        const backupStr = lsGetItem(`ccc:challengeBackup:${slot}`);
+        if (backupStr) {
+            try {
+                const backupData = JSON.parse(backupStr);
+                
+                // --- Lab Node Smart Merge ---
+                let currentMaxLab = 0;
+                let backupMaxLab = 0;
+                
+                // Find backup max lab
+                for (const key of Object.keys(backupData)) {
+                    if (key.startsWith("ccc:lab:node:level:")) {
+                        const val = parseInt(backupData[key], 10) || 0;
+                        if (val > backupMaxLab) backupMaxLab = val;
+                    }
+                }
+                
+                // Find current max lab
+                const currentData = getSaveDataForSlot(slot);
+                for (const key of Object.keys(currentData)) {
+                    if (key.startsWith("ccc:lab:node:level:")) {
+                        const val = parseInt(currentData[key], 10) || 0;
+                        if (val > currentMaxLab) currentMaxLab = val;
+                    }
+                }
+                
+                // If the player lost lab nodes during the challenge, restore the backup lab nodes.
+                // Otherwise, keep the current ones (by doing nothing).
+                if (currentMaxLab < backupMaxLab) {
+                    for (const [key, value] of Object.entries(backupData)) {
+                        if (key.startsWith("ccc:lab:") && !key.startsWith("ccc:lab:node:discovered:")) {
+                            lsSetItem(key, value);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to restore lab nodes from backup on completion:", e);
+            }
+        }
         lsRemoveItem(`ccc:challengeBackup:${slot}`);
+        lsRemoveItem(`${CHALLENGE_ACTIVE_KEY_BASE}:${slot}`);
         cachedChallengeActive[slot] = false;
     }
 
-    // Wipe temporary challenge stats via normal reset
-    try {
-        performCollapseReset();
-    } catch {}
-
-    // Clear rubble upgrade levels
+    // Clear rubble upgrade levels (temporary challenge upgrades)
     try {
         if (slot != null) {
             setLevel(RUBBLE_AREA_KEY, 1, 0);
