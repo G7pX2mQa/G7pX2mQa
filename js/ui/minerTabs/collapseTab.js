@@ -197,6 +197,7 @@ function showFractureOverlay(animate = true) {
         document.body.appendChild(el);
     }
     if (animate) {
+        el.style.clipPath = "";
         el.classList.remove("is-active", "is-fading");
         void el.offsetWidth;
         el.classList.add("is-animating");
@@ -205,16 +206,14 @@ function showFractureOverlay(animate = true) {
             if (done) return;
             done = true;
             el.removeEventListener("animationend", onEnd);
+            el.style.clipPath = "circle(150% at 50% 50%)";
             el.classList.add("is-active");
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    el.classList.remove("is-animating");
-                });
-            });
+            el.classList.remove("is-animating");
         };
         el.addEventListener("animationend", onEnd, { once: true });
         setTimeout(onEnd, 250);
     } else {
+        el.style.clipPath = "circle(150% at 50% 50%)";
         el.classList.remove("is-animating", "is-fading");
         el.classList.add("is-active");
     }
