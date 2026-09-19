@@ -93,6 +93,7 @@ if (typeof window !== "undefined") {
     const clearSurgeCache = () => {
         cachedLabUnlockedStates = {};
         cachedSurgeLevel = 0;
+        updateMultiplier();
     };
     window.addEventListener("saveSlot:change", clearSurgeCache);
     window.addEventListener("collapse:challenge:exit", clearSurgeCache);
