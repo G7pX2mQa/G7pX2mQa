@@ -402,8 +402,11 @@ export function triggerPassiveCollect(count = 1) {
     
     const rawTotalCoin = coinGain.mulDecimal(count);
     const intCoin = rawTotalCoin.floorToInteger();
-    let coinFrac = parseFloat(rawTotalCoin.sub(intCoin).toScientific());
-    if (!Number.isFinite(coinFrac)) coinFrac = 0;
+    let coinFrac = 0;
+    if (!rawTotalCoin.inf && rawTotalCoin.decExp < 6) {
+        coinFrac = parseFloat(rawTotalCoin.sub(intCoin).toScientific());
+        if (!Number.isFinite(coinFrac)) coinFrac = 0;
+    }
     passiveCoinFractionAcc += coinFrac;
     const extraCoin = Math.floor(passiveCoinFractionAcc);
     if (extraCoin > 0) passiveCoinFractionAcc -= extraCoin;
