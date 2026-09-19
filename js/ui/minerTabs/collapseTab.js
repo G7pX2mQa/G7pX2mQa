@@ -866,7 +866,7 @@ The Challenge of ${capitalName}; the first Collapse Challenge
 Starting a Collapse Challenge resets everything Compress does as well as Crystals, the Crystal Building, and Pressure/PP
 Once you have started this Collapse Challenge, visit the Sell tab for required information to complete it (important)
 
-This first Collapse Challenge will be easy because the Lab is not reset, so recovery will be fast
+The fact that the Lab stays intact from starting a Collapse Challenge will assist your recovery greatly
 
 Effect: Coin value is divided by ${formattedNum}x
 Goal: Reach Pressure: 31atm
