@@ -501,8 +501,11 @@ registerPassiveSystem({
                         const scaledValBn = baseVal.mulDecimal(String(yieldMult));
                         const yieldIntBn = scaledValBn.floorToInteger();
                         
-                        let fractionalPart = parseFloat(scaledValBn.sub(yieldIntBn).toScientific());
-                        if (!Number.isFinite(fractionalPart)) fractionalPart = 0;
+                        let fractionalPart = 0;
+                        if (!scaledValBn.inf && scaledValBn.decExp < 6) {
+                            fractionalPart = parseFloat(scaledValBn.sub(yieldIntBn).toScientific());
+                            if (!Number.isFinite(fractionalPart)) fractionalPart = 0;
+                        }
                         
                         const newYieldAcc = yieldAccs[j] + fractionalPart;
                         let extraYieldInt = Math.floor(newYieldAcc);
@@ -585,8 +588,11 @@ registerPassiveSystem({
                 const gainBn = totalPassives.mulDecimal(String(gain));
                 const totalGainBn = gainBn.add(BigNum.fromAny(accs[j]));
                 const integerGain = totalGainBn.floorToInteger();
-                let fractionalGain = parseFloat(totalGainBn.sub(integerGain).toScientific());
-                if (!Number.isFinite(fractionalGain)) fractionalGain = 0;
+                let fractionalGain = 0;
+                if (!totalGainBn.inf && totalGainBn.decExp < 6) {
+                    fractionalGain = parseFloat(totalGainBn.sub(integerGain).toScientific());
+                    if (!Number.isFinite(fractionalGain)) fractionalGain = 0;
+                }
                 ucEacProgress[j] = fractionalGain;
                 if (!integerGain.isZero()) {
                     const matKey = UC_MATERIALS[j];
