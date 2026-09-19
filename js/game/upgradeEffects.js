@@ -592,5 +592,9 @@ export function registerXpUpgradeEffects() {
     window.addEventListener('pp:change', () => {
         try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
+
+    window.addEventListener('ccc:reset:upgrades:wiped', () => {
+        try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
   }
 }
