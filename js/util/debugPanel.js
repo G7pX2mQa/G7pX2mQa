@@ -1953,6 +1953,7 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
     const title = document.createElement("span");
     title.className = "debug-unlock-title";
     title.textContent = labelText;
+    title.dataset.originalText = labelText;
     textContainer.appendChild(title);
 
     if (description) {
@@ -6327,6 +6328,69 @@ function buildUnlocksContent(content) {
         return;
     }
 
+    // Add Search Bar
+    const searchContainer = document.createElement("div");
+    searchContainer.className = "debug-panel-row debug-unlock-search-container";
+    
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.className = "debug-panel-input debug-unlock-search";
+    searchInput.placeholder = "Search unlocks (press Enter)...";
+    searchInput.style.width = "100%";
+    
+    searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            const query = searchInput.value.trim().toLowerCase();
+            const allRows = content.querySelectorAll(".debug-unlock-row");
+            
+            allRows.forEach(row => {
+                const titleEl = row.querySelector(".debug-unlock-title");
+                if (!titleEl) return;
+                
+                const originalText = titleEl.dataset.originalText || titleEl.textContent;
+                
+                if (query !== "" && originalText.toLowerCase().includes(query)) {
+                    // Highlight
+                    const matchIndex = originalText.toLowerCase().indexOf(query);
+                    const before = originalText.substring(0, matchIndex);
+                    const match = originalText.substring(matchIndex, matchIndex + query.length);
+                    const after = originalText.substring(matchIndex + query.length);
+                    
+                    titleEl.innerHTML = `${before}<span class="debug-unlock-highlight">${match}</span>${after}`;
+                    
+                    // Open parent subsections and save state
+                    let current = row.parentElement;
+                    while (current && current !== content) {
+                        if (current.classList.contains("debug-panel-subsection-content")) {
+                            current.classList.add("active");
+                            
+                            // Find the corresponding toggle button
+                            const stateKey = current.dataset.subsectionKey;
+                            if (stateKey) {
+                                const toggleBtn = current.parentElement.querySelector(`.debug-panel-subsection-toggle[data-subsection-key="${stateKey}"]`);
+                                if (toggleBtn) {
+                                    toggleBtn.classList.add("expanded");
+                                }
+                                
+                                // Make sure it persists if the panel is saved and reloaded
+                                if (typeof debugPanelExpansionState !== "undefined" && debugPanelExpansionState && debugPanelExpansionState.subsections) {
+                                    debugPanelExpansionState.subsections.add(stateKey);
+                                }
+                            }
+                        }
+                        current = current.parentElement;
+                    }
+                } else {
+                    // Clear highlight
+                    titleEl.textContent = originalText;
+                }
+            });
+        }
+    });
+    
+    searchContainer.appendChild(searchInput);
+    content.appendChild(searchContainer);
+
     try {
         initXpSystem();
     } catch {}
@@ -6688,6 +6752,11 @@ function applyDebugPanelAccess(enabled) {
 
 document.addEventListener("keydown", (event) => {
     if (!debugPanelAccess || isOnMenu() || isLoading()) return;
+
+    const activeTagName = document.activeElement?.tagName;
+    if (activeTagName === "INPUT" || activeTagName === "TEXTAREA") {
+        return;
+    }
 
     if (event.key?.toLowerCase() === "n") {
         nukeNotifications(!event.shiftKey);
