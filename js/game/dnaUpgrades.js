@@ -1,6 +1,7 @@
 import { formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from "../util/bigNum.js";
 
+
 export const DNA_AREA_KEY = 'dna';
 
 export const REGISTRY = [
@@ -147,8 +148,9 @@ export const REGISTRY = [
     area: DNA_AREA_KEY,
     id: 6,
     title: "DNA Rubble Value",
+    tie: "dna_6",
     desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
-    descScale: 0.9,
+    
     lvlCap: 1000,
     baseCost: "1e500",
     costType: "dna",
