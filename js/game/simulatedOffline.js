@@ -648,7 +648,7 @@ function createSimulationOverlay(
         const multiplier = runner.simDt / runner.baseDt;
         let speedStr = "1x";
         if (multiplier > 1) {
-            speedStr = `${multiplier === 2.5 ? "2.5" : Math.round(multiplier)}x`;
+            speedStr = `${multiplier === 2.5 ? "2.5" : formatNumber(BigNum.fromAny(Math.round(multiplier)))}x`;
         }
         setHtmlOrText(speedValueSpan, speedStr);
     }
