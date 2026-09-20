@@ -927,8 +927,13 @@ html.is-mobile {
   font-size: clamp(26px, 3.7vw, 38px);
 }
 
+
 .upg-sheet.is-hm-upgrade.is-endless-materials .upg-desc.centered {
   font-size: clamp(28px, 4vw, 42px);
+}
+
+.upg-sheet.is-hm-upgrade.is-rubble-value .upg-desc.centered {
+  font-size: clamp(29px, 4.1vw, 44px);
 }
 
 .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
@@ -944,8 +949,13 @@ html.is-mobile {
   font-size: clamp(26px, 3.7vw, 38px);
 }
 
+
 .upg-sheet.is-hm-upgrade.is-endless-materials .upg-line {
   font-size: clamp(28px, 4vw, 42px);
+}
+
+.upg-sheet.is-hm-upgrade.is-rubble-value .upg-line {
+  font-size: clamp(29px, 4.1vw, 44px);
 }
 
 .bonus-line .infinity-symbol {
@@ -996,6 +1006,12 @@ html.is-mobile {
     line-height: 1.2;
   }
 
+
+  .upg-sheet.is-hm-upgrade.is-rubble-value .upg-desc.centered {
+    font-size: clamp(19px, 3.3vmin, 28px);
+    line-height: 1.2;
+  }
+
   .upg-sheet.is-hm-upgrade.is-endless-materials .upg-desc.centered {
     font-size: clamp(18px, 3.2vmin, 26px);
     line-height: 1.2;
@@ -1005,6 +1021,11 @@ html.is-mobile {
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line,
 .upg-sheet.is-hm-upgrade.is-endless-fp .upg-line {
     font-size: clamp(16px, 3vmin, 22px);
+  }
+
+
+  .upg-sheet.is-hm-upgrade.is-rubble-value .upg-line {
+    font-size: clamp(19px, 3.3vmin, 28px);
   }
 
   .upg-sheet.is-hm-upgrade.is-endless-materials .upg-line {
@@ -1102,6 +1123,8 @@ html.is-mobile {
   .upg-sheet.is-magnet-upgrade .upg-line,
   .upg-sheet.is-hm-upgrade.is-endless-mp .upg-desc.centered,
   .upg-sheet.is-hm-upgrade.is-endless-mp .upg-line,
+  .upg-sheet.is-hm-upgrade.is-rubble-value .upg-desc.centered,
+  .upg-sheet.is-hm-upgrade.is-rubble-value .upg-line,
   .upg-sheet.is-hm-upgrade.is-endless-coins .upg-desc.centered,
   .upg-sheet.is-hm-upgrade.is-endless-coins .upg-line,
   .upg-sheet.is-hm-upgrade.is-endless-coins-2 .upg-desc.centered,
