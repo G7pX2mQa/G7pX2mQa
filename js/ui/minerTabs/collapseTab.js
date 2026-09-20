@@ -1314,12 +1314,17 @@ if (typeof window !== "undefined") {
     let stoneChallengeNotif = null;
 
     const startStoneChallengeTimer = () => {
-        let visited = false;
+        const slot = getActiveSlot() ?? "default";
+        const visitedKey = `ccc:hasVisitedSellTabInsideCoS:${slot}`;
+        let visited = lsGetItem(visitedKey) === "1";
+
+        if (visited) return;
 
         const checkVisited = () => {
             const sellPanel = document.getElementById("miner-panel-sell");
             if (sellPanel && sellPanel.classList.contains("is-active")) {
                 visited = true;
+                lsSetItem(visitedKey, "1");
                 if (stoneChallengeNotif) {
                     stoneChallengeNotif.close();
                     stoneChallengeNotif = null;
@@ -1329,11 +1334,16 @@ if (typeof window !== "undefined") {
 
         const observer = new MutationObserver(() => {
             checkVisited();
+            if (visited) observer.disconnect();
         });
         stoneChallengeObserver = observer;
         observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
 
         checkVisited();
+        if (visited) {
+            observer.disconnect();
+            return;
+        }
 
         if (stoneChallengeNotifyTimeout) clearInterval(stoneChallengeNotifyTimeout);
         
@@ -1366,9 +1376,11 @@ if (typeof window !== "undefined") {
                     stoneChallengeNotif = null;
                 }
                 window.removeEventListener("collapse:challenge:exit", cleanup);
+                window.removeEventListener("collapse:challenge:complete", cleanup);
             }
         };
         window.addEventListener("collapse:challenge:exit", cleanup);
+        window.addEventListener("collapse:challenge:complete", cleanup);
     };
 
     window.addEventListener("collapse:challenge:start", (e) => {
