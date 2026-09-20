@@ -369,11 +369,11 @@ const UPGRADE_DEFINITIONS = [
         desc: "Automatically buys levels of the Core Building",
         icon: "img/sc_upg_icons/autobuy_core.webp",
         lvlCap: 1,
-        baseCost: "1e99999",
+        baseCost: "1e1000",
         costType: "gears",
         upgType: "NM",
         costAtLevel() {
-            return BigNum.fromAny("1e99999");
+            return BigNum.fromAny("1e1000");
         },
         effectSummary() {
             return null;
@@ -408,11 +408,11 @@ const UPGRADE_DEFINITIONS = [
         desc: "Automatically buys levels of the Crystal Building",
         icon: "img/sc_upg_icons/autobuy_crystal.webp",
         lvlCap: 1,
-        baseCost: "1e99999",
+        baseCost: "1e1000",
         costType: "gears",
         upgType: "NM",
         costAtLevel() {
-            return BigNum.fromAny("1e99999");
+            return BigNum.fromAny("1e1000");
         },
         effectSummary() {
             return null;
@@ -447,11 +447,11 @@ const UPGRADE_DEFINITIONS = [
         desc: "Automatically buys levels of the Stone Building",
         icon: "img/sc_upg_icons/autobuy_stone.webp",
         lvlCap: 1,
-        baseCost: "1e99999",
+        baseCost: "1e1000",
         costType: "gears",
         upgType: "NM",
         costAtLevel() {
-            return BigNum.fromAny("1e99999");
+            return BigNum.fromAny("1e1000");
         },
         effectSummary() {
             return null;
