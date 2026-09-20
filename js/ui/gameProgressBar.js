@@ -1,5 +1,5 @@
 import { lsSetItem, lsGetItem } from "../main.js";
-import { isForgeUnlocked, isInfuseUnlocked, isSurgeUnlocked, getCurrentSurgeLevel } from "./merchantTabs/resetTab.js";
+import { getCurrentSurgeLevel } from "./merchantTabs/resetTab.js";
 import { getActiveSlot } from "../util/storage.js";
 import { getXpState } from "../game/xpSystem.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
@@ -339,13 +339,6 @@ export function updateGameProgressBar() {
             }
         }
         percentage = Math.max(0, Math.min(100, percentage));
-        if (activeGoal.id === 2 && percentage >= 99 && !isForgeUnlocked()) {
-            percentage = 99;
-        } else if (activeGoal.id === 3 && percentage >= 99 && !isInfuseUnlocked()) {
-            percentage = 99;
-        } else if (activeGoal.id === 4 && percentage >= 99 && !isSurgeUnlocked()) {
-            percentage = 99;
-        }
         textEl.textContent = `${activeGoal.text} (${Math.floor(percentage)}%)`;
         fill.style.width = `${percentage}%`;
     } else {
