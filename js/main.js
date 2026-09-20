@@ -2743,37 +2743,35 @@ function generateMenuBackground(manifest) {
         }
     }
 
-    const loadedImgsMap = new Map();
     let styleEl = null;
 
     images.forEach((src) => {
         const img = new Image();
         img.src = src;
         img.onload = () => {
-            loadedImgsMap.set(src, img);
-            drawPattern();
+            drawSpecificImage(src, img);
         };
     });
 
-    function drawPattern() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function drawSpecificImage(loadedSrc, img) {
+        let changed = false;
 
         for (let y = 0; y < gridCells; y++) {
             for (let x = 0; x < gridCells; x++) {
                 const idx = y * gridCells + x;
-                const src = bestGrid[idx];
-                const img = loadedImgsMap.get(src);
-
-                if (img) {
+                if (bestGrid[idx] === loadedSrc) {
                     const drawSize = cellSize * 0.5;
                     const cx = x * cellSize + cellSize / 2;
                     const cy = y * cellSize + cellSize / 2;
 
                     ctx.filter = "grayscale(100%) brightness(0.375) contrast(1) opacity(0.5)";
                     ctx.drawImage(img, cx - drawSize / 2, cy - drawSize / 2, drawSize, drawSize);
+                    changed = true;
                 }
             }
         }
+
+        if (!changed) return;
 
         const dataUrl = canvas.toDataURL();
         if (!styleEl) {
