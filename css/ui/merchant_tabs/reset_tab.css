@@ -508,7 +508,7 @@
     z-index: 10;
     margin-top: -12px;
     background: var(--merchant-bg);
-    padding-bottom: 24px; /* Large dedicated padding for the scrollbar to reside in */
+    padding-bottom: 12px; /* Small padding for the scrollbar to reside in */
   }
   
   .merchant-reset__sidebar-wrapper .shop-scrollbar.is-horizontal {
@@ -554,7 +554,7 @@
 
   /* Ensure sticky buttons don't cover the top of the cards when scrolling */
   .merchant-reset__card {
-    scroll-margin-top: 80px;
+    scroll-margin-top: 68px;
   }
 }
 
