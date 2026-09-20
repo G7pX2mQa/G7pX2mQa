@@ -2108,6 +2108,12 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
     const isEndlessCoins = upgDef.tie === UPGRADE_TIES.ENDLESS_COINS;
     const isEndlessCoins2 = upgDef.tie === UPGRADE_TIES.ENDLESS_COINS_II;
     const isEndlessCoins3 = upgDef.tie === UPGRADE_TIES.ENDLESS_COINS_III;
+    const isRubbleValue =
+        upgDef.tie === UPGRADE_TIES.COIN_RUBBLE_VALUE ||
+        upgDef.tie === UPGRADE_TIES.BOOK_RUBBLE_VALUE ||
+        upgDef.tie === UPGRADE_TIES.GOLD_RUBBLE_VALUE ||
+        upgDef.tie === UPGRADE_TIES.MAGIC_RUBBLE_VALUE ||
+        upgDef.tie === UPGRADE_TIES.DNA_RUBBLE_VALUE;
     function ensureChild(parent, className, tagName = "div") {
         const targetClasses = className.split(" ").filter((c) => c.length > 0);
         let el = null;
@@ -2186,6 +2192,7 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         upgSheetEl.classList.toggle("is-endless-coins", isEndlessCoins);
         upgSheetEl.classList.toggle("is-endless-coins-2", isEndlessCoins2);
         upgSheetEl.classList.toggle("is-endless-coins-3", isEndlessCoins3);
+        upgSheetEl.classList.toggle("is-rubble-value", isRubbleValue);
         upgSheetEl.classList.toggle("is-magnet-upgrade", upgDef.tie === UPGRADE_TIES.MAGNET);
         upgSheetEl.classList.toggle("is-coin-value-iv", upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
         upgSheetEl.classList.toggle("is-xp-value-iv", upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
