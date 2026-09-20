@@ -3003,7 +3003,7 @@ export const REGISTRY = [
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
         
         lvlCap: 1000,
-        baseCost: "1e400",
+        baseCost: "1e345",
         costType: "coins",
         upgType: "HM",
         scalingPreset: "HM",
@@ -3037,7 +3037,7 @@ export const REGISTRY = [
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade does not scale similarly to Endless FP",
         
         lvlCap: 1000,
-        baseCost: 1e100,
+        baseCost: 1e69,
         costType: "books",
         upgType: "HM",
         scalingPreset: "HM",
@@ -3070,7 +3070,7 @@ export const REGISTRY = [
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
         
         lvlCap: 1000,
-        baseCost: "1e400",
+        baseCost: 1e276,
         costType: "gold",
         upgType: "HM",
         scalingPreset: "HM",
@@ -3104,7 +3104,7 @@ export const REGISTRY = [
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
         
         lvlCap: 1000,
-        baseCost: 1e300,
+        baseCost: 1e207,
         costType: "magic",
         upgType: "HM",
         scalingPreset: "HM",
