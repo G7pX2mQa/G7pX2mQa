@@ -152,7 +152,7 @@ export const REGISTRY = [
     desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
     
     lvlCap: 1000,
-    baseCost: "4.444e444",
+    baseCost: "1e400",
     costType: "dna",
     upgType: "HM",
     scalingPreset: 'HM',
