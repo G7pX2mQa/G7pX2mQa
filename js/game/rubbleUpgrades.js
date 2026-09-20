@@ -15,7 +15,7 @@ export const RUBBLE_REGISTRY = [
         title: "Rubble Coin Value",
         desc: "Multiplies Coin value by 10x per level",
         lvlCap: 100,
-        baseCost: 1e2,
+        baseCost: 1e3,
         costType: "rubble",
         upgType: "NM",
         scalingPreset: 'NM',
@@ -24,9 +24,9 @@ export const RUBBLE_REGISTRY = [
         baseIconOverride: "img/currencies/rubble/rubble_base.webp",
         _baseEffectVal: 10,
         costAtLevel(level) {
-            // Base 1e2, scale 1e2x per level
+            // Base 1e3, scale 1e3x per level
             const lvl = Math.max(0, Number(level) || 0);
-            const log10Cost = 2 + 2 * lvl;
+            const log10Cost = 3 + 3 * lvl;
             const costStr = "1e" + log10Cost;
             return BigNum.fromAny(costStr);
         },
