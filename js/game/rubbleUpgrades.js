@@ -14,7 +14,7 @@ export const RUBBLE_REGISTRY = [
         id: 1,
         title: "Rubble Coin Value",
         desc: "Multiplies Coin value by 10x per level",
-        lvlCap: 100,
+        lvlCap: Infinity,
         baseCost: 1e3,
         costType: "rubble",
         upgType: "NM",
