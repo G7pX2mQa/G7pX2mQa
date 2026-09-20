@@ -601,3 +601,4 @@ html.is-mobile {
 .debug-panel.is-jailed .flag-slider:before {
     transform: translateX(26px) !important;
 }
+.debug-unlock-highlight { background-color: yellow; color: black; border-radius: 2px; padding: 0 2px; }
