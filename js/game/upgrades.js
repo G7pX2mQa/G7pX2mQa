@@ -204,6 +204,7 @@ export const UPGRADE_TIES = {
     BOOK_RUBBLE_VALUE: "book_5",
     GOLD_RUBBLE_VALUE: "gold_6",
     MAGIC_RUBBLE_VALUE: "magic_6",
+    DNA_RUBBLE_VALUE: "dna_6",
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -3000,7 +3001,7 @@ export const REGISTRY = [
         title: "Coin Rubble Value",
         tie: UPGRADE_TIES.COIN_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
-        descScale: 0.9,
+        
         lvlCap: 1000,
         baseCost: "1e500",
         costType: "coins",
@@ -3034,7 +3035,7 @@ export const REGISTRY = [
         title: "Book Rubble Value",
         tie: UPGRADE_TIES.BOOK_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade does not scale similarly to Endless FP",
-        descScale: 0.9,
+        
         lvlCap: 1000,
         baseCost: 1.111e111,
         costType: "books",
@@ -3067,7 +3068,7 @@ export const REGISTRY = [
         title: "Gold Rubble Value",
         tie: UPGRADE_TIES.GOLD_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
-        descScale: 0.9,
+        
         lvlCap: 1000,
         baseCost: "1e500",
         costType: "gold",
@@ -3101,7 +3102,7 @@ export const REGISTRY = [
         title: "Magic Rubble Value",
         tie: UPGRADE_TIES.MAGIC_RUBBLE_VALUE,
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
-        descScale: 0.9,
+        
         lvlCap: 1000,
         baseCost: "1e500",
         costType: "magic",
