@@ -14,6 +14,7 @@ import {
     hasDoneInfuseReset,
     hasDoneSurgeReset,
     getCurrentSurgeLevel,
+    isSurgeUnlocked,
 } from "./resetTab.js";
 import { initWorkshopTab } from "./workshopTab.js";
 import { initWarpTab, updateWarpTab } from "./warpTab.js";
@@ -610,7 +611,7 @@ export const DLG_CATALOG = {
             if (isSurge8) {
                 return true;
             }
-            if (typeof hasDoneSurgeReset === "function" && hasDoneSurgeReset()) {
+            if (typeof isSurgeUnlocked === "function" && isSurgeUnlocked()) {
                 return {
                     status: "mysterious",
                     requirement: "Reach Surge 8 to reveal this dialogue",
