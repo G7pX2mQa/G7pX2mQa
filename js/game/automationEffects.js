@@ -193,6 +193,16 @@ export function simulateAutomationTick(dt) {
     onTick(dt);
 }
 
+/** Passive accumulation only — always called at full tick rate during sim */
+export function simulatePassiveTick(dt) {
+    updateAutomation(dt);
+}
+
+/** Autobuyer processing only — can be decimated during sim */
+export function simulateAutobuyerTick() {
+    updateAutobuyers();
+}
+
 let _groupedUpgradesCache = null;
 let _hmUpgradesCache = null;
 /**
@@ -234,6 +244,17 @@ function processAutobuyGroup(upgrades) {
         // so we can just rely on the individual toggle's state.
         const setting = getAutobuyerToggle(area, upg.id);
         if (setting !== "0") {
+            if (area === "underwater_cavern" && upg.id === 14) {
+                try {
+                    const slot = getActiveSlot();
+                    if (slot != null) {
+                        const purchasedOnce = lsGetItem(`ccc:coralReefPurchasedOnce:${slot}`);
+                        if (purchasedOnce !== "1") continue;
+                    } else {
+                        continue;
+                    }
+                } catch {}
+            }
             const currentLevel = getLevelNumber(area, upg.id);
             const cap = upg.lvlCap ?? Infinity;
             if (currentLevel < cap) {
