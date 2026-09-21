@@ -261,6 +261,36 @@ export const SETTING_DEFINITIONS = {
         default: false,
         unlockCondition: () => true,
     },
+    show_surge_screen_wipe: {
+        type: "toggle",
+        label: "Show Surge Screen-Wipe",
+        overlay: "main",
+        hasExtraInfo: true,
+        info: () => {
+            const baseText = "Toggle this setting OFF if you want to disable the screen-wipe wave animation that plays when you perform a Surge reset.";
+            try {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    const raw = lsGetItem(`ccc:surge:maxLevel:${slot}`);
+                    if (raw) {
+                        const maxSurgeLevelReached = raw === "Infinity" ? Infinity : parseFloat(raw) || 0;
+                        if (maxSurgeLevelReached >= 100) {
+                            return baseText + " Toggling this setting ON from an OFF state will prevent future activations of Surge 150 from turning this setting OFF, and the part of Surge 150 mentioning the disabling of this screen-wipe animation will be hidden.";
+                        }
+                    }
+                }
+            } catch {}
+            return baseText;
+        },
+        default: true,
+        unlockCondition: () => {
+            try {
+                return isSurgeUnlocked();
+            } catch {
+                return false;
+            }
+        },
+    },
     master_volume: {
         type: "slider",
         label: "Master Volume",
@@ -802,6 +832,12 @@ class SettingsManager {
         )
             return;
 
+        if (key === "show_surge_screen_wipe" && value === true && this.settings[key] === false && !this._isDefault[key]) {
+            const slot = getActiveSlot();
+            if (slot != null) {
+                lsSetItem(`ccc:surge150_screen_wipe_message_hidden:${slot}`, "1");
+            }
+        }
 
         this.settings[key] = value;
         this._isDefault[key] = false;
