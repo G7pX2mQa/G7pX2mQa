@@ -99,7 +99,7 @@ function renderAchievements(gridEl) {
                     }
                 }
                 if (allAchieved) {
-                    playAudio("sounds/winner.ogg", { volume: 0.5, type: "ui" });
+                    playAudio("sounds/winner.ogg", { volume: 0.5, type: "special" });
                     muteAndFadeInBackgroundAudio(3000, 2000);
                     showWideNotification("You've claimed 100% of all achievements!", 10000, { muteSound: true });
                 } else {
@@ -284,7 +284,7 @@ function openAchievementDetails(achievement) {
                 }
             }
             if (allAchieved) {
-                playAudio("sounds/winner.ogg", { volume: 0.5, type: "ui" });
+                playAudio("sounds/winner.ogg", { volume: 0.5, type: "special" });
                 muteAndFadeInBackgroundAudio(3000, 2000);
                 showWideNotification("You've claimed 100% of all achievements!", 10000, { muteSound: true });
             } else {
