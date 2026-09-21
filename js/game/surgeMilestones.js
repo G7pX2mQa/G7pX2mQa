@@ -193,7 +193,7 @@ export const SURGE_MILESTONES = [
             "Unlocks new Lab Nodes",
             "Unlocks a new Coin upgrade",
             "Unlocks a new Merchant dialogue",
-            "Combo no longer decays",
+            "Combo no longer decays and Combo is hidden when at max Combo",
         ],
     },
     {
