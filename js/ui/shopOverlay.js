@@ -791,10 +791,12 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
                     resultBn = BigNum.fromInt(0);
                     computed = true;
                 } else {
-                    const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1));
-                    const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
+                    const c1 = BigNum.fromAny(upg.costAtLevel(lvl + Math.max(1, Math.floor(lvl * 1e-12))));
+                    const step2 = Math.max(32, Math.floor(lvl * 1e-11));
+                    const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + step2, lvl + step2);
                     const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
-                    const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+                    let isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+                    if (upg.scaling && upg.scaling.ratio > 1) isTrulyFlat = false;
                     if (isTrulyFlat) {
                         const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
                         const room = Number.isFinite(upg.lvlCap)
@@ -811,7 +813,13 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
                         let lo = 0,
                             hi = Math.max(0, room);
                         while (lo < hi) {
-                            const mid = Math.floor((lo + hi + 1) / 2);
+                            const mid = lo + Math.ceil((hi - lo) / 2);
+                            if (mid === lo || mid === hi) {
+                                const hiBn = BigNum.fromInt(hi);
+                                const hiTotal = typeof c0.mulBigNumInteger === "function" ? c0.mulBigNumInteger(hiBn) : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(hiBn);
+                                if (hiTotal.cmp(walletBn) <= 0) lo = hi;
+                                break;
+                            }
                             const midBn = BigNum.fromInt(mid);
                             const total =
                                 typeof c0.mulBigNumInteger === "function"
@@ -827,7 +835,10 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
             }
         } catch {}
         if (!computed) {
-            const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
+            let room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
+            if (upg.area === "rubble_upgrades") {
+                room = Math.min(room ?? Infinity, Math.max(0, 4e12 - lvl));
+            }
             const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: false });
             resultBn = count ?? BigNum.fromInt(0);
         }
@@ -2074,6 +2085,51 @@ function openHmMilestoneDialog(lines) {
     if (typeof closeBtn.focus === "function") closeBtn.focus({ preventScroll: true });
 }
 
+function openFloatErrorDialog() {
+    const existing = document.querySelector(".hm-milestones-overlay");
+    if (existing) existing.remove();
+    const overlay = document.createElement("div");
+    overlay.className = "hm-milestones-overlay hm-valc-overlay";
+    overlay.setAttribute("role", "dialog");
+    const dialog = document.createElement("div");
+    dialog.className = "hm-milestones-dialog hm-valc-dialog";
+    const title = document.createElement("h3");
+    title.className = "hm-milestones-title";
+    title.textContent = "Special Message";
+    
+    const text = document.createElement("div");
+    text.innerHTML = "Okay I know that the upgrade cap says infinite but that’s actually fundamentally not possible with how floating point works so I’m sorry but I’m not going to let you get higher upgrade levels past 4 trillion unless you go to infinity which can be handled just fine";
+    text.style.padding = "20px";
+    text.style.textAlign = "center";
+    text.style.fontSize = "1.1em";
+    text.style.lineHeight = "1.4";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "hm-milestones-close";
+    closeBtn.textContent = "Close";
+    const close = () => {
+        overlay.remove();
+        document.removeEventListener("keydown", onKeydown);
+    };
+
+    const onKeydown = (event) => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            close();
+        }
+    };
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) close();
+    });
+    closeBtn.addEventListener("click", close);
+    document.addEventListener("keydown", onKeydown);
+    dialog.append(title, text, closeBtn);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    if (typeof closeBtn.focus === "function") closeBtn.focus({ preventScroll: true });
+}
+
 export function openUpgradeOverlay(upgDef, mode = "standard") {
     ensureUpgradeOverlay();
     upgOpen = true;
@@ -2626,6 +2682,31 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             valcBtn.style.display = "none";
             valcBtn.style.pointerEvents = "none";
             valcBtn._onClick = null;
+        }
+
+        let specialBtn = milestonesRow.querySelector(".hm-special-message");
+        if (!specialBtn) {
+            specialBtn = document.createElement("button");
+            specialBtn.type = "button";
+            specialBtn.className = "hm-special-message hm-view-milestones";
+            specialBtn.textContent = "View Special Message";
+            specialBtn.style.width = "200px";
+            specialBtn.style.userSelect = "none";
+            specialBtn.style.WebkitUserSelect = "none";
+            specialBtn.addEventListener("click", (e) => {
+                if (specialBtn._onClick) specialBtn._onClick(e);
+            });
+            milestonesRow.appendChild(specialBtn);
+        }
+
+        if (model.upg.area === "rubble_upgrades" && model.lvl >= 4e12 && !model.lvlBn?.isInfinite?.()) {
+            specialBtn.style.display = "";
+            specialBtn.style.pointerEvents = "auto";
+            specialBtn._onClick = () => openFloatErrorDialog();
+        } else {
+            specialBtn.style.display = "none";
+            specialBtn.style.pointerEvents = "none";
+            specialBtn._onClick = null;
         }
         // Actions
         const actions = upgSheetEl.querySelector(".upg-actions");
