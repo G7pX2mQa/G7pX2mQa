@@ -124,15 +124,9 @@ function getSimTickGranularity(totalSeconds) {
 //
 const RELEVANCE_EVAL_INTERVAL = 500;
 
-const DEFAULT_DECIMATION = Object.freeze({
-    passives:    1,   // Dynamically scaled based on offline time in evaluateRelevance
-    autobuyers:  1,   // Dynamically scaled based on offline time and purchase activity
-    surge:       1,   // Bound to passives decimation
-    labLevel:    1,   // Bound to passives decimation
-    labResearch: 1,
-    flow:        1,
-    workshop:    1,
-});
+// ---------------------------------------------------------------------------
+// Dynamic Feature Registry
+// ---------------------------------------------------------------------------
 
 // Autobuyer purchase tracking — counts purchases made during simulation
 // via window.__simAutobuyerPurchaseCount (set in upgrades.js performFreeAutobuy).
@@ -157,129 +151,126 @@ function checkAutobuyerActivity() {
     }
     window.__simAutobuyerPurchaseCount = 0;
 }
-
-/**
- * Evaluate the current game state and return per-feature decimation factors.
- * Called every RELEVANCE_EVAL_INTERVAL ticks during simulation.
- * @param {number} simDt - The current simulation tick granularity in seconds.
- * @param {number} totalOfflineSeconds - Total offline duration to scale decimation.
- * @returns {{ autobuyers: number, surge: number, labLevel: number,
- *             labResearch: number, flow: number, workshop: number }}
- */
-function evaluateRelevance(simDt, totalOfflineSeconds = 0) {
-    const dec = { ...DEFAULT_DECIMATION };
-
-    // --- Passives ---
-    // Scale baseline decimation based on total offline time
-    if (totalOfflineSeconds > 31536000)      dec.passives = 10;     // > 1 year
-    else if (totalOfflineSeconds > 2592000)  dec.passives = 8;      // > 1 month
-    else if (totalOfflineSeconds > 604800)   dec.passives = 7;      // > 1 week
-    else if (totalOfflineSeconds > 86400)    dec.passives = 5;      // > 1 day
-    else if (totalOfflineSeconds > 32400)    dec.passives = 4;      // > 9 hours
-    else if (totalOfflineSeconds > 10800)    dec.passives = 3;      // > 3 hours
-    else if (totalOfflineSeconds > 3600)     dec.passives = 2;      // > 1 hour
-    else                                     dec.passives = 1;      // <= 1 hour
-
-    // --- Flow (Waterwheels) ---
-    // Signal: FP gained per tick vs waterwheel baseReq.
-    // Higher ratio = many levels gained per tick = safe to decimate.
-    if (_WATERWHEEL_DEFS && _getFpMultiplier) {
-        try {
-            const fpMult = _getFpMultiplier();
-            const fpPerTick = fpMult.mulDecimal(String(simDt));
-            let fpPerTickNum = 0;
-            try { fpPerTickNum = Number(fpPerTick.toScientific(5)); } catch { fpPerTickNum = 0; }
-
-            let minRatio = Infinity;
-            for (const id in _WATERWHEEL_DEFS) {
-                const def = _WATERWHEEL_DEFS[id];
-                const req = def.baseReq;
-                if (req > 0) {
-                    const ratio = fpPerTickNum / req;
-                    if (ratio < minRatio) minRatio = ratio;
+const OFFLINE_FEATURES = [
+    {
+        id: "passives",
+        evalRelevance: (simDt, totalOfflineSeconds) => {
+            if (totalOfflineSeconds > 31536000)      return 10;
+            else if (totalOfflineSeconds > 2592000)  return 8;
+            else if (totalOfflineSeconds > 604800)   return 7;
+            else if (totalOfflineSeconds > 86400)    return 5;
+            else if (totalOfflineSeconds > 32400)    return 4;
+            else if (totalOfflineSeconds > 10800)    return 3;
+            else if (totalOfflineSeconds > 3600)     return 2;
+            return 1;
+        },
+        simulate: (dt) => { if (_simulatePassiveTick) _simulatePassiveTick(dt); }
+    },
+    {
+        id: "labLevel",
+        evalRelevance: (simDt, totalOfflineSeconds, dec) => dec.passives,
+        simulate: () => { if (_simulateLabUpdate) _simulateLabUpdate(); }
+    },
+    {
+        id: "surge",
+        evalRelevance: (simDt, totalOfflineSeconds, dec) => dec.passives,
+        simulate: (dt) => { if (_simulateSurgeTick) _simulateSurgeTick(dt); }
+    },
+    {
+        id: "labResearch",
+        evalRelevance: (simDt, totalOfflineSeconds, dec) => {
+            if (!_RESEARCH_NODES || !_isResearchNodeActive || !_getResearchNodeLevel) return 1;
+            try {
+                let hasActiveUnmaxed = false;
+                for (const node of _RESEARCH_NODES) {
+                    if (!_isResearchNodeActive(node.id)) continue;
+                    if (_getResearchNodeLevel(node.id) < node.maxLevel) {
+                        hasActiveUnmaxed = true;
+                        break;
+                    }
                 }
-            }
-            if (Number.isFinite(minRatio)) {
-                let target = 1;
-                if (minRatio > 1e6)       target = 100;
-                else if (minRatio > 1e4)  target = 50;
-                else if (minRatio > 1000) target = 20;
-                else if (minRatio > 100)  target = 10;
-                else if (minRatio > 10)   target = 2;
+                return Math.max(dec.passives, hasActiveUnmaxed ? 5 : 50);
+            } catch { return 1; }
+        },
+        simulate: (dt) => { if (_simulateLabResearch) _simulateLabResearch(dt); }
+    },
+    {
+        id: "flow",
+        evalRelevance: (simDt, totalOfflineSeconds, dec) => {
+            if (!_WATERWHEEL_DEFS || !_getFpMultiplier) return 1;
+            try {
+                const fpMult = _getFpMultiplier();
+                const fpPerTick = fpMult.mulDecimal(String(simDt));
+                let fpPerTickNum = Number(fpPerTick.toScientific(5)) || 0;
+
+                let minRatio = Infinity;
+                for (const id in _WATERWHEEL_DEFS) {
+                    const req = _WATERWHEEL_DEFS[id].baseReq;
+                    if (req > 0) {
+                        const ratio = fpPerTickNum / req;
+                        if (ratio < minRatio) minRatio = ratio;
+                    }
+                }
+                if (Number.isFinite(minRatio)) {
+                    let target = 1;
+                    if (minRatio > 1e6)       target = 100;
+                    else if (minRatio > 1e4)  target = 50;
+                    else if (minRatio > 1000) target = 20;
+                    else if (minRatio > 100)  target = 10;
+                    else if (minRatio > 10)   target = 2;
+                    return Math.max(dec.passives, target);
+                }
+            } catch {}
+            return 1;
+        },
+        simulate: (dt) => { if (_simulateFlowTick) _simulateFlowTick(dt); }
+    },
+    {
+        id: "workshop",
+        evalRelevance: (simDt, totalOfflineSeconds, dec) => {
+            if (!_getGearsProductionRate) return 1;
+            try {
+                const rate = _getGearsProductionRate();
+                const perTick = rate.mulDecimal(String(simDt));
+                let perTickNum = Number(perTick.toScientific(5)) || 0;
                 
-                dec.flow = Math.max(dec.passives, target);
-            }
-        } catch { /* leave default */ }
+                let target = 1;
+                if (perTickNum > 1e10)       target = 100;
+                else if (perTickNum > 1e6)   target = 50;
+                else if (perTickNum > 1000)  target = 10;
+                else if (perTickNum > 100)   target = 2;
+                return Math.max(dec.passives, target);
+            } catch {}
+            return 1;
+        },
+        simulate: (dt) => { if (_simulateWorkshopTick) _simulateWorkshopTick(dt); }
+    },
+    {
+        id: "autobuyers",
+        evalRelevance: (simDt, totalOfflineSeconds) => {
+            let autoBaseline = 1;
+            if (totalOfflineSeconds > 31536000)      autoBaseline = 20;
+            else if (totalOfflineSeconds > 2592000)  autoBaseline = 10;
+            else if (totalOfflineSeconds > 604800)   autoBaseline = 8;
+            else if (totalOfflineSeconds > 86400)    autoBaseline = 5;
+            else if (totalOfflineSeconds > 32400)    autoBaseline = 4;
+            else if (totalOfflineSeconds > 10800)    autoBaseline = 3;
+            else if (totalOfflineSeconds > 3600)     autoBaseline = 2;
+
+            checkAutobuyerActivity();
+            if (_autobuyerDryRuns >= 20)      return Math.max(autoBaseline, 100);
+            if (_autobuyerDryRuns >= 10)      return Math.max(autoBaseline, 50);
+            return autoBaseline;
+        },
+        simulate: () => { if (_simulateAutobuyerTick) _simulateAutobuyerTick(); }
     }
+];
 
-    // --- Lab Research ---
-    // Signal: are all active research nodes at max level?
-    // If so, nothing to do → aggressive decimation.
-    // Otherwise, light decimation since research is bursty.
-    if (_RESEARCH_NODES && _isResearchNodeActive && _getResearchNodeLevel) {
-        try {
-            let hasActiveUnmaxed = false;
-            for (const node of _RESEARCH_NODES) {
-                if (!_isResearchNodeActive(node.id)) continue;
-                const level = _getResearchNodeLevel(node.id);
-                if (level < node.maxLevel) {
-                    hasActiveUnmaxed = true;
-                    break;
-                }
-            }
-            dec.labResearch = Math.max(dec.passives, hasActiveUnmaxed ? 5 : 50);
-        } catch { /* leave default */ }
+function evaluateRelevance(simDt, totalOfflineSeconds = 0) {
+    const dec = {};
+    for (const feature of OFFLINE_FEATURES) {
+        dec[feature.id] = feature.evalRelevance(simDt, totalOfflineSeconds, dec);
     }
-
-    // --- Lab Level ---
-    // Derives cheaply from coins. Influences DNA generation, so it respects 
-    // the same time-scaled precision curve as standard passives.
-    dec.labLevel = dec.passives;
-
-    // --- Surge ---
-    // Surge passive generation (e.g., Books) behaves exactly like standard passives,
-    // so we tie it directly to the time-scaled passives baseline.
-    dec.surge = dec.passives;
-
-    // --- Workshop ---
-    // Signal: gears production rate magnitude. At high rates, fractional
-    // accumulation is irrelevant and batching is safe.
-    if (_getGearsProductionRate) {
-        try {
-            const rate = _getGearsProductionRate();
-            const perTick = rate.mulDecimal(String(simDt));
-            let perTickNum = 0;
-            try { perTickNum = Number(perTick.toScientific(5)); } catch { perTickNum = 0; }
-            
-            let target = 1;
-            if (perTickNum > 1e10)       target = 100;
-            else if (perTickNum > 1e6)   target = 50;
-            else if (perTickNum > 1000)  target = 10;
-            else if (perTickNum > 100)   target = 2;
-            
-            dec.workshop = Math.max(dec.passives, target);
-        } catch { /* leave default */ }
-    }
-
-    // --- Autobuyers ---
-    // Reactive: based on whether recent autobuyer ticks produced purchases.
-    // Uses _autobuyerDryRuns which is updated every evaluation interval.
-    // Scale baseline decimation based on total offline time
-    let autoBaseline = 1;
-    if (totalOfflineSeconds > 31536000)      autoBaseline = 20; // > 1 year
-    else if (totalOfflineSeconds > 2592000)  autoBaseline = 10; // > 1 month
-    else if (totalOfflineSeconds > 604800)   autoBaseline = 8;  // > 1 week
-    else if (totalOfflineSeconds > 86400)    autoBaseline = 5;  // > 1 day
-    else if (totalOfflineSeconds > 32400)    autoBaseline = 4;  // > 9 hours
-    else if (totalOfflineSeconds > 10800)    autoBaseline = 3;  // > 3 hours
-    else if (totalOfflineSeconds > 3600)     autoBaseline = 2;  // > 1 hour
-    else                                     autoBaseline = 1;  // <= 1 hour
-
-    checkAutobuyerActivity();
-    if (_autobuyerDryRuns >= 20)      dec.autobuyers = Math.max(autoBaseline, 100);
-    else if (_autobuyerDryRuns >= 10) dec.autobuyers = Math.max(autoBaseline, 50);
-    else                              dec.autobuyers = autoBaseline;
-
     return dec;
 }
 
@@ -500,10 +491,8 @@ class SimulatedOfflineRunner {
 
         // Per-feature tick decimation
         this._decimation = evaluateRelevance(this.simDt, this.totalOfflineSeconds);
-        this._accDt = {
-            passives: 0, autobuyers: 0, surge: 0, labLevel: 0,
-            labResearch: 0, flow: 0, workshop: 0,
-        };
+        this._accDt = {};
+        for (const f of OFFLINE_FEATURES) this._accDt[f.id] = 0;
 
         // State
         this.running = false;
@@ -578,10 +567,8 @@ class SimulatedOfflineRunner {
 
         // Per-frame minimum guarantee: track which decimated features have fired
         // this batch.  Any that haven't will be force-flushed before returning.
-        const firedThisBatch = {
-            passives: false, autobuyers: false, surge: false, labLevel: false,
-            labResearch: false, flow: false, workshop: false,
-        };
+        const firedThisBatch = {};
+        for (const f of OFFLINE_FEATURES) firedThisBatch[f.id] = false;
 
         while (this._exactRemainingSeconds > 0) {
             const currentDt = Math.min(this.simDt, this._exactRemainingSeconds);
@@ -638,108 +625,31 @@ class SimulatedOfflineRunner {
      * using their accumulated dt to preserve total game-time.
      */
     _flushDecimated(firedThisBatch, forceAll = false) {
-        if ((forceAll || !firedThisBatch.passives) && this._accDt.passives > 0) {
-            try { if (_simulatePassiveTick) _simulatePassiveTick(this._accDt.passives); } catch {}
-            this._accDt.passives = 0;
-        }
-        if ((forceAll || !firedThisBatch.autobuyers) && this._accDt.autobuyers > 0) {
-            try { if (_simulateAutobuyerTick) _simulateAutobuyerTick(); } catch {}
-            this._accDt.autobuyers = 0;
-        }
-        if ((forceAll || !firedThisBatch.surge) && this._accDt.surge > 0) {
-            try { if (_simulateSurgeTick) _simulateSurgeTick(this._accDt.surge); } catch {}
-            this._accDt.surge = 0;
-        }
-        if ((forceAll || !firedThisBatch.labLevel) && this._accDt.labLevel > 0) {
-            try { if (_simulateLabUpdate) _simulateLabUpdate(); } catch {}
-            this._accDt.labLevel = 0;
-        }
-        if ((forceAll || !firedThisBatch.labResearch) && this._accDt.labResearch > 0) {
-            try { if (_simulateLabResearch) _simulateLabResearch(this._accDt.labResearch); } catch {}
-            this._accDt.labResearch = 0;
-        }
-        if ((forceAll || !firedThisBatch.flow) && this._accDt.flow > 0) {
-            try { if (_simulateFlowTick) _simulateFlowTick(this._accDt.flow); } catch {}
-            this._accDt.flow = 0;
-        }
-        if ((forceAll || !firedThisBatch.workshop) && this._accDt.workshop > 0) {
-            try { if (_simulateWorkshopTick) _simulateWorkshopTick(this._accDt.workshop); } catch {}
-            this._accDt.workshop = 0;
+        for (const feature of OFFLINE_FEATURES) {
+            const id = feature.id;
+            if ((forceAll || !firedThisBatch[id]) && this._accDt[id] > 0) {
+                try { feature.simulate(this._accDt[id]); } catch {}
+                this._accDt[id] = 0;
+            }
         }
     }
 
     /**
-     * Simulate one tick of game time with per-feature decimation.
+     * Executes exactly one mathematically complete tick.
      * Features that fire receive dt × D to compensate for skipped ticks.
      * Features that don't fire accumulate their dt for the per-frame flush.
      */
     _simulateOneTick(dt, tickIndex, dec, firedThisBatch) {
-        // Passive accumulation — decimated by a flat factor
-        if (tickIndex % dec.passives === 0) {
-            const passivesDt = dt + this._accDt.passives;
-            if (_simulatePassiveTick) _simulatePassiveTick(passivesDt);
-            firedThisBatch.passives = true;
-            this._accDt.passives = 0;
-        } else {
-            this._accDt.passives += dt;
-        }
-
-        // Autobuyers — decimated based on purchase activity
-        if (tickIndex % dec.autobuyers === 0) {
-            if (_simulateAutobuyerTick) _simulateAutobuyerTick();
-            firedThisBatch.autobuyers = true;
-            this._accDt.autobuyers = 0; // Autobuyers don't use dt directly, just track fire status
-        } else {
-            this._accDt.autobuyers += dt;
-        }
-
-        // Surge
-        if (tickIndex % dec.surge === 0) {
-            const surgeDt = dt + this._accDt.surge;
-            if (_simulateSurgeTick) _simulateSurgeTick(surgeDt);
-            firedThisBatch.surge = true;
-            this._accDt.surge = 0;
-        } else {
-            this._accDt.surge += dt;
-        }
-
-        // Lab Level Checks (pure derivation, no accumulation needed)
-        if (tickIndex % dec.labLevel === 0) {
-            if (_simulateLabUpdate) _simulateLabUpdate();
-            firedThisBatch.labLevel = true;
-            this._accDt.labLevel = 0;
-        } else {
-            this._accDt.labLevel += dt;
-        }
-
-        // Lab Research — decimated based on node status
-        if (tickIndex % dec.labResearch === 0) {
-            const researchDt = dt + this._accDt.labResearch;
-            if (_simulateLabResearch) _simulateLabResearch(researchDt);
-            firedThisBatch.labResearch = true;
-            this._accDt.labResearch = 0;
-        } else {
-            this._accDt.labResearch += dt;
-        }
-
-        // Flow (Waterwheels) — decimated based on FP throughput ratio
-        if (tickIndex % dec.flow === 0) {
-            const flowDt = dt + this._accDt.flow;
-            if (_simulateFlowTick) _simulateFlowTick(flowDt);
-            firedThisBatch.flow = true;
-            this._accDt.flow = 0;
-        } else {
-            this._accDt.flow += dt;
-        }
-
-        // Workshop — decimated based on gears production rate
-        if (tickIndex % dec.workshop === 0) {
-            const workshopDt = dt + this._accDt.workshop;
-            if (_simulateWorkshopTick) _simulateWorkshopTick(workshopDt);
-            firedThisBatch.workshop = true;
-            this._accDt.workshop = 0;
-        } else {
-            this._accDt.workshop += dt;
+        for (const feature of OFFLINE_FEATURES) {
+            const id = feature.id;
+            if (tickIndex % dec[id] === 0) {
+                const totalDt = dt + this._accDt[id];
+                feature.simulate(totalDt);
+                firedThisBatch[id] = true;
+                this._accDt[id] = 0;
+            } else {
+                this._accDt[id] += dt;
+            }
         }
     }
 
