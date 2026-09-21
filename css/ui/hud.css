@@ -458,8 +458,6 @@ font-feature-settings: "tnum" 1, "lnum" 1;
 top: -1px;
 }
 
-
-
 html.is-mobile {
   .coin-counter, .scrap-counter, .coin-plus, .scrap-plus, .sell-currency-plus, .xp-counter, .xp-plus, .dp-counter,
   .pp-counter, .dp-plus,
