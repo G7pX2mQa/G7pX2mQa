@@ -507,14 +507,15 @@
     top: -12px;
     z-index: 10;
     margin-top: -12px;
+    margin-bottom: -2px;
     background: var(--merchant-bg);
-    padding-bottom: 12px; /* Small padding for the scrollbar to reside in */
+    padding-bottom: 16px; /* Small padding for the scrollbar to reside in */
   }
   
   .merchant-reset__sidebar-wrapper .shop-scrollbar.is-horizontal {
     right: 12px !important;
     left: 12px !important;
-    bottom: 4px !important;
+    bottom: 2px !important;
     height: 8px !important;
   }
   
