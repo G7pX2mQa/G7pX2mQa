@@ -212,7 +212,7 @@ export function initVoidGemAltarTab(panel) {
         isFeeding = true;
         updateVoidGemAltarTab(); // Update button state
         // Audio sequence
-        let buildupAudio = playAudio("sounds/void_buildup.ogg", { volume: 0.6, type: "ui" });
+        let buildupAudio = playAudio("sounds/void_buildup.ogg", { volume: 0.6, type: "special" });
         applyAudioDrownEffect(9.5);
         let overlay = document.createElement("div");
         overlay.className = "void-overlay";
@@ -290,7 +290,7 @@ export function initVoidGemAltarTab(panel) {
                         buildupAudio.stop();
                     }
                     removeAudioDrownEffect();
-                    playAudio("sounds/explosion_long.ogg", { volume: 1.0, type: "ui" });
+                    playAudio("sounds/explosion_long.ogg", { volume: 1.0, type: "special" });
                     if (overlay) {
                         overlay.style.transition = "opacity 500ms ease-out";
                         overlay.style.opacity = "0";
