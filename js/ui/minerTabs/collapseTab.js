@@ -203,15 +203,16 @@ function showFractureOverlay(animate = true) {
         void el.offsetWidth;
         el.classList.add("is-animating");
         let done = false;
-        const onEnd = () => {
+        const onEnd = (e) => {
+            if (e && e.propertyName && e.propertyName !== "clip-path") return;
             if (done) return;
             done = true;
-            el.removeEventListener("animationend", onEnd);
+            el.removeEventListener("transitionend", onEnd);
             el.style.clipPath = "circle(150% at 50% 50%)";
             el.classList.add("is-active");
             el.classList.remove("is-animating");
         };
-        el.addEventListener("animationend", onEnd, { once: true });
+        el.addEventListener("transitionend", onEnd);
         setTimeout(onEnd, 250);
     } else {
         el.style.clipPath = "circle(150% at 50% 50%)";
@@ -226,13 +227,14 @@ function fadeFractureOverlay() {
         el.classList.add("is-fading");
         el.classList.remove("is-active");
         let done = false;
-        const onEnd = () => {
+        const onEnd = (e) => {
+            if (e && e.propertyName && e.propertyName !== "opacity") return;
             if (done) return;
             done = true;
-            el.removeEventListener("animationend", onEnd);
+            el.removeEventListener("transitionend", onEnd);
             hideFractureOverlay();
         };
-        el.addEventListener("animationend", onEnd, { once: true });
+        el.addEventListener("transitionend", onEnd);
         setTimeout(onEnd, 1050);
     }
 }
@@ -486,7 +488,7 @@ function restoreChallengeBackup(slot) {
 
 function exitCollapseChallenge(materialName) {
     const capitalName = materialName.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-    const answer = window.confirm(`Are you sure you want to exit the Challenge of ${capitalName}?`);
+    const answer = window.confirm(`Are you sure you want to exit the Challenge of ${capitalName}? You will lose any progress made inside the challenge!`);
     if (!answer) return false;
 
     if (fractureTimeout) clearTimeout(fractureTimeout);
