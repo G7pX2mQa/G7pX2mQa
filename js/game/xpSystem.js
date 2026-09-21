@@ -1105,6 +1105,12 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
     syncCoinMultiplierWithXpLevel(true);
     const detail = getXpState();
     try {
+        window.dispatchEvent(new CustomEvent("xp:change", { detail }));
+        window.dispatchEvent(
+            new CustomEvent("stat:change", {
+                detail: { key: "xp", delta: bnZero(), progress: detail.progress },
+            }),
+        );
         window.dispatchEvent(
             new CustomEvent("level:change", {
                 detail: {
