@@ -253,7 +253,7 @@ export const RESOURCE_REGISTRY = [
             progress: e.detail?.delta,
         }),
         pinBgGradient: "linear-gradient(180deg, rgba(60,24,0,1), rgba(45,18,0,1))",
-        bgGradient: "linear-gradient(to bottom, #b35900 0%, #e67300 15%, #ff9933 50%, #e67300 85%, #b35900 100%)",
+        bgGradient: "linear-gradient(to bottom, #c45d00 0%, #f07400 15%, #ff9e2b 50%, #f07400 85%, #c45d00 100%)",
         fillGradient: "linear-gradient(90deg, rgba(255,170,0,1) 0%, rgba(255,120,0,1) 50%, rgba(200,60,0,1) 100%)",
         barOutline: "3px",
         borderColor: "#000000",
