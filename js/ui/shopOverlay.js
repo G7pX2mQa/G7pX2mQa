@@ -2100,7 +2100,7 @@ function openFloatErrorDialog() {
     title.textContent = "Special Message";
     
     const text = document.createElement("div");
-    text.innerHTML = "Okay I know that the upgrade cap says infinite but that’s actually fundamentally not possible with how floating point works so I’m sorry but I’m not going to let you get higher upgrade levels past 4 trillion unless you go to infinity which can be handled just fine";
+    text.innerHTML = "Okay I know that the upgrade cap says infinite but that’s actually fundamentally not possible with how floating point works so I’m sorry but I’m not going to let you get higher upgrade levels past 4e12 unless you go to infinity which can be handled just fine";
     text.style.padding = "20px";
     text.style.textAlign = "center";
     text.style.fontSize = "1.1em";
@@ -2257,12 +2257,16 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         let isCoralReefUnpurchased = false;
         if (upgDef.tie === "none_10") {
             isCoralReefUnpurchased = true;
-            try {
-                const slot = getActiveSlot();
-                if (slot != null && lsGetItem(`ccc:coralReefPurchasedOnce:${slot}`) === "1") {
-                    isCoralReefUnpurchased = false;
-                }
-            } catch {}
+            if (model.lvl >= 1) {
+                isCoralReefUnpurchased = false;
+            } else {
+                try {
+                    const slot = getActiveSlot();
+                    if (slot != null && lsGetItem(`ccc:coralReefPurchasedOnce:${slot}`) === "1") {
+                        isCoralReefUnpurchased = false;
+                    }
+                } catch {}
+            }
         }
         upgSheetEl.classList.toggle("is-unlock-coral-reef", isCoralReefUnpurchased);
         upgSheetEl.classList.toggle("is-no-effect", !model.effect);
@@ -2289,10 +2293,12 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         const hasAutobuyer = autobuyLevel > 0;
         const isOwnedTM = isTM && getLevelNumber(upgDef.area, upgDef.id) > 0;
         const showAutoToggle =
-            (hasAutobuyer &&
+            !isCoralReefUnpurchased &&
+            (upgDef.tie === "none_10" ||
+            ((hasAutobuyer &&
                 (isAutomationMaster || standardAutobuyId || isWorkshopMaster || isEvolveMaster) &&
                 !isHiddenUpgrade) ||
-            (isOwnedTM && !isHiddenUpgrade);
+                (isOwnedTM && !isHiddenUpgrade)));
         if (!autoToggleWrapper) {
             autoToggleWrapper = document.createElement("div");
             autoToggleWrapper.className = "auto-toggle-wrapper hm-view-milestones-row";
