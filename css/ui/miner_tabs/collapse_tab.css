@@ -117,10 +117,6 @@
     transition: clip-path 200ms ease-out, opacity 1s linear;
 }
 
-.collapse-fracture-overlay.is-animating {
-    clip-path: circle(150% at 50% 50%);
-}
-
 .collapse-fracture-overlay.is-active {
     clip-path: circle(150% at 50% 50%);
 }
