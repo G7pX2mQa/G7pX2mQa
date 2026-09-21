@@ -113,12 +113,12 @@
     background-repeat: no-repeat;
     background-color: transparent;
     transform: translateZ(0);
-    will-change: clip-path;
+    will-change: clip-path, opacity;
+    transition: clip-path 200ms ease-out, opacity 1s linear;
 }
 
 .collapse-fracture-overlay.is-animating {
     clip-path: circle(150% at 50% 50%);
-    animation: fractureSprawl 200ms ease-out forwards;
 }
 
 .collapse-fracture-overlay.is-active {
@@ -127,21 +127,7 @@
 
 .collapse-fracture-overlay.is-fading {
     clip-path: circle(150% at 50% 50%);
-    animation: fractureFadeOut 1s linear forwards;
-}
-
-@keyframes fractureSprawl {
-    0% {
-        clip-path: circle(0% at 50% 50%);
-    }
-    100% {
-        clip-path: circle(150% at 50% 50%);
-    }
-}
-
-@keyframes fractureFadeOut {
-    0% { opacity: 1; clip-path: circle(150% at 50% 50%); }
-    100% { opacity: 0; clip-path: circle(150% at 50% 50%); }
+    opacity: 0;
 }
 
 @media (max-width: 520px) {
