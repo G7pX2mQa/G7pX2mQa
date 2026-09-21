@@ -386,7 +386,8 @@ export function createBaseSpawner(config = {}) {
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-    const ITEM_POOL_MAX = Math.max(2000, maxActiveItems * 3);
+    const getMaxActiveItems = () => typeof maxActiveItems === 'function' ? maxActiveItems() : maxActiveItems;
+    const getPoolMax = () => Math.max(2000, getMaxActiveItems() * 3);
     const itemPool = [];
 
     const activeItems = [];
@@ -434,7 +435,7 @@ export function createBaseSpawner(config = {}) {
         el.style.willChange = "transform";
 
         if (el.parentNode) el.remove();
-        if (itemPool.length < ITEM_POOL_MAX) itemPool.push(el);
+        if (itemPool.length < getPoolMax()) itemPool.push(el);
     }
 
     function removeItem(itemObj, knownIndex = -1) {
@@ -490,7 +491,7 @@ export function createBaseSpawner(config = {}) {
         if (!M.pfRect) computeMetrics();
         const batch = [];
         for (let i = 0; i < n; i++) {
-            const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems, batch.length);
+            const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, getMaxActiveItems(), batch.length);
             if (plan) {
                 if (Array.isArray(plan)) {
                     batch.push(...plan);
@@ -734,7 +735,7 @@ export function createBaseSpawner(config = {}) {
 
                 for (let i = 0; i < spawnTarget; i++) {
                     if (performance.now() - t0 > timeBudgetMs) break;
-                    const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems, batch.length);
+                    const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, getMaxActiveItems(), batch.length);
                     if (plan) {
                         if (Array.isArray(plan)) {
                             batch.push(...plan);
