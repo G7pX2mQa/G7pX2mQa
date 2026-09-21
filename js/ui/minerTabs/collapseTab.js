@@ -197,25 +197,15 @@ function showFractureOverlay(animate = true) {
         el.className = "collapse-fracture-overlay";
         document.body.appendChild(el);
     }
+    // Clear any inline styles that could conflict with classes
+    el.style.clipPath = "";
+    
     if (animate) {
-        el.style.clipPath = "";
-        el.classList.remove("is-active", "is-fading");
+        el.classList.remove("is-active", "is-fading", "is-animating");
+        // Force reflow to ensure the transition from 0% starts cleanly
         void el.offsetWidth;
-        el.classList.add("is-animating");
-        let done = false;
-        const onEnd = (e) => {
-            if (e && e.propertyName && e.propertyName !== "clip-path") return;
-            if (done) return;
-            done = true;
-            el.removeEventListener("transitionend", onEnd);
-            el.style.clipPath = "circle(150% at 50% 50%)";
-            el.classList.add("is-active");
-            el.classList.remove("is-animating");
-        };
-        el.addEventListener("transitionend", onEnd);
-        setTimeout(onEnd, 250);
+        el.classList.add("is-active");
     } else {
-        el.style.clipPath = "circle(150% at 50% 50%)";
         el.classList.remove("is-animating", "is-fading");
         el.classList.add("is-active");
     }
@@ -225,7 +215,6 @@ function fadeFractureOverlay() {
     const el = document.getElementById("collapse-fracture-screen");
     if (el) {
         el.classList.add("is-fading");
-        el.classList.remove("is-active");
         let done = false;
         const onEnd = (e) => {
             if (e && e.propertyName && e.propertyName !== "opacity") return;
