@@ -110,7 +110,7 @@
   display: block;
 }
 
-/* Mobile responsive layout */
+/* Responsive layout */
 @media (max-width: 900px) {
   .help-container {
     grid-template-columns: minmax(0, 1fr);
@@ -139,6 +139,17 @@
 
   .help-spacer {
     display: none;
+  }
+  
+  #help-overlay .sas-sheet {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  #help-overlay .help-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   /* Make sidebar wrapper sticky, and place scrollbar correctly */
