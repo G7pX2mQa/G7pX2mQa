@@ -755,6 +755,9 @@ export function isLabDialogueOpen() {
 function openDialogueModal(id, meta) {
     primeTypingSfx();
     let scriptId = meta.scriptId;
+    if (meta.scriptId === 6) {
+        _isLabDialogueOpen = true;
+    }
     if (
         isLabUnlockedLocal() &&
         typeof hasSeenLabIntro === "function" &&
@@ -762,9 +765,6 @@ function openDialogueModal(id, meta) {
         getTsunamiSequencePlayed()
     ) {
         scriptId = 1000;
-    }
-    if (scriptId === 6 || scriptId === 1000) {
-        _isLabDialogueOpen = true;
     }
 
     const overlay = document.createElement("div");
