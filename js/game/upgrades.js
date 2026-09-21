@@ -4370,7 +4370,7 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
             totalLevelsToBuy.cmp(maxLevelsInFinalInterval) > 0 ? maxLevelsInFinalInterval : totalLevelsToBuy;
         // Start evaluating from the bottom of the final interval
         const evaluateStartBn = capBn.sub(levelsToEvaluate);
-        const outcome = calculateBulkPurchase(upg, evaluateStartBn, wallet, levelsToEvaluate);
+        const outcome = calculateBulkPurchase(upg, evaluateStartBn, wallet, levelsToEvaluate, { fastOnly: true });
         state.hmEvolutions = origEvol;
         applyHmEvolutionMeta(upg, origEvol);
         ensureUpgradeScaling(upg);
@@ -4764,7 +4764,7 @@ export function performFreeAutobuy(areaKey, upgId) {
         return { bought: 0 };
     }
 
-    const outcome = calculateBulkPurchase(upg, lvlBn, wallet, MAX_LEVEL_DELTA);
+    const outcome = calculateBulkPurchase(upg, lvlBn, wallet, MAX_LEVEL_DELTA, { fastOnly: true });
     const countBn = outcome.count instanceof BigNum ? outcome.count : BigNum.fromAny(outcome.count ?? 0);
     if (countBn.isZero?.()) return { bought: 0 };
     // Track purchase activity for simulation decimation
