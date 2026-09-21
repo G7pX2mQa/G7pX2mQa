@@ -733,6 +733,17 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                 }
             }
         }
+        if (m.id === 35) {
+            if (milestone === m) {
+                milestone = { ...m, description: [...m.description] };
+            }
+            try {
+                const preserved = lsGetItem(`ccc:surge150_screen_wipe_message_hidden:${slot}`) === "1";
+                if (!preserved) {
+                    milestone.description.push("Disables Surge’s screen-wipe visual upon reset (toggleable in settings)");
+                }
+            } catch {}
+        }
         if (m.id === 36) {
             if (milestone === m) {
                 milestone = { ...m, description: [...m.description] };
