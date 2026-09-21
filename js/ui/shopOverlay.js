@@ -44,6 +44,7 @@ import {
     AUTOBUY_WORKSHOP_LEVELS_ID,
     AUTOBUY_EVOLVE_UPGRADES_ID,
     MASTER_AUTOBUY_IDS,
+    AUTOMATION_TIES,
 } from "../game/automationUpgrades.js";
 import {
     getAutobuyerToggle,
@@ -2957,11 +2958,10 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
     rerender();
     upgOverlayEl.classList.add("is-open");
     upgOverlayEl.classList.toggle("is-automation-upgrade", mode === "automation");
-    upgOverlayEl.classList.toggle("is-effective-auto-collect", mode === "automation" && upgDef.id === 1);
-    upgOverlayEl.classList.toggle("is-autobuy-coin-upgrades", mode === "automation" && upgDef.id === 2);
-    upgOverlayEl.classList.toggle("is-underwater-cavern-eac", mode === "automation" && upgDef.id === 10);
-    upgOverlayEl.classList.toggle("is-manual-material-value", mode === "automation" && upgDef.id === 11);
-    upgOverlayEl.classList.toggle("is-effective-auto-sell", mode === "automation" && upgDef.id === 12);
+    upgOverlayEl.classList.toggle("is-effective-auto-collect", upgDef.tie === AUTOMATION_TIES.EFFECTIVE_AUTO_COLLECT);
+    upgOverlayEl.classList.toggle("is-autobuy-coin-upgrades", upgDef.tie === AUTOMATION_TIES.AUTOBUY_COIN_UPGRADES);
+    upgOverlayEl.classList.toggle("is-underwater-cavern-eac", upgDef.tie === AUTOMATION_TIES.UNDERWATER_CAVERN_EAC);
+    upgOverlayEl.classList.toggle("is-effective-auto-sell", upgDef.tie === AUTOMATION_TIES.EFFECTIVE_AUTO_SELL);
     upgOverlayEl.style.pointerEvents = "auto";
     upgSheetEl.style.transition = "none";
     upgSheetEl.style.transform = "translateY(100%)";
