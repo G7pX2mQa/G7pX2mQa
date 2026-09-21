@@ -4767,6 +4767,10 @@ export function performFreeAutobuy(areaKey, upgId) {
     const outcome = calculateBulkPurchase(upg, lvlBn, wallet, MAX_LEVEL_DELTA);
     const countBn = outcome.count instanceof BigNum ? outcome.count : BigNum.fromAny(outcome.count ?? 0);
     if (countBn.isZero?.()) return { bought: 0 };
+    // Track purchase activity for simulation decimation
+    if (window.__isSimulationActive && window.__simAutobuyerPurchaseCount !== undefined) {
+        window.__simAutobuyerPurchaseCount++;
+    }
     // Set the new level without deducting currency
     const nextLevelBn = lvlBn.add(countBn);
     initDeferredFlush();
