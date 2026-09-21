@@ -6,7 +6,7 @@ import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
 import { formatMultForUi, getLevelNumber, AREA_KEYS, UPGRADE_TIES, setLevel } from "../../game/upgrades.js";
 import { getCurrencyMultiplierBN } from "../../util/storage.js";
-import { BigNum } from "../../util/bigNum.js";
+import { BigNum, bigNumFromLog10 } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { setRubbleSellMode } from "./sellTab.js";
 import { RUBBLE_AREA_KEY } from "../../game/rubbleUpgrades.js";
@@ -127,8 +127,9 @@ function registerRubbleCoinValueProvider() {
         try {
             const level = getLevelNumber(RUBBLE_AREA_KEY, 1);
             if (level <= 0) return baseMultiplier;
+            if (!Number.isFinite(level)) return BigNum.fromAny("Infinity");
             // 10^level multiplier
-            const mult = BigNum.fromAny("1e" + level);
+            const mult = bigNumFromLog10(level);
             return baseMultiplier.mulBigNumInteger(mult);
         } catch {
             return baseMultiplier;
