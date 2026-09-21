@@ -23,6 +23,7 @@ export const AUTOBUY_CORE_BUILDING_ID = 12;
 export const AUTOBUY_CRYSTAL_BUILDING_ID = 13;
 export const AUTOBUY_STONE_BUILDING_ID = 14;
 
+// export ties specifically for upgrades who break the norm
 export const AUTOMATION_TIES = {
     EFFECTIVE_AUTO_COLLECT: "effective_auto_collect",
     AUTOBUY_COIN_UPGRADES: "autobuy_coin_upgrades",
