@@ -146,14 +146,21 @@ export function getComboUiString() {
     const added = getComboRestorationFactor();
     // Show if combo is active (non-zero factor), even if added value is very small
     if (added <= 0) return "";
-    let str = formatMultForUi(added);
-    if (str === "0") str = "0.000";
-    let finalStr = ` (+^${str})`;
+
     const nerf = getBaseTsunamiExponent();
     let baseEffective = nerf + getTsunamiResearchBonus();
     if (baseEffective > 1) baseEffective = 1;
     const gap = 1.0 - baseEffective;
-    if (added >= gap - 0.0005 && gap > 0) {
+
+    const isMax = added >= gap - 0.0005 && gap > 0;
+    if (isMax && isSurgeActive(20)) {
+        return "";
+    }
+
+    const floored = Math.floor(added * 1000) / 1000;
+    let str = floored.toFixed(3);
+    let finalStr = ` (+^${str})`;
+    if (isMax) {
         finalStr = `<span style="color: #02e815; -webkit-text-fill-color: #02e815">${finalStr}</span>`;
     }
     return finalStr;
@@ -706,9 +713,7 @@ export function simulateSurgeTick(dt) {
 }
 
 function onTick(dt) {
-    if (isSurgeActive(14)) {
-        updateCombo(dt);
-    }
+    updateCombo(dt);
     if (isSurgeActive(3)) {
         if (!bookRateAccumulator) {
             bookRateAccumulator = new RateAccumulator("books", bank);
