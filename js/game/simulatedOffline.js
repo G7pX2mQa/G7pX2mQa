@@ -500,6 +500,10 @@ class SimulatedOfflineRunner {
 
         // Per-feature tick decimation
         this._decimation = evaluateRelevance(this.simDt, this.totalOfflineSeconds);
+        this._accDt = {
+            passives: 0, autobuyers: 0, surge: 0, labLevel: 0,
+            labResearch: 0, flow: 0, workshop: 0,
+        };
 
         // State
         this.running = false;
@@ -578,11 +582,6 @@ class SimulatedOfflineRunner {
             passives: false, autobuyers: false, surge: false, labLevel: false,
             labResearch: false, flow: false, workshop: false,
         };
-        // Track accumulated dt for features that haven't fired yet (for flush)
-        const accDt = {
-            passives: 0, autobuyers: 0, surge: 0, labLevel: 0,
-            labResearch: 0, flow: 0, workshop: 0,
-        };
 
         while (this._exactRemainingSeconds > 0) {
             const currentDt = Math.min(this.simDt, this._exactRemainingSeconds);
@@ -594,7 +593,7 @@ class SimulatedOfflineRunner {
             }
 
             try {
-                this._simulateOneTick(currentDt, tickIdx, this._decimation, firedThisBatch, accDt);
+                this._simulateOneTick(currentDt, tickIdx, this._decimation, firedThisBatch);
             } catch (e) {
                 console.error("SimTick error:", e);
             }
@@ -611,8 +610,8 @@ class SimulatedOfflineRunner {
             ticksThisFrame++;
 
             if (this.ticksProcessed >= this.totalTicks || this._exactRemainingSeconds <= 0) {
-                // Flush any features that haven't fired this batch before completing
-                this._flushDecimated(firedThisBatch, accDt);
+                // Flush ALL features unconditionally on the final batch to ensure zero precision loss
+                this._flushDecimated(firedThisBatch, true);
                 this.completed = true;
                 this._activeProcessingMs += performance.now() - startTime;
                 return true;
@@ -628,7 +627,7 @@ class SimulatedOfflineRunner {
         }
 
         // Per-frame minimum: flush any decimated feature that didn't fire this batch
-        this._flushDecimated(firedThisBatch, accDt);
+        this._flushDecimated(firedThisBatch, false);
 
         this._activeProcessingMs += performance.now() - startTime;
         return false;
@@ -638,27 +637,34 @@ class SimulatedOfflineRunner {
      * Force-fire any decimated features that haven't run during this batch,
      * using their accumulated dt to preserve total game-time.
      */
-    _flushDecimated(firedThisBatch, accDt) {
-        if (!firedThisBatch.passives && accDt.passives > 0) {
-            try { if (_simulatePassiveTick) _simulatePassiveTick(accDt.passives); } catch {}
+    _flushDecimated(firedThisBatch, forceAll = false) {
+        if ((forceAll || !firedThisBatch.passives) && this._accDt.passives > 0) {
+            try { if (_simulatePassiveTick) _simulatePassiveTick(this._accDt.passives); } catch {}
+            this._accDt.passives = 0;
         }
-        if (!firedThisBatch.autobuyers && accDt.autobuyers > 0) {
+        if ((forceAll || !firedThisBatch.autobuyers) && this._accDt.autobuyers > 0) {
             try { if (_simulateAutobuyerTick) _simulateAutobuyerTick(); } catch {}
+            this._accDt.autobuyers = 0;
         }
-        if (!firedThisBatch.surge && accDt.surge > 0) {
-            try { if (_simulateSurgeTick) _simulateSurgeTick(accDt.surge); } catch {}
+        if ((forceAll || !firedThisBatch.surge) && this._accDt.surge > 0) {
+            try { if (_simulateSurgeTick) _simulateSurgeTick(this._accDt.surge); } catch {}
+            this._accDt.surge = 0;
         }
-        if (!firedThisBatch.labLevel && accDt.labLevel > 0) {
+        if ((forceAll || !firedThisBatch.labLevel) && this._accDt.labLevel > 0) {
             try { if (_simulateLabUpdate) _simulateLabUpdate(); } catch {}
+            this._accDt.labLevel = 0;
         }
-        if (!firedThisBatch.labResearch && accDt.labResearch > 0) {
-            try { if (_simulateLabResearch) _simulateLabResearch(accDt.labResearch); } catch {}
+        if ((forceAll || !firedThisBatch.labResearch) && this._accDt.labResearch > 0) {
+            try { if (_simulateLabResearch) _simulateLabResearch(this._accDt.labResearch); } catch {}
+            this._accDt.labResearch = 0;
         }
-        if (!firedThisBatch.flow && accDt.flow > 0) {
-            try { if (_simulateFlowTick) _simulateFlowTick(accDt.flow); } catch {}
+        if ((forceAll || !firedThisBatch.flow) && this._accDt.flow > 0) {
+            try { if (_simulateFlowTick) _simulateFlowTick(this._accDt.flow); } catch {}
+            this._accDt.flow = 0;
         }
-        if (!firedThisBatch.workshop && accDt.workshop > 0) {
-            try { if (_simulateWorkshopTick) _simulateWorkshopTick(accDt.workshop); } catch {}
+        if ((forceAll || !firedThisBatch.workshop) && this._accDt.workshop > 0) {
+            try { if (_simulateWorkshopTick) _simulateWorkshopTick(this._accDt.workshop); } catch {}
+            this._accDt.workshop = 0;
         }
     }
 
@@ -667,75 +673,73 @@ class SimulatedOfflineRunner {
      * Features that fire receive dt × D to compensate for skipped ticks.
      * Features that don't fire accumulate their dt for the per-frame flush.
      */
-    _simulateOneTick(dt, tickIndex, dec, firedThisBatch, accDt) {
+    _simulateOneTick(dt, tickIndex, dec, firedThisBatch) {
         // Passive accumulation — decimated by a flat factor
         if (tickIndex % dec.passives === 0) {
-            const passivesDt = dt + accDt.passives;
+            const passivesDt = dt + this._accDt.passives;
             if (_simulatePassiveTick) _simulatePassiveTick(passivesDt);
             firedThisBatch.passives = true;
-            accDt.passives = 0;
+            this._accDt.passives = 0;
         } else {
-            accDt.passives += dt;
+            this._accDt.passives += dt;
         }
 
         // Autobuyers — decimated based on purchase activity
         if (tickIndex % dec.autobuyers === 0) {
-            // Autobuyers don't use dt (they just check affordability and buy)
-            // so we don't need to pass accumulated dt, just run them.
             if (_simulateAutobuyerTick) _simulateAutobuyerTick();
             firedThisBatch.autobuyers = true;
-            accDt.autobuyers = 0;
+            this._accDt.autobuyers = 0; // Autobuyers don't use dt directly, just track fire status
         } else {
-            accDt.autobuyers += dt;
+            this._accDt.autobuyers += dt;
         }
 
-        // Surge — decimated based on surge level
+        // Surge
         if (tickIndex % dec.surge === 0) {
-            const surgeDt = dt + accDt.surge;
+            const surgeDt = dt + this._accDt.surge;
             if (_simulateSurgeTick) _simulateSurgeTick(surgeDt);
             firedThisBatch.surge = true;
-            accDt.surge = 0;
+            this._accDt.surge = 0;
         } else {
-            accDt.surge += dt;
+            this._accDt.surge += dt;
         }
 
-        // Lab Level — always low priority (pure derivation from coins, no dt)
+        // Lab Level Checks (pure derivation, no accumulation needed)
         if (tickIndex % dec.labLevel === 0) {
             if (_simulateLabUpdate) _simulateLabUpdate();
             firedThisBatch.labLevel = true;
-            accDt.labLevel = 0;
+            this._accDt.labLevel = 0;
         } else {
-            accDt.labLevel += dt;
+            this._accDt.labLevel += dt;
         }
 
         // Lab Research — decimated based on node status
         if (tickIndex % dec.labResearch === 0) {
-            const researchDt = dt + accDt.labResearch;
+            const researchDt = dt + this._accDt.labResearch;
             if (_simulateLabResearch) _simulateLabResearch(researchDt);
             firedThisBatch.labResearch = true;
-            accDt.labResearch = 0;
+            this._accDt.labResearch = 0;
         } else {
-            accDt.labResearch += dt;
+            this._accDt.labResearch += dt;
         }
 
         // Flow (Waterwheels) — decimated based on FP throughput ratio
         if (tickIndex % dec.flow === 0) {
-            const flowDt = dt + accDt.flow;
+            const flowDt = dt + this._accDt.flow;
             if (_simulateFlowTick) _simulateFlowTick(flowDt);
             firedThisBatch.flow = true;
-            accDt.flow = 0;
+            this._accDt.flow = 0;
         } else {
-            accDt.flow += dt;
+            this._accDt.flow += dt;
         }
 
         // Workshop — decimated based on gears production rate
         if (tickIndex % dec.workshop === 0) {
-            const workshopDt = dt + accDt.workshop;
+            const workshopDt = dt + this._accDt.workshop;
             if (_simulateWorkshopTick) _simulateWorkshopTick(workshopDt);
             firedThisBatch.workshop = true;
-            accDt.workshop = 0;
+            this._accDt.workshop = 0;
         } else {
-            accDt.workshop += dt;
+            this._accDt.workshop += dt;
         }
     }
 
