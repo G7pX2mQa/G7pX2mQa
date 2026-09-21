@@ -391,7 +391,7 @@ export function startTypingSfx() {
     activeTypingAudio = playAudio(TYPING_SFX_SRC, {
         volume: vol,
         loop: true,
-        type: "ui",
+        type: "special",
     });
 }
 
