@@ -6338,10 +6338,13 @@ function buildUnlocksContent(content) {
     searchInput.placeholder = "Search unlocks (press Enter)...";
     searchInput.style.width = "100%";
     
+    searchInput.addEventListener("focus", () => searchInput.select());
+    
     searchInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             const query = searchInput.value.trim().toLowerCase();
             const allRows = content.querySelectorAll(".debug-unlock-row");
+            let firstMatch = null;
             
             allRows.forEach(row => {
                 const titleEl = row.querySelector(".debug-unlock-title");
@@ -6357,6 +6360,10 @@ function buildUnlocksContent(content) {
                     const after = originalText.substring(matchIndex + query.length);
                     
                     titleEl.innerHTML = `${before}<span class="debug-unlock-highlight">${match}</span>${after}`;
+                    
+                    if (!firstMatch) {
+                        firstMatch = row;
+                    }
                     
                     // Open parent subsections and save state
                     let current = row.parentElement;
@@ -6385,6 +6392,11 @@ function buildUnlocksContent(content) {
                     titleEl.textContent = originalText;
                 }
             });
+            
+            searchInput.blur();
+            if (firstMatch) {
+                firstMatch.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
         }
     });
     
