@@ -94,7 +94,7 @@ function performWarp() {
         updateWarpTab();
     }, 1000);
     // warpSfx.play();
-    playAudio(WARP_SFX_SRC, { volume: 1.0, type: "ui" });
+    playAudio(WARP_SFX_SRC, { volume: 1.0, type: "special" });
     applyAudioDrownEffect(7.25);
     let overlay = null;
     let stage2Triggered = false;
