@@ -1404,6 +1404,7 @@ export function performSurgeReset() {
 
 function triggerSurgeWaveAnimation() {
     if (typeof document === "undefined") return;
+    if (!settingsManager.get("show_surge_screen_wipe")) return;
     const existing = document.querySelector(".surge-wipe-overlay");
     if (existing) existing.remove();
     const overlay = document.createElement("div");
@@ -1572,7 +1573,14 @@ function updateWaveBar() {
     if (barLevel === Infinity) return;
     const result = calculateSurgeLevelJump(barLevel, currentWaves);
     if (result.changed) {
+        const oldLevel = barLevel;
         barLevel = result.level;
+        if (oldLevel < 150 && barLevel >= 150) {
+            const preserved = lsGetItem(`ccc:surge150_screen_wipe_message_hidden:${slot}`) === "1";
+            if (!preserved) {
+                settingsManager.set("show_surge_screen_wipe", false);
+            }
+        }
         try {
             lsSetItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toStorage?.() ?? barLevel.toString());
         } catch {}
