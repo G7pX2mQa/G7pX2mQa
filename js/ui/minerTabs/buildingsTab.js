@@ -1749,10 +1749,18 @@ export function performFreeBuildingAutobuy(id) {
         }
         
         if (hasUnseenTier) {
-            openBuildingDetailOverlay(id);
-            import("../../misc/buildingVisuals.js").then((module) => {
-                module.checkTierUp(id, oldLevel, newLevel);
-            });
+            if (settingsManager.get("show_building_visuals")) {
+                openBuildingDetailOverlay(id);
+                import("../../misc/buildingVisuals.js").then((module) => {
+                    module.checkTierUp(id, oldLevel, newLevel);
+                });
+            } else {
+                for (let t = oldTier + 1; t <= newTier; t++) {
+                    if (!isBuildingTierSeen(id, t)) {
+                        setBuildingTierSeen(id, t, true);
+                    }
+                }
+            }
         } else {
             import("../../misc/buildingVisuals.js").then((module) => {
                 module.checkTierUp(id, oldLevel, newLevel);
