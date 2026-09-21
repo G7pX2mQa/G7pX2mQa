@@ -128,7 +128,7 @@ const DEFAULT_DECIMATION = Object.freeze({
     passives:    1,   // Dynamically scaled based on offline time in evaluateRelevance
     autobuyers:  1,   // Dynamically scaled based on offline time and purchase activity
     surge:       1,   // Bound to passives decimation
-    labLevel:    50,  // Low priority — pure derivation from coins, no accumulation
+    labLevel:    1,   // Bound to passives decimation
     labResearch: 1,
     flow:        1,
     workshop:    1,
@@ -232,7 +232,9 @@ function evaluateRelevance(simDt, totalOfflineSeconds = 0) {
     }
 
     // --- Lab Level ---
-    dec.labLevel = Math.max(dec.passives, 50);
+    // Derives cheaply from coins. Influences DNA generation, so it respects 
+    // the same time-scaled precision curve as standard passives.
+    dec.labLevel = dec.passives;
 
     // --- Surge ---
     // Surge passive generation (e.g., Books) behaves exactly like standard passives,
