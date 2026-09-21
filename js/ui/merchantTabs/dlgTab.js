@@ -755,9 +755,6 @@ export function isLabDialogueOpen() {
 function openDialogueModal(id, meta) {
     primeTypingSfx();
     let scriptId = meta.scriptId;
-    if (meta.scriptId === 6) {
-        _isLabDialogueOpen = true;
-    }
     if (
         isLabUnlockedLocal() &&
         typeof hasSeenLabIntro === "function" &&
@@ -765,6 +762,9 @@ function openDialogueModal(id, meta) {
         getTsunamiSequencePlayed()
     ) {
         scriptId = 1000;
+    }
+    if (scriptId === 6 || scriptId === 1000) {
+        _isLabDialogueOpen = true;
     }
 
     const overlay = document.createElement("div");
@@ -928,7 +928,7 @@ function openDialogueModal(id, meta) {
     const state = loadDlgState();
     const claimed = !!state[id]?.claimed;
     const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
-    if (meta.scriptId === 1) {
+    if (scriptId === 1) {
         if (script.nodes.c1b && script.nodes.c1b.options[0] && script.nodes.c0 && script.nodes.c0.options[2]) {
             script.nodes.c1b.options[0] = { ...script.nodes.c0.options[2] };
         }
@@ -970,7 +970,7 @@ function openDialogueModal(id, meta) {
             }
         }
     }
-    if (meta.scriptId === 6 && script?.nodes?.m3a && getLifetimeBossBeaten()) {
+    if (scriptId === 6 && script?.nodes?.m3a && getLifetimeBossBeaten()) {
         script.nodes.m3a.say =
             'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battl<span style="overflow-wrap: anywhere; word-break: break-all;">ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓≽ணၷᘑർ࿷᭭⋚ᬭᠴ</span>';
     }
