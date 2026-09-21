@@ -471,7 +471,7 @@ const UPGRADE_DEFINITIONS = [
         computeLockState() {
             let isUnlocked = false;
             try {
-                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:stone:${getActiveSlot()}`) === "1";
+                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:stone:${getActiveSlot() ?? "default"}`) === "1";
             } catch {}
 
             if (isUnlocked) return { state: "unlocked" };
