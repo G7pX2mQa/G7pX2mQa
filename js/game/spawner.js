@@ -67,6 +67,21 @@ const WAVE_DEFS = [
     { w: 120, h: 65 }, // Size 6
 ];
 
+
+function getDynamicMaxCapacity() {
+    if (typeof window === 'undefined') return IS_MOBILE ? 1000 : 5000;
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    const area = vw * vh;
+    
+    if (area >= 1000000) return 5000;
+    if (area <= 400000) return 1000;
+    
+    // Linear interpolation
+    const ratio = (area - 400000) / (1000000 - 400000);
+    return Math.floor(1000 + ratio * (5000 - 1000));
+}
+
 export function createSpawner(config = {}) {
     const {
         playfieldSelector = '.playfield',
@@ -79,7 +94,7 @@ export function createSpawner(config = {}) {
         surgeWidthVw = 22,
         coinsPerSecond = 1,
         perFrameBudget = 24,
-        maxActiveCoins = IS_MOBILE ? 2500 : 5000,
+        maxActiveCoins = getDynamicMaxCapacity,
         initialBurst = 1,
         coinTtlMs = 1e99,
         waveSoundSrc = 'sounds/wave_spawn.ogg',
@@ -400,11 +415,11 @@ export function createSpawner(config = {}) {
             const waveCenterY = 0;
 
             const itemsToAdd = 1 + batchLength;
-            if (maxActiveCoins !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveCoins) {
+            if (maxActiveItems !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveItems) {
                 // Base overflow that MUST be removed
-                let strictOverflow = (activeItems.length - garbageCount + itemsToAdd) - maxActiveCoins;
+                let strictOverflow = (activeItems.length - garbageCount + itemsToAdd) - maxActiveItems;
                 // Buffer to prevent constant lagging (only applied to the lowest tier)
-                let bufferToRemove = Math.floor(maxActiveCoins * 0.05);
+                let bufferToRemove = Math.floor(maxActiveItems * 0.05);
                 let totalToRemove = strictOverflow + bufferToRemove;
                 
                 // Sweep 1: Only settled items (avoid deleting falling coins)
