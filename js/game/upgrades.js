@@ -1673,7 +1673,16 @@ function totalCostBigNum(upg, startLevel, count) {
         let total = BigNum.fromInt(0);
         for (let i = 0; i < count; i += 1) {
             total = total.add(price);
-            if (i + 1 < count) price = price.mulDecimalFloor(scaling.ratioStr);
+            if (i + 1 < count) {
+                // Use the actual cost function when available so we don't drift
+                // from upgrades whose costAtLevel disagrees with scaling.ratioStr
+                // (e.g. Rubble Coin Value: ratioStr may be "1.2" but real growth is 1000x).
+                if (typeof upg.costAtLevel === "function") {
+                    price = BigNum.fromAny(upg.costAtLevel(startLevel + i + 1));
+                } else {
+                    price = price.mulDecimalFloor(scaling.ratioStr);
+                }
+            }
         }
         return total;
     }
@@ -1690,7 +1699,13 @@ function totalCostBigNum(upg, startLevel, count) {
             let price = BigNum.fromAny(upg.costAtLevel(tailStart));
             for (let i = 0; i < tailCount; i += 1) {
                 total = total.add(price);
-                if (i + 1 < tailCount) price = price.mulDecimalFloor(scaling.ratioStr);
+                if (i + 1 < tailCount) {
+                    if (typeof upg.costAtLevel === "function") {
+                        price = BigNum.fromAny(upg.costAtLevel(tailStart + i + 1));
+                    } else {
+                        price = price.mulDecimalFloor(scaling.ratioStr);
+                    }
+                }
             }
         }
         return total;
@@ -1983,10 +1998,13 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
         let lo = count;
         let hi = Math.min(limit, Math.max(count + 1, safeTimes2(count)));
         let hiLog = logSeriesTotal(scaling, startLevelNum, hi);
+        let doubleLoops = 0;
         while (lo < hi && Number.isFinite(hiLog) && hiLog <= walletLog + EPS && hi < limit) {
             lo = hi;
             hi = Math.min(limit, safeTimes2(hi));
             hiLog = logSeriesTotal(scaling, startLevelNum, hi);
+            doubleLoops++;
+            if (doubleLoops > 2000) { break; }
         }
 
         let left = lo,
@@ -4055,6 +4073,11 @@ export function setLevel(areaKey, upgId, lvl, clampToCap = true, options = {}) {
     }
 
     let nextBn = desiredBn;
+    if (areaKey === "rubble_upgrades") {
+        if (!nextBn.isInfinite?.() && nextBn.cmp(BigNum.fromAny(4e12)) > 0) {
+            nextBn = BigNum.fromAny(4e12);
+        }
+    }
     try {
         if (upg && isInfinityLevelForScaled(upg, nextBn)) {
             nextBn = BigNum.fromAny("Infinity");
@@ -4176,6 +4199,20 @@ export function buyOne(areaKey, upgId) {
     if (walletEntry && !priceBn.isZero?.()) {
         const haveRaw = walletEntry.value;
         const have = haveRaw instanceof BigNum ? haveRaw : BigNum.fromAny(haveRaw ?? 0);
+        
+        if (have.isInfinite?.() && priceBn.isInfinite?.()) {
+            if (areaKey === "rubble_upgrades") {
+                state.lvlBn = BigNum.fromAny("Infinity");
+                state.lvl = levelBigNumToNumber(state.lvlBn);
+                state.nextCostBn = BigNum.fromAny("Infinity");
+                commitUpgradeState(state);
+                invalidateUpgradeState(areaKey, upgId);
+                emitUpgradeLevelChange(upg, lvlNum, prevLevelBn, state.lvl, state.lvlBn);
+                notifyChanged();
+                return { bought: BigNum.fromAny("Infinity"), spent: BigNum.fromInt(0) };
+            }
+        }
+        
         if (have.cmp(priceBn) < 0) {
             return { bought: 0, spent: 0 };
         }
@@ -4486,7 +4523,10 @@ export function buyMax(areaKey, upgId) {
         return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
     }
 
-    const room = Number.isFinite(cap) ? Math.max(0, cap - lvlNum) : MAX_LEVEL_DELTA;
+    let room = Number.isFinite(cap) ? Math.max(0, cap - lvlNum) : MAX_LEVEL_DELTA;
+    if (areaKey === "rubble_upgrades" && !wallet.isInfinite?.()) {
+        room = Math.min(room, Math.max(0, 4e12 - lvlNum));
+    }
     if (!(room > 0)) {
         return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
     }
