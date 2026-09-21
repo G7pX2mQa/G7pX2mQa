@@ -126,6 +126,7 @@ function resolveUpgradeId(upgLike) {
 
 function isBuyCheapExcluded(upgDef) {
     if (!upgDef) return false;
+    if (upgDef.area === RUBBLE_AREA_KEY) return true;
     const upgId = resolveUpgradeId(upgDef);
     return (
         (upgDef.area === "starter_cove" && [1, 3, 4, 5, 6].includes(upgId)) ||
@@ -2253,6 +2254,17 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         upgSheetEl.classList.toggle("is-magnet-upgrade", upgDef.tie === UPGRADE_TIES.MAGNET);
         upgSheetEl.classList.toggle("is-coin-value-iv", upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
         upgSheetEl.classList.toggle("is-xp-value-iv", upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
+        let isCoralReefUnpurchased = false;
+        if (upgDef.tie === "none_10") {
+            isCoralReefUnpurchased = true;
+            try {
+                const slot = getActiveSlot();
+                if (slot != null && lsGetItem(`ccc:coralReefPurchasedOnce:${slot}`) === "1") {
+                    isCoralReefUnpurchased = false;
+                }
+            } catch {}
+        }
+        upgSheetEl.classList.toggle("is-unlock-coral-reef", isCoralReefUnpurchased);
         upgSheetEl.classList.toggle("is-no-effect", !model.effect);
         // --- Automation Toggle Logic ---
         let autoToggleWrapper = header.querySelector(".auto-toggle-wrapper");
