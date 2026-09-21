@@ -1182,3 +1182,8 @@ html.is-mobile {
     }
   }
 }
+
+/* move all upgrade content up 2px because I feel like it */
+.upg-content {
+  transform: translateY(-1.5px);
+}
