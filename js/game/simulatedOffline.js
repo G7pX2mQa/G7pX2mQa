@@ -125,9 +125,9 @@ function getSimTickGranularity(totalSeconds) {
 const RELEVANCE_EVAL_INTERVAL = 500;
 
 const DEFAULT_DECIMATION = Object.freeze({
-    passives:    10,  // Always run passives at D=10 (handles dt perfectly)
-    autobuyers:  20,  // Hard minimum decimation (checks max once per second)
-    surge:       1,
+    passives:    1,   // Dynamically scaled based on offline time in evaluateRelevance
+    autobuyers:  1,   // Dynamically scaled based on offline time and purchase activity
+    surge:       1,   // Bound to passives decimation
     labLevel:    50,  // Low priority — pure derivation from coins, no accumulation
     labResearch: 1,
     flow:        1,
