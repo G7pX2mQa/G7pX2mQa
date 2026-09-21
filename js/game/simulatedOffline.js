@@ -35,6 +35,8 @@ import { ensureCustomScrollbar } from "../ui/shopOverlay.js";
 
 // Lazy imports to avoid circular dependencies — resolved on first use
 let _simulateAutomationTick = null;
+let _simulatePassiveTick = null;
+let _simulateAutobuyerTick = null;
 let _simulateSurgeTick = null;
 let _simulateLabUpdate = null;
 let _simulateLabResearch = null;
@@ -44,25 +46,38 @@ let _RESEARCH_NODES = null;
 let _WATERWHEEL_DEFS = null;
 let _isResearchNodeActive = null;
 
+// Relevance evaluation signal imports
+let _getFpMultiplier = null;
+let _getCurrentSurgeLevel = null;
+let _getResearchNodeLevel = null;
+let _getGearsProductionRate = null;
+
 async function ensureTickImports() {
     if (_simulateAutomationTick) return;
-    const [autoMod, surgeMod, labTabMod, labNodesMod, flowMod, workshopMod] = await Promise.all([
+    const [autoMod, surgeMod, labTabMod, labNodesMod, flowMod, workshopMod, resetMod] = await Promise.all([
         import("./automationEffects.js"),
         import("./surgeEffects.js"),
         import("../ui/merchantTabs/labTab.js"),
         import("./labNodes.js"),
         import("../ui/merchantTabs/flowTab.js"),
         import("../ui/merchantTabs/workshopTab.js"),
+        import("../ui/merchantTabs/resetTab.js"),
     ]);
     _simulateAutomationTick = autoMod.simulateAutomationTick;
+    _simulatePassiveTick = autoMod.simulatePassiveTick;
+    _simulateAutobuyerTick = autoMod.simulateAutobuyerTick;
     _simulateSurgeTick = surgeMod.simulateSurgeTick;
     _simulateLabUpdate = labTabMod.updateLabLevel;
     _simulateLabResearch = labNodesMod.tickResearch;
     _RESEARCH_NODES = labNodesMod.RESEARCH_NODES;
     _isResearchNodeActive = labNodesMod.isResearchNodeActive;
+    _getResearchNodeLevel = labNodesMod.getResearchNodeLevel;
     _simulateFlowTick = flowMod.simulateFlowTick;
     _WATERWHEEL_DEFS = flowMod.WATERWHEEL_DEFS;
+    _getFpMultiplier = flowMod.getFpMultiplier;
     _simulateWorkshopTick = workshopMod.simulateWorkshopTick;
+    _getGearsProductionRate = workshopMod.getGearsProductionRate;
+    _getCurrentSurgeLevel = resetMod.getCurrentSurgeLevel;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +112,173 @@ function getSimTickGranularity(totalSeconds) {
         if (val >= rawDt) return val;
     }
     return val;
+}
+
+// ---------------------------------------------------------------------------
+// Per-Feature Tick Decimation
+// ---------------------------------------------------------------------------
+// Instead of ticking every system on every simulated tick, "settled" features
+// run less often but receive proportionally larger dt values so total
+// game-time stays identical.  Decimation factors are re-evaluated every
+// RELEVANCE_EVAL_INTERVAL ticks based on cheap game-state signals.
+//
+const RELEVANCE_EVAL_INTERVAL = 500;
+
+const DEFAULT_DECIMATION = Object.freeze({
+    passives:    10,  // Always run passives at D=10 (handles dt perfectly)
+    autobuyers:  20,  // Hard minimum decimation (checks max once per second)
+    surge:       1,
+    labLevel:    50,  // Low priority — pure derivation from coins, no accumulation
+    labResearch: 1,
+    flow:        1,
+    workshop:    1,
+});
+
+// Autobuyer purchase tracking — counts purchases made during simulation
+// via window.__simAutobuyerPurchaseCount (set in upgrades.js performFreeAutobuy).
+// _autobuyerDryRuns increments each evaluation where no purchases happened;
+// resets to 0 when a purchase is detected.
+let _autobuyerDryRuns = 0;
+
+function resetAutobuyerTracking() {
+    _autobuyerDryRuns = 0;
+    if (typeof window !== "undefined") {
+        window.__simAutobuyerPurchaseCount = 0;
+    }
+}
+
+function checkAutobuyerActivity() {
+    if (typeof window === "undefined") return;
+    const count = window.__simAutobuyerPurchaseCount || 0;
+    if (count > 0) {
+        _autobuyerDryRuns = 0;
+    } else {
+        _autobuyerDryRuns++;
+    }
+    window.__simAutobuyerPurchaseCount = 0;
+}
+
+/**
+ * Evaluate the current game state and return per-feature decimation factors.
+ * Called every RELEVANCE_EVAL_INTERVAL ticks during simulation.
+ * @param {number} simDt - The current simulation tick granularity in seconds.
+ * @param {number} totalOfflineSeconds - Total offline duration to scale decimation.
+ * @returns {{ autobuyers: number, surge: number, labLevel: number,
+ *             labResearch: number, flow: number, workshop: number }}
+ */
+function evaluateRelevance(simDt, totalOfflineSeconds = 0) {
+    const dec = { ...DEFAULT_DECIMATION };
+
+    // --- Passives ---
+    // Scale baseline decimation based on total offline time
+    if (totalOfflineSeconds > 31536000)      dec.passives = 10;     // > 1 year
+    else if (totalOfflineSeconds > 2592000)  dec.passives = 8;      // > 1 month
+    else if (totalOfflineSeconds > 604800)   dec.passives = 7;      // > 1 week
+    else if (totalOfflineSeconds > 86400)    dec.passives = 5;      // > 1 day
+    else if (totalOfflineSeconds > 32400)    dec.passives = 4;      // > 9 hours
+    else if (totalOfflineSeconds > 10800)    dec.passives = 3;      // > 3 hours
+    else if (totalOfflineSeconds > 3600)     dec.passives = 2;      // > 1 hour
+    else                                     dec.passives = 1;      // <= 1 hour
+
+    // --- Flow (Waterwheels) ---
+    // Signal: FP gained per tick vs waterwheel baseReq.
+    // Higher ratio = many levels gained per tick = safe to decimate.
+    if (_WATERWHEEL_DEFS && _getFpMultiplier) {
+        try {
+            const fpMult = _getFpMultiplier();
+            const fpPerTick = fpMult.mulDecimal(String(simDt));
+            let fpPerTickNum = 0;
+            try { fpPerTickNum = Number(fpPerTick.toScientific(5)); } catch { fpPerTickNum = 0; }
+
+            let minRatio = Infinity;
+            for (const id in _WATERWHEEL_DEFS) {
+                const def = _WATERWHEEL_DEFS[id];
+                const req = def.baseReq;
+                if (req > 0) {
+                    const ratio = fpPerTickNum / req;
+                    if (ratio < minRatio) minRatio = ratio;
+                }
+            }
+            if (Number.isFinite(minRatio)) {
+                let target = 1;
+                if (minRatio > 1e6)       target = 100;
+                else if (minRatio > 1e4)  target = 50;
+                else if (minRatio > 1000) target = 20;
+                else if (minRatio > 100)  target = 10;
+                else if (minRatio > 10)   target = 2;
+                
+                dec.flow = Math.max(dec.passives, target);
+            }
+        } catch { /* leave default */ }
+    }
+
+    // --- Lab Research ---
+    // Signal: are all active research nodes at max level?
+    // If so, nothing to do → aggressive decimation.
+    // Otherwise, light decimation since research is bursty.
+    if (_RESEARCH_NODES && _isResearchNodeActive && _getResearchNodeLevel) {
+        try {
+            let hasActiveUnmaxed = false;
+            for (const node of _RESEARCH_NODES) {
+                if (!_isResearchNodeActive(node.id)) continue;
+                const level = _getResearchNodeLevel(node.id);
+                if (level < node.maxLevel) {
+                    hasActiveUnmaxed = true;
+                    break;
+                }
+            }
+            dec.labResearch = Math.max(dec.passives, hasActiveUnmaxed ? 5 : 50);
+        } catch { /* leave default */ }
+    }
+
+    // --- Lab Level ---
+    dec.labLevel = Math.max(dec.passives, 50);
+
+    // --- Surge ---
+    // Surge passive generation (e.g., Books) behaves exactly like standard passives,
+    // so we tie it directly to the time-scaled passives baseline.
+    dec.surge = dec.passives;
+
+    // --- Workshop ---
+    // Signal: gears production rate magnitude. At high rates, fractional
+    // accumulation is irrelevant and batching is safe.
+    if (_getGearsProductionRate) {
+        try {
+            const rate = _getGearsProductionRate();
+            const perTick = rate.mulDecimal(String(simDt));
+            let perTickNum = 0;
+            try { perTickNum = Number(perTick.toScientific(5)); } catch { perTickNum = 0; }
+            
+            let target = 1;
+            if (perTickNum > 1e10)       target = 100;
+            else if (perTickNum > 1e6)   target = 50;
+            else if (perTickNum > 1000)  target = 10;
+            else if (perTickNum > 100)   target = 2;
+            
+            dec.workshop = Math.max(dec.passives, target);
+        } catch { /* leave default */ }
+    }
+
+    // --- Autobuyers ---
+    // Reactive: based on whether recent autobuyer ticks produced purchases.
+    // Uses _autobuyerDryRuns which is updated every evaluation interval.
+    // Scale baseline decimation based on total offline time
+    let autoBaseline = 1;
+    if (totalOfflineSeconds > 31536000)      autoBaseline = 20; // > 1 year
+    else if (totalOfflineSeconds > 2592000)  autoBaseline = 10; // > 1 month
+    else if (totalOfflineSeconds > 604800)   autoBaseline = 8;  // > 1 week
+    else if (totalOfflineSeconds > 86400)    autoBaseline = 5;  // > 1 day
+    else if (totalOfflineSeconds > 32400)    autoBaseline = 4;  // > 9 hours
+    else if (totalOfflineSeconds > 10800)    autoBaseline = 3;  // > 3 hours
+    else if (totalOfflineSeconds > 3600)     autoBaseline = 2;  // > 1 hour
+    else                                     autoBaseline = 1;  // <= 1 hour
+
+    checkAutobuyerActivity();
+    if (_autobuyerDryRuns >= 20)      dec.autobuyers = Math.max(autoBaseline, 100);
+    else if (_autobuyerDryRuns >= 10) dec.autobuyers = Math.max(autoBaseline, 50);
+    else                              dec.autobuyers = autoBaseline;
+
+    return dec;
 }
 
 // ---------------------------------------------------------------------------
@@ -314,6 +496,9 @@ class SimulatedOfflineRunner {
         this.tamperDetected = false;
         this.tamperCount = 0;
 
+        // Per-feature tick decimation
+        this._decimation = evaluateRelevance(this.simDt, this.totalOfflineSeconds);
+
         // State
         this.running = false;
         this.completed = false;
@@ -385,11 +570,29 @@ class SimulatedOfflineRunner {
         const startTime = performance.now();
         let ticksThisFrame = 0;
 
+        // Per-frame minimum guarantee: track which decimated features have fired
+        // this batch.  Any that haven't will be force-flushed before returning.
+        const firedThisBatch = {
+            passives: false, autobuyers: false, surge: false, labLevel: false,
+            labResearch: false, flow: false, workshop: false,
+        };
+        // Track accumulated dt for features that haven't fired yet (for flush)
+        const accDt = {
+            passives: 0, autobuyers: 0, surge: 0, labLevel: 0,
+            labResearch: 0, flow: 0, workshop: 0,
+        };
+
         while (this._exactRemainingSeconds > 0) {
             const currentDt = Math.min(this.simDt, this._exactRemainingSeconds);
+            const tickIdx = this.ticksProcessed;
+
+            // Re-evaluate relevance periodically
+            if (tickIdx % RELEVANCE_EVAL_INTERVAL === 0) {
+                this._decimation = evaluateRelevance(this.simDt, this.totalOfflineSeconds);
+            }
 
             try {
-                this._simulateOneTick(currentDt);
+                this._simulateOneTick(currentDt, tickIdx, this._decimation, firedThisBatch, accDt);
             } catch (e) {
                 console.error("SimTick error:", e);
             }
@@ -406,6 +609,8 @@ class SimulatedOfflineRunner {
             ticksThisFrame++;
 
             if (this.ticksProcessed >= this.totalTicks || this._exactRemainingSeconds <= 0) {
+                // Flush any features that haven't fired this batch before completing
+                this._flushDecimated(firedThisBatch, accDt);
                 this.completed = true;
                 this._activeProcessingMs += performance.now() - startTime;
                 return true;
@@ -420,20 +625,116 @@ class SimulatedOfflineRunner {
             }
         }
 
+        // Per-frame minimum: flush any decimated feature that didn't fire this batch
+        this._flushDecimated(firedThisBatch, accDt);
+
         this._activeProcessingMs += performance.now() - startTime;
         return false;
     }
 
     /**
-     * Simulate one tick of game time at the current granularity.
+     * Force-fire any decimated features that haven't run during this batch,
+     * using their accumulated dt to preserve total game-time.
      */
-    _simulateOneTick(dt) {
-        if (_simulateAutomationTick) _simulateAutomationTick(dt);
-        if (_simulateSurgeTick) _simulateSurgeTick(dt);
-        if (_simulateLabUpdate) _simulateLabUpdate();
-        if (_simulateLabResearch) _simulateLabResearch(dt);
-        if (_simulateFlowTick) _simulateFlowTick(dt);
-        if (_simulateWorkshopTick) _simulateWorkshopTick(dt);
+    _flushDecimated(firedThisBatch, accDt) {
+        if (!firedThisBatch.passives && accDt.passives > 0) {
+            try { if (_simulatePassiveTick) _simulatePassiveTick(accDt.passives); } catch {}
+        }
+        if (!firedThisBatch.autobuyers && accDt.autobuyers > 0) {
+            try { if (_simulateAutobuyerTick) _simulateAutobuyerTick(); } catch {}
+        }
+        if (!firedThisBatch.surge && accDt.surge > 0) {
+            try { if (_simulateSurgeTick) _simulateSurgeTick(accDt.surge); } catch {}
+        }
+        if (!firedThisBatch.labLevel && accDt.labLevel > 0) {
+            try { if (_simulateLabUpdate) _simulateLabUpdate(); } catch {}
+        }
+        if (!firedThisBatch.labResearch && accDt.labResearch > 0) {
+            try { if (_simulateLabResearch) _simulateLabResearch(accDt.labResearch); } catch {}
+        }
+        if (!firedThisBatch.flow && accDt.flow > 0) {
+            try { if (_simulateFlowTick) _simulateFlowTick(accDt.flow); } catch {}
+        }
+        if (!firedThisBatch.workshop && accDt.workshop > 0) {
+            try { if (_simulateWorkshopTick) _simulateWorkshopTick(accDt.workshop); } catch {}
+        }
+    }
+
+    /**
+     * Simulate one tick of game time with per-feature decimation.
+     * Features that fire receive dt × D to compensate for skipped ticks.
+     * Features that don't fire accumulate their dt for the per-frame flush.
+     */
+    _simulateOneTick(dt, tickIndex, dec, firedThisBatch, accDt) {
+        // Passive accumulation — decimated by a flat factor
+        if (tickIndex % dec.passives === 0) {
+            const passivesDt = dt + accDt.passives;
+            if (_simulatePassiveTick) _simulatePassiveTick(passivesDt);
+            firedThisBatch.passives = true;
+            accDt.passives = 0;
+        } else {
+            accDt.passives += dt;
+        }
+
+        // Autobuyers — decimated based on purchase activity
+        if (tickIndex % dec.autobuyers === 0) {
+            // Autobuyers don't use dt (they just check affordability and buy)
+            // so we don't need to pass accumulated dt, just run them.
+            if (_simulateAutobuyerTick) _simulateAutobuyerTick();
+            firedThisBatch.autobuyers = true;
+            accDt.autobuyers = 0;
+        } else {
+            accDt.autobuyers += dt;
+        }
+
+        // Surge — decimated based on surge level
+        if (tickIndex % dec.surge === 0) {
+            const surgeDt = dt + accDt.surge;
+            if (_simulateSurgeTick) _simulateSurgeTick(surgeDt);
+            firedThisBatch.surge = true;
+            accDt.surge = 0;
+        } else {
+            accDt.surge += dt;
+        }
+
+        // Lab Level — always low priority (pure derivation from coins, no dt)
+        if (tickIndex % dec.labLevel === 0) {
+            if (_simulateLabUpdate) _simulateLabUpdate();
+            firedThisBatch.labLevel = true;
+            accDt.labLevel = 0;
+        } else {
+            accDt.labLevel += dt;
+        }
+
+        // Lab Research — decimated based on node status
+        if (tickIndex % dec.labResearch === 0) {
+            const researchDt = dt + accDt.labResearch;
+            if (_simulateLabResearch) _simulateLabResearch(researchDt);
+            firedThisBatch.labResearch = true;
+            accDt.labResearch = 0;
+        } else {
+            accDt.labResearch += dt;
+        }
+
+        // Flow (Waterwheels) — decimated based on FP throughput ratio
+        if (tickIndex % dec.flow === 0) {
+            const flowDt = dt + accDt.flow;
+            if (_simulateFlowTick) _simulateFlowTick(flowDt);
+            firedThisBatch.flow = true;
+            accDt.flow = 0;
+        } else {
+            accDt.flow += dt;
+        }
+
+        // Workshop — decimated based on gears production rate
+        if (tickIndex % dec.workshop === 0) {
+            const workshopDt = dt + accDt.workshop;
+            if (_simulateWorkshopTick) _simulateWorkshopTick(workshopDt);
+            firedThisBatch.workshop = true;
+            accDt.workshop = 0;
+        } else {
+            accDt.workshop += dt;
+        }
     }
 
     /**
@@ -1027,6 +1328,9 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
     // Start intercepting reward additions
     startRewardTracking();
 
+    // Initialize autobuyer purchase tracking for decimation
+    resetAutobuyerTracking();
+
     // Create UI
     const displayMs = options.overrideSeconds ? options.overrideSeconds * 1000 : totalOfflineMs;
     let uiHandle = null;
@@ -1051,6 +1355,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
 
     function finishSimulation() {
         window.__isSimulationActive = false;
+        delete window.__simAutobuyerPurchaseCount;
         runner.running = false;
         if (activeSimRunner === runner) {
             activeSimRunner = null;
