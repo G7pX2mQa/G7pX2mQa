@@ -2110,7 +2110,7 @@ function openFloatErrorDialog() {
     title.textContent = "Special Message";
     
     const text = document.createElement("div");
-    text.innerHTML = "Okay I know that the upgrade cap says infinite but that’s actually fundamentally not possible with how floating point works so I’m sorry but I’m not going to let you get higher upgrade levels past 4 trillion unless you go to infinity which can be handled just fine";
+    text.innerHTML = "Okay I know that the upgrade cap says infinite but that’s actually fundamentally not possible with how floating point works so I’m sorry but I’m not going to let you get higher upgrade levels past 4e12 unless you go to infinity which can be handled just fine";
     text.style.padding = "20px";
     text.style.textAlign = "center";
     text.style.fontSize = "1.1em";
