@@ -357,6 +357,13 @@ export function reloadLabNodes() {
             if (labState.nodes[n.id].active) {
                 activeNodeId = n.id;
             }
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                    new CustomEvent("lab:node:change", {
+                        detail: { id: n.id, level: labState.nodes[n.id].level, suppressNotify: true },
+                    }),
+                );
+            }
         });
     }
 }
@@ -381,6 +388,7 @@ if (typeof window !== "undefined") {
     window.addEventListener("saveSlot:change", reloadLabNodes);
     window.addEventListener("collapse:challenge:start", reloadLabNodes);
     window.addEventListener("collapse:challenge:exit", reloadLabNodes);
+    window.addEventListener("collapse:challenge:complete", reloadLabNodes);
     // Auto-save every second
     setInterval(saveLabNodes, 1000);
     // Save on unload
