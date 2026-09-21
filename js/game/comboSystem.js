@@ -136,7 +136,17 @@ export function onCoinCollected() {
 }
 
 export function updateCombo(dt) {
-    if (!isSurge14ActiveFn()) return;
+    if (!isSurge14ActiveFn()) {
+        if (activeComboValue !== 0 || decayCounter !== 0 || decayAccumulator !== 0) {
+            activeComboValue = 0;
+            decayCounter = 0;
+            decayAccumulator = 0;
+            lastMaxVal = -1;
+            notifyComboChange();
+            scheduleSave();
+        }
+        return;
+    }
     if (isComboLocked) return;
     // Continuous cap check
     const maxVal = getMaxComboFn();
@@ -152,6 +162,11 @@ export function updateCombo(dt) {
     }
     // Preservation Check: If preserved, skip decay entirely
     if (isComboPreservedFn()) {
+        if (decayCounter !== 0 || decayAccumulator !== 0) {
+            decayCounter = 0;
+            decayAccumulator = 0;
+            changed = true;
+        }
         if (changed) {
             notifyComboChange();
             scheduleSave();
