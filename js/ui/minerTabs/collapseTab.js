@@ -415,18 +415,18 @@ function restoreChallengeBackup(slot) {
                 const backupData = JSON.parse(backupStr);
                 
                 // --- Lab Node Smart Merge ---
-                let currentMaxLab = 0;
-                let backupMaxLab = 0;
+                let currentTotalLab = 0;
+                let backupTotalLab = 0;
                 
-                // 1. Find backup max lab
+                // 1. Find backup total lab
                 for (const key of Object.keys(backupData)) {
                     if (key.startsWith("ccc:lab:node:level:")) {
                         const val = parseInt(backupData[key], 10) || 0;
-                        if (val > backupMaxLab) backupMaxLab = val;
+                        backupTotalLab += val;
                     }
                 }
                 
-                // 2. Find current max lab & capture current lab data
+                // 2. Find current total lab & capture current lab data
                 const currentData = getSaveDataForSlot(slot);
                 const currentLabData = {};
                 for (const key of Object.keys(currentData)) {
@@ -434,12 +434,12 @@ function restoreChallengeBackup(slot) {
                         currentLabData[key] = currentData[key];
                         if (key.startsWith("ccc:lab:node:level:")) {
                             const val = parseInt(currentData[key], 10) || 0;
-                            if (val > currentMaxLab) currentMaxLab = val;
+                            currentTotalLab += val;
                         }
                     }
                 }
                 
-                const keepCurrentLab = currentMaxLab >= backupMaxLab && Object.keys(currentLabData).length > 0;
+                const keepCurrentLab = currentTotalLab >= backupTotalLab && Object.keys(currentLabData).length > 0;
                 
                 if (keepCurrentLab) {
                     // Remove all lab keys from backupData so we don't restore them
@@ -573,14 +573,14 @@ function completeCollapseChallenge(materialName) {
                 const backupData = JSON.parse(backupStr);
                 
                 // --- Lab Node Smart Merge ---
-                let currentMaxLab = 0;
-                let backupMaxLab = 0;
+                let currentTotalLab = 0;
+                let backupTotalLab = 0;
                 
                 // Find backup max lab
                 for (const key of Object.keys(backupData)) {
                     if (key.startsWith("ccc:lab:node:level:")) {
                         const val = parseInt(backupData[key], 10) || 0;
-                        if (val > backupMaxLab) backupMaxLab = val;
+                        backupTotalLab += val;
                     }
                 }
                 
@@ -589,13 +589,13 @@ function completeCollapseChallenge(materialName) {
                 for (const key of Object.keys(currentData)) {
                     if (key.startsWith("ccc:lab:node:level:")) {
                         const val = parseInt(currentData[key], 10) || 0;
-                        if (val > currentMaxLab) currentMaxLab = val;
+                        currentTotalLab += val;
                     }
                 }
                 
                 // If the player lost lab nodes during the challenge, restore the backup lab nodes.
                 // Otherwise, keep the current ones (by doing nothing).
-                if (currentMaxLab < backupMaxLab) {
+                if (currentTotalLab < backupTotalLab) {
                     for (const [key, value] of Object.entries(backupData)) {
                         if (key.startsWith("ccc:lab:") && !key.startsWith("ccc:lab:node:discovered:")) {
                             lsSetItem(key, value);
