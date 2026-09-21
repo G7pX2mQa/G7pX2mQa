@@ -112,6 +112,16 @@
 
 /* Responsive layout */
 @media (max-width: 900px) {
+  #help-overlay .sas-sheet {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  #help-overlay .sas-sheet .sas-header::after {
+    display: none;
+  }
+
   .help-container {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
@@ -135,6 +145,8 @@
   .help-card {
     flex-grow: 1;
     justify-content: flex-start;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .help-spacer {
