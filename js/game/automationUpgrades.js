@@ -23,6 +23,13 @@ export const AUTOBUY_CORE_BUILDING_ID = 12;
 export const AUTOBUY_CRYSTAL_BUILDING_ID = 13;
 export const AUTOBUY_STONE_BUILDING_ID = 14;
 
+export const AUTOMATION_TIES = {
+    EFFECTIVE_AUTO_COLLECT: "effective_auto_collect",
+    AUTOBUY_COIN_UPGRADES: "autobuy_coin_upgrades",
+    UNDERWATER_CAVERN_EAC: "underwater_cavern_eac",
+    EFFECTIVE_AUTO_SELL: "effective_auto_sell",
+};
+
 // Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
 export const MASTER_AUTOBUY_IDS = {
     [AUTOBUY_COIN_UPGRADES_ID]: "coins",
@@ -40,6 +47,7 @@ const UPGRADE_DEFINITIONS = [
     {
         area: AUTOMATION_AREA_KEY,
         id: EFFECTIVE_AUTO_COLLECT_ID,
+        tie: AUTOMATION_TIES.EFFECTIVE_AUTO_COLLECT,
         title: "Effective Auto-Collect",
         desc: "Generates the equivalent of collecting a Coin on an interval\nEach level of this upgrade will reduce the generation interval\nAs a bonus, anything passively generated accumulates offline",
         icon: "img/sc_upg_icons/effective_auto_collect.webp",
@@ -62,6 +70,7 @@ const UPGRADE_DEFINITIONS = [
     {
         area: AUTOMATION_AREA_KEY,
         id: AUTOBUY_COIN_UPGRADES_ID,
+        tie: AUTOMATION_TIES.AUTOBUY_COIN_UPGRADES,
         title: "Autobuy Coin Upgrades",
         desc: "Automatically buys Coin upgrades, but with a twist:\nAutobuys upgrades for free, as long as you can afford the cost\nThis is how all future autobuyers will work",
         icon: "img/sc_upg_icons/autobuy_coin.webp",
@@ -264,6 +273,7 @@ const UPGRADE_DEFINITIONS = [
     {
         area: AUTOMATION_AREA_KEY,
         id: UNDERWATER_CAVERN_EAC_ID,
+        tie: AUTOMATION_TIES.UNDERWATER_CAVERN_EAC,
         title: "Underwater Cavern EAC",
         desc: "Generates the equivalent of collecting a Material on an interval\nUC EAC also generates its own Materials dependent on Depth\nEach level of this upgrade will reduce the generation interval",
         icon: "img/uc_upg_icons/eac_uc.webp",
@@ -309,6 +319,7 @@ const UPGRADE_DEFINITIONS = [
     {
         area: AUTOMATION_AREA_KEY,
         id: EFFECTIVE_AUTO_SELL_ID,
+        tie: AUTOMATION_TIES.EFFECTIVE_AUTO_SELL,
         title: "Effective Auto-Sell",
         desc: "Every game tick, generates Scrap based on owned Materials\nGenerates at 0.0001%/0.01%/1%/100% efficiency depending on level",
         icon: "img/uc_upg_icons/effective_auto_sell.webp",
