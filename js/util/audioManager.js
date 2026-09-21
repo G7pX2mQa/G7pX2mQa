@@ -9,6 +9,7 @@ let musicGain = null;
 let musicFilter = null;
 let sfxGain = null;
 let sfxFilter = null;
+let specialGain = null;
 const mobileGlobalAudioReductionMultiplier = 0.825
 
 const buffers = new Map();
@@ -140,6 +141,11 @@ function getAudioContext() {
   sfxFilter.Q.value = 1; // Slight resonance or neutral
   sfxFilter.connect(sfxGain);
   
+  // Special Pipeline: Source -> specialGain -> MasterGain
+  specialGain = audioContext.createGain();
+  specialGain.gain.value = 1.0;
+  specialGain.connect(masterGain);
+  
   return audioContext;
 }
 
@@ -160,6 +166,7 @@ export function initAudio() {
     const initialSfxVolume = settingsManager.get('sfx_volume');
     if (initialSfxVolume !== false && initialSfxVolume !== undefined) {
         setSfxVolume(initialSfxVolume);
+        setSpecialVolume(initialSfxVolume);
     }
 
     // Subscribe to future volume changes
@@ -171,6 +178,7 @@ export function initAudio() {
     });
     settingsManager.subscribe('sfx_volume', (val) => {
         setSfxVolume(val);
+        setSpecialVolume(val);
     });
     settingsManager.subscribe('spawn_vessel_volume', (val) => {
         for (const audio of activeSpawnVesselAudios) {
@@ -259,7 +267,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         }
     }
  
-    let applyMobileReduction = IS_MOBILE && (type === 'sfx' || type === 'ui' || type === 'spawn_vessel');
+    let applyMobileReduction = IS_MOBILE && (type === 'sfx' || type === 'special' || type === 'spawn_vessel');
     if (applyMobileReduction) {
         volume *= mobileGlobalAudioReductionMultiplier;
     }
@@ -330,9 +338,11 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
                 const isCompressReset = src.includes("compress_reset.ogg");
                 const bypass = bypassFilter || (isCinematicMuffleException && !isCompressReset);
                 gainNode.connect(bypass ? sfxGain : sfxFilter);
+            } else if (type === "special") {
+                gainNode.connect(specialGain);
             } else {
-            gainNode.connect(masterGain);
-        }
+                gainNode.connect(masterGain);
+            }
 
         source.start(0);
         
@@ -419,7 +429,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
               if (IS_MOBILE) musicVolumeSetting *= 0.7;
               finalVolume = finalVolume * (musicVolumeSetting / 100);
           }
-      } else if (type === 'sfx') {
+      } else if (type === 'sfx' || type === 'special') {
           const sfxVolumeSetting = settingsManager.get('sfx_volume');
           if (sfxVolumeSetting !== undefined && sfxVolumeSetting !== null) {
               finalVolume = finalVolume * (sfxVolumeSetting / 100);
@@ -497,7 +507,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
                       if (IS_MOBILE) musv *= 0.7;
                       finalVol = finalVol * (musv / 100);
                   }
-              } else if (type === 'sfx') {
+              } else if (type === 'sfx' || type === 'special') {
                   const sfxv = settingsManager.get('sfx_volume');
                   if (sfxv !== undefined && sfxv !== null) finalVol = finalVol * (sfxv / 100);
               }
@@ -659,6 +669,21 @@ export function setSfxVolume(volumePercentage) {
         sfxGain.gain.setValueAtTime(gainValue, now);
     } catch {
         sfxGain.gain.value = gainValue;
+    }
+}
+
+export function setSpecialVolume(volumePercentage) {
+    if (!specialGain) return;
+    
+    // Map 0-100 to 0.0-1.0
+    const gainValue = Math.max(0, Math.min(100, volumePercentage)) / 100.0;
+    
+    try {
+        const now = audioContext.currentTime;
+        specialGain.gain.cancelScheduledValues(now);
+        specialGain.gain.setValueAtTime(gainValue, now);
+    } catch {
+        specialGain.gain.value = gainValue;
     }
 }
 
