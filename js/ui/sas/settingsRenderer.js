@@ -84,16 +84,17 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
 
             const infoTooltip = document.createElement("div");
             infoTooltip.className = "setting-info-tooltip";
-            infoTooltip.textContent = def.info;
+            infoTooltip.textContent = typeof def.info === "function" ? def.info() : def.info;
 
             infoIcon.addEventListener("mouseenter", () => {
+                const currentInfo = typeof def.info === "function" ? def.info() : def.info;
                 if (
                     (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport") &&
                     settingsManager.get("spreadsheet_mode", true)
                 ) {
-                    infoTooltip.textContent = def.info + " Automatically handled by Spreadsheet Mode setting.";
+                    infoTooltip.textContent = currentInfo + " Automatically handled by Spreadsheet Mode setting.";
                 } else {
-                    infoTooltip.textContent = def.info;
+                    infoTooltip.textContent = currentInfo;
                 }
 
                 // Temporarily make visible to measure
