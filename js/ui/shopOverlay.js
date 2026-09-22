@@ -12,6 +12,7 @@ import {
     MERCHANT_MET_EVENT,
     runPostTsunamiShopDialogue,
 } from "./merchantTabs/dlgTab.js";
+import { getMapSequenceSeen } from "../game/surgeEffects.js";
 import { openMiner, hasMetMiner, MINER_MET_EVENT } from "./minerTabs/dlgTab.js";
 import { primeTypingSfx } from "./delveCore.js";
 import { playAudio } from "../util/audioManager.js";
@@ -100,7 +101,7 @@ for (const [autoId, costType] of Object.entries(MASTER_AUTOBUY_IDS)) {
 function isUpgradeAutomated(upgDef) {
     if (!upgDef || !upgDef.costType) return false;
 
-    if (upgDef.tie === "none_10") {
+    if (upgDef.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) {
         let purchasedOnce = false;
         try {
             const slot = getActiveSlot();
@@ -327,6 +328,10 @@ const EVOLVE_SFX_SRC = "sounds/evolve_upg.ogg";
 const MOBILE_PURCHASE_VOLUME = 0.12;
 const DESKTOP_PURCHASE_VOLUME = 0.3;
 export function playPurchaseSfx() {
+    if (typeof window !== "undefined" && window.__suppressPurchaseSfx) {
+        window.__suppressPurchaseSfx = false;
+        return;
+    }
     const vol = IS_MOBILE ? MOBILE_PURCHASE_VOLUME : DESKTOP_PURCHASE_VOLUME;
     playAudio(PURCHASE_SFX_SRC, { volume: vol });
 }
@@ -2265,7 +2270,7 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         upgSheetEl.classList.toggle("is-coin-value-iv", upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
         upgSheetEl.classList.toggle("is-xp-value-iv", upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
         let isCoralReefUnpurchased = false;
-        if (upgDef.tie === "none_10") {
+        if (upgDef.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) {
             isCoralReefUnpurchased = true;
             try {
                 const slot = getActiveSlot();
