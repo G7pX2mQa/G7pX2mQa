@@ -70,7 +70,14 @@ function isZero(bn) {
 function updateEntry(entry) {
   if (!entry) return;
   const { amountEl, amount, meta } = entry;
-  const formatted = meta.formatAmount ? meta.formatAmount(amount) : formatNumber(amount);
+  
+  let formatted;
+  if (typeof amount.cmp === 'function' && amount.cmp(BigNum.fromInt(1)) < 0) {
+    formatted = "<1";
+  } else {
+    formatted = meta.formatAmount ? meta.formatAmount(amount) : formatNumber(amount);
+  }
+  
   if (amountEl) setHtmlOrText(amountEl, formatted);
 }
 
@@ -155,7 +162,9 @@ function showPopup(type, amount, overrides = {}) {
 
   const bnAmount = bnFromAny(amount);
   if (!bnAmount || isZero(bnAmount)) return;
-  if (typeof bnAmount.cmp === 'function' && bnAmount.cmp(BigNum.fromInt(1)) < 0) return;
+  
+  // Ignore negative amounts
+  if (typeof bnAmount.cmp === 'function' && bnAmount.cmp(BigNum.fromInt(0)) < 0) return;
 
   const existing = meta.accumulate !== false ? activePopups.get(type) : null;
 
