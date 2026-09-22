@@ -572,7 +572,7 @@ html.is-mobile {
 }
 
 .upg-desc.centered.lock-desc{
-  
+  margin: auto;
 }
 
 .upg-info{
@@ -1169,6 +1169,13 @@ html.is-mobile {
     .upg-content,
     .upg-info {
         gap: calc(var(--upg-spacing) * 0) !important;
+    }
+
+    .upg-sheet.is-unlock-coral-reef .upg-desc.centered {
+        font-size: clamp(28px, 4.1vw, 45px) !important;
+    }
+    .upg-sheet.is-unlock-coral-reef .upg-line {
+        font-size: clamp(28px, 4.1vw, 45px) !important;
     }
   }
 }
