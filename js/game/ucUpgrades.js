@@ -21,7 +21,7 @@ import { isSellUnlocked, hasViewedSellTab } from "../ui/minerTabs/sellTab.js";
 import { getCurrentSurgeLevel } from "../ui/merchantTabs/resetTab.js";
 import { isCollapseUnlocked } from "../ui/minerTabs/collapseTab.js";
 import { getActiveSlot } from "../util/storage.js";
-import { lsGetItem } from "../main.js";
+import { lsGetItem, lsSetItem } from "../main.js";
 
 export const UC_AREA_KEY = "underwater_cavern";
 
@@ -644,19 +644,40 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 14,
-        tie: "none_10",
+        tie: "unlock_coral_reef",
         title: "Unlock Coral Reef",
-        desc: "Unlocks new area: Coral Reef",
+        get desc() {
+            let currentLevel = 0;
+            try {
+                currentLevel = getLevelNumber(UC_AREA_KEY, this.tie);
+            } catch (e) {}
+            if (currentLevel >= 1) {
+                return "Unlocks new area: Coral Reef";
+            }
+            let descText = `Unlocks new area: Coral Reef\nThis area must be purchased using Scrap`;
+            let purchasedOnce = false;
+            try {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    purchasedOnce = lsGetItem(`ccc:coralReefPurchasedOnce:${slot}`) === "1";
+                }
+            } catch {}
+            if (!purchasedOnce) {
+                descText += "\nThis upgrade will be automated after you buy it once";
+            }
+            return descText;
+        },
         lvlCap: 1,
+        baseCost: 1e250,
+        costType: "scrap",
         upgType: "NM",
         icon: "",
         baseIconOverride: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
-        unlockUpgrade: true,
-        costAtLevel() {
-            return BigNum.fromInt(0);
+        costAtLevel(level) {
+            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
-        nextCostAfter() {
-            return BigNum.fromInt(0);
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
         },
         computeLockState() {
             let isUnlocked = false;
@@ -676,7 +697,20 @@ export const UC_REGISTRY = [
             return { state: "mysterious", unlockReqText: revealText };
         },
         onLevelChange({ newLevel }) {
-            // no-op for now, functionality to be implemented later
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    const slot = getActiveSlot();
+                    if (slot != null) {
+                        lsSetItem(`ccc:coralReefPurchasedOnce:${slot}`, "1");
+                    }
+                    import("../ui/mapOverlay.js").then(({ setNodeLocked }) => {
+                        setNodeLocked("coral", false);
+                        if (typeof window !== "undefined" && slot != null) {
+                            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:coral", state: true, slot } }));
+                        }
+                    });
+                } catch {}
+            }
         },
         effectSummary() {
             return "";
