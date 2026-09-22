@@ -22,7 +22,7 @@ export const MAP_NODES = [
         id: "coral",
         areaKey: "CORAL_REEF",
         name: "Coral Reef",
-        icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        icon: "img/currencies/coral/coral_red_plus_base.webp",
         top: "51%",
         left: "25%",
         defaultLocked: true,
