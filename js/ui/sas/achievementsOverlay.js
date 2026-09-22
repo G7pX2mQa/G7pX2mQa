@@ -32,17 +32,31 @@ function renderAchievements(gridEl) {
         btn.dataset.id = achievement.id;
         const tile = document.createElement("div");
         tile.className = "shop-tile";
-        const iconImg = document.createElement("img");
-        iconImg.className = "icon";
-        iconImg.alt = "";
-        iconImg.src = achievement.icon;
-        tile.appendChild(iconImg);
+        if (Array.isArray(achievement.icon)) {
+            achievement.icon.forEach((src) => {
+                const iconImg = document.createElement("img");
+                iconImg.className = "icon";
+                iconImg.alt = "";
+                iconImg.src = src;
+                // Absolute position overlays except the first, or let CSS handle it
+                // Usually shop-tile images are absolute or there's a specific wrapper.
+                // We'll just append them all with class="icon"
+                tile.appendChild(iconImg);
+            });
+        } else {
+            const iconImg = document.createElement("img");
+            iconImg.className = "icon";
+            iconImg.alt = "";
+            iconImg.src = achievement.icon;
+            tile.appendChild(iconImg);
+        }
+        
         if (state === ACHIEVEMENT_STATES.ACHIEVED) {
             const maxedOverlay = document.createElement("img");
             maxedOverlay.className = "maxed-overlay";
             maxedOverlay.alt = "";
             maxedOverlay.src = MAXED_BASE_OVERLAY_SRC;
-            tile.insertBefore(maxedOverlay, iconImg);
+            tile.insertBefore(maxedOverlay, tile.firstChild);
         }
 
         const badge = document.createElement("span");
@@ -50,7 +64,9 @@ function renderAchievements(gridEl) {
         let appendBadge = true;
         if (state === ACHIEVEMENT_STATES.NOT_OWNED) {
             btn.classList.add("is-locked");
-            iconImg.style.filter = "brightness(0.05)";
+            tile.querySelectorAll(".icon").forEach((iconImg) => {
+                iconImg.style.filter = "brightness(0.05)";
+            });
             appendBadge = false;
             btn.title = "???";
         } else if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
