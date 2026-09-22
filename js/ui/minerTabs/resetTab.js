@@ -122,6 +122,9 @@ export function setCombineResetCompleted(value, slot = getActiveSlot()) {
         } catch {}
     }
     resetState.hasDoneCombineReset = !!value;
+    try {
+        window.dispatchEvent(new CustomEvent("combine:status", { detail: { completed: !!value } }));
+    } catch {}
 }
 
 export function isCompressUnlocked() {
