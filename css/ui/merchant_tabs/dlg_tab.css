@@ -266,10 +266,10 @@ html.is-mobile {
 
 /* While first-chat is up, hide the sheet content and footer controls */
 .merchant-overlay.firstchat-active .merchant-content,
+.merchant-overlay.firstchat-active .merchant-scrollbar,
 .merchant-overlay.firstchat-active .merchant-actions {
   visibility: hidden;
 }
-
 
 /* The card sits above the blur and stays crisp */
 .merchant-firstchat__card {
