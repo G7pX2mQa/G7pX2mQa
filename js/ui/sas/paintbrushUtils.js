@@ -125,7 +125,7 @@ export function createPaintbrush({
                 applyBtn.disabled = true;
                 applyBtn.style.opacity = '0.5';
                 applyBtn.style.cursor = 'not-allowed';
-                applyBtn.title = 'Debug panel is closed. Cannot apply changes while #debug-unlocks is null. Open it to apply changes.';
+                applyBtn.title = 'Overlay element is null. Cannot apply changes while the parent overlay element is null.';
                 applyBtn.style.background = '#333';
             } else {
                 applyBtn.disabled = false;
