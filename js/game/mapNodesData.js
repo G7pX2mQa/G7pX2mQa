@@ -20,12 +20,13 @@ export const MAP_NODES = [
     },
     {
         id: "coral",
-        areaKey: null,
+        areaKey: "CORAL_REEF",
         name: "Coral Reef",
-        icon: "img/misc/mysterious_plus_base.webp",
+        icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
         top: "51%",
         left: "25%",
         defaultLocked: true,
+        previousNodeId: "cavern",
     },
     {
         id: "below",
