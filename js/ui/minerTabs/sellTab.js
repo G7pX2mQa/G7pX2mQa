@@ -498,7 +498,10 @@ ${clickWord} the button below to toggle whether you sell Materials for Scrap or 
 }
 
 export function updateSellTab() {
-    if (!hasViewedSellTab()) setSellTabViewed(true);
+    const panel = document.getElementById("miner-panel-sell");
+    if (panel && panel.classList.contains("is-active")) {
+        if (!hasViewedSellTab()) setSellTabViewed(true);
+    }
     if (!sellPanelDomCache.listContainer) return;
     const showSideContainers = settingsManager.get("show_side_containers");
     if (sellPanelDomCache.sideLeft) sellPanelDomCache.sideLeft.style.display = showSideContainers ? "" : "none";
