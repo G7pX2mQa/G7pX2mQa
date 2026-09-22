@@ -1522,6 +1522,61 @@ export function enterArea(areaID, fadeDuration = 0) {
             break;
         }
 
+        case AREAS.CORAL_REEF: {
+            const materialsLayer = document.getElementById("materials-layer");
+            if (materialsLayer) materialsLayer.style.display = "none";
+            const coinsLayer = document.getElementById("coins-layer");
+            if (coinsLayer) coinsLayer.style.display = "none";
+            const scrapCounter = document.querySelector(".hud-top .scrap-counter");
+            if (scrapCounter) scrapCounter.style.display = "none";
+            const coinCounter = document.querySelector(".coin-counter");
+            if (coinCounter) coinCounter.style.display = "none";
+
+            syncXpMpHudLayout();
+
+            if (menuRoot) {
+                menuRoot.style.display = "none";
+            }
+            document.body.classList.remove("menu-bg");
+
+            const gameRoot = document.getElementById("game-root");
+            if (gameRoot) {
+                gameRoot.hidden = false;
+                const hudTop = gameRoot.querySelector(".hud-top");
+                if (hudTop) hudTop.style.display = "";
+            }
+
+            const waterBg = document.getElementById("water-background");
+            const waterFg = document.getElementById("water-foreground");
+            if (waterBg) waterBg.style.display = "none";
+            if (waterFg) waterFg.style.display = "none";
+
+            if (waterTickUnsub) {
+                try {
+                    waterTickUnsub();
+                } catch {}
+                waterTickUnsub = null;
+            }
+            if (waterFrameUnsub) {
+                try {
+                    waterFrameUnsub();
+                } catch {}
+                waterFrameUnsub = null;
+            }
+
+            document.body.style.backgroundColor = "#000";
+
+            if (spawner) {
+                spawner.stop();
+                if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield();
+            }
+            if (ucSpawner) {
+                ucSpawner.stop();
+                if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield("leave_area");
+            }
+            break;
+        }
+
         case AREAS.MENU: {
             if (menuRoot) {
                 menuRoot.style.display = "";
