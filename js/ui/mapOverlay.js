@@ -443,6 +443,18 @@ export function openMapOverlay(unlockedNodeId = null) {
         window.__mapSequenceTarget = unlockedNodeId;
         window.__wasJustMapSequence = true;
         window.__hideCursorTrail = true;
+        
+        import("../util/audioManager.js").then(({ loadAudio }) => {
+            loadAudio("sounds/explosion_long.ogg");
+            loadAudio("sounds/area_connector.ogg");
+        }).catch(() => {});
+        
+        const nodes = getMapNodes();
+        const targetNode = nodes.find(n => n.id === unlockedNodeId);
+        if (targetNode && targetNode.icon) {
+            const img = new Image();
+            img.src = targetNode.icon;
+        }
     }
     ensureMapOverlay(unlockedNodeId);
     refreshNodesState(unlockedNodeId);
@@ -468,12 +480,12 @@ export function openMapOverlay(unlockedNodeId = null) {
                     const line = overlay._nodeLines ? overlay._nodeLines[unlockedNodeId] : null;
                     const nodeBtn = overlay._nodeButtons ? overlay._nodeButtons[unlockedNodeId] : null;
                     if (line) {
-                        const audioInst = playAudio("sounds/area_connector.ogg", { type: "sfx", volume: 0.3 });
+                        const audioInst = playAudio("sounds/area_connector.ogg", { type: "sfx", volume: 0.3, persistOnHide: true });
                         line.style.opacity = "1";
                         line.style.transition = "stroke-dashoffset 4.5s linear";
                         line.style.strokeDashoffset = "0";
                         setTimeout(() => {
-                            playAudio("sounds/explosion_long.ogg", { type: "sfx", volume: 1.0 });
+                            playAudio("sounds/explosion_long.ogg", { type: "sfx", volume: 1.0, persistOnHide: true });
                         }, 4400);
                         setTimeout(() => {
                             if (audioInst && audioInst.stop) {
@@ -482,9 +494,12 @@ export function openMapOverlay(unlockedNodeId = null) {
                                 audioInst.pause();
                             }
 
-                            const hideStyle = document.getElementById("map-cursor-hide");
-                            if (hideStyle) hideStyle.remove();
-                            window.__hideCursorTrail = false;
+                            setTimeout(() => {
+                                const hideStyle = document.getElementById("map-cursor-hide");
+                                if (hideStyle) hideStyle.remove();
+                                window.__hideCursorTrail = false;
+                            }, 80);
+                            
                             if (nodeBtn) {
                                 nodeBtn.btn.style.animation = "mapNodePop 0.3s ease-out";
                                 const img = nodeBtn.btn.querySelector(".map-node-img");
@@ -531,4 +546,58 @@ if (typeof window !== "undefined") {
             refreshNodesState();
         }
     });
+}
+
+export function triggerMapSequence(nodeId) {
+    import("../game/surgeEffects.js").then(({ setMapSequenceSeen, getMapSequenceSeen }) => {
+        if (!getMapSequenceSeen(nodeId)) {
+            import("../util/bigCoinManager.js").then(({ collectActiveBigCoins }) => {
+                try { collectActiveBigCoins(); } catch (e) {}
+            }).catch(() => {});
+
+            if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("audio:stopMusic"));
+            if (window.spawner && typeof window.spawner.stop === "function") window.spawner.stop();
+            if (window.ucSpawner && typeof window.ucSpawner.stop === "function") window.ucSpawner.stop();
+
+            const pickaxe = typeof window !== "undefined" && window._ucPickaxeElement ? window._ucPickaxeElement : document.getElementById("uc-pickaxe");
+            if (pickaxe) {
+                pickaxe.style.display = "none";
+                pickaxe.style.transition = "none";
+                pickaxe.style.transform = "rotate(0deg)";
+                pickaxe._elapsedTime = undefined;
+                pickaxe._isFlying = false;
+                if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+            }
+
+            import("./shopOverlay.js").then(({ closeShop }) => {
+                try {
+                    closeShop(true);
+
+                    const upgSheet = document.querySelector(".upg-sheet");
+                    if (upgSheet) upgSheet.style.setProperty("transition", "none", "important");
+                    const shopSheet = document.querySelector(".shop-sheet");
+                    if (shopSheet) shopSheet.style.setProperty("transition", "none", "important");
+                    
+                    setTimeout(() => {
+                        if (upgSheet) upgSheet.style.transition = "";
+                        if (shopSheet) shopSheet.style.transition = "";
+                    }, 500);
+                } catch (e) {}
+            }).catch(() => {});
+
+            import("./merchantTabs/dlgTab.js").then(({ closeMerchant }) => {
+                try { 
+                    closeMerchant(); 
+                    const mSheet = document.querySelector(".merchant-sheet");
+                    if (mSheet) mSheet.style.setProperty("transition", "none", "important");
+                    setTimeout(() => {
+                        if (mSheet) mSheet.style.transition = "";
+                    }, 500);
+                } catch (e) {}
+            }).catch(() => {});
+
+            setMapSequenceSeen(nodeId, true);
+            openMapOverlay(nodeId);
+        }
+    }).catch(() => {});
 }
