@@ -193,6 +193,7 @@ export const UPGRADE_TIES = {
     UNLOCK_COMBINE: "none_7",
     UNLOCK_COMPRESS: "none_8",
     UNLOCK_COLLAPSE: "none_9",
+    UNLOCK_CORAL_REEF: "unlock_coral_reef",
     ENDLESS_COINS: "book_4",
     ENDLESS_COINS_II: "gold_5",
     ENDLESS_COINS_III: "magic_5",
@@ -4235,6 +4236,26 @@ export function buyOne(areaKey, upgId) {
     invalidateUpgradeState(areaKey, upgId);
     emitUpgradeLevelChange(upg, lvlNum, prevLevelBn, state.lvl, state.lvlBn);
     notifyChanged();
+
+    if (upg.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) {
+        const slot = typeof getActiveSlot === "function" ? getActiveSlot() : null;
+        let hasSeen = false;
+        let isCurrentlyLocked = true;
+        try { 
+            if (slot != null) {
+                hasSeen = lsGetItem(`ccc:unlock:mapSequence:coral:${slot}`) === "1";
+                const val = lsGetItem(`ccc:map:locked:coral:${slot}`);
+                if (val != null) isCurrentlyLocked = val === "1";
+            }
+        } catch {}
+        if (!hasSeen && isCurrentlyLocked) {
+            if (typeof window !== "undefined") window.__suppressPurchaseSfx = true;
+            import("../ui/mapOverlay.js").then(({ triggerMapSequence }) => {
+                triggerMapSequence("coral");
+            }).catch(() => {});
+        }
+    }
+
     return { bought: 1, spent };
 }
 
@@ -4515,6 +4536,26 @@ export function buyMax(areaKey, upgId) {
         invalidateUpgradeState(areaKey, upgId);
         emitUpgradeLevelChange(upg, prevLevelNum, prevLevel, state.lvl, state.lvlBn);
         notifyChanged();
+
+        if (upg.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) {
+            const slot = typeof getActiveSlot === "function" ? getActiveSlot() : null;
+            let hasSeen = false;
+            let isCurrentlyLocked = true;
+            try { 
+                if (slot != null) {
+                    hasSeen = lsGetItem(`ccc:unlock:mapSequence:coral:${slot}`) === "1";
+                    const val = lsGetItem(`ccc:map:locked:coral:${slot}`);
+                    if (val != null) isCurrentlyLocked = val === "1";
+                }
+            } catch {}
+            if (!hasSeen && isCurrentlyLocked) {
+                if (typeof window !== "undefined") window.__suppressPurchaseSfx = true;
+                import("../ui/mapOverlay.js").then(({ triggerMapSequence }) => {
+                    triggerMapSequence("coral");
+                }).catch(() => {});
+            }
+        }
+
         return { bought: purchased, spent: BigNum.fromInt(0) };
     }
 
@@ -4554,6 +4595,26 @@ export function buyMax(areaKey, upgId) {
     invalidateUpgradeState(areaKey, upgId);
     emitUpgradeLevelChange(upg, lvlNum, lvlBn, state.lvl, state.lvlBn);
     notifyChanged();
+
+    if (upg.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) {
+        const slot = typeof getActiveSlot === "function" ? getActiveSlot() : null;
+        let hasSeen = false;
+        let isCurrentlyLocked = true;
+        try { 
+            if (slot != null) {
+                hasSeen = lsGetItem(`ccc:unlock:mapSequence:coral:${slot}`) === "1";
+                const val = lsGetItem(`ccc:map:locked:coral:${slot}`);
+                if (val != null) isCurrentlyLocked = val === "1";
+            }
+        } catch {}
+        if (!hasSeen && isCurrentlyLocked) {
+            if (typeof window !== "undefined") window.__suppressPurchaseSfx = true;
+            import("../ui/mapOverlay.js").then(({ triggerMapSequence }) => {
+                triggerMapSequence("coral");
+            }).catch(() => {});
+        }
+    }
+
     return { bought: countBn, spent };
 }
 
