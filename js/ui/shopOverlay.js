@@ -2598,6 +2598,13 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             const costs = info.querySelector(".upg-costs");
             if (costs) costs.remove();
         }
+
+        if (info.children.length === 0) {
+            info.style.display = "none";
+        } else {
+            info.style.display = "";
+        }
+
         // Milestones Row
         const milestonesContainer = upgSheetEl.querySelector(".upg-milestones");
         let milestonesRow = milestonesContainer.querySelector(".hm-view-milestones-row");
