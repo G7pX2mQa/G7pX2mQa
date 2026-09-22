@@ -154,3 +154,11 @@
   transform: translateZ(0);
   will-change: transform;
 }
+
+.area-coral .playfield {
+  background-color: #000;
+}
+.area-coral .playfield::before,
+.area-coral .playfield::after {
+  display: none;
+}
