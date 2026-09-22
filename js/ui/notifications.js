@@ -66,14 +66,17 @@ export function nukeNotifications(clearAll = true) {
     }
 }
 
-export function clearSpecificNotification(textSubstring) {
+export function clearSpecificNotification(textSubstring, instant = false) {
     for (const notif of activeNotifications) {
         if (notif.element && notif.element.innerHTML.includes(textSubstring)) {
             if (notif.timeoutId) {
                 clearTimeout(notif.timeoutId);
                 notif.timeoutId = null;
             }
-            if (typeof notif.triggerLeaving === "function") {
+            if (instant) {
+                if (notif.element.isConnected) notif.element.remove();
+                if (typeof notif.resolve === "function") notif.resolve();
+            } else if (typeof notif.triggerLeaving === "function") {
                 notif.triggerLeaving();
             }
         }
@@ -181,11 +184,36 @@ function displayNotification(text, iconSrc, duration) {
         el.className = "notification";
 
         if (iconSrc) {
-            const icon = document.createElement("img");
-            icon.src = iconSrc;
-            icon.className = "notification-icon";
-            icon.alt = "";
-            el.appendChild(icon);
+            if (Array.isArray(iconSrc)) {
+                const wrapper = document.createElement("div");
+                wrapper.className = "notification-icon-wrapper";
+                wrapper.style.position = "relative";
+                wrapper.style.width = "40px";
+                wrapper.style.height = "40px";
+                wrapper.style.flexShrink = "0";
+
+                iconSrc.forEach((src, index) => {
+                    const icon = document.createElement("img");
+                    icon.src = src;
+                    icon.style.position = "absolute";
+                    icon.style.top = "0";
+                    icon.style.left = "0";
+                    icon.style.width = "100%";
+                    icon.style.height = "100%";
+                    if (index > 0) {
+                        icon.style.transform = "scale(0.65)";
+                    }
+                    icon.alt = "";
+                    wrapper.appendChild(icon);
+                });
+                el.appendChild(wrapper);
+            } else {
+                const icon = document.createElement("img");
+                icon.src = iconSrc;
+                icon.className = "notification-icon";
+                icon.alt = "";
+                el.appendChild(icon);
+            }
         }
 
         const content = document.createElement("div");
