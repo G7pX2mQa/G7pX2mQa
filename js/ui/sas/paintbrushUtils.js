@@ -16,6 +16,7 @@ export function createPaintbrush({
     let lastToggledRow = null;
     let lastMouseX = 0;
     let lastMouseY = 0;
+    let validationInterval = null;
 
     function open() {
         if (paintbrushActive) return;
@@ -118,6 +119,23 @@ export function createPaintbrush({
 
         document.body.appendChild(paintbrushPopup);
 
+        validationInterval = setInterval(() => {
+            const overlayEl = getOverlayEl();
+            if (!overlayEl) {
+                applyBtn.disabled = true;
+                applyBtn.style.opacity = '0.5';
+                applyBtn.style.cursor = 'not-allowed';
+                applyBtn.title = 'Debug panel is closed. Cannot apply changes while #debug-unlocks is null. Open it to apply changes.';
+                applyBtn.style.background = '#333';
+            } else {
+                applyBtn.disabled = false;
+                applyBtn.style.opacity = '1';
+                applyBtn.style.cursor = 'pointer';
+                applyBtn.title = '';
+                applyBtn.style.background = '#008800';
+            }
+        }, 100);
+
         document.addEventListener('mousedown', handleMouseDownDocument);
         document.addEventListener('mouseup', handleMouseUpDocument);
         document.addEventListener('mousemove', handleMouseMoveDocument);
@@ -141,6 +159,11 @@ export function createPaintbrush({
         document.removeEventListener('touchmove', handleTouchMoveDocument);
 
         stopAutoScroll();
+
+        if (validationInterval) {
+            clearInterval(validationInterval);
+            validationInterval = null;
+        }
 
         cleanupEvents();
     }
