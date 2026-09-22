@@ -300,10 +300,14 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                         if (window.spawner && typeof window.spawner.start === "function") {
                             window.spawner.start();
                         }
-                    } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
+                    } else if (currentArea === AREAS.UNDERWATER_CAVERN || currentArea === AREAS.CORAL_REEF) {
                         if (window.spawner) {
                             if (typeof window.spawner.stop === "function") window.spawner.stop();
                             if (typeof window.spawner.clearPlayfield === "function") window.spawner.clearPlayfield();
+                        }
+                        if (currentArea === AREAS.CORAL_REEF && window.ucSpawner) {
+                            if (typeof window.ucSpawner.stop === "function") window.ucSpawner.stop();
+                            if (typeof window.ucSpawner.clearPlayfield === "function") window.ucSpawner.clearPlayfield("leave_area");
                         }
                     }
                 }
