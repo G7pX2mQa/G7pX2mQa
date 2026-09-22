@@ -309,11 +309,13 @@ function refreshLiveBindings(predicate) {
 }
 
 function setupLiveBindingListeners() {
-    window.addEventListener("debug:reinit_paintbrush", () => {
+    const reinitPaintbrushHandler = () => {
         if (typeof unlocksPaintbrush !== "undefined" && unlocksPaintbrush.isActive()) {
             unlocksPaintbrush.reinit?.();
         }
-    });
+    };
+    window.addEventListener("debug:reinit_paintbrush", reinitPaintbrushHandler);
+    addDebugPanelCleanup(() => window.removeEventListener("debug:reinit_paintbrush", reinitPaintbrushHandler));
     if (typeof window === "undefined") return;
 
     const currencyHandler = (event) => {
