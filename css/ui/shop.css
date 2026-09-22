@@ -572,7 +572,11 @@ html.is-mobile {
 }
 
 .upg-desc.centered.lock-desc{
-  margin: auto;
+  
+}
+
+.upg-sheet.is-locked-hidden .upg-info {
+  display: none;
 }
 
 .upg-info{
