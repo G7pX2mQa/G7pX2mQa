@@ -4,12 +4,14 @@ import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from "../ui/
 import { isLabUnlocked, getMapSequenceSeen } from "./surgeEffects.js";
 import { hasDoneExperimentReset } from "../ui/merchantTabs/resetTab.js";
 import { hasEvolvedAnyUpgrade } from "./upgrades.js";
-import { showNotification } from "../ui/notifications.js";
+import { showNotification, clearSpecificNotification } from "../ui/notifications.js";
 export const ACHIEVEMENT_STATES = {
     NOT_OWNED: 0,
     PENDING_CLAIM: 1,
     ACHIEVED: 2,
 };
+
+import { hasDoneCombineReset, hasDoneCompressReset } from "../ui/minerTabs/resetTab.js";
 
 const _rawAchievements = [
     {
@@ -98,6 +100,43 @@ const _rawAchievements = [
             return typeof window !== "undefined" && !window.__mapSequenceActive;
         },
     },
+    {
+        id: 9,
+        title: "Combined",
+        desc: "Perform a Combine reset",
+        icon: "img/misc/combine_plus_base.webp",
+        checkCondition: () => hasDoneCombineReset(),
+    },
+    {
+        id: 10,
+        title: "Compressed",
+        desc: "Perform a Compress reset",
+        icon: "img/misc/compress_plus_base.webp",
+        checkCondition: () => hasDoneCompressReset(),
+    },
+    {
+        id: 11,
+        title: "Challenge of Stone",
+        desc: "Complete the Challenge of Stone",
+        icon: ["img/currencies/rubble/rubble_base.webp", "img/materials/stone.webp"],
+        checkCondition: () => {
+            const slot = getActiveSlot();
+            return lsGetItem(`ccc:collapseChallengeCompleted:stone:${slot}`) === "1";
+        },
+    },
+    {
+        id: 12,
+        title: "The Colorful Realm",
+        desc: "Unlock the Coral Reef area",
+        icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        checkCondition: () => {
+            const hasSeenUnlockSequence = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral_reef");
+            return hasSeenUnlockSequence || isMapNodeUnlocked("coral_reef", true);
+        },
+        notifyCondition: () => {
+            return typeof window !== "undefined" && !window.__mapSequenceActive;
+        },
+    },
 ];
 export const ACHIEVEMENTS = _rawAchievements.map((ach, index) => {
     return {
@@ -175,6 +214,9 @@ export function checkAchievements(slot = getActiveSlot()) {
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.PENDING_CLAIM, slot);
                 changed = true;
                 if (!achievement.notifyCondition || achievement.notifyCondition()) {
+                    if (achievement.title.startsWith("Challenge of")) {
+                        clearSpecificNotification("Goal complete!");
+                    }
                     showNotification(
                         `Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
                         achievement.icon,
@@ -193,6 +235,9 @@ export function showDelayedAchievementNotifications() {
     if (typeof window === "undefined") return;
     if (window.__delayedAchievementNotifications && window.__delayedAchievementNotifications.length > 0) {
         for (const notif of window.__delayedAchievementNotifications) {
+            if (notif.title.startsWith("Challenge of")) {
+                clearSpecificNotification("Goal complete!");
+            }
             showNotification(
                 `Achievement: "${notif.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
                 notif.icon,
