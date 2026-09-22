@@ -560,7 +560,7 @@ export function setAudioSuspended(suspended) {
           sfxGain.gain.cancelScheduledValues(now);
           sfxGain.gain.setValueAtTime(0, now);
         }
-      } else if (window._prismaticCinematicActive) {
+      } else if (window._prismaticCinematicActive || (typeof window !== 'undefined' && window.__mapSequenceActive)) {
         // Mute master output but keep context running to maintain sync with visual animation
         window._wasMutedForCinematic = true;
         if (masterGain) {
