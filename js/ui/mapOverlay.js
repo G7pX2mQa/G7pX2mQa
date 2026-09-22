@@ -498,7 +498,7 @@ export function openMapOverlay(unlockedNodeId = null) {
                                 const hideStyle = document.getElementById("map-cursor-hide");
                                 if (hideStyle) hideStyle.remove();
                                 window.__hideCursorTrail = false;
-                            }, 80);
+                            }, 67);
                             
                             if (nodeBtn) {
                                 nodeBtn.btn.style.animation = "mapNodePop 0.3s ease-out";
