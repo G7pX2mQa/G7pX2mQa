@@ -301,7 +301,7 @@ const GOALS = [
     {
         id: 14,
         text: "Purchase the upgrade to unlock the next area",
-        icon: "img/currencies/coral/coral_red_plus_base.webp",
+        icon: "img/currencies/coral/coral_red.webp",
         unlocksHelpText: true,
         mode: GOAL_MODE.NORMAL,
         start: 0,
