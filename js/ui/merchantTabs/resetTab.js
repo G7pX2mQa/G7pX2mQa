@@ -1366,17 +1366,9 @@ export function performSurgeReset() {
         setNodeLocked("cavern", false);
         const hasSeenSequence = getMapSequenceSeen("cavern");
         if (!hasSeenSequence) {
-            collectActiveBigCoins();
-            if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("audio:stopMusic"));
-            if (window.spawner && typeof window.spawner.stop === "function") window.spawner.stop();
-            try {
-                closeShop(true);
-            } catch {}
-            try {
-                closeMerchant();
-            } catch {}
-            setMapSequenceSeen("cavern", true);
-            openMapOverlay("cavern");
+            import("../mapOverlay.js").then(({ triggerMapSequence }) => {
+                triggerMapSequence("cavern");
+            }).catch(() => {});
             try {
                 checkAchievements();
             } catch {}
