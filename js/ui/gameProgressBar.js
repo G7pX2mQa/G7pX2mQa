@@ -7,6 +7,11 @@ import { registerFrame, registerUiFrame } from "../game/gameLoop.js";
 import { settingsManager } from "../game/settingsManager.js";
 import { showNotification } from "../ui/notifications.js";
 import { getResearchNodeLevel, RESEARCH_NODES } from "../game/labNodes.js";
+import { getDpState } from "../game/dpSystem.js";
+import { getPpState } from "../game/ppSystem.js";
+import { getActiveCollapseChallengeType } from "./minerTabs/collapseTab.js";
+import { getMapSequenceSeen } from "../game/surgeEffects.js";
+
 const GOAL_MODE = {
     NORMAL: "normal",
     LOGARITHMIC: "logarithmic",
@@ -213,6 +218,109 @@ const GOALS = [
             return lsGetItem(`ccc:unlock:shop:uc:${slot}`) === "1";
         },
     },
+    {
+        id: 10,
+        text: "Reach Depth: 31m",
+        icon: "img/misc/combine.webp",
+        unlocksHelpText: true,
+        mode: GOAL_MODE.NORMAL,
+        start: 0,
+        target: 31,
+        getCurrent: () => {
+            const state = getDpState();
+            if (!state || !state.unlocked) return 0;
+            return levelBigNumToNumber(state.dpLevel);
+        },
+        isComplete: () => {
+            const state = getDpState();
+            if (!state || !state.unlocked) return false;
+            return levelBigNumToNumber(state.dpLevel) >= 31;
+        },
+    },
+    {
+        id: 11,
+        text: "Reach Surge 200",
+        icon: "img/misc/compress.webp",
+        unlocksHelpText: true,
+        mode: GOAL_MODE.NORMAL,
+        start: 0,
+        target: 200,
+        getCurrent: () => {
+            let level = getCurrentSurgeLevel();
+            if (typeof level === "number") return level;
+            if (level === Infinity || level === "Infinity") return 200;
+            return 0;
+        },
+        isComplete: () => {
+            let level = getCurrentSurgeLevel();
+            if (level === Infinity || level === "Infinity") return true;
+            if (typeof level === "number") return level >= 200;
+            return false;
+        },
+    },
+    {
+        id: 12,
+        text: "Reach Pressure: 31atm",
+        icon: "img/currencies/rubble/rubble.webp",
+        unlocksHelpText: true,
+        mode: GOAL_MODE.NORMAL,
+        start: 0,
+        target: 31,
+        getCurrent: () => {
+            const state = getPpState();
+            if (!state || !state.unlocked) return 0;
+            return levelBigNumToNumber(state.ppLevel);
+        },
+        isComplete: () => {
+            const state = getPpState();
+            if (!state || !state.unlocked) return false;
+            return levelBigNumToNumber(state.ppLevel) >= 31;
+        },
+    },
+    {
+        id: 13,
+        text: "Reach the goal of CoS",
+        icon: "img/materials/stone.webp",
+        unlocksHelpText: false,
+        mode: GOAL_MODE.NORMAL,
+        start: 0,
+        target: 31,
+        getCurrent: () => {
+            if (getActiveCollapseChallengeType() !== "stone") return 0;
+            const state = getPpState();
+            if (!state || !state.unlocked) return 0;
+            return levelBigNumToNumber(state.ppLevel);
+        },
+        isComplete: () => {
+            if (getActiveCollapseChallengeType() !== "stone") return false;
+            const state = getPpState();
+            if (!state || !state.unlocked) return false;
+            return levelBigNumToNumber(state.ppLevel) >= 31;
+        },
+    },
+    {
+        id: 14,
+        text: "Purchase the upgrade to unlock the next area",
+        icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        unlocksHelpText: true,
+        mode: GOAL_MODE.NORMAL,
+        start: 0,
+        target: 1,
+        getCurrent: () => {
+            const slot = getActiveSlot();
+            const val = lsGetItem(`ccc:map:locked:coral_reef:${slot}`);
+            const unlocked = (val != null) ? val !== "1" : false;
+            const seen = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral_reef");
+            return (unlocked || seen) ? 1 : 0;
+        },
+        isComplete: () => {
+            const slot = getActiveSlot();
+            const val = lsGetItem(`ccc:map:locked:coral_reef:${slot}`);
+            const unlocked = (val != null) ? val !== "1" : false;
+            const seen = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral_reef");
+            return unlocked || seen;
+        },
+    },
 ];
 export function showDelayedGoalNotifications() {
     if (typeof window === "undefined") return;
@@ -249,9 +357,33 @@ export function updateGameProgressBar() {
         const compKey = `ccc:goal:completed:${goal.id}:${slot}`;
         const notifKey = `ccc:goal:notified:${goal.id}:${slot}`;
         let isComp = lsGetItem(compKey) === "1" || lsGetItem(notifKey) === "1";
-        if (!isComp && goal.isComplete()) {
-            isComp = true;
-            lsSetItem(compKey, "1");
+        if (!isComp) {
+            let match = goal.text.match(/^Reach the goal of (Co|Challenge of )([a-zA-Z\s_]+)$/i);
+            if (match) {
+                let identifier = match[2].trim().toLowerCase();
+                let map = {
+                    "s": "stone", "stone": "stone",
+                    "c": "copper", "copper": "copper",
+                    "i": "iron", "iron": "iron",
+                    "pg": "pure_gold", "pure gold": "pure_gold", "pure_gold": "pure_gold",
+                    "d": "diamond", "diamond": "diamond",
+                    "e": "emerald", "emerald": "emerald",
+                    "r": "ruby", "ruby": "ruby",
+                    "sa": "sapphire", "sapphire": "sapphire",
+                    "u": "unobtainium", "unobtainium": "unobtainium",
+                    "p": "prismatium", "prismatium": "prismatium"
+                };
+                let material = map[identifier];
+                if (material && lsGetItem(`ccc:collapseChallengeCompleted:${material}:${slot}`) === "1") {
+                    isComp = true;
+                }
+            }
+            if (!isComp && goal.isComplete()) {
+                isComp = true;
+            }
+            if (isComp) {
+                lsSetItem(compKey, "1");
+            }
         }
         if (isComp) {
             if (!lsGetItem(notifKey)) {
@@ -265,8 +397,8 @@ export function updateGameProgressBar() {
                 if (!settingsManager.get("game_progress_bar")) {
                     lsSetItem(notifKey, "1");
                 } else {
-                    const shouldDelayForTsunami = goal.id !== 8 && window.__tsunamiActive;
-                    const shouldDelayForMap = goal.id === 8 && window.__mapSequenceActive;
+                    const shouldDelayForTsunami = goal.id !== 8 && goal.id !== 14 && window.__tsunamiActive;
+                    const shouldDelayForMap = (goal.id === 8 || goal.id === 14) && window.__mapSequenceActive;
                     const customDuration = goal.unlocksUpgradeText ? 8000 : 5000;
                     if (typeof window !== "undefined" && (shouldDelayForTsunami || shouldDelayForMap)) {
                         window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
