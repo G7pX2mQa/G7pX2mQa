@@ -1366,9 +1366,12 @@ export function performSurgeReset() {
         setNodeLocked("cavern", false);
         const hasSeenSequence = getMapSequenceSeen("cavern");
         if (!hasSeenSequence) {
+            if (typeof window !== "undefined") window.__mapSequenceActive = true;
             import("../mapOverlay.js").then(({ triggerMapSequence }) => {
                 triggerMapSequence("cavern");
-            }).catch(() => {});
+            }).catch(() => {
+                if (typeof window !== "undefined") window.__mapSequenceActive = false;
+            });
             try {
                 checkAchievements();
             } catch {}
