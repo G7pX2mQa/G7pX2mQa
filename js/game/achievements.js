@@ -113,6 +113,7 @@ const _rawAchievements = [
         desc: "Perform a Compress reset",
         icon: "img/misc/compress_plus_base.webp",
         checkCondition: () => hasDoneCompressReset(),
+        notifyCondition: () => typeof window !== "undefined" && !window._prismaticCinematicActive,
     },
     {
         id: 11,
@@ -248,6 +249,8 @@ export function showDelayedAchievementNotifications() {
 }
 if (typeof window !== "undefined") {
     window.addEventListener("forge:completed", () => checkAchievements());
+    window.addEventListener("compress:reset", () => checkAchievements());
+    window.addEventListener("combine:reset", () => checkAchievements());
     window.addEventListener("unlock:change", () => checkAchievements());
     window.addEventListener("saveSlot:change", () => {
         achievementStateCache.clear();
