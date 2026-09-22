@@ -253,6 +253,77 @@ const HELP_ENTRIES = [
             return isVis;
         },
     },
+    {
+        id: 9,
+        title: "Combine",
+        icon: "img/misc/combine.webp",
+        text: "placeholder",
+        isVisible: () => {
+            if (isHelpEntryPermanentlyUnlocked(9)) return true;
+            let isVis = false;
+            try {
+                const slot = getActiveSlot();
+                isVis = lsGetItem(`ccc:goal:completed:10:${slot}`) === "1";
+            } catch {
+                isVis = false;
+            }
+            if (isVis) markHelpEntryPermanentlyUnlocked(9);
+            return isVis;
+        },
+    },
+    {
+        id: 10,
+        title: "Compress",
+        icon: "img/misc/compress.webp",
+        text: "placeholder",
+        isVisible: () => {
+            if (isHelpEntryPermanentlyUnlocked(10)) return true;
+            let isVis = false;
+            try {
+                const slot = getActiveSlot();
+                isVis = lsGetItem(`ccc:goal:completed:11:${slot}`) === "1";
+            } catch {
+                isVis = false;
+            }
+            if (isVis) markHelpEntryPermanentlyUnlocked(10);
+            return isVis;
+        },
+    },
+    {
+        id: 11,
+        title: "Collapse",
+        icon: "img/currencies/rubble/rubble.webp",
+        text: "placeholder",
+        isVisible: () => {
+            if (isHelpEntryPermanentlyUnlocked(11)) return true;
+            let isVis = false;
+            try {
+                const slot = getActiveSlot();
+                isVis = lsGetItem(`ccc:goal:completed:12:${slot}`) === "1";
+            } catch {
+                isVis = false;
+            }
+            if (isVis) markHelpEntryPermanentlyUnlocked(11);
+            return isVis;
+        },
+    },
+    {
+        id: 12,
+        title: "Coral Reef",
+        icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        text: "placeholder",
+        isVisible: () => {
+            if (isHelpEntryPermanentlyUnlocked(12)) return true;
+            let isVis = false;
+            try {
+                isVis = !isNodeLocked("coral_reef", true);
+            } catch {
+                isVis = false;
+            }
+            if (isVis) markHelpEntryPermanentlyUnlocked(12);
+            return isVis;
+        },
+    },
 ];
 let currentEntryId = HELP_ENTRIES[0].id;
 let overlayEl = null;
@@ -376,7 +447,6 @@ function renderHelpContent(force = false) {
     let sidebarHtml = '<div class="help-sidebar-wrapper"><aside class="help-sidebar">';
     visibleEntries.forEach((entry) => {
         const isActive = entry.id === currentEntryId ? "is-active" : "";
-        // map id to class string
         const classMap = {
             1: "is-welcome",
             2: "is-forge",
@@ -387,7 +457,7 @@ function renderHelpContent(force = false) {
             7: "is-flow",
         };
 
-        const themeClass = classMap[entry.id];
+        const themeClass = classMap[entry.id] || "";
         sidebarHtml += `<button type="button" class="help-layer ${isActive} ${themeClass}" data-help-id="${entry.id}">
       <img src="${entry.icon}" alt="">
       <span>${entry.title}</span>
@@ -405,7 +475,7 @@ function renderHelpContent(force = false) {
         7: "is-flow",
     };
 
-    let currentThemeClass = classMap[currentEntry.id];
+    let currentThemeClass = classMap[currentEntry.id] || "";
     let entryText = currentEntry.text;
     if (IS_MOBILE && currentEntry.hasMobileVariant && currentEntry.mobileText) {
         entryText = currentEntry.mobileText;
