@@ -264,6 +264,9 @@ export function refreshButtonVisibility() {
     if (currentArea === 2) {
         // 2 = AREAS.UNDERWATER_CAVERN
         shopVisible = isShopUcUnlocked();
+    } else if (currentArea === 3) {
+        // 3 = AREAS.CORAL_REEF
+        shopVisible = false;
     } else {
         shopVisible = isShopUnlocked();
     }
