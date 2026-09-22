@@ -310,7 +310,7 @@ const HELP_ENTRIES = [
     {
         id: 12,
         title: "Coral Reef",
-        icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        icon: "img/currencies/coral/coral_red_plus_base.webp",
         text: "placeholder",
         isVisible: () => {
             if (isHelpEntryPermanentlyUnlocked(12)) return true;
