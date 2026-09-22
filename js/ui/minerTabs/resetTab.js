@@ -1,5 +1,6 @@
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
+import { showDelayedAchievementNotifications } from "../../game/achievements.js";
 import {
     getActiveSlot,
     bank,
@@ -180,6 +181,9 @@ export function performCompressReset() {
         return false;
     }
     const isFirstCompress = !hasDoneCompressReset();
+    if (isFirstCompress) {
+        window._prismaticCinematicActive = true;
+    }
 
     const reward = resetState.pendingCrystals.clone?.() ?? resetState.pendingCrystals;
     // Add crystals
@@ -239,6 +243,7 @@ export function performCompressReset() {
             bank.waves.set(0);
         }
     } catch {}
+    
     try {
         window.dispatchEvent(new CustomEvent("compress:reset", { detail: { slot } }));
     } catch {}
@@ -249,7 +254,10 @@ export function performCompressReset() {
     if (isFirstCompress) {
         import("../../misc/prismaticPickaxeCinematic.js").then(({ playPrismaticPickaxeCinematic }) => {
             playPrismaticPickaxeCinematic(resetState.elements.compress.btn);
-        }).catch(() => {});
+        }).catch(() => {
+            window._prismaticCinematicActive = false;
+            showDelayedAchievementNotifications();
+        });
     }
     
     // Forcefully sync coin multiplier so that post-reset surge level 200 applies immediately.
