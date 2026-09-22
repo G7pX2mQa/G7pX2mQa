@@ -33,14 +33,14 @@ function renderAchievements(gridEl) {
         const tile = document.createElement("div");
         tile.className = "shop-tile";
         if (Array.isArray(achievement.icon)) {
-            achievement.icon.forEach((src) => {
+            achievement.icon.forEach((src, index) => {
                 const iconImg = document.createElement("img");
                 iconImg.className = "icon";
                 iconImg.alt = "";
                 iconImg.src = src;
-                // Absolute position overlays except the first, or let CSS handle it
-                // Usually shop-tile images are absolute or there's a specific wrapper.
-                // We'll just append them all with class="icon"
+                if (index > 0) {
+                    iconImg.style.transform = "translate(-50%, -50%) scale(0.5)";
+                }
                 tile.appendChild(iconImg);
             });
         } else {
