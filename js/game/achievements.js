@@ -216,7 +216,7 @@ export function checkAchievements(slot = getActiveSlot()) {
                 changed = true;
                 if (!achievement.notifyCondition || achievement.notifyCondition()) {
                     if (achievement.title.startsWith("Challenge of")) {
-                        clearSpecificNotification("Goal complete!");
+                        clearSpecificNotification("Goal complete!", true);
                     }
                     showNotification(
                         `Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
@@ -237,7 +237,7 @@ export function showDelayedAchievementNotifications() {
     if (window.__delayedAchievementNotifications && window.__delayedAchievementNotifications.length > 0) {
         for (const notif of window.__delayedAchievementNotifications) {
             if (notif.title.startsWith("Challenge of")) {
-                clearSpecificNotification("Goal complete!");
+                clearSpecificNotification("Goal complete!", true);
             }
             showNotification(
                 `Achievement: "${notif.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
@@ -250,7 +250,11 @@ export function showDelayedAchievementNotifications() {
 if (typeof window !== "undefined") {
     window.addEventListener("forge:completed", () => checkAchievements());
     window.addEventListener("compress:reset", () => checkAchievements());
+    window.addEventListener("compress:status", () => checkAchievements());
     window.addEventListener("combine:reset", () => checkAchievements());
+    window.addEventListener("combine:status", () => checkAchievements());
+    window.addEventListener("collapse:challenge:complete", () => checkAchievements());
+    window.addEventListener("debug:challenge:change", () => checkAchievements());
     window.addEventListener("unlock:change", () => checkAchievements());
     window.addEventListener("saveSlot:change", () => {
         achievementStateCache.clear();
