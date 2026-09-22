@@ -8,6 +8,7 @@ import { playAudio, setAudioUnderwater, fadeAudioUnderwaterToNormal, setCinemati
 import { closeMiner } from "../ui/minerTabs/dlgTab.js";
 import { closeShop } from "../ui/shopOverlay.js";
 import { disableGlobalOverlayEsc, enableGlobalOverlayEsc } from "../util/globalOverlayEsc.js";
+import { showDelayedAchievementNotifications } from "../game/achievements.js";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 const PRISMATIC_SRC  = "img/misc/prismatic_pickaxe.webp";
@@ -467,4 +468,6 @@ function cleanup(blocked, oldPickaxe, savedOldState, dom) {
 
     // Unblock user interaction
     unblockInteractions(blocked);
+
+    showDelayedAchievementNotifications();
 }
