@@ -308,16 +308,16 @@ const GOALS = [
         target: 1,
         getCurrent: () => {
             const slot = getActiveSlot();
-            const val = lsGetItem(`ccc:map:locked:coral_reef:${slot}`);
+            const val = lsGetItem(`ccc:map:locked:coral:${slot}`);
             const unlocked = (val != null) ? val !== "1" : false;
-            const seen = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral_reef");
+            const seen = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral");
             return (unlocked || seen) ? 1 : 0;
         },
         isComplete: () => {
             const slot = getActiveSlot();
-            const val = lsGetItem(`ccc:map:locked:coral_reef:${slot}`);
+            const val = lsGetItem(`ccc:map:locked:coral:${slot}`);
             const unlocked = (val != null) ? val !== "1" : false;
-            const seen = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral_reef");
+            const seen = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral");
             return unlocked || seen;
         },
     },
