@@ -4249,10 +4249,15 @@ export function buyOne(areaKey, upgId) {
             }
         } catch {}
         if (!hasSeen && isCurrentlyLocked) {
-            if (typeof window !== "undefined") window.__suppressPurchaseSfx = true;
+            if (typeof window !== "undefined") {
+                window.__suppressPurchaseSfx = true;
+                window.__mapSequenceActive = true;
+            }
             import("../ui/mapOverlay.js").then(({ triggerMapSequence }) => {
                 triggerMapSequence("coral");
-            }).catch(() => {});
+            }).catch(() => {
+                if (typeof window !== "undefined") window.__mapSequenceActive = false;
+            });
         }
     }
 
@@ -4549,10 +4554,15 @@ export function buyMax(areaKey, upgId) {
                 }
             } catch {}
             if (!hasSeen && isCurrentlyLocked) {
-                if (typeof window !== "undefined") window.__suppressPurchaseSfx = true;
+                if (typeof window !== "undefined") {
+                    window.__suppressPurchaseSfx = true;
+                    window.__mapSequenceActive = true;
+                }
                 import("../ui/mapOverlay.js").then(({ triggerMapSequence }) => {
                     triggerMapSequence("coral");
-                }).catch(() => {});
+                }).catch(() => {
+                    if (typeof window !== "undefined") window.__mapSequenceActive = false;
+                });
             }
         }
 
@@ -4608,10 +4618,15 @@ export function buyMax(areaKey, upgId) {
             }
         } catch {}
         if (!hasSeen && isCurrentlyLocked) {
-            if (typeof window !== "undefined") window.__suppressPurchaseSfx = true;
+            if (typeof window !== "undefined") {
+                window.__suppressPurchaseSfx = true;
+                window.__mapSequenceActive = true;
+            }
             import("../ui/mapOverlay.js").then(({ triggerMapSequence }) => {
                 triggerMapSequence("coral");
-            }).catch(() => {});
+            }).catch(() => {
+                if (typeof window !== "undefined") window.__mapSequenceActive = false;
+            });
         }
     }
 
