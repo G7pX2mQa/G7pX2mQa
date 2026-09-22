@@ -130,8 +130,8 @@ const _rawAchievements = [
         desc: "Unlock the Coral Reef area",
         icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
         checkCondition: () => {
-            const hasSeenUnlockSequence = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral_reef");
-            return hasSeenUnlockSequence || isMapNodeUnlocked("coral_reef", true);
+            const hasSeenUnlockSequence = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral");
+            return hasSeenUnlockSequence || isMapNodeUnlocked("coral", true);
         },
         notifyCondition: () => {
             return typeof window !== "undefined" && !window.__mapSequenceActive;
