@@ -672,7 +672,7 @@ export const UC_REGISTRY = [
         costType: "scrap",
         upgType: "NM",
         icon: "",
-        baseIconOverride: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        baseIconOverride: "img/currencies/coral/coral_red_plus_base.webp",
         costAtLevel(level) {
             return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
