@@ -129,7 +129,7 @@ const _rawAchievements = [
         id: 12,
         title: "The Colorful Realm",
         desc: "Unlock the Coral Reef area",
-        icon: "img/currencies/coral/coral_base_v1_plus_coral_red.webp",
+        icon: "img/currencies/coral/coral_red_plus_base.webp",
         checkCondition: () => {
             const hasSeenUnlockSequence = typeof getMapSequenceSeen === "function" && getMapSequenceSeen("coral");
             return hasSeenUnlockSequence || isMapNodeUnlocked("coral", true);
