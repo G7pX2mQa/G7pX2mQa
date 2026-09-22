@@ -653,6 +653,7 @@ export const AREAS = {
     MENU: 0,
     STARTER_COVE: 1,
     UNDERWATER_CAVERN: 2,
+    CORAL_REEF: 3,
     JAIL: 666,
 };
 
@@ -1208,13 +1209,19 @@ export function enterArea(areaID, fadeDuration = 0) {
             gameRoot.hidden = false;
             if (areaID === AREAS.STARTER_COVE) {
                 gameRoot.classList.remove("area-cavern");
+                gameRoot.classList.remove("area-coral");
                 gameRoot.classList.add("area-cove");
             } else if (areaID === AREAS.UNDERWATER_CAVERN) {
                 gameRoot.classList.remove("area-cove");
+                gameRoot.classList.remove("area-coral");
                 gameRoot.classList.add("area-cavern");
                 import("./ui/notifications.js").then(({ clearSpecificNotification }) => {
                     clearSpecificNotification("A new upgrade has appeared in Underwater Cavern!");
                 }).catch(() => {});
+            } else if (areaID === AREAS.CORAL_REEF) {
+                gameRoot.classList.remove("area-cove");
+                gameRoot.classList.remove("area-cavern");
+                gameRoot.classList.add("area-coral");
             }
             initHudButtons();
         }
