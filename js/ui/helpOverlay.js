@@ -245,7 +245,8 @@ const HELP_ENTRIES = [
             if (isHelpEntryPermanentlyUnlocked(8)) return true;
             let isVis = false;
             try {
-                isVis = !isNodeLocked("cavern", true);
+                const slot = getActiveSlot();
+                isVis = lsGetItem(`ccc:goal:completed:8:${slot}`) === "1";
             } catch {
                 isVis = false;
             }
@@ -310,13 +311,14 @@ const HELP_ENTRIES = [
     {
         id: 12,
         title: "Coral Reef",
-        icon: "img/currencies/coral/coral_red_plus_base.webp",
+        icon: "img/currencies/coral/coral_red.webp",
         text: "placeholder",
         isVisible: () => {
             if (isHelpEntryPermanentlyUnlocked(12)) return true;
             let isVis = false;
             try {
-                isVis = !isNodeLocked("coral_reef", true);
+                const slot = getActiveSlot();
+                isVis = lsGetItem(`ccc:goal:completed:14:${slot}`) === "1";
             } catch {
                 isVis = false;
             }
