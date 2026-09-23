@@ -370,7 +370,9 @@ if (!supportsCanvasFilters) {
 let initSlots;
 let createSpawner;
 let createUcSpawner;
+let createCoralSpawner;
 let initCoinPickup;
+let initCoralPickup;
 let refreshCoinMultiplierCache;
 let refreshMpValueMultiplierCache;
 let updateMutationSnapshot;
@@ -680,6 +682,8 @@ let currentMusic = null;
 window.isMusicPlaying = () => currentMusic !== null;
 let spawner = null;
 let ucSpawner = null;
+let coralSpawner = null;
+let coralPickupController = null;
 let cleanupUpgradesListener = null;
 
 /* ---------------------------
@@ -1286,6 +1290,26 @@ export function enterArea(areaID, fadeDuration = 0) {
         }
     }
 
+    if (!coralSpawner && typeof createCoralSpawner === "function") {
+        coralSpawner = createCoralSpawner({
+            coralHost: ".coral-layer",
+            shouldAutoResume: () => currentArea === AREAS.CORAL_REEF,
+        });
+        window.coralSpawner = coralSpawner;
+
+        if (!window.coralPickupController) {
+            const pickup = initCoralPickup({ spawner: coralSpawner });
+            window.coralPickupController = pickup;
+            coralPickupController = pickup;
+            if (coralSpawner && typeof coralSpawner.setDependencies === "function") {
+                coralSpawner.setDependencies({
+                    collectBatch: pickup.collectBatch,
+                    getMagnetUnit: pickup.getMagnetUnitPx,
+                });
+            }
+        }
+    }
+
     if (!spawner) {
         spawner = createSpawner({
             coinSrc: "img/currencies/coin/coin.webp",
@@ -1357,6 +1381,23 @@ export function enterArea(areaID, fadeDuration = 0) {
                         ucSpawner.setRate(rate);
                     }
                 }
+                if (coralSpawner) {
+                    let rate = 1.0;
+                    // TODO: add coralSpawnRateMult when coral upgrades exist
+                    if (typeof applyStatMultiplierOverride === "function") {
+                        const override = applyStatMultiplierOverride("coralSpawnRate", rate);
+                        try {
+                            if (override && typeof override.toScientific === "function") {
+                                rate = Number(override.toScientific(6));
+                            } else {
+                                rate = Number(override);
+                            }
+                        } catch {}
+                    }
+                    if (Number.isFinite(rate)) {
+                        coralSpawner.setRate(rate);
+                    }
+                }
             } catch {}
         };
         applyUpgradesToSpawner();
@@ -1375,6 +1416,10 @@ export function enterArea(areaID, fadeDuration = 0) {
         case AREAS.STARTER_COVE: {
             const materialsLayer = document.getElementById("materials-layer");
             if (materialsLayer) materialsLayer.style.display = "none";
+            const coralLayer = document.getElementById("coral-layer");
+            if (coralLayer) coralLayer.style.display = "none";
+            const coralCanopyLayer = document.getElementById("coral-canopy-layer");
+            if (coralCanopyLayer) coralCanopyLayer.style.display = "none";
             const coinsLayer = document.getElementById("coins-layer");
             if (coinsLayer) coinsLayer.style.display = "";
             const scrapCounter = document.querySelector(".hud-top .scrap-counter");
@@ -1460,12 +1505,20 @@ export function enterArea(areaID, fadeDuration = 0) {
                 ucSpawner.stop();
                 if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield("leave_area");
             }
+            if (coralSpawner) {
+                coralSpawner.stop();
+                if (typeof coralSpawner.clearPlayfield === "function") coralSpawner.clearPlayfield();
+            }
             break;
         }
 
         case AREAS.UNDERWATER_CAVERN: {
             const materialsLayer = document.getElementById("materials-layer");
             if (materialsLayer) materialsLayer.style.display = "";
+            const coralLayer = document.getElementById("coral-layer");
+            if (coralLayer) coralLayer.style.display = "none";
+            const coralCanopyLayer = document.getElementById("coral-canopy-layer");
+            if (coralCanopyLayer) coralCanopyLayer.style.display = "none";
             const coinsLayer = document.getElementById("coins-layer");
             if (coinsLayer) coinsLayer.style.display = "none";
             const scrapCounter = document.querySelector(".hud-top .scrap-counter");
@@ -1514,6 +1567,10 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (spawner) {
                 spawner.stop();
                 if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield();
+            }
+            if (coralSpawner) {
+                coralSpawner.stop();
+                if (typeof coralSpawner.clearPlayfield === "function") coralSpawner.clearPlayfield();
             }
             if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
                 ucSpawner.start();
@@ -1574,6 +1631,16 @@ export function enterArea(areaID, fadeDuration = 0) {
                 ucSpawner.stop();
                 if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield("leave_area");
             }
+
+            const coralLayer = document.getElementById("coral-layer");
+            if (coralLayer) coralLayer.style.display = "";
+            const coralCanopyLayer = document.getElementById("coral-canopy-layer");
+            if (coralCanopyLayer) coralCanopyLayer.style.display = "";
+
+            if (currentArea === AREAS.CORAL_REEF && coralSpawner) {
+                coralSpawner.start();
+            }
+            
             break;
         }
 
@@ -1613,6 +1680,10 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (ucSpawner) {
                 ucSpawner.stop();
                 if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield("leave_area");
+            }
+            if (coralSpawner) {
+                coralSpawner.stop();
+                if (typeof coralSpawner.clearPlayfield === "function") coralSpawner.clearPlayfield();
             }
 
             if (typeof pauseNotifications === "function") {
@@ -1945,6 +2016,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         import("./ui/sas/mainSettingsOverlay.js"),
         import("./ui/sas/performanceOverlay.js"),
         import("./ui/sas/multipliersOverlay.js"),
+        import("./game/coralSpawner.js"),
+        import("./game/coralPickup.js"),
     ]);
 
     const ASSET_MANIFEST = {
@@ -2156,6 +2229,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "sounds/notification.ogg",
             "sounds/opening.ogg",
             "sounds/pickup.ogg",
+			"sounds/pop.ogg",
             "sounds/projectile_spawn.ogg",
             "sounds/purchase_upg.ogg",
             "sounds/ruby_coin_finished.ogg",
@@ -2228,13 +2302,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         notificationModule,
         flowTabModule,
         mainSettingsOverlayModule,
+        performanceOverlayModule,
+        multipliersOverlayModule,
+        coralSpawnerModule,
+        coralPickupModule,
     ] = await modulePromise;
 
     ({ initSlots } = slotsModule);
     ({ createSpawner } = spawnerModule);
     ({ createUcSpawner } = ucSpawnerModule);
+    ({ createCoralSpawner } = coralSpawnerModule);
     ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } =
         coinPickupModule);
+    ({ initCoralPickup } = coralPickupModule);
     ({ initHudButtons, refreshButtonVisibility } = hudButtonsModule);
     ({
         bank,
