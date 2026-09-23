@@ -83,7 +83,6 @@
 .panel-title {
   font-size: var(--h2);
   color: var(--text-2);
-  text-transform: uppercase;
   letter-spacing: .4px;
   margin-bottom: var(--space-2);
 }
