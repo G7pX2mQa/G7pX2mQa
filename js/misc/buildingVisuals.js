@@ -6074,7 +6074,6 @@ let cachedFaceOnLink = null;
 let cachedSideOnLink = null;
 const cachedForcefields = {};
 
-
 function getMatchLength(str, target) {
   for (let len = str.length; len > 0; len--) {
     let suffix = str.slice(-len);
@@ -6239,7 +6238,6 @@ function handleVaultCanvasClick(e) {
     }
   }
 }
-
 
 function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   if (!pureGoldPattern && activeCtx) {
@@ -9990,7 +9988,6 @@ function drawGreenhouse(ctx, t, tier, prevTier, animProgress) {
 
 }
 
-
 let cachedAshCanvas = null;
 let cachedAshImg = null;
 function getAshCanvas() {
@@ -10929,9 +10926,6 @@ function drawReactor(ctx, t, tier, prevTier, animProgress) {
 
   ctx.restore();
 }
-
-
-
 
 function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
   if (!sapphirePattern) {
@@ -11905,6 +11899,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
   ctx.restore();
 }
+
 function drawBeacon(ctx, t, tier, prevTier, animProgress) {
   const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
   
@@ -13220,8 +13215,8 @@ function drawBeacon(ctx, t, tier, prevTier, animProgress) {
   } else {
     drawState(tier, 1.0);
   }
-
 }
+
 let tesseractStatic = null;
 function initTesseractGeometry() {
   if (tesseractStatic) return tesseractStatic;
