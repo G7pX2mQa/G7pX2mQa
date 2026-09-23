@@ -841,8 +841,11 @@ class SettingsManager {
 
         this.settings[key] = value;
         this._isDefault[key] = false;
-        const storageKey = this._getKey(key);
-        lsSetItem(storageKey, typeof value === "boolean" ? (value ? "1" : "0") : JSON.stringify(value));
+        const slot = getActiveSlot();
+        if (slot != null) {
+            const storageKey = this._getKey(key);
+            lsSetItem(storageKey, typeof value === "boolean" ? (value ? "1" : "0") : JSON.stringify(value));
+        }
         if (key === "number_notation") {
             setNumberNotation(value);
         }
