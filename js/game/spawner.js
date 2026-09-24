@@ -8,27 +8,27 @@ import { waterSystem } from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../util/bigCoinManager.js';
 import { settingsManager } from './settingsManager.js';
 import { AREAS, currentArea } from '../main.js';
-import { createBaseSpawner, CUBIC_BEZIER, getPreRenderedItem, getPreRenderedItemUrl, getPreRenderedImageBitmap, clearPreRenderedItems } from './spawnerCore.js';
+import { createBaseSpawner, CUBIC_BEZIER, getPreRenderedItem, getPreRenderedItemUrl, getPreRenderedImageBitmap, clearPreRenderedItems, getDynamicMaxCapacity } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0;
 
 function updateMutationSnapshot(state) {
-  if (!state || typeof state !== 'object') {
-    mutationUnlockedSnapshot = false;
-    mutationLevelSnapshot = 0;
-    return;
-  }
-  mutationUnlockedSnapshot = !!state.unlocked;
-  try {
-    const level = state.level;
-    const plain = typeof level?.toPlainIntegerString === 'function'
-      ? level.toPlainIntegerString()
-      : null;
-    mutationLevelSnapshot = plain && plain !== 'Infinity' ? Number(plain) : 0;
-  } catch {
-    mutationLevelSnapshot = 0;
-  }
+    if (!state || typeof state !== 'object') {
+        mutationUnlockedSnapshot = false;
+        mutationLevelSnapshot = 0;
+        return;
+    }
+    mutationUnlockedSnapshot = !!state.unlocked;
+    try {
+        const level = state.level;
+        const plain = typeof level?.toPlainIntegerString === 'function'
+        ? level.toPlainIntegerString()
+        : null;
+        mutationLevelSnapshot = plain && plain !== 'Infinity' ? Number(plain) : 0;
+    } catch {
+        mutationLevelSnapshot = 0;
+    }
 }
 
 try { updateMutationSnapshot(getMutationState()); } catch {}
@@ -66,21 +66,6 @@ const WAVE_DEFS = [
     { w: 85, h: 45 },  // Size 5
     { w: 120, h: 65 }, // Size 6
 ];
-
-
-function getDynamicMaxCapacity() {
-    if (typeof window === 'undefined') return IS_MOBILE ? 1000 : 5000;
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    const area = vw * vh;
-    
-    if (area >= 1000000) return 5000;
-    if (area <= 400000) return 1000;
-    
-    // Linear interpolation
-    const ratio = (area - 400000) / (1000000 - 400000);
-    return Math.floor(1000 + ratio * (5000 - 1000));
-}
 
 export function createSpawner(config = {}) {
     const {
