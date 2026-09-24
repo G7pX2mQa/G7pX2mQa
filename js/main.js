@@ -1971,6 +1971,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         let animation;
         coin.addEventListener("click", () => {
+            if (!getHasOpenedSaveSlot()) {
+                const currentCoins = Array.from(document.querySelectorAll(".menu-header .coin-o"));
+                const currentIndex = currentCoins.indexOf(coin);
+                const slotCards = document.querySelectorAll(".slot-card");
+                if (slotCards[currentIndex]) {
+                    slotCards[currentIndex].click();
+                }
+                return;
+            }
+
             if (animation) animation.cancel();
             animation = visual.animate([
                 { transform: "rotateY(0deg)" },
@@ -2664,6 +2674,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (titleEl) titleEl.style.opacity = "0";
     } else {
         if (titleEl) titleEl.style.opacity = "1";
+        window.addEventListener("boot:complete", () => {
+            const instr = document.getElementById("first-time-instruction");
+            if (instr) {
+                if (IS_MOBILE) {
+                    const span = instr.querySelector('.click-or-tap');
+                    if (span) span.textContent = "Tap";
+                }
+                instr.style.display = "block";
+                // Trigger reflow to ensure display: block is applied before opacity transition
+                void instr.offsetWidth;
+                instr.style.opacity = "1";
+            }
+        });
     }
 
     try {
