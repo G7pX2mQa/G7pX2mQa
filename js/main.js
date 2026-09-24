@@ -2196,6 +2196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             ...Array.from({ length: MAX_MUTATION_VISUAL }, (_, i) => `img/mutations/m${i + 1}.webp`),
         ],
         audio: [
+			"sounds/Coral_Reef.ogg",
             "sounds/Secret_Boss_Fight.ogg",
             "sounds/The_Cove.ogg",
             "sounds/Underwater_Cavern.ogg",
