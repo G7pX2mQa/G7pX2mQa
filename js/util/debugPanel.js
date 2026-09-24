@@ -580,12 +580,15 @@ const STAT_MULTIPLIERS = [
 function getAreas() {
     const coveCurrencies = [];
     const cavernCurrencies = [];
+    const coralCurrencies = [];
 
     Object.keys(CURRENCIES).forEach((key) => {
         const currencyKey = CURRENCIES[key];
         let label = "";
         if (key === "DNA") {
             label = "DNA";
+        } else if (key === "RED_CORAL") {
+            label = "Red Coral";
         } else {
             label = key
                 .split("_")
@@ -597,6 +600,8 @@ function getAreas() {
         // Handle logic directly matching the UNDERWATER_CAVERN string mapping or the AREA_KEYS
         if (area === "underwater_cavern") {
             cavernCurrencies.push({ key: currencyKey, label });
+        } else if (area === "coral_reef") {
+            coralCurrencies.push({ key: currencyKey, label });
         } else {
             coveCurrencies.push({ key: currencyKey, label });
         }
@@ -621,6 +626,14 @@ function getAreas() {
             stats: [
                 { key: "dp", label: "DP" },
                 { key: "pp", label: "PP" },
+            ],
+        },
+        {
+            key: "coral_reef",
+            title: "Coral Reef",
+            currencies: coralCurrencies,
+            stats: [
+                { key: "coralSpawnRate", label: "Coral Spawn Rate" },
             ],
         },
     ];
@@ -2958,6 +2971,80 @@ function buildAreaStats(container, area) {
         container.appendChild(spawnRateRow.row);
     }
 
+    if (area.key === "coral_reef") {
+        const coralSpawnRateKey = "coralSpawnRate";
+        const coralSpawnRateStorageKey = getStatMultiplierStorageKey(coralSpawnRateKey, slot);
+        const coralSpawnRateRow = createInputRow(
+            "Coral Spawn Rate",
+            getStatMultiplierDisplayValue(coralSpawnRateKey, slot),
+            (value, { setValue }) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                const previous = getStatMultiplierDisplayValue(coralSpawnRateKey, latestSlot);
+                try {
+                    setDebugStatMultiplierOverride(coralSpawnRateKey, value, latestSlot);
+                } catch {}
+                const refreshed = getStatMultiplierDisplayValue(coralSpawnRateKey, latestSlot);
+                setValue(refreshed);
+                if (!bigNumEquals(previous, refreshed)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified Coral Spawn Rate (${areaLabel}) ${formatNumber(previous)} -> ${formatNumber(refreshed)}`,
+                    );
+                }
+            },
+            {
+                storageKey: coralSpawnRateStorageKey,
+                onLockChange: (locked) => {
+                    const latestSlot = getActiveSlot();
+                    if (latestSlot == null) return;
+                    if (locked) {
+                        const existingOverride = getLockedStatOverride(latestSlot, coralSpawnRateKey);
+                        if (existingOverride) return;
+                        try {
+                            setDebugStatMultiplierOverride(
+                                coralSpawnRateKey,
+                                getGameStatMultiplier(coralSpawnRateKey),
+                                latestSlot,
+                            );
+                        } catch {}
+                    } else {
+                        getEffectiveStatMultiplierOverride(
+                            coralSpawnRateKey,
+                            latestSlot,
+                            getGameStatMultiplier(coralSpawnRateKey),
+                        );
+                    }
+                    coralSpawnRateRow.setValue(getStatMultiplierDisplayValue(coralSpawnRateKey, latestSlot));
+                },
+            },
+        );
+
+        registerLiveBinding({
+            type: "stat-mult",
+            key: coralSpawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(coralSpawnRateKey, slot);
+                coralSpawnRateRow.setValue(latest);
+            },
+        });
+
+        registerLiveBinding({
+            type: "upgrade",
+            key: coralSpawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(coralSpawnRateKey, slot);
+                coralSpawnRateRow.setValue(latest);
+            },
+        });
+
+        container.appendChild(coralSpawnRateRow.row);
+    }
+
     const xp = getXpState();
     const mutation = getMutationState();
     const areaLabel = area?.title ?? area?.key ?? "Unknown Area";
@@ -4919,6 +5006,8 @@ function buildAreaStatMultipliers(container, area) {
 
     STAT_MULTIPLIERS.forEach((stat) => {
         if (stat.key === "spawnRate") return;
+        if (stat.key === "coralSpawnRate") return;
+        if (area.key === "coral_reef") return; // coral reef has no other custom multipliers yet
         if (
             area.key === AREA_KEYS.UNDERWATER_CAVERN &&
             stat.key !== "dp" &&
@@ -5393,20 +5482,20 @@ function buildAreasContent(content) {
             let waterwheelsSection = null;
             let calculators = null;
 
-            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN || area.key === "coral_reef") {
                 stats = createSubsection("Stats", (sub) => {
                     buildAreaStats(sub, area);
                 });
             }
 
-            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN || area.key === "coral_reef") {
                 multipliers = createSubsection("Multipliers", (sub) => {
                     const currencyMultipliers = createSubsection("Currencies", (subsection) => {
                         buildAreaCurrencyMultipliers(subsection, area);
                     });
                     sub.appendChild(currencyMultipliers);
 
-                    if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+                    if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN || area.key === "coral_reef") {
                         const statMultipliers = createSubsection("Stats", (subsection) => {
                             buildAreaStatMultipliers(subsection, area);
                         });
@@ -5415,7 +5504,7 @@ function buildAreasContent(content) {
                 });
             }
 
-            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN || area.key === "coral_reef") {
                 upgrades = createSubsection("Upgrades", (sub) => {
                     buildAreaUpgrades(sub, area);
                 });
