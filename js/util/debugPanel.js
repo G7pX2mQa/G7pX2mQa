@@ -54,12 +54,15 @@ import {
     isMapUnlocked,
     isShopUnlocked,
     isShopUcUnlocked,
+    isShopCoralUnlocked,
     lockMap,
     lockShop,
     lockShopUc,
+    lockShopCoral,
     unlockMap,
     unlockShop,
     unlockShopUc,
+    unlockShopCoral,
 } from "../ui/hudButtons.js";
 import {
     DLG_CATALOG,
@@ -4375,6 +4378,28 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
+            labelText: "Unlock Shop Coral",
+            description: "If true, makes the Coral Shop button visible",
+            isUnlocked: () => {
+                try {
+                    return isShopCoralUnlocked();
+                } catch {
+                    return false;
+                }
+            },
+            onEnable: () => {
+                try {
+                    unlockShopCoral();
+                } catch {}
+            },
+            onDisable: () => {
+                try {
+                    lockShopCoral();
+                } catch {}
+            },
+            slot,
+        },
+        {
             labelText: "Unlock Map",
             description: "If true, makes the Map button visible",
             isUnlocked: () => {
@@ -4594,6 +4619,9 @@ function unlockAllUnlocks(excludeChal = false) {
         unlockShopUc();
     } catch {}
     try {
+        unlockShopCoral();
+    } catch {}
+    try {
         unlockMap();
     } catch {}
     let toggled = setAllUnlockToggles(true);
@@ -4630,6 +4658,9 @@ function lockAllUnlockUpgrades() {
     } catch {}
     try {
         lockShopUc();
+    } catch {}
+    try {
+        lockShopCoral();
     } catch {}
     try {
         lockMap();
