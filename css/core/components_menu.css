@@ -26,24 +26,24 @@
   font-size: var(--h1);
   letter-spacing: 0.5px;
   color: #ffeb3b;
-  -webkit-text-stroke: calc(2px * var(--stroke-mult, 1)) black;
-  -webkit-text-stroke-width: calc(2px * var(--stroke-mult, 1));
-  text-stroke: calc(2px * var(--stroke-mult, 1)) black;
-  text-stroke-width: calc(2px * var(--stroke-mult, 1));
+  -webkit-text-stroke: calc(min(2px, 0.035em) * var(--stroke-mult, 1)) black;
+  -webkit-text-stroke-width: calc(min(2px, 0.035em) * var(--stroke-mult, 1));
+  text-stroke: calc(min(2px, 0.035em) * var(--stroke-mult, 1)) black;
+  text-stroke-width: calc(min(2px, 0.035em) * var(--stroke-mult, 1));
   user-select: none;
 }
 
-html.is-mobile {
-  .game-title {
-    -webkit-text-stroke: 0;
-    text-stroke: 0;
-    text-shadow:
-      1px 1px 0 black,
-      -1px 1px 0 black,
-      1px -1px 0 black,
-      -1px -1px 0 black;
-  }
-}
+/* removed */
+
+
+
+
+
+
+
+
+
+
 
 /* Desktop: 3 across */
 .slots-grid {
@@ -204,7 +204,7 @@ html.is-mobile {
 @media (max-width: 414px) {
   .menu-header h1 {
     white-space: nowrap;
-    font-size: clamp(1.55rem, 6.2vw, 2.2rem);
+    font-size: clamp(1.6rem, 8.2vw, 2.6rem);
     letter-spacing: 0.25px;
   }
 
