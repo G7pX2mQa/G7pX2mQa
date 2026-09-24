@@ -6,7 +6,9 @@ import { bank } from "../util/storage.js";
 import { BigNum } from "../util/bigNum.js";
 import { MAX_VISUALS } from "./spawnerCore.js";
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx, PICKUP_VOLUME } from "./collectionCore.js";
-import { currentArea, AREAS } from "../main.js";
+import { currentArea, AREAS, lsSetItem, lsGetItem } from "../main.js";
+import { getActiveSlot } from "../util/storage.js";
+import { unlockShopCoral } from "../ui/hudButtons.js";
 
 export function initCoralPickup({
     spawner,
@@ -147,6 +149,23 @@ export function initCoralPickup({
                     const mult = handle.mult.get();
                     const totalGain = BigNum.fromInt(collectedCount).mulBigNumInteger(mult);
                     handle.add(totalGain);
+                }
+            }
+
+            const activeSlot = getActiveSlot();
+            if (activeSlot != null) {
+                const SHOP_CORAL_UNLOCK_KEY = `ccc:unlock:shop:coral:${activeSlot}`;
+                const SHOP_CORAL_PROGRESS_KEY = `ccc:unlock:shop:coral:progress:${activeSlot}`;
+                if (lsGetItem(SHOP_CORAL_UNLOCK_KEY) !== "1") {
+                    const current = parseInt(lsGetItem(SHOP_CORAL_PROGRESS_KEY) || "0", 10);
+                    const next = current + collectedCount;
+                    lsSetItem(SHOP_CORAL_PROGRESS_KEY, String(next));
+                    if (next >= 10) {
+                        try {
+                            unlockShopCoral();
+                        } catch {}
+                        lsSetItem(SHOP_CORAL_UNLOCK_KEY, "1");
+                    }
                 }
             }
         }
