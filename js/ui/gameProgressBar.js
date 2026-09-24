@@ -321,6 +321,23 @@ const GOALS = [
             return unlocked || seen;
         },
     },
+    {
+        id: 15,
+        text: "Collect 10 Red Coral",
+        icon: "img/currencies/coral/coral_red.webp",
+        mode: GOAL_MODE.NORMAL,
+        start: 0,
+        target: 10,
+        getCurrent: () => {
+            const slot = getActiveSlot();
+            const progressRaw = lsGetItem(`ccc:unlock:shop:coral:progress:${slot}`);
+            return parseInt(progressRaw || "0", 10);
+        },
+        isComplete: () => {
+            const slot = getActiveSlot();
+            return lsGetItem(`ccc:unlock:shop:coral:${slot}`) === "1";
+        },
+    },
 ];
 export function showDelayedGoalNotifications() {
     if (typeof window === "undefined") return;
