@@ -33,6 +33,13 @@ export function ensureGameDom(layerCount, startZ) {
           </div>
         </div>
 
+        <div class="red-coral-counter" style="display: none;">
+          <img src="img/currencies/coral/coral_red_plus_base.webp" alt="" class="red-coral-plus"/>
+          <div class="red-coral-bar">
+            <span class="red-coral-amount">0</span>
+          </div>
+        </div>
+
         <div class="xp-counter" data-xp-hud hidden>
           <img src="img/stats/xp/xp_plus_base.webp" alt="" class="xp-plus"/>
 
