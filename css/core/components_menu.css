@@ -168,13 +168,14 @@ html.is-mobile {
 
 /* ===== Coins: desktop-first, tuned for mobile via breakpoints ===== */
 .coin-o {
-  --coin-size: 0.6em;
+  --coin-size: 0.615em;
   display: inline-block;
   width: var(--coin-size);
   height: var(--coin-size);
   background: url("img/currencies/coin/coin.webp") center/contain no-repeat;
-  transform: translateY(0.46em);
-  vertical-align: baseline;
+  vertical-align: middle;
+  position: relative;
+  top: -0.01em;
   margin-left: 0em;
   margin-right: 0em;
   filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
@@ -191,13 +192,7 @@ html.is-mobile {
 @media (max-width: 900px), (max-height: 420px) {
   .menu-header h1 { line-height: 1.08; }
 
-  .coin-o {
-    transform: none;
-    vertical-align: -0.4em;
-    --coin-size: 0.6em;
-    margin-left: 0em;
-    margin-right: 0em;
-  }
+
 }
 
 /* Ultra-narrow portrait */
@@ -208,22 +203,12 @@ html.is-mobile {
     letter-spacing: 0.25px;
   }
 
-  .coin-o {
-    --coin-size: 0.58em;
-    vertical-align: -0.35em;
-    margin-left: 0em;
-    margin-right: 0em;
-  }
+
 }
 
 /* Target mobile landscape with coarse pointer and short height (phones) */
 @media (orientation: landscape) and (max-height: 480px) {
-  html.is-mobile {
-  .menu-header .coin-o {
-    vertical-align: -0.34em;
-    --coin-size: 0.58em;
-  }
-  }
+
 }
 
 /* ===== Panel header (title + actions) ===== */
@@ -352,28 +337,16 @@ html.is-mobile {
 }
 
 /* For iPad */
-html.is-mobile {
-  .menu-header .coin-o {
-    transform: translateY(0); /* neutralize the desktop push-down */
-  }
-}
+
 
 /* Portrait: lighter nudge */
 @media (min-width: 740px) and (min-height: 740px) and (max-width: 1350px) and (max-height: 1350px) and (orientation: portrait) {
-  html.is-mobile {
-  .menu-header .coin-o {
-    vertical-align: -0.34em;
-  }
-  }
+
 }
 
 /* Landscape: stronger nudge */
 @media (min-width: 740px) and (min-height: 740px) and (max-width: 1350px) and (max-height: 1350px) and (orientation: landscape) {
-  html.is-mobile {
-  .menu-header .coin-o {
-    vertical-align: -0.40em;
-  }
-  }
+
 }
 
 .menu-panel {
@@ -402,20 +375,12 @@ html.is-mobile {
 
 /* iPad/tablet landscape: fixes some issue with some thing */
 @media (orientation: landscape) and (min-aspect-ratio: 4/3) {
-  html.is-mobile {
-  .menu-header .coin-o { vertical-align: -0.40em; transform: translateY(0); }
-  }
+
 }
 
 /* Phone landscape only (exclude iPads & tablets) */
 @media (orientation: landscape) and (max-height: 550px) {
-  html.is-mobile {
-  .menu-header .coin-o {
-    vertical-align: -0.33em;
-    --coin-size: 0.58em;
-    transform: translateY(0);
-  }
-  }
+
 }
 
 /* Default: hide Manage button until has-opened; hide title visually to prevent flash */
@@ -454,9 +419,4 @@ html.is-mobile {
   -webkit-backdrop-filter: saturate(1.05) blur(6px);
 }
 
-@media (max-width: 499px) {
-  html.is-mobile .coin-o {
-    position: relative;
-    top: -1px;
-  }
-}
+
