@@ -281,29 +281,7 @@ export function createCoralSpawner(config = {}) {
                 }
             }
 
-            // 3. Draw falling corals
-            for (let i = 0; i < base.getActiveItems().length; i++) {
-                const c = base.getActiveItems()[i];
-                if (c && !c.settled && !c.isRemoved) {
-                    const s = getItemState(c, now);
-                    const renderable = getPreRenderedImageBitmap(c.src, c.size);
-                    if (renderable) {
-                        let half = c.size / 2;
-                        fxCtx.save();
-                        fxCtx.translate(s.x + half, s.y + half);
-                        if (s.rot) fxCtx.rotate(s.rot * Math.PI / 180);
-                        if (s.scale !== 1) fxCtx.scale(s.scale, s.scale);
-                        
-                        const draw = (img) => fxCtx.drawImage(img, -half, -half, c.size, c.size);
-                        if (renderable instanceof HTMLCanvasElement || (typeof ImageBitmap !== "undefined" && renderable instanceof ImageBitmap)) {
-                            draw(renderable);
-                        } else if (renderable.complete && renderable.naturalWidth > 0) {
-                            draw(renderable);
-                        }
-                        fxCtx.restore();
-                    }
-                }
-            }
+
         },
 
         onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
