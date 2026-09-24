@@ -122,6 +122,8 @@ export function ensureGameDom(layerCount, startZ) {
         <div class="coins-layer" id="coins-layer"></div>
         <div class="materials-layer" id="materials-layer" style="position: absolute; inset: 0; pointer-events: none; display: none;"></div>
         <div class="rubble-layer" id="rubble-layer"></div>
+        <div class="coral-layer" id="coral-layer" style="position: absolute; inset: 0; pointer-events: none; display: none;"></div>
+        <div class="coral-canopy-layer coral-mode-red" id="coral-canopy-layer" style="display: none;"><div class="coral-canopy-texture"></div></div>
         ${waterLayersHtml.trim()}
       </section>
 
