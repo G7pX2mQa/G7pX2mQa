@@ -55,6 +55,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Arimo:ital,wght@0,400..700;1,400..700&family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Cousine:ital,wght@0,400;0,700;1,400;1,700&family=Inconsolata:wght@200..900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&family=Lora:ital,wght@0,400..700;1,400..700&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&family=Dosis:wght@400;700&family=Fira+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Mukta:wght@400;700&family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Quicksand:wght@400;700&family=Raleway:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
                   <link rel="stylesheet" href="./styles.css">
+                  <style>
+                    body:not(.has-opened) .menu-panel { display: none !important; }
+                    body.has-opened #first-time-instruction { display: none !important; }
+                  </style>
 </head>
 
   <body class="menu-bg">
@@ -92,17 +96,20 @@
 
 
     <main class="menu-root">
-      <header class="menu-header">
+      <header class="menu-header" style="position: relative;">
         <h1 class="game-title">
           C<span class="sr-only"></span><span class="coin-o"></span>in
           C<span class="sr-only"></span><span class="coin-o"></span>llecting
           C<span class="sr-only"></span><span class="coin-o"></span>ve
         </h1>
+        <div id="first-time-instruction" style="display: none; position: absolute; left: 50%; transform: translateX(-50%); width: max-content; max-width: 90vw; color: yellow; opacity: 0; font-size: clamp(1.1rem, 4.5vw, 2.2rem); margin-top: 1rem; line-height: 1.4; transition: opacity 3s ease; text-shadow: 1px 1px 2px #000; white-space: nowrap;">
+          <span class="click-or-tap">Click</span> one of the three coins above to begin
+        </div>
       </header>
 
       <section class="menu-panel" role="region" aria-labelledby="panel-title">
         <div class="panel-header">
-          <h2 id="panel-title" class="panel-title">Select a save slot to begin</h2>
+          <h2 id="panel-title" class="panel-title"></h2>
           <div class="panel-actions">
             <button class="btn btn-ghost" type="button" id="manage-saves">
               Manage save slots
