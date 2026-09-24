@@ -10,6 +10,7 @@ import { shouldSkipGhostTap } from "../util/ghostTapGuard.js";
 const BASE_KEYS = {
     SHOP: "ccc:unlock:shop",
     SHOP_UC: "ccc:unlock:shop:uc",
+    SHOP_CORAL: "ccc:unlock:shop:coral",
     MAP: "ccc:unlock:map",
 };
 
@@ -33,6 +34,11 @@ export function isShopUnlocked() {
 export function isShopUcUnlocked() {
     ensureUnlockDefaults();
     return isUnlocked(BASE_KEYS.SHOP_UC);
+}
+
+export function isShopCoralUnlocked() {
+    ensureUnlockDefaults();
+    return isUnlocked(BASE_KEYS.SHOP_CORAL);
 }
 
 export function isMapUnlocked() {
@@ -235,6 +241,11 @@ export function unlockShopUc() {
     refreshButtonVisibility();
 }
 
+export function unlockShopCoral() {
+    setUnlocked(BASE_KEYS.SHOP_CORAL, true);
+    refreshButtonVisibility();
+}
+
 export function unlockMap() {
     setUnlocked(BASE_KEYS.MAP, true);
     setButtonVisible("map", true);
@@ -248,6 +259,11 @@ export function lockShop() {
 
 export function lockShopUc() {
     setUnlocked(BASE_KEYS.SHOP_UC, false);
+    refreshButtonVisibility();
+}
+
+export function lockShopCoral() {
+    setUnlocked(BASE_KEYS.SHOP_CORAL, false);
     refreshButtonVisibility();
 }
 
@@ -266,7 +282,7 @@ export function refreshButtonVisibility() {
         shopVisible = isShopUcUnlocked();
     } else if (currentArea === 3) {
         // 3 = AREAS.CORAL_REEF
-        shopVisible = false;
+        shopVisible = isShopCoralUnlocked();
     } else {
         shopVisible = isShopUnlocked();
     }
