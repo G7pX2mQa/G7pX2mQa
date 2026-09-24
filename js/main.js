@@ -472,6 +472,38 @@ function initScrapHudCounter() {
     window.addEventListener("rubbleMode:toggled", updateScrapHudCounter);
 }
 
+let redCoralHudListenerBound = false;
+function updateRedCoralHudCounter() {
+    if (!bank) return;
+    const amountEls = document.querySelectorAll(".red-coral-amount");
+    if (!amountEls.length) return;
+
+    let formatted = "0";
+    try {
+        formatted = bank.red_coral?.fmt?.(bank.red_coral.value) ?? "0";
+    } catch {}
+
+    amountEls.forEach((amountEl) => {
+        setHtmlOrText(amountEl, formatted);
+    });
+}
+
+function initRedCoralHudCounter() {
+    updateRedCoralHudCounter();
+    if (redCoralHudListenerBound || typeof window === "undefined") return;
+    redCoralHudListenerBound = true;
+    window.addEventListener("currency:change", (event) => {
+        if (event?.detail?.key !== "red_coral") return;
+        updateRedCoralHudCounter();
+    });
+    window.addEventListener("setting:changed", (event) => {
+        if (event?.detail?.key === "number_notation") {
+            updateRedCoralHudCounter();
+        }
+    });
+    window.addEventListener("saveSlot:change", updateRedCoralHudCounter);
+}
+
 let initResetSystemGame;
 let initMutationSystem;
 let getMutationCoinSprite;
@@ -1424,6 +1456,8 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (coinsLayer) coinsLayer.style.display = "";
             const scrapCounter = document.querySelector(".hud-top .scrap-counter");
             if (scrapCounter) scrapCounter.style.display = "none";
+            const redCoralCounter = document.querySelector(".hud-top .red-coral-counter");
+            if (redCoralCounter) redCoralCounter.style.display = "none";
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "";
 
@@ -1523,6 +1557,8 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (coinsLayer) coinsLayer.style.display = "none";
             const scrapCounter = document.querySelector(".hud-top .scrap-counter");
             if (scrapCounter) scrapCounter.style.display = "";
+            const redCoralCounter = document.querySelector(".hud-top .red-coral-counter");
+            if (redCoralCounter) redCoralCounter.style.display = "none";
             updateScrapHudCounter();
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "none";
@@ -1586,6 +1622,9 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (coinsLayer) coinsLayer.style.display = "none";
             const scrapCounter = document.querySelector(".hud-top .scrap-counter");
             if (scrapCounter) scrapCounter.style.display = "none";
+            const redCoralCounter = document.querySelector(".hud-top .red-coral-counter");
+            if (redCoralCounter) redCoralCounter.style.display = "";
+            updateRedCoralHudCounter();
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "none";
 
@@ -2332,6 +2371,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         clearActiveSlot,
     } = storageModule);
     initScrapHudCounter();
+    initRedCoralHudCounter();
     void saveIntegrityModule;
     ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged, AREA_KEYS } = upgradesModule);
     ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
