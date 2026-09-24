@@ -6,6 +6,7 @@ import {
     getPreRenderedItemUrl,
     getPreRenderedImageBitmap,
     clearPreRenderedItems,
+    getDynamicMaxCapacity,
 } from "./spawnerCore.js";
 import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
 import { playAudio } from "../util/audioManager.js";
@@ -147,7 +148,7 @@ export function createUcSpawner(config = {}) {
         animationDurationMs = 1500,
         materialsPerSecond = 0.2,
         perFrameBudget = 5,
-        maxActiveMaterials = IS_MOBILE ? 2500 : 5000,
+        maxActiveMaterials = getDynamicMaxCapacity,
         initialBurst = 0,
         materialTtlMs = 1e99,
         shouldAutoResume = () => true,
