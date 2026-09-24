@@ -272,6 +272,11 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         volume *= mobileGlobalAudioReductionMultiplier;
     }
     
+    // Global music volume reduction
+    if (type === 'music') {
+        volume *= 0.9;
+    }
+    
     let isSpawnVessel = false;
     let originalBaseVolume = volume;
     if (type === 'spawn_vessel') {
