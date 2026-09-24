@@ -20,6 +20,20 @@ export function getCanvasSmoothingQuality() {
     return "low";
 }
 
+export function getDynamicMaxCapacity() {
+    if (typeof window === 'undefined') return IS_MOBILE ? 1000 : 5000;
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    const area = vw * vh;
+    
+    if (area >= 1000000) return 5000;
+    if (area <= 400000) return 1000;
+    
+    // Linear interpolation
+    const ratio = (area - 400000) / (1000000 - 400000);
+    return Math.floor(1000 + ratio * (5000 - 1000));
+}
+
 const imgCache = new Map();
 
 export function getImage(src) {
