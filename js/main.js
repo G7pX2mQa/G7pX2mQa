@@ -1429,7 +1429,7 @@ export function enterArea(areaID, fadeDuration = 0) {
 
             syncXpMpHudLayout();
 
-            startAreaMusic(AREAS.STARTER_COVE, "sounds/The_Cove.ogg", 0.9, fadeDuration);
+            startAreaMusic(AREAS.STARTER_COVE, "sounds/The_Cove.ogg", 1.0, fadeDuration);
 
             // Config for water layers
             const FG_LAYER_COUNT = 1;
@@ -1562,7 +1562,7 @@ export function enterArea(areaID, fadeDuration = 0) {
 
             document.body.style.backgroundColor = "#000";
 
-            startAreaMusic(AREAS.UNDERWATER_CAVERN, "sounds/Underwater_Cavern.ogg", 0.6, fadeDuration);
+            startAreaMusic(AREAS.UNDERWATER_CAVERN, "sounds/Underwater_Cavern.ogg", 0.666667, fadeDuration);
 
             if (spawner) {
                 spawner.stop();
@@ -1590,6 +1590,7 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (coinCounter) coinCounter.style.display = "none";
 
             syncXpMpHudLayout();
+            startAreaMusic(AREAS.CORAL_REEF, "sounds/Coral_Reef.ogg", 0.7, fadeDuration);
 
             if (menuRoot) {
                 menuRoot.style.display = "none";
