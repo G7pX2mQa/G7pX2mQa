@@ -1152,7 +1152,7 @@ html:not(.is-mobile) {
 }
 
 .red-coral-bar {
-  background: #bb0000 linear-gradient(180deg, #dd0000, #bb0000);
+  background: #d12222 linear-gradient(180deg, #ef302c, #d12222);
 }
 
 .area:not(.area-cove) [data-xp-hud],
