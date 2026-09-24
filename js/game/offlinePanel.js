@@ -597,6 +597,15 @@ export const RESOURCE_REGISTRY = [
         plural: "Rubble",
         type: "currency",
     },
+    {
+        key: "red_coral",
+        bgGradient: "linear-gradient(to bottom, #8b1a1a 0%, #c62828 15%, #e53935 50%, #c62828 85%, #8b1a1a 100%)",
+        icon: "img/currencies/coral/coral_red.webp",
+        baseIcon: "img/currencies/coral/coral_red_plus_base.webp",
+        singular: "Red Coral",
+        plural: "Red Coral",
+        type: "currency",
+    },
 ];
 export function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
     let displayStyle = null;
