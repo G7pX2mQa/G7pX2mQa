@@ -1,5 +1,5 @@
 // js/game/coralSpawner.js
-import { createBaseSpawner, getPreRenderedImageBitmap } from "./spawnerCore.js";
+import { createBaseSpawner, getPreRenderedImageBitmap, getDynamicMaxCapacity } from "./spawnerCore.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import { getActiveSlot } from "../util/storage.js";
 import { playAudio } from "../util/audioManager.js";
@@ -9,20 +9,6 @@ const CORAL_ASSETS = {
     red: "img/currencies/coral/coral_red.webp",
     // future: green, blue, etc.
 };
-
-function getDynamicMaxCapacity() {
-    if (typeof window === 'undefined') return IS_MOBILE ? 1000 : 5000;
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    const area = vw * vh;
-    
-    if (area >= 1000000) return 5000;
-    if (area <= 400000) return 1000;
-    
-    // Linear interpolation
-    const ratio = (area - 400000) / (1000000 - 400000);
-    return Math.floor(1000 + ratio * (5000 - 1000));
-}
 
 export function createCoralSpawner(config = {}) {
     const {
@@ -166,7 +152,7 @@ export function createCoralSpawner(config = {}) {
             const itemsToAdd = 1 + batchLength;
             const limit = typeof maxActiveItems === "function" ? maxActiveItems() : maxActiveItems;
             
-            const totalActive = activeItems.length - garbageCount + risingBubbles.length;
+            const totalActive = activeItems.length - garbageCount;
             if (totalActive + itemsToAdd > limit) {
                 let overflow = (totalActive + itemsToAdd) - limit;
                 for (let i = 0; i < activeItems.length && overflow > 0; i++) {
