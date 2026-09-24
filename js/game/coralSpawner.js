@@ -10,6 +10,49 @@ const CORAL_ASSETS = {
     // future: green, blue, etc.
 };
 
+const SINE_TABLE_SIZE = 4096;
+const SINE_TABLE = new Float32Array(SINE_TABLE_SIZE);
+for (let i = 0; i < SINE_TABLE_SIZE; i++) {
+    SINE_TABLE[i] = Math.sin((i / SINE_TABLE_SIZE) * Math.PI * 2);
+}
+const SINE_MAGIC = SINE_TABLE_SIZE / (Math.PI * 2);
+
+const cachedBubbles = {};
+function getBubbleCanvas(radius) {
+    const r = Math.round(radius);
+    if (cachedBubbles[r]) return cachedBubbles[r];
+
+    const canvas = document.createElement("canvas");
+    canvas.width = r * 2;
+    canvas.height = r * 2;
+    const ctx = canvas.getContext("2d");
+    
+    const gradX = r - r * 0.4;
+    const gradY = r - r * 0.4;
+    
+    const bgGrad = ctx.createRadialGradient(gradX, gradY, 0, gradX, gradY, r * 1.8);
+    bgGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+    bgGrad.addColorStop(0.7, 'rgba(255, 255, 255, 0.1)');
+    bgGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.beginPath();
+    ctx.arc(r, r, r, 0, Math.PI * 2);
+    ctx.fillStyle = bgGrad;
+    ctx.fill();
+    
+    const insetGrad = ctx.createRadialGradient(r, r, Math.max(0, r - 5), r, r, r);
+    insetGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    insetGrad.addColorStop(1, 'rgba(255, 255, 255, 0.5)');
+    
+    ctx.beginPath();
+    ctx.arc(r, r, r, 0, Math.PI * 2);
+    ctx.fillStyle = insetGrad;
+    ctx.fill();
+
+    cachedBubbles[r] = canvas;
+    return canvas;
+}
+
 export function createCoralSpawner(config = {}) {
     const {
         playfieldSelector = ".playfield",
@@ -141,9 +184,9 @@ export function createCoralSpawner(config = {}) {
             // Bubbles pop higher inside the visible edge of the coral pattern chunk
             const canopyHitY = currentCanopyV - 35;
 
-            const minX = COIN_MARGIN;
-            const maxX = pfW - baseSize - COIN_MARGIN;
-            if (maxX <= minX) return null;
+            const centerMinX = COIN_MARGIN + baseSize / 2;
+            const centerMaxX = pfW - COIN_MARGIN - baseSize / 2;
+            if (centerMaxX <= centerMinX) return null;
 
             const maxY = safeBottom - baseSize - 6;
             const minY = canopyHitY;
@@ -164,19 +207,19 @@ export function createCoralSpawner(config = {}) {
                 }
             }
 
-            const spawnX = minX + Math.random() * (maxX - minX);
+            const spawnCenterX = centerMinX + Math.random() * (centerMaxX - centerMinX);
             const drift = (Math.random() - 0.5) * 100;
-            let endX = Math.max(minX, Math.min(maxX, spawnX + drift));
+            let endCenterX = Math.max(centerMinX, Math.min(centerMaxX, spawnCenterX + drift));
             const endY = minY + Math.random() * (maxY - minY);
 
             // Spawn exactly so the top of the bubble is at the bottom of the viewport frame
             const bubbleStartY = pf.height + baseSize;
 
             return {
-                x0: spawnX,
+                x0: spawnCenterX,
                 startY: bubbleStartY,
                 hitY: minY,
-                fallEndX: endX,
+                fallEndX: endCenterX - baseSize / 2,
                 fallEndY: endY,
                 seed: Math.random() * Math.PI * 2
             };
@@ -194,7 +237,7 @@ export function createCoralSpawner(config = {}) {
                     timeElapsed: 0,
                     duration: 10000, // Exactly 10 seconds of rising
                     seed: plan.seed,
-                    size: 6 + Math.random() * 6, // Random bubble radius 6-12px
+                    size: Math.floor(6 + Math.random() * 7), // Random bubble radius 6-12px
                     animationDurationMs: animationDurationMs
                 });
             }
@@ -204,70 +247,98 @@ export function createCoralSpawner(config = {}) {
             fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
 
             if (settingsManager.get("spawn_vessels")) {
+                fxCtx.imageSmoothingEnabled = false;
                 const dynamicHitY = currentCanopyV - 35;
 
-                // 1. Draw rising bubbles
-                fxCtx.lineWidth = 2;
-                for (const b of risingBubbles) {
-                    const bx = b.x + Math.sin(b.timeElapsed / 500 + b.seed) * 15;
-                    // Spawn exactly so the top of the bubble is at the bottom of the viewport frame
-                    const startY = lastCanopyH + b.size;
-                    const by = startY - ((startY - dynamicHitY) * (b.timeElapsed / b.duration));
+                const sizeData = new Array(13);
+                for (let s = 6; s <= 12; s++) {
+                    const startY = lastCanopyH + s;
+                    sizeData[s] = {
+                        canvas: getBubbleCanvas(s),
+                        startY: startY,
+                        yRate: (startY - dynamicHitY) / 10000
+                    };
+                }
+
+                // 1. Draw rising bubbles (Grouped by texture/size for massive GPU batching)
+                const rLen = risingBubbles.length;
+                for (let s = 6; s <= 12; s++) {
+                    const sData = sizeData[s];
+                    const canvas = sData.canvas;
+                    const startY = sData.startY;
+                    const yRate = sData.yRate;
                     
-                    const gradX = bx - b.size * 0.4;
-                    const gradY = by - b.size * 0.4;
-                    
-                    // Main radial gradient background matching Map:
-                    // radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.1) 70%, transparent 100%)
-                    const bgGrad = fxCtx.createRadialGradient(gradX, gradY, 0, gradX, gradY, b.size * 1.8);
-                    bgGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-                    bgGrad.addColorStop(0.7, 'rgba(255, 255, 255, 0.1)');
-                    bgGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                    
-                    fxCtx.beginPath();
-                    fxCtx.arc(bx, by, b.size, 0, Math.PI * 2);
-                    fxCtx.fillStyle = bgGrad;
-                    fxCtx.fill();
-                    
-                    // Inset shadow matching Map:
-                    // box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.5)
-                    const insetGrad = fxCtx.createRadialGradient(bx, by, Math.max(0, b.size - 5), bx, by, b.size);
-                    insetGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-                    insetGrad.addColorStop(1, 'rgba(255, 255, 255, 0.5)');
-                    
-                    fxCtx.beginPath();
-                    fxCtx.arc(bx, by, b.size, 0, Math.PI * 2);
-                    fxCtx.fillStyle = insetGrad;
-                    fxCtx.fill();
+                    for (let i = 0; i < rLen; i++) {
+                        const b = risingBubbles[i];
+                        if (b.size !== s) continue;
+                        
+                        const angle = b.timeElapsed * 0.002 + b.seed;
+                        const sinVal = SINE_TABLE[((angle * SINE_MAGIC) | 0) & 4095];
+                        const bx = b.x + sinVal * 15;
+                        const by = startY - yRate * b.timeElapsed;
+                        
+                        fxCtx.drawImage(canvas, (bx - s) | 0, (by - s) | 0);
+                    }
                 }
 
                 // 2. Draw pop effects
-                for (const p of popEffects) {
-                    const progress = p.timeElapsed / p.duration;
-                    const alpha = 1 - progress;
-                    const radius = 5 + progress * 15;
-                    
-                    fxCtx.beginPath();
-                    fxCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-                    fxCtx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                const pLen = popEffects.length;
+                if (pLen > 0) {
                     fxCtx.lineWidth = 2;
-                    fxCtx.stroke();
-
-                    // Small particles
-                    for (let j = 0; j < 4; j++) {
-                        const angle = (j / 4) * Math.PI * 2 + (p.timeElapsed * 0.01);
-                        const dist = progress * 20;
-                        const px = p.x + Math.cos(angle) * dist;
-                        const py = p.y + Math.sin(angle) * dist;
+                    fxCtx.strokeStyle = "rgb(255, 255, 255)";
+                    fxCtx.fillStyle = "rgb(255, 255, 255)";
+                    
+                    for (let i = 0; i < pLen; i++) {
+                        const p = popEffects[i];
+                        const progress = p.timeElapsed * 0.003333333; // duration is 300
+                        const alpha = 1 - progress;
+                        const radius = 5 + progress * 15;
+                        
+                        fxCtx.globalAlpha = alpha;
+                        
                         fxCtx.beginPath();
+                        fxCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                        fxCtx.stroke();
+
+                        // Small particles
+                        const offsetAngle = p.timeElapsed * 0.01;
+                        const dist = progress * 20;
+                        const sIdx = ((offsetAngle * SINE_MAGIC) | 0) & 4095;
+                        const cIdx = (sIdx + 1024) & 4095; // + PI/2
+                        const sinA = SINE_TABLE[sIdx] * dist;
+                        const cosA = SINE_TABLE[cIdx] * dist;
+                        
+                        fxCtx.beginPath();
+                        
+                        // j = 0
+                        let px = p.x + cosA;
+                        let py = p.y + sinA;
+                        fxCtx.moveTo(px + 2, py);
                         fxCtx.arc(px, py, 2, 0, Math.PI * 2);
-                        fxCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                        
+                        // j = 1
+                        px = p.x - sinA;
+                        py = p.y + cosA;
+                        fxCtx.moveTo(px + 2, py);
+                        fxCtx.arc(px, py, 2, 0, Math.PI * 2);
+                        
+                        // j = 2
+                        px = p.x - cosA;
+                        py = p.y - sinA;
+                        fxCtx.moveTo(px + 2, py);
+                        fxCtx.arc(px, py, 2, 0, Math.PI * 2);
+                        
+                        // j = 3
+                        px = p.x + sinA;
+                        py = p.y - cosA;
+                        fxCtx.moveTo(px + 2, py);
+                        fxCtx.arc(px, py, 2, 0, Math.PI * 2);
+                        
                         fxCtx.fill();
                     }
+                    fxCtx.globalAlpha = 1.0;
                 }
             }
-
-
         },
 
         onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
@@ -285,7 +356,9 @@ export function createCoralSpawner(config = {}) {
                         playAudio("sounds/pop.ogg", { type: "spawn_vessel", volume: getBubbleSoundVolume(), pitch: 0.9 + Math.random() * 0.2 });
                     }
                     
-                    const popX = b.x + Math.sin(b.timeElapsed / 500 + b.seed) * 15;
+                    const angle = b.timeElapsed * 0.002 + b.seed;
+                    const sinVal = SINE_TABLE[((angle * SINE_MAGIC) | 0) & 4095];
+                    const popX = b.x + sinVal * 15;
                     
                     popEffects.push({
                         x: popX,
@@ -329,8 +402,12 @@ export function createCoralSpawner(config = {}) {
                     coralObj.index = activeItems.length;
                     activeItems.push(coralObj);
                     
-                    // Remove the bubble
-                    risingBubbles.splice(i, 1);
+                    // Remove the bubble in O(1)
+                    const lastIdx = risingBubbles.length - 1;
+                    if (i !== lastIdx) {
+                        risingBubbles[i] = risingBubbles[lastIdx];
+                    }
+                    risingBubbles.pop();
                 }
             }
 
@@ -339,7 +416,11 @@ export function createCoralSpawner(config = {}) {
                 const p = popEffects[i];
                 p.timeElapsed += dt * 1000;
                 if (p.timeElapsed >= p.duration) {
-                    popEffects.splice(i, 1);
+                    const lastIdx = popEffects.length - 1;
+                    if (i !== lastIdx) {
+                        popEffects[i] = popEffects[lastIdx];
+                    }
+                    popEffects.pop();
                 }
             }
 
