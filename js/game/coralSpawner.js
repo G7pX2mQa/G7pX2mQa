@@ -40,6 +40,32 @@ export function createCoralSpawner(config = {}) {
     let deps = {};
     let activeMode = "red"; // For future color shifting
 
+    const spawnRateAtWhichTheVolumeIsNormal = 1;
+    const spawnRateAtWhichTheVolumeIsOneFifthOfNormal = 20;
+    let cachedRate = -1;
+    let cachedVolume = 0.6;
+    let popLastAt = 0;
+    const popSoundMinIntervalMs = 160;
+
+    function getBubbleSoundVolume() {
+        const baseVol = 0.6;
+        if (currentRate === cachedRate) {
+            return cachedVolume;
+        }
+
+        cachedRate = currentRate;
+
+        const effectiveRate = Math.min(currentRate, 10);
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        const fadeProgress = clamp((effectiveRate - spawnRateAtWhichTheVolumeIsNormal) / (spawnRateAtWhichTheVolumeIsOneFifthOfNormal - spawnRateAtWhichTheVolumeIsNormal), 0, 1);
+
+        const easeOut = fadeProgress * (2 - fadeProgress);
+        // Previously the minimum was 1/3 of baseVol (dropped by 2/3). 
+        // To make it 5x as quiet as before, we drop by 14/15, leaving 1/15 of baseVol.
+        cachedVolume = baseVol * (1 - easeOut * (14 / 15));
+        return cachedVolume;
+    }
+
     // Used for bounds checking and sweeps
     const COIN_MARGIN = 12;
 
@@ -290,7 +316,10 @@ export function createCoralSpawner(config = {}) {
 
                 if (b.timeElapsed >= b.duration) {
                     // Bubble fully concealed and pops!
-                    playAudio("sounds/pop.ogg", { type: "spawn_vessel", volume: 0.6, pitch: 0.9 + Math.random() * 0.2 });
+                    if (now - popLastAt >= popSoundMinIntervalMs) {
+                        popLastAt = now;
+                        playAudio("sounds/pop.ogg", { type: "spawn_vessel", volume: getBubbleSoundVolume(), pitch: 0.9 + Math.random() * 0.2 });
+                    }
                     
                     const popX = b.x + Math.sin(b.timeElapsed / 500 + b.seed) * 15;
                     
