@@ -10,8 +10,8 @@ let musicFilter = null;
 let sfxGain = null;
 let sfxFilter = null;
 let specialGain = null;
-const mobileGlobalAudioReductionMultiplier = 0.85;
-const INTERNAL_MASTER_VOLUME_MULTIPLIER = 0.9;
+const mobileGlobalAudioReductionMultiplier = 0.825;
+const INTERNAL_MASTER_VOLUME_MULTIPLIER = 1.0;
 
 const buffers = new Map();
 const loadPromises = new Map();
