@@ -18,6 +18,7 @@ import {
     isSurgeUnlocked,
 } from "../ui/merchantTabs/resetTab.js";
 import { UC_REGISTRY, UC_AREA_KEY } from "./ucUpgrades.js";
+import { CR_REGISTRY, CR_AREA_KEY } from "./coralUpgrades.js";
 import {
     REGISTRY as AUTOMATION_REGISTRY,
     AUTOMATION_AREA_KEY,
@@ -52,6 +53,7 @@ const DEFAULT_AREA_KEY = "";
 export const STARTER_COVE_AREA_KEY = "starter_cove";
 export const AREA_KEYS = {
     UNDERWATER_CAVERN: UC_AREA_KEY,
+    CORAL_REEF: CR_AREA_KEY,
     STARTER_COVE: STARTER_COVE_AREA_KEY,
     AUTOMATION: AUTOMATION_AREA_KEY,
     DNA: DNA_AREA_KEY,
@@ -3153,6 +3155,7 @@ export const REGISTRY = [
     ...DNA_REGISTRY,
     ...RAINBOW_GEM_UPGRADES,
     ...UC_REGISTRY,
+    ...CR_REGISTRY,
     ...RUBBLE_REGISTRY,
 ];
 for (const upg of REGISTRY) {
@@ -4711,6 +4714,7 @@ function notifyChanged() {
 export function getCurrentAreaKey() {
     const gameRoot = document.getElementById("game-root");
     if (gameRoot?.classList?.contains("area-cavern")) return AREA_KEYS.UNDERWATER_CAVERN;
+    if (gameRoot?.classList?.contains("area-coral")) return AREA_KEYS.CORAL_REEF;
     return AREA_KEYS.STARTER_COVE;
 }
 
