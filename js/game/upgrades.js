@@ -182,10 +182,10 @@ export const UPGRADE_TIES = {
     // === MATERIALS / SCRAP ===
     FASTER_MATERIALS: "underwater_cavern_1",
     COIN_VALUE_IV: "underwater_cavern_4",
+    XP_VALUE_IV: "underwater_cavern_5",
     ENDLESS_DP: "underwater_cavern_7",
     ENDLESS_MATERIALS: "underwater_cavern_8",
     ADVANCED_RESEARCHING: "underwater_cavern_9",
-    XP_VALUE_IV: "underwater_cavern_5",
     UNLOCK_CORAL_REEF: "underwater_cavern_14",
 
     // === COIN ===
