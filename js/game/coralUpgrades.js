@@ -31,7 +31,7 @@ export const CORAL_REGISTRY = [
         },
         effectSummary(level) {
             const mult = this.effectMultiplier(level);
-            return `Current Bubble Spawn Rate multiplier: ${formatMultForUi(mult)}x`;
+            return `Current Bubble Spawn Rate bonus: ${formatMultForUi(mult)}x`;
         },
         effectMultiplier(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
