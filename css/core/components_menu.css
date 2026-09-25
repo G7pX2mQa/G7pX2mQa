@@ -130,6 +130,10 @@ html.is-mobile {
       0.5px -0.5px 0 black,
       -0.5px -0.5px 0 black;
   }
+  .game-title {
+    paint-order: stroke fill;
+    --stroke-mult: 2;
+  }
 }
 
 .slot-title {
