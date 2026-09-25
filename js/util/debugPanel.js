@@ -43,6 +43,7 @@ import {
     AREA_KEYS,
     computeUpgradeEffects,
     getLevel,
+    getLevelNumber,
     getUpgradesForArea,
     markUpgradePermanentlyUnlocked,
     clearPermanentUpgradeUnlock,
@@ -3837,24 +3838,29 @@ function getUnlockRowDefinitions(slot) {
             description: "If true, unlocks Coral Reef",
             isUnlocked: () => {
                 try {
-                    return !isNodeLocked("coral", true);
+                    return getLevelNumber("underwater_cavern", 14) >= 1;
                 } catch {
                     return false;
                 }
             },
             onEnable: () => {
                 try {
-                    setNodeLocked("coral", false);
+                    setLevel("underwater_cavern", 14, 1, true, { bypassCosts: true, skipSaveMark: false });
                     refreshNodesState();
                     window.dispatchEvent(new Event("pinnedAreas:changed"));
-                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:coral", slot } }));
+                    window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
                 } catch {}
             },
             onDisable: () => {
                 try {
-                    setNodeLocked("coral", true);
+                    setLevel("underwater_cavern", 14, 0, true, { bypassCosts: true, skipSaveMark: false });
+                    const slot = getActiveSlot();
+                    if (slot != null) {
+                        lsRemoveItem(`ccc:coralReefPurchasedOnce:${slot}`);
+                    }
                     refreshNodesState();
                     window.dispatchEvent(new Event("pinnedAreas:changed"));
+                    window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
                 } catch {}
             },
             slot,
