@@ -718,7 +718,7 @@ export const MERCHANT_DIALOGUES = {
             m2c: { type: "line", say: "Wrong.", next: "c2c" },
             m2d: { type: "line", say: "Okay. What do you want to know?", next: "c3b" },
             m2e: { type: "line", say: "Don't.", next: "c2d" },
-            m2f: { type: "line", say: "Okay.", next: "c2e" },
+            m2f: { type: "line", say: "Okay. Anyway, I'll give you 5 extra Waves just because I can.", next: "c6a" },
 
             c2a: {
                 type: "choice",
@@ -754,15 +754,6 @@ export const MERCHANT_DIALOGUES = {
                         label: "Okay. I'd like to learn more about the surge reset stuff.", to: "m2d",
                     },
                     { label: "Understood.", to: "m6a" },
-                    { label: "Okay.", to: "m6a" },
-                ],
-            },
-
-            c2e: {
-                type: "choice",
-                options: [
-                    { label: "Okay.", to: "m6a" },
-                    { label: "Okay.", to: "m6a" },
                     { label: "Okay.", to: "m6a" },
                 ],
             },
