@@ -1019,6 +1019,12 @@ export function getGameStatMultiplier(statKey) {
                 return BigNum.fromAny(0.2 * eff.materialSpawnRateMult);
             }
             return BigNum.fromAny(0.2);
+        } else if (statKey === "bubbleSpawnRate") {
+            const eff = computeUpgradeEffects(AREA_KEYS.CORAL_REEF);
+            if (eff?.bubbleSpawnRateMult) {
+                return BigNum.fromAny(eff.bubbleSpawnRateMult);
+            }
+            return BigNum.fromAny(1);
         } else if (statKey === "rp") {
             return getRpMult();
         } else if (statKey === "fp") {
