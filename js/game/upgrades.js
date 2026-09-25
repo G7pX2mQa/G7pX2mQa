@@ -173,23 +173,17 @@ export const UPGRADE_TIES = {
     UNLOCK_FORGE: "starter_cove_7",
     UNLOCK_INFUSE: "starter_cove_13",
     UNLOCK_SURGE: "starter_cove_19",
-    UNLOCK_SELL: "underwater_cavern_2",
-    UNLOCK_DEPTH: "underwater_cavern_3",
     UNLOCK_COMBINE: "underwater_cavern_6",
     UNLOCK_COMPRESS: "underwater_cavern_10",
     UNLOCK_COLLAPSE: "underwater_cavern_13",
 
     // === MATERIALS / SCRAP ===
-    FASTER_MATERIALS: "underwater_cavern_1",
     COIN_VALUE_IV: "underwater_cavern_4",
     XP_VALUE_IV: "underwater_cavern_5",
-    ENDLESS_DP: "underwater_cavern_7",
     ENDLESS_MATERIALS: "underwater_cavern_8",
-    ADVANCED_RESEARCHING: "underwater_cavern_9",
     UNLOCK_CORAL_REEF: "underwater_cavern_14",
 
     // === COIN ===
-    FASTER_COINS: "starter_cove_1",
     XP_VALUE_I: "starter_cove_6",
     ENDLESS_XP: "starter_cove_12",
     ENDLESS_MP: "starter_cove_18",
