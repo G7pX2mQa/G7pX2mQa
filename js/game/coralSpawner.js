@@ -74,7 +74,7 @@ export function createCoralSpawner(config = {}) {
     let cachedRate = -1;
     let cachedVolume = 0.6;
     let popLastAt = 0;
-    const popSoundMinIntervalMs = 100;
+    const popSoundMinIntervalMs = 75;
 
     function getBubbleSoundVolume() {
         const baseVol = 0.6;
