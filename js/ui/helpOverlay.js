@@ -9,6 +9,8 @@ import { getActiveSlot } from "../util/storage.js";
 import { settingsManager } from "../game/settingsManager.js";
 import { isNodeLocked } from "./mapOverlay.js";
 import { hasMetMerchant, MERCHANT_MET_EVENT } from "./merchantTabs/dlgTab.js";
+import { getXpState } from "../game/xpSystem.js";
+import { BigNum } from "../util/bigNum.js";
 const HELP_PERMA_UNLOCK_KEY_BASE = "ccc:help:permaUnlocks";
 const helpPermaUnlockStateCache = new Map();
 if (typeof window !== "undefined") {
@@ -73,7 +75,7 @@ const HELP_ENTRIES = [
         title: "Welcome",
         icon: "img/currencies/coin/coin.webp",
         tldr: "Collect Coins; Buy upgrades; Make numbers go up",
-        progressionGoal: "Unlock the XP system, then reach XP Level 31 and unlock a certain upgrade",
+        progressionGoal: "Unlock the XP system, then reach XP Level 31",
         get text() {
             let base =
                 "The core gameplay mechanic of this game is collecting Coins, which you can do by hovering over the Coins with your cursor. Your native cursor is hidden while on the playfield (the area the Coins settle onto), and while your cursor is on the playfield, a particle trail will be constantly drawn at the location of your cursor. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant (via clicking the Delve button in the Shop) when necessary. You'll need to left-click on an upgrade's icon in the Shop to access an upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster.";
@@ -99,7 +101,7 @@ const HELP_ENTRIES = [
         title: "Forge",
         icon: "img/misc/forge.webp",
         tldr: "Reset immediately; Spend Gold wisely; Reset more when progress is slow",
-        progressionGoal: "Reach XP Level 101 and unlock a certain upgrade",
+        progressionGoal: "Reach XP Level 101",
         text: 'Forge is this game\'s first reset layer of many. If you\'re unfamiliar with the concept, a reset layer is when you reset all of your progress before this point but exchange it for a reward. This game is designed such that you won\'t have to worry about waiting extra time to perform your first reset. You will quickly recover from resets and obtain game-changing new multipliers and feature unlocks as a result. After your first Forge reset, you can speak with the Merchant for free Gold. The Forge reset gives Gold when performed, based on your Coins and XP Level at the time of performing it. The first Forge reset also unlocks a new Mutation system where you can mutate Coins and double the value of Coins and XP each time your Mutation increases. The first Forge reset also unlocked a new "Milestone-type" upgrade, and you can learn more information about that by reading the information inside the "Endless XP" upgrade. The core loop of this section of the game is to reach a high XP Level, then when progress is slow, perform a Forge reset for tons of Gold. Enjoy discovering all of the unique mutated Coin sprites.',
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Milestone-type Upgrade Level Cost Ratio</strong><br><code>CostRatio = (1.5 + 0.1 * Evolutions) * Harshness</code><br>Where <code>Evolutions = Floor(UpgLevel / 1000)</code> and <code>Harshness</code> is an optional value to make scaling harsher for any given upgrade, defaulting to 1.<br>After 1e6 Evolutions (UpgLevel 1e9): <code>CostRatio = (1.5 + 0.1 * Evolutions) * Harshness * 10 ^ (5 * e^(1.6979e-7 * (Evolutions - 1e6)))</code>.</div><div style="margin-bottom:12px;"><strong>Forge Base Gold Gain</strong><br><code>Base Gold = Floor(10 * 2 ^ Max(0, log10(Coins) - 5) * 1.4 ^ Max(0, (XPLevel - 30) / 5) * 1.15 ^ Floor(Max(0, log10(Coins) - 5)))</code>.</div><div style="margin-bottom:12px;"><strong>MP Requirement</strong><br>Mutations 0-9 follow this formula: <code>log10(Requirement) = -0.0022 * (Mutation + 1)^2 + 0.2045 * (Mutation + 1) + 2.0168</code>.<br>Mutations 10-49 follow a harsher formula: <code>log10(Requirement) = 3.83 * (1.3444 ^ (Mutation - 9))</code>.<br>Mutations 50-99 follow an even harsher formula: <code>log10(Requirement) = 10 ^ (A * x^2 + B)</code><br>Where <code>x = Mutation - 49</code>, <code>A = 297/2499</code>, and <code>B = 6 - A</code>.<br>There are also breakpoints at Mutation 50 and Mutation 100 where I explicitly set the MP requirement to a flat number.<br>Also note that I may slightly change the Mutation formula whenever I feel like it for various reasons.</div><div><strong>Mutation Coins & XP Multiplier</strong><br><code>Total Coins & XP Boost = 2 ^ Mutation</code>.</div>`,
         themeClass: "is-forge",
@@ -108,8 +110,12 @@ const HELP_ENTRIES = [
             let isVis = false;
             try {
                 const override = window.resetSystem?.getForgeDebugOverrideState?.();
-                if (override != null) isVis = override;
-                else isVis = !!window.resetSystem?.isForgeUnlocked?.();
+                if (override != null) {
+                    isVis = override;
+                } else {
+                    const state = getXpState();
+                    isVis = state && state.xpLevel && state.xpLevel.cmp(BigNum.fromInt(31)) >= 0;
+                }
             } catch {}
             if (isVis) markHelpEntryPermanentlyUnlocked(2);
             return isVis;
@@ -120,7 +126,7 @@ const HELP_ENTRIES = [
         title: "Infuse",
         icon: "img/misc/infuse.webp",
         tldr: "Reset immediately; Spend Magic wisely; Reset more when progress is slow",
-        progressionGoal: "Reach XP Level 201 and unlock a certain upgrade",
+        progressionGoal: "Reach XP Level 201",
         text: "Definitely check out the Workshop tab to get some very necessary automation. You can also speak with the Merchant after your first Infuse reset to get some extra Magic for free. Other than that, there's not much else to say; just perform your first Infuse reset right away so you can get Magic and buy Magic upgrades. There is one slight difference compared to the Forge reset, though, which is that Infuse scales based on Coins and cumulative MP (total MP gained throughout all Mutations), so just know that to get more Magic, you'll want to maximize your MP gains as much as possible. Keep performing more Forge resets for Gold and perform Infuse resets when you've done a satisfactory amount of Forge resets to continue progressing.",
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Infuse Base Magic Gain</strong><br><code>Base Magic = Floor(10 ^ (0.811 + Max(0, log10(Coins) - 12) * log10(1.5) + Floor(Max(0, log10(Coins) - 12)) * log10(1.03) + Max(0, log10(CumulativeMP) - 4) * log10(2)))</code>.</div><div><strong>Workshop Level Cost</strong><br>WSLevel 1 to WSLevel 1e6: <code>Cost = 10 ^ (12 + WSLevel)</code>.<br>WSLevel 1e6 to WSLevel 1e9: <code>Cost = 10 ^ (1.000012e6 + (WSLevel - 1e6) + Integral((WSLevel - 1e6), 0.001))</code><br>Where <code>Integral(WSLevel - 1e6, 0.001) = ((1 + 0.001*(WSLevel - 1e6)) * ln(1 + 0.001*(WSLevel - 1e6)) - 0.001*(WSLevel - 1e6)) / (0.001 * ln(10))</code>.<br>WSLevel 1e9 to WSLevel 1e12: <code>Cost = 10 ^ (6.5597e9 + (WSLevel - 1e9) + (Integral((WSLevel - 1e6), 0.001) - Integral(9.99e8, 0.001)) + 0.5 * (log10(1.00001) / 1000) * (WSLevel - 1e9)^2)</code>.<br>Beyond WSLevel 1e12: <code>Cost = 10 ^ (2.1767e15 * e^(2.3e-10 * (WSLevel - 1e12)))</code>.</div>`,
         themeClass: "is-infuse",
@@ -129,8 +135,12 @@ const HELP_ENTRIES = [
             let isVis = false;
             try {
                 const override = window.resetSystem?.getInfuseDebugOverrideState?.();
-                if (override != null) isVis = override;
-                else isVis = !!window.resetSystem?.isInfuseUnlocked?.();
+                if (override != null) {
+                    isVis = override;
+                } else {
+                    const state = getXpState();
+                    isVis = state && state.xpLevel && state.xpLevel.cmp(BigNum.fromInt(101)) >= 0;
+                }
             } catch {}
             if (isVis) markHelpEntryPermanentlyUnlocked(3);
             return isVis;
@@ -166,8 +176,12 @@ const HELP_ENTRIES = [
             let isVis = false;
             try {
                 const override = window.resetSystem?.getSurgeDebugOverrideState?.();
-                if (override != null) isVis = override;
-                else isVis = !!window.resetSystem?.isSurgeUnlocked?.();
+                if (override != null) {
+                    isVis = override;
+                } else {
+                    const state = getXpState();
+                    isVis = state && state.xpLevel && state.xpLevel.cmp(BigNum.fromInt(201)) >= 0;
+                }
             } catch {}
             if (isVis) markHelpEntryPermanentlyUnlocked(4);
             return isVis;
