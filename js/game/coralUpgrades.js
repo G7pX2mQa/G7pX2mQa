@@ -7,7 +7,7 @@ export const CORAL_REGISTRY = [
     {
         area: CORAL_AREA_KEY,
         id: 1,
-        tie: "faster_coral",
+        tie: "red_coral_1",
         title: "Faster Coral",
         desc: "Multiplies Bubble Spawn Rate by a certain amount per level\nBubbles float up, hit the Coral Ceiling, and spawn a Coral when they pop",
         lvlCap: 4,
