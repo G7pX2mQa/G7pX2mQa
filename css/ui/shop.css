@@ -1149,6 +1149,12 @@ html.is-mobile {
     font-size: clamp(26px, 3.6vw, 40px);
   }
 }
+@media (max-width: 1799px) {
+  .upg-sheet.is-faster-coral .upg-desc.centered,
+  .upg-sheet.is-faster-coral .upg-line {
+    font-size: clamp(27.2px, 3.91vw, 42.5px);
+  }
+}
 
 .shop-sort-of {
     border: 1px solid hsla(45, 80%, 40%, 0.45);
