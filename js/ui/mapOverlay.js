@@ -546,7 +546,7 @@ export function openMapOverlay(unlockedNodeId = null) {
 }
 if (typeof window !== "undefined") {
     window.addEventListener("unlock:change", () => {
-        if (isMapOverlayOpen && !window.__mapSequenceActive) {
+        if (!window.__mapSequenceActive) {
             refreshNodesState();
         }
     });
