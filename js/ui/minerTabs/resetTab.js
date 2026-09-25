@@ -17,7 +17,7 @@ import { settingsManager } from "../../game/settingsManager.js";
 import { resetUcEacAccumulator } from "../../game/automationEffects.js";
 import { resetUcMaterialAccumulators, resetUcEacMaterialAccumulators, resetUcEacYieldAccumulators, UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
 import { resetScrapAutoSellAccumulator } from "../../game/automationEffects.js";
-import { getUpgradesForArea, AREA_KEYS, setLevel } from "../../game/upgrades.js";
+import { getUpgradesForArea, AREA_KEYS, setLevel, UPGRADE_TIES } from "../../game/upgrades.js";
 import { resetLab, RESEARCH_NODES } from "../../game/labNodes.js";
 import { applySurgeResetLogic, getCurrentSurgeLevel, getSurgeBarLevelKey } from "../merchantTabs/resetTab.js";
 import { isBuildingsUnlocked } from "./buildingsTab.js";
@@ -401,13 +401,13 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
         if (typeof localStorage !== "undefined") {
             for (let j = 0; j < ucUpgrades.length; j++) {
                 const upg = ucUpgrades[j];
-                if (!upg || upg.unlockUpgrade || upg.tie === "unlock_coral_reef") continue;
+                if (!upg || upg.unlockUpgrade || upg.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) continue;
                 lsRemoveItem(`ccc:upgrade:${AREA_KEYS.UNDERWATER_CAVERN}:${upg.id}:${slot}`);
             }
         }
         for (let j = 0; j < ucUpgrades.length; j++) {
             const upg = ucUpgrades[j];
-            if (!upg || upg.unlockUpgrade || upg.tie === "unlock_coral_reef") continue;
+            if (!upg || upg.unlockUpgrade || upg.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) continue;
             if (upg.costType === "scrap") {
                 setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, 0, true, { resetHmEvolutions: true });
             } else {
