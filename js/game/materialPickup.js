@@ -149,7 +149,7 @@ export function initUcPickup({
                 el.remove();
             }
         };
-        if (disableAnimation || IS_MOBILE || settingsManager.get("pickup_animation") === false) {
+        if (disableAnimation || settingsManager.get("pickup_animation") === false) {
             recycle();
             return;
         }
