@@ -637,7 +637,7 @@ function getAreas() {
             title: "Coral Reef",
             currencies: coralCurrencies,
             stats: [
-                { key: "coralSpawnRate", label: "Coral Spawn Rate" },
+                { key: "bubbleSpawnRate", label: "Bubble Spawn Rate" },
             ],
         },
     ];
@@ -2976,77 +2976,77 @@ function buildAreaStats(container, area) {
     }
 
     if (area.key === "coral_reef") {
-        const coralSpawnRateKey = "coralSpawnRate";
-        const coralSpawnRateStorageKey = getStatMultiplierStorageKey(coralSpawnRateKey, slot);
-        const coralSpawnRateRow = createInputRow(
-            "Coral Spawn Rate",
-            getStatMultiplierDisplayValue(coralSpawnRateKey, slot),
+        const bubbleSpawnRateKey = "bubbleSpawnRate";
+        const bubbleSpawnRateStorageKey = getStatMultiplierStorageKey(bubbleSpawnRateKey, slot);
+        const bubbleSpawnRateRow = createInputRow(
+            "Bubble Spawn Rate",
+            getStatMultiplierDisplayValue(bubbleSpawnRateKey, slot),
             (value, { setValue }) => {
                 const latestSlot = getActiveSlot();
                 if (latestSlot == null) return;
-                const previous = getStatMultiplierDisplayValue(coralSpawnRateKey, latestSlot);
+                const previous = getStatMultiplierDisplayValue(bubbleSpawnRateKey, latestSlot);
                 try {
-                    setDebugStatMultiplierOverride(coralSpawnRateKey, value, latestSlot);
+                    setDebugStatMultiplierOverride(bubbleSpawnRateKey, value, latestSlot);
                 } catch {}
-                const refreshed = getStatMultiplierDisplayValue(coralSpawnRateKey, latestSlot);
+                const refreshed = getStatMultiplierDisplayValue(bubbleSpawnRateKey, latestSlot);
                 setValue(refreshed);
                 if (!bigNumEquals(previous, refreshed)) {
                     flagDebugUsage();
                     logAction(
-                        `Modified Coral Spawn Rate (${areaLabel}) ${formatNumber(previous)} -> ${formatNumber(refreshed)}`,
+                        `Modified Bubble Spawn Rate (${areaLabel}) ${formatNumber(previous)} -> ${formatNumber(refreshed)}`,
                     );
                 }
             },
             {
-                storageKey: coralSpawnRateStorageKey,
+                storageKey: bubbleSpawnRateStorageKey,
                 onLockChange: (locked) => {
                     const latestSlot = getActiveSlot();
                     if (latestSlot == null) return;
                     if (locked) {
-                        const existingOverride = getLockedStatOverride(latestSlot, coralSpawnRateKey);
+                        const existingOverride = getLockedStatOverride(latestSlot, bubbleSpawnRateKey);
                         if (existingOverride) return;
                         try {
                             setDebugStatMultiplierOverride(
-                                coralSpawnRateKey,
-                                getGameStatMultiplier(coralSpawnRateKey),
+                                bubbleSpawnRateKey,
+                                getGameStatMultiplier(bubbleSpawnRateKey),
                                 latestSlot,
                             );
                         } catch {}
                     } else {
                         getEffectiveStatMultiplierOverride(
-                            coralSpawnRateKey,
+                            bubbleSpawnRateKey,
                             latestSlot,
-                            getGameStatMultiplier(coralSpawnRateKey),
+                            getGameStatMultiplier(bubbleSpawnRateKey),
                         );
                     }
-                    coralSpawnRateRow.setValue(getStatMultiplierDisplayValue(coralSpawnRateKey, latestSlot));
+                    bubbleSpawnRateRow.setValue(getStatMultiplierDisplayValue(bubbleSpawnRateKey, latestSlot));
                 },
             },
         );
 
         registerLiveBinding({
             type: "stat-mult",
-            key: coralSpawnRateKey,
+            key: bubbleSpawnRateKey,
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
-                const latest = getStatMultiplierDisplayValue(coralSpawnRateKey, slot);
-                coralSpawnRateRow.setValue(latest);
+                const latest = getStatMultiplierDisplayValue(bubbleSpawnRateKey, slot);
+                bubbleSpawnRateRow.setValue(latest);
             },
         });
 
         registerLiveBinding({
             type: "upgrade",
-            key: coralSpawnRateKey,
+            key: bubbleSpawnRateKey,
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
-                const latest = getStatMultiplierDisplayValue(coralSpawnRateKey, slot);
-                coralSpawnRateRow.setValue(latest);
+                const latest = getStatMultiplierDisplayValue(bubbleSpawnRateKey, slot);
+                bubbleSpawnRateRow.setValue(latest);
             },
         });
 
-        container.appendChild(coralSpawnRateRow.row);
+        container.appendChild(bubbleSpawnRateRow.row);
     }
 
     const xp = getXpState();
@@ -5043,7 +5043,7 @@ function buildAreaStatMultipliers(container, area) {
 
     STAT_MULTIPLIERS.forEach((stat) => {
         if (stat.key === "spawnRate") return;
-        if (stat.key === "coralSpawnRate") return;
+        if (stat.key === "bubbleSpawnRate") return;
         if (area.key === "coral_reef") return; // coral reef has no other custom multipliers yet
         if (
             area.key === AREA_KEYS.UNDERWATER_CAVERN &&
@@ -6965,3 +6965,4 @@ window.addEventListener("boot:complete", () => {
 export function setDebugPanelAccess(enabled) {
     applyDebugPanelAccess(enabled);
 }
+
