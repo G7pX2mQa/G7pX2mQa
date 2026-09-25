@@ -105,6 +105,27 @@ export function suspendAllAudioFor(durationMs, fadeDurationMs = 0) {
 }
 
 
+export function muteGameAudio() {
+    const ctx = getAudioContext();
+    if (!ctx || !masterGain) return;
+    try {
+        const now = ctx.currentTime;
+        masterGain.gain.cancelScheduledValues(now);
+        masterGain.gain.setValueAtTime(0, now);
+    } catch {}
+}
+
+export function unmuteGameAudio() {
+    const ctx = getAudioContext();
+    if (!ctx || !masterGain) return;
+    try {
+        const targetVol = ((settingsManager.get('master_volume') !== false ? settingsManager.get('master_volume') : 100) / 100) * INTERNAL_MASTER_VOLUME_MULTIPLIER;
+        const now = ctx.currentTime;
+        masterGain.gain.cancelScheduledValues(now);
+        masterGain.gain.setValueAtTime(targetVol, now);
+    } catch {}
+}
+
 // Helper to get or create context
 function getAudioContext() {
   if (audioContext) return audioContext;
