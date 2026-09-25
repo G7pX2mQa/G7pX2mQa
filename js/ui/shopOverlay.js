@@ -145,7 +145,8 @@ function isBuyCheapExcluded(upgDef) {
     return (
         (upgDef.area === "starter_cove" && [1, 3, 4, 5, 6].includes(upgId)) ||
         (upgDef.area === "underwater_cavern" && [5, 9].includes(upgId)) ||
-        (upgDef.area === "automation" && [1, 10, 11, 12].includes(upgId))
+        (upgDef.area === "automation" && [1, 10, 11, 12].includes(upgId)) ||
+        (upgDef.area === "coral_reef" && [1].includes(upgId))
     );
 }
 
@@ -2275,6 +2276,7 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         upgSheetEl.classList.toggle("is-magnet-upgrade", upgDef.tie === UPGRADE_TIES.MAGNET);
         upgSheetEl.classList.toggle("is-coin-value-iv", upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
         upgSheetEl.classList.toggle("is-xp-value-iv", upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
+        upgSheetEl.classList.toggle("is-faster-coral", upgDef.tie === "faster_coral");
         let isCoralReefUnpurchased = false;
         if (upgDef.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) {
             isCoralReefUnpurchased = true;
