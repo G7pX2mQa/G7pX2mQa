@@ -507,7 +507,7 @@ export const DLG_CATALOG = {
         blurb: "The Merchant is feeling extra nice today",
         scriptId: 1,
         reward: { type: "coins", amount: 100 },
-        rewardNode: "m2b",
+        rewardNodes: "m2b",
         unlock: (progress) => true,
         once: true,
     },
@@ -516,7 +516,7 @@ export const DLG_CATALOG = {
         blurb: "Discuss the XP system with the Merchant",
         scriptId: 2,
         reward: { type: "books", amount: 5 },
-        rewardNode: "m3a",
+        rewardNodes: "m3a",
         once: true,
         unlock: (progress) => {
             if (!progress?.xpUnlocked) {
@@ -537,7 +537,7 @@ export const DLG_CATALOG = {
         blurb: "Ask the Merchant a few questions about the Forge",
         scriptId: 3,
         reward: { type: "gold", amount: 10 },
-        rewardNode: "m5a",
+        rewardNodes: "m5a",
         once: true,
         unlock: (progress) => {
             if (progress?.hasForgeReset) {
@@ -567,7 +567,7 @@ export const DLG_CATALOG = {
         blurb: "Converse with the Merchant about the Surge reset",
         scriptId: 5,
         reward: { type: "waves", amount: 5 },
-        rewardNode: "m6a",
+        rewardNodes: ["m6a", "m2f"],
         once: true,
         unlock: (progress) => {
             if (typeof hasDoneSurgeReset === "function" && hasDoneSurgeReset()) {
@@ -597,7 +597,7 @@ export const DLG_CATALOG = {
         blurb: "Discuss the aftermath of invoking the Tsunami with the Merchant",
         scriptId: 6,
         reward: { type: "dna", amount: 100 },
-        rewardNode: ["m7b", "m9a", "m9c"],
+        rewardNodes: ["m7b", "m9a", "m9c"],
         once: true,
         unlock: (progress) => {
             if (typeof isLabUnlocked === "function" && isLabUnlocked()) {
@@ -635,7 +635,7 @@ export const DLG_CATALOG = {
         blurb: "Learn about the Merchant’s magical powers",
         scriptId: 4,
         reward: { type: "magic", amount: 10 },
-        rewardNode: "m7a",
+        rewardNodes: "m7a",
         once: true,
         unlock: (progress) => {
             if (progress?.hasInfuseReset) return true;
@@ -974,17 +974,17 @@ function openDialogueModal(id, meta) {
         script.nodes.m3a.say =
             'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battl<span style="overflow-wrap: anywhere; word-break: break-all;">ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓≽ணၷᘑർ࿷᭭⋚ᬭᠴ</span>';
     }
-    if (meta.reward && !meta.rewardNode) {
-        throw new Error(`Dialogue ${id} has a reward but no rewardNode declared.`);
+    if (meta.reward && !meta.rewardNodes) {
+        throw new Error(`Dialogue ${id} has a reward but no rewardNodes declared.`);
     }
-    if (claimed && meta.reward && meta.rewardNode) {
-        const rewardNodes = Array.isArray(meta.rewardNode) ? meta.rewardNode : [meta.rewardNode];
+    if (claimed && meta.reward && meta.rewardNodes) {
+        const rewardNodess = Array.isArray(meta.rewardNodes) ? meta.rewardNodes : [meta.rewardNodes];
         let capText = String(meta.reward.type || "").charAt(0).toUpperCase() + String(meta.reward.type || "").slice(1);
         const rConfig = RESOURCE_REGISTRY.find((r) => r.key === meta.reward.type);
         if (rConfig) {
             capText = Number(meta.reward.amount) === 1 ? rConfig.singular : rConfig.plural;
         }
-        for (const rnId of rewardNodes) {
+        for (const rnId of rewardNodess) {
             const rNode = script.nodes[rnId];
             if (rNode) {
                 rNode.say = `I've already given you ${capText}, goodbye.`;
