@@ -14,6 +14,7 @@ import {
 } from "./merchantTabs/dlgTab.js";
 import { getMapSequenceSeen } from "../game/surgeEffects.js";
 import { openMiner, hasMetMiner, MINER_MET_EVENT } from "./minerTabs/dlgTab.js";
+import { openCoral, hasMetCoral, CORAL_MET_EVENT } from "./coralTabs/dlgTab.js";
 import { primeTypingSfx } from "./delveCore.js";
 import { playAudio } from "../util/audioManager.js";
 import { settingsManager } from "../game/settingsManager.js";
@@ -201,6 +202,7 @@ const SHOP_ADAPTERS = {
             "xp:unlock",
             MERCHANT_MET_EVENT,
             MINER_MET_EVENT,
+            CORAL_MET_EVENT,
             "forge:completed",
             "unlock:change",
             "collapse:challenge:start",
@@ -1368,6 +1370,8 @@ class ShopInstance {
                     openMerchant();
                 } else if (area === AREA_KEYS.UNDERWATER_CAVERN) {
                     openMiner();
+                } else if (area === AREA_KEYS.CORAL_REEF) {
+                    openCoral();
                 } else {
                     openMerchant();
                 }
