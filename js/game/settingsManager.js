@@ -462,7 +462,7 @@ export const SETTING_DEFINITIONS = {
         hasExtraInfo: true,
         info: "Applies to all collectibles that spawn. Turning this setting OFF would disable the pickup animations for all collectibles.",
         default: true,
-        unlockCondition: () => !IS_MOBILE,
+        unlockCondition: () => true,
     },
     show_side_containers: {
         type: "toggle",
