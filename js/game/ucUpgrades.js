@@ -644,7 +644,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 14,
-        tie: "unlock_coral_reef",
+        tie: "scrap_7",
         title: "Unlock Coral Reef",
         get desc() {
             let currentLevel = 0;
