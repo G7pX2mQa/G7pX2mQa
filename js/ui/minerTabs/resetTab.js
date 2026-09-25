@@ -401,13 +401,13 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
         if (typeof localStorage !== "undefined") {
             for (let j = 0; j < ucUpgrades.length; j++) {
                 const upg = ucUpgrades[j];
-                if (!upg || upg.unlockUpgrade) continue;
+                if (!upg || upg.unlockUpgrade || upg.tie === "unlock_coral_reef") continue;
                 lsRemoveItem(`ccc:upgrade:${AREA_KEYS.UNDERWATER_CAVERN}:${upg.id}:${slot}`);
             }
         }
         for (let j = 0; j < ucUpgrades.length; j++) {
             const upg = ucUpgrades[j];
-            if (!upg || upg.unlockUpgrade) continue;
+            if (!upg || upg.unlockUpgrade || upg.tie === "unlock_coral_reef") continue;
             if (upg.costType === "scrap") {
                 setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, 0, true, { resetHmEvolutions: true });
             } else {
