@@ -1416,9 +1416,12 @@ export function enterArea(areaID, fadeDuration = 0) {
                 }
                 if (coralSpawner) {
                     let rate = 1.0;
-                    // TODO: add coralSpawnRateMult when coral upgrades exist
+                    const coralEff = computeUpgradeEffects(AREA_KEYS.CORAL_REEF);
+                    if (coralEff && typeof coralEff.bubbleSpawnRateMult === "number") {
+                        rate *= coralEff.bubbleSpawnRateMult;
+                    }
                     if (typeof applyStatMultiplierOverride === "function") {
-                        const override = applyStatMultiplierOverride("coralSpawnRate", rate);
+                        const override = applyStatMultiplierOverride("bubbleSpawnRate", rate);
                         try {
                             if (override && typeof override.toScientific === "function") {
                                 rate = Number(override.toScientific(6));
