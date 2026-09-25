@@ -168,47 +168,62 @@ function sanitizeStoredLevelValue(raw, { allowEmpty = false } = {}) {
 }
 
 export const UPGRADE_TIES = {
-    FASTER_MATERIALS: "scrap_1",
-    FASTER_COINS: "coin_1",
-    UNLOCK_XP: "none_1",
-    FASTER_COINS_II: "book_1",
-    COIN_VALUE_I: "book_2",
-    BOOK_VALUE_I: "book_3",
-    XP_VALUE_I: "coin_2",
-    UNLOCK_FORGE: "none_2",
-    COIN_VALUE_II: "gold_1",
-    XP_VALUE_II: "gold_2",
-    MP_VALUE_I: "gold_3",
-    MAGNET: "gold_4",
-    ENDLESS_XP: "coin_3",
-    UNLOCK_INFUSE: "none_3",
-    COIN_VALUE_III: "magic_1",
-    COIN_VALUE_IV: "scrap_2",
-    XP_VALUE_IV: "scrap_7",
-    FASTER_CORAL: "red_coral_1",
-    XP_VALUE_III: "magic_2",
-    MP_VALUE_II: "magic_3",
-    FASTER_COINS_III: "magic_4",
-    ENDLESS_MP: "coin_4",
-    UNLOCK_SURGE: "none_4",
-    UNLOCK_SELL: "none_5",
-    UNLOCK_DEPTH: "none_6",
-    UNLOCK_COMBINE: "none_7",
-    UNLOCK_COMPRESS: "none_8",
-    UNLOCK_COLLAPSE: "none_9",
-    UNLOCK_CORAL_REEF: "scrap_7",
-    ENDLESS_COINS: "book_4",
-    ENDLESS_COINS_II: "gold_5",
-    ENDLESS_COINS_III: "magic_5",
-    ENDLESS_FP: "coin_5",
-    ENDLESS_DP: "scrap_4",
-    ENDLESS_MATERIALS: "scrap_5",
-    ADVANCED_RESEARCHING: "scrap_6",
-    COIN_RUBBLE_VALUE: "coin_6",
-    BOOK_RUBBLE_VALUE: "book_5",
-    GOLD_RUBBLE_VALUE: "gold_6",
-    MAGIC_RUBBLE_VALUE: "magic_6",
+    // === SYSTEM UNLOCKS ===
+    UNLOCK_XP: "starter_cove_2",
+    UNLOCK_FORGE: "starter_cove_7",
+    UNLOCK_INFUSE: "starter_cove_13",
+    UNLOCK_SURGE: "starter_cove_19",
+    UNLOCK_SELL: "underwater_cavern_2",
+    UNLOCK_DEPTH: "underwater_cavern_3",
+    UNLOCK_COMBINE: "underwater_cavern_6",
+    UNLOCK_COMPRESS: "underwater_cavern_10",
+    UNLOCK_COLLAPSE: "underwater_cavern_13",
+
+    // === MATERIALS / SCRAP ===
+    FASTER_MATERIALS: "underwater_cavern_1",
+    COIN_VALUE_IV: "underwater_cavern_4",
+    ENDLESS_DP: "underwater_cavern_7",
+    ENDLESS_MATERIALS: "underwater_cavern_8",
+    ADVANCED_RESEARCHING: "underwater_cavern_9",
+    XP_VALUE_IV: "underwater_cavern_5",
+    UNLOCK_CORAL_REEF: "underwater_cavern_14",
+
+    // === COIN ===
+    FASTER_COINS: "starter_cove_1",
+    XP_VALUE_I: "starter_cove_6",
+    ENDLESS_XP: "starter_cove_12",
+    ENDLESS_MP: "starter_cove_18",
+    ENDLESS_FP: "starter_cove_23",
+    COIN_RUBBLE_VALUE: "starter_cove_24",
+
+    // === BOOK ===
+    FASTER_COINS_II: "starter_cove_3",
+    COIN_VALUE_I: "starter_cove_4",
+    BOOK_VALUE_I: "starter_cove_5",
+    ENDLESS_COINS: "starter_cove_20",
+    BOOK_RUBBLE_VALUE: "starter_cove_25",
+
+    // === GOLD ===
+    COIN_VALUE_II: "starter_cove_8",
+    XP_VALUE_II: "starter_cove_9",
+    MP_VALUE_I: "starter_cove_10",
+    MAGNET: "starter_cove_11",
+    ENDLESS_COINS_II: "starter_cove_21",
+    GOLD_RUBBLE_VALUE: "starter_cove_26",
+
+    // === MAGIC ===
+    COIN_VALUE_III: "starter_cove_14",
+    XP_VALUE_III: "starter_cove_15",
+    MP_VALUE_II: "starter_cove_16",
+    FASTER_COINS_III: "starter_cove_17",
+    ENDLESS_COINS_III: "starter_cove_22",
+    MAGIC_RUBBLE_VALUE: "starter_cove_27",
+
+    // === DNA ===
     DNA_RUBBLE_VALUE: "dna_6",
+
+    // === RED CORAL ===
+    FASTER_CORAL: "coral_reef_1",
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -2280,7 +2295,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 1,
-        tie: UPGRADE_TIES.FASTER_COINS,
+
         title: "Faster Coins",
         desc: "Increases Coin Spawn Rate by +10% per level",
         lvlCap: 10,
@@ -2304,7 +2319,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 2,
-        tie: UPGRADE_TIES.UNLOCK_XP,
+
         title: "Unlock XP",
         desc: "Unlocks the XP system and a new Merchant dialogue\nXP system: Collect Coins for XP to level up and gain Books\nEach XP Level also boosts Coin value by a decent amount",
         lvlCap: 1,
@@ -2336,7 +2351,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 3,
-        tie: UPGRADE_TIES.FASTER_COINS_II,
+
         title: "Faster Coins II",
         desc: "Increases Coin Spawn Rate by +15% per level",
         lvlCap: 10,
@@ -2361,7 +2376,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 4,
-        tie: UPGRADE_TIES.COIN_VALUE_I,
+
         title: "Coin Value",
         desc: "Increases Coin value by +50% per level",
         lvlCap: 100,
@@ -2386,7 +2401,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 5,
-        tie: UPGRADE_TIES.BOOK_VALUE_I,
+
         title: "Book Value",
         get desc() {
             return getCurrentSurgeLevel() >= 3
@@ -2418,7 +2433,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 6,
-        tie: UPGRADE_TIES.XP_VALUE_I,
+
         title: "XP Value",
         desc: "Increases XP value by +200% per level",
         lvlCap: 10,
@@ -2443,7 +2458,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 7,
-        tie: UPGRADE_TIES.UNLOCK_FORGE,
+
         title: "Unlock Forge",
         desc: "Unlocks the Reset tab and Forge reset in the Delve menu\nAlso unlocks new Shop upgrades related to Forge",
         lvlCap: 1,
@@ -2471,7 +2486,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 8,
-        tie: UPGRADE_TIES.COIN_VALUE_II,
+
         title: "Coin Value II",
         desc: `Increases Coin value by +${formatNumber(BigNum.fromInt(1000))}% per level`,
         lvlCap: 100,
@@ -2497,7 +2512,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 9,
-        tie: UPGRADE_TIES.XP_VALUE_II,
+
         title: "XP Value II",
         desc: "Increases XP value by +100% per level",
         lvlCap: 100,
@@ -2523,7 +2538,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 10,
-        tie: UPGRADE_TIES.MP_VALUE_I,
+
         title: "MP Value",
         desc: "Increases MP value by +100% per level",
         lvlCap: 100,
@@ -2549,7 +2564,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 11,
-        tie: UPGRADE_TIES.MAGNET,
+
         title: "Magnet",
         desc: "Increases Magnet radius by +1 Unit per level\nMagnet: Increases the distance from which you can collect Coins",
         lvlCap: 5,
@@ -2578,7 +2593,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 12,
-        tie: UPGRADE_TIES.ENDLESS_XP,
+
         title: "Endless XP",
         desc: "The first Milestone-type upgrade\nMilestones: Reach certain upgrade levels for powerful buffs\nMultiplies XP value by 1.1x per level",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -2614,7 +2629,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 13,
-        tie: UPGRADE_TIES.UNLOCK_INFUSE,
+
         title: "Unlock Infuse",
         desc: "Unlocks the Infuse reset\nAlso unlocks new Shop upgrades related to Infuse",
         lvlCap: 1,
@@ -2642,7 +2657,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 14,
-        tie: UPGRADE_TIES.COIN_VALUE_III,
+
         title: "Coin Value III",
         desc: `Increases Coin value by +${formatNumber(BigNum.fromInt(100000))}% per level`,
         lvlCap: 100,
@@ -2668,7 +2683,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 15,
-        tie: UPGRADE_TIES.XP_VALUE_III,
+
         title: "XP Value III",
         desc: "Increases XP value by +100% per level",
         lvlCap: 100,
@@ -2694,7 +2709,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 16,
-        tie: UPGRADE_TIES.MP_VALUE_II,
+
         title: "MP Value II",
         desc: "Increases MP value by +100% per level",
         lvlCap: 100,
@@ -2720,7 +2735,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 17,
-        tie: UPGRADE_TIES.FASTER_COINS_III,
+
         title: "Faster Coins III",
         desc: "Doubles Coin Spawn Rate",
         lvlCap: 1,
@@ -2746,7 +2761,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 18,
-        tie: UPGRADE_TIES.ENDLESS_MP,
+
         title: "Endless MP",
         desc: "Multiplies MP value by 1.1x per level",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -2782,7 +2797,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 19,
-        tie: UPGRADE_TIES.UNLOCK_SURGE,
+
         title: "Unlock Surge",
         desc: "Unlocks the Surge reset",
         lvlCap: 1,
@@ -2810,7 +2825,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 20,
-        tie: UPGRADE_TIES.ENDLESS_COINS,
+
         title: "Endless Coins",
         desc: "Multiplies Coin value by 1.1x per level",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -2863,7 +2878,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 21,
-        tie: UPGRADE_TIES.ENDLESS_COINS_II,
+
         title: "Endless Coins II",
         desc: "Multiplies Coin value by 1.1x per level",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -2915,7 +2930,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 22,
-        tie: UPGRADE_TIES.ENDLESS_COINS_III,
+
         title: "Endless Coins III",
         desc: "Multiplies Coin value by 1.1x per level",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -2967,7 +2982,7 @@ export const REGISTRY = [
     {
         area: AREA_KEYS.STARTER_COVE,
         id: 23,
-        tie: UPGRADE_TIES.ENDLESS_FP,
+
         title: "Endless FP",
         desc: "Multiplies FP value by 1.1x per level\nFP is very important for increasing Waterwheel Levels\nThis upgrade is very strong so it will scale faster than usual",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -3021,7 +3036,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 24,
         title: "Coin Rubble Value",
-        tie: UPGRADE_TIES.COIN_RUBBLE_VALUE,
+
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
         
         lvlCap: 1000,
@@ -3055,7 +3070,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 25,
         title: "Book Rubble Value",
-        tie: UPGRADE_TIES.BOOK_RUBBLE_VALUE,
+
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade does not scale similarly to Endless FP",
         
         lvlCap: 1000,
@@ -3088,7 +3103,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 26,
         title: "Gold Rubble Value",
-        tie: UPGRADE_TIES.GOLD_RUBBLE_VALUE,
+
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
         
         lvlCap: 1000,
@@ -3122,7 +3137,7 @@ export const REGISTRY = [
         area: AREA_KEYS.STARTER_COVE,
         id: 27,
         title: "Magic Rubble Value",
-        tie: UPGRADE_TIES.MAGIC_RUBBLE_VALUE,
+
         desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
         
         lvlCap: 1000,
@@ -3160,6 +3175,9 @@ export const REGISTRY = [
     ...RUBBLE_REGISTRY,
 ];
 for (const upg of REGISTRY) {
+    if (!upg.tie && !upg.tieKey) {
+        upg.tie = `${upg.area}_${upg.id}`;
+    }
     const tieKey = normalizeUpgradeTie(upg.tie ?? upg.tieKey);
     if (tieKey && !upgradeTieLookup.has(tieKey)) {
         upgradeTieLookup.set(tieKey, upg);
