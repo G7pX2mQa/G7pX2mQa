@@ -29,7 +29,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 1,
-        tie: "scrap_1",
+
         title: "Faster Materials",
         desc: "Increases Material Spawn Rate by +9% per level",
         lvlCap: 100,
@@ -56,7 +56,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 2,
-        tie: "none_5",
+
         title: "Unlock Sell",
         desc: "Unlocks the Sell tab in the Delve menu",
         lvlCap: 1,
@@ -91,7 +91,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 3,
-        tie: "none_6",
+
         title: "Unlock Depth",
         desc: "Unlocks the Depth system; Collect materials for DP; Go deeper to find new materials\nEach meter of Depth boosts material accumulator speed (see Sell tab)\nEach meter of Depth additionally boosts FP 1.1x compounding\nAlso you should go look in the Flow tab (important)",
         descScale: 0.725,
@@ -135,7 +135,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 4,
-        tie: "scrap_2",
+
         title: "Coin Value IV",
         get desc() {
             let text = `Multiplies Coin value by ${formatNumber(BigNum.fromInt(100000))}x`;
@@ -181,7 +181,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 5,
-        tie: "scrap_3",
+
         title: "DP Value",
         desc: "Triples DP value per level",
         lvlCap: 10,
@@ -218,7 +218,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 6,
-        tie: "none_7",
+
         title: "Unlock Combine",
         desc: "Unlocks the Reset tab and Combine reset in the Delve menu",
         descScale: 0.9,
@@ -270,7 +270,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 7,
-        tie: "scrap_4",
+
         title: "Endless DP",
         desc: "Multiplies DP value by 1.1x per level",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -319,7 +319,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 8,
-        tie: "scrap_5",
+
         title: "XP Value IV",
         get desc() {
             let text = `Multiplies XP value by 200x per level`;
@@ -378,7 +378,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 9,
-        tie: "scrap_6",
+
         title: "Advanced Researching",
         desc: `Improves RP value by ${formatNumber(BigNum.fromAny("1e1000"))}x per level`,
         lvlCap: 10,
@@ -452,7 +452,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 10,
-        tie: "none_8",
+
         title: "Unlock Compress",
         desc: "Unlocks the Compress reset and Crystal Building",
         lvlCap: 1,
@@ -498,7 +498,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 11,
-        tie: "scrap_8",
+
         title: "Endless PP",
         desc: "Multiplies PP value by 1.1x per level",
         lvlCap: HM_EVOLUTION_INTERVAL,
@@ -543,7 +543,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 12,
-        tie: "scrap_9",
+
         title: "FP Value",
         get desc() {
             let text = `Multiplies FP value by 100x`;
@@ -597,7 +597,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 13,
-        tie: "none_9",
+
         title: "Unlock Collapse",
         desc: "Unlocks the Collapse tab",
         lvlCap: 1,
@@ -644,7 +644,7 @@ export const UC_REGISTRY = [
     {
         area: UC_AREA_KEY,
         id: 14,
-        tie: "scrap_7",
+
         title: "Unlock Coral Reef",
         get desc() {
             let currentLevel = 0;
