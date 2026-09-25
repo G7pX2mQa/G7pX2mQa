@@ -652,7 +652,7 @@ export const UC_REGISTRY = [
                 currentLevel = getLevelNumber(UC_AREA_KEY, this.tie);
             } catch (e) {}
             if (currentLevel >= 1) {
-                return "Unlocks new area: Coral Reef";
+                return "Unlocks new area: Coral Reef\nNot reset upon Combine, Compress, or CC start";
             }
             let descText = `Unlocks new area: Coral Reef\nThis area must be purchased using Scrap`;
             let purchasedOnce = false;
@@ -707,6 +707,16 @@ export const UC_REGISTRY = [
                         setNodeLocked("coral", false);
                         if (typeof window !== "undefined" && slot != null) {
                             window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:coral", state: true, slot } }));
+                        }
+                    });
+                } catch {}
+            } else if ((newLevel ?? 0) === 0) {
+                try {
+                    const slot = getActiveSlot();
+                    import("../ui/mapOverlay.js").then(({ setNodeLocked }) => {
+                        setNodeLocked("coral", true);
+                        if (typeof window !== "undefined" && slot != null) {
+                            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:coral", state: false, slot } }));
                         }
                     });
                 } catch {}
