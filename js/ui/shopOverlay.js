@@ -74,6 +74,7 @@ const BASE_ICON_SRC_BY_COST = {
     dna: "img/currencies/dna/dna_base.webp",
     scrap: "img/currencies/scrap/scrap_base.webp",
     rubble: "img/currencies/rubble/rubble_base.webp",
+    red_coral: "img/currencies/coral/coral_red_base.webp",
 };
 
 const LOCKED_BASE_ICON_SRC = "img/misc/locked_base.webp";
@@ -90,6 +91,7 @@ const CURRENCY_ICON_SRC = {
     scrap: "img/currencies/scrap/scrap.webp",
     rainbowGems: "img/currencies/rainbow_gem.webp",
     rubble: "img/currencies/rubble/rubble.webp",
+    red_coral: "img/currencies/coral/coral_red.webp",
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
