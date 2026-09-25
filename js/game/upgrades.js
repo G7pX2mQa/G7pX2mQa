@@ -18,7 +18,7 @@ import {
     isSurgeUnlocked,
 } from "../ui/merchantTabs/resetTab.js";
 import { UC_REGISTRY, UC_AREA_KEY } from "./ucUpgrades.js";
-import { CR_REGISTRY, CR_AREA_KEY } from "./coralUpgrades.js";
+import { CORAL_REGISTRY, CORAL_AREA_KEY } from "./coralUpgrades.js";
 import {
     REGISTRY as AUTOMATION_REGISTRY,
     AUTOMATION_AREA_KEY,
@@ -53,7 +53,7 @@ const DEFAULT_AREA_KEY = "";
 export const STARTER_COVE_AREA_KEY = "starter_cove";
 export const AREA_KEYS = {
     UNDERWATER_CAVERN: UC_AREA_KEY,
-    CORAL_REEF: CR_AREA_KEY,
+    CORAL_REEF: CORAL_AREA_KEY,
     STARTER_COVE: STARTER_COVE_AREA_KEY,
     AUTOMATION: AUTOMATION_AREA_KEY,
     DNA: DNA_AREA_KEY,
@@ -3155,7 +3155,7 @@ export const REGISTRY = [
     ...DNA_REGISTRY,
     ...RAINBOW_GEM_UPGRADES,
     ...UC_REGISTRY,
-    ...CR_REGISTRY,
+    ...CORAL_REGISTRY,
     ...RUBBLE_REGISTRY,
 ];
 for (const upg of REGISTRY) {
