@@ -277,7 +277,7 @@ export function createCoralSpawner(config = {}) {
                         const bx = b.x + sinVal * 15;
                         const by = startY - yRate * b.timeElapsed;
                         
-                        fxCtx.drawImage(canvas, (bx - s) | 0, (by - s) | 0);
+                        fxCtx.drawImage(canvas, bx - s, by - s);
                     }
                 }
 
