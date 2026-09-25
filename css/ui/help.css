@@ -94,7 +94,7 @@
   -webkit-user-select: none;
 }
 
-.help-card p {
+.help-card .help-body {
   font-size: 1.1rem;
   color: #e6f5ff;
   line-height: 1;
