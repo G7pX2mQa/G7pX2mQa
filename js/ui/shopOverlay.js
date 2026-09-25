@@ -2276,7 +2276,7 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         upgSheetEl.classList.toggle("is-magnet-upgrade", upgDef.tie === UPGRADE_TIES.MAGNET);
         upgSheetEl.classList.toggle("is-coin-value-iv", upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
         upgSheetEl.classList.toggle("is-xp-value-iv", upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
-        upgSheetEl.classList.toggle("is-faster-coral", upgDef.tie === "faster_coral");
+        upgSheetEl.classList.toggle("is-faster-coral", upgDef.tie === UPGRADE_TIES.FASTER_CORAL);
         let isCoralReefUnpurchased = false;
         if (upgDef.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF) {
             isCoralReefUnpurchased = true;
