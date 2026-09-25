@@ -10,7 +10,8 @@ let musicFilter = null;
 let sfxGain = null;
 let sfxFilter = null;
 let specialGain = null;
-const mobileGlobalAudioReductionMultiplier = 0.825
+const mobileGlobalAudioReductionMultiplier = 0.85;
+const INTERNAL_MASTER_VOLUME_MULTIPLIER = 0.9;
 
 const buffers = new Map();
 const loadPromises = new Map();
@@ -63,7 +64,7 @@ export function suspendAllAudioFor(durationMs, fadeDurationMs = 0) {
         return new Promise((resolve) => {
             suspendTimeout = setTimeout(() => {
                 if (fadeDurationMs > 0 && masterGain) {
-                    const targetVol = (settingsManager.get('master_volume') !== false ? settingsManager.get('master_volume') : 100) / 100;
+                    const targetVol = ((settingsManager.get('master_volume') !== false ? settingsManager.get('master_volume') : 100) / 100) * INTERNAL_MASTER_VOLUME_MULTIPLIER;
                     const now = ctx.currentTime;
                     try {
                         masterGain.gain.cancelScheduledValues(now);
@@ -76,7 +77,7 @@ export function suspendAllAudioFor(durationMs, fadeDurationMs = 0) {
                     suspendTimeout = null;
                     window._isAudioExplicitlySuspended = false;
                     if (fadeDurationMs > 0 && masterGain) {
-                        const targetVol = (settingsManager.get('master_volume') !== false ? settingsManager.get('master_volume') : 100) / 100;
+                        const targetVol = ((settingsManager.get('master_volume') !== false ? settingsManager.get('master_volume') : 100) / 100) * INTERNAL_MASTER_VOLUME_MULTIPLIER;
                         try {
                             masterGain.gain.cancelScheduledValues(ctx.currentTime);
                             masterGain.gain.value = targetVol;
@@ -117,7 +118,7 @@ function getAudioContext() {
   masterGain.connect(audioContext.destination);
   
   // Initial gain setup
-  masterGain.gain.value = 1.0; 
+  masterGain.gain.value = INTERNAL_MASTER_VOLUME_MULTIPLIER; 
 
   // Music Pipeline: Source -> Filter -> MusicGain -> MasterGain
   musicGain = audioContext.createGain();
@@ -418,8 +419,8 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
       
       const masterVolumeSetting = settingsManager.get('master_volume');
       let finalVolume = masterVolumeSetting !== undefined && masterVolumeSetting !== null 
-          ? volume * (masterVolumeSetting / 100) 
-          : volume;
+          ? volume * (masterVolumeSetting / 100) * INTERNAL_MASTER_VOLUME_MULTIPLIER
+          : volume * INTERNAL_MASTER_VOLUME_MULTIPLIER;
 
       // HTML5 Audio fallback doesn't use the Web Audio global gains, so we need to multiply them here.
       if (isSpawnVessel) {
@@ -505,7 +506,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
                   actualVolume = actualVolume * (spawnVesselVolumeSetting / 100);
               }
               const mvs = settingsManager.get('master_volume');
-              let finalVol = mvs !== undefined && mvs !== null ? actualVolume * (mvs / 100) : actualVolume;
+              let finalVol = mvs !== undefined && mvs !== null ? actualVolume * (mvs / 100) * INTERNAL_MASTER_VOLUME_MULTIPLIER : actualVolume * INTERNAL_MASTER_VOLUME_MULTIPLIER;
               if (type === 'music') {
                   let musv = settingsManager.get('music_volume');
                   if (musv !== undefined && musv !== null) {
@@ -598,7 +599,7 @@ export function setMasterVolume(volumePercentage) {
     if (!masterGain) return;
     
     // Map 0-100 to 0.0-1.0
-    const gainValue = Math.max(0, Math.min(100, volumePercentage)) / 100.0;
+    const gainValue = (Math.max(0, Math.min(100, volumePercentage)) / 100.0) * INTERNAL_MASTER_VOLUME_MULTIPLIER;
     
     try {
         const now = audioContext.currentTime;
