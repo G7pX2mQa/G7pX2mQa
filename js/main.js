@@ -12,6 +12,7 @@ import { settingsManager } from "./game/settingsManager.js";
 import { flushBackupSnapshot as immediateFlushBackupSnapshot } from "./util/suspensionSafeguard.js";
 import { IS_MOBILE, IS_FIREFOX } from "./util/platformChecker.js";
 import { showWideNotification } from "./ui/notifications.js";
+import { shouldSkipGhostTap } from "./util/ghostTapGuard.js";
 
 export const FONT_MAP = {
     1: "font-tinos",
@@ -1968,9 +1969,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         coin.style.background = "none";
         coin.appendChild(visual);
+        coin.dataset.ghostTapTarget = "true";
 
         let animation;
-        coin.addEventListener("click", () => {
+        coin.addEventListener("click", (e) => {
+            if (e && e.isTrusted && shouldSkipGhostTap(coin)) return;
+
             if (!getHasOpenedSaveSlot()) {
                 const currentCoins = Array.from(document.querySelectorAll(".menu-header .coin-o"));
                 const currentIndex = currentCoins.indexOf(coin);
@@ -2011,10 +2015,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
         });
-        coin.addEventListener("touchstart", (e) => {
-            e.preventDefault();
-            coin.click();
-        }, { passive: false });
     });
     if (IS_FIREFOX) document.documentElement.classList.add("is-firefox");
     let resolveSkip;
@@ -2072,6 +2072,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const ASSET_MANIFEST = {
         images: [
+			"img/coral_upg_icons/faster_coral.webp",
             "img/currencies/book/book.webp",
             "img/currencies/book/book_base.webp",
             "img/currencies/book/book_plus_base.webp",
@@ -2890,7 +2891,7 @@ function validateMultiplierMethods() {
 
 function generateMenuBackground(manifest) {
     const images = manifest.images.filter(
-        (src) => src.startsWith("img/currencies/") && !src.endsWith("_base.webp") && !src.endsWith("_plus_base.webp"),
+        (src) => (src.startsWith("img/currencies/") || src === "img/materials/stone.webp") && !src.endsWith("_base.webp") && !src.endsWith("_plus_base.webp"),
     );
     if (!images || images.length === 0) return;
 
