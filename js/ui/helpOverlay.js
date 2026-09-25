@@ -523,8 +523,8 @@ function renderHelpContent(force = false) {
     <div class="help-content-area">
       <div class="help-card ${currentThemeClass}">
         <h3>${currentEntry.title}</h3>
-        <p>${paragraphContent}</p>
-        <h3 style="visibility:hidden">${currentEntry.title}</h3>
+        <div class="help-body">${paragraphContent}</div>
+        <h3 class="help-ghost" style="visibility:hidden; margin:0;">${currentEntry.title}</h3>
       </div>
     </div>
   `;
@@ -559,6 +559,37 @@ function renderHelpContent(force = false) {
             }
         });
     });
+
+    const scroller = overlayEl.querySelector(".help-scroller");
+    if (scroller) {
+        if (!scroller.__helpObserver) {
+            scroller.__helpObserver = new ResizeObserver(() => {
+                const h3 = overlayEl.querySelector(".help-card h3:not(.help-ghost)");
+                const body = overlayEl.querySelector(".help-body");
+                const ghost = overlayEl.querySelector(".help-ghost");
+                if (h3 && body && ghost) {
+                    const contentHeight = h3.offsetHeight + 20 + body.offsetHeight + 44;
+                    const scrollerHeight = scroller.clientHeight;
+                    if (scrollerHeight > 0) {
+                        if (scrollerHeight >= contentHeight + 20 + h3.offsetHeight) {
+                            ghost.style.display = "block";
+                        } else {
+                            ghost.style.display = "none";
+                        }
+                    }
+                }
+            });
+            scroller.__helpObserver.observe(scroller);
+        }
+        const bodyEl = overlayEl.querySelector(".help-body");
+        if (bodyEl) {
+            if (scroller.__helpBodyObserverTarget) {
+                scroller.__helpObserver.unobserve(scroller.__helpBodyObserverTarget);
+            }
+            scroller.__helpObserver.observe(bodyEl);
+            scroller.__helpBodyObserverTarget = bodyEl;
+        }
+    }
 }
 
 export function updateHelpOverlay(force = false) {
