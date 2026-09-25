@@ -785,6 +785,9 @@ export function initMutationSystem({ forceReload = false } = {}) {
         bindStorageWatchers(activeSlot);
         ensureHudRefs();
         updateHud();
+        if (forceReload) {
+            emitChange("reload");
+        }
         return getMutationState();
     }
     initialized = true;
