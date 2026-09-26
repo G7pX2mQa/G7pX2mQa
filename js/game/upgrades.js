@@ -35,14 +35,14 @@ import {
     onUpgradesChanged,
     getMpValueMultiplierBn,
     getMagnetLevel,
-    syncBookCurrencyMultiplierFromUpgrade,
+    syncCurrencyMultipliersFromUpgrades,
 } from "./upgradeEffects.js";
 export {
     computeUpgradeEffects,
     onUpgradesChanged,
     getMpValueMultiplierBn,
     getMagnetLevel,
-    syncBookCurrencyMultiplierFromUpgrade,
+    syncCurrencyMultipliersFromUpgrades,
 };
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny("Infinity");
@@ -2420,8 +2420,8 @@ export const REGISTRY = [
             return `Book value bonus: ${formatMultForUi(mult)}x`;
         },
         effectMultiplier: (lvl) => (normalizedUpgradeLevel(lvl) > 0 ? 2 : 1),
-        onLevelChange({ newLevel }) {
-            syncBookCurrencyMultiplierFromUpgrade(newLevel);
+        onLevelChange() {
+            syncCurrencyMultipliersFromUpgrades();
         },
     },
     {
@@ -4962,4 +4962,13 @@ export function buyCheap(areaKey, upgId) {
     if (bestK <= 0) return { bought: 0, spent: BigNum.fromInt(0) };
     // 3. Execute Buy
     return buyTowards(areaKey, upgId, bestK);
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("ccc:coral:met", () => {
+        // Unlock RCL upgrade (ID 2 in CORAL_REEF)
+        invalidateUpgradeState("coral_reef", 2);
+        // Force an update to the shop UI
+        notifyChanged();
+    });
 }
