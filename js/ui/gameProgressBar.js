@@ -11,7 +11,7 @@ import { getDpState } from "../game/dpSystem.js";
 import { getPpState } from "../game/ppSystem.js";
 import { getActiveCollapseChallengeType } from "./minerTabs/collapseTab.js";
 import { getMapSequenceSeen } from "../game/surgeEffects.js";
-
+import { getRclpState } from "../game/rclpSystem.js";
 const GOAL_MODE = {
     NORMAL: "normal",
     LOGARITHMIC: "logarithmic",
@@ -220,7 +220,7 @@ const GOALS = [
     },
     {
         id: 10,
-        text: "Reach Depth: 31m",
+        text: "Unlock the Depth system, then reach Depth: 31m",
         icon: "img/misc/combine.webp",
         unlocksHelpText: true,
         mode: GOAL_MODE.NORMAL,
@@ -336,6 +336,25 @@ const GOALS = [
         isComplete: () => {
             const slot = getActiveSlot();
             return lsGetItem(`ccc:unlock:shop:coral:${slot}`) === "1";
+        },
+    },
+    {
+        id: 16,
+        text: "Unlock the Red Coral Level system, then reach RCL 31",
+        icon: "img/stats/rclp/rclp.webp",
+        unlocksHelpText: true,
+        mode: GOAL_MODE.NORMAL,
+        start: 0,
+        target: 31,
+        getCurrent: () => {
+            const state = getRclpState();
+            if (!state || !state.unlocked) return 0;
+            return levelBigNumToNumber(state.rclpLevel);
+        },
+        isComplete: () => {
+            const state = getRclpState();
+            if (!state || !state.unlocked) return false;
+            return levelBigNumToNumber(state.rclpLevel) >= 31;
         },
     },
 ];
