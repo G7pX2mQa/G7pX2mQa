@@ -402,6 +402,7 @@ let registerXpUpgradeEffects;
 let initXpSystem;
 let initDpSystem;
 let initPpSystem;
+let initRclpSystem;
 let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
 let initPopups;
@@ -1288,6 +1289,11 @@ export function enterArea(areaID, fadeDuration = 0) {
                 initPpSystem();
             } catch {}
         }
+        if (typeof initRclpSystem === "function") {
+            try {
+                initRclpSystem();
+            } catch {}
+        }
 
         // Determine the correct playfield selector based on the active area
         let playfieldSelector = ".playfield";
@@ -2071,6 +2077,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         import("./ui/sas/multipliersOverlay.js"),
         import("./game/coralSpawner.js"),
         import("./game/coralPickup.js"),
+        import("./game/rclpSystem.js"),
     ]);
 
     const ASSET_MANIFEST = {
@@ -2227,8 +2234,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/stats/pp/pp.webp",
             "img/stats/pp/pp_base.webp",
             "img/stats/pp/pp_plus_base.webp",
-			"img/stats/rcl/rcl.webp",
-			"img/stats/rcl_rcl_plus_base.webp",
+			"img/stats/rclp/rclp.webp",
+			"img/stats/rclp/rclp_plus_base.webp",
             "img/stats/rp/rp.webp",
             "img/stats/rp/rp_base.webp",
             "img/stats/rp/rp_plus_base.webp",
@@ -2364,6 +2371,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         multipliersOverlayModule,
         coralSpawnerModule,
         coralPickupModule,
+        rclpSystemModule,
     ] = await modulePromise;
 
     ({ initSlots } = slotsModule);
@@ -2394,6 +2402,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
     ({ initDpSystem } = dpModule);
     ({ initPpSystem } = ppModule);
+    ({ initRclpSystem } = rclpSystemModule);
     ({ initResetSystem: initResetSystemGame } = resetModule);
     ({
         initMutationSystem,
