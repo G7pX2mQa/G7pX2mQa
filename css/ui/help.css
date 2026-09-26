@@ -154,11 +154,14 @@
     z-index: 10;
     margin-top: -12px;
     margin-bottom: -2px;
-    background: var(--shop-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: transparent;
     margin-left: calc(-1 * clamp(12px, 2.5vw, 16px));
     margin-right: -16px;
+  }
+
+  .sas-sheet.has-scroll-shadow .help-sidebar-wrapper {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   .help-sidebar {
