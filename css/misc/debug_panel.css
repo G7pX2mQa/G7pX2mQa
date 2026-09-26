@@ -450,6 +450,7 @@ html.is-mobile {
 .debug-panel-row label {
     flex: 1;
     font-size: 0.95em;
+    cursor: text;
 }
 
 .debug-panel-input {
