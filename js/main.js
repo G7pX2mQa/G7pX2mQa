@@ -3013,6 +3013,10 @@ function generateMenuBackground(manifest) {
         background-repeat: repeat;
         will-change: background-position;
       }
+      body.is-hidden.menu-bg::before,
+      body.is-hidden #boot-loader.with-bg::before {
+        animation-play-state: paused !important;
+      }
       @media (prefers-reduced-motion: reduce) {
         body.menu-bg::before,
         #boot-loader.with-bg::before { animation: none !important; }
