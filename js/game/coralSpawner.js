@@ -213,7 +213,18 @@ export function createCoralSpawner(config = {}) {
             const endY = minY + Math.random() * (maxY - minY);
 
             // Spawn exactly so the top of the bubble is at the bottom of the viewport frame
-            const bubbleStartY = pf.height + baseSize;
+            let barOffset = 0;
+            const wrapper = document.getElementById("hud-bottom-wrapper");
+            if (wrapper && wrapper.classList.contains("has-goal-bar")) {
+                const bar = wrapper.querySelector(".goal-progress-bar");
+                if (bar) {
+                    const barRect = bar.getBoundingClientRect();
+                    barOffset = pf.bottom - barRect.top;
+                } else {
+                    barOffset = 22;
+                }
+            }
+            const bubbleStartY = pf.height + baseSize - barOffset;
 
             return {
                 x0: spawnCenterX,
@@ -250,9 +261,22 @@ export function createCoralSpawner(config = {}) {
                 fxCtx.imageSmoothingEnabled = false;
                 const dynamicHitY = currentCanopyV - 35;
 
+                let barOffset = 0;
+                const wrapper = document.getElementById("hud-bottom-wrapper");
+                if (wrapper && wrapper.classList.contains("has-goal-bar")) {
+                    const bar = wrapper.querySelector(".goal-progress-bar");
+                    if (bar) {
+                        const pfRect = fxCanvas.getBoundingClientRect();
+                        const barRect = bar.getBoundingClientRect();
+                        barOffset = pfRect.bottom - barRect.top;
+                    } else {
+                        barOffset = 22;
+                    }
+                }
+
                 const sizeData = new Array(13);
                 for (let s = 6; s <= 12; s++) {
-                    const startY = lastCanopyH + s;
+                    const startY = lastCanopyH + s - barOffset;
                     sizeData[s] = {
                         canvas: getBubbleCanvas(s),
                         startY: startY,
