@@ -91,38 +91,6 @@ function safeIsXpUnlocked() {
   }
 }
 
-export function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
-  const multHandle = bank?.books?.mult;
-  if (!multHandle || typeof multHandle.set !== 'function') return;
-
-  let resolvedLevel = 0;
-  const xpUnlocked = safeIsXpUnlocked();
-  if (xpUnlocked) {
-    if (Number.isFinite(levelOverride)) {
-      resolvedLevel = Math.max(0, Math.floor(levelOverride));
-    } else {
-      const storedLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_VALUE_I);
-      resolvedLevel = Math.max(0, Number.isFinite(storedLevel) ? storedLevel : 0);
-    }
-  }
-
-  let multiplier;
-  try {
-    multiplier = bookValueMultiplierBn(resolvedLevel);
-    const rclpMult = getRclpMultiplier();
-    if (!rclpMult.isZero?.() && rclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
-        multiplier = safeMultiplyBigNum(multiplier, rclpMult);
-    }
-  } catch {
-    multiplier = BigNum.fromInt(1);
-  }
-
-  try {
-    const finalBookValue = applyStatMultiplierOverride('books', multiplier.clone?.() ?? multiplier);
-    multHandle.set(finalBookValue);
-  } catch {}
-}
-
 export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
   if (_cachedUpgradeMultipliers[areaKey]) return _cachedUpgradeMultipliers[areaKey];
 
@@ -335,7 +303,7 @@ export function computeUpgradeEffects(areaKey) {
 }
 
 export function syncCurrencyMultipliersFromUpgrades() {
-  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue, bookValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -435,6 +403,23 @@ try {
   } catch {}
 
   try {
+    if (bank.books?.mult?.set) {
+      const xpUnlocked = safeIsXpUnlocked();
+      let finalBookValue = BigNum.fromInt(1);
+      
+      if (xpUnlocked) {
+        finalBookValue = bookValue;
+        const rclpMult = getRclpMultiplier();
+        if (!rclpMult.isZero?.() && rclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+            finalBookValue = safeMultiplyBigNum(finalBookValue, rclpMult);
+        }
+      }
+
+      finalBookValue = applyStatMultiplierOverride('books', finalBookValue.clone?.() ?? finalBookValue);
+      bank.books.mult.set(finalBookValue);
+    }
+  } catch {}
+
   try {
     if (bank.gears?.mult?.set) {
       const level = loadGenerationLevel();
@@ -447,6 +432,7 @@ try {
     }
   } catch {}
 
+  try {
     for (const mat of UC_MATERIALS) {
       if (bank[mat]?.mult?.set) {
         // Individual material multipliers can be multiplied here in the future
@@ -596,12 +582,10 @@ export function registerXpUpgradeEffects() {
     });
   } catch {}
 
-  syncBookCurrencyMultiplierFromUpgrade();
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', () => {
       invalidateEffectsCache();
       setTimeout(() => {
-        try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
       }, 0);
     });
@@ -630,7 +614,7 @@ export function registerXpUpgradeEffects() {
 
     window.addEventListener('level:change', (e) => {
         if (e.detail?.prefix === 'rclp' && e.detail?.leveledUp) {
-            try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); syncBookCurrencyMultiplierFromUpgrade(); } catch {}
+            try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
         }
     });
   }
