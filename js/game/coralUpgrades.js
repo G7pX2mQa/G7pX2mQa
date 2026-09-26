@@ -47,8 +47,8 @@ export const CORAL_REGISTRY = [
     {
         area: CORAL_AREA_KEY,
         id: 2,
-        title: "Unlock RCLP",
-        desc: "Unlocks the RCLP system; collect Red Coral to contribute to Red Coral Level (gain RCLP)\nThat is, RCLP (progress) gain directly depends on the amount of Red Coral you collect\nEach Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value",
+        title: "Unlock Red Coral Level",
+        desc: "Unlocks the Red Coral Level system; collect Red Coral to contribute to it (gain RCLP)\nThat is, RCLP (progress) gain directly depends on the amount of Red Coral you collect\nEach Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value",
         descScale: 0.7,
         ignoreDescScaleAt: 1920,
         shrinkBetween: { min: 1920, max: 2000, scale: 0.95 },
