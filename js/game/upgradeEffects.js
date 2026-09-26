@@ -10,7 +10,7 @@ import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/workshopTab.js";
 import { getPpState, isPpSystemUnlocked, addExternalPpMultiplierProvider } from './ppSystem.js';
-import { getRclpMultiplier as getRclMult } from './rclpSystem.js';
+import { getRclpMultiplier } from './rclpSystem.js';
 
 import {
   addExternalCoinMultiplierProvider,
@@ -109,9 +109,9 @@ export function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
   let multiplier;
   try {
     multiplier = bookValueMultiplierBn(resolvedLevel);
-    const rclMult = getRclMult();
-    if (!rclMult.isZero?.() && rclMult.cmp?.(BigNum.fromInt(1)) > 0) {
-        multiplier = safeMultiplyBigNum(multiplier, rclMult);
+    const rclpMult = getRclpMultiplier();
+    if (!rclpMult.isZero?.() && rclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+        multiplier = safeMultiplyBigNum(multiplier, rclpMult);
     }
   } catch {
     multiplier = BigNum.fromInt(1);
@@ -284,17 +284,17 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       }
   } catch (e) { console.error(e); }
 
-  // RCL bonuses
+  // RCLP bonuses
   try {
-      const rclMult = getRclMult();
-      if (!rclMult.isZero?.() && rclMult.cmp?.(BigNum.fromInt(1)) > 0) {
-          acc.coinValue = safeMultiplyBigNum(acc.coinValue, rclMult);
-          acc.xpValue = safeMultiplyBigNum(acc.xpValue, rclMult);
-          acc.goldValue = safeMultiplyBigNum(acc.goldValue, rclMult);
-          acc.mpValue = safeMultiplyBigNum(acc.mpValue, rclMult);
-          acc.magicValue = safeMultiplyBigNum(acc.magicValue, rclMult);
-          acc.waveValue = safeMultiplyBigNum(acc.waveValue, rclMult);
-          acc.rpValue = safeMultiplyBigNum(acc.rpValue, rclMult);
+      const rclpMult = getRclpMultiplier();
+      if (!rclpMult.isZero?.() && rclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+          acc.coinValue = safeMultiplyBigNum(acc.coinValue, rclpMult);
+          acc.xpValue = safeMultiplyBigNum(acc.xpValue, rclpMult);
+          acc.goldValue = safeMultiplyBigNum(acc.goldValue, rclpMult);
+          acc.mpValue = safeMultiplyBigNum(acc.mpValue, rclpMult);
+          acc.magicValue = safeMultiplyBigNum(acc.magicValue, rclpMult);
+          acc.waveValue = safeMultiplyBigNum(acc.waveValue, rclpMult);
+          acc.rpValue = safeMultiplyBigNum(acc.rpValue, rclpMult);
       }
   } catch {}
   for (const provider of externalSpawnRateProviders) {
@@ -439,9 +439,9 @@ try {
     if (bank.gears?.mult?.set) {
       const level = loadGenerationLevel();
       let gearsRate = getGearsPerSecond(level);
-      const rclMult = getRclMult();
-      if (!rclMult.isZero?.() && rclMult.cmp?.(BigNum.fromInt(1)) > 0) {
-          gearsRate = safeMultiplyBigNum(gearsRate, rclMult);
+      const rclpMult = getRclpMultiplier();
+      if (!rclpMult.isZero?.() && rclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+          gearsRate = safeMultiplyBigNum(gearsRate, rclpMult);
       }
       bank.gears.mult.set(gearsRate);
     }
@@ -628,7 +628,7 @@ export function registerXpUpgradeEffects() {
         try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
 
-    window.addEventListener('ccc:rcl:levelup', () => {
+    window.addEventListener('ccc:rclp:levelup', () => {
         try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); syncBookCurrencyMultiplierFromUpgrade(); } catch {}
     });
   }
