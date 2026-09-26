@@ -2445,8 +2445,16 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
                 desc.textContent = "Evolve this upgrade to multiply its effect by 1000x";
         } else if (baseDesc) {
             desc.classList.remove("hm-evolve-note");
-            if (!shouldIgnoreDescScale && Number.isFinite(descScale) && descScale > 0 && !isHiddenUpgrade) {
-                desc.style.fontSize = `calc((var(--upg-desc-size, clamp(32px, 4.6vw, 50px))) * ${descScale})`;
+            let effectiveScale = null;
+            if (!isHiddenUpgrade) {
+                if (!shouldIgnoreDescScale && Number.isFinite(descScale) && descScale > 0) {
+                    effectiveScale = descScale;
+                } else if (model.upg?.shrinkBetween && viewportWidth >= model.upg.shrinkBetween.min && viewportWidth < model.upg.shrinkBetween.max) {
+                    effectiveScale = model.upg.shrinkBetween.scale;
+                }
+            }
+            if (effectiveScale !== null) {
+                desc.style.fontSize = `calc((var(--upg-desc-size, clamp(32px, 4.6vw, 50px))) * ${effectiveScale})`;
             } else {
                 desc.style.removeProperty("font-size");
             }
