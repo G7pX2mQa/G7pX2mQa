@@ -222,7 +222,7 @@ export const RESOURCE_REGISTRY = [
         singular: "XP Level",
         plural: "XP Levels",
         type: "levelStat",
-        barText: 'Level<span class="xp-level-value">{val}</span>',
+        barText: 'XP Level <span class="xp-level-value">{val}</span>',
     },
     {
         key: "books",
