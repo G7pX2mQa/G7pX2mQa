@@ -628,8 +628,10 @@ export function registerXpUpgradeEffects() {
         try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
 
-    window.addEventListener('ccc:rclp:levelup', () => {
-        try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); syncBookCurrencyMultiplierFromUpgrade(); } catch {}
+    window.addEventListener('level:change', (e) => {
+        if (e.detail?.prefix === 'rclp' && e.detail?.leveledUp) {
+            try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); syncBookCurrencyMultiplierFromUpgrade(); } catch {}
+        }
     });
   }
 }
