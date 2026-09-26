@@ -2437,7 +2437,7 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
         const viewportWidth =
             typeof window !== "undefined" && Number.isFinite(window.innerWidth) ? window.innerWidth : 0;
         const shouldIgnoreDescScale =
-            Number.isFinite(ignoreDescScaleAt) && ignoreDescScaleAt > 0 && viewportWidth >= ignoreDescScaleAt;
+            viewportWidth < 600 || (Number.isFinite(ignoreDescScaleAt) && ignoreDescScaleAt > 0 && viewportWidth >= ignoreDescScaleAt);
         if (evolveReady) {
             desc.classList.add("hm-evolve-note");
             desc.style.removeProperty("font-size");
