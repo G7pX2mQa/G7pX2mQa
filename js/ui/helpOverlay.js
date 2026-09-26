@@ -340,6 +340,24 @@ const HELP_ENTRIES = [
             return isVis;
         },
     },
+    {
+        id: 13,
+        title: "???",
+        icon: "img/misc/mysterious.webp",
+        text: "placeholder text for 'Unlock the Red Coral Level system, then reach RCL 31'. What's supposed to unlock at this point again?",
+        isVisible: () => {
+            if (isHelpEntryPermanentlyUnlocked(13)) return true;
+            let isVis = false;
+            try {
+                const slot = getActiveSlot();
+                isVis = lsGetItem(`ccc:goal:completed:16:${slot}`) === "1";
+            } catch {
+                isVis = false;
+            }
+            if (isVis) markHelpEntryPermanentlyUnlocked(13);
+            return isVis;
+        },
+    },
 ];
 let currentEntryId = HELP_ENTRIES[0].id;
 let overlayEl = null;
