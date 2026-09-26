@@ -10,6 +10,7 @@ import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/workshopTab.js";
 import { getPpState, isPpSystemUnlocked, addExternalPpMultiplierProvider } from './ppSystem.js';
+import { getRclpMultiplier as getRclMult } from './rclpSystem.js';
 
 import {
   addExternalCoinMultiplierProvider,
@@ -108,6 +109,10 @@ export function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
   let multiplier;
   try {
     multiplier = bookValueMultiplierBn(resolvedLevel);
+    const rclMult = getRclMult();
+    if (!rclMult.isZero?.() && rclMult.cmp?.(BigNum.fromInt(1)) > 0) {
+        multiplier = safeMultiplyBigNum(multiplier, rclMult);
+    }
   } catch {
     multiplier = BigNum.fromInt(1);
   }
@@ -279,7 +284,19 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       }
   } catch (e) { console.error(e); }
 
-
+  // RCL bonuses
+  try {
+      const rclMult = getRclMult();
+      if (!rclMult.isZero?.() && rclMult.cmp?.(BigNum.fromInt(1)) > 0) {
+          acc.coinValue = safeMultiplyBigNum(acc.coinValue, rclMult);
+          acc.xpValue = safeMultiplyBigNum(acc.xpValue, rclMult);
+          acc.goldValue = safeMultiplyBigNum(acc.goldValue, rclMult);
+          acc.mpValue = safeMultiplyBigNum(acc.mpValue, rclMult);
+          acc.magicValue = safeMultiplyBigNum(acc.magicValue, rclMult);
+          acc.waveValue = safeMultiplyBigNum(acc.waveValue, rclMult);
+          acc.rpValue = safeMultiplyBigNum(acc.rpValue, rclMult);
+      }
+  } catch {}
   for (const provider of externalSpawnRateProviders) {
     try {
       const val = provider();
@@ -421,7 +438,11 @@ try {
   try {
     if (bank.gears?.mult?.set) {
       const level = loadGenerationLevel();
-      const gearsRate = getGearsPerSecond(level);
+      let gearsRate = getGearsPerSecond(level);
+      const rclMult = getRclMult();
+      if (!rclMult.isZero?.() && rclMult.cmp?.(BigNum.fromInt(1)) > 0) {
+          gearsRate = safeMultiplyBigNum(gearsRate, rclMult);
+      }
       bank.gears.mult.set(gearsRate);
     }
   } catch {}
@@ -605,6 +626,10 @@ export function registerXpUpgradeEffects() {
 
     window.addEventListener('ccc:reset:upgrades:wiped', () => {
         try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+
+    window.addEventListener('ccc:rcl:levelup', () => {
+        try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); syncBookCurrencyMultiplierFromUpgrade(); } catch {}
     });
   }
 }
