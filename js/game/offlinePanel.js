@@ -607,7 +607,6 @@ export const RESOURCE_REGISTRY = [
         plural: "Red Coral",
         type: "currency",
     },
-
     {
         key: "rclp",
         icon: "img/stats/rclp/rclp.webp",
