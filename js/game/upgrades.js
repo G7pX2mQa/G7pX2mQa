@@ -2315,7 +2315,7 @@ export const REGISTRY = [
         id: 2,
 
         title: "Unlock XP",
-        desc: "Unlocks the XP system and a new Merchant dialogue\nXP system: Collect Coins for XP to level up and gain Books\nEach XP Level also boosts Coin value by a decent amount",
+        desc: "Unlocks the XP system and a new Merchant dialogue\nCollect Coins for XP to increase XP Level and gain Books\nEach XP Level also boosts Coin value by a decent amount",
         lvlCap: 1,
         upgType: "NM",
         icon: "img/stats/xp/xp.webp",
