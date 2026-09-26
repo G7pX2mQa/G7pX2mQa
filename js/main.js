@@ -2227,6 +2227,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/stats/pp/pp.webp",
             "img/stats/pp/pp_base.webp",
             "img/stats/pp/pp_plus_base.webp",
+			"img/stats/rcl/rcl.webp",
+			"img/stats/rcl_rcl_plus_base.webp",
             "img/stats/rp/rp.webp",
             "img/stats/rp/rp_base.webp",
             "img/stats/rp/rp_plus_base.webp",
