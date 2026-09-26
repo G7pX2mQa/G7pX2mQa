@@ -12,6 +12,7 @@ import { getPpState } from "../game/ppSystem.js";
 import { getActiveCollapseChallengeType } from "./minerTabs/collapseTab.js";
 import { getMapSequenceSeen } from "../game/surgeEffects.js";
 import { getRclpState } from "../game/rclpSystem.js";
+
 const GOAL_MODE = {
     NORMAL: "normal",
     LOGARITHMIC: "logarithmic",
@@ -340,7 +341,7 @@ const GOALS = [
     },
     {
         id: 16,
-        text: "Unlock the Red Coral Level system, then reach RCL 31",
+        text: "Unlock the Red Coral Level system, then reach Red Coral Level 31",
         icon: "img/stats/rclp/rclp.webp",
         unlocksHelpText: true,
         mode: GOAL_MODE.NORMAL,
