@@ -48,7 +48,7 @@ export function ensureGameDom(layerCount, startZ) {
 			
             <div class="xp-bar__frame">
               <div class="xp-bar__level">
-                ${RESOURCE_REGISTRY.find((c) => c.key === "xp_levels")?.barText?.replace("{val}", "0") || 'Level<span class="xp-level-value">0</span>'}
+                ${RESOURCE_REGISTRY.find((c) => c.key === "xp_levels")?.barText?.replace("{val}", "0") || 'XP Level <span class="xp-level-value">0</span>'}
               </div>
 
               <div class="xp-bar__divider" aria-hidden="true"></div>
