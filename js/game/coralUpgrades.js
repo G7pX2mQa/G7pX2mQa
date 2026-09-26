@@ -1,6 +1,8 @@
 import { computeDefaultUpgradeCost, E } from "./upgrades.js";
 import { BigNum } from "../util/bigNum.js";
 import { formatMultForUi, formatNumber } from "../util/numFormat.js";
+import { isRclpSystemUnlocked, unlockRclpSystem } from "./rclpSystem.js";
+import { getActiveSlot } from "../util/storage.js";
 
 export const CORAL_AREA_KEY = "coral_reef";
 export const CORAL_REGISTRY = [
@@ -41,6 +43,53 @@ export const CORAL_REGISTRY = [
             if (normalizedLevel === 3) return 10;
             if (normalizedLevel >= 4) return 20;
             return 1;
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 2,
+
+        title: "Unlock RCLP",
+        desc: "Unlocks the RCLP system; collect Red Coral to contribute to Red Coral Level (gain RCLP)\nThat is, RCLP (progress) gain directly depends on the amount of Red Coral you collect\nEach Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value",
+        descScale: 0.7,
+        ignoreDescScaleAt: 1920,
+        shrinkBetween: { min: 1920, max: 2000, scale: 0.95 },
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "",
+        baseIconOverride: "img/stats/rclp/rclp_plus_base.webp",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            if (isRclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+            
+            let metCoral = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                metCoral = window.localStorage.getItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+            } catch {}
+            
+            if (metCoral) {
+                return { state: "unlocked" };
+            }
+            return { state: "mysterious", unlockReqText: "Explore the Delve menu to reveal this upgrade" };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    unlockRclpSystem();
+                } catch {}
+            }
+        },
+        effectSummary() {
+            return "";
         },
     },
 ];
