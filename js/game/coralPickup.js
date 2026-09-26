@@ -149,6 +149,12 @@ export function initCoralPickup({
                     const mult = handle.mult.get();
                     const totalGain = BigNum.fromInt(collectedCount).mulBigNumInteger(mult);
                     handle.add(totalGain);
+                    
+                    try {
+                        import("./rclpSystem.js").then(({ addRclp }) => {
+                            addRclp(totalGain);
+                        }).catch(()=>{});
+                    } catch {}
                 }
             }
 
