@@ -347,51 +347,6 @@ export const RESOURCE_REGISTRY = [
         barText: 'Surge <span class="waves-level-value">{val}</span>',
     },
     {
-        key: "rclp",
-        icon: "img/stats/rclp/rclp.webp",
-        singular: "RCL",
-        plural: "RCL",
-        type: "levelProg",
-        simEventName: "ccc:rclp:progress",
-        simEventExtract: (e) => ({
-            levels: e.detail?.levelsGained, // If we ever emit this
-            progress: e.detail?.delta,
-        }),
-        pinBgGradient: "linear-gradient(180deg, rgba(46,12,12,1), rgba(58,16,16,1))",
-        bgGradient: "linear-gradient(to bottom, #cc0000 0%, #ff0000 15%, #ff4d4d 50%, #ff0000 85%, #cc0000 100%)",
-        fillGradient: "linear-gradient(90deg, #ff4d4d 0%, #ff0000 50%, #990000 100%)",
-        barOutline: "3px",
-        borderColor: "#000000",
-        barBoxShadow: "inset 0 6px 10px rgba(255,100,100,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
-        glassBg: "linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0))",
-        glassOpacity: "0.55",
-        getState: () => {
-            const state = window.rclpSystem?.getRclpState();
-            if (!state) return null;
-            const req = window.rclpSystem?.getRclpRequirement();
-            let ratio = 0;
-            if (req && !req.isZero?.()) {
-                const ratioBn = state.rclpProg.div(req);
-                ratio = Number(ratioBn.toScientific?.() ?? "0");
-            }
-            return {
-                level: state.rclpLevel,
-                progress: state.rclpProg,
-                requirement: req,
-                isUnlocked: state.unlocked,
-                ratio: Math.min(1, Math.max(0, ratio)),
-            };
-        },
-    },
-    {
-        key: "rclp_levels",
-        icon: "img/stats/rclp/rclp.webp",
-        singular: "RCL",
-        plural: "RCL",
-        type: "levelStat",
-        barText: 'Red Coral Level <span class="rclp-level-value">{val}</span>',
-    },
-    {
         key: "research_levels",
         icon: "img/stats/rp/rp.webp",
         singular: "Level",
@@ -652,52 +607,54 @@ export const RESOURCE_REGISTRY = [
         plural: "Red Coral",
         type: "currency",
     },
+
     {
         key: "rclp",
         icon: "img/stats/rclp/rclp.webp",
-        singular: "RCL",
-        plural: "RCL",
+        singular: "RCLP",
+        plural: "RCLP",
         type: "levelProg",
         simEventName: "ccc:rclp:progress",
         simEventExtract: (e) => ({
             levels: e.detail?.levelsGained,
             progress: e.detail?.delta,
         }),
-        pinBgGradient: "linear-gradient(180deg, rgba(60,24,24,1), rgba(45,18,18,1))",
-        bgGradient: "linear-gradient(to bottom, #c40000 0%, #f00000 15%, #ff2b2b 50%, #f00000 85%, #c40000 100%)",
-        fillGradient: "linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(200,0,0,1) 50%, rgba(150,0,0,1) 100%)",
+        pinBgGradient: "linear-gradient(180deg, rgba(46,12,12,1), rgba(58,16,16,1))",
+        bgGradient: "linear-gradient(to bottom, #cc0000 0%, #ff0000 15%, #ff4d4d 50%, #ff0000 85%, #cc0000 100%)",
+        fillGradient: "linear-gradient(90deg, #ff4d4d 0%, #ff0000 50%, #990000 100%)",
         barOutline: "3px",
         borderColor: "#000000",
-        barBoxShadow: "inset 0 6px 10px rgba(255,128,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
+        barBoxShadow: "inset 0 6px 10px rgba(255,100,100,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
         glassBg: "linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0))",
         glassOpacity: "0.55",
         getState: () => {
-            const state = getRclpState();
+            const state = window.rclpSystem?.getRclpState();
             if (!state) return null;
-            const req = getRclpRequirement();
+            const req = window.rclpSystem?.getRclpRequirement();
             let ratio = 0;
-            if (!req.isZero?.() && state.rclpProg) {
-                ratio = Number(state.rclpProg.div(req).toScientific?.() ?? "0");
+            if (req && !req.isZero?.()) {
+                const ratioBn = state.rclpProg.div(req);
+                ratio = Number(ratioBn.toScientific?.() ?? "0");
             }
             return {
                 level: state.rclpLevel,
                 progress: state.rclpProg,
                 requirement: req,
                 isUnlocked: state.unlocked,
-                ratio: Math.min(1, Math.max(0, ratio))
+                ratio: Math.min(1, Math.max(0, ratio)),
             };
         },
     },
     {
         key: "rclp_levels",
         icon: "img/stats/rclp/rclp.webp",
-        singular: "RCL Level",
-        plural: "RCL Levels",
+        singular: "Red Coral Level",
+        plural: "Red Coral Levels",
         type: "levelStat",
-        barText: 'RCL<span class="rclp-level-value">{val}</span>',
-        noTextGap: true,
+        barText: 'Red Coral Level <span class="rclp-level-value">{val}</span>',
     },
 ];
+
 export function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
     let displayStyle = null;
     let fallbackClass = null;
