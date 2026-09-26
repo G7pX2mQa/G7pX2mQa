@@ -120,6 +120,26 @@ export function ensureGameDom(layerCount, startZ) {
           </div>
         </div>
 
+        <div class="rclp-counter" data-rclp-hud hidden>
+          <img src="img/stats/rclp/rclp_plus_base.webp" alt="" class="rclp-plus"/>
+
+          <div class="rclp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 RCLP">
+            <div class="rclp-bar__fill" style="width: 0%"></div>
+
+            <div class="rclp-bar__frame">
+              <div class="rclp-bar__level">
+                ${RESOURCE_REGISTRY.find((c) => c.key === "rclp_levels")?.barText?.replace("{val}", "0") || 'Red Coral Level <span class="rclp-level-value">0</span>'}
+              </div>
+
+              <div class="rclp-bar__divider" aria-hidden="true"></div>
+
+              <div class="rclp-bar__progress" data-rclp-progress>
+                0<span class="rclp-progress-separator">/</span>10<span class="rclp-progress-suffix">RCLP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <section class="playfield">
