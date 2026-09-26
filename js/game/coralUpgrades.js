@@ -9,7 +9,6 @@ export const CORAL_REGISTRY = [
     {
         area: CORAL_AREA_KEY,
         id: 1,
-
         title: "Faster Coral",
         desc: "Multiplies Bubble Spawn Rate by a certain amount per level\nBubbles float up, hit the Coral Ceiling, and spawn a Coral when they pop",
         lvlCap: 4,
@@ -48,7 +47,6 @@ export const CORAL_REGISTRY = [
     {
         area: CORAL_AREA_KEY,
         id: 2,
-
         title: "Unlock RCLP",
         desc: "Unlocks the RCLP system; collect Red Coral to contribute to Red Coral Level (gain RCLP)\nThat is, RCLP (progress) gain directly depends on the amount of Red Coral you collect\nEach Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value",
         descScale: 0.7,
