@@ -111,6 +111,11 @@ export function addRclp(amountBn) {
             levelsGained: levelsGainedBn
         };
         window.dispatchEvent(new CustomEvent('ccc:rclp:progress', { detail }));
+        window.dispatchEvent(
+            new CustomEvent("stat:change", {
+                detail: { key: "rclp", delta: amountBn, progress: state.rclpProg },
+            })
+        );
         
         let ratio = 0;
         if (req && !req.isZero?.()) {
