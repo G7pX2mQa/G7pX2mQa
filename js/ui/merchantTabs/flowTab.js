@@ -1845,6 +1845,7 @@ export function initFlowSystem() {
                 if (flowTabInitialized && flowPanel) updateFlowTab();
             } else if (!hasMultiFlow && multiFlowPurchasedTracker) {
                 multiFlowPurchasedTracker = false;
+                setAllWaterwheelsState(false);
             }
         });
     }
