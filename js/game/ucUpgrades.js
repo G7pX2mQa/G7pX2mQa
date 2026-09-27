@@ -96,6 +96,7 @@ export const UC_REGISTRY = [
         desc: "Unlocks the Depth system; Collect Materials for DP; Go deeper to find new Materials\nEach meter of Depth boosts Material accumulator speed (see Sell tab)\nEach meter of Depth additionally boosts FP 1.1x compounding\nAlso you should go look in the Flow tab (important)",
         descScale: 0.725,
         ignoreDescScaleAt: 1920,
+        shrinkBetween: { min: 1920, max: 2000, scale: 0.967 },
         lvlCap: 1,
         upgType: "NM",
         icon: "",
