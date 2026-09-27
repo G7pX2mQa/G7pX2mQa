@@ -1,5 +1,5 @@
 import { BigNum } from "../util/bigNum.js";
-import { getActiveSlot } from "../util/storage.js";
+import { getActiveSlot, isStorageKeyLocked } from "../util/storage.js";
 import { lsGetItem, lsSetItem } from "../main.js";
 import { E, levelBigNumToNumber } from "./upgrades.js";
 
@@ -90,15 +90,26 @@ export function addRclp(amountBn) {
     const state = ensureState();
     if (!state || !state.unlocked) return;
     
-    state.rclpProg = state.rclpProg.add(amountBn);
+    const slot = getActiveSlot();
+    const progressLocked = isStorageKeyLocked(`ccc:rclpProgress:${slot}`);
+    const levelLocked = isStorageKeyLocked(`ccc:rclLevel:${slot}`);
+
+    if (progressLocked && levelLocked) return;
+
+    if (!progressLocked) {
+        state.rclpProg = state.rclpProg.add(amountBn);
+    }
+    
     let req = computeRclpRequirement(state.rclpLevel);
     let levelsGainedBn = BigNum.fromInt(0);
     let leveledUp = false;
     
     let guard = 0;
     const limit = 10000;
-    while (state.rclpProg.cmp(req) >= 0 && guard < limit) {
+    while (!levelLocked && state.rclpProg.cmp(req) >= 0 && guard < limit) {
         if (state.rclpProg.inf || req.inf) break;
+        if (progressLocked) break;
+        
         state.rclpProg = state.rclpProg.sub(req);
         state.rclpLevel = state.rclpLevel.add(1);
         levelsGainedBn = levelsGainedBn.add(1);
