@@ -12,6 +12,8 @@ import { WaterwheelRenderer } from "../../game/webgl/waterwheelRenderer.js";
 import { getSurgeBarLevel, predictSurgeLevel, resetState } from "./resetTab.js";
 import { isNodeLocked } from "../mapOverlay.js";
 import { settingsManager } from "../../game/settingsManager.js";
+import { getLevelNumber } from "../../game/upgrades.js";
+import { AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID } from "../../game/automationUpgrades.js";
 /* =========================================
    CONSTANTS & KEYS
    ========================================= */
@@ -393,30 +395,35 @@ const state = {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
+            isMain: false,
             unlocked: true,
         },
         [WATERWHEELS.XP]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
+            isMain: false,
             unlocked: false,
         },
         [WATERWHEELS.GOLD]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
+            isMain: false,
             unlocked: false,
         },
         [WATERWHEELS.MAGIC]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
+            isMain: false,
             unlocked: false,
         },
         [WATERWHEELS.SCRAP]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
+            isMain: false,
             unlocked: false,
         },
     },
@@ -531,12 +538,14 @@ function loadState() {
                         state.waterwheels[id].fp = Number(fpRaw);
                     }
                     state.waterwheels[id].active = !!parsed.active;
+                    state.waterwheels[id].isMain = !!parsed.isMain;
                     state.waterwheels[id].unlocked =
                         parsed.unlocked !== undefined ? !!parsed.unlocked : WATERWHEEL_DEFS[id]?.unlocked || false;
                 } else {
                     state.waterwheels[id].level = BigNum.fromInt(0);
                     state.waterwheels[id].fp = 0;
                     state.waterwheels[id].active = false;
+                    state.waterwheels[id].isMain = false;
                     state.waterwheels[id].unlocked = WATERWHEEL_DEFS[id]?.unlocked || false;
                 }
             }
@@ -544,18 +553,39 @@ function loadState() {
     } catch (e) {
         console.warn("Failed to load flow data", e);
     }
-    // Ensure only one is active (safety check)
-    let activeCount = 0;
+    // Ensure only one is main
+    let mainCount = 0;
     for (const ch of Object.values(state.waterwheels)) {
-        if (ch.active) activeCount++;
+        if (ch.isMain) mainCount++;
     }
-    if (activeCount > 1) {
-        // Reset if invalid, keep the first one found or reset all
+    if (mainCount > 1) {
         let found = false;
         for (const id in state.waterwheels) {
-            if (state.waterwheels[id].active) {
-                if (found) state.waterwheels[id].active = false;
+            if (state.waterwheels[id].isMain) {
+                if (found) state.waterwheels[id].isMain = false;
                 else found = true;
+            }
+        }
+    }
+
+    const hasMultiFlow = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
+    if (!hasMultiFlow) {
+        // Ensure only one is active
+        let activeCount = 0;
+        for (const ch of Object.values(state.waterwheels)) {
+            if (ch.active) activeCount++;
+        }
+        if (activeCount > 1) {
+            // Reset if invalid, keep the first one found or reset all
+            let found = false;
+            for (const id in state.waterwheels) {
+                if (state.waterwheels[id].active) {
+                    if (found) {
+                        state.waterwheels[id].active = false;
+                        state.waterwheels[id].isMain = false;
+                    }
+                    else found = true;
+                }
             }
         }
     }
@@ -569,6 +599,7 @@ function saveState() {
             level: ch.level.toStorage(),
             fp: ch.fp instanceof BigNum ? ch.fp.toStorage() : ch.fp,
             active: ch.active ? 1 : 0,
+            isMain: ch.isMain ? 1 : 0,
             unlocked: ch.unlocked ? 1 : 0,
         };
         lsSetItem(KEY_WATERWHEEL(id, slot), JSON.stringify(dataToSave));
@@ -589,40 +620,112 @@ function scheduleSave() {
 /* =========================================
    LOGIC
    ========================================= */
-export function toggleWaterwheel(waterwheelId) {
-    const ch = state.waterwheels[waterwheelId];
-    if (!ch) return;
-    if (!ch.unlocked) return; // Prevent toggling if locked
-    const wasActive = ch.active;
-    trackBinaryFlowSequence(waterwheelId);
-    // If turning ON, deactivate all others first
-    if (!wasActive) {
+export function getWeakenedWaterwheelEfficiency() {
+    const level = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID);
+    if (level === 0) return 0;
+    if (level === 1) return 0.00001;
+    if (level === 2) return 0.0001;
+    if (level === 3) return 0.001;
+    return 0.01;
+}
+
+export function getWaterwheelsCollectiveState() {
+    let onCount = 0;
+    let totalCount = 0;
+    for (const id in state.waterwheels) {
+        if (!state.waterwheels[id].unlocked) continue;
+        totalCount++;
+        if (state.waterwheels[id].active) onCount++;
+    }
+    if (totalCount === 0) return 0;
+    if (onCount === 0) return 0;
+    if (onCount === totalCount) return 1;
+    return 0.5;
+}
+
+export function setAllWaterwheelsState(isEnabled) {
+    if (isEnabled) {
         for (const id in state.waterwheels) {
-            // Implicitly turning OFF others
-            if (state.waterwheels[id].active) {
-                state.waterwheels[id].active = false;
+            const ch = state.waterwheels[id];
+            if (!ch.active) {
+                ch.active = true;
+                ch.isMain = false;
+            }
+        }
+    } else {
+        for (const id in state.waterwheels) {
+            const ch = state.waterwheels[id];
+            if (ch.active) {
+                ch.active = false;
+                ch.isMain = false;
                 if (state.visuals[id]) {
-                    if (state.visuals[id].isMax) {
-                        state.waterwheels[id].fp = 0;
-                    }
+                    if (state.visuals[id].isMax) ch.fp = 0;
                     state.visuals[id].speed = 0;
                     state.visuals[id].isMax = false;
                 }
             }
         }
-        ch.active = true;
-    } else {
-        // If turning OFF
-        ch.active = false;
-        // Reset speed
-        if (state.visuals[waterwheelId]) {
-            if (state.visuals[waterwheelId].isMax) {
-                ch.fp = 0;
+    }
+    saveState();
+    updateFlowTab();
+}
+
+export function toggleWaterwheel(waterwheelId) {
+    const ch = state.waterwheels[waterwheelId];
+    if (!ch) return;
+    if (!ch.unlocked) return; // Prevent toggling if locked
+    const wasActive = ch.active;
+    const wasMain = ch.isMain;
+    const hasMultiFlow = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
+    trackBinaryFlowSequence(waterwheelId);
+    
+    if (!hasMultiFlow) {
+        if (!wasActive) {
+            for (const id in state.waterwheels) {
+                if (state.waterwheels[id].active) {
+                    state.waterwheels[id].active = false;
+                    state.waterwheels[id].isMain = false;
+                    if (state.visuals[id]) {
+                        if (state.visuals[id].isMax) state.waterwheels[id].fp = 0;
+                        state.visuals[id].speed = 0;
+                        state.visuals[id].isMax = false;
+                    }
+                }
             }
-            state.visuals[waterwheelId].speed = 0;
-            state.visuals[waterwheelId].isMax = false;
+            ch.active = true;
+            ch.isMain = true;
+        } else {
+            ch.active = false;
+            ch.isMain = false;
+            if (state.visuals[waterwheelId]) {
+                if (state.visuals[waterwheelId].isMax) ch.fp = 0;
+                state.visuals[waterwheelId].speed = 0;
+                state.visuals[waterwheelId].isMax = false;
+            }
+        }
+    } else {
+        if (!wasActive) {
+            for (const id in state.waterwheels) {
+                if (state.waterwheels[id].isMain) state.waterwheels[id].isMain = false;
+            }
+            ch.active = true;
+            ch.isMain = true;
+        } else if (wasActive && !wasMain) {
+            for (const id in state.waterwheels) {
+                if (state.waterwheels[id].isMain) state.waterwheels[id].isMain = false;
+            }
+            ch.isMain = true;
+        } else if (wasActive && wasMain) {
+            ch.active = false;
+            ch.isMain = false;
+            if (state.visuals[waterwheelId]) {
+                if (state.visuals[waterwheelId].isMax) ch.fp = 0;
+                state.visuals[waterwheelId].speed = 0;
+                state.visuals[waterwheelId].isMax = false;
+            }
         }
     }
+
     saveState();
     updateFlowTab();
 }
@@ -761,7 +864,14 @@ export function calculateWaterwheelOffline(seconds) {
         let currentFpBn;
         if (ch.fp instanceof BigNum) currentFpBn = ch.fp.clone();
         else currentFpBn = BigNum.fromAny(ch.fp);
-        let finalFpBn = currentFpBn.add(totalGainBn);
+        
+        let localGainBn = totalGainBn;
+        if (!ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+            const eff = getWeakenedWaterwheelEfficiency();
+            localGainBn = localGainBn.mulDecimal(eff);
+        }
+
+        let finalFpBn = currentFpBn.add(localGainBn);
         let levelsGained = BigNum.fromInt(0);
         if (finalFpBn.isInfinite()) {
             // Infinite FP means this wheel would gain infinite levels while offline.
@@ -866,6 +976,8 @@ function onTick(dt) {
                     state.waterwheels[id].level = BigNum.fromInt(0);
                     state.waterwheels[id].fp = 0;
                     if (state.waterwheels[id].active) {
+                        state.waterwheels[id].active = false;
+                        state.waterwheels[id].isMain = false;
                         if (state.visuals[id]) {
                             state.visuals[id].speed = 0;
                             state.visuals[id].isMax = false;
@@ -888,6 +1000,8 @@ function onTick(dt) {
                         state.waterwheels[id].level = BigNum.fromInt(0);
                         state.waterwheels[id].fp = 0;
                         if (state.waterwheels[id].active) {
+                            state.waterwheels[id].active = false;
+                            state.waterwheels[id].isMain = false;
                             // Reset visuals for this one
                             if (state.visuals[id]) {
                                 state.visuals[id].speed = 0;
@@ -924,6 +1038,12 @@ function onTick(dt) {
         gainBn = gainBn.mulBigNumInteger(fpMult);
         // Apply Debug Override
         gainBn = applyStatMultiplierOverride("fp", gainBn);
+        
+        if (!ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+            const eff = getWeakenedWaterwheelEfficiency();
+            gainBn = gainBn.mulDecimal(eff);
+        }
+
         if (!gainBn.isZero()) visualUpdate = true;
         const req = WATERWHEEL_DEFS[id]?.baseReq;
         // --- Visual Speed Calculation ---
@@ -1349,7 +1469,14 @@ export function updateFlowTab() {
         if (hwMode) {
             explainerTextEl.innerHTML = `<strong><span style="color: #00fffa;">Waterwheel Hotkey mode is active</span></strong>`;
         } else {
-            explainerTextEl.innerHTML = FLOW_EXPLAINER_TEXT_DEFAULT;
+            let text = FLOW_EXPLAINER_TEXT_DEFAULT;
+            if (getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+                text = text.replace(
+                    "Only one Waterwheel can actively level up at a given time.",
+                    "Now, all Waterwheels can actively level up at a given time."
+                );
+            }
+            explainerTextEl.innerHTML = text;
         }
     }
     updateFlowVisuals();
@@ -1362,10 +1489,18 @@ export function updateFlowTab() {
         if (btn) {
             if (ch.active) {
                 if (btn.textContent !== "ON") btn.textContent = "ON";
-                if (!btn.classList.contains("is-active")) btn.classList.add("is-active");
+                const isWeakened = !ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
+                if (isWeakened) {
+                    if (btn.classList.contains("is-active")) btn.classList.remove("is-active");
+                    if (!btn.classList.contains("is-weakened")) btn.classList.add("is-weakened");
+                } else {
+                    if (!btn.classList.contains("is-active")) btn.classList.add("is-active");
+                    if (btn.classList.contains("is-weakened")) btn.classList.remove("is-weakened");
+                }
             } else {
                 if (btn.textContent !== "OFF") btn.textContent = "OFF";
                 if (btn.classList.contains("is-active")) btn.classList.remove("is-active");
+                if (btn.classList.contains("is-weakened")) btn.classList.remove("is-weakened");
             }
         }
     }
@@ -1564,6 +1699,12 @@ function updateFlowVisuals() {
                     effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
                 }
                 effectiveRate = applyStatMultiplierOverride("fp", effectiveRate);
+                
+                if (!ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+                    const eff = getWeakenedWaterwheelEfficiency();
+                    effectiveRate = effectiveRate.mulDecimal(eff);
+                }
+
                 if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
                     isMaxed = true;
                 }
@@ -1677,6 +1818,37 @@ export function initFlowSystem() {
         });
     }
     loadState();
+    let multiFlowPurchasedTracker = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
+    if (typeof document !== "undefined") {
+        document.addEventListener("ccc:upgrades:changed", () => {
+            const hasMultiFlow = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
+            if (hasMultiFlow && !multiFlowPurchasedTracker) {
+                multiFlowPurchasedTracker = true;
+                let mainId = null;
+                for (const id in state.waterwheels) {
+                    if (state.waterwheels[id].active) {
+                        mainId = id;
+                        break;
+                    }
+                }
+                for (const id in state.waterwheels) {
+                    const ch = state.waterwheels[id];
+                    ch.active = true;
+                    if (mainId === id || (!mainId && id === "coin")) {
+                        ch.isMain = true;
+                        mainId = id;
+                    } else {
+                        ch.isMain = false;
+                    }
+                }
+                saveState();
+                if (flowTabInitialized && flowPanel) updateFlowTab();
+            } else if (!hasMultiFlow && multiFlowPurchasedTracker) {
+                multiFlowPurchasedTracker = false;
+            }
+        });
+    }
+
     refreshMysteriousWatcher();
     registerTick((dt) => onTick(dt));
     registerUiFrame((time, dt) => onFrame(time, dt));
