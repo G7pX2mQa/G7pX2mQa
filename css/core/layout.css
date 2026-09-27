@@ -62,11 +62,8 @@
   position: relative;
   width: 100%;
   max-width: 980px;
-  background: var(--panel);
-  border: 1px solid #1e2a3d;
+  background: var(--bg-3);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
-  backdrop-filter: blur(6px);
   padding: clamp(var(--space-5), 2.2vw, var(--space-8));
   display: grid;
   grid-auto-rows: min-content;
@@ -91,11 +88,6 @@
 @media (min-width: 1024px) {
   .menu-panel {
     max-width: 1200px;
-    background: linear-gradient(180deg, #111827f5, #0b1220f5);
-    border: 1px solid #2a3852;
-    box-shadow:
-      0 14px 32px rgba(0, 0, 0, .5),
-      inset 0 1px 0 rgba(255, 255, 255, .06);
   }
 }
 
