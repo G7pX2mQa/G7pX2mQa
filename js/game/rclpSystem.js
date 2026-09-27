@@ -95,12 +95,16 @@ export function addRclp(amountBn) {
     let levelsGainedBn = BigNum.fromInt(0);
     let leveledUp = false;
     
-    while (state.rclpProg.cmp(req) >= 0) {
+    let guard = 0;
+    const limit = 10000;
+    while (state.rclpProg.cmp(req) >= 0 && guard < limit) {
+        if (state.rclpProg.inf || req.inf) break;
         state.rclpProg = state.rclpProg.sub(req);
         state.rclpLevel = state.rclpLevel.add(1);
         levelsGainedBn = levelsGainedBn.add(1);
         req = computeRclpRequirement(state.rclpLevel);
         leveledUp = true;
+        guard++;
     }
     
     saveState(state);
@@ -154,8 +158,30 @@ export function applyRclpState(newState) {
     const state = ensureState();
     if (!state) return;
     if (newState.unlocked !== undefined) state.unlocked = newState.unlocked;
-    if (newState.rclpLevel !== undefined) state.rclpLevel = newState.rclpLevel;
-    if (newState.rclpProg !== undefined) state.rclpProg = newState.rclpProg;
+    let nextLevel = newState.rclpLevel !== undefined ? newState.rclpLevel : state.rclpLevel;
+    let nextProgress = newState.rclpProg !== undefined ? newState.rclpProg : state.rclpProg;
+
+    const levelIsFinite = nextLevel && !nextLevel.inf;
+    const progressIsFinite = nextProgress && !nextProgress.inf;
+
+    if (!levelIsFinite && progressIsFinite && newState.rclpLevel !== undefined) {
+        nextProgress = BigNum.fromAny("Infinity");
+    } else if (!progressIsFinite && levelIsFinite && newState.rclpProg !== undefined) {
+        nextLevel = BigNum.fromAny("Infinity");
+    } else if (newState.rclpLevel !== undefined || newState.rclpProg !== undefined) {
+        if (levelIsFinite && !progressIsFinite) {
+            if (newState.rclpLevel !== undefined) {
+                nextProgress = BigNum.fromInt(0);
+            }
+        } else if (progressIsFinite && !levelIsFinite) {
+            if (newState.rclpProg !== undefined) {
+                nextLevel = BigNum.fromInt(0);
+            }
+        }
+    }
+    
+    state.rclpLevel = nextLevel;
+    state.rclpProg = nextProgress;
     saveState(state);
     
     if (typeof window !== "undefined") {
