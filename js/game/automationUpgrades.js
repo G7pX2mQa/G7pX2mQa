@@ -53,6 +53,12 @@ const STANDARD_AUTOMATION_SHRINK = [
     { min: 1920, max: 2000, scale: 0.8 },
 ];
 
+const LESSER_AUTOMATION_SHRINK = [
+    { min: 600, max: 1500, scale: 0.8 },
+    { min: 1500, max: 1920, scale: 0.9 },
+    { min: 1920, max: 2000, scale: 0.95 },
+];
+
 const UPGRADE_DEFINITIONS = [
     {
         area: AUTOMATION_AREA_KEY,
@@ -84,7 +90,7 @@ const UPGRADE_DEFINITIONS = [
         tie: AUTOMATION_TIES.AUTOBUY_COIN_UPGRADES,
         title: "Autobuy Coin Upgrades",
         desc: "Automatically buys Coin upgrades, but with a twist:\nAutobuys upgrades for free, as long as you can afford the cost\nThis is how all future autobuyers will work",
-        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
+        shrinkBetween: LESSER_AUTOMATION_SHRINK,
         icon: "img/sc_upg_icons/autobuy_coin.webp",
         lvlCap: 1,
         baseCost: 1e6,
