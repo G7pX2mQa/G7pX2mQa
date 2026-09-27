@@ -9,3 +9,8 @@ export function setHtmlOrText(el, val) {
         el.textContent = htmlVal;
     }
 }
+
+export function stripHtml(value) {
+    if (typeof value !== "string") return value;
+    return value.replace(/<[^>]*>?/gm, "");
+}
