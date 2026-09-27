@@ -145,7 +145,7 @@ export function addRclp(amountBn) {
 export function getRclpMultiplier() {
     try {
         const state = getRclpState();
-        if (state && state.unlocked && state.rclpLevel) {
+        if (state && state.rclpLevel) {
             const numLevel = Math.max(0, Number(state.rclpLevel.toString()));
             let effect = E.powPerLevel(2)(numLevel);
             return effect instanceof BigNum ? effect : BigNum.fromAny(effect);
