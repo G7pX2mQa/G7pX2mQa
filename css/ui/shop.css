@@ -567,7 +567,7 @@ html.is-mobile {
 
 .upg-desc.centered{
   text-align:center;
-  font-size: clamp(32px, 4.6vw, 50px);
+  font-size: calc(clamp(32px, 4.6vw, 50px) * var(--upg-scale, 1));
   white-space: pre-line;
 }
 
@@ -592,7 +592,7 @@ html.is-mobile {
 .upg-costs{ display:grid; gap:2px; margin-top:0; }
 
 .upg-line{
-  font-size: clamp(32px, 4.6vw, 50px);
+  font-size: calc(clamp(32px, 4.6vw, 50px) * var(--upg-scale, 1));
   line-height:1.25;
 }
 
@@ -726,8 +726,8 @@ html.is-mobile {
   }
 
   .upg-header .upg-title{ font-size: var(--upg-title-size); }
-  .upg-desc.centered{     font-size: var(--upg-desc-size);  }
-  .upg-line{              font-size: var(--upg-line-size);   }
+  .upg-desc.centered{     font-size: calc(var(--upg-desc-size) * var(--upg-scale, 1));  }
+  .upg-line{              font-size: calc(var(--upg-line-size) * var(--upg-scale, 1));   }
 
   .upg-actions{
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
@@ -1039,39 +1039,7 @@ html.is-mobile {
 
 /* Automation Upgrades */
 
-@media (max-height: 940px) {
-  html:not(.is-mobile) {
-  .upg-overlay.is-effective-auto-collect .upg-desc.centered:not(.lock-desc),
-  .upg-overlay.is-effective-auto-collect .upg-line {
-    font-size: clamp(20px, 2.9vw, 31px);
-  }
-  }
-}
 
-@media (max-width: 1500px) {
-  html:not(.is-mobile) {
-  .upg-overlay.is-autobuy-coin-upgrades .upg-desc.centered:not(.lock-desc),
-  .upg-overlay.is-autobuy-coin-upgrades .upg-line {
-    font-size: clamp(20px, 2.9vw, 31px);
-  }
-  }
-}
-@media (max-width: 1919px), (max-height: 939px) {
-  .upg-overlay.is-underwater-cavern-eac .upg-desc.centered:not(.lock-desc),
-  .upg-overlay.is-underwater-cavern-eac .upg-line {
-    font-size: clamp(20px, 2.9vw, 31px);
-  }
-  
-  .upg-overlay.is-effective-auto-sell .upg-desc.centered:not(.lock-desc),
-  .upg-overlay.is-effective-auto-sell .upg-line {
-    font-size: clamp(23px, 3.2vw, 36px);
-  }
-
-  .upg-overlay.is-manual-material-value .upg-desc.centered:not(.lock-desc),
-  .upg-overlay.is-manual-material-value .upg-line {
-    font-size: clamp(27px, 3.9vw, 42px);
-  }
-}
 
 
 html.is-mobile {
