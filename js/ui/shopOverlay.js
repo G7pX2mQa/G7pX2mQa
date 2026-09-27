@@ -960,7 +960,32 @@ class ShopInstance {
                 btn.appendChild(tile);
                 grid.appendChild(btn);
                 // Listeners
+                let holdTimer = null;
+                let didHold = false;
+                const clearHold = () => {
+                    if (holdTimer) clearTimeout(holdTimer);
+                    holdTimer = null;
+                };
+                btn.addEventListener("pointerdown", (event) => {
+                    didHold = false;
+                    if (btn.disabled || btn.dataset.lockedPlain === "1") return;
+                    if (IS_MOBILE && settingsManager.get("upgrade_insta_max")) {
+                        holdTimer = setTimeout(() => {
+                            didHold = true;
+                            if (btn.upgMeta) openUpgradeOverlay(btn.upgMeta, this.mode);
+                        }, 500);
+                    }
+                });
+                btn.addEventListener("pointerup", clearHold);
+                btn.addEventListener("pointerleave", clearHold);
+                btn.addEventListener("pointercancel", clearHold);
+
                 btn.addEventListener("click", (event) => {
+                    if (didHold) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        return;
+                    }
                     const el = event.currentTarget;
                     if (el.disabled || el.dataset.lockedPlain === "1") {
                         event.preventDefault();
