@@ -817,6 +817,9 @@ function applyBuildingOnlyMode(enabled) {
                 desc.style.visibility = "";
             }
         }
+        if (overlayType === "detail") {
+            updateOverlayUi();
+        }
         if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = "none";
         if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = "none";
     }
