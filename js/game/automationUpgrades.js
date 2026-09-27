@@ -405,7 +405,7 @@ const UPGRADE_DEFINITIONS = [
         baseCost: "1e250",
         costType: "gears",
         upgType: "NM",
-        scaling: { ratio: 2 },
+        scaling: { ratio: "1e250" },
         costAtLevel(level) {
             const lvl = Math.max(0, Math.floor(Number(level) || 0));
             return BigNum.fromAny("1e250").mulBigNumInteger(E.powPerLevel("1e250")(lvl));
