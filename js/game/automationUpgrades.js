@@ -19,9 +19,10 @@ export const AUTOBUY_EVOLVE_UPGRADES_ID = 8;
 export const AUTOBUY_SCRAP_UPGRADES_ID = 9;
 export const UNDERWATER_CAVERN_EAC_ID = 10;
 export const EFFECTIVE_AUTO_SELL_ID = 11;
-export const AUTOBUY_CORE_BUILDING_ID = 12;
-export const AUTOBUY_CRYSTAL_BUILDING_ID = 13;
-export const AUTOBUY_STONE_BUILDING_ID = 14;
+export const MULTI_WATERWHEEL_FLOW_ID = 12;
+export const AUTOBUY_CORE_BUILDING_ID = 13;
+export const AUTOBUY_CRYSTAL_BUILDING_ID = 14;
+export const AUTOBUY_STONE_BUILDING_ID = 15;
 
 // export ties specifically for upgrades who break the norm
 export const AUTOMATION_TIES = {
@@ -29,6 +30,7 @@ export const AUTOMATION_TIES = {
     AUTOBUY_COIN_UPGRADES: "autobuy_coin_upgrades",
     UNDERWATER_CAVERN_EAC: "underwater_cavern_eac",
     EFFECTIVE_AUTO_SELL: "effective_auto_sell",
+    MULTI_WATERWHEEL_FLOW: "multi_waterwheel_flow",
 };
 
 // Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
@@ -39,10 +41,17 @@ export const MASTER_AUTOBUY_IDS = {
     [AUTOBUY_MAGIC_UPGRADES_ID]: "magic",
     [AUTOBUY_DNA_UPGRADES_ID]: "dna",
     [AUTOBUY_SCRAP_UPGRADES_ID]: "scrap",
+    [MULTI_WATERWHEEL_FLOW_ID]: "waterwheels",
     [AUTOBUY_CORE_BUILDING_ID]: "cores",
     [AUTOBUY_CRYSTAL_BUILDING_ID]: "crystals",
     [AUTOBUY_STONE_BUILDING_ID]: "stone",
 };
+
+const STANDARD_AUTOMATION_SHRINK = [
+    { min: 600, max: 1500, scale: 0.6 },
+    { min: 1500, max: 1920, scale: 0.725 },
+    { min: 1920, max: 2000, scale: 0.8 },
+];
 
 const UPGRADE_DEFINITIONS = [
     {
@@ -51,6 +60,7 @@ const UPGRADE_DEFINITIONS = [
         tie: AUTOMATION_TIES.EFFECTIVE_AUTO_COLLECT,
         title: "Effective Auto-Collect",
         desc: "Generates the equivalent of collecting a Coin on an interval\nEach level of this upgrade will reduce the generation interval\nAs a bonus, anything passively generated accumulates offline",
+        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
         icon: "img/sc_upg_icons/effective_auto_collect.webp",
         lvlCap: 20,
         baseCost: 100,
@@ -74,6 +84,7 @@ const UPGRADE_DEFINITIONS = [
         tie: AUTOMATION_TIES.AUTOBUY_COIN_UPGRADES,
         title: "Autobuy Coin Upgrades",
         desc: "Automatically buys Coin upgrades, but with a twist:\nAutobuys upgrades for free, as long as you can afford the cost\nThis is how all future autobuyers will work",
+        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
         icon: "img/sc_upg_icons/autobuy_coin.webp",
         lvlCap: 1,
         baseCost: 1e6,
@@ -277,6 +288,7 @@ const UPGRADE_DEFINITIONS = [
         tie: AUTOMATION_TIES.UNDERWATER_CAVERN_EAC,
         title: "Underwater Cavern EAC",
         desc: "Generates the equivalent of collecting a Material on an interval\nUC EAC also generates its own Materials dependent on Depth\nEach level of this upgrade will reduce the generation interval",
+        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
         icon: "img/uc_upg_icons/eac_uc.webp",
         requiredNodeId: "cavern",
         lvlCap: 20,
@@ -323,6 +335,7 @@ const UPGRADE_DEFINITIONS = [
         tie: AUTOMATION_TIES.EFFECTIVE_AUTO_SELL,
         title: "Effective Auto-Sell",
         desc: "Every game tick, generates Scrap based on owned Materials\nGenerates at 0.0001%/0.01%/1%/100% efficiency depending on level",
+        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
         icon: "img/uc_upg_icons/effective_auto_sell.webp",
         requiredNodeId: "cavern",
         lvlCap: 4,
@@ -336,7 +349,7 @@ const UPGRADE_DEFINITIONS = [
         },
         effectSummary(level) {
             const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            if (lvl === 0) return "Auto-sell efficiency: 0%";
+            if (lvl === 0) return "Effective Auto-Sell efficiency: 0%";
             let eff = "0%";
             if (lvl === 1) eff = "0.0001%";
             else if (lvl === 2) eff = "0.01%";
@@ -344,12 +357,62 @@ const UPGRADE_DEFINITIONS = [
             else if (lvl >= 4) eff = "100%";
             const autoSellSetting = settingsManager.get("auto_sell_efficiency");
             if (autoSellSetting !== undefined && autoSellSetting < 100) {
-                if (autoSellSetting === 0) return `Auto-sell efficiency: 0% (nerfed by setting)`;
+                if (autoSellSetting === 0) return `Effective Auto-Sell efficiency: 0% (nerfed by setting)`;
                 let numVal = parseFloat(eff);
                 let nerfedVal = numVal * (autoSellSetting / 100);
-                return `Auto-sell efficiency: ${nerfedVal}% (nerfed by setting)`;
+                return `Effective Auto-Sell efficiency: ${nerfedVal}% (nerfed by setting)`;
             }
-            return `Auto-sell efficiency: ${eff}`;
+            return `Effective Auto-Sell efficiency: ${eff}`;
+        },
+        computeLockState(ctx) {
+            const sl = ctx.surgeLevel;
+            let isUnlocked = false;
+
+            if (typeof sl === "number") {
+                if (sl >= 150 || sl === Infinity) isUnlocked = true;
+            } else if (typeof sl === "string") {
+                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
+                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 150) isUnlocked = true;
+            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
+                isUnlocked = true;
+            }
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            if (!isSurgeUnlocked()) {
+                return { state: "locked" };
+            }
+
+            const revealText = "Reach Surge 150 to reveal this upgrade";
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+    },
+    {
+        area: AUTOMATION_AREA_KEY,
+        id: MULTI_WATERWHEEL_FLOW_ID,
+        tie: AUTOMATION_TIES.MULTI_WATERWHEEL_FLOW,
+        title: "Multi-Waterwheel Flow",
+        desc: "Every single Waterwheel can now be active at the same time\nHowever, every Waterwheel other than your main focus is weakened\nWeakened Waterwheels flow at 0.001%/0.01%/0.1%/1% efficiency depending on level",
+        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
+        icon: "img/sc_upg_icons/multi_waterwheel_flow.webp",
+        lvlCap: 4,
+        baseCost: "1e250",
+        costType: "gears",
+        upgType: "NM",
+        scaling: { ratio: 2 },
+        costAtLevel(level) {
+            const lvl = Math.max(0, Math.floor(Number(level) || 0));
+            return BigNum.fromAny("1e250").mulBigNumInteger(E.powPerLevel("1e250")(lvl));
+        },
+        effectSummary(level) {
+            const lvl = Math.max(0, Math.floor(Number(level) || 0));
+            if (lvl === 0) return "Weakened Waterwheel efficiency: 0%";
+            let eff = "0%";
+            if (lvl === 1) eff = "0.001%";
+            else if (lvl === 2) eff = "0.01%";
+            else if (lvl === 3) eff = "0.1%";
+            else if (lvl >= 4) eff = "1%";
+            return `Weakened Waterwheel efficiency: ${eff}`;
         },
         computeLockState(ctx) {
             const sl = ctx.surgeLevel;
