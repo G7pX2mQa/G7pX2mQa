@@ -332,6 +332,10 @@ html.is-mobile {
   --btn-bg-current: var(--btn-bg-hover);
 }
 
+#manage-saves:active {
+  transform: none;
+}
+
 
 
 /* Mobile: stack actions under the title, make button full-width */
