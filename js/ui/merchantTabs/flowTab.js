@@ -975,13 +975,9 @@ function onTick(dt) {
                 if (!shouldUnlock) {
                     state.waterwheels[id].level = BigNum.fromInt(0);
                     state.waterwheels[id].fp = 0;
-                    if (state.waterwheels[id].active) {
-                        state.waterwheels[id].active = false;
-                        state.waterwheels[id].isMain = false;
-                        if (state.visuals[id]) {
-                            state.visuals[id].speed = 0;
-                            state.visuals[id].isMax = false;
-                        }
+                    if (state.visuals[id]) {
+                        state.visuals[id].speed = 0;
+                        state.visuals[id].isMax = false;
                     }
                 }
             }
@@ -999,14 +995,10 @@ function onTick(dt) {
                         // Reset progress
                         state.waterwheels[id].level = BigNum.fromInt(0);
                         state.waterwheels[id].fp = 0;
-                        if (state.waterwheels[id].active) {
-                            state.waterwheels[id].active = false;
-                            state.waterwheels[id].isMain = false;
-                            // Reset visuals for this one
-                            if (state.visuals[id]) {
-                                state.visuals[id].speed = 0;
-                                state.visuals[id].isMax = false;
-                            }
+                        // Reset visuals for this one
+                        if (state.visuals[id]) {
+                            state.visuals[id].speed = 0;
+                            state.visuals[id].isMax = false;
                         }
                     }
                 }
