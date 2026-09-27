@@ -17,6 +17,16 @@
   will-change: transform, opacity;
 }
 
+html.is-mobile .item--collected {
+  animation: cccItemCollectMobile 220ms cubic-bezier(.2,.9,.35,1) forwards !important;
+  will-change: opacity;
+}
+
+@keyframes cccItemCollectMobile {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .is-firefox .item--collected {
   animation: cccItemCollectFirefox 220ms cubic-bezier(.2,.9,.35,1) forwards !important;
 }
