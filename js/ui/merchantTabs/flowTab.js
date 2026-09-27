@@ -1834,9 +1834,8 @@ export function initFlowSystem() {
                 for (const id in state.waterwheels) {
                     const ch = state.waterwheels[id];
                     ch.active = true;
-                    if (mainId === id || (!mainId && id === "coin")) {
+                    if (mainId === id) {
                         ch.isMain = true;
-                        mainId = id;
                     } else {
                         ch.isMain = false;
                     }
