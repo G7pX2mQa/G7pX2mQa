@@ -481,23 +481,15 @@ function getWaterwheelUnlockRequirementText(def) {
     return "Locked";
 }
 
+let lastLoadedSlot = null;
+
 function loadState() {
     const slot = getSlot();
     if (slot == null) {
-        visualPool = [];
-        for (const id in state.waterwheels) {
-            state.waterwheels[id].level = BigNum.fromInt(0);
-            state.waterwheels[id].fp = 0;
-            state.waterwheels[id].active = false;
-            state.waterwheels[id].isMain = false;
-            state.waterwheels[id].unlocked = WATERWHEEL_DEFS[id]?.unlocked || false;
-            if (state.visuals[id]) {
-                state.visuals[id].isMax = false;
-                state.visuals[id].speed = 0;
-            }
-        }
+        lastLoadedSlot = null;
         return;
     }
+    lastLoadedSlot = slot;
     // Load Flow Data
     try {
         const vpKey = `${KEY_PREFIX}:visualPool:${slot}`;
@@ -680,7 +672,7 @@ export function setAllWaterwheelsState(isEnabled) {
             }
         }
     }
-    scheduleSave();
+    saveState();
     updateFlowTab();
 }
 
@@ -1804,9 +1796,22 @@ export function initFlowSystem() {
             }
         });
     }
+    loadState();
+    let multiFlowPurchasedTracker = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
     if (typeof window !== "undefined") {
         window.addEventListener("saveSlot:change", () => {
+            // Cancel any pending deferred save from the previous slot to prevent
+            // stale waterwheel data from being written to the new slot's keys.
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+                saveTimeout = null;
+            }
             loadState();
+            // Re-sync the tracker from the new slot's upgrade data so the
+            // ccc:upgrades:changed handler (which may have already fired for
+            // this slot change) doesn't misinterpret a stale tracker value
+            // and overwrite the freshly-loaded state.
+            multiFlowPurchasedTracker = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
             refreshMysteriousWatcher();
             updateFlowTab();
         });
@@ -1823,10 +1828,17 @@ export function initFlowSystem() {
             }
         });
     }
-    loadState();
-    let multiFlowPurchasedTracker = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
     if (typeof document !== "undefined") {
         document.addEventListener("ccc:upgrades:changed", () => {
+            // Guard: if the flow system hasn't loaded state for the current
+            // active slot yet (e.g. during a slot transition where the upgrades
+            // system's saveSlot:change handler fires ccc:upgrades:changed before
+            // our own saveSlot:change handler calls loadState()), skip this
+            // handler to avoid acting on stale waterwheel state from a
+            // different slot.
+            const currentSlot = getSlot();
+            if (currentSlot != null && lastLoadedSlot !== currentSlot) return;
+
             const hasMultiFlow = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
             if (hasMultiFlow && !multiFlowPurchasedTracker) {
                 multiFlowPurchasedTracker = true;
@@ -1846,7 +1858,7 @@ export function initFlowSystem() {
                         ch.isMain = false;
                     }
                 }
-                scheduleSave();
+                saveState();
                 if (flowTabInitialized && flowPanel) updateFlowTab();
             } else if (!hasMultiFlow && multiFlowPurchasedTracker) {
                 multiFlowPurchasedTracker = false;
