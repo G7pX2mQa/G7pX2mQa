@@ -483,7 +483,21 @@ function getWaterwheelUnlockRequirementText(def) {
 
 function loadState() {
     const slot = getSlot();
-    if (slot == null) return;
+    if (slot == null) {
+        visualPool = [];
+        for (const id in state.waterwheels) {
+            state.waterwheels[id].level = BigNum.fromInt(0);
+            state.waterwheels[id].fp = 0;
+            state.waterwheels[id].active = false;
+            state.waterwheels[id].isMain = false;
+            state.waterwheels[id].unlocked = WATERWHEEL_DEFS[id]?.unlocked || false;
+            if (state.visuals[id]) {
+                state.visuals[id].isMax = false;
+                state.visuals[id].speed = 0;
+            }
+        }
+        return;
+    }
     // Load Flow Data
     try {
         const vpKey = `${KEY_PREFIX}:visualPool:${slot}`;
@@ -666,7 +680,7 @@ export function setAllWaterwheelsState(isEnabled) {
             }
         }
     }
-    saveState();
+    scheduleSave();
     updateFlowTab();
 }
 
@@ -1832,7 +1846,7 @@ export function initFlowSystem() {
                         ch.isMain = false;
                     }
                 }
-                saveState();
+                scheduleSave();
                 if (flowTabInitialized && flowPanel) updateFlowTab();
             } else if (!hasMultiFlow && multiFlowPurchasedTracker) {
                 multiFlowPurchasedTracker = false;
