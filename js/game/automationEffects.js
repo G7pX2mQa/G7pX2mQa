@@ -23,6 +23,7 @@ import {
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { performFreeBuildingAutobuy } from "../ui/minerTabs/buildingsTab.js";
+import { getWaterwheelsCollectiveState, setAllWaterwheelsState } from "../ui/merchantTabs/flowTab.js";
 import { calculateUpgradeMultipliers } from "./upgradeEffects.js";
 import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from "../util/storage.js";
 import { UC_MATERIAL_DATA, getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators, getUcEacYieldAccumulators, saveUcEacYieldAccumulators } from "./ucSpawner.js";
@@ -138,6 +139,10 @@ export function setAutobuyerToggle(area, id, value) {
 
 export function setAllAutobuyersForCostType(costType, isEnabled) {
     if (costType === "gears") return;
+    if (costType === "waterwheels") {
+        setAllWaterwheelsState(isEnabled);
+        return;
+    }
     const val = isEnabled ? "1" : "0";
     batchUpgradeOperations(() => {
         Object.values(AREA_KEYS).forEach((areaKey) => {
@@ -161,6 +166,9 @@ export function setAllAutobuyersForCostType(costType, isEnabled) {
 export function getCollectiveAutobuyerState(costType) {
     if (costType === "gears") {
         return settingsManager.get(`currency_gears_automated`) !== false ? 1 : 0;
+    }
+    if (costType === "waterwheels") {
+        return getWaterwheelsCollectiveState();
     }
 
     let onCount = 0;
