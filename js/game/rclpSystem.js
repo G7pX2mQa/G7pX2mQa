@@ -150,6 +150,38 @@ export function getRclpMultiplier() {
     return BigNum.fromInt(1);
 }
 
+export function applyRclpState(newState) {
+    const state = ensureState();
+    if (!state) return;
+    if (newState.unlocked !== undefined) state.unlocked = newState.unlocked;
+    if (newState.rclpLevel !== undefined) state.rclpLevel = newState.rclpLevel;
+    if (newState.rclpProg !== undefined) state.rclpProg = newState.rclpProg;
+    saveState(state);
+    
+    if (typeof window !== "undefined") {
+        let req = computeRclpRequirement(state.rclpLevel);
+        let ratio = 0;
+        if (req && !req.isZero?.()) {
+            const ratioBn = state.rclpProg.div(req);
+            ratio = Number(ratioBn.toScientific?.() ?? "0");
+        }
+        window.dispatchEvent(
+            new CustomEvent("level:change", {
+                detail: {
+                    prefix: "rclp",
+                    level: state.rclpLevel,
+                    progress: state.rclpProg,
+                    requirement: req,
+                    isUnlocked: state.unlocked,
+                    ratio: Math.min(1, Math.max(0, ratio)),
+                    leveledUp: true
+                },
+            })
+        );
+        window.dispatchEvent(new CustomEvent('ccc:rclp:progress', { detail: { delta: BigNum.fromInt(0), levelsGained: BigNum.fromInt(0) } }));
+    }
+}
+
 if (typeof window !== "undefined") {
     window.rclpSystem = {
         initRclpSystem,
