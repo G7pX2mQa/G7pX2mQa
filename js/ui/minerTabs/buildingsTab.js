@@ -380,7 +380,33 @@ export function renderBuildingsGrid(gridEl) {
             });
         } else {
             card.btn.title = "Left-click: View Building • Right-click: Buy Max";
+
+            let holdTimer = null;
+            let didHold = false;
+            const clearHold = () => {
+                if (holdTimer) clearTimeout(holdTimer);
+                holdTimer = null;
+            };
+
+            card.btn.addEventListener("pointerdown", (event) => {
+                didHold = false;
+                if (IS_MOBILE && settingsManager.get("building_insta_max")) {
+                    holdTimer = setTimeout(() => {
+                        didHold = true;
+                        openBuildingDetailOverlay(b.id);
+                    }, 500);
+                }
+            });
+            card.btn.addEventListener("pointerup", clearHold);
+            card.btn.addEventListener("pointerleave", clearHold);
+            card.btn.addEventListener("pointercancel", clearHold);
+
             card.btn.addEventListener("click", (e) => {
+                if (didHold) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    return;
+                }
                 if (e.shiftKey) {
                     executeShortcutPurchase(b.id, "cheap");
                     return;
