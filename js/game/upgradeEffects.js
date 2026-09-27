@@ -605,16 +605,16 @@ export function registerXpUpgradeEffects() {
     });
 
     window.addEventListener('pp:change', () => {
-        try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try { triggerUpgradesChanged(); } catch {}
     });
 
     window.addEventListener('ccc:reset:upgrades:wiped', () => {
-        try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try { triggerUpgradesChanged(); } catch {}
     });
 
     window.addEventListener('level:change', (e) => {
         if (e.detail?.prefix === 'rclp' && e.detail?.leveledUp) {
-            try { invalidateEffectsCache(); syncCurrencyMultipliersFromUpgrades(); } catch {}
+            try { triggerUpgradesChanged(); } catch {}
         }
     });
   }
