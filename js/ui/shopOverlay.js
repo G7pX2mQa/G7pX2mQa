@@ -1089,24 +1089,30 @@ class ShopInstance {
                     if (IS_MOBILE && settingsManager.get("upgrade_insta_max")) {
                         if (el.upgMeta) {
                             const model = this.adapter.getUiModel(el.upgMeta.id);
-                            const capReached = model?.lvlBn?.isInfinite?.()
-                                ? true
-                                : Number.isFinite(model?.upg?.lvlCap)
-                                  ? model?.lvl >= model?.upg?.lvlCap
-                                  : false;
-                            if (!model?.hmReadyToEvolve && !capReached) {
-                                const { bought } = this.adapter.buyMax(el.upgMeta.id);
-                                const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-                                if (!boughtBn.isZero?.()) {
-                                    playPurchaseSfx();
-                                    if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
-                                        try {
-                                            unlockMerchantTabs(["reset"]);
-                                        } catch {}
+                            const isUnlockUpg = model?.unlockUpgrade || !!el.upgMeta.unlockUpgrade;
+                            const title = model?.displayTitle || el.upgMeta.title || "";
+                            const hasUnlockInTitle = title.toLowerCase().includes("unlock");
+                            
+                            if (!isUnlockUpg && !hasUnlockInTitle) {
+                                const capReached = model?.lvlBn?.isInfinite?.()
+                                    ? true
+                                    : Number.isFinite(model?.upg?.lvlCap)
+                                      ? model?.lvl >= model?.upg?.lvlCap
+                                      : false;
+                                if (!model?.hmReadyToEvolve && !capReached) {
+                                    const { bought } = this.adapter.buyMax(el.upgMeta.id);
+                                    const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                                    if (!boughtBn.isZero?.()) {
+                                        playPurchaseSfx();
+                                        if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                                            try {
+                                                unlockMerchantTabs(["reset"]);
+                                            } catch {}
+                                        }
+                                        this.update();
                                     }
-                                    this.update();
+                                    return;
                                 }
-                                return;
                             }
                         }
                     }
