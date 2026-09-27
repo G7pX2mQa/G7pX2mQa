@@ -541,6 +541,8 @@ html.is-mobile {
   text-align: center;
   color: #fff;
   flex-shrink: 0;
+  position: relative;
+  z-index: 5;
 }
 .upg-title { font-size: clamp(44px, 6vw, 72px); font-weight: 700; }
 .upg-level { font-size: clamp(18px, 2.6vw, 28px); opacity: .92; }
@@ -550,7 +552,7 @@ html.is-mobile {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px 0;
+  padding: 10px 0 14px;
   will-change: transform;
   gap: var(--upg-spacing);
   overflow-y: auto;
@@ -561,7 +563,22 @@ html.is-mobile {
 .upg-milestones {
   display: flex;
   justify-content: center;
-  padding-bottom: 10px;
+  align-items: flex-start;
+  height: 0;
+  overflow: visible;
+  padding: 0 !important;
+}
+.upg-milestones > * {
+  transform: translateY(-100%);
+  margin-top: -18px !important;
+}
+
+.auto-toggle-wrapper {
+  align-items: flex-start;
+  height: 0;
+  overflow: visible;
+  margin: 0 !important;
+  transform: translateY(12px);
 }
 
 
