@@ -938,35 +938,41 @@ class LabSystem {
         const wy = this.camY + (y - this.height / 2) / this.zoom;
         this.addBurst(wx, wy);
     }
-    handleClick(x, y) {
-        // x,y in screen coords
+    getNodeAtScreen(x, y) {
         const rect = this.canvas.getBoundingClientRect();
         const mx = x - rect.left;
         const my = y - rect.top;
         const wx = this.camX + (mx - this.width / 2) / this.zoom;
         const wy = this.camY + (my - this.height / 2) / this.zoom;
-        // Check for node click
-        const clickRadius = (NODE_IMG_SIZE / 2) * 1.6; // Base size radius in world units
+        const clickRadius = (NODE_IMG_SIZE / 2) * 1.6;
         for (const node of RESEARCH_NODES) {
             if (!isResearchNodeVisible(node.id)) continue;
             const pos = this.getNodePosition(node);
             const dx = wx - pos.x;
             const dy = wy - pos.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist <= clickRadius) {
-                if (IS_MOBILE && settingsManager.get("lab_node_insta_toggle")) {
-                    const level = getResearchNodeLevel(node.id);
-                    if (level < node.maxLevel) {
-                        const active = isResearchNodeActive(node.id);
-                        setResearchNodeActive(node.id, !active);
-                        if (this.activeOverlayId === node.id) {
-                            this.updateNodeOverlay();
-                        }
+            if (dist <= clickRadius) return node;
+        }
+        return null;
+    }
+    handleClick(x, y) {
+        if (this._holdTriggered) {
+            this._holdTriggered = false;
+            return;
+        }
+        const node = this.getNodeAtScreen(x, y);
+        if (node) {
+            if (IS_MOBILE && settingsManager.get("lab_node_insta_toggle")) {
+                const level = getResearchNodeLevel(node.id);
+                if (level < node.maxLevel) {
+                    const active = isResearchNodeActive(node.id);
+                    setResearchNodeActive(node.id, !active);
+                    if (this.activeOverlayId === node.id) {
+                        this.updateNodeOverlay();
                     }
-                } else {
-                    this.openNodeOverlay(node.id);
                 }
-                return;
+            } else {
+                this.openNodeOverlay(node.id);
             }
         }
     }
@@ -1155,6 +1161,24 @@ class LabSystem {
             }
         }
     }
+    startHoldTimer(x, y) {
+        this.clearHoldTimer();
+        this._holdTriggered = false;
+        if (!IS_MOBILE || !settingsManager.get("lab_node_insta_toggle")) return;
+        const node = this.getNodeAtScreen(x, y);
+        if (node) {
+            this._holdTimer = setTimeout(() => {
+                this._holdTriggered = true;
+                this.openNodeOverlay(node.id);
+            }, 500);
+        }
+    }
+    clearHoldTimer() {
+        if (this._holdTimer) {
+            clearTimeout(this._holdTimer);
+            this._holdTimer = null;
+        }
+    }
     onMouseDown(e) {
         if (e.button === 2) {
             this.handleRightClick(e.clientX, e.clientY);
@@ -1166,6 +1190,7 @@ class LabSystem {
         this.dragStart = { x: e.clientX, y: e.clientY };
         this.lastMouse = { x: e.clientX, y: e.clientY };
         this.addBurstFromScreen(e.clientX, e.clientY);
+        this.startHoldTimer(e.clientX, e.clientY);
     }
     onMouseMove(e) {
         if (this.isDragging) {
@@ -1177,6 +1202,8 @@ class LabSystem {
             if (this.canvas.style.cursor !== "grabbing") {
                 this.canvas.style.cursor = "grabbing";
             }
+            const dist = Math.sqrt(Math.pow(e.clientX - this.dragStart.x, 2) + Math.pow(e.clientY - this.dragStart.y, 2));
+            if (dist > 10) this.clearHoldTimer();
             return;
         }
         // Hover logic
@@ -1208,6 +1235,7 @@ class LabSystem {
     onMouseUp(e) {
         if (!this.isDragging) return;
         this.isDragging = false;
+        this.clearHoldTimer();
         this.canvas.style.cursor = "default";
         const dist = Math.sqrt(Math.pow(e.clientX - this.dragStart.x, 2) + Math.pow(e.clientY - this.dragStart.y, 2));
         if (dist < 10) {
@@ -1254,9 +1282,11 @@ class LabSystem {
             this.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             this.dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             this.addBurstFromScreen(e.touches[0].clientX, e.touches[0].clientY);
+            this.startHoldTimer(e.touches[0].clientX, e.touches[0].clientY);
         } else if (e.touches.length === 2) {
             this.isDragging = false;
             this.pinchDist = this.getTouchDist(e.touches);
+            this.clearHoldTimer();
         }
     }
     onTouchMove(e) {
@@ -1267,6 +1297,8 @@ class LabSystem {
             this.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             this.camX -= dx / this.zoom;
             this.camY -= dy / this.zoom;
+            const dist = Math.sqrt(Math.pow(e.touches[0].clientX - this.dragStart.x, 2) + Math.pow(e.touches[0].clientY - this.dragStart.y, 2));
+            if (dist > 10) this.clearHoldTimer();
         } else if (e.touches.length === 2) {
             const dist = this.getTouchDist(e.touches);
             if (this.pinchDist > 0) {
@@ -1290,6 +1322,7 @@ class LabSystem {
         }
     }
     onTouchEnd(e) {
+        this.clearHoldTimer();
         if (e.touches.length === 0) {
             if (this.isDragging) {
                 const dist = Math.sqrt(
