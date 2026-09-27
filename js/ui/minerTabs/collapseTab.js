@@ -862,7 +862,7 @@ Persistence of Lab Nodes when starting a Collapse Challenge will assist your rec
 
 Effect: Coin value is divided by ${formattedNum}x
 Goal: Reach Pressure: 31atm
-Reward: New UC upgrade which unlocks the third area + new automation upgrade`.trim();
+Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade`.trim();
 
     desc.textContent = baseDescText;
 
@@ -1074,8 +1074,8 @@ Reward: New UC upgrade which unlocks the third area + new automation upgrade`.tr
         let finalHtml = textToUse.replace(/\n/g, "<br>");
         if (isCompleted) {
             finalHtml = finalHtml.replace(
-                "Reward: New UC upgrade which unlocks the third area + new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: New UC upgrade which unlocks the third area + new automation upgrade</span>`
+                "Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade</span>`
             );
         }
         desc.innerHTML = finalHtml;
