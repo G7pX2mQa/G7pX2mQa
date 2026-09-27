@@ -2217,6 +2217,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/sc_upg_icons/mp_val1.webp",
             "img/sc_upg_icons/mp_val2.webp",
             "img/sc_upg_icons/mp_val_hm.webp",
+			"img/sc_upg_icons/multi_waterwheel_flow.webp",
             "img/sc_upg_icons/xp_val1.webp",
             "img/sc_upg_icons/xp_val2.webp",
             "img/sc_upg_icons/xp_val3.webp",
