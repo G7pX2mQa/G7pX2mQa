@@ -2449,14 +2449,20 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
             if (!isHiddenUpgrade) {
                 if (!shouldIgnoreDescScale && Number.isFinite(descScale) && descScale > 0) {
                     effectiveScale = descScale;
-                } else if (model.upg?.shrinkBetween && viewportWidth >= model.upg.shrinkBetween.min && viewportWidth < model.upg.shrinkBetween.max) {
-                    effectiveScale = model.upg.shrinkBetween.scale;
+                } else if (model.upg?.shrinkBetween) {
+                    const shrinkRules = Array.isArray(model.upg.shrinkBetween) ? model.upg.shrinkBetween : [model.upg.shrinkBetween];
+                    for (const rule of shrinkRules) {
+                        if (viewportWidth >= rule.min && viewportWidth < rule.max) {
+                            effectiveScale = rule.scale;
+                            break;
+                        }
+                    }
                 }
             }
             if (effectiveScale !== null) {
-                desc.style.fontSize = `calc((var(--upg-desc-size, clamp(32px, 4.6vw, 50px))) * ${effectiveScale})`;
+                upgSheetEl.style.setProperty("--upg-scale", effectiveScale);
             } else {
-                desc.style.removeProperty("font-size");
+                upgSheetEl.style.removeProperty("--upg-scale");
             }
             if (mode === "rainbow_gem_shop" && model.upg.modType === "font" && FONT_MAP[model.upg.id]) {
                 const fontClass = FONT_MAP[model.upg.id];
@@ -3005,10 +3011,6 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
     rerender();
     upgOverlayEl.classList.add("is-open");
     upgOverlayEl.classList.toggle("is-automation-upgrade", mode === "automation");
-    upgOverlayEl.classList.toggle("is-effective-auto-collect", upgDef.tie === AUTOMATION_TIES.EFFECTIVE_AUTO_COLLECT);
-    upgOverlayEl.classList.toggle("is-autobuy-coin-upgrades", upgDef.tie === AUTOMATION_TIES.AUTOBUY_COIN_UPGRADES);
-    upgOverlayEl.classList.toggle("is-underwater-cavern-eac", upgDef.tie === AUTOMATION_TIES.UNDERWATER_CAVERN_EAC);
-    upgOverlayEl.classList.toggle("is-effective-auto-sell", upgDef.tie === AUTOMATION_TIES.EFFECTIVE_AUTO_SELL);
     upgOverlayEl.style.pointerEvents = "auto";
     upgSheetEl.style.transition = "none";
     upgSheetEl.style.transform = "translateY(100%)";
