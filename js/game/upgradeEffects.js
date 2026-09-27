@@ -433,6 +433,42 @@ try {
   } catch {}
 
   try {
+    if (bank.red_coral?.mult?.set) {
+      let redCoralMult = BigNum.fromInt(1);
+      if (isPpSystemUnlocked()) {
+          const ppLevel = getPpState().ppLevel;
+          if (ppLevel && !ppLevel.isZero() && ppLevel.cmp(31) > 0) {
+              const atmAfter31 = ppLevel.sub(BigNum.fromInt(31));
+              const log10ResultBn = atmAfter31.mulDecimal(Math.log10(2));
+              let log10ResultNum;
+              if (bigNumIsInfinite(log10ResultBn)) {
+                  log10ResultNum = Infinity;
+              } else {
+                  log10ResultNum = parseFloat(log10ResultBn.toScientific(10));
+              }
+              if (!Number.isFinite(log10ResultNum) || log10ResultNum === Infinity) {
+                  redCoralMult = BigNum.fromAny('Infinity');
+              } else {
+                  const factor = bigNumFromLog10(log10ResultNum).floorToInteger();
+                  redCoralMult = safeMultiplyBigNum(redCoralMult, factor).floorToInteger();
+              }
+          }
+      }
+      bank.red_coral.mult.set(redCoralMult);
+      
+      if (typeof window !== 'undefined') {
+          if (!window.__originalGetDebugCurrencyMultiplierOverride && window.getDebugCurrencyMultiplierOverride) {
+              window.__originalGetDebugCurrencyMultiplierOverride = window.getDebugCurrencyMultiplierOverride;
+              window.getDebugCurrencyMultiplierOverride = function(key, slot) {
+                  if (key === 'red_coral') return null;
+                  return window.__originalGetDebugCurrencyMultiplierOverride(key, slot);
+              };
+          }
+      }
+    }
+  } catch {}
+
+  try {
     for (const mat of UC_MATERIALS) {
       if (bank[mat]?.mult?.set) {
         // Individual material multipliers can be multiplied here in the future
