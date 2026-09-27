@@ -375,6 +375,22 @@
   background: hsla(150, 60%, 35%, 0.28);
 }
 
+.flow-toggle-btn.is-weakened {
+  border: 1px solid hsla(45, 80%, 40%, 0.45);
+  background: hsla(45, 80%, 40%, 0.15);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.flow-toggle-btn.is-weakened:hover {
+  background: hsla(45, 80%, 40%, 0.22);
+}
+
+.flow-toggle-btn.is-weakened:active {
+  transform: translateY(1px);
+  background: hsla(45, 80%, 40%, 0.28);
+}
+
 /* Mobile Responsive (Max 900px) */
 @media (max-width: 900px) {
   .flow-minis-col {
