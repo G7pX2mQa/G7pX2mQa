@@ -19,9 +19,9 @@ export const CORAL_REGISTRY = [
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
             if (normalizedLevel === 0) return BigNum.fromInt(10);
-            if (normalizedLevel === 1) return BigNum.fromAny("1e4");
-            if (normalizedLevel === 2) return BigNum.fromAny("1e10");
-            if (normalizedLevel === 3) return BigNum.fromAny("1e25");
+            if (normalizedLevel === 1) return BigNum.fromInt(1000);
+            if (normalizedLevel === 2) return BigNum.fromAny("1e6");
+            if (normalizedLevel === 3) return BigNum.fromAny("1e9");
             return BigNum.fromAny("Infinity");
         },
         nextCostAfter(_, nextLevel) {
