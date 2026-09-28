@@ -22,7 +22,7 @@ import {
     AUTOBUY_STONE_BUILDING_ID,
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
-import { performFreeBuildingAutobuy } from "../ui/minerTabs/buildingsTab.js";
+import { performFreeBuildingAutobuy, batchBuildingOperations } from "../ui/minerTabs/buildingsTab.js";
 import { getWaterwheelsCollectiveState, setAllWaterwheelsState } from "../ui/merchantTabs/flowTab.js";
 import { calculateUpgradeMultipliers } from "./upgradeEffects.js";
 import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from "../util/storage.js";
@@ -274,69 +274,71 @@ function processAutobuyGroup(upgrades) {
 
 function updateAutobuyers(dt) {
     batchUpgradeOperations(() => {
-        const slot = getActiveSlot();
-        ensureCacheSlot(slot);
-        // Tick-sliced processing for standard upgrades
-        // Iterate over MASTER_AUTOBUY_IDS to dynamically handle cost types
-        const groups = getGroupedUpgrades();
-        for (const [idStr, currencyKey] of Object.entries(MASTER_AUTOBUY_IDS)) {
-            const id = Number(idStr);
-            // Check if this specific autobuyer is purchased/active
-            if (getLevelNumber(AUTOMATION_AREA_KEY, id) > 0) {
-                if (groups[currencyKey]) {
-                    processAutobuyGroup(groups[currencyKey]);
-                }
-            }
-        }
-        // Process workshop levels (throttled to ~4Hz)
-        const workshopAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID) > 0;
-        if (workshopAutobuy) {
-            workshopTicker++;
-            if (workshopTicker >= 5) {
-                workshopTicker = 0;
-                const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
-                if (setting !== "0") {
-                    performFreeGenerationUpgrade();
-                }
-            }
-        }
-        // Process Auto-Evolve Upgrades
-        const evolveAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID) > 0;
-        if (evolveAutobuy) {
-            const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID);
-            if (setting !== "0") {
-                const hmUpgrades = getHmUpgrades();
-                for (const upg of hmUpgrades) {
-                    const area = upg.area || AREA_KEYS.STARTER_COVE;
-                    // Only auto-evolve if the upgrade's standard autobuyer toggle is also ON
-                    if (getAutobuyerToggle(area, upg.id) !== "0") {
-                        performFreeAutobuyEvolve(area, upg.id);
+        batchBuildingOperations(() => {
+            const slot = getActiveSlot();
+            ensureCacheSlot(slot);
+            // Tick-sliced processing for standard upgrades
+            // Iterate over MASTER_AUTOBUY_IDS to dynamically handle cost types
+            const groups = getGroupedUpgrades();
+            for (const [idStr, currencyKey] of Object.entries(MASTER_AUTOBUY_IDS)) {
+                const id = Number(idStr);
+                // Check if this specific autobuyer is purchased/active
+                if (getLevelNumber(AUTOMATION_AREA_KEY, id) > 0) {
+                    if (groups[currencyKey]) {
+                        processAutobuyGroup(groups[currencyKey]);
                     }
                 }
             }
-        }
-        // Process Core Building Autobuy
-        const coreBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_CORE_BUILDING_ID) > 0;
-        if (coreBuildingAutobuy) {
-            // Check master switch for cores (it's what gets toggled by the UI since buildings aren't standard upgrades)
-            if (getCollectiveAutobuyerState("cores") === 1) {
-                performFreeBuildingAutobuy("core");
+            // Process workshop levels (throttled to ~4Hz)
+            const workshopAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID) > 0;
+            if (workshopAutobuy) {
+                workshopTicker++;
+                if (workshopTicker >= 5) {
+                    workshopTicker = 0;
+                    const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
+                    if (setting !== "0") {
+                        performFreeGenerationUpgrade();
+                    }
+                }
             }
-        }
-        // Process Crystal Building Autobuy
-        const crystalBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_CRYSTAL_BUILDING_ID) > 0;
-        if (crystalBuildingAutobuy) {
-            if (getCollectiveAutobuyerState("crystals") === 1) {
-                performFreeBuildingAutobuy("crystal");
+            // Process Auto-Evolve Upgrades
+            const evolveAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID) > 0;
+            if (evolveAutobuy) {
+                const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID);
+                if (setting !== "0") {
+                    const hmUpgrades = getHmUpgrades();
+                    for (const upg of hmUpgrades) {
+                        const area = upg.area || AREA_KEYS.STARTER_COVE;
+                        // Only auto-evolve if the upgrade's standard autobuyer toggle is also ON
+                        if (getAutobuyerToggle(area, upg.id) !== "0") {
+                            performFreeAutobuyEvolve(area, upg.id);
+                        }
+                    }
+                }
             }
-        }
-        // Process Stone Building Autobuy
-        const stoneBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_STONE_BUILDING_ID) > 0;
-        if (stoneBuildingAutobuy) {
-            if (getCollectiveAutobuyerState("stone") === 1) {
-                performFreeBuildingAutobuy("stone");
+            // Process Core Building Autobuy
+            const coreBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_CORE_BUILDING_ID) > 0;
+            if (coreBuildingAutobuy) {
+                // Check master switch for cores (it's what gets toggled by the UI since buildings aren't standard upgrades)
+                if (getCollectiveAutobuyerState("cores") === 1) {
+                    performFreeBuildingAutobuy("core");
+                }
             }
-        }
+            // Process Crystal Building Autobuy
+            const crystalBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_CRYSTAL_BUILDING_ID) > 0;
+            if (crystalBuildingAutobuy) {
+                if (getCollectiveAutobuyerState("crystals") === 1) {
+                    performFreeBuildingAutobuy("crystal");
+                }
+            }
+            // Process Stone Building Autobuy
+            const stoneBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_STONE_BUILDING_ID) > 0;
+            if (stoneBuildingAutobuy) {
+                if (getCollectiveAutobuyerState("stone") === 1) {
+                    performFreeBuildingAutobuy("stone");
+                }
+            }
+        });
     });
 }
 
