@@ -8,7 +8,7 @@ import { syncDpPpHudLayout } from "../ui/hudLayout.js";
 import { applyStatMultiplierOverride } from "../util/debugPanel.js";
 import { getPpState, isPpSystemUnlocked } from "./ppSystem.js";
 import { addExternalFpMultiplierProvider } from "../ui/merchantTabs/flowTab.js";
-import { setHtmlOrText } from "../util/uiHelpers.js";
+import { setHtmlOrText, stripHtml } from "../util/uiHelpers.js";
 import { hasDoneCompressReset } from "../ui/minerTabs/resetTab.js";
 const externalDpMultiplierProviders = [];
 export function addExternalDpMultiplierProvider(fn) {
@@ -287,10 +287,6 @@ function ensureDpStorageWatchers() {
     }
 }
 
-function stripHtml(value) {
-    if (typeof value !== "string") return "";
-    return value.replace(/<[^>]*>/g, "");
-}
 
 function progressRatio(progressBn, requirement) {
     if (!requirement || typeof requirement !== "object") return 0;
@@ -681,7 +677,7 @@ export function getDpMultiplier() {
                 if (bigNumIsInfinite(log10ResultBn)) {
                     log10ResultNum = Infinity;
                 } else {
-                    log10ResultNum = parseFloat(log10ResultBn.toScientific(10));
+                    log10ResultNum = parseFloat(log10ResultBn.toScientific(14)) + 1e-9;
                 }
                 
                 if (!Number.isFinite(log10ResultNum) || log10ResultNum === Infinity) {
