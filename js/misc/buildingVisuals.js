@@ -11353,7 +11353,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.rect(-1000, -1000, 2000, 1000); // Only allow drawing above y = 0
         ctx.clip();
         
-        ctx.globalAlpha = t4 * 0.8;
+        ctx.globalAlpha = t4;
         
         // Volumetric organic energy rising from the structure
         ctx.save();
@@ -11390,7 +11390,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
 
         // Massive pulsating dark-energy aura tracing the base
         ctx.shadowColor = '#1122cc';
-        ctx.shadowBlur = 50 + Math.sin(t * 5) * 20;
+        ctx.shadowBlur = 50;
         
         ctx.beginPath();
         ctx.moveTo(-280, 0);
@@ -11411,7 +11411,7 @@ function drawCentrifuge(ctx, t, tier, prevTier, animProgress) {
         ctx.closePath();
         
         ctx.lineWidth = 15;
-        ctx.strokeStyle = 'rgba(10, 26, 136, 0.6)';
+        ctx.strokeStyle = 'rgba(10, 26, 136, 1)';
         ctx.stroke();
         
         // Inner intense edge aura
