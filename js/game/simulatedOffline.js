@@ -1,4 +1,4 @@
-const SHOW_PERFORMANCE_LOGS = true;
+const SHOW_PERFORMANCE_LOGS = false;
 
 /**
  * js/game/simulatedOffline.js
@@ -180,20 +180,7 @@ const OFFLINE_FEATURES = [
     },
     {
         id: "labResearch",
-        evalRelevance: (simDt, totalOfflineSeconds, dec) => {
-            if (!_RESEARCH_NODES || !_isResearchNodeActive || !_getResearchNodeLevel) return 1;
-            try {
-                let hasActiveUnmaxed = false;
-                for (const node of _RESEARCH_NODES) {
-                    if (!_isResearchNodeActive(node.id)) continue;
-                    if (_getResearchNodeLevel(node.id) < node.maxLevel) {
-                        hasActiveUnmaxed = true;
-                        break;
-                    }
-                }
-                return Math.max(dec.passives, hasActiveUnmaxed ? 5 : 50);
-            } catch { return 1; }
-        },
+        evalRelevance: (simDt, totalOfflineSeconds, dec) => dec.passives,
         simulate: (dt) => { if (_simulateLabResearch) _simulateLabResearch(dt); }
     },
     {
