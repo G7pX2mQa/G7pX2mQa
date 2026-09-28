@@ -157,4 +157,48 @@ export const CORAL_REGISTRY = [
             return normalizedLevel > 0 ? BigNum.fromAny("1e20") : 1;
         },
     },
+    {
+        area: CORAL_AREA_KEY,
+        id: 4,
+        title: "PP Value",
+        desc: "Quintuples PP value per level",
+        lvlCap: 10,
+        baseCost: 1000,
+        costType: "red_coral",
+        upgType: "NM",
+        effectType: "pp_value",
+        icon: "img/lab_icons/pp_val0.webp",
+        costAtLevel(level) {
+            const mult = E.powPerLevel(5)(level);
+            if (mult && typeof mult.mulSmall === "function") {
+                return mult.mulSmall(1000);
+            }
+            return BigNum.fromAny(mult).mulSmall(1000);
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        computeLockState() {
+            if (isRclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+            let metCoral = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                metCoral = window.localStorage.getItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+            } catch {}
+            
+            if (!metCoral) {
+                return { state: "locked" };
+            }
+            return { state: "mysterious", unlockReqText: "Unlock the Red Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `PP value bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            return E.powPerLevel(5)(level);
+        },
+    },
 ];
