@@ -143,6 +143,7 @@ import {
 } from "../game/comboSystem.js";
 import { setHtmlOrText } from "./uiHelpers.js";
 import { createPaintbrush } from "../ui/sas/paintbrushUtils.js";
+import { getRclpState, isRclpSystemUnlocked, unlockRclpSystem, applyRclpState } from "../game/rclpSystem.js";
 
 const debugPanelStatSetters = [];
 let isBuildingStats = false;
@@ -408,6 +409,17 @@ function setupLiveBindingListeners() {
     window.addEventListener("pp:change", ppHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener("pp:change", ppHandler));
     addDebugPanelCleanup(() => window.removeEventListener("dp:change", dpHandler));
+
+    const rclpHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => (binding.type === "rclp-level" || binding.type === "rclp-progress") && binding.slot === targetSlot);
+    };
+    window.addEventListener("ccc:rclp:progress", rclpHandler, { passive: true });
+    window.addEventListener("ccc:rclp:unlocked", rclpHandler, { passive: true });
+    addDebugPanelCleanup(() => {
+        window.removeEventListener("ccc:rclp:progress", rclpHandler);
+        window.removeEventListener("ccc:rclp:unlocked", rclpHandler);
+    });
 
     const upgradeHandler = () => {
         const targetSlot = getActiveSlot();
@@ -3053,6 +3065,60 @@ function buildAreaStats(container, area) {
         });
 
         container.appendChild(bubbleSpawnRateRow.row);
+
+        const rclpState = getRclpState() || { rclpLevel: BigNum.fromInt(0), rclpProg: BigNum.fromInt(0) };
+        
+        const rclLevelKey = `ccc:rclLevel:${slot}`;
+        const rclLevelRow = createInputRow(
+            "Red Coral Level",
+            rclpState.rclpLevel,
+            (value, { setValue }) => {
+                const prev = getRclpState()?.rclpLevel?.clone?.() ?? BigNum.fromInt(0);
+                applyRclpState({ rclpLevel: value });
+                const latest = getRclpState();
+                setValue(latest.rclpLevel);
+                if (!bigNumEquals(prev, latest.rclpLevel)) {
+                    flagDebugUsage();
+                    logAction(`Modified Red Coral Level (${area.title}) ${formatNumber(prev)} -> ${formatNumber(latest.rclpLevel)}`);
+                }
+            },
+            { storageKey: rclLevelKey },
+        );
+        registerLiveBinding({
+            type: "rclp-level",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                rclLevelRow.setValue(getRclpState()?.rclpLevel ?? BigNum.fromInt(0));
+            },
+        });
+        container.appendChild(rclLevelRow.row);
+
+        const rclpProgressKey = `ccc:rclpProgress:${slot}`;
+        const rclProgressRow = createInputRow(
+            "RCLP",
+            rclpState.rclpProg,
+            (value, { setValue }) => {
+                const prev = getRclpState()?.rclpProg?.clone?.() ?? BigNum.fromInt(0);
+                applyRclpState({ rclpProg: value });
+                const latest = getRclpState();
+                setValue(latest.rclpProg);
+                if (!bigNumEquals(prev, latest.rclpProg)) {
+                    flagDebugUsage();
+                    logAction(`Modified RCLP (${area.title}) ${formatNumber(prev)} -> ${formatNumber(latest.rclpProg)}`);
+                }
+            },
+            { storageKey: rclpProgressKey },
+        );
+        registerLiveBinding({
+            type: "rclp-progress",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                rclProgressRow.setValue(getRclpState()?.rclpProg ?? BigNum.fromInt(0));
+            },
+        });
+        container.appendChild(rclProgressRow.row);
     }
 
     const xp = getXpState();
@@ -3812,6 +3878,24 @@ function setAllStatsToZero() {
 
 function getUnlockRowDefinitions(slot) {
     return [
+        {
+            labelText: "Unlock Red Coral Level",
+            description: "If true, unlocks the RCL system",
+            isUnlocked: () => isRclpSystemUnlocked(),
+            onEnable: () => {
+                unlockRclpSystem();
+                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "rclp", slot } }));
+            },
+            onDisable: () => {
+                const state = getRclpState();
+                if (state) {
+                    state.unlocked = false;
+                    applyRclpState(state);
+                }
+                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "rclp", slot } }));
+            },
+            slot,
+        },
         {
             labelText: "Unlock Underwater Cavern",
             description: "If true, unlocks Underwater Cavern",
