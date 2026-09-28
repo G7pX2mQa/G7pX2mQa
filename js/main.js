@@ -2889,9 +2889,10 @@ function validateMultiplierMethods() {
             return;
         }
 
-        if (keyToUse === "waves" || keyToUse === "waves_levels") {
+        if (keyToUse === "waves_levels") {
             keyToUse = "surge_wave"; // Maps to surgeWaveSystem.getSurgeWaveMultiplier()
         }
+        if (keyToUse === "waves") return; // Handled directly via bank.waves.mult.get()
 
         const camelKey = keyToUse.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
         const sysName = camelKey + "System";
