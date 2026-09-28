@@ -5984,7 +5984,7 @@ function buildMiscContent(content) {
         {
             label: "All Auto Until X",
             onClick: () => {
-                const maxIdStr = prompt("Input the automation upgrade id you want to max until (inclusive):");
+                const maxIdStr = prompt("Input the automation upgrade id you want to max until (inclusive)");
                 if (maxIdStr === null) return;
                 const maxId = parseInt(maxIdStr, 10);
                 if (isNaN(maxId)) {
@@ -6124,7 +6124,7 @@ function buildMiscContent(content) {
         {
             label: "Ultra Lazy Button",
             onClick: () => {
-                const raw = window.prompt("Unlocks all unlocks, enables all automation, and maxes all Lab Nodes. Input a number that you want to set your Surge to:");
+                const raw = window.prompt("Unlocks all unlocks, enables all automation, and maxes all Lab Nodes. Input the number you want to set your Surge to");
                 if (raw == null || raw.trim() === "") return;
                 
                 let limitStr = "0";
