@@ -1011,17 +1011,12 @@ export function getGameStatMultiplier(statKey) {
             const mult = getMutationMultiplier();
             if (mult) return mult;
         } else if (statKey === "scrap") {
-            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
             if (eff?.scrapValueMultiplier) {
                 return BigNum.fromAny(eff.scrapValueMultiplier);
             }
         } else if (statKey === "allMaterials") {
-            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
-            if (eff?.allMaterialsValueMultiplier) {
-                return BigNum.fromAny(eff.allMaterialsValueMultiplier);
-            }
-        } else if (statKey === "allMaterials") {
-            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
             if (eff?.allMaterialsValueMultiplier) {
                 return BigNum.fromAny(eff.allMaterialsValueMultiplier);
             }
@@ -1031,13 +1026,13 @@ export function getGameStatMultiplier(statKey) {
                 return BigNum.fromAny(eff.coinsPerSecondMult);
             }
         } else if (statKey === "materialSpawnRate") {
-            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
             if (eff?.materialSpawnRateMult) {
                 return BigNum.fromAny(0.2 * eff.materialSpawnRateMult);
             }
             return BigNum.fromAny(0.2);
         } else if (statKey === "bubbleSpawnRate") {
-            const eff = computeUpgradeEffects(AREA_KEYS.CORAL_REEF);
+            const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
             if (eff?.bubbleSpawnRateMult) {
                 return BigNum.fromAny(eff.bubbleSpawnRateMult);
             }
