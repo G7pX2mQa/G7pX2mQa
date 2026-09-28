@@ -24,10 +24,12 @@ export function createDropdown(options) {
   dropdownValueDisplay.style.alignItems = "center";
   dropdownValueDisplay.style.flexWrap = "wrap";
   dropdownValueDisplay.style.gap = "8px";
+  dropdownValueDisplay.style.pointerEvents = "none";
   
   const dropdownIcon = document.createElement("span");
   dropdownIcon.className = "setting-dropdown-icon";
   dropdownIcon.innerHTML = "&#9662;"; // Downward triangle
+  dropdownIcon.style.pointerEvents = "none";
 
   dropdownBtn.append(dropdownValueDisplay, dropdownIcon);
 
