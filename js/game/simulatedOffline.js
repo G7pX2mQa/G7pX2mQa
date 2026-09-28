@@ -1,3 +1,5 @@
+const SHOW_PERFORMANCE_LOGS = false;
+
 /**
  * js/game/simulatedOffline.js
  *
@@ -10,10 +12,12 @@
  * Adaptive granularity: as offline duration grows, ticks represent
  * more game-time each (coarser simulation) so even year-long offline
  * periods finish in a reasonable wall-clock time.
+ * The SHOW_PERFORMANCE_LOGS variable controls whether detailed
+ * performance logs are shown at the end of an offline simulation.
  */
 
 import { pauseGameLoop, resumeGameLoop, triggerUiFrameListeners } from "./gameLoop.js";
-import { BigNum } from "../util/bigNum.js";
+import { BigNum, approxLog10BigNum } from "../util/bigNum.js";
 import { formatNumber } from "../util/numFormat.js";
 import { setBankAddInterceptor } from "../util/storage.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
@@ -201,23 +205,25 @@ const OFFLINE_FEATURES = [
             try {
                 const fpMult = _getFpMultiplier();
                 const fpPerTick = fpMult.mulDecimal(String(simDt));
-                let fpPerTickNum = Number(fpPerTick.toScientific(5)) || 0;
+                const fpLog10 = approxLog10BigNum(fpPerTick);
 
-                let minRatio = Infinity;
+                let minReqLog10 = Infinity;
                 for (const id in _WATERWHEEL_DEFS) {
                     const req = _WATERWHEEL_DEFS[id].baseReq;
                     if (req > 0) {
-                        const ratio = fpPerTickNum / req;
-                        if (ratio < minRatio) minRatio = ratio;
+                        const reqLog10 = Math.log10(req);
+                        if (reqLog10 < minReqLog10) minReqLog10 = reqLog10;
                     }
                 }
-                if (Number.isFinite(minRatio)) {
+                
+                if (minReqLog10 !== Infinity) {
+                    const logRatio = fpLog10 - minReqLog10;
                     let target = 1;
-                    if (minRatio > 1e6)       target = 100;
-                    else if (minRatio > 1e4)  target = 50;
-                    else if (minRatio > 1000) target = 20;
-                    else if (minRatio > 100)  target = 10;
-                    else if (minRatio > 10)   target = 2;
+                    if (logRatio > 6) target = 100;
+                    else if (logRatio > 4) target = 50;
+                    else if (logRatio > 3) target = 20;
+                    else if (logRatio > 2) target = 10;
+                    else if (logRatio > 1) target = 2;
                     return Math.max(dec.passives, target);
                 }
             } catch {}
@@ -232,13 +238,13 @@ const OFFLINE_FEATURES = [
             try {
                 const rate = _getGearsProductionRate();
                 const perTick = rate.mulDecimal(String(simDt));
-                let perTickNum = Number(perTick.toScientific(5)) || 0;
+                const perTickLog10 = approxLog10BigNum(perTick);
                 
                 let target = 1;
-                if (perTickNum > 1e10)       target = 100;
-                else if (perTickNum > 1e6)   target = 50;
-                else if (perTickNum > 1000)  target = 10;
-                else if (perTickNum > 100)   target = 2;
+                if (perTickLog10 > 10)       target = 100;
+                else if (perTickLog10 > 6)   target = 50;
+                else if (perTickLog10 > 3)  target = 10;
+                else if (perTickLog10 > 2)   target = 2;
                 return Math.max(dec.passives, target);
             } catch {}
             return 1;
@@ -504,6 +510,16 @@ class SimulatedOfflineRunner {
         this.running = false;
         this.completed = false;
         this.skipped = false;
+
+        // Profiling
+        if (SHOW_PERFORMANCE_LOGS) {
+            this._featureTime = {};
+            this._featureCalls = {};
+            for (const f of OFFLINE_FEATURES) {
+                this._featureTime[f.id] = 0;
+                this._featureCalls[f.id] = 0;
+            }
+        }
     }
 
     addWallClockTime(ms) {
@@ -640,6 +656,19 @@ class SimulatedOfflineRunner {
                 // Flush ALL features unconditionally on the final batch to ensure zero precision loss
                 this._flushDecimated(firedThisBatch, true);
                 this.completed = true;
+
+                // Profiling summary
+                if (SHOW_PERFORMANCE_LOGS && this._featureTime) {
+                    console.log("%c[SimProfile] Per-feature breakdown:", "color: #ff6; font-weight: bold");
+                    const entries = Object.entries(this._featureTime).sort((a, b) => b[1] - a[1]);
+                    for (const [id, ms] of entries) {
+                        const calls = this._featureCalls[id];
+                        const avg = calls > 0 ? (ms / calls).toFixed(4) : "N/A";
+                        console.log(`  ${id}: ${ms.toFixed(1)}ms total, ${calls} calls, ${avg}ms/call`);
+                    }
+                    console.log(`  TOTAL wall-clock: ${this._wallClockMs.toFixed(0)}ms`);
+                }
+
                 return true;
             }
 
@@ -682,7 +711,14 @@ class SimulatedOfflineRunner {
             const id = feature.id;
             if (tickIndex % dec[id] === 0) {
                 const totalDt = dt + this._accDt[id];
-                feature.simulate(totalDt);
+                if (SHOW_PERFORMANCE_LOGS) {
+                    const t0 = performance.now();
+                    feature.simulate(totalDt);
+                    this._featureTime[id] += performance.now() - t0;
+                    this._featureCalls[id]++;
+                } else {
+                    feature.simulate(totalDt);
+                }
                 firedThisBatch[id] = true;
                 this._accDt[id] = 0;
             } else {
