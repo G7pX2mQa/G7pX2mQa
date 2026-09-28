@@ -6160,9 +6160,22 @@ function buildMiscContent(content) {
                 const surgeLevelKey = getSurgeBarLevelKey(slot);
                 if (surgeLevelKey) {
                     lsSetItem(surgeLevelKey, limitStr);
+                    try {
+                        const milestones = document.querySelector('[data-reset-milestones="surge"]');
+                        if (milestones) {
+                            milestones.dataset.scrolled = "0";
+                            setTimeout(() => {
+                                if (milestones.__customScroll && typeof milestones.__customScroll.update === 'function') {
+                                    milestones.__customScroll.update();
+                                }
+                            }, 150);
+                        }
+                        window.resetSystem?.updateResetPanel?.();
+                    } catch {}
+                    let eventLevel = limitStr === "Infinity" ? Infinity : Number(limitStr);
                     window.dispatchEvent(
                         new CustomEvent("surge:level:change", {
-                            detail: { slot },
+                            detail: { slot, level: eventLevel },
                         }),
                     );
                 }
