@@ -168,7 +168,7 @@ export const UC_REGISTRY = [
             if (!isSellUnlocked() || !hasViewedSellTab()) {
                 return { state: "locked" };
             }
-            return { state: "mysterious", unlockReqText: "Unlock the Depth system" };
+            return { state: "mysterious", unlockReqText: "Unlock the Depth system to reveal this upgrade" };
         },
         effectSummary(level) {
             const mult = this.effectMultiplier(level);
@@ -205,7 +205,7 @@ export const UC_REGISTRY = [
             if (!isSellUnlocked() || !hasViewedSellTab()) {
                 return { state: "locked" };
             }
-            return { state: "mysterious", unlockReqText: "Unlock the Depth system" };
+            return { state: "mysterious", unlockReqText: "Unlock the Depth system to reveal this upgrade" };
         },
         effectSummary(level) {
             const mult = this.effectMultiplier(level);
