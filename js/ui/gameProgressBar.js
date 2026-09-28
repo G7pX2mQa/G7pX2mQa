@@ -343,7 +343,7 @@ const GOALS = [
         id: 16,
         text: "Unlock the Red Coral Level system, then reach Red Coral Level 31",
         icon: "img/stats/rclp/rclp.webp",
-        unlocksHelpText: true,
+        unlocksUpgradeText: true,
         mode: GOAL_MODE.NORMAL,
         start: 0,
         target: 31,
