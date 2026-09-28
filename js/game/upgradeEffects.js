@@ -105,6 +105,12 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
         const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
         additionalUpgrades.push(...ucUpgrades);
     }
+    
+    // Include Coral Reef upgrades for scrap value globally too
+    if (AREA_KEYS.CORAL_REEF) {
+        const coralUpgrades = getUpgradesForArea(AREA_KEYS.CORAL_REEF);
+        additionalUpgrades.push(...coralUpgrades);
+    }
   }
   const allUpgrades = [...upgrades, ...additionalUpgrades];
 
@@ -218,6 +224,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.crystalsValue = safeMultiplyBigNum(acc.crystalsValue, baseEffect);
     } else if (upg.effectType === 'rp_value') {
       acc.rpValue = safeMultiplyBigNum(acc.rpValue, baseEffect);
+    } else if (upg.effectType === 'scrap_value') {
+      acc.scrapValue = safeMultiplyBigNum(acc.scrapValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
       let val = 0;
       if (baseEffect instanceof BigNum) {
