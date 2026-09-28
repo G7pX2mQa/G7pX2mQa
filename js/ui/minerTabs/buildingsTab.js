@@ -16,6 +16,35 @@ const BUILDINGS_UNLOCKED_KEY_BASE = "ccc:buildingsUnlocked";
 const BUILDING_ITEM_UNLOCKED_KEY_BASE = "ccc:buildingItemUnlocked";
 const BUILDING_LEVEL_KEY_BASE = "ccc:buildingLevel";
 const BUILDING_TIER_SEEN_KEY_BASE = "ccc:buildingTierSeen";
+
+let isBuildingBatching = false;
+const pendingBuildingSaves = new Map();
+let pendingBuildingNotify = false;
+
+export function batchBuildingOperations(fn) {
+    if (isBuildingBatching) {
+        return fn();
+    }
+    isBuildingBatching = true;
+    try {
+        return fn();
+    } finally {
+        isBuildingBatching = false;
+        if (pendingBuildingSaves.size > 0) {
+            pendingBuildingSaves.forEach((val, key) => {
+                try {
+                    lsSetItem(key, val);
+                } catch {}
+            });
+            pendingBuildingSaves.clear();
+        }
+        if (pendingBuildingNotify) {
+            pendingBuildingNotify = false;
+            document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+        }
+    }
+}
+
 export const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 export const BUILDING_IDS = [
     "core",
@@ -992,13 +1021,18 @@ export function getBuildingLevel(id) {
 }
 
 export function setBuildingLevel(id, levelBn) {
-    const slotKey = String(getActiveSlot() ?? "default");
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const slotKey = String(slot);
     if (typeof localStorage === "undefined") return;
     try {
-        lsSetItem(
-            `${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`,
-            levelBn.toStorage ? levelBn.toStorage() : String(levelBn),
-        );
+        const key = `${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`;
+        const val = levelBn.toStorage ? levelBn.toStorage() : String(levelBn);
+        if (isBuildingBatching) {
+            pendingBuildingSaves.set(key, val);
+        } else {
+            lsSetItem(key, val);
+        }
     } catch {}
 }
 
@@ -1776,7 +1810,11 @@ export function performFreeBuildingAutobuy(id) {
         const oldLevel = getBuildingLevel(id);
         const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
         document.dispatchEvent(new CustomEvent("building:change", { detail: { id, levelsGained: BigNum.fromAny(levelsToAdd) } }));
-        document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+        if (isBuildingBatching) {
+            pendingBuildingNotify = true;
+        } else {
+            document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
+        }
         const oldNum = levelBigNumToNumber(oldLevel);
         const newNum = levelBigNumToNumber(newLevel);
         let oldTier = 0;
