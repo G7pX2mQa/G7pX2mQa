@@ -1,4 +1,4 @@
-const SHOW_PERFORMANCE_LOGS = false;
+const SHOW_PERFORMANCE_LOGS = true;
 
 /**
  * js/game/simulatedOffline.js
@@ -159,13 +159,11 @@ const OFFLINE_FEATURES = [
     {
         id: "passives",
         evalRelevance: (simDt, totalOfflineSeconds) => {
-            if (totalOfflineSeconds > 31536000)      return 10;
-            else if (totalOfflineSeconds > 2592000)  return 8;
-            else if (totalOfflineSeconds > 604800)   return 7;
+            if (totalOfflineSeconds > 31536000)      return 50;
+            else if (totalOfflineSeconds > 2592000)  return 25;
+            else if (totalOfflineSeconds > 604800)   return 10;
             else if (totalOfflineSeconds > 86400)    return 5;
-            else if (totalOfflineSeconds > 32400)    return 4;
-            else if (totalOfflineSeconds > 10800)    return 3;
-            else if (totalOfflineSeconds > 3600)     return 2;
+            else if (totalOfflineSeconds > 10800)    return 2;
             return 1;
         },
         simulate: (dt) => { if (_simulatePassiveTick) _simulatePassiveTick(dt); }
@@ -201,67 +199,33 @@ const OFFLINE_FEATURES = [
     {
         id: "flow",
         evalRelevance: (simDt, totalOfflineSeconds, dec) => {
-            if (!_WATERWHEEL_DEFS || !_getFpMultiplier) return 1;
-            try {
-                const fpMult = _getFpMultiplier();
-                const fpPerTick = fpMult.mulDecimal(String(simDt));
-                const fpLog10 = approxLog10BigNum(fpPerTick);
-
-                let minReqLog10 = Infinity;
-                for (const id in _WATERWHEEL_DEFS) {
-                    const req = _WATERWHEEL_DEFS[id].baseReq;
-                    if (req > 0) {
-                        const reqLog10 = Math.log10(req);
-                        if (reqLog10 < minReqLog10) minReqLog10 = reqLog10;
-                    }
-                }
-                
-                if (minReqLog10 !== Infinity) {
-                    const logRatio = fpLog10 - minReqLog10;
-                    let target = 1;
-                    if (logRatio > 6) target = 100;
-                    else if (logRatio > 4) target = 50;
-                    else if (logRatio > 3) target = 20;
-                    else if (logRatio > 2) target = 10;
-                    else if (logRatio > 1) target = 2;
-                    return Math.max(dec.passives, target);
-                }
-            } catch {}
-            return 1;
+            let target = 1;
+            if (totalOfflineSeconds > 31536000)      target = 50;
+            else if (totalOfflineSeconds > 2592000)  target = 25;
+            else if (totalOfflineSeconds > 604800)   target = 10;
+            else if (totalOfflineSeconds > 86400)    target = 5;
+            else if (totalOfflineSeconds > 10800)    target = 2;
+            return Math.max(dec.passives, target);
         },
         simulate: (dt) => { if (_simulateFlowTick) _simulateFlowTick(dt); }
     },
     {
         id: "workshop",
         evalRelevance: (simDt, totalOfflineSeconds, dec) => {
-            if (!_getGearsProductionRate) return 1;
-            try {
-                const rate = _getGearsProductionRate();
-                const perTick = rate.mulDecimal(String(simDt));
-                const perTickLog10 = approxLog10BigNum(perTick);
-                
-                let target = 1;
-                if (perTickLog10 > 10)       target = 100;
-                else if (perTickLog10 > 6)   target = 50;
-                else if (perTickLog10 > 3)  target = 10;
-                else if (perTickLog10 > 2)   target = 2;
-                return Math.max(dec.passives, target);
-            } catch {}
-            return 1;
+            let target = 1;
+            if (totalOfflineSeconds > 31536000)      target = 50;
+            else if (totalOfflineSeconds > 2592000)  target = 25;
+            else if (totalOfflineSeconds > 604800)   target = 10;
+            else if (totalOfflineSeconds > 86400)    target = 5;
+            else if (totalOfflineSeconds > 10800)    target = 2;
+            return Math.max(dec.passives, target);
         },
         simulate: (dt) => { if (_simulateWorkshopTick) _simulateWorkshopTick(dt); }
     },
     {
         id: "autobuyers",
-        evalRelevance: (simDt, totalOfflineSeconds) => {
-            let autoBaseline = 1;
-            if (totalOfflineSeconds > 31536000)      autoBaseline = 20;
-            else if (totalOfflineSeconds > 2592000)  autoBaseline = 10;
-            else if (totalOfflineSeconds > 604800)   autoBaseline = 8;
-            else if (totalOfflineSeconds > 86400)    autoBaseline = 5;
-            else if (totalOfflineSeconds > 32400)    autoBaseline = 4;
-            else if (totalOfflineSeconds > 10800)    autoBaseline = 3;
-            else if (totalOfflineSeconds > 3600)     autoBaseline = 2;
+        evalRelevance: (simDt, totalOfflineSeconds, dec) => {
+            let autoBaseline = dec.passives;
 
             checkAutobuyerActivity();
             if (_autobuyerDryRuns >= 20)      return Math.max(autoBaseline, 100);
