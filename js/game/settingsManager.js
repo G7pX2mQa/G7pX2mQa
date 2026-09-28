@@ -7,7 +7,8 @@ import { isLabUnlocked } from "./surgeEffects.js";
 import { RESOURCE_REGISTRY } from "./offlinePanel.js";
 import { MAP_NODES } from "./mapNodesData.js";
 import { getHighestMutationLevel, levelToNumber } from "./mutationSystem.js";
-import { setNumberNotation } from "../util/numFormat.js";
+import { setNumberNotation, formatNumber } from "../util/numFormat.js";
+import { BigNum } from "../util/bigNum.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import { getMagnetLevel, getLevelNumber } from "./upgrades.js";
 import {
@@ -195,6 +196,14 @@ export const SETTING_DEFINITIONS = {
         label: "Overlay Transitions",
         hasExtraInfo: true,
         info: "If turned OFF, disables the short open/close transitions that most overlays in the game use.",
+        default: true,
+        unlockCondition: () => true,
+    },
+    popup_auto_disable: {
+        type: "toggle",
+        label: "Popup Auto-Disable",
+        hasExtraInfo: true,
+        info: () => `While this setting is ON, popups for any individual currency or stat automatically become hidden (toggleable in the Currencies or Levels menus) once the lifetime highest amount of the individual currency or stat reaches ${formatNumber(BigNum.fromAny("1e15"))}.`,
         default: true,
         unlockCondition: () => true,
     },
