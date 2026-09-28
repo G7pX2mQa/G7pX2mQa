@@ -905,7 +905,7 @@ function createSimulationOverlay(
         
         let granStr = "";
         if (runner.totalOfflineSeconds >= 60) {
-            granStr = `${formattedBaseDt}*${elapsedSecs.toFixed(3)}${unit} per tick`;
+            granStr = `${formattedBaseDt}(${elapsedSecs.toFixed(3)})${unit} per tick`;
         } else {
             granStr = `${formattedBaseDt}${unit} per tick`;
         }
