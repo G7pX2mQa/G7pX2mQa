@@ -203,7 +203,7 @@ export const SETTING_DEFINITIONS = {
         type: "toggle",
         label: "Popup Auto-Disable",
         hasExtraInfo: true,
-        info: () => `While this setting is ON, popups for any individual currency or stat automatically become hidden (toggleable in the Currencies or Levels menus) once the lifetime highest amount of the individual currency or stat reaches ${formatNumber(BigNum.fromAny("1e15"))}.`,
+        info: () => `While this setting is ON, popups for any individual currency or stat automatically become hidden (toggleable in the Currencies or Levels menus) once the lifetime highest amount of the individual currency or stat reaches ${formatNumber(BigNum.fromAny("1e100"))}.`,
         default: true,
         unlockCondition: () => true,
     },
