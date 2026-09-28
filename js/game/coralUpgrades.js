@@ -1,5 +1,5 @@
 import { computeDefaultUpgradeCost, E } from "./upgrades.js";
-import { BigNum, bigNumIsInfinite } from "../util/bigNum.js";
+import { BigNum } from "../util/bigNum.js";
 import { formatMultForUi, formatNumber } from "../util/numFormat.js";
 import { isRclpSystemUnlocked, unlockRclpSystem } from "./rclpSystem.js";
 import { getActiveSlot } from "../util/storage.js";
