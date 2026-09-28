@@ -1,5 +1,5 @@
 import { computeDefaultUpgradeCost, E } from "./upgrades.js";
-import { BigNum } from "../util/bigNum.js";
+import { BigNum, bigNumIsInfinite } from "../util/bigNum.js";
 import { formatMultForUi, formatNumber } from "../util/numFormat.js";
 import { isRclpSystemUnlocked, unlockRclpSystem } from "./rclpSystem.js";
 import { getActiveSlot } from "../util/storage.js";
@@ -88,6 +88,73 @@ export const CORAL_REGISTRY = [
         },
         effectSummary() {
             return "";
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 3,
+        title: "Scrap Value",
+        get desc() {
+            let text = `Multiplies Scrap value by ${formatNumber(BigNum.fromAny("1e20"))}x`;
+            let depth = 0;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                const dpLvlStr = window.localStorage.getItem(`ccc:dpLevel:${slotKey}`);
+                if (dpLvlStr) {
+                    if (dpLvlStr.startsWith("BN:infinite") || dpLvlStr === "Infinity") {
+                        depth = Infinity;
+                    } else if (dpLvlStr.startsWith("BN:")) {
+                        const expPart = dpLvlStr.slice(dpLvlStr.lastIndexOf(":") + 1);
+                        const caret = expPart.indexOf("^");
+                        if (caret >= 0) {
+                            depth = parseFloat(expPart.slice(0, caret)) * Math.pow(10, parseFloat(expPart.slice(caret + 1)));
+                        } else {
+                            depth = parseFloat(expPart);
+                        }
+                    } else {
+                        depth = parseFloat(dpLvlStr);
+                    }
+                }
+            } catch (e) {}
+            if (depth < 800) {
+                text += "\nThis will make it easier to reach Depth: 800m";
+            }
+            return text;
+        },
+        lvlCap: 1,
+        baseCost: 100,
+        costType: "red_coral",
+        upgType: "NM",
+        effectType: "scrap_value",
+        icon: "img/lab_icons/scrap_val0.webp",
+        costAtLevel(level) {
+            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        computeLockState() {
+            if (isRclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+            let metCoral = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                metCoral = window.localStorage.getItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+            } catch {}
+            
+            if (!metCoral) {
+                return { state: "locked" };
+            }
+            return { state: "mysterious", unlockReqText: "Unlock the Red Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `Scrap value bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            return normalizedLevel > 0 ? BigNum.fromAny("1e20") : 1;
         },
     },
 ];
