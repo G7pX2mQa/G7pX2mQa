@@ -515,6 +515,12 @@ class SimulatedOfflineRunner {
 
     get percent() {
         if (this.totalOfflineSeconds === 0 || this.completed) return 100;
+        
+        if (this.totalOfflineSeconds < 60) {
+            if (this.totalTicks === 0) return 0;
+            return Math.min(100, (this.ticksProcessed / this.totalTicks) * 100);
+        }
+
         const etaMs = this.getEstimatedTimeMs();
         if (etaMs === null) {
             const simulated = this.totalOfflineSeconds - this._exactRemainingSeconds;
@@ -559,15 +565,20 @@ class SimulatedOfflineRunner {
 
         this.userBaseDt = dt;
         
-        const elapsedSecs = this._wallClockMs / 1000;
-        this._currentMultiplier = elapsedSecs;
-        
-        let dynamicDt = this.userBaseDt * elapsedSecs;
-        // round to nearest 0.05
-        dynamicDt = Math.round(dynamicDt * 20) / 20;
-        if (dynamicDt < 0.05) dynamicDt = 0.05;
-
-        this.simDt = dynamicDt;
+        if (this.totalOfflineSeconds >= 60) {
+            const elapsedSecs = this._wallClockMs / 1000;
+            this._currentMultiplier = elapsedSecs;
+            
+            let dynamicDt = this.userBaseDt * elapsedSecs;
+            // round to nearest 0.05
+            dynamicDt = Math.round(dynamicDt * 20) / 20;
+            if (dynamicDt < 0.05) dynamicDt = 0.05;
+    
+            this.simDt = dynamicDt;
+        } else {
+            this._currentMultiplier = undefined;
+            this.simDt = this.userBaseDt;
+        }
         
         // Strip out floating point error artifacts using toPrecision before running ceil
         // so that massive numbers don't continuously increment totalTicks by falsely evaluating fractions
@@ -892,8 +903,12 @@ function createSimulationOverlay(
         
         const elapsedSecs = runner._currentMultiplier !== undefined ? runner._currentMultiplier : (runner._wallClockMs / 1000);
         
-        // Match user's requested string format exactly
-        let granStr = `${formattedBaseDt}*${elapsedSecs.toFixed(3)}${unit} per tick`;
+        let granStr = "";
+        if (runner.totalOfflineSeconds >= 60) {
+            granStr = `${formattedBaseDt}*${elapsedSecs.toFixed(3)}${unit} per tick`;
+        } else {
+            granStr = `${formattedBaseDt}${unit} per tick`;
+        }
         
         // Update speed multiplier string (compared to the absolute baseDt)
         const speedMultiplier = (runner.userBaseDt || runner.baseDt) / runner.baseDt;
