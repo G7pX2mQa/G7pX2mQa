@@ -219,12 +219,10 @@ const OFFLINE_FEATURES = [
                 if (minReqLog10 !== Infinity) {
                     const logRatio = fpLog10 - minReqLog10;
                     let target = 1;
-                    if (logRatio > 6) target = 100;
-                    else if (logRatio > 4) target = 50;
-                    else if (logRatio > 3) target = 20;
-                    else if (logRatio > 2) target = 10;
+                    if (logRatio > 3)      target = 10;
+                    else if (logRatio > 2) target = 5;
                     else if (logRatio > 1) target = 2;
-                    return Math.max(dec.passives, target);
+                    return Math.min(10, Math.max(dec.passives, target));
                 }
             } catch {}
             return 1;
