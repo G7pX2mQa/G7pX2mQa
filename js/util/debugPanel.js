@@ -958,6 +958,11 @@ function getStatOverride(slot, key) {
 
 function notifyStatMultiplierChange(statKey, slot) {
     refreshLiveBindings((binding) => binding.type === "stat-mult" && binding.key === statKey && binding.slot === slot);
+    if (typeof window !== "undefined") {
+        try {
+            window.dispatchEvent(new CustomEvent("debug:change", { detail: { statKey, slot } }));
+        } catch {}
+    }
 }
 
 function clearStatMultiplierOverride(statKey, slot = getActiveSlot()) {
