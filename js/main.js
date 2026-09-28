@@ -2083,6 +2083,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const ASSET_MANIFEST = {
         images: [
 			"img/coral_upg_icons/faster_coral.webp",
+			"img/coral_upg_icons/material_value.webp",
             "img/currencies/book/book.webp",
             "img/currencies/book/book_base.webp",
             "img/currencies/book/book_plus_base.webp",
