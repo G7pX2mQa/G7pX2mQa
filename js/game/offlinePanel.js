@@ -309,7 +309,7 @@ export const RESOURCE_REGISTRY = [
         type: "levelProg",
         pinBgGradient: "linear-gradient(180deg, rgba(10,30,40,1), rgba(15,40,55,1))",
         bgGradient: "linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)",
-        fillGradient: "linear-gradient(90deg, rgba(0,237,237,1) 0%, rgba(2,177,212,1) 50%, rgba(2,48,115,1) 100%)",
+        fillGradient: "linear-gradient(90deg, #00c6ff, #0072ff)",
         barOutline: "3px",
         borderColor: "#000000",
         barBoxShadow: "inset 0 6px 10px rgba(0,237,237,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
