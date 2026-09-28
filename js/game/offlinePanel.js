@@ -619,14 +619,14 @@ export const RESOURCE_REGISTRY = [
             levels: e.detail?.levelsGained,
             progress: e.detail?.delta,
         }),
-        pinBgGradient: "linear-gradient(180deg, rgba(46,12,12,1), rgba(58,16,16,1))",
+        pinBgGradient: "linear-gradient(180deg, #660000 0%, #440000 100%)",
         bgGradient: "linear-gradient(to bottom, #cc0000 0%, #ff0000 15%, #ff4d4d 50%, #ff0000 85%, #cc0000 100%)",
-        fillGradient: "linear-gradient(90deg, #ff4d4d 0%, #ff0000 50%, #990000 100%)",
+        fillGradient: "linear-gradient(180deg, #ff4d4d 0%, #e60000 45%, #cc0000 100%)",
         barOutline: "3px",
         borderColor: "#000000",
-        barBoxShadow: "inset 0 6px 10px rgba(255,100,100,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
-        glassBg: "linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0))",
-        glassOpacity: "0.55",
+        barBoxShadow: "inset 0 6px 10px rgba(255,128,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
+        glassBg: "linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0))",
+        glassOpacity: "0.22",
         getState: () => {
             const state = window.rclpSystem?.getRclpState();
             if (!state) return null;
