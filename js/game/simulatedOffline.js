@@ -268,8 +268,13 @@ const OFFLINE_FEATURES = [
 
 function evaluateRelevance(simDt, totalOfflineSeconds = 0) {
     const dec = {};
+    const disableDecimation = settingsManager.get("choose_your_own_speed") === true;
     for (const feature of OFFLINE_FEATURES) {
-        dec[feature.id] = feature.evalRelevance(simDt, totalOfflineSeconds, dec);
+        if (disableDecimation) {
+            dec[feature.id] = 1;
+        } else {
+            dec[feature.id] = feature.evalRelevance(simDt, totalOfflineSeconds, dec);
+        }
     }
     return dec;
 }
@@ -473,7 +478,7 @@ class SimulatedOfflineRunner {
         this.totalOfflineSeconds = totalOfflineSeconds;
         this._exactRemainingSeconds = totalOfflineSeconds;
         this.speedUpSteps = 0;
-        this.baseDt = getSimTickGranularity(totalOfflineSeconds);
+        this.baseDt = settingsManager.get("choose_your_own_speed") ? 0.05 : getSimTickGranularity(totalOfflineSeconds);
         this.userBaseDt = this.baseDt;
         this.simDt = this.baseDt;
         this.totalTicks = Math.ceil(totalOfflineSeconds / this.simDt);
@@ -516,7 +521,7 @@ class SimulatedOfflineRunner {
     get percent() {
         if (this.totalOfflineSeconds === 0 || this.completed) return 100;
         
-        if (this.totalOfflineSeconds < 60) {
+        if (this.totalOfflineSeconds < 60 || settingsManager.get("choose_your_own_speed")) {
             if (this.totalTicks === 0) return 0;
             return Math.min(100, (this.ticksProcessed / this.totalTicks) * 100);
         }
@@ -544,7 +549,7 @@ class SimulatedOfflineRunner {
     }
 
     recalcGranularity() {
-        this.baseDt = getSimTickGranularity(this.totalOfflineSeconds);
+        this.baseDt = settingsManager.get("choose_your_own_speed") ? 0.05 : getSimTickGranularity(this.totalOfflineSeconds);
         let dt = this.baseDt;
 
         // Jump forward in the SNAPS array for each speed up step
@@ -565,7 +570,7 @@ class SimulatedOfflineRunner {
 
         this.userBaseDt = dt;
         
-        if (this.totalOfflineSeconds >= 60) {
+        if (!settingsManager.get("choose_your_own_speed") && this.totalOfflineSeconds >= 60) {
             const elapsedSecs = this._wallClockMs / 1000;
             this._currentMultiplier = elapsedSecs;
             
@@ -701,8 +706,12 @@ class SimulatedOfflineRunner {
             const K = vc * D0; // simulated seconds per wall-clock second
             const S = this._exactRemainingSeconds;
             
-            const deltaT = Math.sqrt(t * t + 2 * S / K) - t;
-            return deltaT * 1000;
+            if (!settingsManager.get("choose_your_own_speed") && this.totalOfflineSeconds >= 60) {
+                const deltaT = Math.sqrt(t * t + 2 * S / K) - t;
+                return deltaT * 1000;
+            } else {
+                return (S / K) * 1000;
+            }
         }
 
         return null;
@@ -904,7 +913,7 @@ function createSimulationOverlay(
         const elapsedSecs = runner._currentMultiplier !== undefined ? runner._currentMultiplier : (runner._wallClockMs / 1000);
         
         let granStr = "";
-        if (runner.totalOfflineSeconds >= 60) {
+        if (!settingsManager.get("choose_your_own_speed") && runner.totalOfflineSeconds >= 60) {
             granStr = `${formattedBaseDt}(${elapsedSecs.toFixed(3)})${unit} per tick`;
         } else {
             granStr = `${formattedBaseDt}${unit} per tick`;
