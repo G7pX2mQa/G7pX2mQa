@@ -1,4 +1,4 @@
-import { BigNum } from "../util/bigNum.js";
+import { BigNum, bigNumFromLog10 } from "../util/bigNum.js";
 import { getActiveSlot, isStorageKeyLocked } from "../util/storage.js";
 import { lsGetItem, lsSetItem } from "../main.js";
 import { E, levelBigNumToNumber } from "./upgrades.js";
@@ -77,7 +77,28 @@ export function getRclpState() {
 
 function computeRclpRequirement(levelBn) {
     const L = levelBigNumToNumber(levelBn);
-    return BigNum.fromInt(10).mulBigNumInteger(E.powPerLevel(2)(L));
+    if (!Number.isFinite(L)) return BigNum.fromAny("Infinity");
+    
+    if (L < 200) {
+        return BigNum.fromInt(10).mulBigNumInteger(E.powPerLevel(2)(L));
+    }
+    
+    let totalLog10 = 1 + L * Math.log10(2);
+    const softcapStart = 1e12; // 1 Trillion
+    if (L > softcapStart) {
+        const softcapDeltaNum = L - softcapStart;
+        const baseSoftcapLog = 5;
+        const rate = 2.36034e-10;
+        const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
+        if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e308) {
+            return BigNum.fromAny("Infinity");
+        }
+        totalLog10 += penaltyLog10;
+        if (!Number.isFinite(totalLog10) || totalLog10 >= 1.7976931348623157e308) {
+            return BigNum.fromAny("Infinity");
+        }
+    }
+    return bigNumFromLog10(totalLog10);
 }
 
 export function getRclpRequirement() {
