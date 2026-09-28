@@ -3074,7 +3074,20 @@ function buildAreaStats(container, area) {
             rclpState.rclpLevel,
             (value, { setValue }) => {
                 const prev = getRclpState()?.rclpLevel?.clone?.() ?? BigNum.fromInt(0);
-                applyRclpState({ rclpLevel: value });
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+                if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "number" && valToApply >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                }
+                applyRclpState({ rclpLevel: valToApply });
                 const latest = getRclpState();
                 setValue(latest.rclpLevel);
                 if (!bigNumEquals(prev, latest.rclpLevel)) {
