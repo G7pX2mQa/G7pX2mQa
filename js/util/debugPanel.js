@@ -3448,16 +3448,34 @@ function buildAreaStats(container, area) {
                             }
 
                             let isSurge8 = false;
+                            let isSurge150 = false;
+                            let wasSurge150 = false;
                             let currentLevelToCheck =
                                 valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
+                            let oldLevelToCheck =
+                                currentSurgeLevel === Infinity ? Infinity : BigNum.fromAny(currentSurgeLevel);
+
                             if (currentLevelToCheck === Infinity) {
                                 isSurge8 = true;
+                                isSurge150 = true;
                             } else if (currentLevelToCheck instanceof BigNum) {
-                                if (typeof currentLevelToCheck.cmp === "function" && currentLevelToCheck.cmp(8) >= 0) {
-                                    isSurge8 = true;
+                                if (typeof currentLevelToCheck.cmp === "function") {
+                                    if (currentLevelToCheck.cmp(8) >= 0) isSurge8 = true;
+                                    if (currentLevelToCheck.cmp(150) >= 0) isSurge150 = true;
                                 }
                             } else if (typeof currentLevelToCheck === "number") {
                                 if (currentLevelToCheck >= 8) isSurge8 = true;
+                                if (currentLevelToCheck >= 150) isSurge150 = true;
+                            }
+
+                            if (oldLevelToCheck === Infinity) {
+                                wasSurge150 = true;
+                            } else if (oldLevelToCheck instanceof BigNum) {
+                                if (typeof oldLevelToCheck.cmp === "function") {
+                                    if (oldLevelToCheck.cmp(150) >= 0) wasSurge150 = true;
+                                }
+                            } else if (typeof oldLevelToCheck === "number") {
+                                if (oldLevelToCheck >= 150) wasSurge150 = true;
                             }
 
                             if (isSurge8) {
@@ -3468,6 +3486,15 @@ function buildAreaStats(container, area) {
                                         setTsunamiSequencePlayed(true);
                                     } catch {}
                                 }
+                            }
+
+                            if (isSurge150 && !wasSurge150) {
+                                try {
+                                    const preserved = lsGetItem(`ccc:surge150_screen_wipe_message_hidden:${slot}`) === "1";
+                                    if (!preserved) {
+                                        settingsManager.set("show_surge_screen_wipe", false);
+                                    }
+                                } catch {}
                             }
                         } catch {}
 
@@ -6172,6 +6199,40 @@ function buildMiscContent(content) {
                 const slot = getActiveSlot();
                 const surgeLevelKey = getSurgeBarLevelKey(slot);
                 if (surgeLevelKey) {
+                    let wasSurge150 = false;
+                    try {
+                        const raw = lsGetItem(surgeLevelKey);
+                        if (raw === "Infinity") {
+                            wasSurge150 = true;
+                        } else {
+                            const bn = BigNum.fromAny(raw || "0");
+                            if (typeof bn.cmp === "function" && bn.cmp(150) >= 0) {
+                                wasSurge150 = true;
+                            }
+                        }
+                    } catch {}
+
+                    let isSurge150 = false;
+                    if (limitStr === "Infinity") {
+                        isSurge150 = true;
+                    } else {
+                        try {
+                            const bn = BigNum.fromAny(limitStr);
+                            if (typeof bn.cmp === "function" && bn.cmp(150) >= 0) {
+                                isSurge150 = true;
+                            }
+                        } catch {}
+                    }
+
+                    if (isSurge150 && !wasSurge150) {
+                        try {
+                            const preserved = lsGetItem(`ccc:surge150_screen_wipe_message_hidden:${slot}`) === "1";
+                            if (!preserved) {
+                                settingsManager.set("show_surge_screen_wipe", false);
+                            }
+                        } catch {}
+                    }
+
                     lsSetItem(surgeLevelKey, limitStr);
                     try {
                         const milestones = document.querySelector('[data-reset-milestones="surge"]');
