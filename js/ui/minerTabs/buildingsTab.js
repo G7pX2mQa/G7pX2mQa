@@ -127,18 +127,20 @@ export function isBuildingUnlocked(id) {
         }
     } catch {}
 
-    const matData = UC_MATERIAL_DATA.find((m) => m.name === id);
-    if (matData) {
-        return highestDepth >= matData.start;
+    const slotKey = String(getActiveSlot() ?? "default");
+    let isUnlockedInStorage = false;
+    if (typeof localStorage !== "undefined") {
+        try {
+            isUnlockedInStorage = lsGetItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === "1";
+        } catch {}
     }
 
-    const slotKey = String(getActiveSlot() ?? "default");
-    if (typeof localStorage === "undefined") return false;
-    try {
-        return lsGetItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === "1";
-    } catch {
-        return false;
+    const matData = UC_MATERIAL_DATA.find((m) => m.name === id);
+    if (matData) {
+        return highestDepth >= matData.start || isUnlockedInStorage;
     }
+
+    return isUnlockedInStorage;
 }
 
 export function setBuildingUnlocked(id, value, slot = getActiveSlot()) {
@@ -386,7 +388,12 @@ export function renderBuildingsGrid(gridEl) {
     for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
         const mat = UC_MATERIAL_DATA[i];
         let isLocked = true;
-        if (isBuildingUnlocked(mat.name)) {
+        let isUnlockedInStorage = false;
+        try {
+            isUnlockedInStorage = lsGetItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${mat.name}:${getActiveSlot() ?? "default"}`) === "1";
+        } catch {}
+
+        if (isUnlockedInStorage) {
             isLocked = false;
         } else {
             const conditionMet = mat.name === "stone" ? true : highestDepth >= mat.start;
@@ -555,7 +562,12 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
             // Check materials for unlock
             for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
                 const mat = UC_MATERIAL_DATA[i];
-                if (!isBuildingUnlocked(mat.name)) {
+                let isUnlockedInStorage = false;
+                try {
+                    isUnlockedInStorage = lsGetItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${mat.name}:${getActiveSlot() ?? "default"}`) === "1";
+                } catch {}
+                
+                if (!isUnlockedInStorage) {
                     const conditionMet = mat.name === "stone" ? true : highestDepth >= mat.start;
                     if (conditionMet) {
                         setBuildingUnlocked(mat.name, true);
