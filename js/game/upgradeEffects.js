@@ -248,7 +248,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
               if (bigNumIsInfinite(log10ResultBn)) {
                   log10ResultNum = Infinity;
               } else {
-                  log10ResultNum = parseFloat(log10ResultBn.toScientific(10));
+                  log10ResultNum = parseFloat(log10ResultBn.toScientific(14)) + 1e-9;
               }
               if (!Number.isFinite(log10ResultNum) || log10ResultNum === Infinity) {
                   acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, BigNum.fromAny('Infinity'));
@@ -452,7 +452,7 @@ try {
               if (bigNumIsInfinite(log10ResultBn)) {
                   log10ResultNum = Infinity;
               } else {
-                  log10ResultNum = parseFloat(log10ResultBn.toScientific(10));
+                  log10ResultNum = parseFloat(log10ResultBn.toScientific(14)) + 1e-9;
               }
               if (!Number.isFinite(log10ResultNum) || log10ResultNum === Infinity) {
                   redCoralMult = BigNum.fromAny('Infinity');
