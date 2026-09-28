@@ -26,17 +26,21 @@ function checkAutoDisable(key, currentBn) {
         } catch {}
     }
     
-    if (highest.cmp(BigNum.fromAny("1e15")) >= 0) {
-        let isCurrency = (key in CURRENCIES || Object.values(CURRENCIES).includes(key));
-        if (isCurrency) {
-            if (settingsManager.get(`currency_${key}_popups`) !== false) {
-                settingsManager.set(`currency_${key}_popups`, false);
-            }
-        } else {
-            const progConfig = RESOURCE_REGISTRY.find(r => r.key === key && r.type === 'levelProg');
-            if (progConfig) {
-                if (settingsManager.get(`level_${key}_popups`) !== false) {
-                    settingsManager.set(`level_${key}_popups`, false);
+    if (highest.cmp(BigNum.fromAny("1e100")) >= 0) {
+        const disabledKey = `ccc:autodisabled:${key}:${slot}`;
+        if (!lsGetItem(disabledKey)) {
+            lsSetItem(disabledKey, "1");
+            let isCurrency = (key in CURRENCIES || Object.values(CURRENCIES).includes(key));
+            if (isCurrency) {
+                if (settingsManager.get(`currency_${key}_popups`) !== false) {
+                    settingsManager.set(`currency_${key}_popups`, false);
+                }
+            } else {
+                const progConfig = RESOURCE_REGISTRY.find(r => r.key === key && r.type === 'levelProg');
+                if (progConfig) {
+                    if (settingsManager.get(`level_${key}_popups`) !== false) {
+                        settingsManager.set(`level_${key}_popups`, false);
+                    }
                 }
             }
         }
