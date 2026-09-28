@@ -656,6 +656,10 @@ export function registerXpUpgradeEffects() {
         try { triggerUpgradesChanged(); } catch {}
     });
 
+    window.addEventListener('debug:change', () => {
+        try { triggerUpgradesChanged(); } catch {}
+    });
+
     window.addEventListener('level:change', (e) => {
         if (e.detail?.prefix === 'rclp' && e.detail?.leveledUp) {
             try { triggerUpgradesChanged(); } catch {}
