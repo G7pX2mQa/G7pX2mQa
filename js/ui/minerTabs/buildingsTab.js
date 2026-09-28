@@ -84,6 +84,25 @@ export function isBuildingUnlocked(id) {
         return window.resetSystem?.isCompressUnlocked?.() ?? false;
     }
 
+    if (!isBuildingsUnlocked()) return false;
+    if (id === "core" || id === "stone") return true;
+
+    // Dynamically check depth for UC materials to avoid relying on dp:change DOM events
+    let highestDepth = 0;
+    try {
+        const dpState = getDpState();
+        if (dpState && dpState.dpLevel) {
+            highestDepth = dpState.dpLevel.inf
+                ? Infinity
+                : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e);
+        }
+    } catch {}
+
+    const matData = UC_MATERIAL_DATA.find((m) => m.name === id);
+    if (matData) {
+        return highestDepth >= matData.start;
+    }
+
     const slotKey = String(getActiveSlot() ?? "default");
     if (typeof localStorage === "undefined") return false;
     try {
