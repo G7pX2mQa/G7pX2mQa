@@ -46,7 +46,7 @@ import {
     getSurgeRequirement,
     isSurgeUnlocked,
 } from "../ui/merchantTabs/resetTab.js";
-import { getPendingCores } from "../ui/minerTabs/resetTab.js";
+import { getPendingCores, getPendingCrystals } from "../ui/minerTabs/resetTab.js";
 import { getLabGoldMultiplier } from "./labNodes.js";
 import { getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from "./ucSpawner.js";
 import { bigNumFromLog10, approxLog10BigNum } from "../util/bigNum.js";
@@ -59,6 +59,7 @@ import {
 import { startSimulatedOffline, isSimulatedOfflineEnabled } from "./simulatedOffline.js";
 import { BUILDING_IDS, getBuildingLevel } from "../ui/minerTabs/buildingsTab.js";
 import { getRclpState, getRclpRequirement } from "./rclpSystem.js";
+import { simulateAutobuyerTick } from "./automationEffects.js";
 let initialized = false;
 export function formatTimeCompact(ms) {
     const msBn = BigNum.fromAny(ms);
@@ -1077,8 +1078,8 @@ export function calculateOfflineRewards(seconds) {
             }
         }
     }
-    // Surge 13 (Gold), Surge 16 (Magic), Surge 80 (DNA), Surge 500 (Cores)
-    if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(80) || isSurgeActive(500)) {
+    // Surge 13 (Gold), Surge 16 (Magic), Surge 80 (DNA), Surge 500 (Cores), Surge 750 (Crystals)
+    if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(80) || isSurgeActive(500) || isSurgeActive(750)) {
         const effectiveNerf = getTsunamiExponent();
         const mapped = effectiveNerf * 1.5 - 0.5;
         const log10Rate = 2 * mapped - 2;
@@ -1135,7 +1136,14 @@ export function calculateOfflineRewards(seconds) {
             const pending = getPendingCores() ?? BigNum.fromInt(0);
             const coresEarned = pending.mulBigNumInteger(totalMultiplier);
             if (coresEarned.cmp(0) > 0 && !isCurrencyLocked("cores", slot) && !isCurrencyLocked("CORES", slot)) {
-                rewards.CORES = coresEarned;
+                rewards.cores = coresEarned;
+            }
+        }
+        if (isSurgeActive(750)) {
+            const pending = getPendingCrystals() ?? BigNum.fromInt(0);
+            const crystalsEarned = pending.mulBigNumInteger(totalMultiplier);
+            if (crystalsEarned.cmp(0) > 0 && !isCurrencyLocked("crystals", slot)) {
+                rewards.crystals = crystalsEarned;
             }
         }
     }
@@ -1293,12 +1301,13 @@ export function grantOfflineRewards(rewards) {
             bank[key].add(rewards[key]);
         }
     }
-    const newTotals = captureTotals();
+    
+    const preAutobuyTotals = captureTotals();
     for (const config of RESOURCE_REGISTRY) {
         if (config.type === "currency") {
             const key = config.key;
             const oldVal = oldTotals[key];
-            const newVal = newTotals[key];
+            const newVal = preAutobuyTotals[key];
             if (oldVal !== undefined && newVal !== undefined) {
                 const bnNew = newVal instanceof BigNum ? newVal : BigNum.fromAny(newVal);
                 const bnOld = oldVal instanceof BigNum ? oldVal : BigNum.fromAny(oldVal);
@@ -1306,6 +1315,61 @@ export function grantOfflineRewards(rewards) {
                     const diff = bnNew.sub(bnOld);
                     if (diff.cmp(0) > 0) {
                         rewards[key] = diff;
+                    }
+                }
+            }
+        }
+    }
+
+    // Trigger autobuyers to spend newly granted currencies so buildings show up in diff
+    if (typeof simulateAutobuyerTick === "function") {
+        simulateAutobuyerTick();
+    }
+
+    const postAutobuyTotals = captureTotals();
+    for (const config of RESOURCE_REGISTRY) {
+        if (config.key === "building_levels") {
+            const key = config.key;
+            const oldVals = oldTotals[key];
+            const newVals = postAutobuyTotals[key];
+            if (oldVals && newVals) {
+                const bldArr = [];
+                const nameMap = {
+                    "core": "Core Building",
+                    "crystal": "Crystal Building",
+                    "stone": "Stone Building",
+                    "copper": "Copper Building",
+                    "iron": "Iron Building",
+                    "pure_gold": "Pure Gold Building",
+                    "diamond": "Diamond Building",
+                    "emerald": "Emerald Building",
+                    "ruby": "Ruby Building",
+                    "sapphire": "Sapphire Building",
+                    "unobtainium": "Unobtainium Building",
+                    "prismatium": "Prismatium Building",
+                };
+                for (const id in newVals) {
+                    const beforeLvl = oldVals[id] || 0;
+                    const afterLvl = newVals[id] || 0;
+                    const afterBn = BigNum.fromAny(afterLvl);
+                    const beforeBn = BigNum.fromAny(beforeLvl);
+                    if (afterBn.isInfinite() || afterBn.cmp(beforeBn) > 0) {
+                        bldArr.push({
+                            id: id,
+                            name: nameMap[id] || id,
+                            levels: afterBn.isInfinite() ? afterBn : afterBn.sub(beforeBn),
+                        });
+                    }
+                }
+                if (bldArr.length > 0) {
+                    if (rewards.building_levels && Array.isArray(rewards.building_levels)) {
+                        for (const b of bldArr) {
+                            const existing = rewards.building_levels.find(x => x.id === b.id);
+                            if (existing) existing.levels = BigNum.fromAny(existing.levels).add(b.levels);
+                            else rewards.building_levels.push(b);
+                        }
+                    } else {
+                        rewards.building_levels = bldArr;
                     }
                 }
             }
