@@ -474,6 +474,7 @@ class SimulatedOfflineRunner {
         this._exactRemainingSeconds = totalOfflineSeconds;
         this.speedUpSteps = 0;
         this.baseDt = getSimTickGranularity(totalOfflineSeconds);
+        this.userBaseDt = this.baseDt;
         this.simDt = this.baseDt;
         this.totalTicks = Math.ceil(totalOfflineSeconds / this.simDt);
         this.ticksProcessed = 0;
@@ -481,7 +482,7 @@ class SimulatedOfflineRunner {
 
         // Performance tracking for ETA
         this._startTime = performance.now();
-        this._activeProcessingMs = 0;
+        this._wallClockMs = 0;
         // Default assumption: browser processes ~1500 ticks/sec at full throttle
         this._estimatedTicksPerSec = 1500;
 
@@ -500,6 +501,10 @@ class SimulatedOfflineRunner {
         this.skipped = false;
     }
 
+    addWallClockTime(ms) {
+        this._wallClockMs += ms;
+    }
+
     get ticksRemaining() {
         return Math.max(0, this.totalTicks - this.ticksProcessed);
     }
@@ -509,8 +514,16 @@ class SimulatedOfflineRunner {
     }
 
     get percent() {
-        if (this.totalTicks === 0) return 100;
-        return Math.min(100, (this.ticksProcessed / this.totalTicks) * 100);
+        if (this.totalOfflineSeconds === 0 || this.completed) return 100;
+        const etaMs = this.getEstimatedTimeMs();
+        if (etaMs === null) {
+            const simulated = this.totalOfflineSeconds - this._exactRemainingSeconds;
+            const p_sim = Math.max(0, simulated / this.totalOfflineSeconds);
+            return Math.min(100, Math.sqrt(p_sim) * 100);
+        }
+        const totalRealMs = this._wallClockMs + etaMs;
+        if (totalRealMs === 0) return 0;
+        return Math.min(100, (this._wallClockMs / totalRealMs) * 100);
     }
 
     addTime(seconds) {
@@ -544,7 +557,17 @@ class SimulatedOfflineRunner {
             }
         }
 
-        this.simDt = dt;
+        this.userBaseDt = dt;
+        
+        const elapsedSecs = this._wallClockMs / 1000;
+        this._currentMultiplier = elapsedSecs;
+        
+        let dynamicDt = this.userBaseDt * elapsedSecs;
+        // round to nearest 0.05
+        dynamicDt = Math.round(dynamicDt * 20) / 20;
+        if (dynamicDt < 0.05) dynamicDt = 0.05;
+
+        this.simDt = dynamicDt;
         
         // Strip out floating point error artifacts using toPrecision before running ceil
         // so that massive numbers don't continuously increment totalTicks by falsely evaluating fractions
@@ -559,6 +582,9 @@ class SimulatedOfflineRunner {
      */
     processBatch() {
         if (this.completed || this.skipped) return true;
+
+        // Apply dynamic tick granularity scaling
+        this.recalcGranularity();
 
         // Time budget: 15ms per frame to maximize CPU usage without freezing the browser entirely.
         // This fully decouples processing speed from monitor refresh rates or FPS drops!
@@ -586,12 +612,10 @@ class SimulatedOfflineRunner {
             }
 
             const nextRemaining = this._exactRemainingSeconds - currentDt;
-            // Prevent infinite loop if floating point precision swallows the decrement
-            if (this._exactRemainingSeconds === nextRemaining) {
-                this._exactRemainingSeconds = 0;
-            } else {
-                this._exactRemainingSeconds = nextRemaining;
-            }
+            // If floating point precision swallows the decrement, we DO NOT force it to 0 anymore!
+            // Because dynamic tick scaling will increase simDt on the next frame until it's large enough to deduct properly.
+            // We just let the 15ms time budget exit the frame naturally.
+            this._exactRemainingSeconds = nextRemaining;
             
             this.ticksProcessed++;
             ticksThisFrame++;
@@ -600,7 +624,6 @@ class SimulatedOfflineRunner {
                 // Flush ALL features unconditionally on the final batch to ensure zero precision loss
                 this._flushDecimated(firedThisBatch, true);
                 this.completed = true;
-                this._activeProcessingMs += performance.now() - startTime;
                 return true;
             }
 
@@ -616,7 +639,6 @@ class SimulatedOfflineRunner {
         // Per-frame minimum: flush any decimated feature that didn't fire this batch
         this._flushDecimated(firedThisBatch, false);
 
-        this._activeProcessingMs += performance.now() - startTime;
         return false;
     }
 
@@ -659,13 +681,17 @@ class SimulatedOfflineRunner {
     getEstimatedTimeMs() {
         if (this.completed || this.skipped) return 0;
 
-        const elapsedMs = this._activeProcessingMs;
+        const elapsedMs = this._wallClockMs;
 
-        // Once we have a small baseline sample (e.g. >100ms passed), we smoothly blend
-        // in the actual measured ticks per second to adjust for hardware differences.
         if (elapsedMs > 100 && this.ticksProcessed > 0) {
-            const currentRate = this.ticksProcessed / (elapsedMs / 1000);
-            return (this.ticksRemaining / currentRate) * 1000;
+            const t = elapsedMs / 1000;
+            const vc = this.ticksProcessed / t; // ticks per second
+            const D0 = this.userBaseDt || this.baseDt;
+            const K = vc * D0; // simulated seconds per wall-clock second
+            const S = this._exactRemainingSeconds;
+            
+            const deltaT = Math.sqrt(t * t + 2 * S / K) - t;
+            return deltaT * 1000;
         }
 
         return null;
@@ -853,21 +879,30 @@ function createSimulationOverlay(
     const granValueSpan = granInfo.querySelector(".sim-gran-value");
 
     function updateGranInfo() {
-        let granStr = "";
-        if (runner.simDt >= 1) {
-            granStr = `${formatNumber(BigNum.fromAny(runner.simDt))}s per tick`;
+        const baseDtNum = runner.userBaseDt || runner.baseDt;
+        let formattedBaseDt = "";
+        let unit = "";
+        if (baseDtNum >= 1) {
+            formattedBaseDt = `${formatNumber(BigNum.fromAny(baseDtNum))}`;
+            unit = "s";
         } else {
-            granStr = `${Math.round(runner.simDt * 1000)}ms per tick`;
+            formattedBaseDt = `${Math.round(baseDtNum * 1000)}`;
+            unit = "ms";
         }
-        setHtmlOrText(granValueSpan, granStr);
-
-        // Update speed multiplier string
-        const multiplier = runner.simDt / runner.baseDt;
+        
+        const elapsedSecs = runner._currentMultiplier !== undefined ? runner._currentMultiplier : (runner._wallClockMs / 1000);
+        
+        // Match user's requested string format exactly
+        let granStr = `${formattedBaseDt}*${elapsedSecs.toFixed(3)}${unit} per tick`;
+        
+        // Update speed multiplier string (compared to the absolute baseDt)
+        const speedMultiplier = (runner.userBaseDt || runner.baseDt) / runner.baseDt;
         let speedStr = "1x";
-        if (multiplier > 1) {
-            speedStr = `${multiplier === 2.5 ? "2.5" : formatNumber(BigNum.fromAny(Math.round(multiplier)))}x`;
+        if (speedMultiplier > 1) {
+            speedStr = `${speedMultiplier === 2.5 ? "2.5" : formatNumber(BigNum.fromAny(Math.round(speedMultiplier)))}x`;
         }
         setHtmlOrText(speedValueSpan, speedStr);
+        setHtmlOrText(granValueSpan, granStr);
     }
     updateGranInfo();
 
@@ -945,9 +980,8 @@ function createSimulationOverlay(
 
     const stickyTime = document.createElement("div");
     stickyTime.className = "sim-tick-sticky";
-    stickyTime.innerHTML = `Simulating time <span class="sim-time-current-live">&lt; 1s</span> / <span class="sim-time-total-live">${formatTimeCompact(runner.totalOfflineSeconds * 1000)}</span>`;
-    const stickyTimeCurrent = stickyTime.querySelector(".sim-time-current-live");
-    const stickyTimeTotal = stickyTime.querySelector(".sim-time-total-live");
+    stickyTime.innerHTML = `Estimated time remaining: <span class="sim-eta-value-live">calculating...</span>`;
+    const stickyTimeEtaValue = stickyTime.querySelector(".sim-eta-value-live");
 
     rewardsWrapper.appendChild(rewardsScroll);
     rewardsWrapper.appendChild(stickyTime);
@@ -1162,8 +1196,7 @@ function createSimulationOverlay(
         
         setHtmlOrText(timeCurrentSpan, processedStr);
         setHtmlOrText(timeTotalSpan, totalStr);
-        setHtmlOrText(stickyTimeCurrent, processedStr);
-        setHtmlOrText(stickyTimeTotal, totalStr);
+        setHtmlOrText(stickyTimeEtaValue, etaStr);
 
         // Update live rewards rows when rewards view is active
         if (isRewardsView) {
@@ -1344,6 +1377,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
             if (dt <= 0) dt = 0.016;
             lastFrameTime = now;
 
+            runner.addWallClockTime(dt * 1000);
             const done = runner.processBatch();
             uiHandle.updateUI();
 
