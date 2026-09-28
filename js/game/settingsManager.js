@@ -131,6 +131,20 @@ export const SETTING_DEFINITIONS = {
             }
         },
     },
+    choose_your_own_speed: {
+        type: "toggle",
+        label: "Choose Your Own Speed",
+        hasExtraInfo: true,
+        info: "Forces the tick granularity of the realistic offline simulation to start at 50ms (real-time ticks) with no passive tick acceleration variable. You decide how much you want to speed it up by. Note that the active game loop is paused during offline simulation, so if you wait too long you may end up not benefiting from the extra wait time. This setting also disables the tick decimation system so the simulation takes even longer.",
+        default: false,
+        unlockCondition: () => {
+            try {
+                return hasDoneInfuseReset();
+            } catch {
+                return false;
+            }
+        },
+    },
     only_show_building: {
         type: "toggle",
         label: "Only show Building",
