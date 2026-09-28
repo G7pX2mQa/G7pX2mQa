@@ -201,10 +201,14 @@ function processResourceRow(config, grid, initialized) {
         if (statKey === "research_levels") statKey = "rp";
         if (statKey === "waterwheel_levels") statKey = "fp";
         if (keyToUse === "waves" || keyToUse === "waves_levels") {
-            if (window.surgeWaveSystem && typeof window.surgeWaveSystem.getSurgeWaveMultiplier === "function") {
-                multiplier = window.surgeWaveSystem.getSurgeWaveMultiplier();
-            } else {
-                multiplier = 1;
+            try {
+                multiplier = bank.waves?.mult?.get() ?? 1;
+            } catch (e) {
+                if (window.surgeWaveSystem && typeof window.surgeWaveSystem.getSurgeWaveMultiplier === "function") {
+                    multiplier = window.surgeWaveSystem.getSurgeWaveMultiplier();
+                } else {
+                    multiplier = 1;
+                }
             }
         } else {
             const authenticMult = getGameStatMultiplier(statKey);
