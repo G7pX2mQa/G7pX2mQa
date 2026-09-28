@@ -6,6 +6,42 @@ import { setHtmlOrText } from '../util/uiHelpers.js';
 import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot, getCurrency } from '../util/storage.js';
 import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
+import { lsGetItem, lsSetItem } from '../main.js';
+
+function checkAutoDisable(key, currentBn) {
+    if (!settingsManager.get('popup_auto_disable', true)) return;
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const storageKey = `ccc:highest:${key}:${slot}`;
+    let highest = BigNum.fromInt(0);
+    try {
+        const raw = lsGetItem(storageKey);
+        if (raw) highest = BigNum.fromAny(raw);
+    } catch {}
+    
+    if (currentBn.cmp(highest) > 0) {
+        highest = currentBn;
+        try {
+            lsSetItem(storageKey, highest.toString());
+        } catch {}
+    }
+    
+    if (highest.cmp(BigNum.fromAny("1e15")) >= 0) {
+        let isCurrency = (key in CURRENCIES || Object.values(CURRENCIES).includes(key));
+        if (isCurrency) {
+            if (settingsManager.get(`currency_${key}_popups`) !== false) {
+                settingsManager.set(`currency_${key}_popups`, false);
+            }
+        } else {
+            const progConfig = RESOURCE_REGISTRY.find(r => r.key === key && r.type === 'levelProg');
+            if (progConfig) {
+                if (settingsManager.get(`level_${key}_popups`) !== false) {
+                    settingsManager.set(`level_${key}_popups`, false);
+                }
+            }
+        }
+    }
+}
 
 const DEFAULT_DURATION = 6767;
 
@@ -246,6 +282,7 @@ function handleCurrencyChange(event) {
   if (!detail?.key) return;
   const key = detail.key;
   const current = bnFromAny(detail.value) || BigNum.fromInt(0);
+  checkAutoDisable(key, current);
   const prev = lastKnownAmounts.get(key) || BigNum.fromInt(0);
   const zero = BigNum.fromInt(0);
   let delta = null;
@@ -266,21 +303,46 @@ function handleStatChange(event) {
   if (!detail || !detail.key) return;
   
   const key = detail.key;
-  const delta = bnFromAny(detail.delta);
-  
-  if (delta && !isZero(delta)) {
-    showPopup(key, delta);
-  }
   
   const nextProgress = bnFromAny(detail.progress);
   if (nextProgress) {
+    checkAutoDisable(key, nextProgress);
     lastKnownAmounts.set(key, nextProgress.clone?.() ?? nextProgress);
+  }
+
+  const delta = bnFromAny(detail.delta);
+  if (delta && !isZero(delta)) {
+    showPopup(key, delta);
   }
 }
 
 function handleSlotChange() {
   clearActivePopups();
   syncLastKnown();
+}
+
+export function removePopup(type) {
+  const entry = activePopups.get(type);
+  if (entry) {
+    if (entry.timeoutId) clearTimeout(entry.timeoutId);
+    entry.element.remove();
+    activePopups.delete(type);
+  }
+}
+
+function handleSettingChange(event) {
+  const detail = event?.detail;
+  if (!detail) return;
+  const { key, value } = detail;
+  if (value === false) {
+    if (key.startsWith('currency_') && key.endsWith('_popups')) {
+      const type = key.replace('currency_', '').replace('_popups', '');
+      removePopup(type);
+    } else if (key.startsWith('level_') && key.endsWith('_popups')) {
+      const type = key.replace('level_', '').replace('_popups', '');
+      removePopup(type);
+    }
+  }
 }
 
 export function initPopups() {
@@ -292,6 +354,7 @@ export function initPopups() {
   window.addEventListener('currency:change', handleCurrencyChange);
   window.addEventListener('stat:change', handleStatChange);
   window.addEventListener('saveSlot:change', handleSlotChange);
+  window.addEventListener('setting:changed', handleSettingChange);
 }
 
 export function teardownpopups() {
@@ -299,6 +362,7 @@ export function teardownpopups() {
   window.removeEventListener('currency:change', handleCurrencyChange);
   window.removeEventListener('stat:change', handleStatChange);
   window.removeEventListener('saveSlot:change', handleSlotChange);
+  window.removeEventListener('setting:changed', handleSettingChange);
   clearActivePopups();
   lastKnownAmounts.clear();
   if (container) container.remove();
