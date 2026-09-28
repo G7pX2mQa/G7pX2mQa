@@ -1198,7 +1198,7 @@ function createSimulationOverlay(
         const etaMs = runner.getEstimatedTimeMs();
         let etaStr = "Calculating...";
         if (etaMs !== null) {
-            etaStr = etaMs < 1000 ? "< 1s" : formatTimeCompact(etaMs);
+            etaStr = etaMs < 1000 ? "<1s" : formatTimeCompact(etaMs);
         }
         setHtmlOrText(etaValueSpan, etaStr);
 
@@ -1206,7 +1206,7 @@ function createSimulationOverlay(
 
 
         const processedMs = (runner.totalOfflineSeconds - runner.remainingSeconds) * 1000;
-        const processedStr = processedMs < 1000 ? "< 1s" : formatTimeCompact(processedMs);
+        const processedStr = processedMs < 1000 ? "<1s" : formatTimeCompact(processedMs);
         const totalStr = formatTimeCompact(runner.totalOfflineSeconds * 1000);
         
         setHtmlOrText(timeCurrentSpan, processedStr);
