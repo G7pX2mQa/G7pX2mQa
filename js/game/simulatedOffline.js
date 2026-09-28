@@ -488,20 +488,25 @@ class SimulatedOfflineRunner {
     get percent() {
         if (this.totalOfflineSeconds === 0 || this.completed) return 100;
         
-        if (this.totalOfflineSeconds < 60 || settingsManager.get("choose_your_own_speed")) {
-            if (this.totalTicks === 0) return 0;
-            return Math.min(100, (this.ticksProcessed / this.totalTicks) * 100);
+        let p = 0;
+        if (settingsManager.get("choose_your_own_speed")) {
+            if (this.totalTicks === 0) p = 0;
+            else p = Math.min(100, (this.ticksProcessed / this.totalTicks) * 100);
+        } else {
+            const etaMs = this.getEstimatedTimeMs();
+            if (etaMs === null) {
+                if (this.totalTicks === 0) p = 0;
+                else p = Math.min(100, (this.ticksProcessed / this.totalTicks) * 100);
+            } else {
+                const totalRealMs = this._wallClockMs + etaMs;
+                if (totalRealMs === 0) p = 0;
+                else p = Math.min(100, (this._wallClockMs / totalRealMs) * 100);
+            }
         }
-
-        const etaMs = this.getEstimatedTimeMs();
-        if (etaMs === null) {
-            const simulated = this.totalOfflineSeconds - this._exactRemainingSeconds;
-            const p_sim = Math.max(0, simulated / this.totalOfflineSeconds);
-            return Math.min(100, Math.sqrt(p_sim) * 100);
-        }
-        const totalRealMs = this._wallClockMs + etaMs;
-        if (totalRealMs === 0) return 0;
-        return Math.min(100, (this._wallClockMs / totalRealMs) * 100);
+        
+        if (this._maxPercent === undefined) this._maxPercent = 0;
+        if (p > this._maxPercent) this._maxPercent = p;
+        return this._maxPercent;
     }
 
     addTime(seconds) {
@@ -537,11 +542,12 @@ class SimulatedOfflineRunner {
 
         this.userBaseDt = dt;
         
-        if (!settingsManager.get("choose_your_own_speed") && this.totalOfflineSeconds >= 60) {
+        if (!settingsManager.get("choose_your_own_speed")) {
             const elapsedSecs = this._wallClockMs / 1000;
+            const calcMultiplier = Math.max(1, elapsedSecs);
             this._currentMultiplier = elapsedSecs;
             
-            let dynamicDt = this.userBaseDt * elapsedSecs;
+            let dynamicDt = this.userBaseDt * calcMultiplier;
             // round to nearest 0.05
             dynamicDt = Math.round(dynamicDt * 20) / 20;
             if (dynamicDt < 0.05) dynamicDt = 0.05;
@@ -693,7 +699,7 @@ class SimulatedOfflineRunner {
             const K = vc * D0; // simulated seconds per wall-clock second
             const S = this._exactRemainingSeconds;
             
-            if (!settingsManager.get("choose_your_own_speed") && this.totalOfflineSeconds >= 60) {
+            if (!settingsManager.get("choose_your_own_speed")) {
                 const deltaT = Math.sqrt(t * t + 2 * S / K) - t;
                 return deltaT * 1000;
             } else {
@@ -900,7 +906,7 @@ function createSimulationOverlay(
         const elapsedSecs = runner._currentMultiplier !== undefined ? runner._currentMultiplier : (runner._wallClockMs / 1000);
         
         let granStr = "";
-        if (!settingsManager.get("choose_your_own_speed") && runner.totalOfflineSeconds >= 60) {
+        if (!settingsManager.get("choose_your_own_speed") && elapsedSecs >= 1) {
             granStr = `${formattedBaseDt}(${elapsedSecs.toFixed(3)})${unit} per tick`;
         } else {
             granStr = `${formattedBaseDt}${unit} per tick`;
