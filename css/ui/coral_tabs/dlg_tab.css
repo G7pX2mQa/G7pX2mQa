@@ -10,6 +10,11 @@
   font-size: clamp(14px, 3.5vw, 24px);
 }
 
+.coral-no-merchant-message span {
+  user-select: text;
+  cursor: text;
+}
+
 #coral-panel-dialogue.is-active {
   display: flex;
   align-items: center;
