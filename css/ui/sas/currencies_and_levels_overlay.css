@@ -90,8 +90,8 @@
 
 .currency-icon {
   position: absolute;
-  width: 65%;
-  height: 65%;
+  width: 68%;
+  height: 68%;
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
