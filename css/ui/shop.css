@@ -1194,6 +1194,6 @@ html.is-mobile {
 .shop-tile img.icon[src*="coin_val1.webp"],
 .shop-tile img.icon[src*="book_val1.webp"],
 .shop-tile img.icon[src*="book_value.webp"] {
-  margin-left: -0.1px;
-  margin-top: 0.1px;
+  margin-left: -0.10414px;
+  margin-top: 0.10414px;
 }
