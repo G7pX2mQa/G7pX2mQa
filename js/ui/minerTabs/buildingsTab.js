@@ -113,9 +113,6 @@ export function isBuildingUnlocked(id) {
         return window.resetSystem?.isCompressUnlocked?.() ?? false;
     }
 
-    if (!isBuildingsUnlocked()) return false;
-    if (id === "core" || id === "stone") return true;
-
     // Dynamically check depth for UC materials to avoid relying on dp:change DOM events
     let highestDepth = 0;
     try {
@@ -137,10 +134,17 @@ export function isBuildingUnlocked(id) {
 
     const matData = UC_MATERIAL_DATA.find((m) => m.name === id);
     if (matData) {
-        return highestDepth >= matData.start || isUnlockedInStorage;
+        if (highestDepth >= matData.start || isUnlockedInStorage) {
+            return true;
+        }
+    } else if (isUnlockedInStorage) {
+        return true;
     }
 
-    return isUnlockedInStorage;
+    if (!isBuildingsUnlocked()) return false;
+    if (id === "core" || id === "stone") return true;
+
+    return false;
 }
 
 export function setBuildingUnlocked(id, value, slot = getActiveSlot()) {
