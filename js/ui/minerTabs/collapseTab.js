@@ -898,8 +898,15 @@ Effect: Coin value is divided by ${formattedNum}x
 Goal: Reach Pressure: 31atm
 Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade`.trim();
     } else if (id === "copper") {
-        baseDescText = `The Challenge of ${capitalName}
-[Placeholder challenge text]`.trim();
+        baseDescText = `The Challenge of ${capitalName}; the second Collapse Challenge
+You’ve gotten familiar with Coral Reef, now things are starting to get interesting
+Be sure you’ve maximized the levels of your Lab Nodes before starting this Collapse Challenge
+
+You can exit a Collapse Challenge at any time to recover stats you had before starting
+
+Effect: Book gain is swapped with Coin gain and vice versa
+Goal: Reach Pressure: 999atm
+Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
@@ -921,6 +928,13 @@ Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new aut
         if (challengeId === "stone") {
             try {
                 if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(31) >= 0) {
+                    return true;
+                }
+            } catch {}
+        }
+        if (challengeId === "copper") {
+            try {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(999) >= 0) {
                     return true;
                 }
             } catch {}
@@ -1080,7 +1094,7 @@ Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new aut
                         levelBn = window.ppSystem.getPpState().ppLevel;
                     }
                     if (levelBn) {
-                        if (levelBn.cmp(31) >= 0) {
+                        if (checkChallengeGoalReached(id)) {
                             isGoalReached = true;
                             actionBtn.textContent = `Complete Challenge`;
                         } else {
@@ -1117,6 +1131,9 @@ Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new aut
             finalHtml = finalHtml.replace(
                 "Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade",
                 `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade</span>`
+            ).replace(
+                "Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade</span>`
             );
         }
         desc.innerHTML = finalHtml;
