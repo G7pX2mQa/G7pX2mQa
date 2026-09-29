@@ -904,16 +904,21 @@ class ShopInstance {
         let shouldGlow = false;
         const areaKey = getCurrentAreaKey();
 
-        if (areaKey === AREA_KEYS.STARTER_COVE) {
-            shouldGlow = !hasMetMerchant();
-            const slot = getActiveSlot();
-            if (slot != null && lsGetItem(`ccc:tsunami:labPending:${slot}`) === "1") {
-                shouldGlow = true;
-            }
-        } else if (areaKey === AREA_KEYS.UNDERWATER_CAVERN) {
-            shouldGlow = !hasMetMiner();
-        } else if (areaKey === AREA_KEYS.CORAL_REEF) {
-            shouldGlow = !hasMetCoral();
+        const glowChecks = {
+            [AREA_KEYS.STARTER_COVE]: () => {
+                let glow = !hasMetMerchant();
+                const slot = getActiveSlot();
+                if (slot != null && lsGetItem(`ccc:tsunami:labPending:${slot}`) === "1") {
+                    glow = true;
+                }
+                return glow;
+            },
+            [AREA_KEYS.UNDERWATER_CAVERN]: () => !hasMetMiner(),
+            [AREA_KEYS.CORAL_REEF]: () => !hasMetCoral(),
+        };
+
+        if (glowChecks[areaKey]) {
+            shouldGlow = glowChecks[areaKey]();
         } else {
             const slot = getActiveSlot();
             const safeSlot = slot ?? "default";
