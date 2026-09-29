@@ -1,8 +1,9 @@
 import { computeDefaultUpgradeCost, E } from "./upgrades.js";
 import { BigNum } from "../util/bigNum.js";
 import { formatMultForUi, formatNumber } from "../util/numFormat.js";
-import { isRclpSystemUnlocked, unlockRclpSystem } from "./rclpSystem.js";
+import { isRclpSystemUnlocked, unlockRclpSystem, getRclpState } from "./rclpSystem.js";
 import { getActiveSlot } from "../util/storage.js";
+import { lsSetItem } from "../main.js";
 
 export const CORAL_AREA_KEY = "coral_reef";
 export const CORAL_REGISTRY = [
@@ -243,6 +244,49 @@ export const CORAL_REGISTRY = [
         },
         effectMultiplier(level) {
             return E.powPerLevel(5)(level);
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 6,
+        title: "Challenge of Copper",
+        desc: "Unlocks the Challenge of Copper",
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "img/materials/copper.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            try {
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 31) {
+                        return { state: "unlocked" };
+                    }
+                    return { state: "mysterious", unlockReqText: "Reach Red Coral Level 31 to reveal this upgrade" };
+                }
+            } catch {}
+            
+            return { state: "locked" };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    const slot = getActiveSlot() ?? "default";
+                    lsSetItem(`ccc:collapseChallengeVisible:copper:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: "copper", visible: true } }));
+                } catch {}
+            }
+        },
+        effectSummary() {
+            return "";
         },
     },
 ];
