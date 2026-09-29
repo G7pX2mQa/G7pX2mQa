@@ -20,18 +20,23 @@ export function getCanvasSmoothingQuality() {
     return "low";
 }
 
+export const MIN_SPAWN_CAPACITY = 2500;
+export const MAX_SPAWN_CAPACITY = 10000;
+const MIN_VIEWPORT_AREA = 400000;
+const MAX_VIEWPORT_AREA = 1000000;
+
 export function getDynamicMaxCapacity() {
-    if (typeof window === 'undefined') return IS_MOBILE ? 2500 : 10000;
+    if (typeof window === 'undefined') return IS_MOBILE ? MIN_SPAWN_CAPACITY : MAX_SPAWN_CAPACITY;
     const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
     const area = vw * vh;
     
-    if (area >= 1000000) return 10000;
-    if (area <= 400000) return 2500;
+    if (area >= MAX_VIEWPORT_AREA) return MAX_SPAWN_CAPACITY;
+    if (area <= MIN_VIEWPORT_AREA) return MIN_SPAWN_CAPACITY;
     
     // Linear interpolation
-    const ratio = (area - 400000) / (1000000 - 400000);
-    return Math.floor(2500 + ratio * (10000 - 2500));
+    const ratio = (area - MIN_VIEWPORT_AREA) / (MAX_VIEWPORT_AREA - MIN_VIEWPORT_AREA);
+    return Math.floor(MIN_SPAWN_CAPACITY + ratio * (MAX_SPAWN_CAPACITY - MIN_SPAWN_CAPACITY));
 }
 
 const imgCache = new Map();
