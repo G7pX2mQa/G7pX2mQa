@@ -565,9 +565,17 @@ window.addEventListener("setting:changed", (e) => {
         applyBuildingVisualsMode();
     }
 });
-window.addEventListener("saveSlot:change", () => {
+window.addEventListener("saveSlot:change", (e) => {
     applySpreadsheetMode();
     applyBuildingVisualsMode();
+    if (!e || !e.detail || e.detail.slot === null) {
+        document.querySelectorAll('.shop-scroller, .sas-scroller, .merchant-content, .help-scroller, .offline-content, .upg-content, .panel-scroller').forEach(el => {
+            el.scrollTop = 0;
+            if (el.scrollLeft !== undefined) {
+                el.scrollLeft = 0;
+            }
+        });
+    }
 });
 if (typeof document !== "undefined") {
     document.addEventListener("DOMContentLoaded", () => {
