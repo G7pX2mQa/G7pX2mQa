@@ -23,6 +23,7 @@ export const MULTI_WATERWHEEL_FLOW_ID = 12;
 export const AUTOBUY_CORE_BUILDING_ID = 13;
 export const AUTOBUY_CRYSTAL_BUILDING_ID = 14;
 export const AUTOBUY_STONE_BUILDING_ID = 15;
+export const AUTOBUY_COPPER_BUILDING_ID = 16;
 
 // export ties specifically for upgrades who break the norm
 export const AUTOMATION_TIES = {
@@ -45,6 +46,7 @@ export const MASTER_AUTOBUY_IDS = {
     [AUTOBUY_CORE_BUILDING_ID]: "cores",
     [AUTOBUY_CRYSTAL_BUILDING_ID]: "crystals",
     [AUTOBUY_STONE_BUILDING_ID]: "stone",
+    [AUTOBUY_COPPER_BUILDING_ID]: "copper",
 };
 
 const STANDARD_AUTOMATION_SHRINK = [
@@ -550,6 +552,38 @@ const UPGRADE_DEFINITIONS = [
             }
 
             const revealText = "Complete the Challenge of Stone to reveal this upgrade";
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+    },
+    {
+        area: AUTOMATION_AREA_KEY,
+        id: AUTOBUY_COPPER_BUILDING_ID,
+        title: "Autobuy Copper Building",
+        desc: "Automatically buys levels of the Copper Building",
+        icon: "img/sc_upg_icons/autobuy_copper.webp",
+        lvlCap: 1,
+        baseCost: "1e1000",
+        costType: "gears",
+        upgType: "NM",
+        costAtLevel() {
+            return BigNum.fromAny("1e1000");
+        },
+        effectSummary() {
+            return null;
+        },
+        computeLockState() {
+            let isUnlocked = false;
+            try {
+                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:copper:${getActiveSlot() ?? "default"}`) === "1";
+            } catch {}
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            if (!isCollapseUnlocked()) {
+                return { state: "locked" };
+            }
+
+            const revealText = "Complete the Challenge of Copper to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
     },
