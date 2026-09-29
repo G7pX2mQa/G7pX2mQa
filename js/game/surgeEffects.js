@@ -654,7 +654,7 @@ export function getSurge6WealthMultipliers() {
     };
 }
 
-export function getBookProductionRate() {
+export function getNormalBookProductionRate() {
     if (!isSurgeActive(3)) return BigNum.fromInt(0);
     // Formula: max(1, floor(1 * exp(0.20 * xp_level)))
     const xpState = getXpState();
@@ -708,6 +708,15 @@ export function getBookProductionRate() {
     return baseRate;
 }
 
+export function getBookProductionRate() {
+    return getNormalBookProductionRate();
+}
+
+
+if (typeof window !== "undefined") {
+    window.getNormalBookProductionRate = getNormalBookProductionRate;
+}
+
 export function simulateSurgeTick(dt) {
     onTick(dt);
 }
@@ -720,21 +729,18 @@ function onTick(dt) {
         }
 
         const baseRate = getBookProductionRate();
+        const inCopper = window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper";
+        const targetBank = inCopper ? bank.coins : bank.books;
+        
         // Accumulate
         if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
             // Direct add per tick for large numbers, using dt
             // dt corresponds to FIXED_STEP (usually 0.05s)
             const perTick = baseRate.mulDecimal(String(dt), BigNum.DEFAULT_PRECISION);
-            if (bank.books) bank.books.add(perTick);
+            if (targetBank) targetBank.add(perTick);
         } else {
             // Use accumulator for small numbers to handle fractional accumulation
             const rateNum = Number(baseRate.toScientific());
-            // RateAccumulator expects amount per second
-            // We manually update it with variable dt support by bypassing addRate
-            // if RateAccumulator isn't dt-aware, but here we can just do manual accumulation for consistency
-            // or assume addRate is fixed step.
-            // Ideally we should modify RateAccumulator to take dt, or manually implement it here.
-            // Let's implement manual accumulation here for safety and precision.
             if (!window.__bookResidue) window.__bookResidue = 0;
             window.__bookResidue += rateNum * dt;
             if (window.__bookResidue > 0) {
@@ -745,7 +751,7 @@ function onTick(dt) {
             if (window.__bookResidue >= 1) {
                 const whole = Math.floor(window.__bookResidue);
                 window.__bookResidue -= whole;
-                if (bank.books) bank.books.add(BigNum.fromInt(whole));
+                if (targetBank) targetBank.add(BigNum.fromInt(whole));
             }
         }
     }
