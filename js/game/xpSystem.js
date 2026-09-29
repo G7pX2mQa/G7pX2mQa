@@ -6,7 +6,7 @@ import { registerTick } from "./gameLoop.js";
 import { applyStatMultiplierOverride } from "../util/debugPanel.js";
 import { formatNumber } from "../util/numFormat.js";
 import { syncXpMpHudLayout } from "../ui/hudLayout.js";
-import { setHtmlOrText } from "../util/uiHelpers.js";
+import { setHtmlOrText, stripHtml } from "../util/uiHelpers.js";
 const KEY_PREFIX = "ccc:xp";
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_XP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
@@ -454,10 +454,6 @@ function ensureXpStorageWatchers() {
     }
 }
 
-function stripHtml(value) {
-    if (typeof value !== "string") return "";
-    return value.replace(/<[^>]*>/g, "");
-}
 
 function bonusMultipliersCount(levelNum) {
     if (levelNum <= 1) return 0;
@@ -986,10 +982,13 @@ function handleXpLevelUpRewards() {
         } catch {}
     }
     try {
-        if (bank?.books?.addWithMultiplier) {
-            bank.books.addWithMultiplier(reward);
-        } else if (bank?.books?.add) {
-            bank.books.add(reward);
+        const inCopper = window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper";
+        const targetBank = inCopper ? bank?.coins : bank?.books;
+        
+        if (targetBank?.addWithMultiplier) {
+            targetBank.addWithMultiplier(reward);
+        } else if (targetBank?.add) {
+            targetBank.add(reward);
         }
     } catch {}
 }
