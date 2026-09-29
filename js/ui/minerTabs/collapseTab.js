@@ -4,9 +4,9 @@ import { getSaveDataForSlot, applySaveDataToSlot } from "../../util/slotsManager
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
-import { formatMultForUi, getLevelNumber, AREA_KEYS, UPGRADE_TIES, setLevel } from "../../game/upgrades.js";
+import { AREA_KEYS, UPGRADE_TIES, setLevel } from "../../game/upgrades.js";
 import { getCurrencyMultiplierBN } from "../../util/storage.js";
-import { BigNum, bigNumFromLog10 } from "../../util/bigNum.js";
+import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { setRubbleSellMode } from "./sellTab.js";
 import { RUBBLE_AREA_KEY, RUBBLE_REGISTRY } from "../../game/rubbleUpgrades.js";
@@ -16,7 +16,6 @@ import { performCollapseReset } from "./resetTab.js";
 import { isBuildingUnlocked } from "./buildingsTab.js";
 import { suspendAllAudioFor } from "../../util/audioManager.js";
 import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
-import { addExternalBookMultiplierProvider } from "../../game/upgradeEffects.js";
 import { showWideNotification } from "../notifications.js";
 import { onDpChange } from "../../game/dpSystem.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
@@ -59,8 +58,6 @@ const CHALLENGE_ACTIVE_KEY_BASE = "ccc:collapseChallengeActive";
 let cachedChallengeActive = {};
 let cachedChallengeType = {};
 let coinDebuffUnregister = null;
-let rubbleCoinValueUnregister = null;
-let rubbleBookValueUnregister = null;
 
 export function isCollapseChallengeActive(slot = getActiveSlot()) {
     if (slot == null) return false;
@@ -128,54 +125,6 @@ function unregisterCoinDebuff() {
     if (coinDebuffUnregister) {
         coinDebuffUnregister();
         coinDebuffUnregister = null;
-    }
-}
-
-function registerRubbleCoinValueProvider() {
-    if (rubbleCoinValueUnregister) return; // Already registered
-    rubbleCoinValueUnregister = addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
-        try {
-            const level = getLevelNumber(RUBBLE_AREA_KEY, 1);
-            if (level <= 0) return baseMultiplier;
-            if (!Number.isFinite(level)) return BigNum.fromAny("Infinity");
-            // 10^level multiplier
-            const mult = bigNumFromLog10(level);
-            return baseMultiplier.mulBigNumInteger(mult);
-        } catch {
-            return baseMultiplier;
-        }
-    });
-}
-
-function unregisterRubbleCoinValueProvider() {
-    if (rubbleCoinValueUnregister) {
-        rubbleCoinValueUnregister();
-        rubbleCoinValueUnregister = null;
-    }
-}
-
-function registerRubbleBookValueProvider() {
-    if (rubbleBookValueUnregister) return; // Already registered
-    rubbleBookValueUnregister = addExternalBookMultiplierProvider(({ baseMultiplier }) => {
-        try {
-            const level = getLevelNumber(RUBBLE_AREA_KEY, 2);
-            if (level <= 0) return baseMultiplier;
-            if (!Number.isFinite(level)) return BigNum.fromAny("Infinity");
-            // 1e99999^level multiplier
-            const log10Mult = 99999 * level;
-            if (!Number.isFinite(log10Mult)) return BigNum.fromAny("Infinity");
-            const mult = bigNumFromLog10(log10Mult);
-            return baseMultiplier.mulBigNumInteger(mult);
-        } catch {
-            return baseMultiplier;
-        }
-    });
-}
-
-function unregisterRubbleBookValueProvider() {
-    if (rubbleBookValueUnregister) {
-        rubbleBookValueUnregister();
-        rubbleBookValueUnregister = null;
     }
 }
 
@@ -363,9 +312,6 @@ export function startCollapseChallenge(materialName) {
 
     // Register coin debuff (÷1e100)
     registerCoinDebuff();
-    // Register Rubble Coin Value provider
-    registerRubbleCoinValueProvider();
-    registerRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 
     // Pause all audio for 4 seconds, smoothly fading it back in over the last 1 second
@@ -525,9 +471,6 @@ function exitCollapseChallenge(materialName) {
 
     // Unregister coin debuff
     unregisterCoinDebuff();
-    // Unregister Rubble Coin Value provider
-    unregisterRubbleCoinValueProvider();
-    unregisterRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 
     const slot = getActiveSlot();
@@ -590,9 +533,6 @@ function completeCollapseChallenge(materialName) {
 
     // Unregister coin debuff
     unregisterCoinDebuff();
-    // Unregister Rubble Coin Value provider
-    unregisterRubbleCoinValueProvider();
-    unregisterRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 
     if (slot != null) {
@@ -677,8 +617,6 @@ function restoreCollapseChallengeState() {
     const activeMat = getActiveCollapseChallengeType(slot);
     if (!activeMat) {
         unregisterCoinDebuff();
-        unregisterRubbleCoinValueProvider();
-        unregisterRubbleBookValueProvider();
         syncCoinMultiplierWithXpLevel(true);
         setRubbleSellMode(false, slot);
         if (bank?.rubble?.value > 0) {
@@ -688,8 +626,6 @@ function restoreCollapseChallengeState() {
     }
     // Re-register providers
     registerCoinDebuff();
-    registerRubbleCoinValueProvider();
-    registerRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 }
 
