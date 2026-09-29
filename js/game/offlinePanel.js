@@ -1073,7 +1073,7 @@ export function calculateOfflineRewards(seconds) {
     if (!bookRate.isZero()) {
         const booksEarned = bookRate.mulBigNumInteger(secondsBn).floorToInteger();
         if (!booksEarned.isZero()) {
-            const isCopper = window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper";
+            const isCopper = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
             if (isCopper && !isCurrencyLocked("coins", slot)) {
                 rewards.coins = booksEarned;
             } else if (!isCopper && !isCurrencyLocked("books", slot)) {
@@ -1409,7 +1409,7 @@ export function calculatePreAutomationRewards(seconds) {
         const xpEarned = singleReward.xp.mulBigNumInteger(totalCoins);
         const mpEarned = singleReward.mp.mulBigNumInteger(totalCoins);
         if (!coinsEarned.isZero()) {
-            const isCopper = window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper";
+            const isCopper = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
             if (isCopper && !isCurrencyLocked("books", slot)) {
                 rewards.books = coinsEarned;
             } else if (!isCopper && !isCurrencyLocked("coins", slot)) {
