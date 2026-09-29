@@ -729,7 +729,7 @@ function onTick(dt) {
         }
 
         const baseRate = getBookProductionRate();
-        const inCopper = window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper";
+        const inCopper = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
         const targetBank = inCopper ? bank.coins : bank.books;
         
         // Accumulate
