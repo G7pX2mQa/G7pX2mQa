@@ -39,7 +39,7 @@ function renderAchievements(gridEl) {
                 iconImg.alt = "";
                 iconImg.src = src;
                 if (index > 0) {
-                    iconImg.style.transform = "translate(-50%, -50%) scale(0.5)";
+                    iconImg.style.transform = "translate(-50%, -50%) scale(0.68)";
                 }
                 tile.appendChild(iconImg);
             });
