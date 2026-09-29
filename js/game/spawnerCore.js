@@ -21,17 +21,17 @@ export function getCanvasSmoothingQuality() {
 }
 
 export function getDynamicMaxCapacity() {
-    if (typeof window === 'undefined') return IS_MOBILE ? 1000 : 5000;
+    if (typeof window === 'undefined') return IS_MOBILE ? 2500 : 10000;
     const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
     const area = vw * vh;
     
-    if (area >= 1000000) return 5000;
-    if (area <= 400000) return 1000;
+    if (area >= 1000000) return 10000;
+    if (area <= 400000) return 2500;
     
     // Linear interpolation
     const ratio = (area - 400000) / (1000000 - 400000);
-    return Math.floor(1000 + ratio * (5000 - 1000));
+    return Math.floor(2500 + ratio * (10000 - 2500));
 }
 
 const imgCache = new Map();
