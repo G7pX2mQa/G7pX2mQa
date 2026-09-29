@@ -3,7 +3,7 @@ import { BigNum } from "../util/bigNum.js";
 import { formatMultForUi, formatNumber } from "../util/numFormat.js";
 import { isRclpSystemUnlocked, unlockRclpSystem, getRclpState } from "./rclpSystem.js";
 import { getActiveSlot } from "../util/storage.js";
-import { lsSetItem } from "../main.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 
 export const CORAL_AREA_KEY = "coral_reef";
 export const CORAL_REGISTRY = [
@@ -72,7 +72,7 @@ export const CORAL_REGISTRY = [
             let metCoral = false;
             try {
                 const slotKey = getActiveSlot() ?? "default";
-                metCoral = window.localStorage.getItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
             } catch {}
             
             if (metCoral) {
@@ -100,7 +100,7 @@ export const CORAL_REGISTRY = [
             let depth = 0;
             try {
                 const slotKey = getActiveSlot() ?? "default";
-                const dpLvlStr = window.localStorage.getItem(`ccc:dpLevel:${slotKey}`);
+                const dpLvlStr = lsGetItem(`ccc:dpLevel:${slotKey}`);
                 if (dpLvlStr) {
                     if (dpLvlStr.startsWith("BN:infinite") || dpLvlStr === "Infinity") {
                         depth = Infinity;
@@ -141,7 +141,7 @@ export const CORAL_REGISTRY = [
             let metCoral = false;
             try {
                 const slotKey = getActiveSlot() ?? "default";
-                metCoral = window.localStorage.getItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
             } catch {}
             
             if (!metCoral) {
@@ -186,7 +186,7 @@ export const CORAL_REGISTRY = [
             let metCoral = false;
             try {
                 const slotKey = getActiveSlot() ?? "default";
-                metCoral = window.localStorage.getItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
             } catch {}
             
             if (!metCoral) {
@@ -230,7 +230,7 @@ export const CORAL_REGISTRY = [
             let metCoral = false;
             try {
                 const slotKey = getActiveSlot() ?? "default";
-                metCoral = window.localStorage.getItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
             } catch {}
             
             if (!metCoral) {
