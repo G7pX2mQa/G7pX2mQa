@@ -2200,6 +2200,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			"img/sc_upg_icons/autobuy_stone.webp",
             "img/sc_upg_icons/autobuy_workshop_level.webp",
             "img/sc_upg_icons/book_val1.webp",
+			"img/sc_upg_icons/book_value.webp",
             "img/sc_upg_icons/coin_val1.webp",
             "img/sc_upg_icons/coin_val2.webp",
             "img/sc_upg_icons/coin_val3.webp",
