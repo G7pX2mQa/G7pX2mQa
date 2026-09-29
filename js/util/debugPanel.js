@@ -6757,9 +6757,29 @@ function buildUnlocksContent(content) {
 
     // Collapse Challenges subsection
     content.appendChild(createSubsection("Collapse Challenges", (collapseContent) => {
-        UC_MATERIALS.forEach((materialName) => {
+        UC_MATERIALS.forEach((materialName, idx) => {
             const capitalName = materialName.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
             const challengeTitle = `Challenge of ${capitalName}`;
+            
+            if (idx >= 1 && idx <= 9) {
+                const visKey = `ccc:collapseChallengeVisible:${materialName}:${slot}`;
+                const visRowDef = {
+                    labelText: `${challengeTitle} Visible`,
+                    description: `If true, the ${challengeTitle} is unlocked/visible`,
+                    isUnlocked: () => lsGetItem(visKey) === "1",
+                    onEnable: () => {
+                        lsSetItemForce(visKey, "1");
+                        window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: materialName, visible: true } }));
+                    },
+                    onDisable: () => {
+                        lsSetItemForce(visKey, "0");
+                        window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: materialName, visible: false } }));
+                    },
+                    slot,
+                };
+                collapseContent.appendChild(createUnlockToggleRow(visRowDef));
+            }
+            
             const storageKey = `ccc:collapseChallengeCompleted:${materialName}:${slot}`;
             
             const rowDef = {
