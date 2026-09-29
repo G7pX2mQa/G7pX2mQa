@@ -38,4 +38,33 @@ export const RUBBLE_REGISTRY = [
         },
         bonusLine: (level, total) => `Coin value bonus: ${formatMultForUi(total)}x`
     },
+    {
+        area: RUBBLE_AREA_KEY,
+        id: 2,
+        title: "Rubble Book Value",
+        get desc() {
+            return `Multiplies Book value by ${formatNumber(BigNum.fromAny("1e99999"))}x per level`;
+        },
+        lvlCap: Infinity,
+        baseCost: "1e99999",
+        costType: "rubble",
+        upgType: "NM",
+        scalingPreset: 'NM',
+        effectType: "book_value",
+        icon: "img/sc_upg_icons/book_value.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        _baseEffectVal: "1e99999",
+        costAtLevel(level) {
+            const lvl = Math.max(0, Number(level) || 0);
+            if (!Number.isFinite(lvl)) return BigNum.fromAny("Infinity");
+            if (lvl >= 4e12) return BigNum.fromAny("Infinity");
+            const log10Cost = 99999 + 99999 * lvl;
+            if (!Number.isFinite(log10Cost)) return BigNum.fromAny("Infinity");
+            return bigNumFromLog10(log10Cost);
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        bonusLine: (level, total) => `Book value bonus: ${formatMultForUi(total)}x`
+    },
 ];
