@@ -1189,3 +1189,11 @@ html.is-mobile {
 .upg-content {
   transform: translateY(-1.5px);
 }
+/* Specific icon adjustments */
+.shop-tile img.icon[src*="faster_coins2.webp"],
+.shop-tile img.icon[src*="coin_val1.webp"],
+.shop-tile img.icon[src*="book_val1.webp"],
+.shop-tile img.icon[src*="book_value.webp"] {
+  margin-left: -0.1px;
+  margin-top: 0.1px;
+}
