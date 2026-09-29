@@ -9,13 +9,14 @@ import { getCurrencyMultiplierBN } from "../../util/storage.js";
 import { BigNum, bigNumFromLog10 } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { setRubbleSellMode } from "./sellTab.js";
-import { RUBBLE_AREA_KEY } from "../../game/rubbleUpgrades.js";
+import { RUBBLE_AREA_KEY, RUBBLE_REGISTRY } from "../../game/rubbleUpgrades.js";
 import { DNA_AREA_KEY } from "../../game/dnaUpgrades.js";
 import { disableGlobalOverlayEsc, enableGlobalOverlayEsc } from "../../util/globalOverlayEsc.js";
 import { performCollapseReset } from "./resetTab.js";
 import { isBuildingUnlocked } from "./buildingsTab.js";
 import { suspendAllAudioFor } from "../../util/audioManager.js";
 import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
+import { addExternalBookMultiplierProvider } from "../../game/upgradeEffects.js";
 import { showWideNotification } from "../notifications.js";
 import { onDpChange } from "../../game/dpSystem.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
@@ -47,6 +48,7 @@ if (typeof window !== "undefined") {
     const invalidateCollapseCache = () => {
         cachedCollapseUnlockedStates = {};
         cachedChallengeActive = {};
+        cachedChallengeType = {};
     };
     window.addEventListener("saveSlot:change", invalidateCollapseCache);
     window.addEventListener("unlock:change", invalidateCollapseCache);
@@ -55,8 +57,10 @@ if (typeof window !== "undefined") {
 // --- Collapse Challenge State ---
 const CHALLENGE_ACTIVE_KEY_BASE = "ccc:collapseChallengeActive";
 let cachedChallengeActive = {};
+let cachedChallengeType = {};
 let coinDebuffUnregister = null;
 let rubbleCoinValueUnregister = null;
+let rubbleBookValueUnregister = null;
 
 export function isCollapseChallengeActive(slot = getActiveSlot()) {
     if (slot == null) return false;
@@ -74,10 +78,13 @@ export function isCollapseChallengeActive(slot = getActiveSlot()) {
 
 export function getActiveCollapseChallengeType(slot = getActiveSlot()) {
     if (slot == null) return null;
+    if (cachedChallengeType[slot] !== undefined) return cachedChallengeType[slot];
     if (typeof localStorage === "undefined") return null;
     try {
         const val = lsGetItem(`${CHALLENGE_ACTIVE_KEY_BASE}:${slot}`);
-        return val && val !== "" ? val : null;
+        const result = val && val !== "" ? val : null;
+        cachedChallengeType[slot] = result;
+        return result;
     } catch {
         return null;
     }
@@ -90,9 +97,11 @@ function setCollapseChallengeActive(materialName, slot = getActiveSlot()) {
         if (materialName) {
             lsSetItem(`${CHALLENGE_ACTIVE_KEY_BASE}:${slot}`, materialName);
             cachedChallengeActive[slot] = true;
+            cachedChallengeType[slot] = materialName;
         } else {
             lsRemoveItem(`${CHALLENGE_ACTIVE_KEY_BASE}:${slot}`);
             cachedChallengeActive[slot] = false;
+            cachedChallengeType[slot] = null;
         }
         window.dispatchEvent(new CustomEvent("rubbleMode:toggled"));
     } catch {}
@@ -142,6 +151,31 @@ function unregisterRubbleCoinValueProvider() {
     if (rubbleCoinValueUnregister) {
         rubbleCoinValueUnregister();
         rubbleCoinValueUnregister = null;
+    }
+}
+
+function registerRubbleBookValueProvider() {
+    if (rubbleBookValueUnregister) return; // Already registered
+    rubbleBookValueUnregister = addExternalBookMultiplierProvider(({ baseMultiplier }) => {
+        try {
+            const level = getLevelNumber(RUBBLE_AREA_KEY, 2);
+            if (level <= 0) return baseMultiplier;
+            if (!Number.isFinite(level)) return BigNum.fromAny("Infinity");
+            // 1e99999^level multiplier
+            const log10Mult = 99999 * level;
+            if (!Number.isFinite(log10Mult)) return BigNum.fromAny("Infinity");
+            const mult = bigNumFromLog10(log10Mult);
+            return baseMultiplier.mulBigNumInteger(mult);
+        } catch {
+            return baseMultiplier;
+        }
+    });
+}
+
+function unregisterRubbleBookValueProvider() {
+    if (rubbleBookValueUnregister) {
+        rubbleBookValueUnregister();
+        rubbleBookValueUnregister = null;
     }
 }
 
@@ -331,6 +365,7 @@ export function startCollapseChallenge(materialName) {
     registerCoinDebuff();
     // Register Rubble Coin Value provider
     registerRubbleCoinValueProvider();
+    registerRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 
     // Pause all audio for 4 seconds, smoothly fading it back in over the last 1 second
@@ -492,6 +527,7 @@ function exitCollapseChallenge(materialName) {
     unregisterCoinDebuff();
     // Unregister Rubble Coin Value provider
     unregisterRubbleCoinValueProvider();
+    unregisterRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 
     const slot = getActiveSlot();
@@ -508,7 +544,9 @@ function exitCollapseChallenge(materialName) {
     try {
         const slot = getActiveSlot();
         if (slot != null) {
-            setLevel(RUBBLE_AREA_KEY, 1, 0);
+            for (const upg of RUBBLE_REGISTRY) {
+                setLevel(RUBBLE_AREA_KEY, upg.id, 0);
+            }
             setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
             setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
             setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.GOLD_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
@@ -554,6 +592,7 @@ function completeCollapseChallenge(materialName) {
     unregisterCoinDebuff();
     // Unregister Rubble Coin Value provider
     unregisterRubbleCoinValueProvider();
+    unregisterRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 
     if (slot != null) {
@@ -604,7 +643,9 @@ function completeCollapseChallenge(materialName) {
     // Clear rubble upgrade levels (temporary challenge upgrades)
     try {
         if (slot != null) {
-            setLevel(RUBBLE_AREA_KEY, 1, 0);
+            for (const upg of RUBBLE_REGISTRY) {
+                setLevel(RUBBLE_AREA_KEY, upg.id, 0);
+            }
             setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
             setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
             setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.GOLD_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
@@ -637,6 +678,7 @@ function restoreCollapseChallengeState() {
     if (!activeMat) {
         unregisterCoinDebuff();
         unregisterRubbleCoinValueProvider();
+        unregisterRubbleBookValueProvider();
         syncCoinMultiplierWithXpLevel(true);
         setRubbleSellMode(false, slot);
         if (bank?.rubble?.value > 0) {
@@ -647,6 +689,7 @@ function restoreCollapseChallengeState() {
     // Re-register providers
     registerCoinDebuff();
     registerRubbleCoinValueProvider();
+    registerRubbleBookValueProvider();
     syncCoinMultiplierWithXpLevel(true);
 }
 
