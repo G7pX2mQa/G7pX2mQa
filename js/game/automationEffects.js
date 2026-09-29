@@ -476,7 +476,7 @@ registerPassiveSystem({
         const xpEarned = singleReward.xp.mulBigNumInteger(totalPassives);
         const mpEarned = singleReward.mp.mulBigNumInteger(totalPassives);
         if (!coinsEarned.isZero()) {
-            const isCopper = window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper";
+            const isCopper = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
             if (isCopper && !isCurrencyLocked("books", slot)) {
                 rewards.books = coinsEarned;
             } else if (!isCopper && !isCurrencyLocked("coins", slot)) {
