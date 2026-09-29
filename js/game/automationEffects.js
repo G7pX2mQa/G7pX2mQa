@@ -20,6 +20,7 @@ import {
     AUTOBUY_CORE_BUILDING_ID,
     AUTOBUY_CRYSTAL_BUILDING_ID,
     AUTOBUY_STONE_BUILDING_ID,
+    AUTOBUY_COPPER_BUILDING_ID,
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { performFreeBuildingAutobuy, batchBuildingOperations } from "../ui/minerTabs/buildingsTab.js";
@@ -336,6 +337,13 @@ function updateAutobuyers(dt) {
             if (stoneBuildingAutobuy) {
                 if (getCollectiveAutobuyerState("stone") === 1) {
                     performFreeBuildingAutobuy("stone");
+                }
+            }
+            // Process Copper Building Autobuy
+            const copperBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COPPER_BUILDING_ID) > 0;
+            if (copperBuildingAutobuy) {
+                if (getCollectiveAutobuyerState("copper") === 1) {
+                    performFreeBuildingAutobuy("copper");
                 }
             }
         });
