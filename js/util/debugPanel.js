@@ -4763,7 +4763,15 @@ function unlockAllUnlocks(excludeChal = false) {
     let toggled = setAllUnlockToggles(true);
 
     if (!excludeChal) {
-        UC_MATERIALS.forEach((materialName) => {
+        UC_MATERIALS.forEach((materialName, idx) => {
+            if (idx >= 1 && idx <= 9) {
+                const visKey = `ccc:collapseChallengeVisible:${materialName}:${slot}`;
+                if (lsGetItem(visKey) !== "1") {
+                    lsSetItemForce(visKey, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: materialName, visible: true } }));
+                    toggled += 1;
+                }
+            }
             const storageKey = `ccc:collapseChallengeCompleted:${materialName}:${slot}`;
             if (lsGetItem(storageKey) !== "1") {
                 lsSetItemForce(storageKey, "1");
