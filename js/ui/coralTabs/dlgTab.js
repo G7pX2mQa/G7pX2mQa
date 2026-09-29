@@ -13,6 +13,8 @@ import {
     MYSTERIOUS_ICON_SRC,
 } from "../delveCore.js";
 
+import { updateColorShiftVisibility } from "./colorShiftTab.js";
+
 const CORAL_MET_KEY_BASE = "ccc:coral_reefMet";
 export const CORAL_MET_EVENT = "ccc:coral:met";
 const sk = (base) => base + ":" + (getActiveSlot() ?? "default");
@@ -70,6 +72,7 @@ function ensureCoralOverlay() {
     tabBtn.title = "Dialogue";
     tabs.appendChild(tabBtn);
     panelsWrap.appendChild(panelDialogue);
+    
     content.append(tabs, panelsWrap);
     
     tabBtn.addEventListener("click", () => {
@@ -80,6 +83,8 @@ function ensureCoralOverlay() {
         tabBtn.classList.add("is-active");
         panelDialogue.classList.add("is-active");
     });
+    
+    updateColorShiftVisibility();
     
     const actions = document.createElement("footer");
     actions.className = "merchant-actions";
@@ -127,7 +132,7 @@ function renderDialogueList() {
     panel.innerHTML = "";
     const asocialMsg = document.createElement("div");
     asocialMsg.className = "coral-no-merchant-message";
-    asocialMsg.textContent = "There's nobody here...";
+    asocialMsg.innerHTML = "<span>There's nobody here...</span>";
     panel.appendChild(asocialMsg);
 }
 
@@ -191,6 +196,7 @@ function runFirstMeet() {
 
 
 
+
 export function openCoral() {
     ensureCoralOverlay();
     setDelveElements(coralOverlayEl, coralSheetEl);
@@ -225,6 +231,8 @@ export function openCoral() {
             }
         });
     });
+    
+    updateColorShiftVisibility();
 }
 
 export function closeCoral() {
@@ -247,5 +255,13 @@ if (typeof window !== "undefined") {
         if (coralOverlayEl?.classList.contains("is-open") && !coralOverlayEl.classList.contains("firstchat-active")) {
             closeCoral();
         }
+    });
+    
+    window.addEventListener("saveSlot:change", () => {
+        updateColorShiftVisibility();
+    });
+    
+    window.addEventListener("debug:challenge:change", () => {
+        updateColorShiftVisibility();
     });
 }
