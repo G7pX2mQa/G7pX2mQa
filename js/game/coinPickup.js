@@ -395,6 +395,31 @@ export function getPassiveCoinReward() {
     };
 }
 
+// --- Copper Challenge cache for hot-path performance ---
+let _copperChallengeActive = false;
+let _copperCacheInitialized = false;
+
+function isCopperChallengeActive() {
+    if (!_copperCacheInitialized) {
+        _copperCacheInitialized = true;
+        _copperChallengeActive = !!(window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper");
+        // Listen for challenge toggles to update the cache
+        try {
+            window.addEventListener("rubbleMode:toggled", () => {
+                _copperChallengeActive = !!(window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper");
+            });
+            window.addEventListener("saveSlot:change", () => {
+                _copperChallengeActive = !!(window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper");
+            });
+        } catch {}
+    }
+    return _copperChallengeActive;
+}
+
+if (typeof window !== "undefined") {
+    window.isCopperChallengeActive = isCopperChallengeActive;
+}
+
 export function triggerPassiveCollect(count = 1) {
     if (count <= 0) return;
     const { coinGain, xpGain, mpGain } = calculateCoinValue(null);
@@ -418,10 +443,8 @@ export function triggerPassiveCollect(count = 1) {
     const incIsZero = typeof totalCoin?.isZero === "function" ? totalCoin.isZero() : false;
     
     if (!incIsZero && !coinsLocked) {
-        if (window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper") {
-            if (bank?.books?.add) {
-                bank.books.add(totalCoin);
-            }
+        if (isCopperChallengeActive()) {
+            bank.books.add(totalCoin);
         } else {
             try {
                 coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
@@ -769,10 +792,8 @@ export function initCoinPickup({
         }
         onCoinCollected();
         if (totalCoin && !totalCoin.isZero?.()) {
-            if (window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper") {
-                if (bank?.books?.add) {
-                    bank.books.add(totalCoin);
-                }
+            if (isCopperChallengeActive()) {
+                bank.books.add(totalCoin);
             } else {
                 try {
                     coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
