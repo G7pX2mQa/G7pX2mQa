@@ -113,7 +113,7 @@ function ensureMinerOverlay() {
     panelDialogue.__dlgInit = true;
     const asocialMsg = document.createElement("div");
     asocialMsg.className = "miner-asocial-msg";
-    asocialMsg.textContent = "The Miner does not wish to chat with you right now";
+    asocialMsg.innerHTML = "<span>The Miner does not wish to chat with you right now</span>";
     panelDialogue.appendChild(asocialMsg);
     closeBtn.addEventListener("click", closeMiner);
     setupDragToClose(
