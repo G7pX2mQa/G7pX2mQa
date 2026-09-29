@@ -168,6 +168,7 @@ function getShopUiData(areaKey) {
         upgrades[def.id] = {
             id: def.id,
             icon,
+            extraIcon: def.extraIcon ? normalizeUpgradeIconPath(def.extraIcon) : null,
             title,
             desc,
             level: lvlBn,
@@ -953,8 +954,16 @@ class ShopInstance {
                 iconImg.addEventListener("error", () => {
                     iconImg.src = TRANSPARENT_PX;
                 });
+                const extraIconImg = document.createElement("img");
+                extraIconImg.className = "icon extra-icon";
+                extraIconImg.alt = "";
+                extraIconImg.hidden = true;
+                extraIconImg.addEventListener("error", () => {
+                    extraIconImg.src = TRANSPARENT_PX;
+                });
                 tile.appendChild(baseImg);
                 tile.appendChild(iconImg);
+                tile.appendChild(extraIconImg);
                 btn.appendChild(tile);
                 grid.appendChild(btn);
                 // Listeners
@@ -1281,6 +1290,7 @@ class ShopInstance {
                 ? LOCKED_BASE_ICON_SRC
                 : upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
             let rawIcon = upg.icon;
+            let extraIcon = upg.extraIcon;
             if (rawIcon === "img/misc/mysterious.webp" && baseSrc === LOCKED_BASE_ICON_SRC) {
                 baseSrc = "img/misc/mysterious_plus_base.webp";
                 rawIcon = null; // Hide the separate icon since it's now in the base
@@ -1297,6 +1307,29 @@ class ShopInstance {
                 if (iconImgEl._lastSrc !== iconSrc) {
                     iconImgEl.src = iconSrc;
                     iconImgEl._lastSrc = iconSrc;
+                }
+            }
+
+            let extraIconImgEl = tileEl.querySelector(".extra-icon");
+            if (!extraIconImgEl && extraIcon) {
+                extraIconImgEl = document.createElement("img");
+                extraIconImgEl.className = "icon extra-icon";
+                extraIconImgEl.alt = "";
+                extraIconImgEl.hidden = true;
+                extraIconImgEl.addEventListener("error", () => {
+                    extraIconImgEl.src = TRANSPARENT_PX;
+                });
+                tileEl.appendChild(extraIconImgEl);
+            }
+            if (extraIconImgEl) {
+                if (!extraIcon) {
+                    if (!extraIconImgEl.hidden) extraIconImgEl.hidden = true;
+                } else {
+                    if (extraIconImgEl.hidden) extraIconImgEl.hidden = false;
+                    if (extraIconImgEl._lastSrc !== extraIcon) {
+                        extraIconImgEl.src = extraIcon;
+                        extraIconImgEl._lastSrc = extraIcon;
+                    }
                 }
             }
 
