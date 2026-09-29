@@ -113,14 +113,13 @@
     background-repeat: no-repeat;
     background-color: transparent;
     transform: translate3d(0, 0, 0);
-    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    will-change: clip-path, opacity;
     transition: clip-path 200ms ease-out, opacity 1s linear;
 }
 
 .collapse-fracture-overlay.is-active {
     clip-path: circle(150% at 50% 50%);
+    opacity: 1;
 }
 
 .collapse-fracture-overlay.is-fading {
@@ -210,8 +209,8 @@
 }
 
 .collapse-tab .shop-tile img.icon {
-  width: 50%;
-  height: 50%;
+  width: 68%;
+  height: 68%;
 }
 
 @media (min-width: 601px) and (max-width: 1700px) {
