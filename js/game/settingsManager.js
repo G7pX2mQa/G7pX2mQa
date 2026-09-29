@@ -778,7 +778,8 @@ class SettingsManager {
             if (raw !== null) {
                 try {
                     const def = SETTING_DEFINITIONS[key];
-                    const isBool = def && def.type === "toggle";
+                    const isDynamicToggle = key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_") || key.startsWith("multipliers_");
+                    const isBool = (def && def.type === "toggle") || isDynamicToggle;
                     this.settings[key] = isBool ? (raw === "1" ? true : (raw === "0" ? false : JSON.parse(raw))) : JSON.parse(raw);
                     this._isDefault[key] = false;
                     this.notify(key, this.settings[key]);
