@@ -161,20 +161,20 @@ export const CORAL_REGISTRY = [
     {
         area: CORAL_AREA_KEY,
         id: 4,
-        title: "Material Value",
-        desc: "Doubles Material value per level",
-        lvlCap: 4,
+        title: "Advanced Researching II",
+        get desc() {
+            return `Improves RP value by ${formatNumber(BigNum.fromAny("1e200"))}x per level`;
+        },
+        lvlCap: 5,
+        baseCost: 1000,
         costType: "red_coral",
         upgType: "NM",
-        effectType: "all_materials_value",
-        icon: "img/coral_upg_icons/material_value.webp",
+        effectType: "rp_value",
+        icon: "img/uc_upg_icons/rp_val1.webp",
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
-            if (normalizedLevel === 0) return BigNum.fromAny("1e3");
-            if (normalizedLevel === 1) return BigNum.fromAny("1e5");
-            if (normalizedLevel === 2) return BigNum.fromAny("1e7");
-            if (normalizedLevel === 3) return BigNum.fromAny("1e9");
-            return BigNum.fromAny("Infinity");
+            if (normalizedLevel >= this.lvlCap) return BigNum.fromAny("Infinity");
+            return BigNum.fromInt(Math.floor(this.baseCost * Math.pow(33.3333333333, normalizedLevel)));
         },
         nextCostAfter(_, nextLevel) {
             return this.costAtLevel(nextLevel);
@@ -196,10 +196,10 @@ export const CORAL_REGISTRY = [
         },
         effectSummary(level) {
             const mult = this.effectMultiplier(level);
-            return `Material value bonus: ${formatMultForUi(mult)}x`;
+            return `RP value bonus: ${formatMultForUi(mult)}x`;
         },
         effectMultiplier(level) {
-            return E.powPerLevel(2)(level);
+            return E.powPerLevel("1e200")(level);
         },
     },
     {
