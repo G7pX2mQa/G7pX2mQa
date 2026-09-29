@@ -1468,6 +1468,9 @@ export function initBuildingOverlay() {
                     return false;
                 }
             }
+            if (buildingVisualsModule?.isTierUpLocked?.()) {
+                return false;
+            }
             return overlayEl.classList.contains("is-open");
         },
         closeBuildingDetailOverlay,
