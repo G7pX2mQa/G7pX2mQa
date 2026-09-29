@@ -201,7 +201,7 @@ function displayNotification(text, iconSrc, duration) {
                     icon.style.width = "100%";
                     icon.style.height = "100%";
                     if (index > 0) {
-                        icon.style.transform = "scale(0.65)";
+                        icon.style.transform = "scale(0.68)";
                     }
                     icon.alt = "";
                     wrapper.appendChild(icon);
