@@ -943,7 +943,7 @@ Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new aut
     } else if (id === "copper") {
         baseDescText = `The Challenge of ${capitalName}; the second Collapse Challenge
 You’ve gotten familiar with Coral Reef, now things are starting to get interesting
-Be sure you’ve maximized the levels of your Lab Nodes before starting this Collapse Challenge
+Be sure you’ve maximized the levels of your Lab Nodes before starting this (or any) Collapse Challenge
 
 You can exit a Collapse Challenge at any time to recover stats you had before starting
 
