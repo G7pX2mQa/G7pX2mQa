@@ -17,6 +17,7 @@ import { isBuildingUnlocked } from "./buildingsTab.js";
 import { suspendAllAudioFor } from "../../util/audioManager.js";
 import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
 import { showWideNotification } from "../notifications.js";
+import { onDpChange } from "../../game/dpSystem.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
 let cachedCollapseUnlockedStates = {};
@@ -731,7 +732,7 @@ function ensureMysteriousChallengeOverlay() {
     setupDragToClose(grabber, sheet, () => overlay.classList.contains("is-open"), closeMysteriousChallengeOverlay);
 }
 
-function openMysteriousChallengeOverlay(mysteriousText) {
+function openMysteriousChallengeOverlay(matName) {
     const existingOverlay = document.getElementById("mysterious-challenge-overlay");
     if (existingOverlay && existingOverlay.classList.contains("is-open")) return;
     lastMysteriousOpenTime = Date.now();
@@ -741,12 +742,35 @@ function openMysteriousChallengeOverlay(mysteriousText) {
     const header = overlay.querySelector(".upg-header");
     const content = overlay.querySelector(".upg-content");
     const actions = overlay.querySelector(".upg-actions");
-    header.innerHTML = `
-        <div class="upg-title">Hidden Challenge</div>
-    `;
-    content.innerHTML = `
-        <div class="upg-desc centered lock-desc">${mysteriousText}</div>
-    `;
+    
+    const updateText = () => {
+        const capitalName = matName.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        const properName = isBuildingUnlocked(matName) ? capitalName : "[Unknown]";
+        const mysteriousText = `You will know when you are ready to attempt the Challenge of ${properName}`;
+        
+        header.innerHTML = `
+            <div class="upg-title">Hidden Challenge</div>
+        `;
+        content.innerHTML = `
+            <div class="upg-desc centered lock-desc">${mysteriousText}</div>
+        `;
+    };
+    
+    updateText();
+    
+    if (currentMysteriousDpListener) {
+        window.removeEventListener("dp:change", currentMysteriousDpListener);
+        window.removeEventListener("level:change", currentMysteriousDpListener);
+    }
+    
+    currentMysteriousDpListener = () => {
+        if (!overlay.classList.contains("is-open")) return;
+        updateText();
+    };
+    
+    window.addEventListener("dp:change", currentMysteriousDpListener);
+    window.addEventListener("level:change", currentMysteriousDpListener);
+
     actions.innerHTML = `
         <button type="button" class="shop-close">Close</button>
     `;
@@ -754,11 +778,19 @@ function openMysteriousChallengeOverlay(mysteriousText) {
     closeBtn.addEventListener("click", closeMysteriousChallengeOverlay);
     openChallengeOverlaySheet(overlay, sheet);
 }
+let currentMysteriousDpListener = null;
 
 function closeMysteriousChallengeOverlay() {
     const overlay = document.getElementById("mysterious-challenge-overlay");
     if (!overlay) return;
     if (overlay.style.pointerEvents === "none") return;
+    
+    if (currentMysteriousDpListener) {
+        window.removeEventListener("dp:change", currentMysteriousDpListener);
+        window.removeEventListener("level:change", currentMysteriousDpListener);
+        currentMysteriousDpListener = null;
+    }
+    
     overlay.style.pointerEvents = "none";
     const sheet = overlay.querySelector(".upg-sheet");
     applyChallengeOverlayTransition(sheet);
@@ -851,8 +883,10 @@ function openChallengeOverlay(id, forceRedraw = false) {
     
     const formattedNum = formatNumber(BigNum.fromAny("1e100"));
     
-    const baseDescText = `Welcome to Collapse Challenges; there are 10 total Collapse Challenges you must complete
-Collapse Challenge completions are permanent (never will be reset) and each completion unlocks something new
+    let baseDescText = "";
+    if (id === "stone") {
+        baseDescText = `Welcome to Collapse Challenges; there are 10 total Collapse Challenges you must complete
+Collapse Challenge completions are permanent (will never be reset) and each completion unlocks something new
 
 The Challenge of ${capitalName}; the first Collapse Challenge
 Starting a Collapse Challenge resets everything Compress does as well as Crystals, the Crystal Building, and Pressure/PP
@@ -863,6 +897,13 @@ Persistence of Lab Nodes when starting a Collapse Challenge will assist your rec
 Effect: Coin value is divided by ${formattedNum}x
 Goal: Reach Pressure: 31atm
 Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade`.trim();
+    } else if (id === "copper") {
+        baseDescText = `The Challenge of ${capitalName}
+[Placeholder challenge text]`.trim();
+    } else {
+        baseDescText = `The Challenge of ${capitalName}
+[Placeholder challenge text]`.trim();
+    }
 
     desc.textContent = baseDescText;
 
@@ -1146,7 +1187,9 @@ export function renderCollapseGrid(gridEl) {
         if (!mat) break;
         
         const isFirst = i === 0;
-        const isLocked = !isFirst;
+        const slot = getActiveSlot() ?? "default";
+        const debugVisible = lsGetItem(`ccc:collapseChallengeVisible:${mat.name}:${slot}`) === "1";
+        const isLocked = !isFirst && !debugVisible;
         
         const btn = document.createElement("button");
         btn.className = "shop-upgrade";
@@ -1182,13 +1225,13 @@ export function renderCollapseGrid(gridEl) {
         const buildingUnlocked = isBuildingUnlocked(mat.name);
         const capitalName = mat.name.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
         
+        btn.dataset.matName = mat.name;
+        btn.dataset.unlocked = buildingUnlocked ? "1" : "0";
+        
         if (isLocked) {
-            const properName = buildingUnlocked ? capitalName : "[Unknown]";
-            
-            const mysteriousText = `You will know when you are ready to attempt the Challenge of ${properName}`;
             btn.title = "Hidden Challenge";
             btn.addEventListener("click", () => {
-                openMysteriousChallengeOverlay(mysteriousText);
+                openMysteriousChallengeOverlay(mat.name);
             });
         } else {
             btn.title = `Challenge of ${capitalName}`;
@@ -1250,6 +1293,40 @@ export function initCollapsePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWr
     if (isCollapseUnlocked()) {
         renderCollapseGrid(grid);
     }
+    
+    window.addEventListener("debug:challenge:change", () => {
+        if (panel.classList.contains("is-active")) {
+            renderCollapseGrid(grid);
+        }
+    });
+
+    const handleDpChange = () => {
+        if (!panel.classList.contains("is-active")) return;
+        
+        let needsRender = false;
+        const children = grid.querySelectorAll(".shop-upgrade");
+        for (const child of children) {
+            const matName = child.dataset.matName;
+            if (matName) {
+                const wasUnlocked = child.dataset.unlocked === "1";
+                if (isBuildingUnlocked(matName) !== wasUnlocked) {
+                    needsRender = true;
+                    break;
+                }
+            }
+        }
+        
+        if (needsRender) {
+            renderCollapseGrid(grid);
+        }
+    };
+
+    window.addEventListener("dp:change", handleDpChange);
+    window.addEventListener("level:change", (e) => {
+        if (e.detail?.prefix === "dp") {
+            handleDpChange();
+        }
+    });
 }
 
 export function updateCollapsePanelVisibility(minerSheetEl) {
