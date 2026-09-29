@@ -436,24 +436,34 @@ export function initAutomationEffects() {
         });
     }
 }
+export function getEacEfficiencyMultiplier() {
+    const eacEfficiency = settingsManager.get("eac_efficiency");
+    return eacEfficiency !== undefined ? eacEfficiency / 100 : 1;
+}
+
+export function getEacRate() {
+    const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
+    let rate = level || 0;
+    for (const provider of externalEacProviders) {
+        try {
+            const val = provider();
+            if (Number.isFinite(val)) rate *= val;
+        } catch {}
+    }
+    return rate;
+}
+
+if (typeof window !== "undefined") {
+    window.getEacEfficiencyMultiplier = getEacEfficiencyMultiplier;
+    window.getEacRate = getEacRate;
+    window.getEacAmountMultiplier = getEacAmountMultiplier;
+}
+
 // Register Standard Auto Collect
 registerPassiveSystem({
     id: "standard_auto_collect",
-    getEfficiencyMultiplier: () => {
-        const eacEfficiency = settingsManager.get("eac_efficiency");
-        return eacEfficiency !== undefined ? eacEfficiency / 100 : 1;
-    },
-    getRate: () => {
-        const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
-        let rate = level || 0;
-        for (const provider of externalEacProviders) {
-            try {
-                const val = provider();
-                if (Number.isFinite(val)) rate *= val;
-            } catch {}
-        }
-        return rate;
-    },
+    getEfficiencyMultiplier: getEacEfficiencyMultiplier,
+    getRate: getEacRate,
     getAmountMultiplier: getEacAmountMultiplier,
     onTick: (collectCount, dt) => {
         triggerPassiveCollect(collectCount);
@@ -465,8 +475,13 @@ registerPassiveSystem({
         const coinsEarned = singleReward.coins.mulBigNumInteger(totalPassives);
         const xpEarned = singleReward.xp.mulBigNumInteger(totalPassives);
         const mpEarned = singleReward.mp.mulBigNumInteger(totalPassives);
-        if (!coinsEarned.isZero() && !isCurrencyLocked("coins", slot)) {
-            rewards.coins = coinsEarned;
+        if (!coinsEarned.isZero()) {
+            const isCopper = window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper";
+            if (isCopper && !isCurrencyLocked("books", slot)) {
+                rewards.books = coinsEarned;
+            } else if (!isCopper && !isCurrencyLocked("coins", slot)) {
+                rewards.coins = coinsEarned;
+            }
         }
         if (!xpEarned.isZero() && !isCurrencyLocked("xp", slot)) {
             rewards.xp = xpEarned;
