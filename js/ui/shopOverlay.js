@@ -912,6 +912,8 @@ class ShopInstance {
             }
         } else if (areaKey === AREA_KEYS.UNDERWATER_CAVERN) {
             shouldGlow = !hasMetMiner();
+        } else if (areaKey === AREA_KEYS.CORAL_REEF) {
+            shouldGlow = !hasMetCoral();
         } else {
             const slot = getActiveSlot();
             const safeSlot = slot ?? "default";
