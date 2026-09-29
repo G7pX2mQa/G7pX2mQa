@@ -1,70 +1,44 @@
-.currencies-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  color: #fff;
-}
-
-.currency-row {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  background: linear-gradient(to bottom, rgba(40, 40, 40, 0.95), rgba(25, 25, 25, 0.98));
-  border: 3px solid #000;
-  border-radius: 0;
-  padding: 8px 16px;
-  min-height: 60px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  position: relative;
-  margin-left: 24px;
-}
-
-/* Currencies overlay: reduce vertical padding so the scrap row (which has two
-   lines of text) doesn't become disproportionately tall */
-#currencies-overlay .currency-row.scrap-row--has-subtext {
-  padding-top: 2px;
-  padding-bottom: 2px;
-}
-
-/* Multipliers overlay: increase min-height so the scrap row matches the taller
-   height of the currencies overlay version */
-#multipliers-overlay .currency-row.scrap-row--has-subtext {
-  min-height: 72px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-
-.currency-row.universal-row {
-  background: linear-gradient(to bottom, 
-    #1a1a1c 0%, 
-    #28282b 15%, 
-    #2f2f33 50%, 
-    #28282b 85%, 
-    #1a1a1c 100%
-);
-  border: 3px solid #000;
-}
-
-.currency-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  padding-left: 48px;
-  min-width: 0; /* Prevent flex blowout */
-}
-
-.currency-icon-wrapper {
+#pinned-currencies-container {
   position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.pinned-currencies {
+  position: absolute;
+  top: 30vh;
+  left: 10px;
+  z-index: 100;
+  pointer-events: none; /* Let clicks pass through to the game */
+}
+.pinned-currency-wrapper {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  margin-left: 22px; /* Space for the overlapping icon */
+}
+
+.pinned-currency {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 150px;
+  height: 100%;
+  border: 2px solid #000 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  /* Fallback background if no data-currency matches */
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.pinned-currency-icon-wrapper {
+  position: absolute;
+  left: -22px; /* Offset to match standard hud icon underlap */
   top: 50%;
-  left: -32px;
   transform: translateY(-50%);
-  width: 72px;
-  height: 72px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,15 +46,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 600px) {
-  .currency-icon-wrapper {
-    /* If the row gets taller due to wrapping, we might want the icon anchored near the top rather than the absolute center, so it lines up with the text */
-    top: 30px;
-    transform: translateY(-50%);
-  }
-}
-
-.currency-base {
+.pinned-currency-base {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -88,31 +54,47 @@
   pointer-events: none;
 }
 
-.currency-icon {
+.pinned-currency-icon-inner {
   position: absolute;
-  width: 68%;
-  height: 68%;
+  width: 65%;
+  height: 65%;
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
 }
 
-.currency-amount {
-  font-size: 24px;
+.pinned-currency-icon {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: high-quality;
+}
+
+.pinned-currency-value {
   color: #fff;
+  font-size: 16px;
   font-weight: 900;
-  letter-spacing: .5px;
-  -webkit-text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
-  -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
-  text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
-  text-stroke-width: calc(1px * var(--stroke-mult, 1));
-  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+  letter-spacing: 0.5px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(calc(-50% + 4px), -50%);
+  z-index: 1;
+  white-space: nowrap;
+  
+  /* Desktop standard stroke */
+  -webkit-text-stroke: calc(0.5px * var(--stroke-mult, 1)) #000;
+  text-stroke: calc(0.5px * var(--stroke-mult, 1)) #000;
+  text-shadow: 0 0.5px 0 rgba(0,0,0,0.35);
+  
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
+/* FTS for mobile touch devices */
 html.is-mobile {
-  .currency-amount {
+  .pinned-currency-value {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     -webkit-text-fill-color: #fff;
@@ -121,261 +103,116 @@ html.is-mobile {
       0.5px 0   0 #000, -0.5px 0   0 #000,
       0.5px 0.5px 0 #000,  0.5px -0.5px 0 #000,
      -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
-      0 1px 0 rgba(0,0,0,0.28) !important;
+      0 1px 0 rgba(0,0,0,0.5) !important;
   }
 }
 
-.level-row-amount {
-  flex: 1;
-  display: flex;
-  margin-right: 16px;
-}
-
-.level-row-bar {
-  width: 100%;
-  margin-left: -12px;
-}
-
-.currency-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1 1 100%; /* allows it to grow and wrap nicely */
-  align-items: flex-end; /* right-align the buttons when it drops */
-}
-
-@media (min-width: 600px) {
-  .currency-controls {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-}
-
-.currency-dropdown-btn {
-  max-width: 100%;
-  white-space: normal;
-  display: inline-flex;
-  flex-wrap: wrap;
-  background: #333;
-  border: 1px solid #555;
-  border-radius: 6px;
-  color: #fff;
-  padding: 6px 12px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 140px;
-  max-width: 100%;
-  white-space: normal;
-  text-align: left;
-  line-height: 1.2;
-  height: auto;
-}
-
-.currency-dropdown-btn:hover {
-  background: #444;
-}
-
-.currency-dropdown-btn::after {
-  content: '▼';
-  font-size: 10px;
-  margin-left: 8px;
-}
-
-.currency-dropdown-menu {
+.pinned-levels {
   position: absolute;
-  top: 100%;
-  right: 16px;
-  background: #222;
-  border: 1px solid #4a4a4a;
-  border-radius: 6px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.8);
-  padding: 8px;
-  display: none;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 10;
-  min-width: 160px;
-}
-
-.currency-dropdown-menu.is-open {
-  display: flex;
-}
-
-.currency-toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.currency-checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.currency-row[data-currency] { border-color: #000 !important; }
-
-.setting-dropdown-btn {
-    font-size: 13px !important;
-    font-weight: bold !important;
-    padding: 6px 12px !important;
-    white-space: normal !important;
-    text-align: left !important;
-    line-height: 1.2 !important;
-    height: auto !important;
-    max-width: 100% !important;
-}
-
-.setting-dropdown-btn .setting-dropdown-value {
-    white-space: normal !important;
-    flex-wrap: wrap !important;
-    display: inline-flex !important;
-}
-
-@media (max-width: 600px) {
-  .setting-dropdown-btn .setting-dropdown-value {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 4px !important;
-  }
-  .dropdown-vertical-bar {
-    display: none !important;
-  }
-}
-
-
-
-.paintbrush-btn-anim {
-  background: none !important;
-  border: 1px solid #222 !important;
-  position: relative;
-  z-index: 1;
-}
-
-.paintbrush-btn-anim:hover {
-  background-color: #ffffff1a !important;
-}
-
-
-
-.multipliers-note {
-  color: white;
-  text-align: center;
-  font-size: 18px;
-}
-
-@media (max-width: 450px) {
-  .multipliers-note {
-    font-size: 14px;
-  }
-}
-
-/* Shared Level Bar Styles inside SAS Overlay */
-.currency-amount .level-row-bar {
-  flex: 1;
-  position: relative;
-  z-index: 1;
-  height: clamp(34px, 5.2svh, 46px);
-  border: var(--bar-outline-w, 3px) solid var(--bar-border-color, #000);
-  border-radius: 0;
-  box-shadow: var(--bar-box-shadow, inset 0 6px 10px rgba(255,192,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52));
-  overflow: hidden;
+  top: 30vh;
+  left: 192px;
+  z-index: 101;
   pointer-events: none;
 }
-
-.currency-amount .level-row-bar__fill {
+.pinned-level-wrapper {
   position: absolute;
-  inset: 0;
-  width: 0%;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  margin-left: 22px;
 }
 
-.currency-amount .level-row-bar__fill::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--glass-bg, linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0)));
-  opacity: var(--glass-opacity, 0.55);
-  mix-blend-mode: screen;
-}
-
-.currency-amount .level-row-bar__frame {
+.pinned-level {
   position: relative;
-  z-index: 1;
+  display: flex;
+  align-items: center;
+  width: 150px;
   height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(4px, 0.5svh, 6px);
-  padding: clamp(3px, 0.9svh, 5px) clamp(10px, 2.4vw, 16px);
-  font-size: clamp(10px, 1.6vw, 14px);
-  font-weight: 700;
-  color: #fff3e5;
-  text-align: center;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.75) !important;
-  -webkit-text-stroke: 0 !important;
-  text-stroke: 0 !important;
-  pointer-events: none;
+  border: var(--pinned-border-w, 2px) solid var(--pinned-border-color, #000) !important;
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.5),
+    var(--pinned-box-shadow, none);
+  background: rgba(0, 0, 0, 0.5);
 }
 
-.currency-amount .level-row-bar__level {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3em;
-  letter-spacing: 0;
-  line-height: 0.75;
+.pinned-level-icon {
+  position: absolute;
+  left: -22px; /* Offset to match standard hud icon underlap */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: high-quality;
+  z-index: 2;
 }
 
-.currency-amount .level-row-level-value {
-  font-size: clamp(12px, 2.0vw, 15px);
-}
-
-.currency-amount .level-row-bar__divider {
-  display: none;
-}
-
-.currency-amount .level-row-bar__progress {
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 3px;
-  font-size: clamp(12px, 2.0vw, 15px);
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-  line-height: 0.75;
-}
-
-.currency-amount .level-row-progress-suffix {
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.currency-amount .level-row-progress-separator {
-  opacity: 0.8;
-}
-
-/* Multiplier specific centering logic */
-#multipliers-overlay .currency-amount {
+.pinned-level-value {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
-  margin-left: 0 !important;
-  width: 100%;
-  text-align: center;
-  padding: 0 40px;
+  transform: translate(calc(-50% + 4px), -50%);
+  z-index: 1;
+  white-space: nowrap;
+  
+  -webkit-text-stroke: calc(0.5px * var(--stroke-mult, 1)) #000;
+  text-stroke: calc(0.5px * var(--stroke-mult, 1)) #000;
+  text-shadow: 0 0.5px 0 rgba(0,0,0,0.35);
+  
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-@media (max-width: 600px) {
-  #multipliers-overlay .currency-amount {
-    font-size: 16px;
+html.is-mobile {
+  .pinned-level-value {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0   0.5px 0 #000,  0  -0.5px 0 #000,
+      0.5px 0   0 #000, -0.5px 0   0 #000,
+      0.5px 0.5px 0 #000,  0.5px -0.5px 0 #000,
+     -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.5) !important;
   }
 }
+
+/* Gradients for pinned levels are now managed dynamically via JS and CSS variables 
+   var(--pinned-bg) and var(--pinned-fill) 
+*/
+.pinned-level {
+    background: var(--pinned-bg, rgba(0, 0, 0, 0.5)) !important;
+}
+
+.pinned-level-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: var(--pinned-fill, transparent);
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    overflow: hidden;
+}
+
+.pinned-level-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--pinned-glass-bg, none);
+    opacity: var(--pinned-glass-opacity, 0);
+    mix-blend-mode: screen;
+}
+
+.pinned-currency-value .infinity-symbol,
+.pinned-level-value .infinity-symbol {
+  top: -1px;
+}
+
+
