@@ -40,6 +40,7 @@ let listeners = [];
 const externalSpawnRateProviders = [];
 const externalCoresMultiplierProviders = [];
 const externalCrystalsMultiplierProviders = [];
+const externalBookMultiplierProviders = [];
 
 export function addExternalCoresMultiplierProvider(provider) {
     externalCoresMultiplierProviders.push(provider);
@@ -47,6 +48,19 @@ export function addExternalCoresMultiplierProvider(provider) {
 
 export function addExternalCrystalsMultiplierProvider(provider) {
     externalCrystalsMultiplierProviders.push(provider);
+}
+
+export function addExternalBookMultiplierProvider(provider) {
+    if (typeof provider === 'function') {
+        externalBookMultiplierProviders.push(provider);
+        return () => {
+            const idx = externalBookMultiplierProviders.indexOf(provider);
+            if (idx > -1) {
+                externalBookMultiplierProviders.splice(idx, 1);
+            }
+        };
+    }
+    return () => {};
 }
 
 export function addExternalSpawnRateMultiplierProvider(provider) {
@@ -110,6 +124,12 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     if (AREA_KEYS.CORAL_REEF) {
         const coralUpgrades = getUpgradesForArea(AREA_KEYS.CORAL_REEF);
         additionalUpgrades.push(...coralUpgrades);
+    }
+
+    // Include Rubble upgrades when a collapse challenge is active
+    if (AREA_KEYS.RUBBLE && window.resetSystem?.isCollapseChallengeActive?.()) {
+        const rubbleUpgrades = getUpgradesForArea(AREA_KEYS.RUBBLE);
+        additionalUpgrades.push(...rubbleUpgrades);
     }
   }
   const allUpgrades = [...upgrades, ...additionalUpgrades];
@@ -424,6 +444,16 @@ try {
       }
 
       finalBookValue = applyStatMultiplierOverride('books', finalBookValue.clone?.() ?? finalBookValue);
+      for (const provider of externalBookMultiplierProviders) {
+        try {
+          const val = provider({ baseMultiplier: finalBookValue });
+          if (val instanceof BigNum) {
+            finalBookValue = val;
+          } else if (val) {
+            finalBookValue = finalBookValue.mulBigNumInteger(BigNum.fromAny(val));
+          }
+        } catch {}
+      }
       bank.books.mult.set(finalBookValue);
     }
   } catch {}
