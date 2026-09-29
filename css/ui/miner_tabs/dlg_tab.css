@@ -10,6 +10,11 @@
   font-size: clamp(14px, 3.5vw, 24px);
 }
 
+.miner-asocial-msg span {
+  user-select: text;
+  cursor: text;
+}
+
 #miner-panel-dialogue.is-active {
   display: flex;
   align-items: center;
