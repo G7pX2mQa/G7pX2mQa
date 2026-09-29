@@ -112,14 +112,31 @@
     background-position: center;
     background-repeat: no-repeat;
     background-color: transparent;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
     backface-visibility: hidden;
-    transition: clip-path 200ms ease-out, opacity 1s linear;
+    transition: opacity 1s linear;
+}
+
+@keyframes fracture-sprawl-anim {
+    0% { 
+        clip-path: circle(0% at 50% 50%); 
+        transform: translate3d(0, 0, 0) scale(1);
+        animation-timing-function: ease-out;
+    }
+    2% { 
+        clip-path: circle(150% at 50% 50%); 
+        transform: translate3d(0, 0, 0) scale(1.001);
+        animation-timing-function: linear;
+    }
+    100% { 
+        clip-path: circle(150% at 50% 50%); 
+        transform: translate3d(0, 0, 0) scale(1.001);
+    }
 }
 
 .collapse-fracture-overlay.is-active {
-    clip-path: circle(150% at 50% 50%);
     opacity: 1;
+    animation: fracture-sprawl-anim 10s forwards;
 }
 
 .collapse-fracture-overlay.is-fading {
