@@ -364,7 +364,6 @@ const computeMutationMultiplier = (spawnLevelStr) => {
         return stored;
     }
 };
-// --- New Logic for Passive/Active Automation ---
 function calculateCoinValue(spawnLevelStr) {
     const base = BASE_COIN_VALUE.clone?.() ?? BigNum.fromInt(1);
     let inc = applyCoinMultiplier(base);
@@ -417,16 +416,21 @@ export function triggerPassiveCollect(count = 1) {
 
     const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
     const incIsZero = typeof totalCoin?.isZero === "function" ? totalCoin.isZero() : false;
+    
     if (!incIsZero && !coinsLocked) {
-        try {
-            coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
-        } catch {
-            coinsVal = cloneBn(totalCoin);
+        if (window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper") {
+            if (bank?.books?.add) {
+                bank.books.add(totalCoin);
+            }
+        } else {
+            try {
+                coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
+            } catch {
+                coinsVal = cloneBn(totalCoin);
+            }
+            scheduleHudUpdate();
+            queueCoinGain(totalCoin);
         }
-    }
-    scheduleHudUpdate();
-    if (!incIsZero) {
-        queueCoinGain(totalCoin);
     }
 
     const xpEnabled = typeof isXpSystemUnlocked === "function" ? isXpSystemUnlocked() : true;
@@ -765,13 +769,19 @@ export function initCoinPickup({
         }
         onCoinCollected();
         if (totalCoin && !totalCoin.isZero?.()) {
-            try {
-                coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
-            } catch {
-                coinsVal = cloneBn(totalCoin);
+            if (window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "copper") {
+                if (bank?.books?.add) {
+                    bank.books.add(totalCoin);
+                }
+            } else {
+                try {
+                    coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
+                } catch {
+                    coinsVal = cloneBn(totalCoin);
+                }
+                queueCoinGain(totalCoin);
+                scheduleHudUpdate();
             }
-            queueCoinGain(totalCoin);
-            scheduleHudUpdate();
         }
         if (totalXp && !totalXp.isZero?.()) {
             queueXpGain(totalXp);
