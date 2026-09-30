@@ -2,6 +2,9 @@ import {
     AREA_KEYS,
     formatMultForUi,
 } from "./upgrades.js";
+import { getActiveSlot } from "../util/storage.js";
+import { lsGetItem } from "../main.js";
+import { isBuildingUnlocked } from "../ui/minerTabs/buildingsTab.js";
 
 export const RUBBLE_AREA_KEY = "rubble_upgrades";
 
@@ -40,6 +43,28 @@ export const RUBBLE_REGISTRY = [
         baseIconOverride: "img/currencies/rubble/rubble_base.webp",
         _baseEffectVal: 10,
         _costScaling: true,
-        bonusLine: (level, total) => `Book value bonus: ${formatMultForUi(total)}x`
+        bonusLine: (level, total) => `Book value bonus: ${formatMultForUi(total)}x`,
+        computeLockState() {
+            let isUnlocked = false;
+            try {
+                const activeSlot = getActiveSlot() ?? "default";
+                const isActive = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
+                const isCompleted = lsGetItem(`ccc:collapseChallengeCompleted:copper:${activeSlot}`) === "1";
+                isUnlocked = isActive || isCompleted;
+            } catch {}
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            let hasUnlockedCopper = false;
+            try {
+                hasUnlockedCopper = isBuildingUnlocked("copper");
+            } catch {}
+
+            const revealText = hasUnlockedCopper 
+                ? "Start the Challenge of Copper to reveal this upgrade" 
+                : "Start the Challenge of [Unknown] to reveal this upgrade";
+            
+            return { state: "mysterious", unlockReqText: revealText };
+        }
     },
 ];
