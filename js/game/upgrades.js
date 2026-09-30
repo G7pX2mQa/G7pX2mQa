@@ -4073,6 +4073,9 @@ export function peekNextPrice(areaKey, upgId) {
 }
 
 export function setLevel(areaKey, upgId, lvl, clampToCap = true, options = {}) {
+    const slot = options?.slot ?? getActiveSlot();
+    const storageKey = getUpgradeStorageKey(areaKey, upgId, slot);
+    if (storageKey && isStorageKeyLocked(storageKey)) return ensureUpgradeState(areaKey, upgId).lvl;
     const state = ensureUpgradeState(areaKey, upgId);
     const upg = state.upg;
     const { resetHmEvolutions = false } = options ?? {};
