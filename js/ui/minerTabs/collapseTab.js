@@ -884,7 +884,7 @@ Be sure you’ve maximized the levels of your Lab Nodes before starting this (or
 You can exit a Collapse Challenge at any time to recover stats you had before starting
 
 Effect: Book gain is swapped with Coin gain and vice versa
-Goal: Reach Pressure: 999atm
+Goal: Reach Pressure: 50atm
 Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
@@ -913,7 +913,7 @@ Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim
         }
         if (challengeId === "copper") {
             try {
-                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(999) >= 0) {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(50) >= 0) {
                     return true;
                 }
             } catch {}
@@ -947,12 +947,7 @@ Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim
         if (isCompleted) return;
         
         if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === id) {
-            let currentGoalReached = false;
-            try {
-                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(31) >= 0) {
-                    currentGoalReached = true;
-                }
-            } catch {}
+            let currentGoalReached = checkChallengeGoalReached(id);
 
             if (currentGoalReached) {
                 // Complete
