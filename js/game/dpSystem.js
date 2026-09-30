@@ -414,8 +414,11 @@ function updateDpRequirement() {
 }
 
 function resetLockedDpState() {
-    dpState.dpLevel = bnZero();
-    dpState.progress = bnZero();
+    const slot = getActiveSlot();
+    const lLocked = slot != null ? isKeyLocked(KEY_DP_LEVEL(slot)) : false;
+    const pLocked = slot != null ? isKeyLocked(KEY_PROGRESS(slot)) : false;
+    if (!lLocked) dpState.dpLevel = bnZero();
+    if (!pLocked) dpState.progress = bnZero();
     updateDpRequirement();
 }
 
