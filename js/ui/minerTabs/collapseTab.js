@@ -883,7 +883,7 @@ Be sure you’ve maximized the levels of your Lab Nodes before starting this (or
 
 You can exit a Collapse Challenge at any time to recover stats you had before starting
 
-Effect: Book gain is swapped with Coin gain and vice versa
+Effect: Books become Coins and Coins become Books
 Goal: Reach Pressure: 50atm
 Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim();
     } else {
