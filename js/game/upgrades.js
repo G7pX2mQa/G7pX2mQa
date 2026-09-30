@@ -3361,7 +3361,7 @@ function clearCachedAreaState(storageKey) {
     areaStatePayloadCache.delete(storageKey);
 }
 
-function clearCachedUpgradeStates(areaKey, slot) {
+export function clearCachedUpgradeStates(areaKey, slot) {
     const slotKey = slot == null ? "null" : String(slot);
     const prefix = `${slotKey}:${areaKey}:`;
     for (const key of upgradeStateCache.keys()) {
