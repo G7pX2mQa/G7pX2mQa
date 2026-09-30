@@ -65,8 +65,11 @@ function updatePpRequirement() {
 }
 
 function resetLockedPpState() {
-    ppState.ppLevel = bnZero();
-    ppState.progress = bnZero();
+    const slot = getActiveSlot();
+    const lLocked = slot != null ? isKeyLocked(KEY_PP_LEVEL(slot)) : false;
+    const pLocked = slot != null ? isKeyLocked(KEY_PROGRESS(slot)) : false;
+    if (!lLocked) ppState.ppLevel = bnZero();
+    if (!pLocked) ppState.progress = bnZero();
     updatePpRequirement();
 }
 
