@@ -2099,7 +2099,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/currencies/coin/coin_plus_base.webp",
 			"img/currencies/coral/coral_red.webp",
 			"img/currencies/coral/coral_red_base.webp",
-			"img/currencies/coral/coral_pattern_red.webp",
+			"img/currencies/coral/coral_ceiling_red.webp",
 			"img/currencies/coral/coral_red_plus_base.webp",
             "img/currencies/core/core.webp",
             "img/currencies/core/core_base.webp",
