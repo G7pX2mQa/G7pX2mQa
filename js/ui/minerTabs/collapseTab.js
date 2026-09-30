@@ -4,7 +4,7 @@ import { getSaveDataForSlot, applySaveDataToSlot } from "../../util/slotsManager
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
-import { AREA_KEYS, UPGRADE_TIES, setLevel } from "../../game/upgrades.js";
+import { AREA_KEYS, UPGRADE_TIES, setLevel, clearCachedUpgradeStates } from "../../game/upgrades.js";
 import { getCurrencyMultiplierBN } from "../../util/storage.js";
 import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
@@ -18,6 +18,7 @@ import { suspendAllAudioFor } from "../../util/audioManager.js";
 import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
 import { showWideNotification } from "../notifications.js";
 import { onDpChange } from "../../game/dpSystem.js";
+import { clearPendingGains } from "../../game/coinPickup.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
 let cachedCollapseUnlockedStates = {};
@@ -222,10 +223,10 @@ function hideFractureOverlay() {
 
 function getWhitelistPrefixes() {
     return [
-        "ccc:upgrade:starter_cove:",
-        "ccc:upgrade:underwater_cavern:",
-        "ccc:upgrade:dna:",
-        "ccc:upgrade:rubble:",
+        "ccc:upgrades:starter_cove:",
+        "ccc:upgrades:underwater_cavern:",
+        "ccc:upgrades:dna:",
+        "ccc:upgrades:rubble:",
         "ccc:buildingLevel:",
         "ccc:lab:node:level:",
         "ccc:lab:node:rp:",
@@ -296,7 +297,7 @@ export function startCollapseChallenge(materialName) {
                         break;
                     }
                 }
-                if (!keep) {
+                if (!keep || key.startsWith("ccc:mult:rainbowGems:")) {
                     delete backupData[key];
                 }
             }
@@ -310,8 +311,10 @@ export function startCollapseChallenge(materialName) {
     // Set active state
     setCollapseChallengeActive(materialName);
 
-    // Register coin debuff (÷1e100)
-    registerCoinDebuff();
+    // Register coin debuff (÷1e100) only for stone
+    if (materialName === "stone") {
+        registerCoinDebuff();
+    }
     syncCoinMultiplierWithXpLevel(true);
 
     // Pause all audio for 4 seconds, smoothly fading it back in over the last 1 second
@@ -378,6 +381,9 @@ export function startCollapseChallenge(materialName) {
 }
 
 function restoreChallengeBackup(slot) {
+    if (typeof clearPendingGains === "function") {
+        clearPendingGains();
+    }
     let restoredBackup = false;
     try {
         if (slot != null) {
@@ -443,6 +449,11 @@ function restoreChallengeBackup(slot) {
                 
                 cachedChallengeActive[slot] = false;
                 restoredBackup = true;
+
+                clearCachedUpgradeStates("starter_cove", slot);
+                clearCachedUpgradeStates("underwater_cavern", slot);
+                clearCachedUpgradeStates("dna", slot);
+                clearCachedUpgradeStates("rubble", slot);
                 
                 if (typeof window !== "undefined") {
                     window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
@@ -471,7 +482,6 @@ function exitCollapseChallenge(materialName) {
 
     // Unregister coin debuff
     unregisterCoinDebuff();
-    syncCoinMultiplierWithXpLevel(true);
 
     const slot = getActiveSlot();
     const restoredBackup = restoreChallengeBackup(slot);
@@ -530,10 +540,14 @@ function completeCollapseChallenge(materialName) {
 
     // Clear active state
     setCollapseChallengeActive(null);
+    
+    // Clear any queued gains from the final challenge tick to prevent them from inflating restored currencies
+    if (typeof clearPendingGains === "function") {
+        clearPendingGains();
+    }
 
     // Unregister coin debuff
     unregisterCoinDebuff();
-    syncCoinMultiplierWithXpLevel(true);
 
     if (slot != null) {
         const backupStr = lsGetItem(`ccc:challengeBackup:${slot}`);
@@ -571,6 +585,27 @@ function completeCollapseChallenge(materialName) {
                         }
                     }
                 }
+
+                if (materialName === "copper") {
+                    // Set Coins and Books to 0 to prevent keeping massively inflated values from the challenge
+                    const coinsKey = `ccc:coins:${slot}`;
+                    const booksKey = `ccc:books:${slot}`;
+                    
+                    lsSetItem(coinsKey, "0");
+                    if (bank?.coins) bank.coins.set("0");
+                    
+                    lsSetItem(booksKey, "0");
+                    if (bank?.books) bank.books.set("0");
+
+                    // Specifically restore Endless Coins upgrade (since it costs Books) on Copper challenge completion
+                    const endlessCoinsKey = `ccc:upgrades:starter_cove:20:${slot}`;
+                    if (backupData[endlessCoinsKey] !== undefined) {
+                        lsSetItem(endlessCoinsKey, backupData[endlessCoinsKey]);
+                    } else {
+                        lsRemoveItem(endlessCoinsKey);
+                    }
+                    clearCachedUpgradeStates("starter_cove", slot);
+                }
             } catch (e) {
                 console.error("Failed to restore lab nodes from backup on completion:", e);
             }
@@ -586,11 +621,11 @@ function completeCollapseChallenge(materialName) {
             for (const upg of RUBBLE_REGISTRY) {
                 setLevel(RUBBLE_AREA_KEY, upg.id, 0);
             }
-            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
-            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
-            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.GOLD_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
-            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MAGIC_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
-            setLevel(DNA_AREA_KEY, UPGRADE_TIES.DNA_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, 24, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, 25, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, 26, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, 27, 0, true, { resetHmEvolutions: true });
+            setLevel(DNA_AREA_KEY, 6, 0, true, { resetHmEvolutions: true });
             
             if (bank?.rubble?.set) {
                 bank.rubble.set(0);
@@ -604,7 +639,7 @@ function completeCollapseChallenge(materialName) {
     if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("collapse:challenge:complete", { detail: { material: materialName } }));
         window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
-        window.dispatchEvent(new CustomEvent("currency:multiplier"));
+        syncCoinMultiplierWithXpLevel(true);
     }
 
     return true;
@@ -625,7 +660,9 @@ function restoreCollapseChallengeState() {
         return;
     }
     // Re-register providers
-    registerCoinDebuff();
+    if (activeMat === "stone") {
+        registerCoinDebuff();
+    }
     syncCoinMultiplierWithXpLevel(true);
 }
 
