@@ -6,6 +6,7 @@ import { BigNum } from "../util/bigNum.js";
 import { getActiveSlot } from "../util/storage.js";
 import { isCollapseUnlocked } from "../ui/minerTabs/collapseTab.js";
 import { lsGetItem } from "../main.js";
+import { isBuildingUnlocked } from "../ui/minerTabs/buildingsTab.js";
 
 export const AUTOMATION_AREA_KEY = "automation";
 export const EFFECTIVE_AUTO_COLLECT_ID = 1;
@@ -552,7 +553,11 @@ const UPGRADE_DEFINITIONS = [
                 return { state: "locked" };
             }
 
-            const revealText = "Complete the Challenge of Stone to reveal this upgrade";
+            const hasUnlockedStone = isBuildingUnlocked("stone");
+            const revealText = hasUnlockedStone
+                ? "Complete the Challenge of Stone to reveal this upgrade"
+                : "Complete the Challenge of [Unknown] to reveal this upgrade";
+
             return { state: "mysterious", unlockReqText: revealText };
         },
     },
@@ -585,7 +590,15 @@ const UPGRADE_DEFINITIONS = [
                 return { state: "locked" };
             }
 
-            const revealText = "Complete the Challenge of Copper to reveal this upgrade";
+            let hasUnlockedCopper = false;
+            try {
+                hasUnlockedCopper = isBuildingUnlocked("copper");
+            } catch {}
+
+            const revealText = hasUnlockedCopper
+                ? "Complete the Challenge of Copper to reveal this upgrade"
+                : "Complete the Challenge of [Unknown] to reveal this upgrade";
+
             return { state: "mysterious", unlockReqText: revealText };
         },
     },
