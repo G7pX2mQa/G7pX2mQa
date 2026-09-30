@@ -553,11 +553,7 @@ const UPGRADE_DEFINITIONS = [
                 return { state: "locked" };
             }
 
-            const hasUnlockedStone = isBuildingUnlocked("stone");
-            const revealText = hasUnlockedStone
-                ? "Complete the Challenge of Stone to reveal this upgrade"
-                : "Complete the Challenge of [Unknown] to reveal this upgrade";
-
+            const revealText = "Complete the Challenge of Stone to reveal this upgrade";
             return { state: "mysterious", unlockReqText: revealText };
         },
     },
