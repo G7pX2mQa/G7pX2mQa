@@ -130,8 +130,8 @@ export function createCoralSpawner(config = {}) {
         layer.style.left = left + "px";
         layer.style.top = topOffset + "px";
         
-        // In the future this can dynamically map to activeMode (e.g. coral_ceiling_green.webp)
-        const src = `img/currencies/coral/coral_ceiling_${activeMode}.webp`;
+        // In the future this can dynamically map to activeMode (e.g. coral_green_ceiling.webp)
+        const src = `img/currencies/coral/coral_${activeMode}_ceiling.webp`;
         layer.style.backgroundImage = `url('${src}')`;
         layer.style.backgroundRepeat = "repeat-x";
         layer.style.backgroundSize = "512px 512px";
