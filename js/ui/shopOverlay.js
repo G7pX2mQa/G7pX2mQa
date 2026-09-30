@@ -207,8 +207,9 @@ const SHOP_ADAPTERS = {
             CORAL_MET_EVENT,
             "forge:completed",
             "unlock:change",
-            "collapse:challenge:start",
-            "collapse:challenge:exit",
+            "debug:challenge:change",
+            "collapse:challenge:complete",
+            "surge:level:change",
         ],
     },
     automation: {
@@ -222,7 +223,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(AUTOMATION_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(AUTOMATION_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
-        events: ["ccc:upgrades:changed", "currency:change"],
+        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change"],
     },
     dna: {
         title: "DNA Upgrades",
@@ -235,7 +236,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
         evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
-        events: ["ccc:upgrades:changed", "currency:change", "collapse:challenge:start", "collapse:challenge:exit"],
+        events: ["ccc:upgrades:changed", "currency:change", "debug:challenge:change", "collapse:challenge:complete"],
     },
     rainbow_gem_shop: {
         title: "Rainbow Gem Shop",
@@ -248,7 +249,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards("rainbow_gem_shop", id, amount),
         getLockState: (id) => getUpgradeLockState("rainbow_gem_shop", id),
         evolve: (id) => evolveUpgrade("rainbow_gem_shop", id),
-        events: ["ccc:upgrades:changed", "currency:change"],
+        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change"],
     },
     rubble: {
         title: "Rubble Upgrades",
@@ -261,7 +262,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(RUBBLE_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(RUBBLE_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
-        events: ["ccc:upgrades:changed", "currency:change"],
+        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change"],
     },
 };
 
@@ -1298,6 +1299,7 @@ class ShopInstance {
                 : upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
             let rawIcon = upg.icon;
             let extraIcon = upg.extraIcon;
+            if (locked) extraIcon = null;
             if (rawIcon === "img/misc/mysterious.webp" && baseSrc === LOCKED_BASE_ICON_SRC) {
                 baseSrc = "img/misc/mysterious_plus_base.webp";
                 rawIcon = null; // Hide the separate icon since it's now in the base
