@@ -210,6 +210,8 @@ const SHOP_ADAPTERS = {
             "debug:challenge:change",
             "collapse:challenge:complete",
             "surge:level:change",
+            "dp:change",
+            "level:change",
         ],
     },
     automation: {
@@ -223,7 +225,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(AUTOMATION_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(AUTOMATION_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
-        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change"],
+        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change", "dp:change", "level:change"],
     },
     dna: {
         title: "DNA Upgrades",
@@ -236,7 +238,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
         evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
-        events: ["ccc:upgrades:changed", "currency:change", "debug:challenge:change", "collapse:challenge:complete"],
+        events: ["ccc:upgrades:changed", "currency:change", "debug:challenge:change", "collapse:challenge:complete", "dp:change", "level:change"],
     },
     rainbow_gem_shop: {
         title: "Rainbow Gem Shop",
@@ -249,7 +251,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards("rainbow_gem_shop", id, amount),
         getLockState: (id) => getUpgradeLockState("rainbow_gem_shop", id),
         evolve: (id) => evolveUpgrade("rainbow_gem_shop", id),
-        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change"],
+        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change", "dp:change", "level:change"],
     },
     rubble: {
         title: "Rubble Upgrades",
@@ -262,7 +264,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(RUBBLE_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(RUBBLE_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
-        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change"],
+        events: ["ccc:upgrades:changed", "currency:change", "surge:level:change", "debug:challenge:change", "collapse:challenge:complete", "unlock:change", "dp:change", "level:change"],
     },
 };
 
@@ -1648,6 +1650,12 @@ export function updateShopOverlay(force = false) {
 
 window.addEventListener("collapse:challenge:start", () => updateShopOverlay(true));
 window.addEventListener("collapse:challenge:exit", () => updateShopOverlay(true));
+window.addEventListener("dp:change", () => updateShopOverlay(true));
+window.addEventListener("level:change", (e) => {
+    if (e.detail?.prefix === "dp") {
+        updateShopOverlay(true);
+    }
+});
 
 export function setUpgradeCount() {
     updateShopOverlay(true);
