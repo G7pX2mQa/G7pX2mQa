@@ -621,11 +621,11 @@ function completeCollapseChallenge(materialName) {
             for (const upg of RUBBLE_REGISTRY) {
                 setLevel(RUBBLE_AREA_KEY, upg.id, 0);
             }
-            setLevel(AREA_KEYS.STARTER_COVE, 24, 0, true, { resetHmEvolutions: true });
-            setLevel(AREA_KEYS.STARTER_COVE, 25, 0, true, { resetHmEvolutions: true });
-            setLevel(AREA_KEYS.STARTER_COVE, 26, 0, true, { resetHmEvolutions: true });
-            setLevel(AREA_KEYS.STARTER_COVE, 27, 0, true, { resetHmEvolutions: true });
-            setLevel(DNA_AREA_KEY, 6, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.GOLD_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MAGIC_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
+            setLevel(DNA_AREA_KEY, UPGRADE_TIES.DNA_RUBBLE_VALUE, 0, true, { resetHmEvolutions: true });
             
             if (bank?.rubble?.set) {
                 bank.rubble.set(0);
