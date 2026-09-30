@@ -2,7 +2,7 @@ import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
-import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from "../../util/storage.js";
+import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from "../../util/storage.js";
 import { registerTick, registerUiFrame, FIXED_STEP } from "../../game/gameLoop.js";
 import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from "../../game/xpSystem.js";
 import { trackBinaryFlowSequence } from "../../game/secretAchievements.js";
@@ -836,6 +836,8 @@ export function getWaterwheelLevel(id) {
 
 export function setWaterwheelLevel(id, val) {
     if (!state.waterwheels[id]) return;
+    const slot = getActiveSlot();
+    if (slot != null && isStorageKeyLocked(KEY_WATERWHEEL(id, slot))) return;
     state.waterwheels[id].level = val instanceof BigNum ? val : BigNum.fromAny(val);
     saveState();
     updateFlowTab();
@@ -848,6 +850,8 @@ export function getWaterwheelFp(id) {
 
 export function setWaterwheelFp(id, val) {
     if (!state.waterwheels[id]) return;
+    const slot = getActiveSlot();
+    if (slot != null && isStorageKeyLocked(KEY_WATERWHEEL(id, slot))) return;
     state.waterwheels[id].fp = val;
     saveState();
     updateFlowTab();
