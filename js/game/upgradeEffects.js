@@ -11,6 +11,7 @@ import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/workshopTab.js";
 import { getPpState, isPpSystemUnlocked, addExternalPpMultiplierProvider } from './ppSystem.js';
 import { getRclpMultiplier } from './rclpSystem.js';
+import { getGclpMultiplier } from './gclpSystem.js';
 
 import {
   addExternalCoinMultiplierProvider,
@@ -376,6 +377,13 @@ export function syncCurrencyMultipliersFromUpgrades() {
         finalScrapValue = safeMultiplyBigNum(finalScrapValue, surge300ScrapMult);
       } catch {}
 
+      try {
+        const gclpMult = getGclpMultiplier();
+        if (!gclpMult.isZero?.() && gclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+            finalScrapValue = safeMultiplyBigNum(finalScrapValue, gclpMult);
+        }
+      } catch {}
+
       bank.scrap.mult.set(finalScrapValue);
     }
   } catch {}
@@ -387,6 +395,11 @@ try {
       
       const labDnaMult = getLabDnaMultiplier();
       finalDnaValue = safeMultiplyBigNum(finalDnaValue, labDnaMult);
+      
+      const gclpMult = getGclpMultiplier();
+      if (!gclpMult.isZero?.() && gclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+          finalDnaValue = safeMultiplyBigNum(finalDnaValue, gclpMult);
+      }
       
       if (bank.DNA?.mult?.set) {
         bank.DNA.mult.set(finalDnaValue);
@@ -507,6 +520,38 @@ try {
   } catch {}
 
   try {
+    if (bank.green_coral?.mult?.set) {
+      let greenCoralMult = BigNum.fromInt(1);
+      if (isPpSystemUnlocked()) {
+          const ppLevel = getPpState().ppLevel;
+          if (ppLevel && !ppLevel.isZero() && ppLevel.cmp(31) > 0) {
+              const atmAfter51 = ppLevel.sub(BigNum.fromInt(31));
+              // Doubles per 5 atms: 2^((ppLevel - 31) / 5)
+              const doublings = parseFloat(atmAfter51.toScientific(14)) / 5;
+              const log10Result = doublings * Math.log10(2) + 1e-9;
+              if (!Number.isFinite(log10Result) || log10Result === Infinity) {
+                  greenCoralMult = BigNum.fromAny('Infinity');
+              } else {
+                  const factor = bigNumFromLog10(log10Result).floorToInteger();
+                  greenCoralMult = safeMultiplyBigNum(greenCoralMult, factor).floorToInteger();
+              }
+          }
+      }
+      bank.green_coral.mult.set(greenCoralMult);
+      
+      if (typeof window !== 'undefined') {
+          if (!window.__originalGetDebugCurrencyMultiplierOverrideGreen && window.getDebugCurrencyMultiplierOverride) {
+              window.__originalGetDebugCurrencyMultiplierOverrideGreen = window.getDebugCurrencyMultiplierOverride;
+              window.getDebugCurrencyMultiplierOverride = function(key, slot) {
+                  if (key === 'red_coral' || key === 'green_coral') return null;
+                  return window.__originalGetDebugCurrencyMultiplierOverrideGreen(key, slot);
+              };
+          }
+      }
+    }
+  } catch {}
+
+  try {
     for (const mat of UC_MATERIALS) {
       if (bank[mat]?.mult?.set) {
         // Individual material multipliers can be multiplied here in the future
@@ -541,6 +586,15 @@ try {
                 finalMatValue = safeMultiplyBigNum(finalMatValue, prismatiumBonus);
             }
         } catch (e) { console.error(e); }
+
+        try {
+            if (['stone', 'copper', 'iron', 'pure_gold', 'diamond', 'emerald'].includes(mat)) {
+                const gclpMult = getGclpMultiplier();
+                if (!gclpMult.isZero?.() && gclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+                    finalMatValue = safeMultiplyBigNum(finalMatValue, gclpMult);
+                }
+            }
+        } catch {}
 
         bank[mat].mult.set(finalMatValue);
       }
@@ -633,8 +687,12 @@ export function registerXpUpgradeEffects() {
   try {
     addExternalFpMultiplierProvider((mult) => {
       const { fpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
-      if (!fpValue) return mult;
-      return safeMultiplyBigNum(mult, fpValue);
+      let finalFpMult = fpValue ? safeMultiplyBigNum(mult, fpValue) : mult;
+      const gclpMult = getGclpMultiplier();
+      if (!gclpMult.isZero?.() && gclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+          finalFpMult = safeMultiplyBigNum(finalFpMult, gclpMult);
+      }
+      return finalFpMult;
     });
   } catch {}
 
