@@ -38,3 +38,23 @@ export function syncDpPpHudLayout() {
     hud.classList.remove('hud-top--dp-only', 'hud-top--dp-pp');
   }
 }
+
+export function syncRclpGclpHudLayout() {
+  if (typeof document === 'undefined') return;
+  const hud = document.querySelector('.hud-top');
+  if (!hud) return;
+
+  const rclpEl = document.querySelector('[data-rclp-hud]');
+  const gclpEl = document.querySelector('[data-gclp-hud]');
+  const gameRoot = document.getElementById('game-root');
+  const isCoralHud = (gameRoot && gameRoot.classList.contains('area-coral')) || !!hud.closest('.area-coral');
+  const rclpVisible = isCoralHud && !!(rclpEl && !rclpEl.hasAttribute('hidden'));
+  const gclpVisible = isCoralHud && !!(gclpEl && !gclpEl.hasAttribute('hidden'));
+
+  hud.classList.toggle('hud-top--rclp-only', rclpVisible && !gclpVisible);
+  hud.classList.toggle('hud-top--rclp-gclp', rclpVisible && gclpVisible);
+
+  if (!rclpVisible && !gclpVisible) {
+    hud.classList.remove('hud-top--rclp-only', 'hud-top--rclp-gclp');
+  }
+}
