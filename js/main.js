@@ -1709,7 +1709,7 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (coinCounter) coinCounter.style.display = "none";
 
             syncXpMpHudLayout();
-            startAreaMusic(AREAS.CORAL_REEF, "sounds/Coral_Reef.ogg", 0.7, fadeDuration);
+            startAreaMusic(AREAS.CORAL_REEF, "sounds/Coral_Reef.ogg", 0.56, fadeDuration);
 
             if (menuRoot) {
                 menuRoot.style.display = "none";
