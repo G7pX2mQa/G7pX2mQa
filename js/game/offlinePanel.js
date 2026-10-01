@@ -59,6 +59,7 @@ import {
 import { startSimulatedOffline, isSimulatedOfflineEnabled } from "./simulatedOffline.js";
 import { BUILDING_IDS, getBuildingLevel } from "../ui/minerTabs/buildingsTab.js";
 import { getRclpState, getRclpRequirement } from "./rclpSystem.js";
+import { getGclpState, getGclpRequirement } from "./gclpSystem.js";
 import { simulateAutobuyerTick } from "./automationEffects.js";
 let initialized = false;
 export function formatTimeCompact(ms) {
@@ -609,6 +610,15 @@ export const RESOURCE_REGISTRY = [
         type: "currency",
     },
     {
+        key: "green_coral",
+        bgGradient: "linear-gradient(to bottom, #1a8b1a 0%, #28c628 15%, #39e535 50%, #28c628 85%, #1a8b1a 100%)",
+        icon: "img/currencies/coral/coral_green.webp",
+        baseIcon: "img/currencies/coral/coral_green_plus_base.webp",
+        singular: "Green Coral",
+        plural: "Green Coral",
+        type: "currency",
+    },
+    {
         key: "rclp",
         icon: "img/stats/rclp/rclp.webp",
         singular: "RCLP",
@@ -652,6 +662,51 @@ export const RESOURCE_REGISTRY = [
         plural: "Red Coral Levels",
         type: "levelStat",
         barText: 'Red Coral Level <span class="rclp-level-value">{val}</span>',
+    },
+    {
+        key: "gclp",
+        icon: "img/stats/gclp/gclp.webp",
+        singular: "GCLP",
+        plural: "GCLP",
+        type: "levelProg",
+        simEventName: "ccc:gclp:progress",
+        simEventExtract: (e) => ({
+            levels: e.detail?.levelsGained,
+            progress: e.detail?.delta,
+        }),
+        pinBgGradient: "linear-gradient(180deg, #006600 0%, #004400 100%)",
+        bgGradient: "linear-gradient(to bottom, #00cc00 0%, #00ff00 15%, #4dff4d 50%, #00ff00 85%, #00cc00 100%)",
+        fillGradient: "linear-gradient(180deg, #4dff4d 0%, #00e600 45%, #00cc00 100%)",
+        barOutline: "3px",
+        borderColor: "#000000",
+        barBoxShadow: "inset 0 6px 10px rgba(128,255,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
+        glassBg: "linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0))",
+        glassOpacity: "0.22",
+        getState: () => {
+            const state = window.gclpSystem?.getGclpState();
+            if (!state) return null;
+            const req = window.gclpSystem?.getGclpRequirement();
+            let ratio = 0;
+            if (req && !req.isZero?.()) {
+                const ratioBn = state.gclpProg.div(req);
+                ratio = Number(ratioBn.toScientific?.() ?? "0");
+            }
+            return {
+                level: state.gclpLevel,
+                progress: state.gclpProg,
+                requirement: req,
+                isUnlocked: window.gclpSystem?.isGclpSystemUnlocked?.() ?? false,
+                ratio: Math.min(1, Math.max(0, ratio)),
+            };
+        },
+    },
+    {
+        key: "gclp_levels",
+        icon: "img/stats/gclp/gclp.webp",
+        singular: "Green Coral Level",
+        plural: "Green Coral Levels",
+        type: "levelStat",
+        barText: 'Green Coral Level <span class="gclp-level-value">{val}</span>',
     },
 ];
 
