@@ -4018,14 +4018,29 @@ function getUnlockRowDefinitions(slot) {
         {
             labelText: "Unlock Green Coral Level",
             description: "If true, unlocks the GCL system",
-            isUnlocked: () => isGclpSystemUnlocked(),
+            isUnlocked: () => {
+                const slot = getActiveSlot();
+                return slot != null && lsGetItem(`ccc:colorShiftFirstGreen:${slot}`) === "1";
+            },
             onEnable: () => {
-                unlockGclpSystem();
-                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    lsSetItem(`ccc:colorShiftFirstGreen:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
+                    if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent('ccc:gclp:unlocked'));
+                    }
+                }
             },
             onDisable: () => {
-                lsSetItem(`ccc:colorShiftFirstGreen:${slot}`, "0");
-                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    lsSetItem(`ccc:colorShiftFirstGreen:${slot}`, "0");
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
+                    if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent('ccc:gclp:unlocked'));
+                    }
+                }
             },
             slot,
         },
