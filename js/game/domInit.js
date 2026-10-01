@@ -40,6 +40,13 @@ export function ensureGameDom(layerCount, startZ) {
           </div>
         </div>
 
+        <div class="green-coral-counter" style="display: none;">
+          <img src="img/currencies/coral/coral_green_plus_base.webp" alt="" class="green-coral-plus"/>
+          <div class="green-coral-bar">
+            <span class="green-coral-amount">0</span>
+          </div>
+        </div>
+
         <div class="xp-counter" data-xp-hud hidden>
           <img src="img/stats/xp/xp_plus_base.webp" alt="" class="xp-plus"/>
 
@@ -135,6 +142,26 @@ export function ensureGameDom(layerCount, startZ) {
 
               <div class="rclp-bar__progress" data-rclp-progress>
                 0<span class="rclp-progress-separator">/</span>10<span class="rclp-progress-suffix">RCLP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="gclp-counter" data-gclp-hud hidden>
+          <img src="img/stats/gclp/gclp_plus_base.webp" alt="" class="gclp-plus"/>
+
+          <div class="gclp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 GCLP">
+            <div class="gclp-bar__fill" style="width: 0%"></div>
+
+            <div class="gclp-bar__frame">
+              <div class="gclp-bar__level">
+                ${RESOURCE_REGISTRY.find((c) => c.key === "gclp_levels")?.barText?.replace("{val}", "0") || 'Green Coral Level <span class="gclp-level-value">0</span>'}
+              </div>
+
+              <div class="gclp-bar__divider" aria-hidden="true"></div>
+
+              <div class="gclp-bar__progress" data-gclp-progress>
+                0<span class="gclp-progress-separator">/</span>10<span class="gclp-progress-suffix">GCLP</span>
               </div>
             </div>
           </div>
