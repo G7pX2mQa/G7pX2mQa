@@ -412,6 +412,7 @@ export const CURRENCIES = {
     CRYSTALS: "crystals",
     RUBBLE: "rubble",
     RED_CORAL: "red_coral",
+    GREEN_CORAL: "green_coral",
 };
 
 export const UC_MATERIALS = [
@@ -445,6 +446,7 @@ export const CURRENCY_AREAS = {
     [CURRENCIES.CRYSTALS]: "underwater_cavern",
     [CURRENCIES.RUBBLE]: "underwater_cavern",
     [CURRENCIES.RED_CORAL]: "coral_reef",
+    [CURRENCIES.GREEN_CORAL]: "coral_reef",
 };
 
 let _activeSlotCache = undefined;
