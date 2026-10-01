@@ -2058,10 +2058,9 @@ function updateForgeCard({ goldMult = null } = {}) {
             if (el.status.innerHTML !== "") el.status.innerHTML = "";
         } else {
             const expected = `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+          <span style="color:#02e815;">
             Forging for the first time will unlock a new Shop upgrade, a new Merchant dialogue, and
-            <strong style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
-            ">Mutations</strong><br>
+            <strong style="color:#ffb347;">Mutations</strong><br>
             Collect Coins to get MP; each Mutation doubles Coin and XP value
           </span>
         `.trim();
@@ -2097,7 +2096,7 @@ function updateInfuseCard() {
             if (el.status.innerHTML !== "") el.status.innerHTML = "";
         } else {
             const expected = `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+          <span style="color:#02e815;">
             Infusing for the first time will unlock a new Shop upgrade, a new Merchant dialogue, and a new tab: <strong style="color:#c68cff">Workshop</strong><br>
             This new tab will allow you to passively generate Gears<br>
             Spend Gears in the Automation Shop to automate various things
@@ -2363,14 +2362,14 @@ function updateSurgeCard() {
             const isWarpVisible = lsGetItem(`ccc:debug:toggleTheW:${ensureResetSlot()}`) === "1";
             const expected = isWarpVisible
                 ? `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+          <span style="color:#02e815;">
             Surging for the first time will unlock a new Merchant dialogue and a new tab: <span style="color:#00e5ff"><strong>Warp</strong></span><br>
             Warps may speed up gameplay a bit, so definitely check them out<br>
 			You can only get 10 Waves on your first Surge, so you should do it immediately
           </span>
          `.trim()
                 : `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+          <span style="color:#02e815;">
             Surging for the first time will unlock a new Merchant dialogue<br>
 			You can only get 10 Waves on your first Surge, so you should do it immediately
           </span>
@@ -2434,7 +2433,7 @@ function updateExperimentCard() {
             if (el.status.innerHTML !== "") el.status.innerHTML = "";
         } else {
             const expected = `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+          <span style="color:#02e815;">
             Experimenting for the first time will unlock new Lab Nodes
           </span>
          `.trim();
