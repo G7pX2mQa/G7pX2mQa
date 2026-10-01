@@ -422,6 +422,17 @@ function setupLiveBindingListeners() {
         window.removeEventListener("ccc:rclp:unlocked", rclpHandler);
     });
 
+    const gclpHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => (binding.type === "gclp-level" || binding.type === "gclp-progress") && binding.slot === targetSlot);
+    };
+    window.addEventListener("ccc:gclp:progress", gclpHandler, { passive: true });
+    window.addEventListener("ccc:gclp:unlocked", gclpHandler, { passive: true });
+    addDebugPanelCleanup(() => {
+        window.removeEventListener("ccc:gclp:progress", gclpHandler);
+        window.removeEventListener("ccc:gclp:unlocked", gclpHandler);
+    });
+
     const upgradeHandler = () => {
         const targetSlot = getActiveSlot();
         refreshLiveBindings((binding) => binding.type === "upgrade" && binding.slot === targetSlot);
@@ -3133,6 +3144,73 @@ function buildAreaStats(container, area) {
             },
         });
         container.appendChild(rclProgressRow.row);
+
+        const gclpState = getGclpState() || { gclpLevel: BigNum.fromInt(0), gclpProg: BigNum.fromInt(0) };
+        
+        const gclLevelKey = `ccc:gclLevel:${slot}`;
+        const gclLevelRow = createInputRow(
+            "Green Coral Level",
+            gclpState.gclpLevel,
+            (value, { setValue }) => {
+                const prev = getGclpState()?.gclpLevel?.clone?.() ?? BigNum.fromInt(0);
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+                if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "number" && valToApply >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                }
+                applyGclpState({ gclpLevel: valToApply });
+                const latest = getGclpState();
+                setValue(latest.gclpLevel);
+                if (!bigNumEquals(prev, latest.gclpLevel)) {
+                    flagDebugUsage();
+                    logAction(`Modified Green Coral Level (${area.title}) ${formatNumber(prev)} -> ${formatNumber(latest.gclpLevel)}`);
+                }
+            },
+            { storageKey: gclLevelKey },
+        );
+        registerLiveBinding({
+            type: "gclp-level",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                gclLevelRow.setValue(getGclpState()?.gclpLevel ?? BigNum.fromInt(0));
+            },
+        });
+        container.appendChild(gclLevelRow.row);
+
+        const gclpProgressKey = `ccc:gclpProgress:${slot}`;
+        const gclProgressRow = createInputRow(
+            "GCLP",
+            gclpState.gclpProg,
+            (value, { setValue }) => {
+                const prev = getGclpState()?.gclpProg?.clone?.() ?? BigNum.fromInt(0);
+                applyGclpState({ gclpProg: value });
+                const latest = getGclpState();
+                setValue(latest.gclpProg);
+                if (!bigNumEquals(prev, latest.gclpProg)) {
+                    flagDebugUsage();
+                    logAction(`Modified GCLP (${area.title}) ${formatNumber(prev)} -> ${formatNumber(latest.gclpProg)}`);
+                }
+            },
+            { storageKey: gclpProgressKey },
+        );
+        registerLiveBinding({
+            type: "gclp-progress",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                gclProgressRow.setValue(getGclpState()?.gclpProg ?? BigNum.fromInt(0));
+            },
+        });
+        container.appendChild(gclProgressRow.row);
     }
 
     const xp = getXpState();
