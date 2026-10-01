@@ -526,8 +526,8 @@ try {
           const ppLevel = getPpState().ppLevel;
           if (ppLevel && !ppLevel.isZero() && ppLevel.cmp(31) > 0) {
               const atmAfter51 = ppLevel.sub(BigNum.fromInt(31));
-              // Doubles per 5 atms: 2^((ppLevel - 31) / 5)
-              const doublings = parseFloat(atmAfter51.toScientific(14)) / 5;
+              // Doubles per 2 atms: 2^((ppLevel - 31) / 2)
+              const doublings = parseFloat(atmAfter51.toScientific(14)) / 2;
               const log10Result = doublings * Math.log10(2) + 1e-9;
               if (!Number.isFinite(log10Result) || log10Result === Infinity) {
                   greenCoralMult = BigNum.fromAny('Infinity');
