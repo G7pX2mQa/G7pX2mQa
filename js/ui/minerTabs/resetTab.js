@@ -638,7 +638,7 @@ function updateCombineCard() {
             if (el.status.innerHTML !== "") el.status.innerHTML = "";
         } else {
             const expected = `
-              <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+              <span style="color:#02e815;">
                 Combining for the first time will unlock new Shop upgrades and a new tab: <strong style="color: black; text-shadow: 0 0 5px white, 0 0 10px white;">Buildings</strong><br>
                 This new tab will allow you to upgrade powerful Buildings to help you progress<br>
 				The amount of Cores you get from this first Combine reset isn't too important; reset immediately
@@ -678,8 +678,8 @@ function updateCompressCard() {
             setHtmlOrText(el.status, "");
         } else {
             const expected = `
-              <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-                Compressing for the first time will unlock new Shop upgrades, <strong style="color:#ff66d9; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">Pressure</strong>, and the <span class="text-rainbow-animated">Prismatic Pickaxe</span><br>
+              <span style="color:#02e815;">
+                Compressing for the first time will unlock new Shop upgrades, <strong style="color:#ff66d9;">Pressure</strong>, and the <span class="text-rainbow-animated">Prismatic Pickaxe</span><br>
                 Collect Materials to get PP; increasing Pressure will yield double DP and Material value per atm of Pressure<br>
                 Compressing for the first time will also replace the Surge 200 milestone with something new<br>
                 Additionally, the Surge requirement to perform Compress will be moved to Surge 250 once Pressure is unlocked<br>
