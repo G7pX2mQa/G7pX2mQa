@@ -361,20 +361,20 @@ html.is-mobile {
   /* subtle glass look over moving background */
   background: linear-gradient(
     180deg,
-    rgba(14, 22, 34, 0.68),
-    rgba(10, 16, 26, 0.62)
+    rgba(14, 22, 34, 0.15),
+    rgba(10, 16, 26, 0.15)
   );
-  border: 1px solid rgba(34, 43, 61, 0.50);
-  backdrop-filter: saturate(1.05) blur(6px);
-  -webkit-backdrop-filter: saturate(1.05) blur(6px); /* iOS */
+  border: 1px solid rgba(34, 43, 61, 0.15);
+  backdrop-filter: saturate(1.05) blur(1px);
+  -webkit-backdrop-filter: saturate(1.05) blur(1px); /* iOS */
 }
 
-@supports not ( (-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px)) ) {
+@supports not ( (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px)) ) {
   .menu-panel {
     background: linear-gradient(
       180deg,
-      rgba(14, 22, 34, 0.98),
-      rgba(10, 16, 26, 0.95)
+      rgba(14, 22, 34, 0.20),
+      rgba(10, 16, 26, 0.20)
     );
   }
 }
@@ -419,10 +419,10 @@ html.is-mobile {
 .menu-panel {
   background: linear-gradient(
     180deg,
-    rgba(14, 22, 34, 0.68),
-    rgba(10, 16, 26, 0.62)
+    rgba(14, 22, 34, 0.15),
+    rgba(10, 16, 26, 0.15)
   ) !important;
-  border: 1px solid rgba(34, 43, 61, 0.40) !important;
-  backdrop-filter: saturate(1.05) blur(6px);
-  -webkit-backdrop-filter: saturate(1.05) blur(6px);
+  border: 1px solid rgba(34, 43, 61, 0.15) !important;
+  backdrop-filter: saturate(1.05) blur(1px);
+  -webkit-backdrop-filter: saturate(1.05) blur(1px);
 }
