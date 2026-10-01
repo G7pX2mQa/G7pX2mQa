@@ -1,1 +1,199 @@
-/* put stuff here when I add more stuff to the color shift tab */
+.color-shift-container.is-active {
+    display: flex;
+}
+
+.color-shift-container {
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.color-shift-card {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    padding: 22px;
+    box-sizing: border-box;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.color-shift-card.is-red {
+    background: linear-gradient(180deg, hsl(0 80% 45%), hsl(0 70% 28%));
+    border-color: hsl(0 80% 55% / 0.85);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.color-shift-card.is-green {
+    background: linear-gradient(180deg, hsl(120 80% 45%), hsl(120 70% 28%));
+    border-color: hsl(120 80% 55% / 0.85);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+
+
+.color-shift-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+}
+
+.color-shift-title {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    margin: 0;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+}
+
+.color-shift-mode-desc {
+    font-size: 16px;
+    color: #fff;
+    margin: 0;
+    line-height: 1.4;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    white-space: pre-wrap;
+    font-weight: normal;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.color-shift-desc {
+    font-size: 16px;
+    color: #fff;
+    margin: 0;
+    line-height: 1.4;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.color-shift-first-time {
+    font-size: 15px;
+    color: #00ff00;
+    text-shadow: 0 3px 6px rgba(0,0,0,0.55);
+    margin-top: 4px;
+    line-height: 1.3;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.color-shift-actions {
+    margin-top: 12px;
+    width: 100%;
+    text-align: center;
+}
+
+.color-shift-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    align-self: center;
+    min-width: min(430px, 100%);
+    padding: 18px 26px;
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border-radius: 999px;
+    border: 0;
+    color: #ffffff;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.color-shift-card.is-red .color-shift-btn {
+    background: linear-gradient(180deg, hsl(0 100% 50%), hsl(0 100% 35%));
+    box-shadow:
+      0 6px 0 hsl(0 100% 20%),
+      0 0 0 3px hsl(0 100% 10% / 0.9);
+}
+
+.color-shift-card.is-red .color-shift-btn:not(:disabled):hover,
+.color-shift-card.is-red .color-shift-btn:not(:disabled):focus-visible {
+    animation: colorShiftRedPulse 1.1s infinite ease-in-out;
+}
+
+@keyframes colorShiftRedPulse {
+  0% {
+    box-shadow:
+      0 0 10px 2px rgba(255, 0, 0, 0.4),
+      0 6px 0 hsl(0 100% 20%),
+      0 0 0 3px hsl(0 100% 10% / 0.9);
+  }
+  50% {
+    box-shadow:
+      0 0 22px 7px rgba(255, 0, 0, 0.8),
+      0 6px 0 hsl(0 100% 20%),
+      0 0 0 3px hsl(0 100% 20% / 0.9);
+  }
+  100% {
+    box-shadow:
+      0 0 10px 2px rgba(255, 0, 0, 0.4),
+      0 6px 0 hsl(0 100% 20%),
+      0 0 0 3px hsl(0 100% 10% / 0.9);
+  }
+}
+
+.color-shift-card.is-green .color-shift-btn {
+    background: linear-gradient(180deg, hsl(120 100% 50%), hsl(120 100% 35%));
+    box-shadow:
+      0 6px 0 hsl(120 100% 20%),
+      0 0 0 3px hsl(120 100% 10% / 0.9);
+}
+
+.color-shift-card.is-green .color-shift-btn:not(:disabled):hover,
+.color-shift-card.is-green .color-shift-btn:not(:disabled):focus-visible {
+    animation: colorShiftGreenPulse 1.1s infinite ease-in-out;
+}
+
+@keyframes colorShiftGreenPulse {
+  0% {
+    box-shadow:
+      0 0 10px 2px rgba(0, 255, 0, 0.4),
+      0 6px 0 hsl(120 100% 20%),
+      0 0 0 3px hsl(120 100% 10% / 0.9);
+  }
+  50% {
+    box-shadow:
+      0 0 22px 7px rgba(0, 255, 0, 0.8),
+      0 6px 0 hsl(120 100% 20%),
+      0 0 0 3px hsl(120 100% 20% / 0.9);
+  }
+  100% {
+    box-shadow:
+      0 0 10px 2px rgba(0, 255, 0, 0.4),
+      0 6px 0 hsl(120 100% 20%),
+      0 0 0 3px hsl(120 100% 10% / 0.9);
+  }
+}
+
+.color-shift-btn-text {
+    color: #ffffff;
+    text-shadow:
+        0 0.5px 0 #000,
+        0 1px 2px rgba(0,0,0,0.45);
+}
