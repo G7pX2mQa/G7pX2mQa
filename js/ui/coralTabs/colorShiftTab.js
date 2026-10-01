@@ -1,7 +1,6 @@
 import { lsGetItem, lsSetItem } from "../../main.js";
 import { syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
 import { getActiveSlot } from "../../util/storage.js";
-import { performCollapseReset } from "../minerTabs/resetTab.js";
 import { playAudio } from "../../util/audioManager.js";
 import { getCoralColorMode, getNextCoralColor, setCoralColorMode } from "../../game/coralColorMode.js";
 
@@ -51,7 +50,7 @@ export function updateColorShiftVisibility() {
         
         const desc = document.createElement("p");
         desc.className = "color-shift-desc";
-        desc.textContent = "Shifting the Color resets everything that starting a Collapse Challenge does";
+        desc.textContent = "Shifting the Color resets nothing";
         
         const firstTimeText = document.createElement("div");
         firstTimeText.className = "color-shift-first-time";
@@ -102,9 +101,6 @@ export function updateColorShiftVisibility() {
             if (slot == null) return;
             
             playAudio("sounds/color_shift.ogg", 0.8, false);
-            
-            // Full Reset
-            performCollapseReset(slot);
             
             try {
                 if (typeof window.invalidateEffectsCache === "function") {
