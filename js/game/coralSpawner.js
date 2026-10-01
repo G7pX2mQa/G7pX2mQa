@@ -7,7 +7,8 @@ import { settingsManager } from "./settingsManager.js";
 
 const CORAL_ASSETS = {
     red: "img/currencies/coral/coral_red.webp",
-    // future: green, blue, etc.
+    green: "img/currencies/coral/coral_green.webp",
+    // future: blue, etc.
 };
 
 const SINE_TABLE_SIZE = 4096;
@@ -130,7 +131,6 @@ export function createCoralSpawner(config = {}) {
         layer.style.left = left + "px";
         layer.style.top = topOffset + "px";
         
-        // In the future this can dynamically map to activeMode (e.g. coral_green_ceiling.webp)
         const src = `img/currencies/coral/coral_${activeMode}_ceiling.webp`;
         layer.style.backgroundImage = `url('${src}')`;
         layer.style.backgroundRepeat = "repeat-x";
@@ -139,6 +139,11 @@ export function createCoralSpawner(config = {}) {
         // Clean up any old canvas if we transition from previous code
         const old = layer.querySelector("canvas");
         if (old) old.remove();
+    }
+    
+    function clearBubbles() {
+        risingBubbles.length = 0;
+        popEffects.length = 0;
     }
 
     if (typeof window !== "undefined" && "ResizeObserver" in window) {
@@ -708,6 +713,18 @@ export function createCoralSpawner(config = {}) {
         },
         clearBacklog: base.clearBacklog,
         clearPlayfield: base.clearPlayfield,
+        clearBubbles,
+        setMode: (mode) => {
+            if (!CORAL_ASSETS[mode]) return;
+            activeMode = mode;
+            clearBubbles();
+            if (typeof base.clearPlayfield === "function") base.clearPlayfield();
+            const pf = document.querySelector(playfieldSelector);
+            if (pf) {
+                updateCanopyLayout(pf.clientWidth, pf.clientHeight);
+            }
+        },
+        getMode: () => activeMode,
         getItemTransform: base.getItemTransform,
         ensureItemVisual: base.ensureItemVisual,
         removeItemTarget: base.removeItemTarget,
