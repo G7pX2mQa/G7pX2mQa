@@ -9,6 +9,7 @@ import { createMagnetController, initInteractionBrush, computeMagnetUnitPx, PICK
 import { currentArea, AREAS, lsSetItem, lsGetItem } from "../main.js";
 import { getActiveSlot } from "../util/storage.js";
 import { unlockShopCoral } from "../ui/hudButtons.js";
+import { getCoralColorMode, getCoralCurrencyKey } from "./coralColorMode.js";
 
 export function initCoralPickup({
     spawner,
@@ -139,22 +140,32 @@ export function initCoralPickup({
             
             // Add to bank
             let isLocked = false;
+            const currentMode = getCoralColorMode();
+            const currencyKey = getCoralCurrencyKey(currentMode);
             try {
-                isLocked = globalThis?.__cccLockedStorageKeys?.has?.("ccc:red_coral");
+                isLocked = globalThis?.__cccLockedStorageKeys?.has?.("ccc:" + currencyKey);
             } catch {}
             
             if (!isLocked) {
-                const handle = bank.red_coral;
+                const handle = bank[currencyKey];
                 if (handle) {
                     const mult = handle.mult.get();
                     const totalGain = BigNum.fromInt(collectedCount).mulBigNumInteger(mult);
                     handle.add(totalGain);
                     
-                    try {
-                        import("./rclpSystem.js").then(({ addRclp }) => {
-                            addRclp(totalGain);
-                        }).catch(()=>{});
-                    } catch {}
+                    if (currentMode === "red") {
+                        try {
+                            import("./rclpSystem.js").then(({ addRclp }) => {
+                                addRclp(totalGain);
+                            }).catch(()=>{});
+                        } catch {}
+                    } else if (currentMode === "green") {
+                        try {
+                            import("./gclpSystem.js").then(({ addGclp }) => {
+                                addGclp(totalGain);
+                            }).catch(()=>{});
+                        } catch {}
+                    }
                 }
             }
 
