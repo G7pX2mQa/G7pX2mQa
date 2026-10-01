@@ -275,6 +275,7 @@ function ensureHudRefs() {
 
 import { formatNumber } from "../util/numFormat.js";
 import { setHtmlOrText, stripHtml } from "../util/uiHelpers.js";
+import { syncRclpGclpHudLayout } from "../ui/hudLayout.js";
 
 export function updateRclpHud() {
     if (!ensureHudRefs()) return;
@@ -284,6 +285,7 @@ export function updateRclpHud() {
     // Only show in coral reef area
     if (!container.closest(".area-coral")) {
         container.setAttribute("hidden", "");
+        syncRclpGclpHudLayout();
         return;
     }
     
@@ -306,6 +308,7 @@ export function updateRclpHud() {
             bar.setAttribute("aria-valuenow", "0");
             bar.setAttribute("aria-valuetext", `0 / 10 RCLP`);
         }
+        syncRclpGclpHudLayout();
         return;
     }
     
@@ -340,6 +343,7 @@ export function updateRclpHud() {
         const reqPlain = stripHtml(formatNumber(requirement));
         bar.setAttribute("aria-valuetext", `${currPlain} / ${reqPlain} RCLP`);
     }
+    syncRclpGclpHudLayout();
 }
 
 export function initRclpSystem() {
