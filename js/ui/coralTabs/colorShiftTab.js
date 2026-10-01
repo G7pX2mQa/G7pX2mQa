@@ -1,7 +1,13 @@
-import { lsGetItem } from "../../main.js";
+import { lsGetItem, lsSetItem } from "../../main.js";
+import { syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
 import { getActiveSlot } from "../../util/storage.js";
+import { performCollapseReset } from "../minerTabs/resetTab.js";
+import { playAudio } from "../../util/audioManager.js";
+import { getCoralColorMode, getNextCoralColor, setCoralColorMode } from "../../game/coralColorMode.js";
 
 const sk = (base) => base + ":" + (getActiveSlot() ?? "default");
+
+let lastShiftTime = 0;
 
 export function updateColorShiftVisibility() {
     const coralOverlayEl = document.getElementById("coral-overlay");
@@ -27,16 +33,52 @@ export function updateColorShiftVisibility() {
         tabCsBtn.dataset.tab = "colorshift";
         
         panelColorShift = document.createElement("section");
-        panelColorShift.className = "merchant-panel";
+        panelColorShift.className = "merchant-panel color-shift-container";
         panelColorShift.id = "coral-panel-colorshift";
-        const csContent = document.createElement("div");
-        csContent.className = "centered";
-        csContent.textContent = "Color Shift Content Goes Here (WIP)";
-        panelColorShift.appendChild(csContent);
+        
+        const card = document.createElement("div");
+        card.className = "color-shift-card";
+        
+        const contentArea = document.createElement("div");
+        contentArea.className = "color-shift-content";
+        
+        const title = document.createElement("h3");
+        title.className = "color-shift-title";
+        title.textContent = "Color Shift";
+        
+        const modeDesc = document.createElement("p");
+        modeDesc.className = "color-shift-mode-desc";
+        
+        const desc = document.createElement("p");
+        desc.className = "color-shift-desc";
+        desc.textContent = "Shifting the Color resets everything that starting a Collapse Challenge does";
+        
+        const firstTimeText = document.createElement("div");
+        firstTimeText.className = "color-shift-first-time";
+        firstTimeText.innerHTML = "Color Shifting for the first time will unlock Green Coral Level<br>More information about Green Coral Level can be found post-shift";
+        
+        const shiftBtnWrap = document.createElement("div");
+        shiftBtnWrap.className = "color-shift-actions";
+        
+        const shiftBtn = document.createElement("button");
+        shiftBtn.className = "color-shift-btn";
+        shiftBtn.innerHTML = '<span class="color-shift-btn-text">Shift the Color</span>';
+        
+        shiftBtnWrap.appendChild(shiftBtn);
+        
+        contentArea.appendChild(title);
+        contentArea.appendChild(modeDesc);
+        contentArea.appendChild(desc);
+        contentArea.appendChild(firstTimeText);
+        contentArea.appendChild(shiftBtnWrap);
+        
+        card.appendChild(contentArea);
+        panelColorShift.appendChild(card);
         
         tabs.appendChild(tabCsBtn);
         panelsWrap.appendChild(panelColorShift);
         
+        // Tab switching logic
         tabCsBtn.addEventListener("click", () => {
             if (tabCsBtn.classList.contains("is-locked")) return;
             const allTabs = tabs.querySelectorAll(".merchant-tab");
@@ -45,7 +87,56 @@ export function updateColorShiftVisibility() {
             allPanels.forEach((p) => p.classList.remove("is-active"));
             tabCsBtn.classList.add("is-active");
             panelColorShift.classList.add("is-active");
+            
+            // Re-render card when opened
+            renderColorShiftCard(card, firstTimeText);
         });
+        
+        // Shift logic
+        shiftBtn.addEventListener("click", () => {
+            const now = Date.now();
+            if (now - lastShiftTime < 50) return; // 50ms cooldown
+            lastShiftTime = now;
+            
+            const slot = getActiveSlot();
+            if (slot == null) return;
+            
+            playAudio("sounds/color_shift.ogg", 0.8, false);
+            
+            // Full Reset
+            performCollapseReset(slot);
+            
+            try {
+                if (typeof window.invalidateEffectsCache === "function") {
+                    window.invalidateEffectsCache();
+                }
+                if (typeof syncCoinMultiplierWithXpLevel === "function") {
+                    syncCoinMultiplierWithXpLevel(true);
+                }
+            } catch {}
+            
+            // Advance Color Mode
+            const currentMode = getCoralColorMode(slot);
+            const nextMode = getNextCoralColor(currentMode);
+            setCoralColorMode(nextMode, slot);
+            
+            if (nextMode === "green") {
+                lsSetItem(sk("ccc:colorShiftFirstGreen"), "1");
+            }
+            
+            if (window.coralSpawner) {
+                window.coralSpawner.setMode(nextMode);
+            }
+            
+            // Re-render
+            renderColorShiftCard(card, firstTimeText);
+        });
+    } else {
+        const card = panelColorShift.querySelector(".color-shift-card");
+        const firstTimeText = panelColorShift.querySelector(".color-shift-first-time");
+        if (card && firstTimeText) {
+            renderColorShiftCard(card, firstTimeText);
+        }
     }
     
     if (tabCsBtn && panelColorShift) {
@@ -66,4 +157,54 @@ export function updateColorShiftVisibility() {
             }
         }
     }
+}
+
+function renderColorShiftCard(card, firstTimeText) {
+    const slot = getActiveSlot();
+    const mode = getCoralColorMode(slot);
+    
+    card.className = `color-shift-card is-${mode}`;
+    
+    if (mode === "red" && lsGetItem(sk("ccc:colorShiftFirstGreen")) !== "1") {
+        firstTimeText.style.display = "";
+    } else {
+        firstTimeText.style.display = "none";
+    }
+    
+    const modeDesc = card.querySelector(".color-shift-mode-desc");
+    if (modeDesc) {
+        let actionWord = document.documentElement.classList.contains("is-mobile") ? "tap" : "click";
+        let currentColorStr = mode === "red" ? "Red" : "Green";
+        let nextColorStr = "Green";
+        if (mode === "green") {
+            const hasBlue = lsGetItem(sk("ccc:blueCoralUnlocked")) === "1";
+            nextColorStr = hasBlue ? "Blue" : "Red";
+        }
+        
+        let breakdown = "";
+        if (mode === "red") {
+            breakdown = `\n\nRed Coral breakdown:\n- Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value per level\n- Red Coral value is doubled per atm of Pressure after 31`;
+        } else if (mode === "green") {
+            breakdown = `\n\nGreen Coral breakdown:\n- Green Coral Level doubles DNA, FP, Scrap, Stone, Copper, Iron, Pure Gold, Diamond, and Emerald value per level\n- Green Coral value is doubled per 5 atms of Pressure after 31`;
+        }
+        
+        modeDesc.innerText = `You are currently in ${currentColorStr} mode, ${actionWord} the button below to change to ${nextColorStr} mode${breakdown}`;
+    }
+    
+    const shiftBtnText = card.querySelector(".color-shift-btn-text");
+    if (shiftBtnText) {
+        shiftBtnText.textContent = "Shift the Color";
+    }
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("unlock:change", (e) => {
+        if (e.detail?.key === "gclp") {
+            const card = document.querySelector("#coral-panel-colorshift .color-shift-card");
+            const firstTimeText = document.querySelector("#coral-panel-colorshift .color-shift-first-time");
+            if (card && firstTimeText) {
+                renderColorShiftCard(card, firstTimeText);
+            }
+        }
+    });
 }
