@@ -144,6 +144,7 @@ import {
 import { setHtmlOrText } from "./uiHelpers.js";
 import { createPaintbrush } from "../ui/sas/paintbrushUtils.js";
 import { getRclpState, isRclpSystemUnlocked, unlockRclpSystem, applyRclpState } from "../game/rclpSystem.js";
+import { getGclpState, isGclpSystemUnlocked, unlockGclpSystem, applyGclpState } from "../game/gclpSystem.js";
 
 const debugPanelStatSetters = [];
 let isBuildingStats = false;
@@ -3933,6 +3934,20 @@ function getUnlockRowDefinitions(slot) {
                     applyRclpState(state);
                 }
                 window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "rclp", slot } }));
+            },
+            slot,
+        },
+        {
+            labelText: "Unlock Green Coral Level",
+            description: "If true, unlocks the GCL system",
+            isUnlocked: () => isGclpSystemUnlocked(),
+            onEnable: () => {
+                unlockGclpSystem();
+                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
+            },
+            onDisable: () => {
+                lsSetItem(`ccc:colorShiftFirstGreen:${slot}`, "0");
+                window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
             },
             slot,
         },
