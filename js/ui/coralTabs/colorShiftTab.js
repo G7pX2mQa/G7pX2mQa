@@ -185,7 +185,7 @@ function renderColorShiftCard(card, firstTimeText) {
         if (mode === "red") {
             breakdown = `\n\nRed Coral breakdown:\n- Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value per level\n- Red Coral value is doubled per atm of Pressure after 31`;
         } else if (mode === "green") {
-            breakdown = `\n\nGreen Coral breakdown:\n- Green Coral Level doubles DNA, FP, Scrap, Stone, Copper, Iron, Pure Gold, Diamond, and Emerald value per level\n- Green Coral value is doubled per 5 atms of Pressure after 31`;
+            breakdown = `\n\nGreen Coral breakdown:\n- Green Coral Level doubles DNA, FP, Scrap, Stone, Copper, Iron, Pure Gold, Diamond, and Emerald value per level\n- Green Coral value is doubled per 2 atms of Pressure after 31`;
         }
         
         modeDesc.innerText = `You are currently in ${currentColorStr} mode, ${actionWord} the button below to change to ${nextColorStr} mode${breakdown}`;
