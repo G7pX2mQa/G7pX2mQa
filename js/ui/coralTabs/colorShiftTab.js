@@ -61,7 +61,7 @@ export function updateColorShiftVisibility() {
         
         const shiftBtn = document.createElement("button");
         shiftBtn.className = "color-shift-btn";
-        shiftBtn.innerHTML = '<span class="color-shift-btn-text">Shift the Color</span>';
+        shiftBtn.innerHTML = '<span class="color-shift-btn-text">Shift</span>';
         
         shiftBtnWrap.appendChild(shiftBtn);
         
@@ -76,6 +76,8 @@ export function updateColorShiftVisibility() {
         
         tabs.appendChild(tabCsBtn);
         panelsWrap.appendChild(panelColorShift);
+        
+        renderColorShiftCard(card, firstTimeText);
         
         // Tab switching logic
         tabCsBtn.addEventListener("click", () => {
@@ -167,15 +169,16 @@ function renderColorShiftCard(card, firstTimeText) {
         firstTimeText.style.display = "none";
     }
     
+    let currentColorStr = mode === "red" ? "Red" : "Green";
+    let nextColorStr = "Green";
+    if (mode === "green") {
+        const hasBlue = lsGetItem(sk("ccc:blueCoralUnlocked")) === "1";
+        nextColorStr = hasBlue ? "Blue" : "Red";
+    }
+    
     const modeDesc = card.querySelector(".color-shift-mode-desc");
     if (modeDesc) {
         let actionWord = document.documentElement.classList.contains("is-mobile") ? "tap" : "click";
-        let currentColorStr = mode === "red" ? "Red" : "Green";
-        let nextColorStr = "Green";
-        if (mode === "green") {
-            const hasBlue = lsGetItem(sk("ccc:blueCoralUnlocked")) === "1";
-            nextColorStr = hasBlue ? "Blue" : "Red";
-        }
         
         let breakdown = "";
         if (mode === "red") {
@@ -189,7 +192,7 @@ function renderColorShiftCard(card, firstTimeText) {
     
     const shiftBtnText = card.querySelector(".color-shift-btn-text");
     if (shiftBtnText) {
-        shiftBtnText.textContent = "Shift the Color";
+        shiftBtnText.textContent = `Shift`;
     }
 }
 
