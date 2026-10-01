@@ -416,7 +416,36 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
         } else {
             row.append(desc);
         }
+        row._settingType = def.type;
         container.appendChild(row);
+    }
+
+    if (category === "main") {
+        container.classList.add("is-main-settings");
+        const rows = Array.from(container.children);
+        container.innerHTML = "";
+
+        const dropdownGrp = document.createElement("div");
+        dropdownGrp.className = "settings-type-group settings-group-dropdown";
+        
+        const toggleGrp = document.createElement("div");
+        toggleGrp.className = "settings-type-group settings-group-toggle";
+        
+        const sliderGrp = document.createElement("div");
+        sliderGrp.className = "settings-type-group settings-group-slider";
+
+        rows.forEach(row => {
+            if (row._settingType === "dropdown") dropdownGrp.appendChild(row);
+            else if (row._settingType === "toggle") toggleGrp.appendChild(row);
+            else if (row._settingType === "slider") sliderGrp.appendChild(row);
+            else dropdownGrp.appendChild(row);
+        });
+
+        if (dropdownGrp.children.length > 0) container.appendChild(dropdownGrp);
+        if (toggleGrp.children.length > 0) container.appendChild(toggleGrp);
+        if (sliderGrp.children.length > 0) container.appendChild(sliderGrp);
+    } else {
+        container.classList.remove("is-main-settings");
     }
     const updateUnlockConditions = () => {
         unlockConditionCheckers.forEach((fn) => fn());
