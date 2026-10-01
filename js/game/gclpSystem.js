@@ -113,7 +113,7 @@ export function addGclp(amountBn) {
     
     const slot = getActiveSlot();
     const progressLocked = isStorageKeyLocked(`ccc:gclpProgress:${slot}`);
-    const levelLocked = isStorageKeyLocked(`ccc:rclLevel:${slot}`);
+    const levelLocked = isStorageKeyLocked(`ccc:gclLevel:${slot}`);
 
     if (progressLocked && levelLocked) return;
 
