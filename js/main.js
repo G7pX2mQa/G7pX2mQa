@@ -13,6 +13,7 @@ import { flushBackupSnapshot as immediateFlushBackupSnapshot } from "./util/susp
 import { IS_MOBILE, IS_FIREFOX } from "./util/platformChecker.js";
 import { showWideNotification } from "./ui/notifications.js";
 import { shouldSkipGhostTap } from "./util/ghostTapGuard.js";
+import { getCoralColorMode } from "./game/coralColorMode.js";
 
 export const FONT_MAP = {
     1: "font-tinos",
@@ -403,6 +404,7 @@ let initXpSystem;
 let initDpSystem;
 let initPpSystem;
 let initRclpSystem;
+let initGclpSystem;
 let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
 let initPopups;
@@ -504,6 +506,58 @@ function initRedCoralHudCounter() {
         }
     });
     window.addEventListener("saveSlot:change", updateRedCoralHudCounter);
+}
+
+let greenCoralHudListenerBound = false;
+function updateGreenCoralHudCounter() {
+    if (!bank) return;
+    const amountEls = document.querySelectorAll(".green-coral-amount");
+    if (!amountEls.length) return;
+
+    let formatted = "0";
+    try {
+        formatted = bank.green_coral?.fmt?.(bank.green_coral.value) ?? "0";
+    } catch {}
+
+    amountEls.forEach((amountEl) => {
+        setHtmlOrText(amountEl, formatted);
+    });
+}
+
+function initGreenCoralHudCounter() {
+    updateGreenCoralHudCounter();
+    if (greenCoralHudListenerBound || typeof window === "undefined") return;
+    greenCoralHudListenerBound = true;
+    window.addEventListener("currency:change", (event) => {
+        if (event?.detail?.key !== "green_coral") return;
+        updateGreenCoralHudCounter();
+    });
+    window.addEventListener("setting:changed", (event) => {
+        if (event?.detail?.key === "number_notation") {
+            updateGreenCoralHudCounter();
+        }
+    });
+    window.addEventListener("saveSlot:change", updateGreenCoralHudCounter);
+}
+
+function updateCoralHudVisibility() {
+    if (currentArea !== AREAS.CORAL_REEF) return;
+    const mode = getCoralColorMode();
+    const redCounter = document.querySelector(".hud-top .red-coral-counter");
+    const greenCounter = document.querySelector(".hud-top .green-coral-counter");
+    if (mode === "green") {
+        if (redCounter) redCounter.style.display = "none";
+        if (greenCounter) greenCounter.style.display = "";
+        updateGreenCoralHudCounter();
+    } else {
+        if (greenCounter) greenCounter.style.display = "none";
+        if (redCounter) redCounter.style.display = "";
+        updateRedCoralHudCounter();
+    }
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("ccc:coralColorMode:change", updateCoralHudVisibility);
 }
 
 let initResetSystemGame;
@@ -1302,6 +1356,11 @@ export function enterArea(areaID, fadeDuration = 0) {
                 initRclpSystem();
             } catch {}
         }
+        if (typeof initGclpSystem === "function") {
+            try {
+                initGclpSystem();
+            } catch {}
+        }
 
         // Determine the correct playfield selector based on the active area
         let playfieldSelector = ".playfield";
@@ -1343,6 +1402,7 @@ export function enterArea(areaID, fadeDuration = 0) {
             shouldAutoResume: () => currentArea === AREAS.CORAL_REEF,
         });
         window.coralSpawner = coralSpawner;
+        coralSpawner.setMode(getCoralColorMode());
 
         if (!window.coralPickupController) {
             const pickup = initCoralPickup({ spawner: coralSpawner });
@@ -1476,6 +1536,8 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (scrapCounter) scrapCounter.style.display = "none";
             const redCoralCounter = document.querySelector(".hud-top .red-coral-counter");
             if (redCoralCounter) redCoralCounter.style.display = "none";
+            const greenCoralCounter = document.querySelector(".hud-top .green-coral-counter");
+            if (greenCoralCounter) greenCoralCounter.style.display = "none";
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "";
 
@@ -1577,6 +1639,8 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (scrapCounter) scrapCounter.style.display = "";
             const redCoralCounter = document.querySelector(".hud-top .red-coral-counter");
             if (redCoralCounter) redCoralCounter.style.display = "none";
+            const greenCoralCounter = document.querySelector(".hud-top .green-coral-counter");
+            if (greenCoralCounter) greenCoralCounter.style.display = "none";
             updateScrapHudCounter();
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "none";
@@ -1640,9 +1704,7 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (coinsLayer) coinsLayer.style.display = "none";
             const scrapCounter = document.querySelector(".hud-top .scrap-counter");
             if (scrapCounter) scrapCounter.style.display = "none";
-            const redCoralCounter = document.querySelector(".hud-top .red-coral-counter");
-            if (redCoralCounter) redCoralCounter.style.display = "";
-            updateRedCoralHudCounter();
+            updateCoralHudVisibility();
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "none";
 
@@ -2086,6 +2148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         import("./game/coralSpawner.js"),
         import("./game/coralPickup.js"),
         import("./game/rclpSystem.js"),
+        import("./game/gclpSystem.js"),
     ]);
 
     const ASSET_MANIFEST = {
@@ -2388,6 +2451,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         coralSpawnerModule,
         coralPickupModule,
         rclpSystemModule,
+        gclpSystemModule,
     ] = await modulePromise;
 
     ({ initSlots } = slotsModule);
@@ -2412,6 +2476,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } = storageModule);
     initScrapHudCounter();
     initRedCoralHudCounter();
+    initGreenCoralHudCounter();
     void saveIntegrityModule;
     ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged, AREA_KEYS } = upgradesModule);
     ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
@@ -2419,6 +2484,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ({ initDpSystem } = dpModule);
     ({ initPpSystem } = ppModule);
     ({ initRclpSystem } = rclpSystemModule);
+    ({ initGclpSystem } = gclpSystemModule);
     ({ initResetSystem: initResetSystemGame } = resetModule);
     ({
         initMutationSystem,
