@@ -1,8 +1,9 @@
 import { computeDefaultUpgradeCost, E } from "./upgrades.js";
-import { BigNum } from "../util/bigNum.js";
+import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../util/bigNum.js";
 import { formatMultForUi, formatNumber } from "../util/numFormat.js";
 import { isRclpSystemUnlocked, unlockRclpSystem, getRclpState } from "./rclpSystem.js";
-import { getActiveSlot } from "../util/storage.js";
+import { isGclpSystemUnlocked } from "./gclpSystem.js";
+import { getActiveSlot, bank } from "../util/storage.js";
 import { lsSetItem, lsGetItem } from "../main.js";
 
 export const CORAL_AREA_KEY = "coral_reef";
@@ -287,6 +288,122 @@ export const CORAL_REGISTRY = [
         },
         effectSummary() {
             return "";
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 7,
+        title: "Red Coral Link",
+        desc: "Unspent Green Coral boosts Red Coral value",
+        lvlCap: 1,
+        costType: "green_coral",
+        upgType: "NM",
+        effectType: "red_coral_value",
+        icon: "img/coral_upg_icons/red_coral_link.webp",
+        costAtLevel() {
+            return BigNum.fromAny("1e7");
+        },
+        nextCostAfter() {
+            return BigNum.fromAny("1e7");
+        },
+        computeLockState() {
+            let isCopperCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isCopperCompleted = lsGetItem(`ccc:collapseChallengeCompleted:copper:${slotKey}`) === "1";
+            } catch {}
+
+            if (!isCopperCompleted) {
+                return { state: "locked" };
+            }
+
+            if (isGclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+
+            return { state: "mysterious", unlockReqText: "Unlock the Green Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `Red Coral value: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            if (normalizedLevel === 0) return BigNum.fromInt(1);
+            let unspentGreen = BigNum.fromInt(0);
+            try {
+                unspentGreen = bank.green_coral?.value || BigNum.fromInt(0);
+            } catch {
+                unspentGreen = BigNum.fromInt(0);
+            }
+            
+            if (!unspentGreen || unspentGreen.isZero?.() || unspentGreen === 0) return BigNum.fromInt(1);
+            
+            try {
+                const log10 = approxLog10BigNum(unspentGreen);
+                if (!Number.isFinite(log10) || log10 <= 0) return BigNum.fromInt(1);
+                return bigNumFromLog10(log10 / 2);
+            } catch {
+                return BigNum.fromInt(1);
+            }
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 8,
+        title: "Green Coral Link",
+        desc: "Unspent Red Coral boosts Green Coral value",
+        lvlCap: 1,
+        costType: "red_coral",
+        upgType: "NM",
+        effectType: "green_coral_value",
+        icon: "img/coral_upg_icons/green_coral_link.webp",
+        costAtLevel() {
+            return BigNum.fromAny("1e14");
+        },
+        nextCostAfter() {
+            return BigNum.fromAny("1e14");
+        },
+        computeLockState() {
+            let isCopperCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isCopperCompleted = lsGetItem(`ccc:collapseChallengeCompleted:copper:${slotKey}`) === "1";
+            } catch {}
+
+            if (!isCopperCompleted) {
+                return { state: "locked" };
+            }
+
+            if (isGclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+
+            return { state: "mysterious", unlockReqText: "Unlock the Green Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `Green Coral value: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            if (normalizedLevel === 0) return BigNum.fromInt(1);
+            let unspentRed = BigNum.fromInt(0);
+            try {
+                unspentRed = bank.red_coral?.value || BigNum.fromInt(0);
+            } catch {
+                unspentRed = BigNum.fromInt(0);
+            }
+            
+            if (!unspentRed || unspentRed.isZero?.() || unspentRed === 0) return BigNum.fromInt(1);
+            
+            try {
+                const log10 = approxLog10BigNum(unspentRed);
+                if (!Number.isFinite(log10) || log10 <= 0) return BigNum.fromInt(1);
+                return bigNumFromLog10(log10 / 2);
+            } catch {
+                return BigNum.fromInt(1);
+            }
         },
     },
 ];
