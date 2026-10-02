@@ -24,6 +24,7 @@ import {
   getUpgradesForArea,
   getLevel,
   getLevelNumber,
+  getLevelNumberByTie,
   computeHmMultipliers,
   safeMultiplyBigNum,
   ensureLevelBigNum,
@@ -153,6 +154,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     coresValue: BigNum.fromInt(1),
     crystalsValue: BigNum.fromInt(1),
     rpValue: BigNum.fromInt(1),
+    redCoralValue: BigNum.fromInt(1),
+    greenCoralValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     materialSpawn: 1.0,
     bubbleSpawn: 1.0,
@@ -247,6 +250,10 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.rpValue = safeMultiplyBigNum(acc.rpValue, baseEffect);
     } else if (upg.effectType === 'scrap_value') {
       acc.scrapValue = safeMultiplyBigNum(acc.scrapValue, baseEffect);
+    } else if (upg.effectType === 'red_coral_value') {
+      acc.redCoralValue = safeMultiplyBigNum(acc.redCoralValue, baseEffect);
+    } else if (upg.effectType === 'green_coral_value') {
+      acc.greenCoralValue = safeMultiplyBigNum(acc.greenCoralValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
       let val = 0;
       if (baseEffect instanceof BigNum) {
@@ -332,7 +339,7 @@ export function computeUpgradeEffects(areaKey) {
 }
 
 export function syncCurrencyMultipliersFromUpgrades() {
-  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue, bookValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue, bookValue, redCoralValue, greenCoralValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -505,6 +512,9 @@ try {
               }
           }
       }
+      if (redCoralValue) {
+          redCoralMult = safeMultiplyBigNum(redCoralMult, redCoralValue);
+      }
       bank.red_coral.mult.set(redCoralMult);
       
       if (typeof window !== 'undefined') {
@@ -536,6 +546,9 @@ try {
                   greenCoralMult = safeMultiplyBigNum(greenCoralMult, factor).floorToInteger();
               }
           }
+      }
+      if (greenCoralValue) {
+          greenCoralMult = safeMultiplyBigNum(greenCoralMult, greenCoralValue);
       }
       bank.green_coral.mult.set(greenCoralMult);
       
@@ -730,6 +743,22 @@ export function registerXpUpgradeEffects() {
     });
     window.addEventListener('workshop:change', () => {
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+
+    window.addEventListener('currency:change', (e) => {
+        if (e.detail?.key === 'green_coral') {
+            try { 
+                if (getLevelNumberByTie(UPGRADE_TIES.RED_CORAL_LINK) > 0) {
+                    triggerUpgradesChanged();
+                }
+            } catch {}
+        } else if (e.detail?.key === 'red_coral') {
+            try { 
+                if (getLevelNumberByTie(UPGRADE_TIES.GREEN_CORAL_LINK) > 0) {
+                    triggerUpgradesChanged();
+                }
+            } catch {}
+        }
     });
 
     window.addEventListener('lab:node:change', () => {
