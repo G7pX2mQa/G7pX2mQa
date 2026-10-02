@@ -532,7 +532,7 @@ export function refreshPinnedLevels() {
     const icon = document.createElement('img');
     icon.className = 'pinned-level-icon';
     
-    let iconSrc = levelConfig.icon || 'img/misc/mysterious.webp';
+    let iconSrc = levelConfig.icon || 'img/misc/mysterious_plus_base.webp';
     if (iconSrc && !levelConfig.noPlusBase && iconSrc.endsWith('.webp')) {
       const parts = iconSrc.split('/');
       const filename = parts.pop();
@@ -541,7 +541,7 @@ export function refreshPinnedLevels() {
     }
     icon.src = iconSrc;
     icon.onerror = () => {
-      icon.src = 'img/misc/mysterious.webp';
+      icon.src = 'img/misc/mysterious_plus_base.webp';
     };
     
     const textSpan = document.createElement('span');
