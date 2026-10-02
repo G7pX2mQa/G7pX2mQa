@@ -474,6 +474,9 @@ export function setActiveSlot(n) {
 
 export function clearActiveSlot() {
     const currentSlot = getActiveSlot();
+    try {
+        window.dispatchEvent(new CustomEvent("saveSlot:beforeExit", { detail: { slot: currentSlot } }));
+    } catch {}
     // Only update lastSaveTime if we've actually been in a game session.
     // Otherwise, on page load, this will instantly overwrite the frozen
     // lastSaveTime from the previous session with the current time, erasing offline progress.
