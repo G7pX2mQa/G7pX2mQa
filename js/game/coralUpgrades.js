@@ -342,7 +342,7 @@ export const CORAL_REGISTRY = [
             try {
                 const log10 = approxLog10BigNum(unspentGreen);
                 if (!Number.isFinite(log10) || log10 <= 0) return BigNum.fromInt(1);
-                return bigNumFromLog10(log10 / 2);
+                return bigNumFromLog10(log10 / 4);
             } catch {
                 return BigNum.fromInt(1);
             }
@@ -359,10 +359,10 @@ export const CORAL_REGISTRY = [
         effectType: "green_coral_value",
         icon: "img/coral_upg_icons/green_coral_link.webp",
         costAtLevel() {
-            return BigNum.fromAny("1e14");
+            return BigNum.fromAny("1e12");
         },
         nextCostAfter() {
-            return BigNum.fromAny("1e14");
+            return BigNum.fromAny("1e12");
         },
         computeLockState() {
             let isCopperCompleted = false;
@@ -400,7 +400,7 @@ export const CORAL_REGISTRY = [
             try {
                 const log10 = approxLog10BigNum(unspentRed);
                 if (!Number.isFinite(log10) || log10 <= 0) return BigNum.fromInt(1);
-                return bigNumFromLog10(log10 / 2);
+                return bigNumFromLog10(log10 / 4);
             } catch {
                 return BigNum.fromInt(1);
             }
