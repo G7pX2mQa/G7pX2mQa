@@ -100,7 +100,7 @@ html.is-mobile {
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -168,7 +168,7 @@ html.is-mobile {
 }
 
 .achievements-delve:active {
-  transform: translateY(1px);
+  transform: none;
   background: hsla(150, 60%, 35%, 0.28);
 }
 
