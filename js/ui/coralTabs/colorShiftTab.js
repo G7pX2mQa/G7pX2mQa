@@ -130,6 +130,7 @@ export function updateColorShiftVisibility() {
             
             if (nextMode === "green") {
                 lsSetItem(sk("ccc:colorShiftFirstGreen"), "1");
+                window.gclpSystem?.unlockGclpSystem?.();
             }
             
             if (window.coralSpawner) {
