@@ -23,7 +23,7 @@
     position: relative;
     overflow-y: auto;
     overflow-x: hidden;
-    border-radius: 18px;
+    border-radius: 6px;
     padding: 22px;
     box-sizing: border-box;
     text-align: center;
@@ -113,24 +113,27 @@
     font-size: 1.85rem;
     font-weight: 800;
     letter-spacing: 0.04em;
-    border-radius: 999px;
+    border-radius: 6px;
     border: 0;
     color: #ffffff;
     cursor: pointer;
     position: relative;
     user-select: none;
+    transition: filter 0.12s ease, transform 0.1s ease;
+}
+
+.color-shift-btn:active:not(:disabled) {
+    transform: none;
 }
 
 .color-shift-card.is-red .color-shift-btn {
     background: linear-gradient(180deg, hsl(0 100% 50%), hsl(0 100% 35%));
-    box-shadow:
-      0 6px 0 hsl(0 100% 20%),
-      0 0 0 3px hsl(0 100% 10% / 0.9);
+    box-shadow: 0 0 0 3px hsl(0 100% 10% / 0.9);
 }
 
 .color-shift-card.is-red .color-shift-btn:not(:disabled):hover,
 .color-shift-card.is-red .color-shift-btn:not(:disabled):focus-visible {
-    animation: colorShiftRedPulse 1.1s infinite ease-in-out;
+    filter: brightness(1.15);
 }
 
 @keyframes colorShiftRedPulse {
@@ -156,14 +159,12 @@
 
 .color-shift-card.is-green .color-shift-btn {
     background: linear-gradient(180deg, hsl(120 100% 50%), hsl(120 100% 35%));
-    box-shadow:
-      0 6px 0 hsl(120 100% 20%),
-      0 0 0 3px hsl(120 100% 10% / 0.9);
+    box-shadow: 0 0 0 3px hsl(120 100% 10% / 0.9);
 }
 
 .color-shift-card.is-green .color-shift-btn:not(:disabled):hover,
 .color-shift-card.is-green .color-shift-btn:not(:disabled):focus-visible {
-    animation: colorShiftGreenPulse 1.1s infinite ease-in-out;
+    filter: brightness(1.15);
 }
 
 @keyframes colorShiftGreenPulse {
