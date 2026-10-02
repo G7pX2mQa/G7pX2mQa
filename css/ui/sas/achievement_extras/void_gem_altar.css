@@ -99,9 +99,12 @@ html.is-mobile {
     }
 }
 
-.void-feed-btn:not(:disabled):hover,
-.void-feed-btn:not(:disabled):focus-visible {
-    filter: brightness(1.15);
+
+
+.void-feed-btn:hover,
+.void-feed-btn:focus-visible {
+    filter: none !important;
+    box-shadow: 0 0 0 3px hsl(0 0% 5%) !important;
 }
 
 .void-feed-btn:active:not(:disabled) {
