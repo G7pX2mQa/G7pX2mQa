@@ -554,6 +554,9 @@ function updateCoralHudVisibility() {
         if (redCounter) redCounter.style.display = "";
         updateRedCoralHudCounter();
     }
+    if (typeof window !== "undefined" && window.coralSpawner) {
+        window.coralSpawner.setMode(mode);
+    }
 }
 
 if (typeof window !== "undefined") {
@@ -3226,3 +3229,4 @@ document.addEventListener("pointerout", (e) => {
         btn.classList.remove("no-hover");
     }
 });
+
