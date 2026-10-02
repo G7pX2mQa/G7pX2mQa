@@ -4,9 +4,9 @@
   --shop-bg: hsla(215, 32%, 7%, 0.75);
   --shop-card: hsl(220 18% 14% / 1);
   --shop-border: hsl(210 18% 28% / 1);
-  --shop-shadow: 0 20px 60px hsl(0 0% 0% / .45);
+  --shop-shadow: 0 20px 60px hsl(0 0% 0% / 0.45);
   --shop-radius: 20px;
-  --shop-anim: 220ms cubic-bezier(.2, .8, .2, 1);
+  --shop-anim: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -14,8 +14,8 @@
 .shop-overlay {
   position: fixed;
   inset: 0;
-  z-index: 4000;              /* Above HUD */
-  pointer-events: none;       /* disabled until open */
+  z-index: 4000; /* Above HUD */
+  pointer-events: none; /* disabled until open */
   user-select: none;
 }
 
@@ -42,7 +42,9 @@
   will-change: transform;
 }
 
-.shop-overlay:not(.is-open) .shop-upgrade.hm-evolve-ready .shop-tile { animation: none !important; }
+.shop-overlay:not(.is-open) .shop-upgrade.hm-evolve-ready .shop-tile {
+  animation: none !important;
+}
 
 .shop-overlay:not(.is-open) .shop-sheet,
 .upg-overlay:not(.is-open) .upg-sheet {
@@ -61,7 +63,7 @@
   padding-bottom: 12px;
   display: grid;
   place-items: center;
-  touch-action: none;         /* enables smooth pointer tracking */
+  touch-action: none; /* enables smooth pointer tracking */
   -webkit-user-select: none;
   user-select: none;
   position: relative;
@@ -72,8 +74,8 @@
   width: 56px;
   height: 6px;
   border-radius: 3px;
-  background: hsl(0 0% 100% / .35);
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .25);
+  background: hsl(0 0% 100% / 0.35);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.25);
 }
 
 .shop-actions {
@@ -93,10 +95,13 @@
   background: hsla(0, 80%, 40%, 0.15);
   color: #fff;
   font-weight: 600;
-  letter-spacing: .2px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
 }
 .shop-actions .shop-close:hover {
   background: hsla(0, 80%, 40%, 0.22);
@@ -114,10 +119,13 @@
   background: hsla(150, 60%, 35%, 0.15);
   color: #fff;
   font-weight: 600;
-  letter-spacing: .2px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
 }
 .shop-actions .shop-delve:hover {
   background: hsla(150, 60%, 35%, 0.22);
@@ -157,9 +165,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shop-sheet { transition: none; }
-  .upg-sheet { transition: none; }
-  .shop-upgrade.hm-evolve-ready .shop-tile, .shop-overlay:not(.is-open) .shop-upgrade.hm-evolve-ready .shop-tile { animation: none !important; }
+  .shop-sheet {
+    transition: none;
+  }
+  .upg-sheet {
+    transition: none;
+  }
+  .shop-upgrade.hm-evolve-ready .shop-tile,
+  .shop-overlay:not(.is-open) .shop-upgrade.hm-evolve-ready .shop-tile {
+    animation: none !important;
+  }
 }
 
 /* === SHOP GRID === */
@@ -167,7 +182,7 @@
 /* Default (desktop / general) */
 .shop-sheet {
   --shop-tile: clamp(84px, 24vw, 128px);
-  --shop-gap:  clamp(8px, 2.5vw, 16px);
+  --shop-gap: clamp(8px, 2.5vw, 16px);
   --shop-fade-size: clamp(18px, 5vw, 40px);
   --shop-scroller-pad: 12px;
 }
@@ -199,15 +214,17 @@
 }
 
 .shop-upgrade.is-locked-plain,
-.shop-upgrade[data-locked-plain='1'],
+.shop-upgrade[data-locked-plain="1"],
 .shop-upgrade:disabled {
   cursor: not-allowed;
 }
 
-.shop-upgrade .shop-tile { cursor: inherit; }
+.shop-upgrade .shop-tile {
+  cursor: inherit;
+}
 
 .shop-upgrade.is-locked-plain .shop-tile,
-.shop-upgrade[data-locked-plain='1'] .shop-tile,
+.shop-upgrade[data-locked-plain="1"] .shop-tile,
 .shop-upgrade:disabled .shop-tile {
   cursor: not-allowed;
 }
@@ -282,7 +299,7 @@
   white-space: nowrap;
 }
 
-.shop-tile .level-badge.two-line{
+.shop-tile .level-badge.two-line {
   height: auto;
   min-height: 22px;
   padding: 2px 6px;
@@ -298,18 +315,19 @@
 html.is-mobile {
   .shop-sheet {
     /* use more of the width on phones */
-    --grid-pad: clamp(2px, 2.5vw, 8px);           /* was clamp(8px, 4vw, 14px) */
-    --gap: clamp(8px, 3.5vw, 14px);               /* keep similar column gap */
+    --grid-pad: clamp(2px, 2.5vw, 8px); /* was clamp(8px, 4vw, 14px) */
+    --gap: clamp(8px, 3.5vw, 14px); /* keep similar column gap */
     --cols: 3;
-    --shop-scroller-pad: clamp(2px, 2.5vw, 8px);  /* was clamp(8px, 4vw, 14px) */
+    --shop-scroller-pad: clamp(2px, 2.5vw, 8px); /* was clamp(8px, 4vw, 14px) */
 
     /* exact-fit tile: 3 icons + gaps fill the viewport more tightly */
     --tile-fit: calc(
-      (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
-        - (2 * var(--shop-scroller-pad))
-        - (2 * var(--grid-pad))
-        - ((var(--cols) - 1) * var(--gap))
-      ) / var(--cols)
+      (
+          100vw - env(safe-area-inset-left) - env(safe-area-inset-right) -
+            (2 * var(--shop-scroller-pad)) - (2 * var(--grid-pad)) -
+            ((var(--cols) - 1) * var(--gap))
+        ) /
+        var(--cols)
     );
 
     /* let tiles grow a bit bigger so 3-per-row hugs the sides more */
@@ -326,7 +344,6 @@ html.is-mobile {
     padding-inline: var(--shop-scroller-pad);
   }
 }
-
 
 /* === Shop header === */
 .shop-content {
@@ -356,18 +373,24 @@ html.is-mobile {
   isolation: isolate;
 }
 
-.shop-title { margin: 0 0 8px 0; font-weight: 700; text-align: center; position: relative; z-index: 2; }
+.shop-title {
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
 
 .shop-line {
   height: 2px;
   width: 100%;
-  background: var(--shop-border);  /* the line itself is the clip edge */
+  background: var(--shop-border); /* the line itself is the clip edge */
   position: relative;
   z-index: 2;
 }
 
 .shop-header::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   right: 0;
@@ -385,7 +408,7 @@ html.is-mobile {
   flex: 1 1 auto;
   min-height: 0;
   padding: 12px var(--shop-scroller-pad) 16px;
-  scrollbar-gutter: stable both-edges;   /* no re-centering when scrollbar appears */
+  scrollbar-gutter: stable both-edges; /* no re-centering when scrollbar appears */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -393,27 +416,30 @@ html.is-mobile {
 /* Firefox */
 .shop-scroller {
   scrollbar-width: thin;
-  scrollbar-color: hsl(0 0% 100% / .22) hsl(220 18% 7% / .55);
+  scrollbar-color: hsl(0 0% 100% / 0.22) hsl(220 18% 7% / 0.55);
 }
 /* Chromium/WebKit */
-.shop-scroller::-webkit-scrollbar { width: 12px; }
+.shop-scroller::-webkit-scrollbar {
+  width: 12px;
+}
 .shop-scroller::-webkit-scrollbar-track {
-  background: hsl(220 18% 7% / .55);
+  background: hsl(220 18% 7% / 0.55);
   border-left: 1px solid var(--shop-border);
 }
 .shop-scroller::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 100% / .22);
+  background: hsl(0 0% 100% / 0.22);
   border-radius: 10px;
 }
 .shop-scroller::-webkit-scrollbar-thumb:hover {
-  background: hsl(0 0% 100% / .32);
+  background: hsl(0 0% 100% / 0.32);
 }
 
 /* Hide native scrollbars cross-browser (we’ll draw our own) */
 .shop-scroller {
-  scrollbar-width: none;              /* Firefox */
+  scrollbar-width: none; /* Firefox */
 }
-.shop-scroller::-webkit-scrollbar {    /* Chromium/WebKit (incl. iOS) */
+.shop-scroller::-webkit-scrollbar {
+  /* Chromium/WebKit (incl. iOS) */
   width: 0;
   height: 0;
   display: none;
@@ -424,49 +450,66 @@ html.is-mobile {
 }
 
 .shop-sheet.has-scroll-shadow .shop-scroller {
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 var(--shop-fade-size), #000 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 var(--shop-fade-size), #000 100%);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 var(--shop-fade-size),
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 var(--shop-fade-size),
+    #000 100%
+  );
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
 
 /* Overlay scrollbar (same look on desktop + mobile) */
 .shop-scrollbar {
-  position: absolute;                 /* lives inside .shop-sheet */
+  position: absolute; /* lives inside .shop-sheet */
   right: 6px;
   /* top/bottom are set from JS so it respects grabber/header/actions */
   width: 8px;
   border-radius: 6px;
-  background: transparent;            /* no track fill */
-  pointer-events: none;               /* won’t block clicks/scroll */
-  z-index: 4;                         /* above grid/header */
+  background: transparent; /* no track fill */
+  pointer-events: none; /* won’t block clicks/scroll */
+  z-index: 4; /* above grid/header */
 }
 .shop-scrollbar__thumb {
   width: 100%;
-  min-height: 28px;                   /* readable minimum */
+  min-height: 28px; /* readable minimum */
   border-radius: 6px;
-  background: hsl(0 0% 100% / .28);
-  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .12);
-  transform: translateY(0);           /* JS updates this */
-  transition: background .15s ease;
+  background: hsl(0 0% 100% / 0.28);
+  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.12);
+  transform: translateY(0); /* JS updates this */
+  transition: background 0.15s ease;
 }
-.shop-scrollbar__thumb:hover {        /* desktop hover only; harmless on mobile */
-  background: hsl(0 0% 100% / .36);
+.shop-scrollbar__thumb:hover {
+  /* desktop hover only; harmless on mobile */
+  background: hsl(0 0% 100% / 0.36);
 }
 
 /* allow interaction (we previously set pointer-events:none) */
-.shop-scrollbar { pointer-events: auto; }
+.shop-scrollbar {
+  pointer-events: auto;
+}
 
 /* nice cursors when dragging */
-.shop-scrollbar__thumb { cursor: grab; }
-.shop-scrollbar__thumb.dragging { cursor: grabbing; }
+.shop-scrollbar__thumb {
+  cursor: grab;
+}
+.shop-scrollbar__thumb.dragging {
+  cursor: grabbing;
+}
 
 /* Mobile: hide custom scrollbar until actively scrolling or dragging */
 html.is-mobile {
   .shop-scrollbar {
     opacity: 0;
-    pointer-events: none;              /* don’t steal touches when hidden */
-    transition: opacity .2s ease;
+    pointer-events: none; /* don’t steal touches when hidden */
+    transition: opacity 0.2s ease;
   }
   .merchant-panel.is-scrolling > .shop-scrollbar,
   .merchant-sheet.is-scrolling > .shop-scrollbar,
@@ -474,10 +517,9 @@ html.is-mobile {
   .upg-sheet.is-scrolling > .shop-scrollbar,
   .shop-scrollbar__thumb.dragging {
     opacity: 1;
-    pointer-events: auto;              /* interactive when visible */
+    pointer-events: auto; /* interactive when visible */
   }
 }
-
 
 /* =========================================================
    Upgrades submenu
@@ -489,23 +531,28 @@ html.is-mobile {
   z-index: 10000;
   pointer-events: none;
 }
-.upg-overlay.is-open { pointer-events: auto; }
-.upg-overlay.is-open .upg-sheet { 
-  transform: none; 
+.upg-overlay.is-open {
+  pointer-events: auto;
+}
+.upg-overlay.is-open .upg-sheet {
+  transform: none;
   will-change: auto;
 }
 
 .upg-sheet {
   --upg-spacing: 40px;
   position: absolute;
-  left: 0; right: 0; bottom: 0; top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto;   /* grabber | header | content | milestones | actions */
-  background: rgba(12,16,20,.92);
+  grid-template-rows: auto auto 1fr auto auto; /* grabber | header | content | milestones | actions */
+  background: rgba(12, 16, 20, 0.92);
   backdrop-filter: blur(6px);
   transform: translateY(100%);
   transition: transform 180ms ease;
-  box-shadow: 0 -14px 40px rgba(0,0,0,.45);
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.45);
   will-change: transform;
 }
 
@@ -532,8 +579,8 @@ html.is-mobile {
   width: 56px;
   height: 6px;
   border-radius: 3px;
-  background: hsl(0 0% 100% / .35);
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .25);
+  background: hsl(0 0% 100% / 0.35);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.25);
 }
 
 .upg-header {
@@ -544,8 +591,14 @@ html.is-mobile {
   position: relative;
   z-index: 5;
 }
-.upg-title { font-size: clamp(44px, 6vw, 72px); font-weight: 700; }
-.upg-level { font-size: clamp(18px, 2.6vw, 28px); opacity: .92; }
+.upg-title {
+  font-size: clamp(44px, 6vw, 72px);
+  font-weight: 700;
+}
+.upg-level {
+  font-size: clamp(18px, 2.6vw, 28px);
+  opacity: 0.92;
+}
 
 .upg-content {
   display: flex;
@@ -581,37 +634,38 @@ html.is-mobile {
   transform: translateY(12px);
 }
 
-
-.upg-desc.centered{
-  text-align:center;
+.upg-desc.centered {
+  text-align: center;
   font-size: calc(clamp(32px, 4.6vw, 50px) * var(--upg-scale, 1));
   white-space: pre-line;
 }
 
-.upg-desc.centered.lock-desc{
-  
+.upg-desc.centered.lock-desc {
 }
 
 .upg-sheet.is-locked-hidden .upg-info {
   display: none;
 }
 
-.upg-info{
-  display:grid;
+.upg-info {
+  display: grid;
   gap: var(--upg-spacing);
   margin: 0;
-  text-align:center;
-  color:#fff;
+  text-align: center;
+  color: #fff;
 }
 
-
-
-.upg-costs{ display:grid; gap:2px; margin-top:0; }
-  .upg-sheet .upg-line{              font-size: calc(clamp(32px, 4.6vw, 50px) * var(--upg-scale, 1));
-  line-height:1.25;
+.upg-costs {
+  display: grid;
+  gap: 2px;
+  margin-top: 0;
+}
+.upg-sheet .upg-line {
+  font-size: calc(clamp(32px, 4.6vw, 50px) * var(--upg-scale, 1));
+  line-height: 1.25;
 }
 
-.upg-line.lock-note{
+.upg-line.lock-note {
   font-size: clamp(26px, 3.6vw, 40px);
   color: #ffcc6f;
   font-weight: 600;
@@ -627,66 +681,90 @@ html.is-mobile {
   top: -0.5px;
 }
 
-.upg-actions{
-  display:flex !important;
-  justify-content:center;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:.8vw;
-  padding:1vh 0;
+.upg-actions {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8vw;
+  padding: 1vh 0;
 }
 
 .upg-actions .shop-close,
-.upg-actions .shop-delve{
-  flex:0 1 24.2vw;
-  height:clamp(76px,10vh,126px);
-  font-size:clamp(24px,2.8vw,36px);
-  border-radius:0;
-  color:#fff;
-  font-weight:600;
-  letter-spacing:.2px;
-  cursor:pointer;
+.upg-actions .shop-delve {
+  flex: 0 1 24.2vw;
+  height: clamp(76px, 10vh, 126px);
+  font-size: clamp(24px, 2.8vw, 36px);
+  border-radius: 0;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
-.upg-actions .shop-close{
-  border:1px solid hsl(0 80% 40% / .45);
-  background:hsl(0 80% 40% / .15);
+.upg-actions .shop-close {
+  border: 1px solid hsl(0 80% 40% / 0.45);
+  background: hsl(0 80% 40% / 0.15);
 }
-.upg-actions .shop-delve{
-  border:1px solid hsl(150 60% 35% / .45);
-  background:hsl(150 60% 35% / .15);
+.upg-actions .shop-delve {
+  border: 1px solid hsl(150 60% 35% / 0.45);
+  background: hsl(150 60% 35% / 0.15);
 }
 .upg-actions .shop-delve.hm-evolve-btn,
 .upg-actions .shop-delve.hm-view-milestones {
   border-color: rgba(244, 140, 37, 0.65);
   background: rgba(242, 128, 13, 0.15);
   color: rgb(255, 230, 199);
-  transition: background 100ms ease, transform 100ms ease;
+  transition:
+    background 100ms ease,
+    transform 100ms ease;
 }
 .upg-actions .shop-delve.hm-evolve-btn:hover,
-.upg-actions .shop-delve.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
+.upg-actions .shop-delve.hm-view-milestones:hover {
+  background: hsl(26 100% 50% / 0.22);
+}
 .upg-actions .shop-delve.hm-evolve-btn:active,
-.upg-actions .shop-delve.hm-view-milestones:active { transform: none; background:hsl(26 100% 50% / .28); }
-.upg-actions .shop-delve:hover{ background:hsl(150 60% 35% / .22); }
-.upg-actions .shop-delve:active{ transform: none; background:hsl(150 60% 35% / .28); }
-.upg-actions .shop-close:hover { background: hsla(0, 80%, 40%, 0.22); }
-.upg-actions .shop-close:active { transform: none; background: hsla(0, 80%, 40%, 0.28); }
+.upg-actions .shop-delve.hm-view-milestones:active {
+  transform: none;
+  background: hsl(26 100% 50% / 0.28);
+}
+.upg-actions .shop-delve:hover {
+  background: hsl(150 60% 35% / 0.22);
+}
+.upg-actions .shop-delve:active {
+  transform: none;
+  background: hsl(150 60% 35% / 0.28);
+}
+.upg-actions .shop-close:hover {
+  background: hsla(0, 80%, 40%, 0.22);
+}
+.upg-actions .shop-close:active {
+  transform: none;
+  background: hsla(0, 80%, 40%, 0.28);
+}
 .hm-evolve-btn {
-	color: white !important;
+  color: white !important;
 }
 
-@media (max-width:520px){
-  .upg-title{ font-size:clamp(26px,6vw,40px); }
-  .upg-line { font-size:clamp(18px,4.8vw,24px); }
+@media (max-width: 520px) {
+  .upg-title {
+    font-size: clamp(26px, 6vw, 40px);
+  }
+  .upg-line {
+    font-size: clamp(18px, 4.8vw, 24px);
+  }
   .upg-actions .shop-close,
-  .upg-actions .shop-delve{
-    flex-basis: clamp(140px,44vw,240px);
-    height:clamp(50px,9vh,80px);
-    font-size:clamp(16px,4.2vw,22px);
+  .upg-actions .shop-delve {
+    flex-basis: clamp(140px, 44vw, 240px);
+    height: clamp(50px, 9vh, 80px);
+    font-size: clamp(16px, 4.2vw, 22px);
   }
 }
 
@@ -726,43 +804,49 @@ html.is-mobile {
   opacity: 1;
 }
 
-  .upg-content{
-    overflow-y: auto;
-    min-height: 0;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
-  
-  html.is-mobile {
-  --upg-title-size: clamp(32px, 5vmin, 52px);
-    --upg-desc-size:  clamp(22px, 3.4vmin, 30px);
-    --upg-line-size:  clamp(22px, 3.4vmin, 30px);
-  .upg-sheet .upg-header .upg-title{ font-size: var(--upg-title-size); }
-  .upg-sheet .upg-desc.centered{     font-size: calc(var(--upg-desc-size) * var(--upg-scale, 1));  }
-  .upg-sheet .upg-line{              font-size: calc(var(--upg-line-size) * var(--upg-scale, 1));   }
+.upg-content {
+  overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
 
-  .upg-actions{
+html.is-mobile {
+  --upg-title-size: clamp(32px, 5vmin, 52px);
+  --upg-desc-size: clamp(22px, 3.4vmin, 30px);
+  --upg-line-size: clamp(22px, 3.4vmin, 30px);
+  .upg-sheet .upg-header .upg-title {
+    font-size: var(--upg-title-size);
+  }
+  .upg-sheet .upg-desc.centered {
+    font-size: calc(var(--upg-desc-size) * var(--upg-scale, 1));
+  }
+  .upg-sheet .upg-line {
+    font-size: calc(var(--upg-line-size) * var(--upg-scale, 1));
+  }
+
+  .upg-actions {
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
-   }
+  }
 }
 
 @media (min-width: 700px) {
   html.is-mobile {
-  --upg-title-size: clamp(42px, 7vmin, 70px);
-    --upg-desc-size:  clamp(30px, 5vmin, 50px);
-    --upg-line-size:  clamp(30px, 5vmin, 50px);
+    --upg-title-size: clamp(42px, 7vmin, 70px);
+    --upg-desc-size: clamp(30px, 5vmin, 50px);
+    --upg-line-size: clamp(30px, 5vmin, 50px);
 
-  .upg-sheet{ --upg-spacing: 18px; }
+    .upg-sheet {
+      --upg-spacing: 18px;
+    }
   }
 }
 
-
-
 @media (max-width: 600px) {
   html.is-mobile {
-  --upg-title-size: clamp(28px, 6vmin, 44px);
-    --upg-desc-size:  clamp(16px, 2.8vmin, 22px);
-    --upg-line-size:  clamp(16px, 2.8vmin, 22px);
+    --upg-title-size: clamp(28px, 6vmin, 44px);
+    --upg-desc-size: clamp(16px, 2.8vmin, 22px);
+    --upg-line-size: clamp(16px, 2.8vmin, 22px);
   }
 }
 
@@ -799,14 +883,21 @@ html.is-mobile {
 }
 
 .hm-view-milestones {
-  border: 1px solid hsl(30 90% 55% / .65);
+  border: 1px solid hsl(30 90% 55% / 0.65);
   background: #f2800d26;
   color: #ffe6c7;
   padding: 10px 14px;
-  transition: background 100ms ease, transform 100ms ease;
+  transition:
+    background 100ms ease,
+    transform 100ms ease;
 }
-.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
-.hm-view-milestones:active { transform: none; background:hsl(26 100% 50% / .28); }
+.hm-view-milestones:hover {
+  background: hsl(26 100% 50% / 0.22);
+}
+.hm-view-milestones:active {
+  transform: none;
+  background: hsl(26 100% 50% / 0.28);
+}
 
 .hm-milestones-overlay {
   position: fixed;
@@ -825,14 +916,26 @@ html.is-mobile {
   width: min(520px, 90vw);
   max-height: min(calc(95vh + var(--safe-bottom)), 720px);
   overflow: auto;
-  background: linear-gradient(150deg, rgba(15, 22, 38, 0.96), rgba(18, 26, 42, 0.94));
+  background: linear-gradient(
+    150deg,
+    rgba(15, 22, 38, 0.96),
+    rgba(18, 26, 42, 0.94)
+  );
   border: 1px solid #ffe6c7;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   border-radius: 14px;
   padding: clamp(14px, 2.4vw, 20px);
   padding-bottom: calc(clamp(14px, 2.4vw, 20px) + var(--safe-bottom));
   color: #f7f2e9;
-  font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  font-family: var(
+    --font-ui,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
 }
 
 .hm-milestones-title {
@@ -876,7 +979,7 @@ html.is-mobile {
 }
 
 .hm-milestones-list li.hm-milestone-achieved .hm-milestone-text::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 1%;
   right: 1%;
@@ -908,16 +1011,24 @@ html.is-mobile {
   font-size: 16px;
   font-weight: 700;
   color: #ffe6c7;
-  background: hsl(0 80% 40% / .15);
-  border: 1px solid hsl(0 80% 40% / .45);
+  background: hsl(0 80% 40% / 0.15);
+  border: 1px solid hsl(0 80% 40% / 0.45);
   border-radius: 4px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
 }
 
-.hm-milestones-close:hover { filter: brightness(1.05); }
-.hm-milestones-close:active { transform: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+.hm-milestones-close:hover {
+  filter: brightness(1.05);
+}
+.hm-milestones-close:active {
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
 
 .upg-sheet.is-hm-upgrade.hm-evolve-ready {
   --upg-spacing: clamp(12px, 3vh, 24px);
@@ -938,7 +1049,6 @@ html.is-mobile {
 .upg-sheet.is-hm-upgrade.is-endless-fp .upg-desc.centered {
   font-size: clamp(26px, 3.7vw, 38px);
 }
-
 
 .upg-sheet.is-hm-upgrade.is-endless-materials .upg-desc.centered {
   font-size: clamp(28px, 4vw, 42px);
@@ -961,7 +1071,6 @@ html.is-mobile {
   font-size: clamp(26px, 3.7vw, 38px);
 }
 
-
 .upg-sheet.is-hm-upgrade.is-endless-materials .upg-line {
   font-size: clamp(28px, 4vw, 42px);
 }
@@ -977,17 +1086,17 @@ html.is-mobile {
   -webkit-text-fill-color: currentColor;
 }
 
-  .upg-actions {
-    padding-top: 4px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    gap: 0.6rem;
-  }
+.upg-actions {
+  padding-top: 4px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  gap: 0.6rem;
+}
 
-  .upg-actions .shop-close,
-  .upg-actions .shop-delve {
-    height: clamp(52px, 12vh, 86px);
-    font-size: clamp(18px, 3vw, 26px);
-  }
+.upg-actions .shop-close,
+.upg-actions .shop-delve {
+  height: clamp(52px, 12vh, 86px);
+  font-size: clamp(18px, 3vw, 26px);
+}
 
 @media (max-height: 850px) {
   /* HM upgrades: smaller text + tighter layout on short viewports */
@@ -1010,14 +1119,14 @@ html.is-mobile {
   }
 }
 
-@media (orientation: portrait) and (max-width: 700px), (orientation: landscape) and (max-height: 700px) {
+@media (orientation: portrait) and (max-width: 700px),
+  (orientation: landscape) and (max-height: 700px) {
   .upg-sheet.is-hm-upgrade .upg-desc.centered,
-.upg-sheet.is-hm-upgrade.is-endless-xp .upg-desc.centered,
-.upg-sheet.is-hm-upgrade.is-endless-fp .upg-desc.centered {
+  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-desc.centered,
+  .upg-sheet.is-hm-upgrade.is-endless-fp .upg-desc.centered {
     font-size: clamp(16px, 3vmin, 22px);
     line-height: 1.2;
   }
-
 
   .upg-sheet.is-hm-upgrade.is-rubble-value .upg-desc.centered {
     font-size: clamp(19px, 3.3vmin, 28px);
@@ -1030,11 +1139,10 @@ html.is-mobile {
   }
 
   .upg-sheet.is-hm-upgrade .upg-line,
-.upg-sheet.is-hm-upgrade.is-endless-xp .upg-line,
-.upg-sheet.is-hm-upgrade.is-endless-fp .upg-line {
+  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line,
+  .upg-sheet.is-hm-upgrade.is-endless-fp .upg-line {
     font-size: clamp(16px, 3vmin, 22px);
   }
-
 
   .upg-sheet.is-hm-upgrade.is-rubble-value .upg-line {
     font-size: clamp(19px, 3.3vmin, 28px);
@@ -1047,9 +1155,6 @@ html.is-mobile {
 
 /* Automation Upgrades */
 
-
-
-
 html.is-mobile {
   .upg-overlay.is-automation-upgrade .upg-desc.centered:not(.lock-desc),
   .upg-overlay.is-automation-upgrade .upg-line {
@@ -1059,7 +1164,7 @@ html.is-mobile {
 
 /* === Automation Toggle Button === */
 .auto-toggle-wrapper {
-    margin-top: 12px;
+  margin-top: 12px;
 }
 .auto-toggle-wrapper .shop-delve,
 .auto-toggle-wrapper .shop-close {
@@ -1070,12 +1175,14 @@ html.is-mobile {
   border-radius: 0;
   color: #fff;
   font-weight: 600;
-  letter-spacing: .2px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   touch-action: manipulation;
   appearance: none;
   font-family: inherit;
-  transition: background 100ms ease, transform 100ms ease;
+  transition:
+    background 100ms ease,
+    transform 100ms ease;
 }
 
 /* Green (ON) state - Matches Shop Delve button */
@@ -1096,23 +1203,22 @@ html.is-mobile {
   background: hsla(0, 80%, 40%, 0.22);
 }
 
-
 @media (max-width: 1500px) {
   html:not(.is-mobile) {
-  .upg-sheet.is-magnet-upgrade .upg-desc.centered,
-  .upg-sheet.is-magnet-upgrade .upg-line,
-  .upg-sheet.is-hm-upgrade.is-endless-mp .upg-desc.centered,
-  .upg-sheet.is-hm-upgrade.is-endless-mp .upg-line,
-  .upg-sheet.is-hm-upgrade.is-rubble-value .upg-desc.centered,
-  .upg-sheet.is-hm-upgrade.is-rubble-value .upg-line,
-  .upg-sheet.is-hm-upgrade.is-endless-coins .upg-desc.centered,
-  .upg-sheet.is-hm-upgrade.is-endless-coins .upg-line,
-  .upg-sheet.is-hm-upgrade.is-endless-coins-2 .upg-desc.centered,
-  .upg-sheet.is-hm-upgrade.is-endless-coins-2 .upg-line,
-  .upg-sheet.is-hm-upgrade.is-endless-coins-3 .upg-desc.centered,
-  .upg-sheet.is-hm-upgrade.is-endless-coins-3 .upg-line {
-    font-size: clamp(26px, 3.6vw, 40px);
-  }
+    .upg-sheet.is-magnet-upgrade .upg-desc.centered,
+    .upg-sheet.is-magnet-upgrade .upg-line,
+    .upg-sheet.is-hm-upgrade.is-endless-mp .upg-desc.centered,
+    .upg-sheet.is-hm-upgrade.is-endless-mp .upg-line,
+    .upg-sheet.is-hm-upgrade.is-rubble-value .upg-desc.centered,
+    .upg-sheet.is-hm-upgrade.is-rubble-value .upg-line,
+    .upg-sheet.is-hm-upgrade.is-endless-coins .upg-desc.centered,
+    .upg-sheet.is-hm-upgrade.is-endless-coins .upg-line,
+    .upg-sheet.is-hm-upgrade.is-endless-coins-2 .upg-desc.centered,
+    .upg-sheet.is-hm-upgrade.is-endless-coins-2 .upg-line,
+    .upg-sheet.is-hm-upgrade.is-endless-coins-3 .upg-desc.centered,
+    .upg-sheet.is-hm-upgrade.is-endless-coins-3 .upg-line {
+      font-size: clamp(26px, 3.6vw, 40px);
+    }
   }
 }
 @media (max-width: 1499px) {
@@ -1133,12 +1239,12 @@ html.is-mobile {
 }
 
 .shop-sort-of {
-    border: 1px solid hsla(45, 80%, 40%, 0.45);
-    background: hsla(45, 80%, 40%, 0.15);
+  border: 1px solid hsla(45, 80%, 40%, 0.45);
+  background: hsla(45, 80%, 40%, 0.15);
 }
 
 .shop-sort-of:hover {
-    background: hsla(45, 80%, 40%, 0.22);
+  background: hsla(45, 80%, 40%, 0.22);
 }
 
 /* Shrink upgrade text and lab node overlay text slightly for shorter viewports */
@@ -1148,20 +1254,20 @@ html.is-mobile {
     .upg-level,
     .upg-desc.centered,
     .upg-line {
-        transform: scale(0.92);
-        transform-origin: center center;
+      transform: scale(0.92);
+      transform-origin: center center;
     }
-    
+
     .upg-content,
     .upg-info {
-        gap: calc(var(--upg-spacing) * 0) !important;
+      gap: calc(var(--upg-spacing) * 0) !important;
     }
 
     .upg-sheet.is-unlock-coral-reef .upg-desc.centered {
-        font-size: clamp(28px, 4.1vw, 45px) !important;
+      font-size: clamp(28px, 4.1vw, 45px) !important;
     }
     .upg-sheet.is-unlock-coral-reef .upg-line {
-        font-size: clamp(28px, 4.1vw, 45px) !important;
+      font-size: clamp(28px, 4.1vw, 45px) !important;
     }
   }
 }
@@ -1171,7 +1277,7 @@ html.is-mobile {
   html:not(.is-mobile) {
     .upg-content,
     .upg-info {
-        gap: calc(var(--upg-spacing) * 0.5) !important;
+      gap: calc(var(--upg-spacing) * 0.5) !important;
     }
   }
 }
