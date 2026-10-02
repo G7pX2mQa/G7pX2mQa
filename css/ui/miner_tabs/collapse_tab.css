@@ -43,7 +43,7 @@
     font-size: clamp(24px, 2.8vw, 36px);
     font-weight: 800;
     letter-spacing: 0.04em;
-    border-radius: 999px;
+    border-radius: 6px;
     border: 0;
     color: #ffffff;
     text-shadow:
@@ -60,20 +60,25 @@
     position: relative;
     user-select: none;
     overflow: hidden;
+}
+
+.collapse-start-btn:active:not(:disabled) {
+    transform: none;
+}
+
+.collapse-start-btn {
     background: 
       var(--fracture-svg-url),
       linear-gradient(180deg, hsl(30, 25%, 15%), hsl(30, 30%, 8%));
     background-size: 100% 100%, auto;
     background-position: center, center;
-    box-shadow:
-      0 6px 0 hsl(30 40% 4%),
-      0 0 0 3px hsla(30, 50%, 2%, 0.9);
-    transition: transform 0.1s ease;
+    box-shadow: 0 0 0 3px hsla(30, 50%, 2%, 0.9);
+    transition: transform 0.1s ease, filter 0.12s ease;
 }
 
 .collapse-start-btn:not(:disabled):hover,
 .collapse-start-btn:not(:disabled):focus-visible {
-    animation: collapseBrownPulse 1.1s infinite ease-in-out;
+    filter: brightness(1.15);
 }
 
 @keyframes collapseBrownPulse {
