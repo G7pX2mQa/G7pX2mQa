@@ -38,12 +38,20 @@ export function updateColorShiftVisibility() {
         const card = document.createElement("div");
         card.className = "color-shift-card";
         
-        const contentArea = document.createElement("div");
-        contentArea.className = "color-shift-content";
+        const layout = document.createElement("div");
+        layout.className = "color-shift-layout";
+        
+        const header = document.createElement("header");
+        header.className = "color-shift-header";
         
         const title = document.createElement("h3");
         title.className = "color-shift-title";
         title.textContent = "Color Shift";
+        
+        header.appendChild(title);
+        
+        const contentArea = document.createElement("div");
+        contentArea.className = "color-shift-content";
         
         const modeDesc = document.createElement("p");
         modeDesc.className = "color-shift-mode-desc";
@@ -65,13 +73,15 @@ export function updateColorShiftVisibility() {
         
         shiftBtnWrap.appendChild(shiftBtn);
         
-        contentArea.appendChild(title);
         contentArea.appendChild(modeDesc);
         contentArea.appendChild(desc);
         contentArea.appendChild(firstTimeText);
         contentArea.appendChild(shiftBtnWrap);
         
-        card.appendChild(contentArea);
+        layout.appendChild(header);
+        layout.appendChild(contentArea);
+        
+        card.appendChild(layout);
         panelColorShift.appendChild(card);
         
         tabs.appendChild(tabCsBtn);
