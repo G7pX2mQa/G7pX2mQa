@@ -5474,7 +5474,7 @@ function buildLabNodesDebug(container) {
             // RP
             const rpKey = NODE_RP_KEY(slot, node.id);
             const rpRow = createInputRow(
-                "Current RP",
+                "RP",
                 getResearchNodeRp(node.id),
                 (value, { setValue }) => {
                     let bn;
@@ -5582,7 +5582,7 @@ function buildFlowDebug(container) {
             // FP
             const fpKey = `ccc:flow:fp:${def.id}:${slot}`;
             const fpRow = createInputRow(
-                "Current FP",
+                "FP",
                 getWaterwheelFp(def.id),
                 (value, { setValue }) => {
                     let valBn;
