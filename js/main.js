@@ -3213,3 +3213,16 @@ window.addEventListener("webglcontextlost", (e) => {
 }, true);
 
 window.enterArea = enterArea;
+
+document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".merchant-reset__action, .warp-btn, .collapse-start-btn, .color-shift-btn");
+    if (btn) {
+        btn.classList.add("no-hover");
+    }
+});
+document.addEventListener("pointerout", (e) => {
+    const btn = e.target.closest(".merchant-reset__action, .warp-btn, .collapse-start-btn, .color-shift-btn");
+    if (btn && !btn.contains(e.relatedTarget)) {
+        btn.classList.remove("no-hover");
+    }
+});
