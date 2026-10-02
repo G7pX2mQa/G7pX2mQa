@@ -55,14 +55,24 @@ function saveState(state) {
 }
 
 export function isGclpSystemUnlocked() {
-    const state = ensureState();
-    return state ? state.unlocked : false;
+    const slot = getActiveSlot();
+    return slot != null && lsGetItem(`ccc:colorShiftFirstGreen:${slot}`) === "1";
 }
 
 export function unlockGclpSystem() {
     const state = ensureState();
     if (!state) return;
-    if (!state.unlocked) {
+    
+    const slot = getActiveSlot();
+    if (slot != null && lsGetItem(`ccc:colorShiftFirstGreen:${slot}`) !== "1") {
+        lsSetItem(`ccc:colorShiftFirstGreen:${slot}`, "1");
+        state.unlocked = true;
+        saveState(state);
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent('ccc:gclp:unlocked'));
+            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
+        }
+    } else if (!state.unlocked) {
         state.unlocked = true;
         saveState(state);
         if (typeof window !== "undefined") {
@@ -110,13 +120,6 @@ export function getGclpRequirement() {
 export function addGclp(amountBn) {
     const state = ensureState();
     if (!state) return;
-    
-    if (!state.unlocked) {
-        state.unlocked = true;
-        if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent('ccc:gclp:unlocked'));
-        }
-    }
     
     const slot = getActiveSlot();
     const progressLocked = isStorageKeyLocked(`ccc:gclpProgress:${slot}`);
@@ -300,7 +303,7 @@ export function updateGclpHud() {
     const slot = getActiveSlot();
     const hasFirstShift = slot != null && lsGetItem(`ccc:colorShiftFirstGreen:${slot}`) === "1";
     
-    if (!state || (!state.unlocked && !hasFirstShift)) {
+    if (!state || !hasFirstShift) {
         container.setAttribute("hidden", "");
         if (fill) {
             fill.style.setProperty("--gclp-fill", "0%");
