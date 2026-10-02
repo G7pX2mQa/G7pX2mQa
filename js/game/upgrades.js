@@ -218,6 +218,8 @@ export const UPGRADE_TIES = {
 
     // === RED CORAL ===
     FASTER_CORAL: "coral_reef_1",
+    RED_CORAL_LINK: "coral_reef_7",
+    GREEN_CORAL_LINK: "coral_reef_8",
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -1372,6 +1374,15 @@ function applyHmEvolutionMeta(upg, evolutions = 0) {
     upg.lvlCapBn = capBn;
     upg.lvlCapFmtHtml = capFmtHtml;
     upg.lvlCapFmtText = capFmtText;
+}
+
+export function getLevelNumberByTie(tieStr) {
+    if (!tieStr) return 0;
+    const lastUnderscore = tieStr.lastIndexOf('_');
+    if (lastUnderscore <= 0) return 0;
+    const area = tieStr.substring(0, lastUnderscore);
+    const id = parseInt(tieStr.substring(lastUnderscore + 1), 10);
+    return getLevelNumber(area, id);
 }
 
 export function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
