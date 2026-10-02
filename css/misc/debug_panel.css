@@ -168,7 +168,7 @@ html.is-mobile {
 }
 
 .debug-panel-close:active {
-    transform: translateY(1px);
+    transform: none;
     background: hsla(0, 80%, 40%, 0.28);
 }
 
@@ -374,7 +374,7 @@ html.is-mobile {
 
 .debug-panel-toggle.debug-danger-button:active {
     background: hsla(0, 80%, 40%, 0.28);
-    transform: translateY(1px);
+    transform: none;
 }
 
 .debug-misc-button-list {
