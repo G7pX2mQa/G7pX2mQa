@@ -35,7 +35,7 @@
   gap: 10px;
   padding: 10px 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 4px;
   /* background dynamically applied */
   /* box-shadow dynamically applied */
   color: #f5f8ff;
@@ -67,7 +67,7 @@
 }
 
 .help-card {
-  border-radius: 18px;
+  border-radius: 6px;
   padding: 22px;
   display: flex;
   flex-direction: column;
