@@ -186,7 +186,7 @@
 }
 
 .offline-close-btn:active {
-    transform: translateY(1px);
+    transform: none;
 }
 
 html.is-mobile {
@@ -333,14 +333,14 @@ html.is-mobile {
     background: rgba(0, 217, 255, 0.2);
 }
 .sim-speed-btn:hover { background: rgba(0, 217, 255, 0.3); }
-.sim-speed-btn:active { transform: translateY(1px); }
+.sim-speed-btn:active { transform: none; }
 
 .sim-skip-btn {
     border: 2px solid hsla(0, 80%, 40%, 1);
     background: hsla(0, 80%, 40%, 0.5);
 }
 .sim-skip-btn:hover { background: hsla(0, 80%, 40%, 0.6); }
-.sim-skip-btn:active { transform: translateY(1px); }
+.sim-skip-btn:active { transform: none; }
 
 /* Swap View button */
 .sim-swap-btn {
@@ -360,7 +360,7 @@ html.is-mobile {
     user-select: none;
 }
 .sim-swap-btn:hover { background: hsla(50, 100%, 50%, 0.3); }
-.sim-swap-btn:active { transform: translateY(1px); }
+.sim-swap-btn:active { transform: none; }
 
 /* Sticky tick info at bottom of rewards view */
 .sim-rewards-scroll {
