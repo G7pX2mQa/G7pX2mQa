@@ -67,7 +67,7 @@
   /* Lighter dark-blue gradient */
   background: #0f1626;
   border: 1px solid rgba(66, 100, 150, 0.4);
-  border-radius: 16px;
+  border-radius: 6px;
   padding: clamp(var(--space-5), 2vw, var(--space-6));
   box-shadow: var(--shadow-2);
   outline-offset: 2px;
@@ -245,7 +245,7 @@ html.is-mobile {
   justify-content:center;
   min-height: 40px;
   padding: 0 .9rem;
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--btn-border);
   background: var(--btn-bg);
   color: var(--text-1);
@@ -254,7 +254,7 @@ html.is-mobile {
   transition: background .15s ease, border-color .15s ease, transform .1s ease;
 }
 .btn:hover{ background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
-.btn:active{ transform: translateY(1px); }
+.btn:active{ transform: none; }
 
 .btn-ghost{ opacity:.9; transition: none; }
 .btn-ghost:hover{ opacity:1; background: rgba(18, 26, 46, 0.74); }
