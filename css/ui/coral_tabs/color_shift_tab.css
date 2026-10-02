@@ -131,8 +131,8 @@
     box-shadow: 0 0 0 3px hsl(0 100% 10% / 0.9);
 }
 
-.color-shift-card.is-red .color-shift-btn:not(:disabled):hover,
-.color-shift-card.is-red .color-shift-btn:not(:disabled):focus-visible {
+.color-shift-card.is-red .color-shift-btn:not(:disabled):not(.no-hover):hover,
+.color-shift-card.is-red .color-shift-btn:not(:disabled):not(.no-hover):focus-visible {
     filter: brightness(1.15);
 }
 
@@ -162,8 +162,8 @@
     box-shadow: 0 0 0 3px hsl(120 100% 10% / 0.9);
 }
 
-.color-shift-card.is-green .color-shift-btn:not(:disabled):hover,
-.color-shift-card.is-green .color-shift-btn:not(:disabled):focus-visible {
+.color-shift-card.is-green .color-shift-btn:not(:disabled):not(.no-hover):hover,
+.color-shift-card.is-green .color-shift-btn:not(:disabled):not(.no-hover):focus-visible {
     filter: brightness(1.15);
 }
 
