@@ -78,6 +78,13 @@ export function feedVoidGem() {
     return true;
 }
 
+let currentVoidAnimation = null;
+export function interruptVoidGemAnimation() {
+    if (currentVoidAnimation) {
+        currentVoidAnimation.cancel();
+    }
+}
+
 let altarTabPanel = null;
 let isFeeding = false;
 function playVoidExplosion() {
@@ -184,6 +191,15 @@ function playVoidExplosion() {
             explosionContainer.remove();
         }
     }, 5000);
+    return {
+        cancel: () => {
+            isAnimating = false;
+            window.removeEventListener("resize", onResize);
+            if (explosionContainer.parentElement) {
+                explosionContainer.remove();
+            }
+        }
+    };
 }
 // Moved to inline logic for unified tick loop inside the click handler
 // function triggerVoidVisuals() removed
@@ -209,6 +225,11 @@ export function initVoidGemAltarTab(panel) {
     feedBtn.addEventListener("click", (e) => {
         if (isFeeding) return;
         if (!bank.voidGems || bank.voidGems.value.cmp(1) < 0) return;
+        
+        if (currentVoidAnimation) {
+            currentVoidAnimation.cancel();
+        }
+
         isFeeding = true;
         updateVoidGemAltarTab(); // Update button state
         // Audio sequence
@@ -225,6 +246,35 @@ export function initVoidGemAltarTab(panel) {
         let voidTimeAccumulator = 0;
         let debrisTimeAccumulator = 0;
         let unsub = null;
+        let activeExplosion = null;
+
+        const cancel = () => {
+            if (isExploded) return;
+            isExploded = true;
+            if (unsub) unsub();
+            if (buildupAudio && typeof buildupAudio.stop === "function") {
+                buildupAudio.stop();
+            }
+            removeAudioDrownEffect();
+            if (overlay && overlay.parentElement) {
+                overlay.remove();
+            }
+            if (activeExplosion) {
+                activeExplosion.cancel();
+            }
+            
+            if (feedVoidGem()) {
+                updateVoidGemAltarTab();
+            }
+            isFeeding = false;
+            updateVoidGemAltarTab();
+            if (currentVoidAnimation && currentVoidAnimation.cancel === cancel) {
+                currentVoidAnimation = null;
+            }
+        };
+
+        currentVoidAnimation = { cancel };
+
         unsub = registerTick((dt) => {
             if (!document.hidden) {
                 voidTimeAccumulator += dt;
@@ -297,13 +347,16 @@ export function initVoidGemAltarTab(panel) {
                         setTimeout(() => {
                             if (overlay.parentElement) overlay.remove();
                         }, 500);
-                        playVoidExplosion();
+                        activeExplosion = playVoidExplosion();
                     }
                     if (feedVoidGem()) {
                         updateVoidGemAltarTab();
                     }
                     isFeeding = false;
                     updateVoidGemAltarTab();
+                    if (currentVoidAnimation && currentVoidAnimation.cancel === cancel) {
+                        currentVoidAnimation = null;
+                    }
                 }
             }
         });
@@ -351,4 +404,13 @@ export function updateVoidGemAltarTab() {
             feedBtn.disabled = true;
         }
     }
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:beforeExit", () => {
+        interruptVoidGemAnimation();
+    });
+    window.addEventListener("beforeunload", () => {
+        interruptVoidGemAnimation();
+    });
 }
