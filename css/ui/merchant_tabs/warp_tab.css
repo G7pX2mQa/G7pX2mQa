@@ -67,7 +67,7 @@
     border-radius: 6px;
     cursor: pointer;
     box-shadow: 0 0 0 3px hsl(213 96% 10% / 0.9);
-    transition: background 0.3s ease, transform 0.1s;
+    transition: background 0.3s ease, transform 0.1s ease, filter 0.12s ease;
     min-width: min(300px, 100%);
     user-select: none;
     -webkit-text-stroke: 0 transparent;
