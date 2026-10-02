@@ -163,6 +163,7 @@ export function createCoralSpawner(config = {}) {
 
     const base = createBaseSpawner({
         playfieldSelector,
+        waterSelector: "#water-background",
         itemsHostSelector: coralHost,
         baseItemSize: baseSize,
         animationDurationMs,
@@ -194,7 +195,9 @@ export function createCoralSpawner(config = {}) {
             if (centerMaxX <= centerMinX) return null;
 
             const maxY = safeBottom - baseSize - 6;
-            const minY = canopyHitY;
+            const wRect = M.wRect && M.wRect.height > 0 ? M.wRect : { top: M.pfRect.top, left: M.pfRect.left, height: M.pfRect.height * 0.35 };
+            const effectiveWaterH = Math.min(wRect.height, M.pfRect.height * 0.3);
+            const minY = Math.max(effectiveWaterH + 80, 120);
             if (maxY <= minY) return null;
 
             const itemsToAdd = 1 + batchLength;
@@ -234,7 +237,7 @@ export function createCoralSpawner(config = {}) {
             return {
                 x0: spawnCenterX,
                 startY: bubbleStartY,
-                hitY: minY,
+                hitY: canopyHitY,
                 fallEndX: endCenterX - baseSize / 2,
                 fallEndY: endY,
                 seed: Math.random() * Math.PI * 2
