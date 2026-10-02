@@ -62,7 +62,7 @@ export function updateColorShiftVisibility() {
         
         const firstTimeText = document.createElement("div");
         firstTimeText.className = "color-shift-first-time";
-        firstTimeText.innerHTML = "Color Shifting for the first time will unlock Green Coral Level<br>More information about Green Coral Level can be found post-shift";
+        firstTimeText.innerHTML = "Color Shifting for the first time will unlock Green Coral Level and new Shop upgrades<br>More information about Green Coral Level can be found post-shift";
         
         const shiftBtnWrap = document.createElement("div");
         shiftBtnWrap.className = "color-shift-actions";
