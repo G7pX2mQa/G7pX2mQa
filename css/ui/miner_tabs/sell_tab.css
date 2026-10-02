@@ -358,7 +358,7 @@
   -webkit-user-select: none;
   user-select: none;
   border: 2px solid rgba(136, 136, 136, 0.4);
-  border-radius: 12px;
+  border-radius: 4px;
   z-index: 5;
   background: rgba(136, 136, 136, 0.05);
 }
@@ -444,7 +444,7 @@
 }
 
 .sell-mode-toggle-btn:active {
-  transform: translateY(1px) scale(0.997);
+  transform: none;
 }
 
 .scrap-counter.is-rubble .scrap-bar {
@@ -482,7 +482,7 @@
 }
 
 .btn-rubble-shop:active {
-  transform: translateY(1px) scale(0.997);
+  transform: none;
 }
 
 @media (max-width: 632px) {
