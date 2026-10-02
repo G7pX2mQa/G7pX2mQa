@@ -1291,6 +1291,7 @@ class ShopInstance {
             }
             if (locked) btn.title = isMysterious ? "Hidden Upgrade" : "Locked Upgrade";
             else if (upg.meta?.unlockUpgrade) btn.title = "Left-click: Details • Right-click: Unlock";
+            else if (isSingleLevelCap) btn.title = "Left-click: Details • Right-click: Purchase";
             else btn.title = "Left-click: Details • Right-click: Buy Max";
             // DOM Structure Update
             const tileEl = btn.firstElementChild;
