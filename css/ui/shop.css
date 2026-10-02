@@ -607,9 +607,7 @@ html.is-mobile {
 
 
 .upg-costs{ display:grid; gap:2px; margin-top:0; }
-
-.upg-line{
-  font-size: calc(clamp(32px, 4.6vw, 50px) * var(--upg-scale, 1));
+  .upg-sheet .upg-line{              font-size: calc(clamp(32px, 4.6vw, 50px) * var(--upg-scale, 1));
   line-height:1.25;
 }
 
@@ -736,15 +734,12 @@ html.is-mobile {
   }
   
   html.is-mobile {
-  &{
-    --upg-title-size: clamp(32px, 5vmin, 52px);
+  --upg-title-size: clamp(32px, 5vmin, 52px);
     --upg-desc-size:  clamp(22px, 3.4vmin, 30px);
     --upg-line-size:  clamp(22px, 3.4vmin, 30px);
-  }
-
-  .upg-header .upg-title{ font-size: var(--upg-title-size); }
-  .upg-desc.centered{     font-size: calc(var(--upg-desc-size) * var(--upg-scale, 1));  }
-  .upg-line{              font-size: calc(var(--upg-line-size) * var(--upg-scale, 1));   }
+  .upg-sheet .upg-header .upg-title{ font-size: var(--upg-title-size); }
+  .upg-sheet .upg-desc.centered{     font-size: calc(var(--upg-desc-size) * var(--upg-scale, 1));  }
+  .upg-sheet .upg-line{              font-size: calc(var(--upg-line-size) * var(--upg-scale, 1));   }
 
   .upg-actions{
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
@@ -753,11 +748,9 @@ html.is-mobile {
 
 @media (min-width: 700px) {
   html.is-mobile {
-  &{
-    --upg-title-size: clamp(42px, 7vmin, 70px);
+  --upg-title-size: clamp(42px, 7vmin, 70px);
     --upg-desc-size:  clamp(30px, 5vmin, 50px);
     --upg-line-size:  clamp(30px, 5vmin, 50px);
-  }
 
   .upg-sheet{ --upg-spacing: 18px; }
   }
@@ -767,11 +760,9 @@ html.is-mobile {
 
 @media (max-width: 600px) {
   html.is-mobile {
-  &{
-    --upg-title-size: clamp(28px, 6vmin, 44px);
+  --upg-title-size: clamp(28px, 6vmin, 44px);
     --upg-desc-size:  clamp(16px, 2.8vmin, 22px);
     --upg-line-size:  clamp(16px, 2.8vmin, 22px);
-  }
   }
 }
 
@@ -1135,8 +1126,8 @@ html.is-mobile {
   }
 }
 @media (max-width: 1799px) {
-  .upg-sheet.is-faster-coral .upg-desc.centered,
-  .upg-sheet.is-faster-coral .upg-line {
+  html:not(.is-mobile) .upg-sheet.is-faster-coral .upg-desc.centered,
+  html:not(.is-mobile) .upg-sheet.is-faster-coral .upg-line {
     font-size: clamp(27.2px, 3.91vw, 42.5px);
   }
 }
