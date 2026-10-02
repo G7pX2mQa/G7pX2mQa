@@ -249,6 +249,7 @@
   cursor: pointer;
   position: relative;
   user-select: none;
+  transition: filter 0.12s ease, transform 0.1s ease;
 }
 
 .merchant-reset__action:active:not(:disabled) {
