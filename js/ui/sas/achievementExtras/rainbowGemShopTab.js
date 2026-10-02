@@ -471,6 +471,8 @@ export function updateRainbowGemShopTab() {
                 btn.title = isMysterious ? "Hidden Upgrade" : "Locked Upgrade";
             } else if (isOwned) {
                 btn.title = "Owned";
+            } else if (upg.lvlCap === 1 || upg.meta?.lvlCap === 1) {
+                btn.title = "Left-click: Details • Right-click: Purchase";
             } else {
                 btn.title = "Left-click: Details • Right-click: Buy Max";
             }
