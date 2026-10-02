@@ -98,7 +98,7 @@ user-select: none;
 }
 
 .game-btn:active {
-transform: translateY(1px) scale(0.997);
+transform: none;
 }
 
 .hud-bottom > .game-btn span {
@@ -1464,7 +1464,7 @@ html:not(.is-mobile) {
 }
 @media (max-width: 600px) {
   .is-mobile .goal-bar-text {
-  	transform: translateY(1px);
+  	transform: none;
   }
 }
 .scrap-bar {
@@ -1488,13 +1488,13 @@ html:not(.is-mobile) {
   top: 1px;
 }
 .is-mobile .goal-progress-bar {
-  transform: translateY(1px);
+  transform: none;
 }
 
 body.custom-font-active .coin-amount,
 body.custom-font-active .scrap-amount, body.custom-font-active .red-coral-amount, .green-coral-amount,
 body.custom-font-active .sell-currency-amount {
-  transform: translateY(1px);
+  transform: none;
 }
 
 body.custom-font-active .coin-amount .infinity-symbol,
