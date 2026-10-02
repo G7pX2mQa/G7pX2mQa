@@ -355,7 +355,7 @@
 }
 
 .flow-toggle-btn:active {
-  transform: translateY(1px);
+  transform: none;
   background: hsla(0, 80%, 40%, 0.28);
 }
 
@@ -371,7 +371,7 @@
 }
 
 .flow-toggle-btn.is-active:active {
-  transform: translateY(1px);
+  transform: none;
   background: hsla(150, 60%, 35%, 0.28);
 }
 
@@ -387,7 +387,7 @@
 }
 
 .flow-toggle-btn.is-weakened:active {
-  transform: translateY(1px);
+  transform: none;
   background: hsla(45, 80%, 40%, 0.28);
 }
 
@@ -450,8 +450,8 @@
     padding-right: 8px;
   }
   
-  .flow-level-val::before { content: "Level:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
-  .flow-effect-val::before { content: "Effect:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
+  .flow-level-val::before { content: "Level:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: none; }
+  .flow-effect-val::before { content: "Effect:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: none; }
   
   .flow-level-val { grid-area: lvl; justify-self: center; align-self: center; font-size: 1rem; text-align: center; flex-wrap: wrap; white-space: normal; overflow-wrap: anywhere; }
   .flow-effect-val { grid-area: effect; justify-self: center; align-self: center; font-size: 1rem; text-align: center; flex-wrap: wrap; white-space: normal; overflow-wrap: anywhere; }
