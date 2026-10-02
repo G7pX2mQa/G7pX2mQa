@@ -33,18 +33,6 @@
   user-select: none;
 }
 
-/* removed */
-
-
-
-
-
-
-
-
-
-
-
 /* Desktop: 3 across */
 .slots-grid {
   display: grid;
@@ -64,9 +52,9 @@
 
 .slot-card {
   text-align: left;
-  /* Lighter dark-blue gradient */
-  background: #0f1626;
-  border: 1px solid rgba(66, 100, 150, 0.4);
+  /* Default gray/light gray for empty slots */
+  background: #3c3c3c;
+  border: 1px solid rgba(130, 130, 130, 0.4);
   border-radius: 6px;
   padding: clamp(var(--space-5), 2vw, var(--space-6));
   box-shadow: var(--shadow-2);
@@ -78,7 +66,7 @@
 }
 
 .slot-card:hover {
-  background: #121a2e;
+  background: #404040;
 }
 
 .slot-card[data-has-tint="true"] {
@@ -262,12 +250,12 @@ html.is-mobile {
 #manage-saves {
   position: relative;
   border: 1px solid transparent !important;
-  background-color: var(--btn-bg); /* fallback to avoid gaps */
+  background-color: #3c3c3c; /* fallback to avoid gaps */
   
   --manage-overlay: rgba(15, 22, 38, 0.75);
   --border-overlay: rgba(34, 49, 74, 0.75);
-  --btn-bg-current: var(--btn-bg);
-  --border-empty: var(--btn-border);
+  --btn-bg-current: #3c3c3c;
+  --border-empty: rgba(130, 130, 130, 0.4);
   
   background-image: 
     var(--s1-body, linear-gradient(var(--btn-bg-current), var(--btn-bg-current)), linear-gradient(var(--btn-bg-current), var(--btn-bg-current))),
@@ -329,7 +317,7 @@ html.is-mobile {
 
 #manage-saves:hover {
   --manage-overlay: rgba(18, 26, 46, 0.74);
-  --btn-bg-current: var(--btn-bg-hover);
+  --btn-bg-current: #414141;
 }
 
 #manage-saves:active {
