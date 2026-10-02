@@ -202,7 +202,7 @@ html.is-mobile {
 }
 
 .jackpot-notif-btn:active {
-    transform: translateY(1px);
+    transform: none;
     background: hsl(38 50% 80% / 0.42);
 }
 
@@ -296,7 +296,7 @@ html.is-mobile {
 }
 
 .jackpot-notice-actions .sas-close:active {
-    transform: translateY(1px);
+    transform: none;
     background: hsla(0, 80%, 40%, 0.28);
 }
 
