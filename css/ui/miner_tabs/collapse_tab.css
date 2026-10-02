@@ -76,8 +76,8 @@
     transition: transform 0.1s ease, filter 0.12s ease;
 }
 
-.collapse-start-btn:not(:disabled):hover,
-.collapse-start-btn:not(:disabled):focus-visible {
+.collapse-start-btn:not(:disabled):not(.no-hover):hover,
+.collapse-start-btn:not(:disabled):not(.no-hover):focus-visible {
     filter: brightness(1.15);
 }
 
