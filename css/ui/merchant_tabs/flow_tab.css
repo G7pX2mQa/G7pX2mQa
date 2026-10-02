@@ -348,6 +348,7 @@
   user-select: none;
   background: hsla(0, 80%, 40%, 0.15);
   min-width: 60px;
+  transition: background 120ms ease, transform 90ms ease;
 }
 
 .flow-toggle-btn:hover {
@@ -355,7 +356,7 @@
 }
 
 .flow-toggle-btn:active {
-  transform: none;
+  transform: translateY(1px);
   background: hsla(0, 80%, 40%, 0.28);
 }
 
@@ -371,7 +372,7 @@
 }
 
 .flow-toggle-btn.is-active:active {
-  transform: none;
+  transform: translateY(1px);
   background: hsla(150, 60%, 35%, 0.28);
 }
 
@@ -387,7 +388,7 @@
 }
 
 .flow-toggle-btn.is-weakened:active {
-  transform: none;
+  transform: translateY(1px);
   background: hsla(45, 80%, 40%, 0.28);
 }
 
