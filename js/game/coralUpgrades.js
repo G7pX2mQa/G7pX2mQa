@@ -307,6 +307,10 @@ export const CORAL_REGISTRY = [
             return BigNum.fromAny("1e6");
         },
         computeLockState() {
+            if (isGclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+
             let isCopperCompleted = false;
             try {
                 const slotKey = getActiveSlot() ?? "default";
@@ -315,10 +319,6 @@ export const CORAL_REGISTRY = [
 
             if (!isCopperCompleted) {
                 return { state: "locked" };
-            }
-
-            if (isGclpSystemUnlocked()) {
-                return { state: "unlocked" };
             }
 
             return { state: "mysterious", unlockReqText: "Unlock the Green Coral Level system to reveal this upgrade" };
@@ -365,6 +365,10 @@ export const CORAL_REGISTRY = [
             return BigNum.fromAny("1e12");
         },
         computeLockState() {
+            if (isGclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+
             let isCopperCompleted = false;
             try {
                 const slotKey = getActiveSlot() ?? "default";
@@ -373,10 +377,6 @@ export const CORAL_REGISTRY = [
 
             if (!isCopperCompleted) {
                 return { state: "locked" };
-            }
-
-            if (isGclpSystemUnlocked()) {
-                return { state: "unlocked" };
             }
 
             return { state: "mysterious", unlockReqText: "Unlock the Green Coral Level system to reveal this upgrade" };
@@ -406,4 +406,50 @@ export const CORAL_REGISTRY = [
             }
         },
     },
+    {
+        area: CORAL_AREA_KEY,
+        id: 9,
+        title: "Challenge of Iron",
+        desc: "Unlocks the Challenge of Iron",
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "img/materials/iron.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            if (!isGclpSystemUnlocked()) {
+                return { state: "locked" };
+            }
+            try {
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 51) {
+                        return { state: "unlocked" };
+                    }
+                    return { state: "mysterious", unlockReqText: "Reach Red Coral Level 51 to reveal this upgrade" };
+                }
+            } catch {}
+            
+            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 51 to reveal this upgrade" };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    const slot = getActiveSlot() ?? "default";
+                    lsSetItem(`ccc:collapseChallengeVisible:iron:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: "iron", visible: true } }));
+                } catch {}
+            }
+        },
+        effectSummary() {
+            return "";
+        },
+    }
 ];
