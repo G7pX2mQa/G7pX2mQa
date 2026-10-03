@@ -1,5 +1,5 @@
 import { lsSetItem, lsGetItem, lsRemoveItem } from "../../main.js";
-import { getActiveSlot, bank } from "../../util/storage.js";
+import { getActiveSlot, bank, setGoldLockedToZero } from "../../util/storage.js";
 import { getSaveDataForSlot, applySaveDataToSlot } from "../../util/slotsManager.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
@@ -19,9 +19,27 @@ import { addExternalCoinMultiplierProvider, syncCoinMultiplierWithXpLevel } from
 import { showWideNotification } from "../notifications.js";
 import { onDpChange } from "../../game/dpSystem.js";
 import { clearPendingGains } from "../../game/coinPickup.js";
+import { registerTick } from "../../game/gameLoop.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
 let cachedCollapseUnlockedStates = {};
+
+let ironLockTicks = 0;
+if (typeof window !== "undefined") {
+    registerTick(() => {
+        if (ironLockTicks > 0) {
+            setGoldLockedToZero(true);
+            ironLockTicks--;
+            if (ironLockTicks <= 0) {
+                setGoldLockedToZero(false);
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    lsRemoveItem(`ccc:goldLockedToZero:${slot}`);
+                }
+            }
+        }
+    });
+}
 
 export function isCollapseUnlocked(slot = getActiveSlot()) {
     if (cachedCollapseUnlockedStates[slot] !== undefined && cachedCollapseUnlockedStates[slot] !== null)
@@ -50,7 +68,22 @@ if (typeof window !== "undefined") {
         cachedChallengeActive = {};
         cachedChallengeType = {};
     };
-    window.addEventListener("saveSlot:change", invalidateCollapseCache);
+    window.addEventListener("saveSlot:change", (e) => {
+        invalidateCollapseCache();
+        // Anti-cheat: resume iron lock if flag exists
+        const slot = e?.detail?.slot ?? getActiveSlot();
+        if (slot != null) {
+            try {
+                if (lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
+                    ironLockTicks = 60;
+                    setGoldLockedToZero(true);
+                } else {
+                    ironLockTicks = 0;
+                    setGoldLockedToZero(false);
+                }
+            } catch {}
+        }
+    });
     window.addEventListener("unlock:change", invalidateCollapseCache);
 }
 
@@ -375,6 +408,15 @@ export function startCollapseChallenge(materialName) {
     // Dispatch event so other systems can react
     if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("collapse:challenge:start", { detail: { material: materialName } }));
+    }
+
+    if (materialName === "iron") {
+        ironLockTicks = 60; // 3 entire seconds
+        setGoldLockedToZero(true);
+        const slot = getActiveSlot();
+        if (slot != null) {
+            lsSetItem(`ccc:goldLockedToZero:${slot}`, "1");
+        }
     }
 
     return true;
