@@ -2335,6 +2335,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			"img/uc_upg_icons/pp_val_hm.webp",
             "img/uc_upg_icons/rp_val1.webp",
             "img/waterwheels/waterwheel_coin.webp",
+			"img/waterwheels/waterwheel_depth.webp",
             "img/waterwheels/waterwheel_gold.webp",
 			"img/waterwheels/waterwheel_gold_but_evil.webp",
             "img/waterwheels/waterwheel_magic.webp",
