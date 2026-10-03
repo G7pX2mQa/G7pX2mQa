@@ -342,7 +342,7 @@ export const CORAL_REGISTRY = [
             try {
                 const log10 = approxLog10BigNum(unspentGreen);
                 if (Number.isNaN(log10) || log10 <= 0) return BigNum.fromInt(1);
-                return bigNumFromLog10(log10 / 4);
+                return bigNumFromLog10(log10 / 3);
             } catch {
                 return BigNum.fromInt(1);
             }
@@ -400,7 +400,7 @@ export const CORAL_REGISTRY = [
             try {
                 const log10 = approxLog10BigNum(unspentRed);
                 if (Number.isNaN(log10) || log10 <= 0) return BigNum.fromInt(1);
-                return bigNumFromLog10(log10 / 4);
+                return bigNumFromLog10(log10 / 3);
             } catch {
                 return BigNum.fromInt(1);
             }
