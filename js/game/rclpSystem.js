@@ -189,7 +189,8 @@ export function getRclpMultiplier() {
 export function applyRclpState(newState) {
     const state = ensureState();
     if (!state) return;
-    if (newState.unlocked !== undefined) state.unlocked = newState.unlocked;
+    if (newState.unlocked) unlockRclpSystem();
+    else if (newState.unlocked !== undefined) state.unlocked = newState.unlocked;
     let nextLevel = newState.rclpLevel !== undefined ? newState.rclpLevel : state.rclpLevel;
     let nextProgress = newState.rclpProg !== undefined ? newState.rclpProg : state.rclpProg;
 
