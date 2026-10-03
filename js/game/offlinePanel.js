@@ -1494,7 +1494,7 @@ export async function processOfflineProgress() {
     if (!settingsManager.get("offline_progress")) {
         return;
     }
-    const lastSave = getLastSaveTime();
+    let lastSave = getLastSaveTime();
     const now = Date.now();
     if (lastSave <= 0) return;
     // Detect reverse time travel (user changed clock back after saving in future)
@@ -1503,15 +1503,21 @@ export async function processOfflineProgress() {
         markSaveSlotModified(slot);
         return;
     }
-    const diff = now - lastSave;
-    if (diff < 1000) return; // Ignore gaps < 1s
     let wasInterrupted = false;
     try {
         if (lsGetItem(`ccc:simInterrupted:${slot}`) === "1") {
             wasInterrupted = true;
             lsRemoveItem(`ccc:simInterrupted:${slot}`);
+            const raw = lsGetItem(`ccc:lastSaveTime:${slot}`);
+            const val = parseInt(raw, 10);
+            if (Number.isFinite(val) && val < lastSave) {
+                lastSave = val;
+            }
         }
     } catch {}
+
+    const diff = now - lastSave;
+    if (diff < 1000 && !wasInterrupted) return; // Ignore gaps < 1s unless we have interrupted time
 
     const seconds = diff / 1000;
     if (window.progressTime !== undefined) {
