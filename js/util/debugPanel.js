@@ -41,6 +41,7 @@ import { IS_MOBILE } from "./platformChecker.js";
 import {
     getUpgradeStorageKey,
     AREA_KEYS,
+    UPGRADE_TIES,
     computeUpgradeEffects,
     getLevel,
     getLevelNumber,
@@ -2365,6 +2366,27 @@ function applyPpState({ level, progress }) {
             window.showPopup("pp", nextProgress, { overrideAmount: true });
         }
         window.dispatchEvent(new CustomEvent("pp:change", { detail: { changeType: "debug-panel", slot, ppAdded: 0 } }));
+        if (typeof window !== "undefined") {
+            try {
+                const ppSystem = window.ppSystem;
+                const state = ppSystem && typeof ppSystem.getPpState === "function" 
+                    ? ppSystem.getPpState() 
+                    : { ppLevel: nextLevel, progress: nextProgress, requirement: BigNum.fromInt(1), unlocked: true };
+                const ratio = ppSystem && typeof ppSystem.getPpProgressRatio === "function" 
+                    ? ppSystem.getPpProgressRatio() 
+                    : 0;
+                window.dispatchEvent(new CustomEvent("level:change", {
+                    detail: {
+                        prefix: "pp",
+                        level: state.ppLevel,
+                        progress: state.progress,
+                        requirement: state.requirement,
+                        isUnlocked: state.unlocked,
+                        ratio: ratio,
+                    }
+                }));
+            } catch {}
+        }
     } catch {}
 
     try {
@@ -2456,6 +2478,27 @@ function applyDpState({ level, progress }) {
             window.showPopup("dp", nextProgress, { overrideAmount: true });
         }
         window.dispatchEvent(new CustomEvent("dp:change", { detail: { changeType: "debug-panel", slot, dpAdded: 0 } }));
+        if (typeof window !== "undefined") {
+            try {
+                const dpSystem = window.dpSystem;
+                const state = dpSystem && typeof dpSystem.getDpState === "function" 
+                    ? dpSystem.getDpState() 
+                    : { dpLevel: nextLevel, progress: nextProgress, requirement: BigNum.fromInt(1), unlocked: true };
+                const ratio = dpSystem && typeof dpSystem.getDpProgressRatio === "function" 
+                    ? dpSystem.getDpProgressRatio() 
+                    : 0;
+                window.dispatchEvent(new CustomEvent("level:change", {
+                    detail: {
+                        prefix: "dp",
+                        level: state.dpLevel,
+                        progress: state.progress,
+                        requirement: state.requirement,
+                        isUnlocked: state.unlocked,
+                        ratio: ratio,
+                    }
+                }));
+            } catch {}
+        }
     } catch {}
 
     try {
@@ -4076,14 +4119,14 @@ function getUnlockRowDefinitions(slot) {
             description: "If true, unlocks Coral Reef",
             isUnlocked: () => {
                 try {
-                    return getLevelNumber("underwater_cavern", 14) >= 1;
+                    return getLevelNumber(AREA_KEYS.UNDERWATER_CAVERN, UPGRADE_TIES.UNLOCK_CORAL_REEF) >= 1;
                 } catch {
                     return false;
                 }
             },
             onEnable: () => {
                 try {
-                    setLevel("underwater_cavern", 14, 1, true, { bypassCosts: true, skipSaveMark: false });
+                    setLevel(AREA_KEYS.UNDERWATER_CAVERN, UPGRADE_TIES.UNLOCK_CORAL_REEF, 1, true, { bypassCosts: true, skipSaveMark: false });
                     refreshNodesState();
                     window.dispatchEvent(new Event("pinnedAreas:changed"));
                     window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
@@ -4091,7 +4134,7 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try {
-                    setLevel("underwater_cavern", 14, 0, true, { bypassCosts: true, skipSaveMark: false });
+                    setLevel(AREA_KEYS.UNDERWATER_CAVERN, UPGRADE_TIES.UNLOCK_CORAL_REEF, 0, true, { bypassCosts: true, skipSaveMark: false });
                     const slot = getActiveSlot();
                     if (slot != null) {
                         lsRemoveItem(`ccc:coralReefPurchasedOnce:${slot}`);
