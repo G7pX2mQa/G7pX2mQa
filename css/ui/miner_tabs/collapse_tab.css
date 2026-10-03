@@ -32,6 +32,7 @@
 }
 
 .collapse-start-btn {
+    z-index: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -78,7 +79,6 @@
 
 .collapse-start-btn:not(:disabled):not(.no-hover):hover,
 .collapse-start-btn:not(:disabled):not(.no-hover):focus-visible {
-    filter: brightness(1.15);
 }
 
 @keyframes collapseBrownPulse {
@@ -316,4 +316,22 @@ html.is-mobile #collapse-challenge-overlay .upg-sheet.is-scrolling > .shop-scrol
 html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling > .shop-scrollbar {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+.collapse-start-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    z-index: -1;
+    background: inherit;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    pointer-events: none;
+}
+
+.collapse-start-btn:not(:disabled):not(.no-hover):hover::before,
+.collapse-start-btn:not(:disabled):not(.no-hover):focus-visible::before {
+    opacity: 1;
+    filter: brightness(1.10);
 }
