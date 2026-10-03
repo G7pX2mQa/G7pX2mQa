@@ -55,6 +55,8 @@
 }
 
 .warp-btn {
+    position: relative;
+    z-index: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -85,7 +87,6 @@
 
 .warp-btn:not(:disabled):not(.no-hover):hover,
 .warp-btn:not(:disabled):not(.no-hover):focus-visible {
-    filter: brightness(1.15);
 }
 
 .warp-btn:active:not(:disabled) {
@@ -189,4 +190,22 @@
         -webkit-backdrop-filter: hue-rotate(270deg) blur(10px) contrast(1.5) saturate(2);
         transform: scale(1.15); 
     }
+}
+
+.warp-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    z-index: -1;
+    background: inherit;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    pointer-events: none;
+}
+
+.warp-btn:not(:disabled):not(.no-hover):hover::before,
+.warp-btn:not(:disabled):not(.no-hover):focus-visible::before {
+    opacity: 1;
+    filter: brightness(1.10);
 }
