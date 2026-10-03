@@ -8,7 +8,7 @@ While standard CSS properties like `-webkit-text-stroke` and `text-stroke` work 
 
 ## How it works
 
-The game uses CSS media queries targeting touch-enabled devices (`@media (pointer: coarse)`). When a touch device is detected, the standard text stroke is disabled, and a multi-directional CSS `text-shadow` is applied to simulate the stroke effect.
+The game uses CSS media queries targeting touch-enabled devices (`html.is-mobile`). When a touch device is detected, the standard text stroke is disabled, and a multi-directional CSS `text-shadow` is applied to simulate the stroke effect.
 
 1. **Disabling Standard Stroke:**
    For mobile devices, `-webkit-text-stroke` and `text-stroke` are set to `0` (often using `!important` to override desktop styles). Sometimes `-webkit-text-fill-color` is also adjusted.
@@ -28,7 +28,7 @@ In the game's CSS (e.g., `css/ui/hud.css` or `css/core/components_menu.css`), th
 }
 
 /* Smoother fake stroke for mobile (touch devices) */
-@media (pointer: coarse) {
+html.is-mobile {
   .game-text {
     /* Disable the buggy webkit stroke */
     -webkit-text-stroke: 0 !important;
