@@ -254,6 +254,17 @@
   background: linear-gradient(90deg, #FFA200 0%, #FF9100 50%, #d46600 100%);
 }
 
+#flow-fill-gold.is-evil {
+  background: repeating-linear-gradient(
+    90deg,
+    #FFA200 0px,
+    #d46600 23.75px,
+    #ff0000 47.5px,
+    #d46600 71.25px,
+    #FFA200 95px
+  );
+}
+
 #flow-fill-magic {
   background: linear-gradient(90deg, #E087FF 0%, #8A2BE2 50%, #4B0082 100%);
 }
