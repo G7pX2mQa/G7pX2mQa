@@ -922,7 +922,6 @@ html.is-mobile {
     rgba(18, 26, 42, 0.94)
   );
   border: 1px solid #ffe6c7;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   border-radius: 14px;
   padding: clamp(14px, 2.4vw, 20px);
   padding-bottom: calc(clamp(14px, 2.4vw, 20px) + var(--safe-bottom));
