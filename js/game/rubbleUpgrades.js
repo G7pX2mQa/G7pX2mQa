@@ -89,7 +89,7 @@ export const RUBBLE_REGISTRY = [
         _costScaling: true,
         bonusLine: (level, total) => {
             const val = total && typeof total.sig === "number" ? total.sig * Math.pow(10, total.e || 0) : Number(total) || 0;
-            return `Gold Waterwheel exponent: +^${val.toFixed(2)}`;
+            return `Gold Waterwheel effect: +^${val.toFixed(2)}`;
         },
         computeLockState() {
             let isUnlocked = false;
