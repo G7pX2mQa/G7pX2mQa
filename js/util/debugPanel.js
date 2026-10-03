@@ -3142,7 +3142,7 @@ function buildAreaStats(container, area) {
                 } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
                     valToApply = BigNum.fromAny("Infinity");
                 }
-                applyRclpState({ rclpLevel: valToApply });
+                applyRclpState({ rclpLevel: valToApply, unlocked: true });
                 const latest = getRclpState();
                 setValue(latest.rclpLevel);
                 if (!bigNumEquals(prev, latest.rclpLevel)) {
@@ -3168,7 +3168,7 @@ function buildAreaStats(container, area) {
             rclpState.rclpProg,
             (value, { setValue }) => {
                 const prev = getRclpState()?.rclpProg?.clone?.() ?? BigNum.fromInt(0);
-                applyRclpState({ rclpProg: value });
+                applyRclpState({ rclpProg: value, unlocked: true });
                 const latest = getRclpState();
                 setValue(latest.rclpProg);
                 if (!bigNumEquals(prev, latest.rclpProg)) {
@@ -3209,7 +3209,7 @@ function buildAreaStats(container, area) {
                 } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
                     valToApply = BigNum.fromAny("Infinity");
                 }
-                applyGclpState({ gclpLevel: valToApply });
+                applyGclpState({ gclpLevel: valToApply, unlocked: true });
                 const latest = getGclpState();
                 setValue(latest.gclpLevel);
                 if (!bigNumEquals(prev, latest.gclpLevel)) {
@@ -3235,7 +3235,7 @@ function buildAreaStats(container, area) {
             gclpState.gclpProg,
             (value, { setValue }) => {
                 const prev = getGclpState()?.gclpProg?.clone?.() ?? BigNum.fromInt(0);
-                applyGclpState({ gclpProg: value });
+                applyGclpState({ gclpProg: value, unlocked: true });
                 const latest = getGclpState();
                 setValue(latest.gclpProg);
                 if (!bigNumEquals(prev, latest.gclpProg)) {
