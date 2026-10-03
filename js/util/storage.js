@@ -759,12 +759,38 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
     }
     if (changed || deltaBn) {
         const detail = { key, value: effective, slot, delta: deltaBn ?? undefined };
-        notifyCurrencySubscribers(detail);
-        try {
-            window.dispatchEvent(new CustomEvent("currency:change", { detail }));
-        } catch {}
+        if (typeof window !== "undefined" && window.__isSimulationActive) {
+            if (!window.__simulatedCurrencyChanges) window.__simulatedCurrencyChanges = new Map();
+            window.__simulatedCurrencyChanges.set(key, detail);
+        } else {
+            notifyCurrencySubscribers(detail);
+            try {
+                window.dispatchEvent(new CustomEvent("currency:change", { detail }));
+            } catch {}
+        }
     }
     return effective;
+}
+
+export function flushSimulatedCurrencyChanges() {
+    if (typeof window === "undefined") return;
+    if (window.__simulatedCurrencyChanges) {
+        for (const detail of window.__simulatedCurrencyChanges.values()) {
+            notifyCurrencySubscribers(detail);
+            try {
+                window.dispatchEvent(new CustomEvent("currency:change", { detail }));
+            } catch {}
+        }
+        window.__simulatedCurrencyChanges.clear();
+    }
+    if (window.__simulatedMultiplierChanges) {
+        for (const detail of window.__simulatedMultiplierChanges.values()) {
+            try {
+                window.dispatchEvent(new CustomEvent("currency:multiplier", { detail }));
+            } catch {}
+        }
+        window.__simulatedMultiplierChanges.clear();
+    }
 }
 
 function scaledFromIntBN(intBN) {
@@ -831,13 +857,18 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
         primeStorageWatcherSnapshot(k, effectiveRaw);
     } catch {}
     if (!bigNumEquals(prev, effective)) {
-        try {
-            window.dispatchEvent(
-                new CustomEvent("currency:multiplier", {
-                    detail: { key, mult: intFromScaled(effective), slot },
-                }),
-            );
-        } catch {}
+        if (typeof window !== "undefined" && window.__isSimulationActive) {
+            if (!window.__simulatedMultiplierChanges) window.__simulatedMultiplierChanges = new Map();
+            window.__simulatedMultiplierChanges.set(key, { key, mult: intFromScaled(effective), slot });
+        } else {
+            try {
+                window.dispatchEvent(
+                    new CustomEvent("currency:multiplier", {
+                        detail: { key, mult: intFromScaled(effective), slot },
+                    }),
+                );
+            } catch {}
+        }
     }
 }
 
