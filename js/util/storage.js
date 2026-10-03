@@ -7,6 +7,14 @@ export function setBankAddInterceptor(fn) {
     bankAddInterceptor = fn;
 }
 
+export let goldLockedToZero = false;
+export function setGoldLockedToZero(val) {
+    goldLockedToZero = !!val;
+    if (goldLockedToZero && typeof setCurrency === "function") {
+        setCurrency("gold", BigNum.fromInt(0));
+    }
+}
+
 const MULT_SCALE = BigNum.DEFAULT_PRECISION;
 const MULT_SCALE_TAG = "XM:";
 const STORAGE_WATCH_INTERVAL_MS = 140;
@@ -922,6 +930,7 @@ function makeCurrencyHandle(key) {
     };
     // amount mutations
     fn.add = function add(x) {
+        if (key === "gold" && goldLockedToZero) return this.value;
         if (bankAddInterceptor) bankAddInterceptor(key, x);
         const amt = BigNum.fromAny(x);
         const next = this.value.add(amt);
@@ -937,6 +946,7 @@ function makeCurrencyHandle(key) {
         return next;
     };
     fn.set = function set(x) {
+        if (key === "gold" && goldLockedToZero && !BigNum.fromAny(x).isZero()) return this.value;
         const val = BigNum.fromAny(x);
         let delta = null;
         let current;
