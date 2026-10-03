@@ -46,7 +46,7 @@ const FLOW_EXPLAINER_TEXT_DEFAULT = `
         Unlock new Waterwheels by progressing further in the game.
     `;
 const bnZero = () => BigNum.fromInt(0);
-const WATERWHEELS = {
+export const WATERWHEELS = {
     COIN: "coin",
     XP: "xp",
     GOLD: "gold",
@@ -1058,6 +1058,14 @@ function onTick(dt) {
             continue;
         }
         if (def.prev && def.unlockReq != null) {
+            const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+            if (isIronChallenge && id === WATERWHEELS.GOLD) {
+                if (!state.waterwheels[id].unlocked) {
+                    state.waterwheels[id].unlocked = true;
+                    changes = true;
+                }
+                continue;
+            }
             const prevCh = state.waterwheels[def.prev];
             if (prevCh) {
                 const threshold = BigNum.fromInt(def.unlockReq);
