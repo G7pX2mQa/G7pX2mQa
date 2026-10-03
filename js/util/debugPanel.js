@@ -104,6 +104,7 @@ import {
 } from "../ui/minerTabs/buildingsTab.js";
 import { updateWarpTab } from "../ui/merchantTabs/warpTab.js";
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMult } from "../ui/merchantTabs/labTab.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../ui/minerTabs/collapseTab.js";
 import {
     getFlowUnlockState,
     WATERWHEEL_DEFS,
@@ -566,9 +567,13 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener("flow:change", flowHandler, { passive: true });
     window.addEventListener("waterwheel:change", flowHandler, { passive: true });
+    window.addEventListener("collapse:challenge:start", flowHandler, { passive: true });
+    window.addEventListener("collapse:challenge:exit", flowHandler, { passive: true });
     addDebugPanelCleanup(() => {
         window.removeEventListener("flow:change", flowHandler);
         window.removeEventListener("waterwheel:change", flowHandler);
+        window.removeEventListener("collapse:challenge:start", flowHandler);
+        window.removeEventListener("collapse:challenge:exit", flowHandler);
     });
 }
 
@@ -5580,7 +5585,11 @@ function buildFlowDebug(container) {
     }
 
     Object.values(WATERWHEEL_DEFS).forEach((def) => {
-        const nodeContainer = createSubsection(def.name || `${def.id} Waterwheel`, (sub) => {
+        let titleName = def.name || `${def.id} Waterwheel`;
+        if (def.id === "gold" && isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+            titleName = "Evil Gold Waterwheel";
+        }
+        const nodeContainer = createSubsection(titleName, (sub) => {
             // Level
             const levelKey = `ccc:flow:level:${def.id}:${slot}`;
             const levelRow = createInputRow(
@@ -5618,6 +5627,16 @@ function buildFlowDebug(container) {
                 refresh: () => {
                     if (slot !== getActiveSlot()) return;
                     levelRow.setValue(getWaterwheelLevel(def.id));
+                    if (def.id === "gold") {
+                        const toggleButton = sub.parentElement?.querySelector('.debug-panel-subsection-toggle');
+                        if (toggleButton) {
+                            if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+                                toggleButton.textContent = "Evil Gold Waterwheel";
+                            } else {
+                                toggleButton.textContent = def.name || "Gold Waterwheel";
+                            }
+                        }
+                    }
                 },
             });
             sub.appendChild(levelRow.row);
