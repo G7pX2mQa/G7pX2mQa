@@ -20,6 +20,7 @@ import { showWideNotification } from "../notifications.js";
 import { onDpChange } from "../../game/dpSystem.js";
 import { clearPendingGains } from "../../game/coinPickup.js";
 import { registerTick } from "../../game/gameLoop.js";
+import { WATERWHEELS, setWaterwheelLevel, setWaterwheelFp } from "../merchantTabs/flowTab.js";
 const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
 let cachedCollapseUnlockedStates = {};
@@ -431,6 +432,10 @@ export function startCollapseChallenge(materialName) {
     }
 
     if (materialName === "iron") {
+        try {
+            setWaterwheelLevel(WATERWHEELS.GOLD, 0);
+            setWaterwheelFp(WATERWHEELS.GOLD, 0);
+        } catch {}
         ironLockTicks = 60; // 3 entire seconds
         setGoldLockedToZero(true);
         const slot = getActiveSlot();
