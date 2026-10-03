@@ -85,6 +85,13 @@ if (typeof window !== "undefined") {
         }
     });
     window.addEventListener("unlock:change", invalidateCollapseCache);
+    try {
+        const slot = getActiveSlot();
+        if (slot != null && lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
+            ironLockTicks = 60;
+            setGoldLockedToZero(true);
+        }
+    } catch {}
 }
 
 // --- Collapse Challenge State ---
@@ -313,9 +320,22 @@ export function startCollapseChallenge(materialName) {
     if (fractureTimeout) clearTimeout(fractureTimeout);
     if (fractureFadeTimeout) clearTimeout(fractureFadeTimeout);
 
+    // Clear pending gains so none carry over
+    if (typeof clearPendingGains === "function") {
+        clearPendingGains();
+    }
+
+    if (materialName === "iron") {
+        ironLockTicks = 60;
+        setGoldLockedToZero(true);
+        const slot = getActiveSlot();
+        if (slot != null) {
+            lsSetItem(`ccc:goldLockedToZero:${slot}`, "1");
+        }
+    }
+
     // Backup current state
     try {
-        const slot = getActiveSlot();
         if (slot != null) {
             const backupData = getSaveDataForSlot(slot);
             delete backupData[`ccc:challengeBackup:${slot}`];
