@@ -5,7 +5,9 @@ import {
     isCurrencyLocked,
     isStorageKeyLocked,
     markSaveSlotModified,
+    isGoldLockedToZero,
 } from "../util/storage.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../ui/minerTabs/collapseTab.js";
 import { getGearsProductionRate } from "../ui/merchantTabs/workshopTab.js";
 import { hasDoneInfuseReset } from "../ui/merchantTabs/resetTab.js";
 import { pauseGameLoop, resumeGameLoop } from "./gameLoop.js";
@@ -859,9 +861,12 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
                 plus.textContent = "+";
                 const icon = document.createElement("img");
                 icon.className = "offline-icon";
+                const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+                const isEvilGold = key === "waterwheel_levels" && item.id === "gold" && isIronChallenge;
+
                 let itemIcon = item.icon || item.image || config.icon;
                 if (key === "waterwheel_levels" && WATERWHEEL_DEFS[item.id]) {
-                    itemIcon = WATERWHEEL_DEFS[item.id].image;
+                    itemIcon = isEvilGold ? "img/waterwheels/waterwheel_gold_but_evil.webp" : WATERWHEEL_DEFS[item.id].image;
                 } else if (key === "building_levels") {
                     const styleMap = { core: "cores", crystal: "crystals" };
                     const mapped = styleMap[item.id] || item.id;
@@ -873,7 +878,10 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
                 const text = document.createElement("span");
                 text.className = "offline-text";
                 let styleKey = item.styleKey || config.key;
-                if (key === "research_levels") {
+                if (isEvilGold) {
+                    plus.classList.add("text-evil-gold");
+                    text.classList.add("text-evil-gold");
+                } else if (key === "research_levels") {
                     plus.style.color = "#004F96";
                     text.style.color = "#004F96";
                 } else {
@@ -900,7 +908,8 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false, ol
                         diffText = `&nbsp;<span style="font-size: 0.85em;">(${oldStr} &rarr; ${newStr})</span>`;
                     }
                 }
-                setHtmlOrText(text, `${formatNumber(levelCount)} ${label} of ${item.name}${diffText}`);
+                const itemName = isEvilGold ? "Evil Gold Waterwheel" : (item.name || WATERWHEEL_DEFS[item.id]?.name || item.id);
+                setHtmlOrText(text, `${formatNumber(levelCount)} ${label} of ${itemName}${diffText}`);
                 row.appendChild(plus);
                 row.appendChild(icon);
                 row.appendChild(text);
@@ -1143,7 +1152,7 @@ export function calculateOfflineRewards(seconds) {
         const log10Rate = 2 * mapped - 2;
         const rateMultiplier = bigNumFromLog10(log10Rate);
         const totalMultiplier = rateMultiplier.mulBigNumInteger(secondsBn);
-        if (isSurgeActive(13)) {
+        if (isSurgeActive(13) && !isGoldLockedToZero()) {
             const xpState = getXpState();
             if (xpState && xpState.unlocked && levelBigNumToNumber(xpState.xpLevel) >= 31) {
                 const coins = bank.coins?.value;
@@ -1152,7 +1161,7 @@ export function calculateOfflineRewards(seconds) {
                 const labMult = getLabGoldMultiplier();
                 pending = pending.mulDecimal(labMult.toScientific());
                 const goldEarned = pending.mulBigNumInteger(totalMultiplier);
-                if (goldEarned.cmp(0) > 0 && !isCurrencyLocked("gold", slot)) {
+                if (goldEarned.cmp(0) > 0 && !isCurrencyLocked("gold", slot) && !isGoldLockedToZero()) {
                     rewards.gold = goldEarned;
                 }
             }
@@ -1355,6 +1364,7 @@ export function grantOfflineRewards(rewards) {
             continue;
         if (key === "research_levels" || key === "research_progress") continue;
         if (key === "waterwheel_levels" || key === "waterwheel_progress") continue;
+        if (key === "gold" && isGoldLockedToZero()) continue;
         if (bank[key] && typeof bank[key].add === "function") {
             bank[key].add(rewards[key]);
         }
