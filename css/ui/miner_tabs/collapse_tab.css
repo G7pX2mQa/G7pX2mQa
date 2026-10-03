@@ -77,8 +77,8 @@
     transition: transform 0.1s ease, filter 0.12s ease;
 }
 
-.collapse-start-btn:not(:disabled):not(.no-hover):hover,
-.collapse-start-btn:not(:disabled):not(.no-hover):focus-visible {
+.collapse-start-btn:not(:disabled):hover,
+.collapse-start-btn:not(:disabled):focus-visible {
 }
 
 @keyframes collapseBrownPulse {
@@ -330,8 +330,8 @@ html.is-mobile #mysterious-challenge-overlay .upg-sheet.is-scrolling > .shop-scr
     pointer-events: none;
 }
 
-.collapse-start-btn:not(:disabled):not(.no-hover):hover::before,
-.collapse-start-btn:not(:disabled):not(.no-hover):focus-visible::before {
+.collapse-start-btn:not(:disabled):hover::before,
+.collapse-start-btn:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.10);
 }
