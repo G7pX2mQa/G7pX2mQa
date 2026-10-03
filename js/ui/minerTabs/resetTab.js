@@ -24,7 +24,8 @@ import { isBuildingsUnlocked } from "./buildingsTab.js";
 import { isSurgeActive } from "../../game/surgeEffects.js";
 import { playAudio } from "../../util/audioManager.js";
 import { BUILDING_IDS } from "./buildingsTab.js";
-import { WATERWHEEL_DEFS, setWaterwheelLevel, setWaterwheelFp, stopAllWaterwheels } from "../merchantTabs/flowTab.js";
+import { WATERWHEEL_DEFS, WATERWHEELS, setWaterwheelLevel, setWaterwheelFp, stopAllWaterwheels } from "../merchantTabs/flowTab.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "./collapseTab.js";
 import { syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
 const COMBINE_UNLOCKED_KEY_BASE = "ccc:combineUnlocked";
 const COMBINE_COMPLETED_KEY_BASE = "ccc:combineCompleted";
@@ -390,7 +391,9 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
     } catch {}
     // Reset Waterwheels
     try {
+        const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
         for (const id in WATERWHEEL_DEFS) {
+            if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
             setWaterwheelLevel(id, 0);
             setWaterwheelFp(id, 0);
         }
