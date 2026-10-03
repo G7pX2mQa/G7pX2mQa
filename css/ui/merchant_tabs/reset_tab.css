@@ -263,8 +263,8 @@
   box-shadow: 0 0 0 3px hsl(24 96% 10% / 0.9);
 }
 
-.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):not(.no-hover):hover,
-.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible {
+.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):focus-visible {
   background: linear-gradient(
     180deg,
     hsl(36 95% 63%),
@@ -278,8 +278,8 @@
   box-shadow: 0 0 0 3px hsl(213 96% 10% / 0.9);
 }
 
-.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):not(.no-hover):hover,
-.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible {
+.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):focus-visible {
   background: linear-gradient(
     180deg,
     hsl(193 95% 63%),
@@ -293,8 +293,8 @@
   box-shadow: 0 0 0 3px hsl(260 96% 10% / 0.9);
 }
 
-.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):not(.no-hover):hover,
-.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible {
+.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):focus-visible {
   background: linear-gradient(
     180deg,
     hsl(270 95% 63%),
@@ -437,10 +437,11 @@
 .merchant-reset__bar-wrapper {
   background: rgba(0,0,0,0.3);
   height: 40px;
-  border-radius: 4px;
+  border-radius: 0;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 0;
+  box-shadow: 0 0 0 1px hsl(213 96% 10% / 0.9);
   width: 100%;
 }
 
@@ -449,7 +450,7 @@
   width: 0%;
   background: linear-gradient(90deg, #00c6ff, #0072ff);
   transition: width 0.2s;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .merchant-reset__bar-text {
@@ -803,8 +804,8 @@ html.is-mobile {
   box-shadow: 0 0 0 3px #101a2ee6;
 }
 
-.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):not(.no-hover):hover,
-.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible {
+.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):focus-visible {
 }
 
 .merchant-reset__layer[data-reset-layer="experiment"] {
@@ -1017,8 +1018,8 @@ html.is-mobile {
   box-shadow: 0 0 0 3px rgba(10,10,10,0.9);
 }
 
-.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):not(.no-hover):hover,
-.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible {
+.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):focus-visible {
 }
 
 .merchant-reset__layer[data-reset-layer="combine"] {
@@ -1064,8 +1065,8 @@ html.is-mobile {
   box-shadow: 0 0 0 3px hsl(310 96% 10% / 0.9);
 }
 
-.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):not(.no-hover):hover,
-.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible {
+.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):focus-visible {
   background: linear-gradient(
     180deg,
     hsl(330 95% 63%),
@@ -1111,38 +1112,38 @@ html.is-mobile {
     pointer-events: none;
 }
 
-.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):not(.no-hover):hover::before,
-.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible::before {
+.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):hover::before,
+.merchant-reset__card:not(.is-infuse):not(.is-surge):not(.is-experiment):not(.is-combine):not(.is-compress) .merchant-reset__action:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.15);
 }
 
-.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):not(.no-hover):hover::before,
-.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible::before {
+.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):hover::before,
+.merchant-reset__card.is-surge .merchant-reset__action:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.0625);
 }
 
-.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):not(.no-hover):hover::before,
-.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible::before {
+.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):hover::before,
+.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.05);
 }
 
-.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):not(.no-hover):hover::before,
-.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible::before {
+.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):hover::before,
+.merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.075);
 }
 
-.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):not(.no-hover):hover::before,
-.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible::before {
+.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):hover::before,
+.merchant-reset__card.is-combine .merchant-reset__action:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.075);
 }
 
-.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):not(.no-hover):hover::before,
-.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):not(.no-hover):focus-visible::before {
+.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):hover::before,
+.merchant-reset__card.is-compress .merchant-reset__action:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.125);
 }
