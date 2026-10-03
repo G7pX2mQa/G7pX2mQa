@@ -301,10 +301,10 @@ export const CORAL_REGISTRY = [
         effectType: "red_coral_value",
         icon: "img/coral_upg_icons/red_coral_link.webp",
         costAtLevel() {
-            return BigNum.fromAny("1e7");
+            return BigNum.fromAny("1e6");
         },
         nextCostAfter() {
-            return BigNum.fromAny("1e7");
+            return BigNum.fromAny("1e6");
         },
         computeLockState() {
             let isCopperCompleted = false;
