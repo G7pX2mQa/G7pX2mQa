@@ -5293,7 +5293,8 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 
 
 
-  // Base platform (Tier 0)
+
+    // Base platform (Tier 0)
   ctx.save();
   ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
   ctx.fillRect(-baseWidth / 2, baseY, baseWidth, 20);
@@ -5880,97 +5881,6 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-    // ----------------------------------------------------
-  // Tier 2: High Voltage Electrical Boxes
-  // ----------------------------------------------------
-  // Draw Tier 2 Electrical Boxes and Sparks on top of everything (including the iron base)
-  if (t2 > 0) {
-    ctx.save();
-    ctx.globalAlpha = t2;
-    const drawElectricalBox = (bx, by) => {
-      ctx.save();
-      ctx.translate(bx, by);
-      
-      const boxW = 60;
-      const boxH = 60;
-      const lw = 4;
-      
-      // Prevent stroke clipping by drawing the rect slightly smaller
-      const pathW = boxW - lw;
-      const pathH = boxH - lw;
-      const pathX = -pathW / 2;
-      const pathY = -pathH - lw / 2;
-      
-      // Box body
-      ctx.fillStyle = ironPattern ? ironPattern : "#111111";
-      ctx.fillRect(pathX, pathY, pathW, pathH);
-      
-      // 70% black overlay
-      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-      ctx.fillRect(pathX, pathY, pathW, pathH);
-
-      ctx.strokeStyle = "#000000"; // Black outline
-      ctx.lineWidth = lw;
-      ctx.strokeRect(pathX, pathY, pathW, pathH);
-      
-      // High voltage symbol (lightning bolt) in the center
-      ctx.save();
-      ctx.translate(0, -boxH/2); // Center of the box
-      ctx.scale(1.5, 1.5);
-      ctx.fillStyle = "#e3c514"; // Yellow lightning
-      ctx.beginPath();
-      ctx.moveTo(3, -10); 
-      ctx.lineTo(-5, 2); 
-      ctx.lineTo(-1, 2); 
-      ctx.lineTo(-4, 12); 
-      ctx.lineTo(5, -2); 
-      ctx.lineTo(1, -2); 
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      // Sparks flying from the edges of it infrequently (every 3 seconds)
-
-      // Sparks flying from the edges of it infrequently (every 3 seconds)
-      // At tier 8, it becomes continuous.
-      const interval = 3.0;
-      const threshold = 0.15;
-      const sparkCycle = (t + Math.abs(bx)) % interval;
-      
-      // Calculate a probability of an extra spark to simulate the high frequency of Tier 8 without modulo jumping
-      const t8Prog = typeof t8 !== 'undefined' ? t8 : 0;
-      const extraSparkProb = t8Prog * 1.0; // 100% chance of a spark per frame at max t8
-      const hash = Math.abs(Math.sin(t * 123.456 + bx)) % 1;
-      
-      if (sparkCycle < threshold || hash < extraSparkProb) {
-
-        ctx.strokeStyle = sparkColor;
-        ctx.lineWidth = 2;
-        // Generate 1-2 sparks
-        for (let i = 0; i < 2; i++) {
-          const side = Math.random() > 0.5 ? 1 : -1;
-          const sparkX = (boxW/2) * side;
-          const sparkY = -boxH + Math.random() * boxH;
-          
-          ctx.beginPath();
-          ctx.moveTo(sparkX, sparkY);
-          const extX = sparkX + side * (10 + Math.random() * 15);
-          const extY = sparkY + (Math.random() - 0.5) * 20;
-          ctx.lineTo(extX, extY);
-          ctx.lineTo(extX + side * (5 + Math.random() * 10), extY + (Math.random() - 0.5) * 10);
-          ctx.stroke();
-        }
-      }
-
-      ctx.restore();
-    };
-
-    // Draw left and right electrical boxes on the ground
-    drawElectricalBox(-150, baseY + 20);
-    drawElectricalBox(150, baseY + 20);
-
-    ctx.restore();
-  }
 
 
   // ----------------------------------------------------
@@ -6065,6 +5975,94 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
     ctx.lineTo(0, frameTopY); // Stop at center
     ctx.stroke();
     ctx.restore();
+    ctx.restore();
+  }
+
+  // ----------------------------------------------------
+  // Tier 2: High Voltage Electrical Boxes
+  // ----------------------------------------------------
+  // Draw Tier 2 Electrical Boxes and Sparks behind the iron base
+  if (t2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = t2;
+    const drawElectricalBox = (bx, by) => {
+      ctx.save();
+      ctx.translate(bx, by);
+      
+      const boxW = 60;
+      const boxH = 60;
+      const lw = 4;
+      
+      // Prevent stroke clipping by drawing the rect slightly smaller
+      const pathW = boxW - lw;
+      const pathH = boxH - lw;
+      const pathX = -pathW / 2;
+      const pathY = -pathH - lw / 2;
+      
+      // Box body
+      ctx.fillStyle = ironPattern ? ironPattern : "#111111";
+      ctx.fillRect(pathX, pathY, pathW, pathH);
+      
+      // 70% black overlay
+      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.fillRect(pathX, pathY, pathW, pathH);
+
+      ctx.strokeStyle = "#000000"; // Black outline
+      ctx.lineWidth = lw;
+      ctx.strokeRect(pathX, pathY, pathW, pathH);
+      
+      // High voltage symbol (lightning bolt) in the center
+      ctx.save();
+      ctx.translate(0, -boxH/2); // Center of the box
+      ctx.scale(1.5, 1.5);
+      ctx.fillStyle = "#e3c514"; // Yellow lightning
+      ctx.beginPath();
+      ctx.moveTo(3, -10); 
+      ctx.lineTo(-5, 2); 
+      ctx.lineTo(-1, 2); 
+      ctx.lineTo(-4, 12); 
+      ctx.lineTo(5, -2); 
+      ctx.lineTo(1, -2); 
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Sparks flying from the edges of it infrequently (every 3 seconds)
+      const interval = 3.0;
+      const threshold = 0.15;
+      const sparkCycle = (t + Math.abs(bx)) % interval;
+      
+      const t8Prog = typeof t8 !== 'undefined' ? t8 : 0;
+      const extraSparkProb = t8Prog * 1.0; 
+      const hash = Math.abs(Math.sin(t * 123.456 + bx)) % 1;
+      
+      if (sparkCycle < threshold || hash < extraSparkProb) {
+
+        ctx.strokeStyle = sparkColor;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 2; i++) {
+          const side = Math.random() > 0.5 ? 1 : -1;
+          const sparkX = (boxW/2) * side;
+          const sparkY = -boxH + 5 + Math.random() * (boxH - 10);
+          
+          ctx.beginPath();
+          ctx.moveTo(sparkX, sparkY);
+          const extX = sparkX + side * (10 + Math.random() * 15);
+          const extY = Math.min(-2, sparkY + (Math.random() - 0.5) * 20);
+          ctx.lineTo(extX, extY);
+          const finalX = extX + side * (5 + Math.random() * 10);
+          const finalY = Math.min(-2, extY + (Math.random() - 0.5) * 10);
+          ctx.lineTo(finalX, finalY);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    };
+
+    drawElectricalBox(-150, baseY + 20);
+    drawElectricalBox(150, baseY + 20);
+
     ctx.restore();
   }
 
