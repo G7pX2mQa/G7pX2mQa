@@ -3224,7 +3224,7 @@ document.addEventListener("click", (e) => {
     if (btn) {
         btn.classList.add("no-hover");
     }
-});
+}, true);
 document.addEventListener("pointerout", (e) => {
     const btn = e.target.closest(".merchant-reset__action, .warp-btn, .collapse-start-btn, .color-shift-btn");
     if (btn && !btn.contains(e.relatedTarget)) {
