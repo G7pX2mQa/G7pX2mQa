@@ -937,6 +937,16 @@ You can exit a Collapse Challenge at any time to recover stats you had before st
 Effect: Books become Coins and Coins become Books
 Goal: Reach Pressure: 50atm
 Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim();
+    } else if (id === "iron") {
+        baseDescText = `The Challenge of ${capitalName}; the third Collapse Challenge
+You’ve mastered the Red and you’ve mastered the Green
+What might lie ahead? That waits to be seen...
+
+Lab Node 20 & 21 to level 23 before starting is recommended
+
+Effect: Gold Waterwheel becomes evil, dividing Gold value significantly, and is forced ON
+Goal: Reach Pressure: ???atm [placeholder]
+Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
