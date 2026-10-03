@@ -67,4 +67,53 @@ export const RUBBLE_REGISTRY = [
             return { state: "mysterious", unlockReqText: revealText };
         }
     },
+    {
+        area: RUBBLE_AREA_KEY,
+        id: 3,
+        title: "Rubble Gold Value",
+        desc: "Improves the effect of Gold Waterwheel by +^0.01 per level",
+        lvlCap: Infinity,
+        baseCost: "1e99999",
+        costType: "rubble",
+        upgType: "NM",
+        scalingPreset: 'NM',
+        scaling: { ratio: "1e99999", ratioLog10: 99999 },
+        effectType: "gold_waterwheel_exponent",
+        icon: "img/lab_icons/gold_val0.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        _baseEffectVal: 0.01,
+        effectMultiplier: (lvl) => {
+            const num = Number(lvl?.toNumber ? lvl.toNumber() : lvl);
+            return isNaN(num) ? 0 : num * 0.01;
+        },
+        _costScaling: true,
+        bonusLine: (level, total) => {
+            const val = total && typeof total.sig === "number" ? total.sig * Math.pow(10, total.e || 0) : Number(total) || 0;
+            return `Gold Waterwheel exponent: +^${val.toFixed(2)}`;
+        },
+        computeLockState() {
+            let isUnlocked = false;
+            try {
+                const activeSlot = getActiveSlot() ?? "default";
+                const isIronActive = typeof window.resetSystem?.isCollapseChallengeActive === "function" 
+                    ? (window.resetSystem.isCollapseChallengeActive() && window.resetSystem.getActiveCollapseChallengeType() === "iron") 
+                    : false;
+                const isCompleted = lsGetItem(`ccc:collapseChallengeCompleted:iron:${activeSlot}`) === "1";
+                isUnlocked = isIronActive || isCompleted;
+            } catch {}
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            let hasUnlockedIron = false;
+            try {
+                hasUnlockedIron = isBuildingUnlocked("iron");
+            } catch {}
+
+            const revealText = hasUnlockedIron 
+                ? "Start the Challenge of Iron to reveal this upgrade" 
+                : "Start the Challenge of [Unknown] to reveal this upgrade";
+            
+            return { state: "mysterious", unlockReqText: revealText };
+        }
+    },
 ];
