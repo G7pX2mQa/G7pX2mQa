@@ -1814,6 +1814,9 @@ export function performFreeBuildingAutobuy(id) {
     if (!walletHandle) return { bought: 0 };
     let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
     let startLevelBn = getBuildingLevel(id);
+    if (startLevelBn && typeof startLevelBn.isInfinite === "function" && startLevelBn.isInfinite()) {
+        return { bought: 0 };
+    }
     const ratio = getBuildingRatio(id);
     const maxEval = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
     let n = maxEval.count;
@@ -1890,6 +1893,9 @@ function handlePurchase(type) {
     if (!walletHandle) return;
     let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
     let startLevelBn = getBuildingLevel(id);
+    if (startLevelBn && typeof startLevelBn.isInfinite === "function" && startLevelBn.isInfinite()) {
+        return;
+    }
     let costToDeduct = BigNum.fromInt(0);
     let levelsToAdd = 0;
     const maxLevels = type === "buy" ? 1 : BigNum.fromAny("Infinity");
