@@ -1,6 +1,6 @@
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../../main.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
-import { BigNum } from "../../util/bigNum.js";
+import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from "../../util/storage.js";
 import { registerTick, registerUiFrame, FIXED_STEP } from "../../game/gameLoop.js";
@@ -14,6 +14,7 @@ import { isNodeLocked } from "../mapOverlay.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { getLevelNumber } from "../../game/upgrades.js";
 import { AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID } from "../../game/automationUpgrades.js";
+import { RUBBLE_AREA_KEY } from "../../game/rubbleUpgrades.js";
 import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../minerTabs/collapseTab.js";
 /* =========================================
    CONSTANTS & KEYS
@@ -837,15 +838,29 @@ export function getWaterwheelGoldMultiplier(baseValue) {
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
     
+    let upgradeLevel = 0;
+    try {
+        upgradeLevel = getLevelNumber(RUBBLE_AREA_KEY, 3);
+    } catch {}
+    const extraExp = 0.01 * upgradeLevel;
+    
+    let exponent = 1 + extraExp;
     if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
-        let penalty = mult.clone();
-        for (let i = 1; i < 10; i++) {
-            penalty = penalty.mulBigNumInteger(mult);
-        }
-        return val.div(penalty);
+        exponent = -10 + extraExp;
     }
     
-    return val.mulBigNumInteger(mult);
+    if (exponent === 0 || mult.cmp(BigNum.fromInt(1)) === 0) {
+        return val;
+    }
+    
+    const multLog = approxLog10BigNum(mult);
+    const multPow = bigNumFromLog10(multLog * Math.abs(exponent));
+    
+    if (exponent > 0) {
+        return val.mulBigNumInteger(multPow);
+    } else {
+        return val.div(multPow);
+    }
 }
 
 export function getWaterwheelMagicMultiplier(baseValue) {
@@ -919,7 +934,9 @@ export function calculateWaterwheelOffline(seconds) {
         else currentFpBn = BigNum.fromAny(ch.fp);
         
         let localGainBn = totalGainBn;
-        if (!ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+        const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+        const isEvilGold = id === WATERWHEELS.GOLD && isIronChallenge;
+        if (!isEvilGold && !ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
             const eff = getWeakenedWaterwheelEfficiency();
             localGainBn = localGainBn.mulDecimal(eff);
         }
@@ -1088,7 +1105,9 @@ function onTick(dt) {
         // Apply Debug Override
         gainBn = applyStatMultiplierOverride("fp", gainBn);
         
-        if (!ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+        const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+        const isEvilGold = id === WATERWHEELS.GOLD && isIronChallenge;
+        if (!isEvilGold && !ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
             const eff = getWeakenedWaterwheelEfficiency();
             gainBn = gainBn.mulDecimal(eff);
         }
@@ -1538,7 +1557,9 @@ export function updateFlowTab() {
         if (btn) {
             if (ch.active) {
                 if (btn.textContent !== "ON") btn.textContent = "ON";
-                const isWeakened = !ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
+                const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+                const isEvilGold = id === WATERWHEELS.GOLD && isIronChallenge;
+                const isWeakened = !isEvilGold && !ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
                 if (isWeakened) {
                     if (btn.classList.contains("is-active")) btn.classList.remove("is-active");
                     if (!btn.classList.contains("is-weakened")) btn.classList.add("is-weakened");
@@ -1733,14 +1754,17 @@ function updateFlowVisuals() {
             }
             if (elEffect) {
                 if (elEffect.style.display === "none") elEffect.style.display = "";
-                if (isEvilGold) {
-                    const mult = BigNum.fromInt(1).add(ch.level);
-                    let penalty = mult.clone();
-                    for (let i = 1; i < 10; i++) {
-                        penalty = penalty.mulBigNumInteger(mult);
+                if (id === WATERWHEELS.GOLD) {
+                    const goldMult = getWaterwheelGoldMultiplier(BigNum.fromInt(1));
+                    if (isEvilGold && goldMult.cmp(BigNum.fromInt(1)) < 0) {
+                        const divisor = BigNum.fromInt(1).div(goldMult);
+                        const newText = `<span>/${formatNumber(divisor)}</span>`;
+                        setHtmlOrText(elEffect, newText);
+                    } else {
+                        const effectVal = goldMult.sub(BigNum.fromInt(1)).mulSmall(EFFECT_PERCENTAGE);
+                        const newText = `<span>+${formatNumber(effectVal)}%</span>`;
+                        setHtmlOrText(elEffect, newText);
                     }
-                    const newText = `<span>/${formatNumber(penalty)}</span>`;
-                    setHtmlOrText(elEffect, newText);
                 } else {
                     const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
                     const newText = `<span>+${formatNumber(effectVal)}%</span>`;
@@ -1778,7 +1802,9 @@ function updateFlowVisuals() {
                 }
                 effectiveRate = applyStatMultiplierOverride("fp", effectiveRate);
                 
-                if (!ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+                const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+                const isEvilGold = id === WATERWHEELS.GOLD && isIronChallenge;
+                if (!isEvilGold && !ch.isMain && getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
                     const eff = getWeakenedWaterwheelEfficiency();
                     effectiveRate = effectiveRate.mulDecimal(eff);
                 }
@@ -1900,6 +1926,13 @@ export function initFlowSystem() {
                 updateFlowTab();
             }
         });
+        window.addEventListener("collapse:challenge:start", () => {
+            loadState();
+            refreshMysteriousWatcher();
+            if (flowTabInitialized && flowPanel) {
+                updateFlowTab();
+            }
+        });
         window.addEventListener("collapse:challenge:exit", () => {
             loadState();
             refreshMysteriousWatcher();
@@ -1919,11 +1952,13 @@ export function initFlowSystem() {
             const currentSlot = getSlot();
             if (currentSlot != null && lastLoadedSlot !== currentSlot) return;
 
+            const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
             const hasMultiFlow = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
             if (hasMultiFlow && !multiFlowPurchasedTracker) {
                 multiFlowPurchasedTracker = true;
                 let mainId = null;
                 for (const id in state.waterwheels) {
+                    if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
                     if (state.waterwheels[id].active) {
                         mainId = id;
                         break;
@@ -1931,6 +1966,11 @@ export function initFlowSystem() {
                 }
                 for (const id in state.waterwheels) {
                     const ch = state.waterwheels[id];
+                    if (isIronChallenge && id === WATERWHEELS.GOLD) {
+                        ch.active = true;
+                        ch.isMain = true;
+                        continue;
+                    }
                     ch.active = true;
                     if (mainId === id) {
                         ch.isMain = true;
