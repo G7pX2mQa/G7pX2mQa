@@ -1,4 +1,4 @@
-const SHOW_PERFORMANCE_LOGS = true;
+const SHOW_PERFORMANCE_LOGS = false;
 
 /**
  * js/game/simulatedOffline.js
@@ -19,7 +19,7 @@ const SHOW_PERFORMANCE_LOGS = true;
 import { pauseGameLoop, resumeGameLoop, triggerUiFrameListeners } from "./gameLoop.js";
 import { BigNum, approxLog10BigNum } from "../util/bigNum.js";
 import { formatNumber } from "../util/numFormat.js";
-import { setBankAddInterceptor, flushSimulatedCurrencyChanges } from "../util/storage.js";
+import { setBankAddInterceptor, flushSimulatedCurrencyChanges, updateLastSaveTime } from "../util/storage.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
 import { settingsManager } from "./settingsManager.js";
 import { waterSystem } from "./webgl/waterSystem.js"; // Water system to keep ticking visually
@@ -1343,6 +1343,9 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
 
         // Resume game loop
         resumeGameLoop();
+
+        // Immediately update save time to prevent race conditions with simInterrupted
+        updateLastSaveTime();
 
         // Show standard offline panel with computed rewards
         const hasRewards = Object.keys(combinedRewards).length > 0;
