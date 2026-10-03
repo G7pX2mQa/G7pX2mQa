@@ -85,8 +85,8 @@
         0 1px 0 rgba(0,0,0,0.55);
 }
 
-.warp-btn:not(:disabled):not(.no-hover):hover,
-.warp-btn:not(:disabled):not(.no-hover):focus-visible {
+.warp-btn:not(:disabled):hover,
+.warp-btn:not(:disabled):focus-visible {
 }
 
 .warp-btn:active:not(:disabled) {
@@ -204,8 +204,8 @@
     pointer-events: none;
 }
 
-.warp-btn:not(:disabled):not(.no-hover):hover::before,
-.warp-btn:not(:disabled):not(.no-hover):focus-visible::before {
+.warp-btn:not(:disabled):hover::before,
+.warp-btn:not(:disabled):focus-visible::before {
     opacity: 1;
     filter: brightness(1.10);
 }
