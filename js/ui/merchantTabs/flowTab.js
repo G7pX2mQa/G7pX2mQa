@@ -14,6 +14,7 @@ import { isNodeLocked } from "../mapOverlay.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { getLevelNumber } from "../../game/upgrades.js";
 import { AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID } from "../../game/automationUpgrades.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../minerTabs/collapseTab.js";
 /* =========================================
    CONSTANTS & KEYS
    ========================================= */
@@ -559,14 +560,17 @@ function loadState() {
     } catch (e) {
         console.warn("Failed to load flow data", e);
     }
+    const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
     // Ensure only one is main
     let mainCount = 0;
-    for (const ch of Object.values(state.waterwheels)) {
+    for (const [id, ch] of Object.entries(state.waterwheels)) {
+        if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
         if (ch.isMain) mainCount++;
     }
     if (mainCount > 1) {
         let found = false;
         for (const id in state.waterwheels) {
+            if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
             if (state.waterwheels[id].isMain) {
                 if (found) state.waterwheels[id].isMain = false;
                 else found = true;
@@ -578,13 +582,15 @@ function loadState() {
     if (!hasMultiFlow) {
         // Ensure only one is active
         let activeCount = 0;
-        for (const ch of Object.values(state.waterwheels)) {
+        for (const [id, ch] of Object.entries(state.waterwheels)) {
+            if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
             if (ch.active) activeCount++;
         }
         if (activeCount > 1) {
             // Reset if invalid, keep the first one found or reset all
             let found = false;
             for (const id in state.waterwheels) {
+                if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
                 if (state.waterwheels[id].active) {
                     if (found) {
                         state.waterwheels[id].active = false;
@@ -594,6 +600,19 @@ function loadState() {
                 }
             }
         }
+    }
+    
+    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+        enforceIronChallengeState();
+    }
+}
+
+export function enforceIronChallengeState() {
+    const gold = state.waterwheels[WATERWHEELS.GOLD];
+    if (gold) {
+        gold.active = true;
+        gold.isMain = true;
+        gold.unlocked = true;
     }
 }
 
@@ -650,10 +669,12 @@ export function getWaterwheelsCollectiveState() {
 }
 
 export function setAllWaterwheelsState(isEnabled) {
+    const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
     if (isEnabled) {
         for (const id in state.waterwheels) {
             const ch = state.waterwheels[id];
             if (!ch.active) {
+                if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
                 ch.active = true;
                 ch.isMain = false;
             }
@@ -662,6 +683,7 @@ export function setAllWaterwheelsState(isEnabled) {
         for (const id in state.waterwheels) {
             const ch = state.waterwheels[id];
             if (ch.active) {
+                if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
                 ch.active = false;
                 ch.isMain = false;
                 if (state.visuals[id]) {
@@ -672,6 +694,11 @@ export function setAllWaterwheelsState(isEnabled) {
             }
         }
     }
+    
+    if (isIronChallenge) {
+        enforceIronChallengeState();
+    }
+    
     saveState();
     updateFlowTab();
 }
@@ -680,14 +707,19 @@ export function toggleWaterwheel(waterwheelId) {
     const ch = state.waterwheels[waterwheelId];
     if (!ch) return;
     if (!ch.unlocked) return; // Prevent toggling if locked
+    
+    const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+    if (isIronChallenge && waterwheelId === WATERWHEELS.GOLD) return;
+    
+    const hasMultiFlow = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
     const wasActive = ch.active;
     const wasMain = ch.isMain;
-    const hasMultiFlow = getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0;
     trackBinaryFlowSequence(waterwheelId);
     
     if (!hasMultiFlow) {
         if (!wasActive) {
             for (const id in state.waterwheels) {
+                if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
                 if (state.waterwheels[id].active) {
                     state.waterwheels[id].active = false;
                     state.waterwheels[id].isMain = false;
@@ -712,12 +744,14 @@ export function toggleWaterwheel(waterwheelId) {
     } else {
         if (!wasActive) {
             for (const id in state.waterwheels) {
+                if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
                 if (state.waterwheels[id].isMain) state.waterwheels[id].isMain = false;
             }
             ch.active = true;
             ch.isMain = true;
         } else if (wasActive && !wasMain) {
             for (const id in state.waterwheels) {
+                if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
                 if (state.waterwheels[id].isMain) state.waterwheels[id].isMain = false;
             }
             ch.isMain = true;
@@ -802,6 +836,15 @@ export function getWaterwheelGoldMultiplier(baseValue) {
     let val = baseValue;
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
+    
+    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+        let penalty = mult.clone();
+        for (let i = 1; i < 10; i++) {
+            penalty = penalty.mulBigNumInteger(mult);
+        }
+        return val.div(penalty);
+    }
+    
     return val.mulBigNumInteger(mult);
 }
 
@@ -895,11 +938,15 @@ export function calculateWaterwheelOffline(seconds) {
                 finalFpBn = finalFpBn.sub(levels.mulSmall(req));
             }
         }
+        let defName = WATERWHEEL_DEFS[id]?.name || id;
+        if (id === WATERWHEELS.GOLD && isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+            defName = "Evil Gold Waterwheel";
+        }
         // Return result if there was any gain (levels or just fp progress)
         result[id] = {
             levels: levelsGained,
             fp: finalFpBn,
-            name: WATERWHEEL_DEFS[id]?.name || id,
+            name: defName,
         };
     }
     return result;
@@ -1655,14 +1702,29 @@ function updateFlowVisuals() {
             }
         } else {
             // Unlocked State
+            let isEvilGold = false;
+            if (id === WATERWHEELS.GOLD && isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+                isEvilGold = true;
+            }
+
             if (elIcon) {
-                // Check against def.image or relative path, let's just use def.image
-                if (elIcon.getAttribute("src") !== def.image) {
-                    elIcon.src = def.image;
+                let imgPath = def.image;
+                if (isEvilGold) {
+                    imgPath = "img/waterwheels/waterwheel_gold_but_evil.webp";
+                }
+                if (elIcon.getAttribute("src") !== imgPath) {
+                    elIcon.src = imgPath;
                 }
             }
             if (elRow) {
                 if (elRow.classList.contains("is-locked")) elRow.classList.remove("is-locked");
+            }
+            if (elFill) {
+                if (isEvilGold) {
+                    elFill.classList.add("is-evil");
+                } else {
+                    elFill.classList.remove("is-evil");
+                }
             }
             if (elLvl) {
                 if (elLvl.style.display === "none") elLvl.style.display = "";
@@ -1671,16 +1733,30 @@ function updateFlowVisuals() {
             }
             if (elEffect) {
                 if (elEffect.style.display === "none") elEffect.style.display = "";
-                const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
-                const newText = `<span>+${formatNumber(effectVal)}%</span>`;
-                setHtmlOrText(elEffect, newText);
+                if (isEvilGold) {
+                    const mult = BigNum.fromInt(1).add(ch.level);
+                    let penalty = mult.clone();
+                    for (let i = 1; i < 10; i++) {
+                        penalty = penalty.mulBigNumInteger(mult);
+                    }
+                    const newText = `<span>/${formatNumber(penalty)}</span>`;
+                    setHtmlOrText(elEffect, newText);
+                } else {
+                    const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
+                    const newText = `<span>+${formatNumber(effectVal)}%</span>`;
+                    setHtmlOrText(elEffect, newText);
+                }
             }
             if (elControls) {
                 if (elControls.style.display === "none") elControls.style.display = "";
             }
             if (elName) {
-                if (elName.innerHTML !== def.name) {
-                    elName.innerHTML = def.name;
+                let displayName = def.name;
+                if (isEvilGold) {
+                    displayName = "Evil Gold Waterwheel";
+                }
+                if (elName.innerHTML !== displayName) {
+                    elName.innerHTML = displayName;
                     elName.classList.remove("flow-locked-text");
                 }
             }
