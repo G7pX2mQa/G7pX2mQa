@@ -586,25 +586,39 @@ function completeCollapseChallenge(materialName) {
                     }
                 }
 
-                if (materialName === "copper") {
-                    // Set Coins and Books to 0 to prevent keeping massively inflated values from the challenge
+                if (materialName !== "stone") {
                     const coinsKey = `ccc:coins:${slot}`;
                     const booksKey = `ccc:books:${slot}`;
-                    
-                    lsSetItem(coinsKey, "0");
-                    if (bank?.coins) bank.coins.set("0");
-                    
-                    lsSetItem(booksKey, "0");
-                    if (bank?.books) bank.books.set("0");
-
-                    // Specifically restore Endless Coins upgrade (since it costs Books) on Copper challenge completion
                     const endlessCoinsKey = `ccc:upgrades:starter_cove:20:${slot}`;
-                    if (backupData[endlessCoinsKey] !== undefined) {
-                        lsSetItem(endlessCoinsKey, backupData[endlessCoinsKey]);
+                    
+                    let currentBooks = BigNum.fromInt(0);
+                    if (bank && bank.books) {
+                        currentBooks = BigNum.fromAny(bank.books.value);
                     } else {
-                        lsRemoveItem(endlessCoinsKey);
+                        currentBooks = BigNum.fromAny(lsGetItem(booksKey) || "0");
                     }
-                    clearCachedUpgradeStates("starter_cove", slot);
+                    
+                    const startingBooks = BigNum.fromAny(backupData[booksKey] || "0");
+                    const currentEndlessCoins = parseInt(lsGetItem(endlessCoinsKey), 10) || 0;
+                    const startingEndlessCoins = parseInt(backupData[endlessCoinsKey], 10) || 0;
+
+                    // Set Coins and Books to 0 to prevent keeping massively inflated values from the challenge
+                    // if and only if the ending Book amount is larger than the starting Book amount, or if Endless Coins is higher leveled.
+                    if (currentBooks.cmp(startingBooks) > 0 || currentEndlessCoins > startingEndlessCoins) {
+                        lsSetItem(coinsKey, "0");
+                        if (bank?.coins) bank.coins.set("0");
+                        
+                        lsSetItem(booksKey, "0");
+                        if (bank?.books) bank.books.set("0");
+
+                        // Specifically restore Endless Coins upgrade (since it costs Books)
+                        if (backupData[endlessCoinsKey] !== undefined) {
+                            lsSetItem(endlessCoinsKey, backupData[endlessCoinsKey]);
+                        } else {
+                            lsRemoveItem(endlessCoinsKey);
+                        }
+                        clearCachedUpgradeStates("starter_cove", slot);
+                    }
                 }
             } catch (e) {
                 console.error("Failed to restore lab nodes from backup on completion:", e);
