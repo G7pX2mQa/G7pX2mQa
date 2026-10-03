@@ -1,4 +1,4 @@
-const SHOW_PERFORMANCE_LOGS = false;
+const SHOW_PERFORMANCE_LOGS = true;
 
 /**
  * js/game/simulatedOffline.js
@@ -19,7 +19,7 @@ const SHOW_PERFORMANCE_LOGS = false;
 import { pauseGameLoop, resumeGameLoop, triggerUiFrameListeners } from "./gameLoop.js";
 import { BigNum, approxLog10BigNum } from "../util/bigNum.js";
 import { formatNumber } from "../util/numFormat.js";
-import { setBankAddInterceptor } from "../util/storage.js";
+import { setBankAddInterceptor, flushSimulatedCurrencyChanges } from "../util/storage.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
 import { settingsManager } from "./settingsManager.js";
 import { waterSystem } from "./webgl/waterSystem.js"; // Water system to keep ticking visually
@@ -1330,6 +1330,10 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
 
         // Stop intercepting rewards and compute final combined deltas
         const currencyDeltas = stopRewardTracking();
+        
+        // Flush all batched DOM events from the simulation before reading final totals
+        flushSimulatedCurrencyChanges();
+        
         const afterTotals = captureTotals();
         const levelDeltas = computeLevelDeltas(beforeTotals, afterTotals);
         const combinedRewards = { ...currencyDeltas, ...levelDeltas };
@@ -1343,7 +1347,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
         // Show standard offline panel with computed rewards
         const hasRewards = Object.keys(combinedRewards).length > 0;
         if (hasRewards) {
-            showOfflinePanel(combinedRewards, activeDisplayMs, isPreAutomation, oldTotals);
+            showOfflinePanel(combinedRewards, activeDisplayMs, isPreAutomation, oldTotals, options.wasInterrupted);
         }
     }
 
@@ -1416,6 +1420,9 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
             if (typeof triggerUiFrameListeners === "function") {
                 triggerUiFrameListeners(now / 1000, dt);
             }
+            
+            // Flush any batched UI events so the background HUD updates visually without lag
+            flushSimulatedCurrencyChanges();
 
             if (done) {
                 finishSimulation();
