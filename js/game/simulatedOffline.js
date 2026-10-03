@@ -36,6 +36,7 @@ import {
     getCurrentVal,
 } from "./offlinePanel.js";
 import { ensureCustomScrollbar } from "../ui/shopOverlay.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../ui/minerTabs/collapseTab.js";
 
 // Lazy imports to avoid circular dependencies — resolved on first use
 let _simulateAutomationTick = null;
@@ -324,10 +325,15 @@ function stopRewardTracking() {
 
     if (simulationLevelTracker.waterwheel_levels && _WATERWHEEL_DEFS) {
         const wwArr = [];
+        const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
         for (const id in simulationLevelTracker.waterwheel_levels) {
+            const isEvilGold = id === "gold" && isIronChallenge;
+            const defName = isEvilGold ? "Evil Gold Waterwheel" : _WATERWHEEL_DEFS[id]?.name;
+            const icon = isEvilGold ? "img/waterwheels/waterwheel_gold_but_evil.webp" : _WATERWHEEL_DEFS[id]?.image;
             wwArr.push({
                 id: id,
-                name: _WATERWHEEL_DEFS[id]?.name,
+                name: defName,
+                icon: icon,
                 levels: simulationLevelTracker.waterwheel_levels[id],
             });
         }
@@ -724,11 +730,14 @@ function _makeLiveRow(config, key, id, name) {
     plus.className = "offline-plus";
     plus.textContent = "+";
 
+    const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
+    const isEvilGold = key === "waterwheel_levels" && id === "gold" && isIronChallenge;
+
     const icon = document.createElement("img");
     icon.className = "offline-icon";
     let iconSrc = config.icon;
     if (key === "waterwheel_levels" && _WATERWHEEL_DEFS && _WATERWHEEL_DEFS[id]) {
-        iconSrc = _WATERWHEEL_DEFS[id].image;
+        iconSrc = isEvilGold ? "img/waterwheels/waterwheel_gold_but_evil.webp" : _WATERWHEEL_DEFS[id].image;
     } else if (key === "building_levels") {
         const styleMap = { core: "cores", crystal: "crystals" };
         const mapped = styleMap[id] || id;
@@ -748,7 +757,10 @@ function _makeLiveRow(config, key, id, name) {
     infSpan.style.webkitTextFillColor = "#ffff55";
     infSpan.style.display = "none";
 
-    if (key === "research_levels") {
+    if (isEvilGold) {
+        plus.classList.add("text-evil-gold");
+        text.classList.add("text-evil-gold");
+    } else if (key === "research_levels") {
         plus.style.color = "#004F96";
         text.style.color = "#004F96";
     } else {
@@ -971,9 +983,11 @@ function createSimulationOverlay(
             continue;
         }
         if (key === "waterwheel_levels" && _WATERWHEEL_DEFS) {
+            const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
             for (const id of Object.keys(_WATERWHEEL_DEFS)) {
                 const def = _WATERWHEEL_DEFS[id];
-                const info = _makeLiveRow(config, key, id, def.name);
+                const displayName = (id === "gold" && isIronChallenge) ? "Evil Gold Waterwheel" : def.name;
+                const info = _makeLiveRow(config, key, id, displayName);
                 liveRowInfos.push(info);
                 rewardsList.appendChild(info.row);
             }
