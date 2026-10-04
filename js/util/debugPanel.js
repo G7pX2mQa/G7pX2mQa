@@ -7395,8 +7395,7 @@ window.addEventListener("saveSlot:change", () => {
     }
 });
 
-window.addEventListener("saveData:imported", (e) => {
-    const slot = e.detail?.slot;
+export function clearDebugLocksForSlot(slot = getActiveSlot()) {
     if (slot == null) return;
     const suffix = `:${slot}`;
     for (const key of lockedStorageKeys) {
@@ -7404,9 +7403,29 @@ window.addEventListener("saveData:imported", (e) => {
             lockedStorageKeys.delete(key);
         }
     }
+    for (const key of committingLockedKeys) {
+        if (key.endsWith(suffix)) {
+            committingLockedKeys.delete(key);
+        }
+    }
+    try {
+        document.dispatchEvent(new CustomEvent("debugStorageLocksChanged"));
+    } catch {}
     if (debugPanelOpen) {
         buildDebugPanel();
     }
+}
+
+window.addEventListener("debugLocks:cleared", (e) => {
+    const slot = e.detail?.slot;
+    if (slot == null) return;
+    clearDebugLocksForSlot(slot);
+});
+
+window.addEventListener("saveData:imported", (e) => {
+    const slot = e.detail?.slot;
+    if (slot == null) return;
+    clearDebugLocksForSlot(slot);
 });
 
 window.addEventListener("boot:complete", () => {
