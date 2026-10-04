@@ -391,9 +391,7 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
     } catch {}
     // Reset Waterwheels
     try {
-        const isIronChallenge = isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron";
         for (const id in WATERWHEEL_DEFS) {
-            if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
             setWaterwheelLevel(id, 0);
             setWaterwheelFp(id, 0);
         }
@@ -837,11 +835,19 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
         allPanels.forEach((p) => p.classList.remove("is-active"));
         tabBtn.classList.add("is-active");
         panel.classList.add("is-active");
+        updateCombineCard();
+        updateCompressCard();
     });
     updateCombinePanelVisibility(minerSheetEl);
     updateCompressPanelVisibility(minerSheetEl);
     recomputePendingCoresAndCrystals();
     if (typeof window !== "undefined") {
+        window.addEventListener("collapse:challenge:start", () => {
+            updateCombineCard();
+        });
+        window.addEventListener("collapse:challenge:end", () => {
+            updateCombineCard();
+        });
         window.addEventListener("currency:change", (e) => {
             if (e.detail?.key === "scrap" || UC_MATERIALS.includes(e.detail?.key)) {
                 recomputePendingCoresAndCrystals();
