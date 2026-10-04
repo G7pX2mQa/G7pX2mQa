@@ -1,7 +1,7 @@
 // js/game/xpSystem.js
 import { lsSetItem, lsGetItem } from "../main.js";
 import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10, bigNumIsInfinite } from "../util/bigNum.js";
-import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from "../util/storage.js";
+import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isResourceLockedToZero } from "../util/storage.js";
 import { registerTick } from "./gameLoop.js";
 import { applyStatMultiplierOverride } from "../util/debugPanel.js";
 import { formatNumber } from "../util/numFormat.js";
@@ -1145,13 +1145,15 @@ export function addXp(amount, { silent = false } = {}) {
         };
     }
     // 1. Basic Unlock Check
-    if (!xpState.unlocked) {
+    if (!xpState.unlocked || isResourceLockedToZero("xp")) {
         return {
-            unlocked: false,
+            unlocked: xpState.unlocked && !isResourceLockedToZero("xp"),
             xpLevelsGained: bnZero(),
             xpAdded: bnZero(),
             xpLevel: xpState.xpLevel,
+            progress: bnZero(),
             requirement: requirementBn,
+            slot,
         };
     }
     // 2. Parse Input Amount
