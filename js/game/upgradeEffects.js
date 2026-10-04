@@ -7,7 +7,7 @@ import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
 import { getSurgeMagicMultiplier, getSurgeWaveMultiplier, getSurgeDnaMultiplier, getSurge300ScrapMultiplier } from './surgeEffects.js';
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
 import { addExternalDpMultiplierProvider } from './dpSystem.js';
-import { applyStatMultiplierOverride } from '../util/debugPanel.js';
+import { applyStatMultiplierOverride, applyCurrencyMultiplierOverride } from '../util/debugPanel.js';
 import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/workshopTab.js";
 import { getPpState, isPpSystemUnlocked, addExternalPpMultiplierProvider } from './ppSystem.js';
 import { getRclpMultiplier } from './rclpSystem.js';
@@ -343,7 +343,8 @@ export function syncCurrencyMultipliersFromUpgrades() {
   
   try {
     if (bank.gold?.mult?.set) {
-      const finalGoldValue = getWaterwheelGoldMultiplier(goldValue);
+      let finalGoldValue = getWaterwheelGoldMultiplier(goldValue);
+      finalGoldValue = applyCurrencyMultiplierOverride('gold', finalGoldValue);
       bank.gold.mult.set(finalGoldValue);
     }
   } catch {}
@@ -353,6 +354,7 @@ export function syncCurrencyMultipliersFromUpgrades() {
       const surgeMult = getSurgeMagicMultiplier();
       let finalMagicValue = safeMultiplyBigNum(magicValue, surgeMult);
       finalMagicValue = getWaterwheelMagicMultiplier(finalMagicValue);
+      finalMagicValue = applyCurrencyMultiplierOverride('magic', finalMagicValue);
       bank.magic.mult.set(finalMagicValue);
     }
   } catch {}
@@ -361,7 +363,8 @@ export function syncCurrencyMultipliersFromUpgrades() {
     if (bank.waves?.mult?.set) {
       const labMult = getLabWaveMultiplier();
       const surgeWaveMult = getSurgeWaveMultiplier();
-      const finalWaveValue = safeMultiplyBigNum(waveValue, safeMultiplyBigNum(labMult, surgeWaveMult));
+      let finalWaveValue = safeMultiplyBigNum(waveValue, safeMultiplyBigNum(labMult, surgeWaveMult));
+      finalWaveValue = applyCurrencyMultiplierOverride('waves', finalWaveValue);
       bank.waves.mult.set(finalWaveValue);
     }
   } catch {}
@@ -391,6 +394,7 @@ export function syncCurrencyMultipliersFromUpgrades() {
         }
       } catch {}
 
+      finalScrapValue = applyCurrencyMultiplierOverride('scrap', finalScrapValue);
       bank.scrap.mult.set(finalScrapValue);
     }
   } catch {}
@@ -408,6 +412,8 @@ try {
           finalDnaValue = safeMultiplyBigNum(finalDnaValue, gclpMult);
       }
       
+      finalDnaValue = applyCurrencyMultiplierOverride('dna', finalDnaValue);
+
       if (bank.DNA?.mult?.set) {
         bank.DNA.mult.set(finalDnaValue);
       } else if (bank.dna?.mult?.set) {
@@ -418,7 +424,7 @@ try {
 
   try {
     if (bank.cores?.mult?.set) {
-      let finalCoresValue = applyStatMultiplierOverride('cores', coresValue);
+      let finalCoresValue = coresValue;
       for (const provider of externalCoresMultiplierProviders) {
         try {
           const val = provider(finalCoresValue);
@@ -429,13 +435,14 @@ try {
           }
         } catch {}
       }
+      finalCoresValue = applyCurrencyMultiplierOverride('cores', finalCoresValue);
       bank.cores.mult.set(finalCoresValue);
     }
   } catch {}
 
   try {
     if (bank.crystals?.mult?.set) {
-      let finalCrystalsValue = applyStatMultiplierOverride('crystals', crystalsValue);
+      let finalCrystalsValue = crystalsValue;
       for (const provider of externalCrystalsMultiplierProviders) {
         try {
           const val = provider(finalCrystalsValue);
@@ -446,6 +453,7 @@ try {
           }
         } catch {}
       }
+      finalCrystalsValue = applyCurrencyMultiplierOverride('crystals', finalCrystalsValue);
       bank.crystals.mult.set(finalCrystalsValue);
     }
   } catch {}
@@ -463,7 +471,6 @@ try {
         }
       }
 
-      finalBookValue = applyStatMultiplierOverride('books', finalBookValue.clone?.() ?? finalBookValue);
       for (const provider of externalBookMultiplierProviders) {
         try {
           const val = provider({ baseMultiplier: finalBookValue });
@@ -474,6 +481,7 @@ try {
           }
         } catch {}
       }
+      finalBookValue = applyCurrencyMultiplierOverride('books', finalBookValue.clone?.() ?? finalBookValue);
       bank.books.mult.set(finalBookValue);
     }
   } catch {}
@@ -486,6 +494,7 @@ try {
       if (!rclpMult.isZero?.() && rclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
           gearsRate = safeMultiplyBigNum(gearsRate, rclpMult);
       }
+      gearsRate = applyCurrencyMultiplierOverride('gears', gearsRate);
       bank.gears.mult.set(gearsRate);
     }
   } catch {}
@@ -515,17 +524,8 @@ try {
       if (redCoralValue) {
           redCoralMult = safeMultiplyBigNum(redCoralMult, redCoralValue);
       }
+      redCoralMult = applyCurrencyMultiplierOverride('red_coral', redCoralMult);
       bank.red_coral.mult.set(redCoralMult);
-      
-      if (typeof window !== 'undefined') {
-          if (!window.__originalGetDebugCurrencyMultiplierOverride && window.getDebugCurrencyMultiplierOverride) {
-              window.__originalGetDebugCurrencyMultiplierOverride = window.getDebugCurrencyMultiplierOverride;
-              window.getDebugCurrencyMultiplierOverride = function(key, slot) {
-                  if (key === 'red_coral') return null;
-                  return window.__originalGetDebugCurrencyMultiplierOverride(key, slot);
-              };
-          }
-      }
     }
   } catch {}
 
@@ -550,17 +550,8 @@ try {
       if (greenCoralValue) {
           greenCoralMult = safeMultiplyBigNum(greenCoralMult, greenCoralValue);
       }
+      greenCoralMult = applyCurrencyMultiplierOverride('green_coral', greenCoralMult);
       bank.green_coral.mult.set(greenCoralMult);
-      
-      if (typeof window !== 'undefined') {
-          if (!window.__originalGetDebugCurrencyMultiplierOverrideGreen && window.getDebugCurrencyMultiplierOverride) {
-              window.__originalGetDebugCurrencyMultiplierOverrideGreen = window.getDebugCurrencyMultiplierOverride;
-              window.getDebugCurrencyMultiplierOverride = function(key, slot) {
-                  if (key === 'red_coral' || key === 'green_coral') return null;
-                  return window.__originalGetDebugCurrencyMultiplierOverrideGreen(key, slot);
-              };
-          }
-      }
     }
   } catch {}
 
@@ -609,6 +600,7 @@ try {
             }
         } catch {}
 
+        finalMatValue = applyCurrencyMultiplierOverride(mat, finalMatValue);
         bank[mat].mult.set(finalMatValue);
       }
     }
