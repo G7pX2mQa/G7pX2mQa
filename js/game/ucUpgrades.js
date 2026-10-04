@@ -3,7 +3,6 @@ import { getPpState, isPpSystemUnlocked } from "./ppSystem.js";
 import {
     AREA_KEYS,
     HM_EVOLUTION_INTERVAL,
-    formatMultForUi,
     safeHasMetMiner,
     UPGRADE_TIES,
     computeDefaultUpgradeCost,
@@ -16,7 +15,7 @@ import { hasDoneCombineReset, hasDoneCompressReset } from "../ui/minerTabs/reset
 import { BigNum, bigNumIsInfinite, bigNumFromLog10 } from "../util/bigNum.js";
 import { showWideNotification } from "../ui/notifications.js";
 import { isResearchNodeActive } from "./labNodes.js";
-import { formatNumber } from "../util/numFormat.js";
+import { formatNumber, formatMultForUi } from "../util/numFormat.js";
 import { isSellUnlocked, hasViewedSellTab } from "../ui/minerTabs/sellTab.js";
 import { getCurrentSurgeLevel } from "../ui/merchantTabs/resetTab.js";
 import { isCollapseUnlocked } from "../ui/minerTabs/collapseTab.js";
