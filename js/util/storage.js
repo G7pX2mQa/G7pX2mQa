@@ -7,19 +7,43 @@ export function setBankAddInterceptor(fn) {
     bankAddInterceptor = fn;
 }
 
+export let ironLockActive = false;
 export let goldLockedToZero = false;
-export function isGoldLockedToZero() {
-    if (goldLockedToZero) return true;
+
+export function isResourceLockedToZero(key) {
+    const isTarget = key === "coins" || key === "xp" || key === "gold" || key === "magic" || key === "scrap";
+    if (!isTarget) return false;
+    if (ironLockActive || goldLockedToZero) return true;
     const slot = getActiveSlot();
-    if (slot != null && lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
-        return true;
+    if (slot != null) {
+        if (lsGetItem(`ccc:ironLockedToZero:${slot}`) === "1" || lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
+            return true;
+        }
     }
     return false;
 }
+
+export function isGoldLockedToZero() {
+    return isResourceLockedToZero("gold");
+}
+
 export function setGoldLockedToZero(val) {
+    setIronLockActive(val);
+}
+
+export function setIronLockActive(val) {
+    ironLockActive = !!val;
     goldLockedToZero = !!val;
-    if (goldLockedToZero && typeof setCurrency === "function") {
-        setCurrency("gold", BigNum.fromInt(0));
+    if (ironLockActive) {
+        if (typeof setCurrency === "function") {
+            setCurrency("coins", BigNum.fromInt(0));
+            setCurrency("gold", BigNum.fromInt(0));
+            setCurrency("magic", BigNum.fromInt(0));
+            setCurrency("scrap", BigNum.fromInt(0));
+        }
+        if (typeof window !== "undefined" && window.xpSystem && typeof window.xpSystem.resetXpProgress === "function") {
+            window.xpSystem.resetXpProgress();
+        }
     }
 }
 
@@ -725,6 +749,7 @@ export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
 }
 // -------------------- AMOUNTS (BN) --------------------
 export function getCurrency(key) {
+    if (isResourceLockedToZero(key)) return BigNum.fromInt(0);
     const k = keyFor(KEYS.CURRENCY[key]);
     if (!k) return BigNum.fromInt(0);
     const raw = lsGetItem(k);
@@ -742,6 +767,9 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
     const prev = previous ?? getCurrency(key);
     const zero = BigNum.fromInt(0);
     if (!k) return prev;
+    if (isResourceLockedToZero(key) && !BigNum.fromAny(value).isZero()) {
+        return prev;
+    }
     if (isCurrencyLocked(key, slot)) {
         // ⚡ Bolt: Return early to prevent event spam and GC pressure when value is locked.
         return prev;
@@ -964,7 +992,7 @@ function makeCurrencyHandle(key) {
     };
     // amount mutations
     fn.add = function add(x) {
-        if (key === "gold" && isGoldLockedToZero()) return this.value;
+        if (isResourceLockedToZero(key)) return this.value;
         if (bankAddInterceptor) bankAddInterceptor(key, x);
         const amt = BigNum.fromAny(x);
         const next = this.value.add(amt);
@@ -980,7 +1008,7 @@ function makeCurrencyHandle(key) {
         return next;
     };
     fn.set = function set(x) {
-        if (key === "gold" && isGoldLockedToZero() && !BigNum.fromAny(x).isZero()) return this.value;
+        if (isResourceLockedToZero(key) && !BigNum.fromAny(x).isZero()) return this.value;
         const val = BigNum.fromAny(x);
         let delta = null;
         let current;
