@@ -112,8 +112,8 @@
   font-size: clamp(18px, 3.5vw, 32px);
   color: #fff;
   transition:
-    transform 120ms ease,
-    filter 120ms ease;
+    transform 70ms ease,
+    filter 70ms ease;
   user-select: none;
 }
 
