@@ -93,8 +93,8 @@ function renderSecretAchievements(gridEl) {
         btn.addEventListener("contextmenu", (e) => {
             e.preventDefault();
             if (state === SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM) {
-                if (achievement.rewardAmount && bank.voidGems) {
-                    bank.voidGems.add(achievement.rewardAmount);
+                if (achievement.rewardAmount && bank.void_gems) {
+                    bank.void_gems.add(achievement.rewardAmount);
                 }
                 setSecretAchievementState(achievement.id, SECRET_ACHIEVEMENT_STATES.ACHIEVED, slot);
                 
@@ -261,8 +261,8 @@ function openSecretAchievementDetails(achievement) {
         claimBtn.className = "shop-delve";
         claimBtn.textContent = "Claim";
         claimBtn.addEventListener("click", () => {
-            if (achievement.rewardAmount && bank.voidGems) {
-                bank.voidGems.add(achievement.rewardAmount);
+            if (achievement.rewardAmount && bank.void_gems) {
+                bank.void_gems.add(achievement.rewardAmount);
             }
             setSecretAchievementState(achievement.id, SECRET_ACHIEVEMENT_STATES.ACHIEVED, slot);
             
