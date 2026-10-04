@@ -41,7 +41,7 @@
   color: #f5f8ff;
   font-weight: 600;
   cursor: pointer;
-  transition: background 120ms ease, filter 120ms ease;
+  transition: background 70ms ease, filter 70ms ease;
   position: relative;
   overflow: hidden;
 }
