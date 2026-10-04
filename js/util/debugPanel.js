@@ -1108,7 +1108,7 @@ function applyCurrencyOverrideForSlot(currencyKey, slot = getActiveSlot()) {
         // Force the underlying game multiplier to update to the override value,
         // even if get() returns the override (because it intercepts it).
         // This ensures currency:multiplier is fired and the UI/game correctly synchronizes.
-        bank?.[currencyKey]?.mult?.set?.(override);
+        bank?.[currencyKey]?.mult?.set?.(override, { force: true });
     } catch {
     } finally {
         currencyOverrideApplications.delete(cacheKey);
@@ -1129,45 +1129,32 @@ function ensureCurrencyOverrideListener() {
                 if (!targetSlot || !currencyOverrides.has(cacheKey)) return;
                 if (currencyOverrideApplications.has(cacheKey)) return;
 
-                const baseline = currencyOverrideBaselines.get(cacheKey);
                 const override = getCurrencyOverride(targetSlot, key);
+                if (!override) return;
 
-                if (baseline && override && mult) {
-                    let shouldScale = true;
-                    const baselineBn = BigNum.fromAny(baseline);
-                    const nextBn = BigNum.fromAny(mult);
+                const locked = isCurrencyMultiplierLocked(key, targetSlot);
+                const nextBn = BigNum.fromAny(mult);
 
-                    if (!baselineBn.isZero()) {
-                        try {
-                            // Sometimes the event fires with the exact same multiplier. We should ignore exact matches.
-                            if (!bigNumEquals(baselineBn, nextBn)) {
-                                const ratio = nextBn.div(baselineBn);
-                                const locked = isCurrencyMultiplierLocked(key, targetSlot);
-
-                                // If it's an unlocked currency and its baseline ACTUALLY changed, wipe its override.
-                                if (!locked) {
-                                    clearCurrencyMultiplierOverride(key, targetSlot);
-                                    shouldScale = false;
-                                }
-
-                                if (shouldScale) {
-                                    const scaledOverride = override.mulDecimal(
-                                        ratio.toScientific(BigNum.DEFAULT_PRECISION),
-                                        BigNum.DEFAULT_PRECISION,
-                                    );
-                                    currencyOverrides.set(cacheKey, scaledOverride);
-                                    storeCurrencyMultiplierOverride(key, targetSlot, scaledOverride);
-                                }
-                            }
-                        } catch (e) {}
+                if (locked) {
+                    // Locked multipliers must NEVER change, scale, or clear.
+                    // If an external event set a different value in storage, re-assert the override.
+                    if (!bigNumEquals(override, nextBn)) {
+                        applyCurrencyOverrideForSlot(key, targetSlot);
                     }
-                    currencyOverrideBaselines.set(cacheKey, mult);
-                } else if (mult) {
-                    currencyOverrideBaselines.set(cacheKey, mult);
+                    return;
                 }
 
-                if (currencyOverrides.has(cacheKey)) {
-                    applyCurrencyOverrideForSlot(key, targetSlot);
+                // If unlocked:
+                const baseline = currencyOverrideBaselines.get(cacheKey);
+                if (baseline) {
+                    const baselineBn = BigNum.fromAny(baseline);
+                    // If an authentic change occurred externally (different from baseline AND different from our override)
+                    if (!bigNumEquals(baselineBn, nextBn) && !bigNumEquals(override, nextBn)) {
+                        clearCurrencyMultiplierOverride(key, targetSlot);
+                        currencyOverrideBaselines.set(cacheKey, nextBn);
+                    }
+                } else if (!bigNumEquals(override, nextBn)) {
+                    currencyOverrideBaselines.set(cacheKey, nextBn);
                 }
             },
             { passive: true },
@@ -1208,7 +1195,16 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     // CRITICAL: We MUST read the baseline BEFORE setting currencyOverrides, otherwise
     // bank.mult.get() will just return the newly set override!
     if (!currencyOverrideBaselines.has(cacheKey)) {
-        const gameValue = bank?.[currencyKey]?.mult?.get?.();
+        let gameValue = bank?.[currencyKey]?.mult?.get?.();
+        if (gameValue != null) {
+            try {
+                gameValue = gameValue instanceof BigNum ? (gameValue.clone?.() ?? gameValue) : BigNum.fromAny(gameValue);
+            } catch {
+                gameValue = BigNum.fromInt(1);
+            }
+        } else {
+            gameValue = BigNum.fromInt(1);
+        }
         currencyOverrideBaselines.set(cacheKey, gameValue);
     }
 
@@ -1219,7 +1215,59 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     return bn;
 }
 
-if (typeof window !== "undefined") window.getDebugCurrencyMultiplierOverride = getDebugCurrencyMultiplierOverride;
+export function getEffectiveCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot(), gameValue = null) {
+    if (!currencyKey || slot == null) return null;
+    const override = getCurrencyOverride(slot, currencyKey);
+    const cacheKey = buildOverrideKey(slot, currencyKey);
+    if (!override) {
+        currencyOverrideBaselines.delete(cacheKey);
+        return null;
+    }
+
+    const locked = isCurrencyMultiplierLocked(currencyKey, slot);
+    let resolvedGameValue = null;
+    if (gameValue != null) {
+        try {
+            resolvedGameValue = gameValue instanceof BigNum ? gameValue : BigNum.fromAny(gameValue);
+        } catch {}
+    }
+
+    const baseline = currencyOverrideBaselines.get(cacheKey);
+
+    if (resolvedGameValue != null) {
+        if (!baseline) {
+            currencyOverrideBaselines.set(cacheKey, resolvedGameValue);
+        } else if (!bigNumEquals(baseline, resolvedGameValue)) {
+            if (locked) {
+                currencyOverrideBaselines.set(cacheKey, resolvedGameValue);
+                return override;
+            }
+            clearCurrencyMultiplierOverride(currencyKey, slot);
+            return null;
+        }
+    }
+
+    return override;
+}
+
+export function applyCurrencyMultiplierOverride(currencyKey, amount, slot = getActiveSlot()) {
+    if (!currencyKey || slot == null) return amount;
+    let base;
+    try {
+        base = amount instanceof BigNum ? (amount.clone?.() ?? amount) : BigNum.fromAny(amount ?? 1);
+    } catch {
+        return amount;
+    }
+
+    const effective = getEffectiveCurrencyMultiplierOverride(currencyKey, slot, base);
+    return effective ?? base;
+}
+
+if (typeof window !== "undefined") {
+    window.getDebugCurrencyMultiplierOverride = getDebugCurrencyMultiplierOverride;
+    window.getEffectiveCurrencyMultiplierOverride = getEffectiveCurrencyMultiplierOverride;
+    window.applyCurrencyMultiplierOverride = applyCurrencyMultiplierOverride;
+}
 export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
     if (!currencyKey || slot == null) return null;
     return getCurrencyOverride(slot, currencyKey);
@@ -1422,8 +1470,10 @@ function ensureStorageLockPatch() {
     } catch {}
 }
 
+const committingLockedKeys = new Set();
+
 function isStorageKeyLocked(key) {
-    return key != null && lockedStorageKeys.has(key);
+    return key != null && (lockedStorageKeys.has(key) || committingLockedKeys.has(key));
 }
 
 function lockStorageKey(key) {
@@ -1933,11 +1983,17 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
         setInputValidity(input, true);
 
         const wasLocked = storageKey && isStorageKeyLocked(storageKey);
-        if (wasLocked) unlockStorageKey(storageKey);
+        if (wasLocked) {
+            committingLockedKeys.add(storageKey);
+            unlockStorageKey(storageKey);
+        }
         try {
             onCommit(parsed, { input, setValue });
         } finally {
-            if (wasLocked) lockStorageKey(storageKey);
+            if (wasLocked) {
+                committingLockedKeys.delete(storageKey);
+                lockStorageKey(storageKey);
+            }
             if (lockToggle) lockToggle.refresh();
         }
         originalValueOnFocus = input.value;
@@ -3957,7 +4013,27 @@ function buildAreaCurrencyMultipliers(container, area) {
                     );
                 }
             },
-            { storageKey },
+            {
+                storageKey,
+                onLockChange: (locked) => {
+                    const latestSlot = getActiveSlot();
+                    if (latestSlot == null) return;
+                    if (locked) {
+                        const existingOverride = getCurrencyOverride(latestSlot, currency.key);
+                        if (!existingOverride) {
+                            const currentBankMult = handle?.get?.() ?? BigNum.fromInt(1);
+                            try {
+                                setDebugCurrencyMultiplierOverride(currency.key, currentBankMult, latestSlot);
+                            } catch {}
+                        }
+                    } else {
+                        const currentBankMult = handle?.get?.() ?? BigNum.fromInt(1);
+                        getEffectiveCurrencyMultiplierOverride(currency.key, latestSlot, currentBankMult);
+                    }
+                    const refreshed = getDebugCurrencyMultiplierOverride(currency.key, latestSlot) ?? handle?.get?.() ?? BigNum.fromInt(1);
+                    row.setValue(refreshed);
+                },
+            },
         );
         registerLiveBinding({
             type: "currency-mult",
@@ -7340,4 +7416,3 @@ window.addEventListener("boot:complete", () => {
 export function setDebugPanelAccess(enabled) {
     applyDebugPanelAccess(enabled);
 }
-
