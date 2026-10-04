@@ -4,12 +4,12 @@ import { getSaveDataForSlot, applySaveDataToSlot } from "../../util/slotsManager
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
 import { UC_MATERIAL_DATA } from "../../game/ucSpawner.js";
-import { AREA_KEYS, UPGRADE_TIES, setLevel, clearCachedUpgradeStates } from "../../game/upgrades.js";
+import { AREA_KEYS, UPGRADE_TIES, setLevel, clearCachedUpgradeStates, resetCurrencyAndUpgradeLevels } from "../../game/upgrades.js";
 import { getCurrencyMultiplierBN } from "../../util/storage.js";
 import { BigNum } from "../../util/bigNum.js";
 import { formatNumber } from "../../util/numFormat.js";
 import { setRubbleSellMode } from "./sellTab.js";
-import { RUBBLE_AREA_KEY, RUBBLE_REGISTRY } from "../../game/rubbleUpgrades.js";
+import { RUBBLE_AREA_KEY, RUBBLE_REGISTRY, getRubbleUpgradeForChallenge, getBoostedCurrencyForRubbleUpgrade } from "../../game/rubbleUpgrades.js";
 import { DNA_AREA_KEY } from "../../game/dnaUpgrades.js";
 import { disableGlobalOverlayEsc, enableGlobalOverlayEsc } from "../../util/globalOverlayEsc.js";
 import { performCollapseReset } from "./resetTab.js";
@@ -656,43 +656,29 @@ function completeCollapseChallenge(materialName) {
                     }
                 }
 
-                if (materialName !== "stone") {
-                    const coinsKey = `ccc:coins:${slot}`;
-                    const booksKey = `ccc:books:${slot}`;
-                    const endlessCoinsKey = `ccc:upgrades:starter_cove:20:${slot}`;
-                    
-                    let currentBooks = BigNum.fromInt(0);
-                    if (bank && bank.books) {
-                        currentBooks = BigNum.fromAny(bank.books.value);
-                    } else {
-                        currentBooks = BigNum.fromAny(lsGetItem(booksKey) || "0");
-                    }
-                    
-                    const startingBooks = BigNum.fromAny(backupData[booksKey] || "0");
-                    const currentEndlessCoins = parseInt(lsGetItem(endlessCoinsKey), 10) || 0;
-                    const startingEndlessCoins = parseInt(backupData[endlessCoinsKey], 10) || 0;
-
-                    // Set Coins and Books to 0 to prevent keeping massively inflated values from the challenge
-                    // if and only if the ending Book amount is larger than the starting Book amount, or if Endless Coins is higher leveled.
-                    if (currentBooks.cmp(startingBooks) > 0 || currentEndlessCoins > startingEndlessCoins) {
-                        lsSetItem(coinsKey, "0");
-                        if (bank?.coins) bank.coins.set("0");
-                        
-                        lsSetItem(booksKey, "0");
-                        if (bank?.books) bank.books.set("0");
-
-                        // Specifically restore Endless Coins upgrade (since it costs Books)
-                        if (backupData[endlessCoinsKey] !== undefined) {
-                            lsSetItem(endlessCoinsKey, backupData[endlessCoinsKey]);
-                        } else {
-                            lsRemoveItem(endlessCoinsKey);
-                        }
-                        clearCachedUpgradeStates("starter_cove", slot);
-                    }
-                }
             } catch (e) {
                 console.error("Failed to restore lab nodes from backup on completion:", e);
             }
+        }
+
+        // Automated reset of all boosted currencies and their upgrade levels
+        // for all challenges up to and including this one (e.g. Iron encompasses Stone, Copper, and Iron)
+        const targetIndex = UC_MATERIAL_DATA.findIndex(m => m.name === materialName);
+        const materialsToReset = targetIndex >= 0
+            ? UC_MATERIAL_DATA.slice(0, targetIndex + 1).map(m => m.name)
+            : [materialName];
+
+        for (const mat of materialsToReset) {
+            const rubbleUpg = getRubbleUpgradeForChallenge(mat);
+            if (rubbleUpg) {
+                const boostedCurrency = getBoostedCurrencyForRubbleUpgrade(rubbleUpg);
+                if (boostedCurrency) {
+                    resetCurrencyAndUpgradeLevels(boostedCurrency, slot);
+                }
+            }
+        }
+        if (typeof clearPendingGains === "function") {
+            clearPendingGains();
         }
         lsRemoveItem(`ccc:challengeBackup:${slot}`);
         lsRemoveItem(`${CHALLENGE_ACTIVE_KEY_BASE}:${slot}`);
