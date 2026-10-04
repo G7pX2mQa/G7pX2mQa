@@ -160,7 +160,7 @@ html.is-mobile {
     cursor: pointer;
     border-radius: 4px;
     padding: 6px 10px;
-    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    transition: transform 70ms ease, background 70ms ease, border-color 70ms ease;
 }
 
 .debug-panel-close:hover {
@@ -348,7 +348,7 @@ html.is-mobile {
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.12s ease, transform 0.12s ease;
+    transition: background 70ms ease, transform 70ms ease;
 }
 
 .debug-panel-toggle:hover {
