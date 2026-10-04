@@ -208,7 +208,7 @@ const HELP_ENTRIES = [
         title: "Experiment",
         icon: "img/misc/experiment.webp",
         progressionGoal: "Reach Surge Milestone 20",
-        text: "The core loop of this section of the game is to combining Forge resets with Infuse resets with Surge resets with Experiment resets with researching Lab Nodes and collecting Coins.",
+        text: "The core loop of this section of the game is combining Forge resets with Infuse resets with Surge resets with Experiment resets with researching Lab Nodes and collecting Coins.",
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Base DNA Gain</strong><br><code>Gain = Floor(2 ^ (LabLevel + XPLevel / 20))</code><br>But when Surge 9 is active: <code>Gain = Floor(10^(30 * TsunamiExponent) * (2 + TsunamiExponent / 2) ^ (LabLevel + XPLevel / 20))</code></div>`,
         themeClass: "is-experiment",
         isVisible: () => {
