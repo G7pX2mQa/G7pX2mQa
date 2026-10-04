@@ -301,16 +301,16 @@ function ensureValueListeners() {
                 updateWaveBar();
                 updateResetPanel();
             } else {
-                recomputePendingGold();
-                recomputePendingMagic();
-                recomputePendingWaves();
+                recomputePendingGold(false, true);
+                recomputePendingMagic(null, true);
+                updateResetPanel();
             }
         });
     }
     if (!xpChangeUnsub && typeof onXpChange === "function") {
         xpChangeUnsub = onXpChange((detail = {}) => {
             if (detail?.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-            recomputePendingGold();
+            recomputePendingGold(false, true);
             recomputePendingWaves();
             recomputePendingDna();
             updateResetPanel();
@@ -799,7 +799,7 @@ function getPendingInputSignature(coins, level) {
     return `${coinSig}|${levelSig}`;
 }
 
-function recomputePendingGold(force = false) {
+function recomputePendingGold(force = false, deferUpdate = false) {
     const coins = bank.coins?.value ?? bnZero();
     const level = getXpLevelBn();
     const signature = getPendingInputSignature(coins, level);
@@ -812,10 +812,12 @@ function recomputePendingGold(force = false) {
     } else {
         resetState.pendingGold = computeForgeGold(coins, level);
     }
-    updateResetPanel();
+    if (!deferUpdate) {
+        updateResetPanel();
+    }
 }
 
-export function recomputePendingMagic(multiplierOverride = null) {
+export function recomputePendingMagic(multiplierOverride = null, deferUpdate = false) {
     const coins = bank.coins?.value ?? bnZero();
     const cumulativeMp = getTotalCumulativeMp();
     if (!meetsInfuseRequirement()) {
@@ -824,7 +826,9 @@ export function recomputePendingMagic(multiplierOverride = null) {
         resetState.pendingMagic = computeInfuseMagic(coins, cumulativeMp, multiplierOverride);
     }
     recomputePendingWaves();
-    updateResetPanel();
+    if (!deferUpdate) {
+        updateResetPanel();
+    }
 }
 
 function recomputePendingWaves() {
@@ -1062,7 +1066,7 @@ export function performForgeReset() {
         }
     } catch {}
     applyForgeResetEffects({ resetGold: false });
-    recomputePendingGold();
+    recomputePendingGold(true, true);
     setForgeUnlocked(true);
     if (!resetState.hasDoneForgeReset) {
         setForgeResetCompleted(true);
@@ -1075,7 +1079,7 @@ export function performForgeReset() {
             window.spawner?.clearPlayfield?.("forge");
         } catch {}
     }
-    updateResetPanel();
+    updateResetPanel({ immediate: true });
     return true;
 }
 
@@ -1103,8 +1107,8 @@ export function performInfuseReset() {
         lsSetItem(KEY_PROGRESS(slot), "0");
         initMutationSystem({ forceReload: true });
     } catch {}
-    recomputePendingGold();
-    recomputePendingMagic();
+    recomputePendingGold(true, true);
+    recomputePendingMagic(null, true);
     if (shouldWipePlayfield("infuse")) {
         try {
             window.spawner?.clearPlayfield?.("infuse");
@@ -1115,7 +1119,7 @@ export function performInfuseReset() {
         setInfuseResetCompleted(true);
     }
     incrementResetStat("Infuse");
-    updateResetPanel();
+    updateResetPanel({ immediate: true });
     return true;
 }
 
@@ -1145,8 +1149,8 @@ export function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisu
     if (!resetState.hasDoneSurgeReset) {
         setSurgeResetCompleted(true);
     }
-    recomputePendingGold();
-    recomputePendingMagic();
+    recomputePendingGold(true, true);
+    recomputePendingMagic(null, true);
     recomputePendingWaves();
     if (playEffects) {
         if (!skipVisuals) playSurgeResetSound();
@@ -1157,7 +1161,7 @@ export function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisu
             window.spawner?.clearPlayfield?.("surge");
         } catch {}
     }
-    updateResetPanel();
+    updateResetPanel({ immediate: true });
 }
 
 function performExperimentReset() {
@@ -1196,11 +1200,11 @@ function performExperimentReset() {
         setExperimentResetCompleted(true);
     }
     // Update UI
-    recomputePendingGold();
-    recomputePendingMagic();
+    recomputePendingGold(true, true);
+    recomputePendingMagic(null, true);
     recomputePendingWaves();
     recomputePendingDna();
-    updateResetPanel();
+    updateResetPanel({ immediate: true });
     incrementResetStat("Experiment");
     return true;
 }
@@ -1907,7 +1911,7 @@ function buildPanel(panelEl, deferUpdate = false) {
         resetState.elements.forge.btn.addEventListener("click", () => {
             if (performForgeReset()) {
                 playForgeResetSound();
-                updateResetPanel();
+                updateResetPanel({ immediate: true });
             }
         });
     }
@@ -1915,7 +1919,7 @@ function buildPanel(panelEl, deferUpdate = false) {
         resetState.elements.infuse.btn.addEventListener("click", () => {
             if (performInfuseReset()) {
                 playInfuseResetSound();
-                updateResetPanel();
+                updateResetPanel({ immediate: true });
             }
         });
     }
@@ -1923,14 +1927,14 @@ function buildPanel(panelEl, deferUpdate = false) {
         resetState.elements.surge.btn.addEventListener("click", () => {
             if (performSurgeReset()) {
                 // performSurgeReset handles playing sound
-                updateResetPanel();
+                updateResetPanel({ immediate: true });
             }
         });
     }
     if (resetState.elements.experiment.btn) {
         resetState.elements.experiment.btn.addEventListener("click", () => {
             if (performExperimentReset()) {
-                updateResetPanel();
+                updateResetPanel({ immediate: true });
             }
         });
     }
@@ -2449,7 +2453,13 @@ function updateExperimentCard() {
     updateResetButtonContent(el.btn, { disabled: false }, DNA_ICON_SRC, resetState.pendingDna);
 }
 
-export function updateResetPanel({ goldMult = null } = {}) {
+let panelUpdateScheduled = false;
+let lastPanelUpdateTime = 0;
+let pendingGoldMultOverride = null;
+let panelUpdateTimer = null;
+const PANEL_UPDATE_INTERVAL_MS = 50;
+
+function performUpdateResetPanel({ goldMult = null } = {}) {
     if (!resetState.panel) return;
     const overlay = resetState.panel.closest(".merchant-overlay");
     if (!overlay || !overlay.classList.contains("is-open")) {
@@ -2463,22 +2473,59 @@ export function updateResetPanel({ goldMult = null } = {}) {
     updateExperimentCard();
 }
 
+export function updateResetPanel({ goldMult = null, immediate = false } = {}) {
+    if (goldMult != null) {
+        pendingGoldMultOverride = goldMult;
+    }
+    if (immediate) {
+        if (panelUpdateTimer !== null) {
+            clearTimeout(panelUpdateTimer);
+            panelUpdateTimer = null;
+        }
+        panelUpdateScheduled = false;
+        const gm = pendingGoldMultOverride;
+        pendingGoldMultOverride = null;
+        lastPanelUpdateTime = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+        performUpdateResetPanel({ goldMult: gm });
+        return;
+    }
+    const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    const elapsed = now - lastPanelUpdateTime;
+    if (elapsed >= PANEL_UPDATE_INTERVAL_MS && !panelUpdateScheduled) {
+        lastPanelUpdateTime = now;
+        const gm = pendingGoldMultOverride;
+        pendingGoldMultOverride = null;
+        performUpdateResetPanel({ goldMult: gm });
+    } else if (!panelUpdateScheduled) {
+        panelUpdateScheduled = true;
+        const delay = Math.max(0, PANEL_UPDATE_INTERVAL_MS - elapsed);
+        panelUpdateTimer = setTimeout(() => {
+            panelUpdateScheduled = false;
+            panelUpdateTimer = null;
+            lastPanelUpdateTime = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+            const gm = pendingGoldMultOverride;
+            pendingGoldMultOverride = null;
+            performUpdateResetPanel({ goldMult: gm });
+        }, delay);
+    }
+}
+
 export function onForgeUpgradeUnlocked() {
     initResetSystem();
     setForgeUnlocked(true);
-    updateResetPanel();
+    updateResetPanel({ immediate: true });
 }
 
 export function onInfuseUpgradeUnlocked() {
     initResetSystem();
     setInfuseUnlocked(true);
-    updateResetPanel();
+    updateResetPanel({ immediate: true });
 }
 
 export function onSurgeUpgradeUnlocked() {
     initResetSystem();
     setSurgeUnlocked(true);
-    updateResetPanel();
+    updateResetPanel({ immediate: true });
 }
 
 function triggerSurgeBarAnimation() {
@@ -2577,9 +2624,9 @@ function bindGlobalEvents() {
     });
     window.addEventListener("currency:change", (e) => {
         if (e.detail?.key === "coins") {
-            recomputePendingGold();
-            recomputePendingMagic();
-            recomputePendingWaves();
+            recomputePendingGold(false, true);
+            recomputePendingMagic(null, true);
+            updateResetPanel();
         }
         if (e.detail?.key === "waves") {
             updateWaveBar();
@@ -2603,52 +2650,43 @@ function bindGlobalEvents() {
         if (!detail) return;
         if (detail.key === CURRENCIES.GOLD) {
             if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-            recomputePendingGold(true);
-            // Pass the new multiplier explicitly so visual updates are instant
+            // Pass the new multiplier explicitly so visual updates are throttled smoothly
             const goldMult = detail.mult instanceof BigNum ? detail.mult : BigNum.fromAny(detail.mult ?? 1);
-            // Force update with explicit override to ensure reactivity
-            if (resetState.panel) {
-                updateForgeCard({ goldMult });
-            }
+            updateResetPanel({ goldMult });
             return;
         }
         if (detail.key === CURRENCIES.MAGIC) {
             if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
             const magicMult = detail.mult instanceof BigNum ? detail.mult : BigNum.fromAny(detail.mult ?? 1);
             recomputePendingMagic(magicMult);
-            // Ensure visual update happens immediately with the new multiplier
-            if (resetState.panel) {
-                updateInfuseCard();
-            }
             return;
         }
     });
     window.addEventListener("xp:change", () => {
-        recomputePendingGold();
+        recomputePendingGold(false, true);
         recomputePendingWaves();
         recomputePendingDna();
         updateResetPanel();
     });
     window.addEventListener("mutation:change", () => {
-        recomputePendingMagic();
-        recomputePendingWaves();
+        recomputePendingMagic(null, true);
         updateResetPanel();
     });
     window.addEventListener("debug:change", (e) => {
         if (e?.detail?.slot != null && resetState.slot != null && e.detail.slot !== resetState.slot) return;
         resetPendingGoldSignature();
-        recomputePendingGold(true);
-        recomputePendingMagic();
+        recomputePendingGold(true, true);
+        recomputePendingMagic(null, true);
         recomputePendingWaves();
         recomputePendingDna();
-        updateResetPanel();
+        updateResetPanel({ immediate: true });
     });
     window.addEventListener("lab:level:change", () => {
         recomputePendingDna();
         updateResetPanel();
     });
     window.addEventListener("lab:node:change", () => {
-        recomputePendingMagic();
+        recomputePendingMagic(null, true);
         updateResetPanel();
     });
 }
@@ -2658,10 +2696,11 @@ export function initResetSystem() {
         resetState.slot = getActiveSlot();
         resetPendingGoldSignature();
         ensureValueListeners();
-        recomputePendingGold(true);
-        recomputePendingMagic();
+        recomputePendingGold(true, true);
+        recomputePendingMagic(null, true);
         recomputePendingWaves();
         recomputePendingDna();
+        updateResetPanel({ immediate: true });
         return;
     }
     // Guard against circular dependency initialization issues
@@ -2686,10 +2725,11 @@ export function initResetSystem() {
     bindStorageWatchers(slot);
     ensureValueListeners();
     bindGlobalEvents();
-    recomputePendingGold(true);
-    recomputePendingMagic();
+    recomputePendingGold(true, true);
+    recomputePendingMagic(null, true);
     recomputePendingWaves();
     recomputePendingDna();
+    updateResetPanel({ immediate: true });
     checkAchievements();
     checkSecretAchievements();
     if (mutationUnsub) {
@@ -2730,11 +2770,11 @@ export function initResetSystem() {
 
             bindStorageWatchers(nextSlot);
             ensureValueListeners();
-            recomputePendingGold(true);
-            recomputePendingMagic();
+            recomputePendingGold(true, true);
+            recomputePendingMagic(null, true);
             recomputePendingWaves();
             recomputePendingDna();
-            updateResetPanel();
+            updateResetPanel({ immediate: true });
             checkAchievements();
             checkSecretAchievements();
         });
