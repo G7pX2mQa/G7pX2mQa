@@ -74,7 +74,7 @@
     background-size: 100% 100%, auto;
     background-position: center, center;
     box-shadow: 0 0 0 3px hsla(30, 50%, 2%, 0.9);
-    transition: transform 0.1s ease, filter 0.12s ease;
+    transition: transform 90ms ease, filter 90ms ease;
 }
 
 .collapse-start-btn:not(:disabled):hover,
