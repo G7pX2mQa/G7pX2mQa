@@ -351,7 +351,7 @@ export function startCollapseChallenge(materialName) {
                         break;
                     }
                 }
-                if (!keep || key.startsWith("ccc:mult:rainbowGems:")) {
+                if (!keep || key.startsWith("ccc:mult:rainbow_gems:")) {
                     delete backupData[key];
                 }
             }
