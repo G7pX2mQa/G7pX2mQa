@@ -14,7 +14,6 @@ import { isNodeLocked } from "../mapOverlay.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { getLevelNumber } from "../../game/upgrades.js";
 import { AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID } from "../../game/automationUpgrades.js";
-import { RUBBLE_AREA_KEY } from "../../game/rubbleUpgrades.js";
 import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../minerTabs/collapseTab.js";
 /* =========================================
    CONSTANTS & KEYS
@@ -816,10 +815,25 @@ if (typeof window !== "undefined") {
     window.addEventListener("surge:level:change", invalidateFlowCache);
 }
 
+export function getEvilWaterwheelDivisor(goldLevel = state.waterwheels[WATERWHEELS.GOLD]?.level) {
+    const lvl = goldLevel || BigNum.fromInt(0);
+    const mult = BigNum.fromInt(1).add(lvl);
+    if (mult.cmp(BigNum.fromInt(1)) <= 0) return BigNum.fromInt(1);
+    const multLog = approxLog10BigNum(mult);
+    return bigNumFromLog10(multLog * 0.9);
+}
+
 export function getWaterwheelCoinMultiplier({ baseMultiplier }) {
     const level = state.waterwheels[WATERWHEELS.COIN]?.level || BigNum.fromInt(0);
     const mult = BigNum.fromInt(1).add(level);
-    return baseMultiplier.mulBigNumInteger(mult);
+    let res = baseMultiplier.mulBigNumInteger(mult);
+    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+        const evilDivisor = getEvilWaterwheelDivisor();
+        if (evilDivisor.cmp(BigNum.fromInt(1)) > 0) {
+            res = res.div(evilDivisor);
+        }
+    }
+    return res;
 }
 
 export function getWaterwheelXpMultiplier({ baseGain }) {
@@ -827,7 +841,14 @@ export function getWaterwheelXpMultiplier({ baseGain }) {
     // +100% per level means multiplier = 1 + level
     // e.g. level 1 -> 2x multiplier (+100%)
     const mult = BigNum.fromInt(1).add(level);
-    return baseGain.mulBigNumInteger(mult);
+    let res = baseGain.mulBigNumInteger(mult);
+    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+        const evilDivisor = getEvilWaterwheelDivisor();
+        if (evilDivisor.cmp(BigNum.fromInt(1)) > 0) {
+            res = res.div(evilDivisor);
+        }
+    }
+    return res;
 }
 
 export function getWaterwheelGoldMultiplier(baseValue) {
@@ -838,28 +859,15 @@ export function getWaterwheelGoldMultiplier(baseValue) {
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
     
-    let upgradeLevel = 0;
-    try {
-        upgradeLevel = getLevelNumber(RUBBLE_AREA_KEY, 3);
-    } catch {}
-    const extraExp = 0.01 * upgradeLevel;
-    
-    let exponent = 1 + extraExp;
-    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
-        exponent = -1 + extraExp;
-    }
-    
-    if (exponent === 0 || mult.cmp(BigNum.fromInt(1)) === 0) {
+    if (mult.cmp(BigNum.fromInt(1)) === 0) {
         return val;
     }
     
-    const multLog = approxLog10BigNum(mult);
-    const multPow = bigNumFromLog10(multLog * Math.abs(exponent));
-    
-    if (exponent > 0) {
-        return val.mulBigNumInteger(multPow);
+    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+        const evilDivisor = getEvilWaterwheelDivisor(level);
+        return val.div(evilDivisor);
     } else {
-        return val.div(multPow);
+        return val.mulBigNumInteger(mult);
     }
 }
 
@@ -869,7 +877,14 @@ export function getWaterwheelMagicMultiplier(baseValue) {
     let val = baseValue;
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
-    return val.mulBigNumInteger(mult);
+    let res = val.mulBigNumInteger(mult);
+    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+        const evilDivisor = getEvilWaterwheelDivisor();
+        if (evilDivisor.cmp(BigNum.fromInt(1)) > 0) {
+            res = res.div(evilDivisor);
+        }
+    }
+    return res;
 }
 
 export function addExternalFpMultiplierProvider(fn) {
@@ -1760,13 +1775,12 @@ function updateFlowVisuals() {
             if (elEffect) {
                 if (elEffect.style.display === "none") elEffect.style.display = "";
                 if (id === WATERWHEELS.GOLD) {
-                    const goldMult = getWaterwheelGoldMultiplier(BigNum.fromInt(1));
-                    if (isEvilGold && goldMult.cmp(BigNum.fromInt(1)) < 0) {
-                        const divisor = BigNum.fromInt(1).div(goldMult);
-                        const newText = `<span>/${formatNumber(divisor)}</span>`;
+                    if (isEvilGold) {
+                        const evilDivisor = getEvilWaterwheelDivisor(ch.level);
+                        const newText = `<span>/${formatNumber(evilDivisor)}</span>`;
                         setHtmlOrText(elEffect, newText);
                     } else {
-                        const effectVal = goldMult.sub(BigNum.fromInt(1)).mulSmall(EFFECT_PERCENTAGE);
+                        const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
                         const newText = `<span>+${formatNumber(effectVal)}%</span>`;
                         setHtmlOrText(elEffect, newText);
                     }
@@ -2032,7 +2046,14 @@ export function getWaterwheelScrapMultiplier(baseValue) {
     if (typeof applyStatMultiplierOverride === "function") {
         val = applyStatMultiplierOverride("scrap", val);
     }
-    return val.mulBigNumInteger(mult);
+    let res = val.mulBigNumInteger(mult);
+    if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
+        const evilDivisor = getEvilWaterwheelDivisor();
+        if (evilDivisor.cmp(BigNum.fromInt(1)) > 0) {
+            res = res.div(evilDivisor);
+        }
+    }
+    return res;
 }
 
 export function stopAllWaterwheels() {
