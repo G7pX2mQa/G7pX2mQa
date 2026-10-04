@@ -5,6 +5,7 @@ import { formatNumber } from "../../util/numFormat.js";
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from "../../util/storage.js";
 import { registerTick, registerUiFrame, FIXED_STEP } from "../../game/gameLoop.js";
 import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from "../../game/xpSystem.js";
+import { addExternalDpMultiplierProvider } from "../../game/dpSystem.js";
 import { trackBinaryFlowSequence } from "../../game/secretAchievements.js";
 import { applyStatMultiplierOverride } from "../../util/debugPanel.js";
 import { syncCurrencyMultipliersFromUpgrades } from "../../game/upgradeEffects.js";
@@ -14,7 +15,7 @@ import { isNodeLocked } from "../mapOverlay.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { getLevelNumber } from "../../game/upgrades.js";
 import { AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID } from "../../game/automationUpgrades.js";
-import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../minerTabs/collapseTab.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType, isCollapseUnlocked } from "../minerTabs/collapseTab.js";
 /* =========================================
    CONSTANTS & KEYS
    ========================================= */
@@ -51,6 +52,7 @@ export const WATERWHEELS = {
     GOLD: "gold",
     MAGIC: "magic",
     SCRAP: "scrap",
+    DEPTH: "depth",
 };
 
 export const WATERWHEEL_DEFS = {
@@ -118,6 +120,29 @@ export const WATERWHEEL_DEFS = {
                 if (!cleared) return "???";
             } catch {}
             return "Unlock the Underwater Cavern area";
+        },
+    },
+    [WATERWHEELS.DEPTH]: {
+        id: WATERWHEELS.DEPTH,
+        name: "Depth Waterwheel",
+        image: "img/waterwheels/waterwheel_depth.webp",
+        baseReq: "1e200",
+        unlocked: false,
+        styleKey: "depth",
+        customUnlockCheck: () => {
+            try {
+                const slot = getActiveSlot();
+                if (slot == null) return false;
+                return lsGetItem(`ccc:collapseChallengeCompleted:iron:${slot}`) === "1";
+            } catch {
+                return false;
+            }
+        },
+        customUnlockText: () => {
+            try {
+                if (!isCollapseUnlocked()) return "???";
+            } catch {}
+            return "Complete the Challenge of Iron";
         },
     },
 };
@@ -210,6 +235,7 @@ export const WATERWHEEL_ORDER = [
     WATERWHEELS.GOLD,
     WATERWHEELS.MAGIC,
     WATERWHEELS.SCRAP,
+    WATERWHEELS.DEPTH,
 ];
 function syncWaterwheelDecorations(container) {
     if (!container) return;
@@ -427,6 +453,13 @@ const state = {
             isMain: false,
             unlocked: false,
         },
+        [WATERWHEELS.DEPTH]: {
+            level: BigNum.fromInt(0),
+            fp: 0,
+            active: false,
+            isMain: false,
+            unlocked: false,
+        },
     },
     visuals: {
         [WATERWHEELS.COIN]: {
@@ -450,6 +483,11 @@ const state = {
             isMax: false,
         },
         [WATERWHEELS.SCRAP]: {
+            rotation: 0,
+            speed: 0,
+            isMax: false,
+        },
+        [WATERWHEELS.DEPTH]: {
             rotation: 0,
             speed: 0,
             isMax: false,
@@ -597,6 +635,23 @@ function loadState() {
                         state.waterwheels[id].isMain = false;
                     }
                     else found = true;
+                }
+            }
+        }
+    } else {
+        // Under Multi-Flow, ensure all unlocked waterwheels are active
+        let hasAnyMain = false;
+        for (const id in state.waterwheels) {
+            if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
+            if (state.waterwheels[id].isMain) hasAnyMain = true;
+        }
+        for (const id in state.waterwheels) {
+            if (isIronChallenge && id === WATERWHEELS.GOLD) continue;
+            if (state.waterwheels[id].unlocked) {
+                state.waterwheels[id].active = true;
+                if (!hasAnyMain) {
+                    state.waterwheels[id].isMain = true;
+                    hasAnyMain = true;
                 }
             }
         }
@@ -963,11 +1018,11 @@ export function calculateWaterwheelOffline(seconds) {
             levelsGained = BigNum.fromAny("infinity");
             finalFpBn = BigNum.zero();
         } else {
-            const reqBn = BigNum.fromInt(req);
+            const reqBn = BigNum.fromAny(req);
             const levels = finalFpBn.div(reqBn).floorToInteger();
             if (!levels.isZero()) {
                 levelsGained = levels;
-                finalFpBn = finalFpBn.sub(levels.mulSmall(req));
+                finalFpBn = finalFpBn.sub(levels.mulBigNumInteger(reqBn));
             }
         }
         let defName = WATERWHEEL_DEFS[id]?.name || id;
@@ -1061,9 +1116,23 @@ function onTick(dt) {
             if (state.waterwheels[id].unlocked !== shouldUnlock) {
                 state.waterwheels[id].unlocked = shouldUnlock;
                 changes = true;
-                if (!shouldUnlock) {
+                if (shouldUnlock) {
+                    if (getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+                        state.waterwheels[id].active = true;
+                        let hasMain = false;
+                        for (const otherId in state.waterwheels) {
+                            if (otherId !== id && state.waterwheels[otherId].isMain) {
+                                hasMain = true;
+                                break;
+                            }
+                        }
+                        state.waterwheels[id].isMain = !hasMain;
+                    }
+                } else {
                     state.waterwheels[id].level = BigNum.fromInt(0);
                     state.waterwheels[id].fp = 0;
+                    state.waterwheels[id].active = false;
+                    state.waterwheels[id].isMain = false;
                     if (state.visuals[id]) {
                         state.visuals[id].speed = 0;
                         state.visuals[id].isMax = false;
@@ -1088,10 +1157,24 @@ function onTick(dt) {
                 if (state.waterwheels[id].unlocked !== shouldUnlock) {
                     state.waterwheels[id].unlocked = shouldUnlock;
                     changes = true;
-                    if (!shouldUnlock) {
+                    if (shouldUnlock) {
+                        if (getLevelNumber(AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID) > 0) {
+                            state.waterwheels[id].active = true;
+                            let hasMain = false;
+                            for (const otherId in state.waterwheels) {
+                                if (otherId !== id && state.waterwheels[otherId].isMain) {
+                                    hasMain = true;
+                                    break;
+                                }
+                            }
+                            state.waterwheels[id].isMain = !hasMain;
+                        }
+                    } else {
                         // Reset progress
                         state.waterwheels[id].level = BigNum.fromInt(0);
                         state.waterwheels[id].fp = 0;
+                        state.waterwheels[id].active = false;
+                        state.waterwheels[id].isMain = false;
                         // Reset visuals for this one
                         if (state.visuals[id]) {
                             state.visuals[id].speed = 0;
@@ -1138,7 +1221,7 @@ function onTick(dt) {
         if (!gainBn.isZero()) visualUpdate = true;
         const req = WATERWHEEL_DEFS[id]?.baseReq;
         // --- Visual Speed Calculation ---
-        const reqBn = BigNum.fromInt(req);
+        const reqBn = BigNum.fromAny(req);
         // If gain per tick >= requirement, bar is filling instantly every tick -> Max Speed
         if (gainBn.cmp(reqBn) >= 0) {
             state.visuals[id].isMax = true;
@@ -1154,30 +1237,35 @@ function onTick(dt) {
             } catch {
                 gainVal = 0;
             }
+            let reqVal = 0;
+            try {
+                reqVal = Number(reqBn.toScientific(5));
+            } catch {
+                reqVal = 0;
+            }
             // Avoid division by zero
-            if (dt > 0 && req > 0) {
-                state.visuals[id].speed = gainVal / dt / req;
+            if (dt > 0 && reqVal > 0 && Number.isFinite(reqVal)) {
+                state.visuals[id].speed = gainVal / dt / reqVal;
             } else {
                 state.visuals[id].speed = 0;
             }
         }
-        if (gainBn.cmp(1e15) > 0) {
+        if (gainBn.cmp(1e15) > 0 || reqBn.cmp(1e15) > 0) {
             let currentFpBn = ch.fp instanceof BigNum ? ch.fp.clone() : BigNum.fromAny(ch.fp);
             currentFpBn = currentFpBn.add(gainBn);
             if (!currentFpBn.isInfinite()) {
-                const reqBn = BigNum.fromInt(req);
                 const levels = currentFpBn.div(reqBn).floorToInteger();
                 if (!levels.isZero()) {
                     if (!levelLocked) {
                         ch.level = ch.level.add(levels);
-                        currentFpBn = currentFpBn.sub(levels.mulSmall(req));
+                        currentFpBn = currentFpBn.sub(levels.mulBigNumInteger(reqBn));
                         if (typeof window !== "undefined")
                             window.dispatchEvent(
                                 new CustomEvent("waterwheel:change", { detail: { id, levelsGained: levels } }),
                             );
                     } else {
                         // Max out the FP visually if the level is locked
-                        currentFpBn = BigNum.fromInt(req);
+                        currentFpBn = reqBn.clone();
                     }
                     changes = true;
                 }
@@ -1193,7 +1281,7 @@ function onTick(dt) {
             }
 
             const val = Number(currentFpBn.toScientific(5));
-            if (Number.isFinite(val) && val < 1e15) {
+            if (Number.isFinite(val) && val < 1e15 && reqBn.cmp(1e15) <= 0) {
                 ch.fp = val;
             } else {
                 ch.fp = currentFpBn;
@@ -1203,6 +1291,7 @@ function onTick(dt) {
             changes = true;
         } else {
             const gain = Number(gainBn.toScientific(10));
+            const reqNum = Number(req);
             if (ch.fp instanceof BigNum) {
                 if (ch.fp.isInfinite()) {
                     if (!levelLocked) {
@@ -1217,7 +1306,7 @@ function onTick(dt) {
                     }
                 } else {
                     ch.fp = ch.fp.add(gain);
-                    let levels = ch.fp.div(req).floorToInteger();
+                    let levels = ch.fp.div(reqBn).floorToInteger();
                     if (!levels.isZero()) {
                         if (!levelLocked) {
                             ch.level = ch.level.add(levels);
@@ -1226,7 +1315,7 @@ function onTick(dt) {
                                     new CustomEvent("waterwheel:change", { detail: { id, levelsGained: levels } }),
                                 );
                         }
-                        ch.fp = ch.fp.sub(levels.mulSmall(req));
+                        ch.fp = ch.fp.sub(levels.mulBigNumInteger(reqBn));
                         changes = true;
                     }
                 }
@@ -1245,8 +1334,8 @@ function onTick(dt) {
                         changes = true;
                     }
                 } else {
-                    if (ch.fp >= req) {
-                        const levels = Math.floor(ch.fp / req);
+                    if (ch.fp >= reqNum) {
+                        const levels = Math.floor(ch.fp / reqNum);
                         if (levels > 0) {
                             if (!levelLocked) {
                                 ch.level = ch.level.add(BigNum.fromInt(levels));
@@ -1257,7 +1346,7 @@ function onTick(dt) {
                                         }),
                                     );
                             }
-                            ch.fp -= levels * req;
+                            ch.fp -= levels * reqNum;
                             changes = true;
                         }
                     }
@@ -1805,6 +1894,7 @@ function updateFlowVisuals() {
             }
 
             const req = def?.baseReq;
+            const reqBn = BigNum.fromAny(req);
             let pct = 0;
             let isMaxed = false;
             let isInfiniteLevel = false;
@@ -1814,7 +1904,7 @@ function updateFlowVisuals() {
             }
             if (!isMaxed && ch.active) {
                 const safeFixedStep = typeof FIXED_STEP === "number" && FIXED_STEP > 0 ? FIXED_STEP : 0.05;
-                const threshold = req / safeFixedStep;
+                const threshold = reqBn.div(BigNum.fromAny(safeFixedStep));
                 let effectiveRate = BigNum.fromInt(1);
                 if (fpMult && !fpMult.isZero()) {
                     effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
@@ -1848,8 +1938,16 @@ function updateFlowVisuals() {
                         }
                 }
                 fpValForTooltip = fpVal;
-                if (req > 0) {
-                    pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
+                if (reqBn.cmp(0) > 0) {
+                    let fpBn = ch.fp instanceof BigNum ? ch.fp : BigNum.fromAny(ch.fp || 0);
+                    let ratio = fpBn.div(reqBn);
+                    let pctVal = 0;
+                    try {
+                        pctVal = Number(ratio.toScientific(5)) * 100;
+                    } catch {
+                        pctVal = 0;
+                    }
+                    pct = Math.min(100, Math.max(0, isNaN(pctVal) ? 0 : pctVal));
                 }
             }
             if (elFill) {
@@ -1959,6 +2057,13 @@ export function initFlowSystem() {
                 updateFlowTab();
             }
         });
+        window.addEventListener("collapse:challenge:complete", () => {
+            loadState();
+            refreshMysteriousWatcher();
+            if (flowTabInitialized && flowPanel) {
+                updateFlowTab();
+            }
+        });
     }
     if (typeof document !== "undefined") {
         document.addEventListener("ccc:upgrades:changed", () => {
@@ -2011,6 +2116,7 @@ export function initFlowSystem() {
     registerUiFrame((time, dt) => onFrame(time, dt));
     addExternalCoinMultiplierProvider((params) => getWaterwheelCoinMultiplier(params));
     addExternalXpGainMultiplierProvider((params) => getWaterwheelXpMultiplier(params));
+    addExternalDpMultiplierProvider((mult) => getWaterwheelDepthMultiplier(mult));
 }
 
 export function initFlowTab(panelEl) {
@@ -2054,6 +2160,18 @@ export function getWaterwheelScrapMultiplier(baseValue) {
         }
     }
     return res;
+}
+
+export function getWaterwheelDepthMultiplier(baseValue) {
+    const level = state.waterwheels[WATERWHEELS.DEPTH]?.level || BigNum.fromInt(0);
+    const mult = BigNum.fromInt(1).add(level);
+    let val = baseValue;
+    if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
+    if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
+    if (typeof applyStatMultiplierOverride === "function") {
+        val = applyStatMultiplierOverride("depth", val);
+    }
+    return val.mulBigNumInteger(mult);
 }
 
 export function stopAllWaterwheels() {
