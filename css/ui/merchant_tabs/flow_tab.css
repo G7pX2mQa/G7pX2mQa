@@ -270,11 +270,11 @@
 }
 
 #flow-fill-scrap {
-  background: linear-gradient(90deg, #b3b3b3 0%, #666666 100%);
+  background: linear-gradient(90deg, #8f8f8f 0%, #474747 100%);
 }
 
 #flow-fill-depth {
-  background: linear-gradient(90deg, #856d55, #4f3d2b);
+  background: linear-gradient(90deg, #8d745c, #564330);
 }
 
 .flow-locked-text {
@@ -363,7 +363,7 @@
   user-select: none;
   background: hsla(0, 80%, 40%, 0.15);
   min-width: 60px;
-  transition: background 120ms ease, transform 90ms ease;
+  transition: background 70ms ease, transform 70ms ease;
 }
 
 .flow-toggle-btn:hover {
