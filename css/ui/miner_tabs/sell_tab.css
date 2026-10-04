@@ -429,7 +429,7 @@
   font-size: clamp(16px, 2.2vw, 22px);
   color: #fff;
   text-shadow: 0 1px 0 rgba(0,0,0,0.35);
-  transition: transform 120ms ease, filter 120ms ease, background 0.15s ease;
+  transition: transform 90ms ease, filter 90ms ease, background 90ms ease;
   user-select: none;
   -webkit-text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
   text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
@@ -470,7 +470,7 @@
   -webkit-text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
   text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
   text-shadow: 0 1px 0 rgba(0,0,0,0.35);
-  transition: transform 120ms ease, filter 120ms ease;
+  transition: transform 90ms ease, filter 90ms ease;
   user-select: none;
   height: clamp(52px, 8svh, 90px);
   width: calc(25vw - 16px);
