@@ -33,8 +33,8 @@ export function setVoidLevel(level, slot = getActiveSlot()) {
     }
     try {
         lsSetItem(VOID_LEVEL_KEY(slotKey), valBn.toStorage?.() ?? valBn.toString());
-        if (bank.rainbowGems && bank.rainbowGems.mult) {
-            bank.rainbowGems.mult.set(getRainbowGemMultiplier());
+        if (bank.rainbow_gems && bank.rainbow_gems.mult) {
+            bank.rainbow_gems.mult.set(getRainbowGemMultiplier());
         }
         if (typeof document !== "undefined") {
             document.dispatchEvent(new CustomEvent("ccc:voidLevel:changed"));
@@ -54,7 +54,7 @@ export function getRainbowGemMultiplier() {
 }
 
 export function feedVoidGem() {
-    if (!bank.voidGems || bank.voidGems.value.cmp(1) < 0) return false;
+    if (!bank.void_gems || bank.void_gems.value.cmp(1) < 0) return false;
     const slot = getActiveSlot();
     const oldMultiplier = getRainbowGemMultiplier();
     let sumBaseRewards = 0;
@@ -65,15 +65,15 @@ export function feedVoidGem() {
     }
 
     const oldTotal = oldMultiplier.mulScaledIntFloor(Number(Math.round(sumBaseRewards)), 0);
-    bank.voidGems.sub(1);
+    bank.void_gems.sub(1);
     const currentLevel = getVoidLevel(slot);
     setVoidLevel(currentLevel.add(1), slot);
     const newMultiplier = getRainbowGemMultiplier();
     const newTotal = newMultiplier.mulScaledIntFloor(Number(Math.round(sumBaseRewards)), 0);
     const diff = newTotal.sub(oldTotal);
-    if (diff.cmp(0) > 0 && bank.rainbowGems) {
-        bank.rainbowGems.mult.set(newMultiplier);
-        bank.rainbowGems.add(diff);
+    if (diff.cmp(0) > 0 && bank.rainbow_gems) {
+        bank.rainbow_gems.mult.set(newMultiplier);
+        bank.rainbow_gems.add(diff);
     }
     return true;
 }
@@ -204,7 +204,7 @@ function playVoidExplosion() {
 // Moved to inline logic for unified tick loop inside the click handler
 // function triggerVoidVisuals() removed
 export function initVoidGemAltarTab(panel) {
-    if (bank.rainbowGems) bank.rainbowGems.mult.set(getRainbowGemMultiplier());
+    if (bank.rainbow_gems) bank.rainbow_gems.mult.set(getRainbowGemMultiplier());
     if (!panel || panel.__vgInit) return;
     panel.__vgInit = true;
     altarTabPanel = panel;
@@ -224,7 +224,7 @@ export function initVoidGemAltarTab(panel) {
     const feedBtn = panel.querySelector(".void-feed-btn");
     feedBtn.addEventListener("click", (e) => {
         if (isFeeding) return;
-        if (!bank.voidGems || bank.voidGems.value.cmp(1) < 0) return;
+        if (!bank.void_gems || bank.void_gems.value.cmp(1) < 0) return;
         
         if (currentVoidAnimation) {
             currentVoidAnimation.cancel();
@@ -367,7 +367,7 @@ export function initVoidGemAltarTab(panel) {
         panel.__debugListenerAdded = true;
         document.addEventListener("ccc:voidLevel:changed", updateVoidGemAltarTab);
         window.addEventListener("currency:change", (e) => {
-            if (e.detail && e.detail.key === "voidGems") {
+            if (e.detail && e.detail.key === "void_gems") {
                 updateVoidGemAltarTab();
             }
         });
@@ -379,7 +379,7 @@ export function updateVoidGemAltarTab() {
     const gemCounterEl = altarTabPanel.querySelectorAll(".void-gem-counter span")[1];
     const levelIndicatorEl = altarTabPanel.querySelectorAll(".void-level-indicator span")[1];
     const feedBtn = altarTabPanel.querySelector(".void-feed-btn");
-    const voidGemsAmount = bank.voidGems ? bank.voidGems.value : BigNum.fromInt(0);
+    const voidGemsAmount = bank.void_gems ? bank.void_gems.value : BigNum.fromInt(0);
     const currentVoidLevel = getVoidLevel();
     if (gemCounterEl) {
         let text = typeof formatNumber === "function" ? formatNumber(voidGemsAmount) : voidGemsAmount.toString();
@@ -398,7 +398,7 @@ export function updateVoidGemAltarTab() {
     if (feedBtn) {
         if (isFeeding) {
             feedBtn.disabled = true;
-        } else if (bank.voidGems && bank.voidGems.value.cmp(1) >= 0) {
+        } else if (bank.void_gems && bank.void_gems.value.cmp(1) >= 0) {
             feedBtn.disabled = false;
         } else {
             feedBtn.disabled = true;
