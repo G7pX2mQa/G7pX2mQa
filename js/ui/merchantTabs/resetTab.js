@@ -2521,6 +2521,8 @@ function bindGlobalEvents() {
     });
     window.addEventListener("surge:level:change", (e) => {
         triggerSurgeBarAnimation();
+        recomputePendingDna();
+        updateResetPanel();
         if (e && e.detail && e.detail.level !== undefined) {
             let level = e.detail.level;
             const slot = getActiveSlot();
