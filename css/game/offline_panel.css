@@ -193,7 +193,7 @@
     letter-spacing: .2px;
     cursor: pointer;
     touch-action: manipulation;
-    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    transition: transform 70ms ease, background 70ms ease, border-color 70ms ease;
     -webkit-user-select: none;
     user-select: none;
 }
@@ -340,7 +340,7 @@ html.is-mobile {
     font-weight: 600;
     letter-spacing: .2px;
     cursor: pointer;
-    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    transition: transform 70ms ease, background 70ms ease, border-color 70ms ease;
     -webkit-user-select: none;
     user-select: none;
 }
@@ -372,7 +372,7 @@ html.is-mobile {
     letter-spacing: .2px;
     cursor: pointer;
     touch-action: manipulation;
-    transition: transform 120ms ease, background 120ms ease;
+    transition: transform 70ms ease, background 70ms ease;
     -webkit-user-select: none;
     user-select: none;
 }
