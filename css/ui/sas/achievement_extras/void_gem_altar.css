@@ -82,7 +82,7 @@ html.is-mobile {
     box-shadow: 
         0 0 0 3px hsl(0 0% 5%);
     border: none !important;
-    transition: filter 0.12s ease, transform 0.1s ease;
+    transition: filter 90ms ease, transform 90ms ease;
 }
 
 html.is-mobile {
