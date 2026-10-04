@@ -846,7 +846,7 @@ export function getWaterwheelGoldMultiplier(baseValue) {
     
     let exponent = 1 + extraExp;
     if (isCollapseChallengeActive() && getActiveCollapseChallengeType() === "iron") {
-        exponent = -5 + extraExp;
+        exponent = -10 + extraExp;
     }
     
     if (exponent === 0 || mult.cmp(BigNum.fromInt(1)) === 0) {
