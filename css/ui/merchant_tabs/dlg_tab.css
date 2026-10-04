@@ -221,7 +221,7 @@ html.is-mobile {
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition: transform 70ms ease, background 70ms ease, border-color 70ms ease;
 }
 .merchant-actions .merchant-close:hover {
   background: hsla(0, 80%, 40%, 0.22);
@@ -338,7 +338,7 @@ html.is-mobile {
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
-  transition: background 120ms ease, transform 90ms ease;
+  transition: background 70ms ease, transform 70ms ease;
 }
 .merchant-firstchat__choices .choice:hover {
   background: hsl(0 0% 100% / .10);
@@ -371,7 +371,7 @@ html.is-mobile {
   border:1px solid hsla(0,80%,40%,0.45);
   background:hsla(0,80%,40%,0.15);
   color:#fff; font-weight:600; letter-spacing:.2px; cursor:pointer;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition: transform 70ms ease, background 70ms ease, border-color 70ms ease;
 }
 .merchant-lockinfo__close:hover { background: hsla(0,80%,40%,0.22); }
 .merchant-lockinfo__close:active{ transform: none; background: hsla(0,80%,40%,0.28); }
@@ -416,7 +416,7 @@ html.is-mobile {
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
-  transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
+  transition: background 70ms ease, transform 70ms ease, opacity 70ms ease;
 }
 .merchant-tab:hover { background: hsl(0 0% 100% / .08); }
 .merchant-tab:active { transform: none; }
@@ -459,7 +459,7 @@ html.is-mobile {
   border: 2px solid var(--merchant-border, rgba(255,255,255,.12));
   color: #fff;
   cursor: pointer;
-  transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
+  transition: background 70ms ease, transform 70ms ease, opacity 70ms ease;
 }
 .dlg-card:not(.is-complete):hover { background: rgba(255,255,255,.18); }
 .dlg-card:active { transform: none; }
@@ -484,12 +484,12 @@ html.is-mobile {
 .dlg-card:not(.is-complete):not(.is-mysterious):not(.is-locked) { background: rgba(255,255,255,0.12); }
 .dlg-card.is-complete {
   background: rgba(255,255,255,0.03);
-  transition: transform 90ms ease;
+  transition: transform 70ms ease;
 }
 .dlg-card.is-complete:hover { background: rgba(255,255,255,0.06); }
 .dlg-card:not(.is-locked):not(.is-mysterious):not(.is-complete):hover {
   background: rgba(255,255,255,.15);
-  transition: background 120ms ease;
+  transition: background 70ms ease;
 }
 
 
