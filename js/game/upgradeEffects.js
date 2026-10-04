@@ -12,7 +12,6 @@ import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/works
 import { getPpState, isPpSystemUnlocked, addExternalPpMultiplierProvider } from './ppSystem.js';
 import { getRclpMultiplier } from './rclpSystem.js';
 import { getGclpMultiplier } from './gclpSystem.js';
-
 import {
   addExternalCoinMultiplierProvider,
   addExternalXpGainMultiplierProvider,
