@@ -6,6 +6,7 @@ import {
     isStorageKeyLocked,
     markSaveSlotModified,
     isGoldLockedToZero,
+    isResourceLockedToZero,
 } from "../util/storage.js";
 import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../ui/minerTabs/collapseTab.js";
 import { getGearsProductionRate } from "../ui/merchantTabs/workshopTab.js";
@@ -1145,7 +1146,7 @@ export function calculateOfflineRewards(seconds) {
         const booksEarned = bookRate.mulBigNumInteger(secondsBn).floorToInteger();
         if (!booksEarned.isZero()) {
             const isCopper = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
-            if (isCopper && !isCurrencyLocked("coins", slot)) {
+            if (isCopper && !isCurrencyLocked("coins", slot) && !isResourceLockedToZero("coins")) {
                 rewards.coins = booksEarned;
             } else if (!isCopper && !isCurrencyLocked("books", slot)) {
                 rewards.books = booksEarned;
@@ -1159,7 +1160,7 @@ export function calculateOfflineRewards(seconds) {
         const log10Rate = 2 * mapped - 2;
         const rateMultiplier = bigNumFromLog10(log10Rate);
         const totalMultiplier = rateMultiplier.mulBigNumInteger(secondsBn);
-        if (isSurgeActive(13) && !isGoldLockedToZero()) {
+        if (isSurgeActive(13) && !isResourceLockedToZero("gold")) {
             const xpState = getXpState();
             if (xpState && xpState.unlocked && levelBigNumToNumber(xpState.xpLevel) >= 31) {
                 const coins = bank.coins?.value;
@@ -1178,12 +1179,12 @@ export function calculateOfflineRewards(seconds) {
                 }
                 
                 const goldEarned = pending.mulBigNumInteger(totalMultiplier);
-                if (goldEarned.cmp(0) > 0 && !isCurrencyLocked("gold", slot) && !isGoldLockedToZero()) {
+                if (goldEarned.cmp(0) > 0 && !isCurrencyLocked("gold", slot) && !isResourceLockedToZero("gold")) {
                     rewards.gold = goldEarned;
                 }
             }
         }
-        if (isSurgeActive(16)) {
+        if (isSurgeActive(16) && !isResourceLockedToZero("magic")) {
             const mState = getMutationState();
             if (mState && mState.unlocked && levelBigNumToNumber(mState.level) >= 7) {
                 const coins = bank.coins?.value;
@@ -1200,7 +1201,7 @@ export function calculateOfflineRewards(seconds) {
                 }
                 
                 const magicEarned = pending.mulBigNumInteger(totalMultiplier);
-                if (magicEarned.cmp(0) > 0 && !isCurrencyLocked("magic", slot)) {
+                if (magicEarned.cmp(0) > 0 && !isCurrencyLocked("magic", slot) && !isResourceLockedToZero("magic")) {
                     rewards.magic = magicEarned;
                 }
             }
@@ -1391,7 +1392,7 @@ export function grantOfflineRewards(rewards) {
             continue;
         if (key === "research_levels" || key === "research_progress") continue;
         if (key === "waterwheel_levels" || key === "waterwheel_progress") continue;
-        if (key === "gold" && isGoldLockedToZero()) continue;
+        if (isResourceLockedToZero(key)) continue;
         if (bank[key] && typeof bank[key].add === "function") {
             bank[key].add(rewards[key]);
         }
@@ -1504,12 +1505,12 @@ export function calculatePreAutomationRewards(seconds) {
             const isCopper = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
             if (isCopper && !isCurrencyLocked("books", slot)) {
                 rewards.books = coinsEarned;
-            } else if (!isCopper && !isCurrencyLocked("coins", slot)) {
+            } else if (!isCopper && !isCurrencyLocked("coins", slot) && !isResourceLockedToZero("coins")) {
                 rewards.coins = coinsEarned;
             }
         }
         if (!xpEarned.isZero()) {
-            if (!isStorageKeyLocked(`ccc:xp:progress:${slot}`)) {
+            if (!isStorageKeyLocked(`ccc:xp:progress:${slot}`) && !isResourceLockedToZero("xp")) {
                 rewards.xp = xpEarned;
             }
         }
