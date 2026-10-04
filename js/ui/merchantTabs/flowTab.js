@@ -864,6 +864,9 @@ export function setFlowUnlockChecker(fn) {
 if (typeof window !== "undefined") {
     const invalidateFlowCache = () => {
         cachedFlowUnlockStates = {};
+        if (flowTabInitialized && flowPanel) {
+            updateFlowTab();
+        }
     };
     window.addEventListener("saveSlot:change", invalidateFlowCache);
     window.addEventListener("unlock:change", invalidateFlowCache);
