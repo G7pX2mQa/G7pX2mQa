@@ -36,6 +36,7 @@ if (typeof window !== "undefined") {
                 const slot = getActiveSlot();
                 if (slot != null) {
                     lsRemoveItem(`ccc:goldLockedToZero:${slot}`);
+                    lsRemoveItem(`ccc:ironLockedToZero:${slot}`);
                 }
             }
         }
@@ -75,7 +76,7 @@ if (typeof window !== "undefined") {
         const slot = e?.detail?.slot ?? getActiveSlot();
         if (slot != null) {
             try {
-                if (lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
+                if (lsGetItem(`ccc:ironLockedToZero:${slot}`) === "1" || lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
                     ironLockTicks = 60;
                     setGoldLockedToZero(true);
                 } else {
@@ -88,7 +89,7 @@ if (typeof window !== "undefined") {
     window.addEventListener("unlock:change", invalidateCollapseCache);
     try {
         const slot = getActiveSlot();
-        if (slot != null && lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
+        if (slot != null && (lsGetItem(`ccc:ironLockedToZero:${slot}`) === "1" || lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1")) {
             ironLockTicks = 60;
             setGoldLockedToZero(true);
         }
@@ -332,6 +333,7 @@ export function startCollapseChallenge(materialName) {
         const slot = getActiveSlot();
         if (slot != null) {
             lsSetItem(`ccc:goldLockedToZero:${slot}`, "1");
+            lsSetItem(`ccc:ironLockedToZero:${slot}`, "1");
         }
     }
 
@@ -441,6 +443,7 @@ export function startCollapseChallenge(materialName) {
         const slot = getActiveSlot();
         if (slot != null) {
             lsSetItem(`ccc:goldLockedToZero:${slot}`, "1");
+            lsSetItem(`ccc:ironLockedToZero:${slot}`, "1");
         }
     }
 
@@ -1009,9 +1012,9 @@ Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim
 You’ve mastered the Red and you’ve mastered the Green
 What might lie ahead? That waits to be seen...
 
-Lab Node 20 & 21 to level 23 before starting is recommended
+The Green Coral Level you enter this Collapse Challenge with should not impact it too much
 
-Effect: Gold Waterwheel becomes evil, dividing Gold value significantly, and is forced ON
+Effect: Gold Waterwheel becomes evil, dividing the values of all things Waterwheels boost, and is forced ON
 Goal: Reach Pressure: ???atm [placeholder]
 Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else {
