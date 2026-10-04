@@ -744,6 +744,9 @@ export function registerXpUpgradeEffects() {
     window.addEventListener('workshop:change', () => {
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
+    window.addEventListener('waterwheel:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
 
     window.addEventListener('currency:change', (e) => {
         if (e.detail?.key === 'green_coral') {
