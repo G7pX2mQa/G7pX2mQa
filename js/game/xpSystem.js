@@ -146,19 +146,17 @@ function bigNumPowerOf10(logBn) {
     }
 
     const sig = Number(Math.round(mantissa * Number(scaleFactor)));
-    const integerPartString =
-        integerPart.inf || integerPart.e >= BigNum.DEFAULT_PRECISION ? "Infinity" : integerPart.toPlainIntegerString();
-    if (integerPartString === "Infinity") {
+    const integerPartNum = bigNumToFiniteNumber(integerPart);
+    if (!Number.isFinite(integerPartNum)) {
         return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
     }
 
-    const integerPartNum = Number(integerPartString);
     const totalExponent = integerPartNum + exponentAdjustment - Number(precision);
-    const E_LIMIT = 250;
-    const eNum = totalExponent % Number(E_LIMIT);
-    const e = Number(eNum);
-    const offset = totalExponent - eNum;
-    return new BigNum(sig, { base: e + Number(offset) });
+    let totalExpNum = Number(totalExponent);
+    if (!Number.isFinite(totalExpNum) || totalExpNum >= BigNum.MAX_E) {
+        return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    }
+    return new BigNum(sig, totalExpNum);
 }
 
 function approximateCoinMultiplierFromBigNum(levelBn) {
