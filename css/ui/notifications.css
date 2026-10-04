@@ -191,7 +191,7 @@ html.is-mobile {
     cursor: pointer !important;
     pointer-events: auto;
     border-radius: 0;
-    transition: background 100ms ease, transform 100ms ease;
+    transition: background 90ms ease, transform 90ms ease;
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -288,7 +288,7 @@ html.is-mobile {
     letter-spacing: .2px;
     cursor: pointer;
     touch-action: manipulation;
-    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    transition: transform 90ms ease, background 90ms ease, border-color 90ms ease;
 }
 
 .jackpot-notice-actions .sas-close:hover {
