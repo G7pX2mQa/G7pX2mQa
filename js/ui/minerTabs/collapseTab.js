@@ -1015,7 +1015,7 @@ What might lie ahead? That waits to be seen...
 The Green Coral Level you enter this Collapse Challenge with should not impact it too much
 
 Effect: Gold Waterwheel becomes evil, dividing the values of all things Waterwheels boost, and is forced ON
-Goal: Reach Pressure: ???atm [placeholder]
+Goal: Reach Pressure: 50atm
 Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
@@ -1043,6 +1043,13 @@ Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
             } catch {}
         }
         if (challengeId === "copper") {
+            try {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(50) >= 0) {
+                    return true;
+                }
+            } catch {}
+        }
+        if (challengeId === "iron") {
             try {
                 if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(50) >= 0) {
                     return true;
@@ -1239,6 +1246,9 @@ Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
             ).replace(
                 "Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade",
                 `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade</span>`
+            ).replace(
+                "Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade</span>`
             );
         }
         desc.innerHTML = finalHtml;
