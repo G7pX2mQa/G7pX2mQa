@@ -1,7 +1,7 @@
 // js/util/slotsManager.js
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { flushLocalStorageBuffer } from "../main.js";
-import { markSaveSlotModified } from "./storage.js";
+import { markSaveSlotModified, clearDebugLocksForSlot } from "./storage.js";
 import { refreshSlotsView } from "./slots.js";
 let currentMode = null; // null, 'menu', 'export-json', 'import-json', 'export-b64', 'import-b64'
 let initialized = false;
@@ -182,6 +182,7 @@ function clearSaveDataForSlot(slot) {
 }
 
 export function applySaveDataToSlot(slot, data) {
+    clearDebugLocksForSlot(slot);
     clearSaveDataForSlot(slot);
     for (const [key, value] of Object.entries(data)) {
         let finalKey = key;
@@ -279,6 +280,7 @@ async function verifyAndImport(slot, data) {
         }
     }
     delete data.__ccc_signature;
+    clearDebugLocksForSlot(slot);
     applySaveDataToSlot(slot, data);
     window.dispatchEvent(new CustomEvent("saveData:imported", { detail: { slot } }));
     if (isTampered) {
