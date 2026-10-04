@@ -90,7 +90,8 @@ const CURRENCY_ICON_SRC = {
     gears: "img/currencies/gear/gear.webp",
     dna: "img/currencies/dna/dna.webp",
     scrap: "img/currencies/scrap/scrap.webp",
-    rainbowGems: "img/currencies/rainbow_gem.webp",
+    rainbow_gems: "img/currencies/rainbow_gem.webp",
+    void_gems: "img/currencies/void_gem.webp",
     rubble: "img/currencies/rubble/rubble.webp",
     red_coral: "img/currencies/coral/coral_red.webp",
     green_coral: "img/currencies/coral/coral_green.webp",
@@ -356,7 +357,7 @@ export function createSfxPlayer() {
 
 function currencyIconHTML(type) {
     const src = CURRENCY_ICON_SRC[type] || CURRENCY_ICON_SRC.coins;
-    const extraStyle = IS_MOBILE && type === "rainbowGems" ? ' style="transform: translateY(-0.5px);"' : "";
+    const extraStyle = IS_MOBILE && type === "rainbow_gems" ? ' style="transform: translateY(-0.5px);"' : "";
     return `<img alt="" src="${src}" class="currency-ico"${extraStyle}>`;
 }
 // 1×1 transparent WebP
