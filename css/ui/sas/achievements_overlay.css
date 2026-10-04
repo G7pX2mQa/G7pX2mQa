@@ -160,7 +160,7 @@ html.is-mobile {
   letter-spacing: .2px;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition: transform 90ms ease, background 90ms ease, border-color 90ms ease;
 }
 
 .achievements-delve:hover {
