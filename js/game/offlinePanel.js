@@ -37,7 +37,14 @@ import {
     getMutationProgressRatio,
     getTotalCumulativeMp,
 } from "./mutationSystem.js";
-import { getBookProductionRate, isSurgeActive, getTsunamiExponent } from "./surgeEffects.js";
+import { 
+    getBookProductionRate, 
+    isSurgeActive, 
+    getTsunamiExponent,
+    getSurge25Multiplier,
+    getSurge27Multiplier,
+    getSurge35Multiplier
+} from "./surgeEffects.js";
 import { levelBigNumToNumber } from "./upgrades.js";
 import { applyStatMultiplierOverride } from "../util/debugPanel.js";
 import {
@@ -1160,6 +1167,16 @@ export function calculateOfflineRewards(seconds) {
                 let pending = bank.gold?.mult?.applyTo?.(basePending) ?? basePending;
                 const labMult = getLabGoldMultiplier();
                 pending = pending.mulDecimal(labMult.toScientific());
+                
+                const surge25Mult = getSurge25Multiplier();
+                if (!surge25Mult.isInfinite?.() && surge25Mult.cmp(1) > 0) {
+                    pending = pending.mulBigNumInteger(surge25Mult);
+                }
+                const surge35Mult = getSurge35Multiplier();
+                if (!surge35Mult.isInfinite?.() && surge35Mult.cmp(1) > 0) {
+                    pending = pending.mulBigNumInteger(surge35Mult);
+                }
+                
                 const goldEarned = pending.mulBigNumInteger(totalMultiplier);
                 if (goldEarned.cmp(0) > 0 && !isCurrencyLocked("gold", slot) && !isGoldLockedToZero()) {
                     rewards.gold = goldEarned;
@@ -1171,7 +1188,17 @@ export function calculateOfflineRewards(seconds) {
             if (mState && mState.unlocked && levelBigNumToNumber(mState.level) >= 7) {
                 const coins = bank.coins?.value;
                 const cumulativeMp = getTotalCumulativeMp();
-                const pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
+                let pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
+                
+                const surge27Mult = getSurge27Multiplier();
+                if (!surge27Mult.isInfinite?.() && surge27Mult.cmp(1) > 0) {
+                    pending = pending.mulBigNumInteger(surge27Mult);
+                }
+                const surge35Mult = getSurge35Multiplier();
+                if (!surge35Mult.isInfinite?.() && surge35Mult.cmp(1) > 0) {
+                    pending = pending.mulBigNumInteger(surge35Mult);
+                }
+                
                 const magicEarned = pending.mulBigNumInteger(totalMultiplier);
                 if (magicEarned.cmp(0) > 0 && !isCurrencyLocked("magic", slot)) {
                     rewards.magic = magicEarned;
