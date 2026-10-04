@@ -4147,6 +4147,59 @@ export function setLevel(areaKey, upgId, lvl, clampToCap = true, options = {}) {
 }
 
 /* ---------------------------- Registry helpers ---------------------------- */
+export function resetCurrencyAndUpgradeLevels(currencyKey, slot = getActiveSlot()) {
+    if (slot == null || !currencyKey) return;
+
+    // 1. Reset currency amount in bank and localStorage
+    try {
+        if (bank && bank[currencyKey]?.set) {
+            bank[currencyKey].set(0);
+        }
+        lsSetItem(`ccc:${currencyKey}:${slot}`, "0");
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("currency:change", { detail: { key: currencyKey, value: BigNum.fromInt(0), slot } }));
+        }
+    } catch (e) {
+        console.warn("Failed to reset currency amount for", currencyKey, e);
+    }
+
+    // 2. Reset upgrade levels for this currency (costType === currencyKey)
+    const affectedAreas = new Set();
+    try {
+        for (const upg of REGISTRY) {
+            if (upg.costType === currencyKey) {
+                // Exception: Scrap-boosting rubble upgrade must exclude Unlock Coral Reef
+                const isUnlockCoralReef = (
+                    upg.tie === UPGRADE_TIES.UNLOCK_CORAL_REEF ||
+                    upg.tieKey === "underwater_cavern_14" ||
+                    (upg.area === AREA_KEYS.UNDERWATER_CAVERN && upg.id === 14) ||
+                    upg.title === "Unlock Coral Reef"
+                );
+                if (currencyKey === "scrap" && isUnlockCoralReef) {
+                    continue;
+                }
+
+                setLevel(upg.area, upg.id, 0, true, { resetHmEvolutions: true, slot });
+                if (upg.area) {
+                    affectedAreas.add(upg.area);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to reset upgrade levels for", currencyKey, e);
+    }
+
+    // 3. Invalidate caches and trigger events
+    for (const area of affectedAreas) {
+        clearCachedUpgradeStates(area, slot);
+    }
+
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
+        window.dispatchEvent(new CustomEvent("currency:multiplier"));
+    }
+}
+
 export function getUpgradesForArea(areaKey) {
     return REGISTRY.filter((u) => u.area === areaKey);
 }
