@@ -840,10 +840,10 @@ function getMultiplierScaled(key) {
     }
 }
 
-function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
+function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot(), { force = false } = {}) {
     const k = keyFor(KEYS.MULTIPLIER[key], slot);
     if (!k) return;
-    if (isDebugLocked(k)) return; // Respect debug-panel storage locks
+    if (!force && isDebugLocked(k)) return; // Respect debug-panel storage locks
     let prev = scaledFromIntBN(BigNum.fromInt(1));
     const existingRaw = lsGetItem(k);
     if (existingRaw?.startsWith?.(MULT_SCALE_TAG)) {
@@ -901,10 +901,10 @@ export function isCurrencyLocked(key, slot = getActiveSlot()) {
     return isDebugLocked(k);
 }
 // public set integer BN multiplier (stored as scaled theoretical)
-export function setCurrencyMultiplierBN(key, intBNValue) {
+export function setCurrencyMultiplierBN(key, intBNValue, options) {
     const v = BigNum.fromAny(intBNValue);
     const theor = scaledFromIntBN(v);
-    setMultiplierScaled(key, theor, getActiveSlot());
+    setMultiplierScaled(key, theor, getActiveSlot(), options);
     return v;
 }
 
@@ -974,10 +974,14 @@ function makeCurrencyHandle(key) {
     // multiplier API (single-key theoretical + floor)
     fn.mult = {
         get() {
+            if (typeof window !== "undefined" && window.getDebugCurrencyMultiplierOverride) {
+                const override = window.getDebugCurrencyMultiplierOverride(key);
+                if (override) return override;
+            }
             return getCurrencyMultiplierBN(key);
         },
-        set(x) {
-            return setCurrencyMultiplierBN(key, x);
+        set(x, options) {
+            return setCurrencyMultiplierBN(key, x, options);
         },
         multiplyByInt(x) {
             const factor = BigNum.fromAny(x).floorToInteger();
