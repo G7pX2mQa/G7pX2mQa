@@ -2970,7 +2970,7 @@ There are many ways to mark a save slot other than just using the debug panel.`)
 
 function validateMultiplierMethods() {
     RESOURCE_REGISTRY.forEach((config) => {
-        if (config.key === "voidGems" || config.type === "currency") return;
+        if (config.key === "void_gems" || config.type === "currency") return;
 
         let keyToUse = config.key;
         if (config.type === "levelStat" && !RESOURCE_REGISTRY_EXTRAS[config.key]?.showInMultipliers) {
