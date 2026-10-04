@@ -178,7 +178,7 @@ function getUnlockedCurrencies() {
 function processResourceRow(config, grid, initialized) {
     let multiplier = 1;
     let isCurrency = false;
-    if (config.key === "voidGems") {
+    if (config.key === "void_gems" || config.key === CURRENCIES.VOID_GEMS) {
         return;
     }
     if (config.type === "currency") {
