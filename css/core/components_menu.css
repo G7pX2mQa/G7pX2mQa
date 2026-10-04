@@ -239,7 +239,7 @@ html.is-mobile {
   color: var(--text-1);
   font-weight: 600;
   letter-spacing: .2px;
-  transition: background .15s ease, border-color .15s ease, transform .1s ease;
+  transition: background 70ms ease, border-color 70ms ease, transform 70ms ease;
 }
 .btn:hover{ background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
 .btn:active{ transform: none; }
