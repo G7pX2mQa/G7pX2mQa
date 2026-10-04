@@ -1,4 +1,4 @@
-/* css/ui/sas.css */
+/* css/ui/sas_overlay.css */
 
 :root {
   --sas-bg: hsla(215, 32%, 7%, 0.75);
@@ -201,7 +201,7 @@
   font-weight: 900;
   font-size: clamp(18px, 4.5vw, 44px);
   color: #fff;
-  transition: transform 120ms ease, filter 120ms ease;
+  transition: transform 90ms ease, filter 90ms ease;
   user-select: none;
   -webkit-text-stroke: calc(1px * var(--stroke-mult, 1)) #000;
   -webkit-text-stroke-width: calc(1px * var(--stroke-mult, 1));
@@ -276,7 +276,7 @@ html.is-mobile {
   letter-spacing: .2px;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition: transform 90ms ease, background 90ms ease, border-color 90ms ease;
 }
 
 .sas-actions .sas-close:hover {
@@ -340,4 +340,3 @@ html.is-mobile {
     pointer-events: auto;
   }
 }
-
