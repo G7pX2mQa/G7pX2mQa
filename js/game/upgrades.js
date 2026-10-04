@@ -4,7 +4,6 @@ import { bank, getActiveSlot, primeStorageWatcherSnapshot, isStorageKeyLocked } 
 import { BigNum, approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 } from "../util/bigNum.js";
 export { approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 };
 import { formatNumber, formatMultForUi } from "../util/numFormat.js";
-export { formatMultForUi };
 import { unlockXpSystem, isXpSystemUnlocked, getXpState } from "./xpSystem.js";
 import {
     onForgeUpgradeUnlocked,
