@@ -2,7 +2,7 @@
 import { lsSetItem, lsRemoveItem, lsGetItem } from "../main.js";
 import { bank, getActiveSlot } from "../util/storage.js";
 import { BigNum } from "../util/bigNum.js";
-import { formatNumber } from "../util/numFormat.js";
+import { formatNumber, formatMultForUi } from "../util/numFormat.js";
 import { FONT_MAP } from "../main.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
 import {
@@ -27,7 +27,6 @@ import {
     getLevelNumber,
     getIconUrl,
     normalizeUpgradeIconPath,
-    formatMultForUi,
     upgradeUiModel,
     buyOne,
     buyMax,
