@@ -228,7 +228,7 @@ const HELP_ENTRIES = [
         title: "Flow",
         icon: "img/stats/fp/fp.webp",
         progressionGoal: "Reach Surge Milestone 125",
-        text: "Make sure to turn on the Flow States of each Waterwheel you own somewhat frequently, as idling on just one Waterwheel is slow. You'll need to continue doing more Surge and Experiment resets and researching Lab Nodes to progress further.",
+        text: "Make sure to turn on the Flow States of each Waterwheel you own somewhat frequently, as idling on one Waterwheel is slow. You'll need to continue doing Surge and Experiment resets and research more Lab Nodes to progress further.",
         nerdModeText: `<div>Both the effect from Waterwheels (+100% per level) and the requirements of each Waterwheel are constant.<br>Because the requirements of each Waterwheel are constant, there are no softcaps and it can scale infinitely.<br>For information on Waterwheel FP requirements, hover over Waterwheel bars to display a tooltip.<br>The Endless FP upgrade has a Harshness value of 5.</div>`,
         themeClass: "is-flow",
         isVisible: () => {
