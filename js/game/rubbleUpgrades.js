@@ -2,6 +2,8 @@ import {
     AREA_KEYS,
     formatMultForUi,
 } from "./upgrades.js";
+import { formatNumber } from "../util/numFormat.js";
+import { BigNum } from "../util/bigNum.js";
 import { getActiveSlot } from "../util/storage.js";
 import { lsGetItem } from "../main.js";
 import { isBuildingUnlocked } from "../ui/minerTabs/buildingsTab.js";
@@ -71,26 +73,19 @@ export const RUBBLE_REGISTRY = [
         area: RUBBLE_AREA_KEY,
         id: 3,
         title: "Rubble Gold Value",
-        desc: "Improves the effect of Gold Waterwheel by +^0.01 per level",
+        desc: `Multiplies Gold value by ${formatNumber(BigNum.fromAny(6666))}x per level`,
         lvlCap: Infinity,
-        baseCost: "1e99999",
+        baseCost: "6.666e666",
         costType: "rubble",
         upgType: "NM",
         scalingPreset: 'NM',
-        scaling: { ratio: "1e99999", ratioLog10: 99999 },
-        effectType: "gold_waterwheel_exponent",
+        scaling: { ratio: 6.666 },
+        effectType: "gold_value",
         icon: "img/lab_icons/gold_val0.webp",
         baseIconOverride: "img/currencies/rubble/rubble_base.webp",
-        _baseEffectVal: 0.01,
-        effectMultiplier: (lvl) => {
-            const num = Number(lvl?.toNumber ? lvl.toNumber() : lvl);
-            return isNaN(num) ? 0 : num * 0.01;
-        },
+        _baseEffectVal: 6666,
         _costScaling: true,
-        bonusLine: (level, total) => {
-            const val = total && typeof total.sig === "number" ? total.sig * Math.pow(10, total.e || 0) : Number(total) || 0;
-            return `Gold Waterwheel effect: +^${val.toFixed(2)}`;
-        },
+        bonusLine: (level, total) => `Gold value bonus: ${formatMultForUi(total)}x`,
         computeLockState() {
             let isUnlocked = false;
             try {
