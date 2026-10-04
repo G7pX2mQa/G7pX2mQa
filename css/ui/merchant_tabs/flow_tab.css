@@ -363,7 +363,7 @@
   user-select: none;
   background: hsla(0, 80%, 40%, 0.15);
   min-width: 60px;
-  transition: background 70ms ease, transform 70ms ease;
+  transition: background 90ms ease, transform 90ms ease;
 }
 
 .flow-toggle-btn:hover {
