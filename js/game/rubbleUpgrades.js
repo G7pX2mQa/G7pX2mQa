@@ -1,8 +1,7 @@
 import {
     AREA_KEYS,
-    formatMultForUi,
 } from "./upgrades.js";
-import { formatNumber } from "../util/numFormat.js";
+import { formatNumber, formatMultForUi } from "../util/numFormat.js";
 import { BigNum } from "../util/bigNum.js";
 import { getActiveSlot } from "../util/storage.js";
 import { lsGetItem } from "../main.js";
