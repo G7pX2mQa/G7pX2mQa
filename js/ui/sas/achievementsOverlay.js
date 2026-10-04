@@ -98,12 +98,12 @@ function renderAchievements(gridEl) {
         btn.addEventListener("contextmenu", (e) => {
             e.preventDefault();
             if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
-                if (achievement.rewardAmount && bank.rainbowGems) {
+                if (achievement.rewardAmount && bank.rainbow_gems) {
                     const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(
                         Number(Math.round(achievement.rewardAmount)),
                         0,
                     );
-                    bank.rainbowGems.add(actualReward);
+                    bank.rainbow_gems.add(actualReward);
                 }
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
                 
@@ -287,8 +287,8 @@ function openAchievementDetails(achievement) {
         claimBtn.className = "shop-delve";
         claimBtn.textContent = "Claim";
         claimBtn.addEventListener("click", () => {
-            if (achievement.rewardAmount && bank.rainbowGems) {
-                bank.rainbowGems.add(actualReward);
+            if (achievement.rewardAmount && bank.rainbow_gems) {
+                bank.rainbow_gems.add(actualReward);
             }
             setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
             
