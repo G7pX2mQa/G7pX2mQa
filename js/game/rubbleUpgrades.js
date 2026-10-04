@@ -14,20 +14,12 @@ export const EFFECT_TYPE_TO_CURRENCY_MAP = {
     book_value: "books",
     gold_value: "gold",
     magic_value: "magic",
-    scrap_value: "scrap",
-    dna_value: "dna",
-    waves_value: "waves",
     wave_value: "waves",
+    dna_value: "dna",
+    scrap_value: "scrap",
     cores_value: "cores",
     crystals_value: "crystals",
     rubble_value: "rubble",
-    red_coral_value: "red_coral",
-    green_coral_value: "green_coral",
-    bubble_value: "bubble",
-    rp_value: "rp",
-    fp_value: "fp",
-    pp_value: "pp",
-    dp_value: "dp",
 };
 
 export function computeRubbleLockState(matName) {
