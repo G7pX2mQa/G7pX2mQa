@@ -10,7 +10,6 @@ import { shouldSkipGhostTap, suppressNextGhostTap } from "../../../util/ghostTap
 import { ensureCustomScrollbar } from "../../shopOverlay.js";
 import { setupDragToClose } from "../../shopOverlay.js";
 import { bindDelveTabHotkey } from "../../delveCore.js";
-// Import tabs logic
 import { initSecretAchievementsTab, updateSecretAchievementsTab } from "./secretAchievementsTab.js";
 import { initVoidGemAltarTab, updateVoidGemAltarTab } from "./voidGemAltarTab.js";
 import { initMiscStatsTab, updateMiscStatsTab } from "./miscStatsTab.js";
@@ -67,7 +66,7 @@ function syncVoidTabUnlockState() {
         if (lsGetItem(unlockKey) === "1") {
             unlocked = true;
         } else {
-            if (bank.voidGems && bank.voidGems.value && bank.voidGems.value.cmp(0) > 0) {
+            if (bank.void_gems && bank.void_gems.value && bank.void_gems.value.cmp(0) > 0) {
                 unlocked = true;
                 lsSetItem(unlockKey, "1");
             }
@@ -246,10 +245,10 @@ export function ensureOverlay() {
             },
         );
         window.addEventListener("currency:change", (e) => {
-            if (e.detail?.key === "voidGems") {
+            if (e.detail?.key === "void_gems") {
                 syncVoidTabUnlockState();
             }
-            if (e.detail?.key === "rainbowGems") {
+            if (e.detail?.key === "rainbow_gems") {
                 if (isOpen && tabsState.panels["rainbow"]?.classList.contains("is-active")) {
                     updateRainbowGemShopTab();
                 }
