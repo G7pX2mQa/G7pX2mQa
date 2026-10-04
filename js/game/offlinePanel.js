@@ -167,7 +167,7 @@ export const RESOURCE_REGISTRY_EXTRAS = {
 };
 export const RESOURCE_REGISTRY = [
     {
-        key: "voidGems",
+        key: "void_gems",
         bgGradient: "black",
         icon: "img/currencies/void_gem.webp",
         baseIcon: "img/currencies/void_gem.webp",
@@ -177,7 +177,7 @@ export const RESOURCE_REGISTRY = [
         type: "currency",
     },
     {
-        key: "rainbowGems",
+        key: "rainbow_gems",
         bgGradient:
             "linear-gradient(to bottom in oklch, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #a000ff, #ff00ff)",
         icon: "img/currencies/rainbow_gem.webp",
