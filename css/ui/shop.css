@@ -99,9 +99,9 @@
   cursor: pointer;
   touch-action: manipulation;
   transition:
-    transform 120ms ease,
-    background 120ms ease,
-    border-color 120ms ease;
+    transform 90ms ease,
+    background 90ms ease,
+    border-color 90ms ease;
 }
 .shop-actions .shop-close:hover {
   background: hsla(0, 80%, 40%, 0.22);
@@ -123,9 +123,9 @@
   cursor: pointer;
   touch-action: manipulation;
   transition:
-    transform 120ms ease,
-    background 120ms ease,
-    border-color 120ms ease;
+    transform 90ms ease,
+    background 90ms ease,
+    border-color 90ms ease;
 }
 .shop-actions .shop-delve:hover {
   background: hsla(150, 60%, 35%, 0.22);
@@ -704,9 +704,9 @@ html.is-mobile {
   -webkit-user-select: none;
   user-select: none;
   transition:
-    transform 120ms ease,
-    background 120ms ease,
-    border-color 120ms ease;
+    transform 90ms ease,
+    background 90ms ease,
+    border-color 90ms ease;
 }
 
 .upg-actions .shop-close {
@@ -723,8 +723,8 @@ html.is-mobile {
   background: rgba(242, 128, 13, 0.15);
   color: rgb(255, 230, 199);
   transition:
-    background 100ms ease,
-    transform 100ms ease;
+    background 90ms ease,
+    transform 90ms ease;
 }
 .upg-actions .shop-delve.hm-evolve-btn:hover,
 .upg-actions .shop-delve.hm-view-milestones:hover {
@@ -888,8 +888,8 @@ html.is-mobile {
   color: #ffe6c7;
   padding: 10px 14px;
   transition:
-    background 100ms ease,
-    transform 100ms ease;
+    background 90ms ease,
+    transform 90ms ease;
 }
 .hm-view-milestones:hover {
   background: hsl(26 100% 50% / 0.22);
@@ -1016,9 +1016,9 @@ html.is-mobile {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   transition:
-    transform 120ms ease,
-    box-shadow 120ms ease,
-    filter 120ms ease;
+    transform 90ms ease,
+    box-shadow 90ms ease,
+    filter 90ms ease;
 }
 
 .hm-milestones-close:hover {
@@ -1180,8 +1180,8 @@ html.is-mobile {
   appearance: none;
   font-family: inherit;
   transition:
-    background 100ms ease,
-    transform 100ms ease;
+    background 90ms ease,
+    transform 90ms ease;
 }
 
 /* Green (ON) state - Matches Shop Delve button */
