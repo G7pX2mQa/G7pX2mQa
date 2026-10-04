@@ -25,6 +25,7 @@ export const AUTOBUY_CORE_BUILDING_ID = 13;
 export const AUTOBUY_CRYSTAL_BUILDING_ID = 14;
 export const AUTOBUY_STONE_BUILDING_ID = 15;
 export const AUTOBUY_COPPER_BUILDING_ID = 16;
+export const AUTOBUY_IRON_BUILDING_ID = 17;
 
 // export ties specifically for upgrades who break the norm
 export const AUTOMATION_TIES = {
@@ -48,6 +49,7 @@ export const MASTER_AUTOBUY_IDS = {
     [AUTOBUY_CRYSTAL_BUILDING_ID]: "crystals",
     [AUTOBUY_STONE_BUILDING_ID]: "stone",
     [AUTOBUY_COPPER_BUILDING_ID]: "copper",
+    [AUTOBUY_IRON_BUILDING_ID]: "iron",
 };
 
 const STANDARD_AUTOMATION_SHRINK = [
@@ -593,6 +595,47 @@ const UPGRADE_DEFINITIONS = [
 
             const revealText = hasUnlockedCopper
                 ? "Complete the Challenge of Copper to reveal this upgrade"
+                : "Complete the Challenge of [Unknown] to reveal this upgrade";
+
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+    },
+    {
+        area: AUTOMATION_AREA_KEY,
+        id: AUTOBUY_IRON_BUILDING_ID,
+        title: "Autobuy Iron Building",
+        desc: "Automatically buys levels of the Iron Building",
+        icon: "img/materials/iron.webp",
+        extraIcon: "img/misc/gear_icon_for_materials.webp",
+        lvlCap: 1,
+        baseCost: "1e1000",
+        costType: "gears",
+        upgType: "NM",
+        costAtLevel() {
+            return BigNum.fromAny("1e1000");
+        },
+        effectSummary() {
+            return null;
+        },
+        computeLockState() {
+            let isUnlocked = false;
+            try {
+                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:iron:${getActiveSlot() ?? "default"}`) === "1";
+            } catch {}
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            if (!isCollapseUnlocked()) {
+                return { state: "locked" };
+            }
+
+            let hasUnlockedIron = false;
+            try {
+                hasUnlockedIron = isBuildingUnlocked("iron");
+            } catch {}
+
+            const revealText = hasUnlockedIron
+                ? "Complete the Challenge of Iron to reveal this upgrade"
                 : "Complete the Challenge of [Unknown] to reveal this upgrade";
 
             return { state: "mysterious", unlockReqText: revealText };
