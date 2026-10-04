@@ -254,7 +254,7 @@ function getPendingGoldWithMultiplier(multiplierOverride = null) {
             val = val.mulBigNumInteger(surge35Mult);
         }
         val = val.mulDecimal(labMult.toScientific());
-        return getWaterwheelGoldMultiplier(val);
+        return val;
     } catch {
         return resetState.pendingGold;
     }
