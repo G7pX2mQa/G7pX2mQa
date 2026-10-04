@@ -542,6 +542,32 @@ export function isStorageKeyLocked(key) {
     return isDebugLocked(key);
 }
 
+export function clearDebugLocksForSlot(slot = getActiveSlot()) {
+    const normalized = normalizeSlotValue(slot);
+    if (normalized == null) return;
+    const suffix = `:${normalized}`;
+    try {
+        const lockedKeys = globalThis?.__cccLockedStorageKeys;
+        if (lockedKeys && typeof lockedKeys[Symbol.iterator] === "function") {
+            for (const key of Array.from(lockedKeys)) {
+                if (typeof key === "string" && key.endsWith(suffix)) {
+                    lockedKeys.delete(key);
+                }
+            }
+        }
+    } catch {}
+    try {
+        if (typeof document !== "undefined") {
+            document.dispatchEvent(new CustomEvent("debugStorageLocksChanged"));
+        }
+    } catch {}
+    try {
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("debugLocks:cleared", { detail: { slot: normalized } }));
+        }
+    } catch {}
+}
+
 export function getSlotSignatureKey(slot = getActiveSlot()) {
     return slotSignatureKey(slot);
 }
