@@ -338,7 +338,26 @@ export function computeUpgradeEffects(areaKey) {
   };
 }
 
+let _syncCurrencyMultipliersScheduled = false;
+
+export function scheduleSyncCurrencyMultipliers() {
+  if (_syncCurrencyMultipliersScheduled) return;
+  _syncCurrencyMultipliersScheduled = true;
+  const runner = () => {
+    _syncCurrencyMultipliersScheduled = false;
+    try {
+      syncCurrencyMultipliersFromUpgrades();
+    } catch {}
+  };
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(runner);
+  } else {
+    Promise.resolve().then(runner);
+  }
+}
+
 export function syncCurrencyMultipliersFromUpgrades() {
+  _syncCurrencyMultipliersScheduled = false;
   const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue, bookValue, redCoralValue, greenCoralValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
@@ -728,16 +747,16 @@ export function registerXpUpgradeEffects() {
     });
     
     window.addEventListener('surge:level:change', () => {
-        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try { scheduleSyncCurrencyMultipliers(); } catch {}
     });
     window.addEventListener('surge:nerf:change', () => {
-        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try { scheduleSyncCurrencyMultipliers(); } catch {}
     });
     window.addEventListener('workshop:change', () => {
-        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try { scheduleSyncCurrencyMultipliers(); } catch {}
     });
     window.addEventListener('waterwheel:change', () => {
-        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try { scheduleSyncCurrencyMultipliers(); } catch {}
     });
 
     window.addEventListener('currency:change', (e) => {
@@ -757,7 +776,7 @@ export function registerXpUpgradeEffects() {
     });
 
     window.addEventListener('lab:node:change', () => {
-        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        try { scheduleSyncCurrencyMultipliers(); } catch {}
     });
 
     window.addEventListener('pp:change', () => {
