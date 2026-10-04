@@ -59,8 +59,12 @@ export function isCollapseUnlocked(slot = getActiveSlot()) {
 
 export function setCollapseUnlocked(value, slot = getActiveSlot()) {
     if (typeof localStorage !== "undefined") {
+        const prev = cachedCollapseUnlockedStates[slot];
         lsSetItem(`${COLLAPSE_UNLOCKED_KEY_BASE}:${slot}`, value ? "1" : "0");
         cachedCollapseUnlockedStates[slot] = !!value;
+        if (prev !== !!value && typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "collapse", state: !!value, slot } }));
+        }
     }
 }
 
