@@ -1256,9 +1256,6 @@ function onTick(dt) {
     if (changes || uiTextChanged) {
         updateFlowTab();
         scheduleSave();
-        try {
-            syncCurrencyMultipliersFromUpgrades();
-        } catch {}
         // The event with type 'tick' is not actually listened to anywhere useful, removing to save overhead
     } else if (visualUpdate) {
         if (flowTabInitialized && flowPanel) {
