@@ -1848,11 +1848,12 @@ function openValcDialog(model) {
     const targetRowObj = createInputRow("Target Level:");
     const { row: startRow, input: startInput, afterSlot: startAfter } = startRowObj;
     const { row: targetRow, label: targetLabel, input: targetInput, afterSlot: targetAfter } = targetRowObj;
+    const capBn = model.lvlCapBn ?? model.upg.lvlCapBn ?? (Number.isFinite(model.upg.lvlCap) ? BigNum.fromAny(model.upg.lvlCap) : BigNum.fromAny("Infinity"));
     const isLvlInf = model.lvlBn?.isInfinite?.() || model.lvl === Infinity || model.lvl === "Infinity";
-    startInput.value = isLvlInf ? "Infinity" : stripTags(formatNumber(BigNum.fromAny(model.lvl)));
-    targetInput.value = isLvlInf ? "Infinity" : stripTags(formatNumber(BigNum.fromAny(model.lvl)));
-    const cap = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
-    const capText = cap === Infinity ? "" : ` / ${stripTags(formatNumber(BigNum.fromAny(cap)))}`;
+    const initialLvlBn = isLvlInf ? BigNum.fromAny("Infinity") : BigNum.fromAny(model.lvlBn ?? model.lvl);
+    startInput.value = initialLvlBn.isInfinite?.() ? "Infinity" : stripTags(formatNumber(initialLvlBn));
+    targetInput.value = initialLvlBn.isInfinite?.() ? "Infinity" : stripTags(formatNumber(initialLvlBn));
+    const capText = capBn.isInfinite?.() ? "" : ` / ${stripTags(formatNumber(capBn))}`;
     startAfter.textContent = capText;
     targetAfter.textContent = capText;
     inputsContainer.append(startRow, targetRow);
@@ -1864,52 +1865,40 @@ function openValcDialog(model) {
     costToDisplay.style.marginBottom = "1rem";
     costToDisplay.style.textAlign = "center";
     const parseLevel = (val) => {
-        let v = String(val).trim().replace(/,/g, "");
-        if (!v) return 0;
-        
-        const match = v.match(/^([+-]?\d+(?:\.\d+)?)([a-zA-Z]+)$/);
-        if (match) {
-            const numPart = match[1];
-            const suffix = match[2].toLowerCase();
-            let exp = 0;
-            if (suffix === 'k') {
-                exp = 3;
-            } else if (suffix === 'm') {
-                exp = 6;
-            }
-            if (exp > 0) v = numPart + 'e' + exp;
-        }
+        let v = String(val ?? "").trim().replace(/,/g, "");
+        if (!v) return BigNum.fromInt(0);
+        if (v === "-") return null;
 
         const parsedBn = parseBigNumInput(v);
-        if (!parsedBn || parsedBn.isNaN?.()) return -1;
-        let num = Math.floor(parsedBn.toNumber?.() ?? Number(parsedBn));
-        if (isNaN(num)) {
-            if (parsedBn.isInfinite?.() || num === Infinity) num = cap === Infinity ? Infinity : cap;
-            else return -1;
+        if (!parsedBn || parsedBn.isNaN?.()) return null;
+        let bn = parsedBn.floorToInteger ? parsedBn.floorToInteger() : parsedBn;
+        if (bn.isNegative?.()) return null;
+        if (!capBn.isInfinite?.() && bn.cmp(capBn) > 0) {
+            bn = capBn.clone ? capBn.clone() : capBn;
         }
-        num = Math.max(0, num);
-        if (cap !== Infinity && num > cap) num = cap;
-        return num;
+        return bn;
     };
 
     const getRetroactiveCostAt = (level) => {
-        if (level === Infinity) return BigNum.fromAny("Infinity");
+        const levelBn = BigNum.fromAny(level);
+        if (levelBn.isInfinite?.()) return BigNum.fromAny("Infinity");
         if (model.upg.upgType !== "HM") {
             try {
-                return BigNum.fromAny(model.upg.costAtLevel(level));
+                return BigNum.fromAny(model.upg.costAtLevel(levelBn));
             } catch {
                 return BigNum.fromInt(0);
             }
         }
 
-        if (level > 1e15) return BigNum.fromAny("Infinity");
+        if (levelBn.cmp(BigNum.fromAny(1e15)) > 0) return BigNum.fromAny("Infinity");
 
+        const levelNum = levelBn.toNumber ? levelBn.toNumber() : Number(levelBn);
         const origEvol = model.upg.activeEvolutions;
         const origScaling = model.upg.scaling;
         try {
-            model.upg.activeEvolutions = Math.floor(level / 1000);
+            model.upg.activeEvolutions = Math.floor(levelNum / 1000);
             delete model.upg.scaling;
-            return BigNum.fromAny(model.upg.costAtLevel(level));
+            return BigNum.fromAny(model.upg.costAtLevel(levelBn));
         } catch {
             return BigNum.fromInt(0);
         } finally {
@@ -1919,34 +1908,39 @@ function openValcDialog(model) {
     };
 
     const getRetroactiveCost = (start, end) => {
-        if (end === Infinity || end > 1e15) return BigNum.fromAny("Infinity");
+        const startBn = BigNum.fromAny(start);
+        const endBn = BigNum.fromAny(end);
+        if (endBn.isInfinite?.() || endBn.cmp(BigNum.fromAny(1e15)) > 0) return BigNum.fromAny("Infinity");
         
         if (model.upg.upgType !== "HM") {
             let countBn;
-            try { countBn = BigNum.fromAny(end).sub(BigNum.fromAny(start)); }
+            try { countBn = endBn.sub(startBn); }
             catch { countBn = BigNum.fromAny("Infinity"); }
             
             return evaluateBulkPurchase(
                 model.upg,
-                BigNum.fromAny(start),
+                startBn,
                 BigNum.fromAny("Infinity"),
                 countBn
             ).spent;
         }
 
+        const startNum = startBn.toNumber ? startBn.toNumber() : Number(startBn);
+        const endNum = endBn.toNumber ? endBn.toNumber() : Number(endBn);
+
         const origEvol = model.upg.activeEvolutions;
         const origScaling = model.upg.scaling;
         let totalSpent = BigNum.fromInt(0);
-        let currentStart = start;
+        let currentStart = startNum;
         let iterations = 0;
         try {
-            while (currentStart < end) {
+            while (currentStart < endNum) {
                 if (iterations++ > 100) {
-                    model.upg.activeEvolutions = Math.floor(end / 1000);
+                    model.upg.activeEvolutions = Math.floor(endNum / 1000);
                     delete model.upg.scaling;
                     let countBn;
-                    try { countBn = BigNum.fromAny(end).sub(BigNum.fromAny(currentStart)); }
-                    catch { countBn = BigNum.fromAny(end - currentStart); }
+                    try { countBn = BigNum.fromAny(endNum).sub(BigNum.fromAny(currentStart)); }
+                    catch { countBn = BigNum.fromAny(endNum - currentStart); }
                     const { spent } = evaluateBulkPurchase(
                         model.upg,
                         BigNum.fromAny(currentStart),
@@ -1958,7 +1952,7 @@ function openValcDialog(model) {
                 }
                 const currentEvol = Math.floor(currentStart / 1000);
                 const nextBoundary = (currentEvol + 1) * 1000;
-                const currentEnd = Math.min(end, nextBoundary);
+                const currentEnd = Math.min(endNum, nextBoundary);
                 model.upg.activeEvolutions = currentEvol;
                 delete model.upg.scaling;
                 
@@ -1987,24 +1981,24 @@ function openValcDialog(model) {
         const isTargetMode = targetModeCheck.checked;
         startRow.style.display = isTargetMode ? "flex" : "none";
         targetLabel.textContent = isTargetMode ? "Target Level:" : "Level:";
-        let startLvl = parseLevel(startInput.value);
-        let targetLvl = parseLevel(targetInput.value);
-        const isStartInvalid = startLvl === -1;
-        const isTargetInvalid = targetLvl === -1;
+        let startLvlBn = parseLevel(startInput.value);
+        let targetLvlBn = parseLevel(targetInput.value);
+        const isStartInvalid = startLvlBn === null;
+        const isTargetInvalid = targetLvlBn === null;
         if (isTargetInvalid || (isTargetMode && isStartInvalid)) {
             costAtDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Enter valid ${isTargetMode ? "levels" : "level"} to view cost</span>`;
             costToDisplay.style.display = "none";
             return;
         }
         costToDisplay.style.display = isTargetMode ? "block" : "none";
-        const safeStart = startLvl;
-        const safeTarget = targetLvl;
-        let effectiveTarget = safeTarget;
-        let costAt = getRetroactiveCostAt(effectiveTarget);
+        const safeStartBn = startLvlBn;
+        const safeTargetBn = targetLvlBn;
+        let effectiveTargetBn = safeTargetBn;
+        let costAt = getRetroactiveCostAt(effectiveTargetBn);
         const costAtLabel = getCurrencyLabel(model.upg.costType, costAt);
-        const targetStr = formatNumber(BigNum.fromAny(effectiveTarget));
+        const targetStr = effectiveTargetBn.isInfinite?.() ? "Infinity" : formatNumber(effectiveTargetBn);
         let costAtStr;
-        if (effectiveTarget >= cap) {
+        if (!capBn.isInfinite?.() && effectiveTargetBn.cmp(capBn) >= 0) {
             costAtStr = "None (Maxed)";
         } else {
             costAtStr = `${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(costAt)} ${costAtLabel}`;
@@ -2012,12 +2006,12 @@ function openValcDialog(model) {
         costAtDisplay.innerHTML = `Cost at level ${targetStr}: ${costAtStr}`;
 
         if (isTargetMode) {
-            if (effectiveTarget >= 1e6) {
+            if (effectiveTargetBn.cmp(BigNum.fromAny(1e6)) >= 0) {
                 costToDisplay.innerHTML = `<span style="opacity: 0.6; font-style: italic;">Cumulative cost doesn't mean much at this point</span>`;
             } else {
                 let cumulative = BigNum.fromInt(0);
-                if (effectiveTarget > safeStart) {
-                    cumulative = getRetroactiveCost(safeStart, effectiveTarget);
+                if (effectiveTargetBn.cmp(safeStartBn) > 0) {
+                    cumulative = getRetroactiveCost(safeStartBn, effectiveTargetBn);
                 }
                 const cumulativeLabel = getCurrencyLabel(model.upg.costType, cumulative);
                 costToDisplay.innerHTML = `Cost to level ${targetStr}: ${currencyIconHTML(model.upg.costType)} ${bank[model.upg.costType].fmt(cumulative)} ${cumulativeLabel}`;
@@ -2027,14 +2021,13 @@ function openValcDialog(model) {
 
     const formatOnBlur = (inputEl) => {
         let val = inputEl.value;
-        const finalNum = parseLevel(val);
-        if (finalNum === -1) {
+        const finalBn = parseLevel(val);
+        if (finalBn === null) {
             inputEl.style.borderColor = "#ff4444";
             return;
         }
         inputEl.style.borderColor = "rgba(255, 255, 255, 0.2)";
-        const finalNumBn = BigNum.fromAny(finalNum);
-        inputEl.value = finalNumBn.isInfinite?.() ? "Infinity" : stripTags(formatNumber(finalNumBn));
+        inputEl.value = finalBn.isInfinite?.() ? "Infinity" : stripTags(formatNumber(finalBn));
         if (isFirstEditInTargetMode) {
             isFirstEditInTargetMode = false;
             if (inputEl === startInput) {
@@ -2045,13 +2038,13 @@ function openValcDialog(model) {
                 startInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
             }
         } else {
-            let sLvl = parseLevel(startInput.value);
-            let tLvl = parseLevel(targetInput.value);
-            if (sLvl !== -1 && tLvl !== -1) {
-                if (inputEl === startInput && sLvl > tLvl) {
+            let sBn = parseLevel(startInput.value);
+            let tBn = parseLevel(targetInput.value);
+            if (sBn !== null && tBn !== null) {
+                if (inputEl === startInput && sBn.cmp(tBn) > 0) {
                     targetInput.value = inputEl.value;
                     targetInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
-                } else if (inputEl === targetInput && tLvl < sLvl) {
+                } else if (inputEl === targetInput && tBn.cmp(sBn) < 0) {
                     startInput.value = inputEl.value;
                     startInput.style.borderColor = "rgba(255, 255, 255, 0.2)";
                 }
