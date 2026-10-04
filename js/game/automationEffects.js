@@ -26,7 +26,7 @@ import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js"
 import { performFreeBuildingAutobuy, batchBuildingOperations } from "../ui/minerTabs/buildingsTab.js";
 import { getWaterwheelsCollectiveState, setAllWaterwheelsState } from "../ui/merchantTabs/flowTab.js";
 import { calculateUpgradeMultipliers } from "./upgradeEffects.js";
-import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from "../util/storage.js";
+import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS, isResourceLockedToZero } from "../util/storage.js";
 import { UC_MATERIAL_DATA, getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators, getUcEacYieldAccumulators, saveUcEacYieldAccumulators } from "./ucSpawner.js";
 import { BigNum, bigNumIsInfinite } from "../util/bigNum.js";
 import { isSurgeActive, getBaseTsunamiExponent } from "./surgeEffects.js";
@@ -479,11 +479,11 @@ registerPassiveSystem({
             const isCopper = typeof window.isCopperChallengeActive === "function" ? window.isCopperChallengeActive() : false;
             if (isCopper && !isCurrencyLocked("books", slot)) {
                 rewards.books = coinsEarned;
-            } else if (!isCopper && !isCurrencyLocked("coins", slot)) {
+            } else if (!isCopper && !isCurrencyLocked("coins", slot) && !isResourceLockedToZero("coins")) {
                 rewards.coins = coinsEarned;
             }
         }
-        if (!xpEarned.isZero() && !isCurrencyLocked("xp", slot)) {
+        if (!xpEarned.isZero() && !isCurrencyLocked("xp", slot) && !isResourceLockedToZero("xp")) {
             rewards.xp = xpEarned;
         }
         if (!mpEarned.isZero() && !isCurrencyLocked("mutation", slot)) {
