@@ -1,6 +1,6 @@
 // js/game/coinPickup.js
 import { lsSetItem, lsGetItem } from "../main.js";
-import { bank, CURRENCIES, getActiveSlot, isCurrencyLocked } from "../util/storage.js";
+import { bank, CURRENCIES, getActiveSlot, isCurrencyLocked, isResourceLockedToZero } from "../util/storage.js";
 import { incrementLifetimeSizeCoinsCollected, checkSecretAchievements } from "./secretAchievements.js";
 import { BigNum } from "../util/bigNum.js";
 import { formatNumber } from "../util/numFormat.js";
@@ -192,7 +192,7 @@ const mergeGain = (current, gain) => {
 const flushPendingGains = () => {
     const coinGain = pendingCoinGain;
     pendingCoinGain = null;
-    if (coinGain && !coinGain.isZero?.()) {
+    if (coinGain && !coinGain.isZero?.() && !isResourceLockedToZero("coins")) {
         try {
             bank.coins.add(coinGain);
         } catch {}
@@ -200,7 +200,7 @@ const flushPendingGains = () => {
 
     const xpGain = pendingXpGain;
     pendingXpGain = null;
-    if (xpGain && !xpGain.isZero?.()) {
+    if (xpGain && !xpGain.isZero?.() && !isResourceLockedToZero("xp")) {
         try {
             addXp(xpGain);
         } catch {}
@@ -225,11 +225,13 @@ const scheduleFlush = () => {
 };
 
 const queueCoinGain = (gain) => {
+    if (isResourceLockedToZero("coins")) return;
     pendingCoinGain = mergeGain(pendingCoinGain, gain);
     scheduleFlush();
 };
 
 const queueXpGain = (gain) => {
+    if (isResourceLockedToZero("xp")) return;
     pendingXpGain = mergeGain(pendingXpGain, gain);
     scheduleFlush();
 };
@@ -365,9 +367,10 @@ const computeMutationMultiplier = (spawnLevelStr) => {
     }
 };
 function calculateCoinValue(spawnLevelStr) {
-    const base = BASE_COIN_VALUE.clone?.() ?? BigNum.fromInt(1);
-    let inc = applyCoinMultiplier(base);
-    let xpInc = cloneBn(XP_PER_COIN);
+    const isCoinsLocked = isResourceLockedToZero("coins");
+    const base = isCoinsLocked ? BigNum.fromInt(0) : (BASE_COIN_VALUE.clone?.() ?? BigNum.fromInt(1));
+    let inc = isCoinsLocked ? BigNum.fromInt(0) : applyCoinMultiplier(base);
+    let xpInc = isResourceLockedToZero("xp") ? BigNum.fromInt(0) : cloneBn(XP_PER_COIN);
     refreshMpValueMultiplierCache();
     // If spawnLevelStr is null/undefined, use current mutation level (passive generation)
     const levelStr = spawnLevelStr ?? mutationCurrentLevelStr;
@@ -439,7 +442,7 @@ export function triggerPassiveCollect(count = 1) {
     const totalXp = xpGain.mulDecimal(count);
     const totalMp = mpGain.mulDecimal(count);
 
-    const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
+    const coinsLocked = isCurrencyLocked(CURRENCIES.COINS) || isResourceLockedToZero("coins");
     const incIsZero = typeof totalCoin?.isZero === "function" ? totalCoin.isZero() : false;
     
     if (!incIsZero && !coinsLocked) {
@@ -493,9 +496,10 @@ export function initCoinPickup({
     ensureMpValueMultiplierSync();
     pf.style.touchAction = "none";
     let magnetController = null;
-    coinsVal = bank.coins.value;
+    coinsVal = isResourceLockedToZero("coins") ? BigNum.fromInt(0) : bank.coins.value;
     updateHudFn = () => {
-        const formatted = formatNumber(coinsVal);
+        const currentCoins = isResourceLockedToZero("coins") ? BigNum.fromInt(0) : coinsVal;
+        const formatted = formatNumber(currentCoins);
         const comboStr = getComboUiString();
         const fullText = formatted + comboStr;
         setHtmlOrText(amt, fullText);
@@ -505,7 +509,7 @@ export function initCoinPickup({
     const onCurrencyChange = (e) => {
         if (!e?.detail) return;
         if (e.detail.key === "coins") {
-            coinsVal = e.detail.value;
+            coinsVal = isResourceLockedToZero("coins") ? BigNum.fromInt(0) : e.detail.value;
             scheduleHudUpdate();
         }
     };
@@ -513,7 +517,7 @@ export function initCoinPickup({
     const onSaveSlotChange = () => {
         mutationMultiplierCache.clear();
         passiveCoinFractionAcc = 0;
-        coinsVal = bank.coins.value;
+        coinsVal = isResourceLockedToZero("coins") ? BigNum.fromInt(0) : bank.coins.value;
         scheduleHudUpdate();
         // Check if shop should be unlocked on slot change
         const activeSlot = getActiveSlot();
@@ -791,7 +795,7 @@ export function initCoinPickup({
             } catch {}
         }
         onCoinCollected();
-        if (totalCoin && !totalCoin.isZero?.()) {
+        if (totalCoin && !totalCoin.isZero?.() && !isResourceLockedToZero("coins")) {
             if (isCopperChallengeActive()) {
                 bank.books.add(totalCoin);
             } else {
@@ -902,9 +906,15 @@ export function initCoinPickup({
     coinPickup = { destroy };
     return {
         get count() {
+            if (isResourceLockedToZero("coins")) return BigNum.fromInt(0);
             return coinsVal;
         },
         set count(v) {
+            if (isResourceLockedToZero("coins")) {
+                coinsVal = BigNum.fromInt(0);
+                scheduleHudUpdate();
+                return;
+            }
             coinsVal = BigNum.fromAny ? BigNum.fromAny(v) : BigNum.fromInt(Number(v) || 0);
             scheduleHudUpdate();
         },
