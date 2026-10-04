@@ -74,7 +74,6 @@ const HELP_ENTRIES = [
         id: 1,
         title: "Welcome",
         icon: "img/currencies/coin/coin.webp",
-        tldr: "Collect Coins; Buy upgrades; Make numbers go up",
         progressionGoal: "Unlock the XP system, then reach XP Level 31",
         get text() {
             let base =
@@ -100,7 +99,6 @@ const HELP_ENTRIES = [
         id: 2,
         title: "Forge",
         icon: "img/misc/forge.webp",
-        tldr: "Reset immediately; Spend Gold wisely; Reset more when progress is slow",
         progressionGoal: "Reach XP Level 101",
         text: 'After your first Forge reset, you can speak with the Merchant for free Gold. The core loop of this section of the game is to reach a high XP Level, then when progress is slow, perform a Forge reset for tons of Gold.',
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Milestone-type Upgrade Level Cost Ratio</strong><br><code>CostRatio = (1.5 + 0.1 * Evolutions) * Harshness</code><br>Where <code>Evolutions = Floor(UpgLevel / 1000)</code> and <code>Harshness</code> is an optional value to make scaling harsher for any given upgrade, defaulting to 1.<br>After 1e6 Evolutions (UpgLevel 1e9): <code>CostRatio = (1.5 + 0.1 * Evolutions) * Harshness * 10 ^ (5 * e^(1.6979e-7 * (Evolutions - 1e6)))</code>.</div><div style="margin-bottom:12px;"><strong>Forge Base Gold Gain</strong><br><code>Base Gold = Floor(10 * 2 ^ Max(0, log10(Coins) - 5) * 1.4 ^ Max(0, (XPLevel - 30) / 5) * 1.15 ^ Floor(Max(0, log10(Coins) - 5)))</code>.</div><div style="margin-bottom:12px;"><strong>MP Requirement</strong><br>Mutations 0-9 follow this formula: <code>log10(Requirement) = -0.0022 * (Mutation + 1)^2 + 0.2045 * (Mutation + 1) + 2.0168</code>.<br>Mutations 10-49 follow a harsher formula: <code>log10(Requirement) = 3.83 * (1.3444 ^ (Mutation - 9))</code>.<br>Mutations 50-99 follow an even harsher formula: <code>log10(Requirement) = 10 ^ (A * x^2 + B)</code><br>Where <code>x = Mutation - 49</code>, <code>A = 297/2499</code>, and <code>B = 6 - A</code>.<br>There are also breakpoints at Mutation 50 and Mutation 100 where I explicitly set the MP requirement to a flat number.<br>Also note that I may slightly change the Mutation formula whenever I feel like it for various reasons.</div><div><strong>Mutation Coins & XP Multiplier</strong><br><code>Total Coins & XP Boost = 2 ^ Mutation</code>.</div>`,
@@ -125,7 +123,6 @@ const HELP_ENTRIES = [
         id: 3,
         title: "Infuse",
         icon: "img/misc/infuse.webp",
-        tldr: "Reset immediately; Spend Magic wisely; Reset more when progress is slow",
         progressionGoal: "Reach XP Level 201",
         text: "After your first Infuse reset, you can speak with the Merchant for free Magic. The core loop of this section of the game is similar to Forge, but with an extra reset to juggle when Gold diminishes in usefulness.",
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Infuse Base Magic Gain</strong><br><code>Base Magic = Floor(10 ^ (0.811 + Max(0, log10(Coins) - 12) * log10(1.5) + Floor(Max(0, log10(Coins) - 12)) * log10(1.03) + Max(0, log10(CumulativeMP) - 4) * log10(2)))</code>.</div><div><strong>Workshop Level Cost</strong><br>WSLevel 1 to WSLevel 1e6: <code>Cost = 10 ^ (12 + WSLevel)</code>.<br>WSLevel 1e6 to WSLevel 1e9: <code>Cost = 10 ^ (1.000012e6 + (WSLevel - 1e6) + Integral((WSLevel - 1e6), 0.001))</code><br>Where <code>Integral(WSLevel - 1e6, 0.001) = ((1 + 0.001*(WSLevel - 1e6)) * ln(1 + 0.001*(WSLevel - 1e6)) - 0.001*(WSLevel - 1e6)) / (0.001 * ln(10))</code>.<br>WSLevel 1e9 to WSLevel 1e12: <code>Cost = 10 ^ (6.5597e9 + (WSLevel - 1e9) + (Integral((WSLevel - 1e6), 0.001) - Integral(9.99e8, 0.001)) + 0.5 * (log10(1.00001) / 1000) * (WSLevel - 1e9)^2)</code>.<br>Beyond WSLevel 1e12: <code>Cost = 10 ^ (2.1767e15 * e^(2.3e-10 * (WSLevel - 1e12)))</code>.</div>`,
@@ -150,7 +147,6 @@ const HELP_ENTRIES = [
         id: 4,
         title: "Surge",
         icon: "img/misc/surge.webp",
-        tldr: "Perform even more resets; Waves do not function like a normal currency; Reach new milestones when possible",
         progressionGoal: "Reach Surge Milestone 8",
         text: "The most important thing to focus on to get a higher Surge is XP Level, because that's the most significant factor in earning Waves. You can go idle and activate multiple milestones from one Surge reset if you want, but it's not fast to do so.",
         nerdModeText: () => {
@@ -191,7 +187,6 @@ const HELP_ENTRIES = [
         id: 5,
         title: "Lab",
         icon: "img/stats/rp/rp.webp",
-        tldr: "Research Lab Nodes; Get more Coins to research Lab Nodes faster; Work to restore the Tsunami Exponent which is nerfing your Surge Milestones",
         progressionGoal: "Research Lab Node 4",
         text: "Controls for interacting with the Lab tab are listed in the bottom left corner of it. The Tsunami Exponent has applied a ^0.00 exponent to all Surge Milestones that involve multipliers of any kind, and you can view this effect on the Surge Milestones. This means that a milestone that used to boost your Coins, XP, and MP value by 10x now boosts those things by 10^0.00=1.00x, resulting in no boost from the milestone. Certain Lab Nodes will restore this Tsunami Exponent. It is expected that it will be difficult to activate new Surge Milestones immediately after the Tsunami has been invoked.",
         nerdModeText: `<div style="margin-bottom:12px;"><strong>RP Multiplier From Lab Level</strong><br><code>Multiplier = 2 ^ LabLevel</code><br>But when Surge 12 is active: <code>Multiplier = 10^(5 * TsunamiExponent) * (2 + TsunamiExponent / 2) ^ LabLevel</code>.</div><div style="margin-bottom:12px;"><strong>Lab Level Coin Requirement</strong><br><code>Requirement = 10 ^ (20 + LabLevel)</code>.<br>Note: Lab Level does not include a softcap that prevents it from surpassing <code>Number.MAX_SAFE_INTEGER</code> because the game never performs addition on it.</div><div style="margin-bottom:12px;"><strong>Generator Functionality</strong><br><code>Currency/sec Rate = 10 ^ (3 * TsunamiExponent - 3) * 100% of pending currency</code>.</div><div style="margin-bottom:12px;"><strong>Surge 15 Coin Multiplier</strong><br><code>Multiplier = (2 ^ log10(DNA)) ^ TsunamiExponent</code>.<br>The divisor multiplier applied to Coins and Magic from this milestone is the sqrt of the above multiplier, capped at 100x.</div>`,
@@ -212,7 +207,6 @@ const HELP_ENTRIES = [
         id: 6,
         title: "Experiment",
         icon: "img/misc/experiment.webp",
-        tldr: "Combine all four currently unlocked resets to progress further; Keep unlocking more Surge Milestones",
         progressionGoal: "Reach Surge Milestone 20",
         text: "The core loop of this section of the game is to combining Forge resets with Infuse resets with Surge resets with Experiment resets with researching Lab Nodes and collecting Coins.",
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Base DNA Gain</strong><br><code>Gain = Floor(2 ^ (LabLevel + XPLevel / 20))</code><br>But when Surge 9 is active: <code>Gain = Floor(10^(30 * TsunamiExponent) * (2 + TsunamiExponent / 2) ^ (LabLevel + XPLevel / 20))</code></div>`,
@@ -233,7 +227,6 @@ const HELP_ENTRIES = [
         id: 7,
         title: "Flow",
         icon: "img/stats/fp/fp.webp",
-        tldr: "Toggle Flow States of Waterwheels to passively gain multipliers for things; Levels of Waterwheels don't scale in requirement; Keep getting more Surge Milestones",
         progressionGoal: "Reach Surge Milestone 125",
         text: "Make sure to turn on the Flow States of each Waterwheel you own somewhat frequently, as idling on just one Waterwheel is slow. You will need to continue doing more Surge and Experiment resets and researching Lab Nodes to progress further.",
         nerdModeText: `<div>Both the effect from Waterwheels (+100% per level) and the requirements of each Waterwheel are constant.<br>Because the requirements of each Waterwheel are constant, there are no softcaps and it can scale infinitely.<br>For information on Waterwheel FP requirements, hover over Waterwheel bars to display a tooltip.<br>The Endless FP upgrade has a Harshness value of 5.</div>`,
@@ -509,11 +502,7 @@ function renderHelpContent(force = false) {
             paragraphContent = currentEntry.nerdModeText;
         }
     } else {
-        if (currentEntry.tldr) {
-            paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${entryText}`;
-        } else {
-            paragraphContent = entryText;
-        }
+        paragraphContent = entryText;
     }
     if (currentEntry.progressionGoal && !(isNerdMode && currentEntry.nerdModeText)) {
         paragraphContent += `<strong style="display: block; margin-top: 12px;">Progression goal: ${currentEntry.progressionGoal}</strong>`;
