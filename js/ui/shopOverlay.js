@@ -56,8 +56,9 @@ import {
 import { DNA_AREA_KEY } from "../game/dnaUpgrades.js";
 import { RUBBLE_AREA_KEY } from "../game/rubbleUpgrades.js";
 import { setHtmlOrText } from "../util/uiHelpers.js";
-import { parseBigNumInput } from "../util/debugPanel.js";
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
+import { showWideNotification } from "./notifications.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "./minerTabs/collapseTab.js";
 // --- Shared State ---
 const scrollingElements = new Set();
 export function isAnyMenuScrolling() {
@@ -2481,6 +2482,16 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
                         setAllAutobuyersForCostType(masterCostType, newState);
                     } else {
                         setAutobuyerToggle(upgDef.area, upgDef.id, val);
+                        if (!newState && isEndlessFp) {
+                            const slot = getActiveSlot();
+                            if (slot != null && isCollapseChallengeActive(slot) && getActiveCollapseChallengeType(slot) === "iron") {
+                                const alreadyShown = lsGetItem(`ccc:veryCleverShown:${slot}`) === "1";
+                                if (!alreadyShown) {
+                                    lsSetItem(`ccc:veryCleverShown:${slot}`, "1");
+                                    showWideNotification("Very clever", 5000);
+                                }
+                            }
+                        }
                     }
                     window.dispatchEvent(new CustomEvent("currency:change"));
                     document.dispatchEvent(new CustomEvent("ccc:upgrades:changed"));
