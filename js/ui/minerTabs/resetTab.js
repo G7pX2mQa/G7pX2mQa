@@ -1033,6 +1033,26 @@ window.onCombineUpgradeUnlocked = function () {
     }
 };
 if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => {
+        resetState.flagsPrimed = false;
+        ensurePersistentFlagsPrimed();
+    });
+    window.addEventListener("saveData:imported", (e) => {
+        const slot = e.detail?.slot;
+        const activeSlot = getActiveSlot();
+        if (slot == null || slot === activeSlot) {
+            resetState.flagsPrimed = false;
+            ensurePersistentFlagsPrimed();
+            const minerSheetEl = document.querySelector(".merchant-overlay.is-miner .merchant-sheet");
+            if (minerSheetEl) {
+                updateCombinePanelVisibility(minerSheetEl);
+                updateCompressPanelVisibility(minerSheetEl);
+            }
+            updateCombineCard();
+            updateCompressCard();
+            recomputePendingCoresAndCrystals();
+        }
+    });
     window.resetSystem = window.resetSystem || {};
     Object.assign(window.resetSystem, {
         initCombinePanel,
