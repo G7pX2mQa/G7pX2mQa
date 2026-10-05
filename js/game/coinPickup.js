@@ -536,7 +536,11 @@ export function initCoinPickup({
     };
     window.addEventListener("saveSlot:change", onSaveSlotChange);
     const onCoinMultiplierChange = (event) => {
-        if (!event?.detail || event.detail.key !== "coins") return;
+        if (!event?.detail) {
+            refreshCoinMultiplierCache();
+            return;
+        }
+        if (event.detail.key !== "coins") return;
         try {
             const { mult } = event.detail;
             if (mult instanceof BigNum) {
@@ -553,6 +557,10 @@ export function initCoinPickup({
         }
     };
     window.addEventListener("currency:multiplier", onCoinMultiplierChange);
+    window.addEventListener("collapse:challenge:start", refreshCoinMultiplierCache);
+    window.addEventListener("collapse:challenge:exit", refreshCoinMultiplierCache);
+    window.addEventListener("collapse:challenge:complete", refreshCoinMultiplierCache);
+    window.addEventListener("rubbleMode:toggled", refreshCoinMultiplierCache);
     // ----- Slot-scoped shop unlock/progress keys -----
     const slot = getActiveSlot();
     if (slot != null) {
@@ -881,6 +889,10 @@ export function initCoinPickup({
         if (typeof window !== "undefined") {
             window.removeEventListener("beforeunload", flushPendingGains);
             window.removeEventListener("currency:multiplier", onCoinMultiplierChange);
+            window.removeEventListener("collapse:challenge:start", refreshCoinMultiplierCache);
+            window.removeEventListener("collapse:challenge:exit", refreshCoinMultiplierCache);
+            window.removeEventListener("collapse:challenge:complete", refreshCoinMultiplierCache);
+            window.removeEventListener("rubbleMode:toggled", refreshCoinMultiplierCache);
             window.removeEventListener("currency:change", onCurrencyChange);
             window.removeEventListener("saveSlot:change", onSaveSlotChange);
         }
