@@ -126,9 +126,9 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.DEPTH,
         name: "Depth Waterwheel",
         image: "img/waterwheels/waterwheel_depth.webp",
-        baseReq: "1e180",
+        baseReq: "1e195",
         unlocked: false,
-        styleKey: "depth",
+        styleKey: "dp",
         customUnlockCheck: () => {
             try {
                 const slot = getActiveSlot();
