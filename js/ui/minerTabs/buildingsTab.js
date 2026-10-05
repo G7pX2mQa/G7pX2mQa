@@ -1060,6 +1060,7 @@ export function addBuildingLevel(id, amountToAddBn) {
 }
 
 export function getBuildingRatio(id) {
+    if (id === "prismatium") return 10;
     if (id === "core" || id === "crystal") return 1.56;
     let idx = BUILDING_IDS.indexOf(id);
     if (idx <= 2) return 1.2;
