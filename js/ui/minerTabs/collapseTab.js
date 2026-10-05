@@ -1015,7 +1015,7 @@ You will soon discover the final Material, and you will soon witness the final B
 As usual, prepare your Lab Nodes and other things before starting for a faster completion
 
 Effect: The Vault Building becomes infused with Magic, and traps a logarithmic half of all currencies inside it
-Goal: ???atm [placeholder]
+Goal: Reach Pressure: 50atm
 Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
@@ -1050,6 +1050,13 @@ Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
             } catch {}
         }
         if (challengeId === "iron") {
+            try {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(50) >= 0) {
+                    return true;
+                }
+            } catch {}
+        }
+        if (challengeId === "pure_gold") {
             try {
                 if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(50) >= 0) {
                     return true;
