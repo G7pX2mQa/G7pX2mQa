@@ -3219,6 +3219,3 @@ window.addEventListener("webglcontextlost", (e) => {
 }, true);
 
 window.enterArea = enterArea;
-
-
-
