@@ -141,4 +141,26 @@ export const RUBBLE_REGISTRY = [
             return computeRubbleLockState(this.challengeMaterial);
         }
     },
+    {
+        area: RUBBLE_AREA_KEY,
+        id: 4,
+        title: "Rubble Magic Value",
+        desc: "Multiplies Magic value by 10x per level",
+        lvlCap: Infinity,
+        baseCost: 1e6,
+        costType: "rubble",
+        upgType: "NM",
+        scalingPreset: 'NM',
+        scaling: { ratio: 10 },
+        effectType: "magic_value",
+        challengeMaterial: "pure_gold",
+        icon: "img/lab_icons/magic_val0.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        _baseEffectVal: 10,
+        _costScaling: true,
+        bonusLine: (level, total) => `Magic value bonus: ${formatMultForUi(total)}x`,
+        computeLockState() {
+            return computeRubbleLockState(this.challengeMaterial);
+        }
+    },
 ];
