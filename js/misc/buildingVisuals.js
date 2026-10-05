@@ -90,6 +90,7 @@ let stonePattern = null;
 let copperPattern = null;
 let ironPattern = null;
 let pureGoldPattern = null;
+let magicPurplePattern = null;
 let diamondPattern = null;
 let darkDiamondPattern = null;
 let emeraldPattern = null;
@@ -248,6 +249,38 @@ function initPureGoldPattern(ctx) {
       pureGoldPattern = targetCtx.createPattern(patternCanvas, "repeat");
     } catch (e) {
       console.error("Failed to create pure gold pattern", e);
+    }
+  }
+}
+
+function initMagicPurplePattern(ctx) {
+  if (magicPurplePattern) return;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = 64;
+  patternCanvas.height = 64;
+  const pCtx = patternCanvas.getContext("2d");
+
+  // Deep rich purple base matching Magic currency
+  pCtx.fillStyle = "#52177a";
+  pCtx.fillRect(0, 0, 64, 64);
+
+  const imgData = pCtx.getImageData(0, 0, 64, 64);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 30;
+    data[i] = Math.max(0, Math.min(255, data[i] + noise * 0.8));
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.3));
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 1.0));
+  }
+  pCtx.putImageData(imgData, 0, 0);
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      magicPurplePattern = targetCtx.createPattern(patternCanvas, "repeat");
+    } catch (e) {
+      console.error("Failed to create magic purple pattern", e);
     }
   }
 }
@@ -1851,8 +1884,14 @@ function drawCavern(ctx, w, h, t) {
       topY / 2,
       glowRadius,
     );
-    glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
-    glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+    const isPureGoldChallenge = currentBuildingId === "pure_gold" && typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "pure_gold";
+    if (isPureGoldChallenge) {
+      glowGrad.addColorStop(0, "rgba(147, 51, 234, 0.22)");
+      glowGrad.addColorStop(1, "rgba(88, 28, 135, 0)");
+    } else {
+      glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
+      glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+    }
     ctx.fillStyle = glowGrad;
     ctx.beginPath();
     ctx.arc(glowOffsetX, topY / 2, glowRadius, 0, Math.PI * 2);
@@ -6070,6 +6109,8 @@ function drawRefinery(ctx, times, tier, prevTier, animProgress) {
 
 let cachedFaceOnLink = null;
 let cachedSideOnLink = null;
+let cachedFaceOnLinkPurple = null;
+let cachedSideOnLinkPurple = null;
 const cachedForcefields = {};
 
 function getMatchLength(str, target) {
@@ -6238,13 +6279,25 @@ function handleVaultCanvasClick(e) {
 }
 
 function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
-  if (!pureGoldPattern && activeCtx) {
-    initPureGoldPattern(activeCtx);
-  } else if (!pureGoldPattern) {
-    initPureGoldPattern(ctx);
+  const isPureGoldChallenge = typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "pure_gold";
+
+  if (isPureGoldChallenge) {
+    if (!magicPurplePattern && activeCtx) {
+      initMagicPurplePattern(activeCtx);
+    } else if (!magicPurplePattern) {
+      initMagicPurplePattern(ctx);
+    }
+  } else {
+    if (!pureGoldPattern && activeCtx) {
+      initPureGoldPattern(activeCtx);
+    } else if (!pureGoldPattern) {
+      initPureGoldPattern(ctx);
+    }
   }
 
-  const fillGold = pureGoldPattern ? pureGoldPattern : "#FFD700";
+  const fillGold = isPureGoldChallenge
+    ? (magicPurplePattern ? magicPurplePattern : "#52177a")
+    : (pureGoldPattern ? pureGoldPattern : "#FFD700");
   
   // Progress helpers for smooth fading
   const getProg = (targetTier) => tier >= targetTier && prevTier < targetTier ? animProgress : (tier >= targetTier ? 1 : 0);
@@ -6306,9 +6359,9 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
 
 
   // Caching arrays for the forcefield frames to avoid computing/rendering hexagon paths every single frame
-  const getCachedForcefield = (radiusX, radiusY, centerY, bottomY, hexScale, isBack) => {
+  const getCachedForcefield = (radiusX, radiusY, centerY, bottomY, hexScale, isBack, isPurple = false) => {
     // A unique key for this configuration
-    const key = `${radiusX}_${radiusY}_${centerY}_${bottomY}_${hexScale}_${isBack}`;
+    const key = `${radiusX}_${radiusY}_${centerY}_${bottomY}_${hexScale}_${isBack}_${isPurple ? "purple" : "red"}`;
     
     if (cachedForcefields[key]) {
       return cachedForcefields[key];
@@ -6344,15 +6397,22 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       octx.translate(offsetX, -offsetY_canvas);
       
       // Render frame
-      // Smooth 3D Red Holographic Shield Barrier
+      // Smooth 3D Holographic Shield Barrier (Purple in challenge, Red normally)
       if (!isBack) {
         const domeGrad = octx.createRadialGradient(0, centerY + radiusY*0.3, radiusY*0.1, 0, centerY, radiusX);
-        domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
-        domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
-        domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
-        
-        octx.fillStyle = domeGrad;
-        octx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+        if (isPurple) {
+          domeGrad.addColorStop(0, "rgba(168, 85, 247, 0.05)");
+          domeGrad.addColorStop(0.7, "rgba(168, 85, 247, 0.22)");
+          domeGrad.addColorStop(1, "rgba(147, 51, 234, 0.85)");
+          octx.fillStyle = domeGrad;
+          octx.strokeStyle = "rgba(192, 132, 252, 0.85)";
+        } else {
+          domeGrad.addColorStop(0, "rgba(255, 0, 0, 0.05)");
+          domeGrad.addColorStop(0.7, "rgba(255, 0, 0, 0.2)");
+          domeGrad.addColorStop(1, "rgba(255, 0, 0, 0.8)");
+          octx.fillStyle = domeGrad;
+          octx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+        }
         octx.lineWidth = 3;
         
         octx.beginPath();
@@ -6372,7 +6432,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       octx.save();
       octx.clip();
       
-      octx.strokeStyle = "rgba(255, 100, 100, 0.4)";
+      octx.strokeStyle = isPurple ? "rgba(216, 180, 254, 0.4)" : "rgba(255, 100, 100, 0.4)";
       octx.lineWidth = 1;
       octx.beginPath();
       
@@ -6439,7 +6499,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         }
       }
       
-      octx.strokeStyle = "rgba(255, 70, 70, 0.6)";
+      octx.strokeStyle = isPurple ? "rgba(147, 51, 234, 0.55)" : "rgba(255, 70, 70, 0.6)";
       octx.lineWidth = 2.5;
       octx.shadowBlur = 0;
       octx.stroke();
@@ -6447,7 +6507,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       octx.restore();
 
       if (!isBack) {
-        octx.strokeStyle = "rgba(255, 50, 50, 0.8)";
+        octx.strokeStyle = isPurple ? "rgba(168, 85, 247, 0.75)" : "rgba(255, 50, 50, 0.8)";
         octx.lineWidth = 4;
         octx.beginPath();
         octx.ellipse(0, centerY, radiusX, radiusY, 0, Math.PI, 0); 
@@ -6474,7 +6534,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     if (alpha <= 0) return;
     
     // Get or generate the cached frames for this configuration
-    const cachedData = getCachedForcefield(radiusX, radiusY, centerY, bottomY, hexScale, isBack);
+    const cachedData = getCachedForcefield(radiusX, radiusY, centerY, bottomY, hexScale, isBack, isPureGoldChallenge);
     
     const hexSize = 15 * hexScale;
     const scrollSpeed = 20 * hexScale;
@@ -6508,16 +6568,16 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = alpha;
     
-    // Main solid golden cube
+    // Main solid golden/purple cube
     drawPolygon([
       {x: -60, y: 0}, {x: -60, y: -100}, {x: 60, y: -100}, {x: 60, y: 0}
     ], fillGold, fillGold, 4, alpha);
 
     // If opening or open, draw dark interior and spinning coin
     if (isVaultOpening || isVaultOpen) {
-      ctx.fillStyle = "#111111";
+      ctx.fillStyle = isPureGoldChallenge ? "#0f031e" : "#111111";
       ctx.fillRect(-50, -90, 100, 80);
-      ctx.strokeStyle = "#000000";
+      ctx.strokeStyle = isPureGoldChallenge ? "#250742" : "#000000";
       ctx.lineWidth = 2;
       ctx.strokeRect(-50, -90, 100, 80);
       
@@ -6547,21 +6607,21 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.translate(50, 0);
     }
     
-    // Vault door fill (using pure gold texture)
+    // Vault door fill (using pure gold texture or purple texture)
     ctx.fillStyle = fillGold;
     ctx.fillRect(-50, -90, 100, 80);
     
     // Vault door outline
-    ctx.strokeStyle = "#000000";
+    ctx.strokeStyle = isPureGoldChallenge ? "#250742" : "#000000";
     ctx.lineWidth = 2;
     ctx.strokeRect(-50, -90, 100, 80);
     
     // Central mechanical dial
-    ctx.fillStyle = "#000000";
+    ctx.fillStyle = isPureGoldChallenge ? "#18042e" : "#000000";
     ctx.beginPath();
     ctx.arc(0, -50, 20, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#fff";
+    ctx.strokeStyle = isPureGoldChallenge ? "#9333ea" : "#fff";
     ctx.lineWidth = 1;
     ctx.stroke();
     
@@ -6569,6 +6629,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.translate(0, -50);
     ctx.rotate(t * 0.5); // Slow mechanical turn
+    ctx.strokeStyle = isPureGoldChallenge ? "#c084fc" : "#fff";
     for (let i = 0; i < 12; i++) {
       ctx.beginPath();
       ctx.moveTo(10, 0);
@@ -6594,9 +6655,9 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     };
     
     drawRoundRect(31, -62, 8, 24, 4);
-    ctx.fillStyle = "#000000";
+    ctx.fillStyle = isPureGoldChallenge ? "#18042e" : "#000000";
     ctx.fill();
-    ctx.strokeStyle = "#000000";
+    ctx.strokeStyle = isPureGoldChallenge ? "#581c87" : "#000000";
     ctx.lineWidth = 1.5;
     ctx.stroke();
     
@@ -6608,8 +6669,9 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   
 
 
-  function initChainPaths(fillGold) {
-    if (cachedFaceOnLink) return;
+  function initChainPaths(fillGold, isPurple = false) {
+    if (isPurple && cachedFaceOnLinkPurple) return;
+    if (!isPurple && cachedFaceOnLink) return;
     
     let hw = 6, hh = 3.5, r = 3;
     const faceOnLinkPath = new Path2D();
@@ -6647,42 +6709,52 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     sideOnLinkHighlightPath.moveTo(-4.5, -1);
     sideOnLinkHighlightPath.lineTo(4.5, -1);
 
+    let targetFaceCanvas, targetSideCanvas;
     if (typeof OffscreenCanvas !== 'undefined') {
-        cachedFaceOnLink = new OffscreenCanvas(20, 20);
-        cachedSideOnLink = new OffscreenCanvas(20, 20);
+        targetFaceCanvas = new OffscreenCanvas(20, 20);
+        targetSideCanvas = new OffscreenCanvas(20, 20);
     } else {
-        cachedFaceOnLink = document.createElement("canvas");
-        cachedFaceOnLink.width = 20;
-        cachedFaceOnLink.height = 20;
-        cachedSideOnLink = document.createElement("canvas");
-        cachedSideOnLink.width = 20;
-        cachedSideOnLink.height = 20;
+        targetFaceCanvas = document.createElement("canvas");
+        targetFaceCanvas.width = 20;
+        targetFaceCanvas.height = 20;
+        targetSideCanvas = document.createElement("canvas");
+        targetSideCanvas.width = 20;
+        targetSideCanvas.height = 20;
     }
 
-    const faceCtx = cachedFaceOnLink.getContext("2d");
+    const faceCtx = targetFaceCanvas.getContext("2d");
     faceCtx.translate(10, 10);
     faceCtx.strokeStyle = fillGold;
     faceCtx.lineWidth = 2.5;
     faceCtx.lineCap = "round";
     faceCtx.lineJoin = "round";
     faceCtx.stroke(faceOnLinkPath);
-    faceCtx.strokeStyle = "#B39700";
+    faceCtx.strokeStyle = isPurple ? "#3b0764" : "#B39700";
     faceCtx.lineWidth = 0.5;
     faceCtx.stroke(faceOnLinkShadowPath);
 
-    const sideCtx = cachedSideOnLink.getContext("2d");
+    const sideCtx = targetSideCanvas.getContext("2d");
     sideCtx.translate(10, 10);
     sideCtx.strokeStyle = fillGold;
     sideCtx.lineWidth = 3.5; 
     sideCtx.lineCap = "round"; 
     sideCtx.stroke(sideOnLinkPath);
-    sideCtx.strokeStyle = "#B39700";
+    sideCtx.strokeStyle = isPurple ? "#3b0764" : "#B39700";
     sideCtx.lineWidth = 1;
     sideCtx.stroke(sideOnLinkShadowPath);
-    sideCtx.strokeStyle = "#FFE866";
+    sideCtx.strokeStyle = isPurple ? "#a855f7" : "#FFE866";
     sideCtx.lineWidth = 1;
     sideCtx.stroke(sideOnLinkHighlightPath);
-}
+
+    if (isPurple) {
+        cachedFaceOnLinkPurple = targetFaceCanvas;
+        cachedSideOnLinkPurple = targetSideCanvas;
+    } else {
+        cachedFaceOnLink = targetFaceCanvas;
+        cachedSideOnLink = targetSideCanvas;
+    }
+  }
+
   const drawT7Chains = (isBack, part = "all") => {
     if (t7 <= 0) return;
     ctx.save();
@@ -6763,13 +6835,15 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         ctx.rotate(angle);
         
         // Draw individual link
-        initChainPaths(fillGold);
+        initChainPaths(fillGold, isPureGoldChallenge);
+        const faceCanvas = isPureGoldChallenge ? cachedFaceOnLinkPurple : cachedFaceOnLink;
+        const sideCanvas = isPureGoldChallenge ? cachedSideOnLinkPurple : cachedSideOnLink;
         if (i % 2 === 0) {
             // "Face on" link
-            ctx.drawImage(cachedFaceOnLink, -10, -10);
+            ctx.drawImage(faceCanvas, -10, -10);
         } else {
             // "Side on" link
-            ctx.drawImage(cachedSideOnLink, -10, -10);
+            ctx.drawImage(sideCanvas, -10, -10);
         }
         
         ctx.restore();
@@ -6794,8 +6868,6 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     
     ctx.restore();
   };
-
-
 
   const drawT6Drones = (isBack, renderPass = "both") => {
     if (t6 <= 0) return;
@@ -6831,8 +6903,8 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.scale(scale, scale);
       
       if (renderPass === "both" || renderPass === "body") {
-        // Drone Body (Sleek black & gold)
-        ctx.fillStyle = "#000000";
+        // Drone Body (Sleek dark violet & gold/purple)
+        ctx.fillStyle = isPureGoldChallenge ? "#0f031e" : "#000000";
         ctx.beginPath();
         ctx.moveTo(-15, 0);
         ctx.lineTo(0, -10);
@@ -6887,10 +6959,10 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
           ctx.scale(scale, scale);
         }
 
-        // Drone Core (Glowing Red Eye)
+        // Drone Core (Glowing Eye)
         const pulse = (Math.sin(t * 8 + i * Math.PI) + 1) / 2;
-        ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
-        ctx.shadowColor = "#ff0000";
+        ctx.fillStyle = isPureGoldChallenge ? `rgba(168, 85, 247, ${0.8 + pulse * 0.2})` : `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
+        ctx.shadowColor = isPureGoldChallenge ? "#9333ea" : "#ff0000";
         ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.arc(0, 0, 4, 0, Math.PI * 2);
@@ -6904,8 +6976,13 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
         ctx.rotate(sweepAngle);
         
         const laserGrad = ctx.createLinearGradient(0, 0, 0, 150);
-        laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
-        laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
+        if (isPureGoldChallenge) {
+          laserGrad.addColorStop(0, "rgba(147, 51, 234, 0.40)");
+          laserGrad.addColorStop(1, "rgba(88, 28, 135, 0.0)");
+        } else {
+          laserGrad.addColorStop(0, "rgba(255, 50, 50, 0.4)");
+          laserGrad.addColorStop(1, "rgba(255, 50, 50, 0.0)");
+        }
         
         ctx.fillStyle = laserGrad;
         ctx.beginPath();
@@ -7004,27 +7081,19 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = t1;
     
-    // Steel framing Outline (Darkened pure gold texture)
-    
-    ctx.strokeStyle = '#000';
+    // Steel framing Outline (Darkened pure gold / purple texture)
+    ctx.strokeStyle = isPureGoldChallenge ? "#120224" : '#000';
     ctx.lineWidth = 15;
     ctx.strokeRect(-67.5, -107.5, 135, 115);
     
     // Draw 1px black outline on edges of the thick frame
-    ctx.strokeStyle = "#000000";
+    ctx.strokeStyle = isPureGoldChallenge ? "#250742" : "#000000";
     ctx.lineWidth = 1;
     ctx.strokeRect(-75, -115, 150, 130); // outer bound
     ctx.strokeRect(-60, -100, 120, 100); // inner bound
 
     // Large industrial rivets
-    ctx.fillStyle = "#888";
-    
-    // The frame is drawn at x: -67.5, y: -107.5, width: 135, height: 115
-    // Left edge: x = -67.5
-    // Right edge: x = 67.5
-    // Top edge: y = -107.5
-    // Bottom edge: y = 7.5
-    // The corner coordinates are: (-67.5, -107.5), (67.5, -107.5), (67.5, 7.5), (-67.5, 7.5)
+    ctx.fillStyle = isPureGoldChallenge ? "#9333ea" : "#888";
     
     const corners = [
       {x: -67.5, y: -107.5},
@@ -7037,10 +7106,6 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     for (let p of corners) {
       ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
     }
-    
-    // Draw edges
-    // Distance horizontally is 135. Let's do 8 intervals (7 intermediate points)
-    // Distance vertically is 115. Let's do 7 intervals (6 intermediate points)
     
     const hIntervals = 7;
     const vIntervals = 6;
@@ -7068,15 +7133,13 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.globalAlpha = t2;
     
     // Electronic keypad (shifted up to y=-88 to match horizontal margin of 2px)
-    ctx.fillStyle = "#111";
+    ctx.fillStyle = isPureGoldChallenge ? "#0f031e" : "#111";
     ctx.fillRect(-48, -88, 25, 36);
     
     // Blinking status lights
-    // If vault is open / perfectly matched: solid green
-    // If we have entered some numbers but not matched yet: let's determine if we have a valid prefix prefix sequence
     const seq = getVaultSequence();
     const target = "7887773346665553";
-    let lightColor = "#ff0000"; // Solid red by default/idle (not touched)
+    let lightColor = isPureGoldChallenge ? "#9333ea" : "#ff0000"; // Solid red or purple by default/idle
     
     if (seq === target) {
       lightColor = "#00ff00"; // Solid green
@@ -7085,7 +7148,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       if (matchLen > 0) {
         lightColor = "#00ff00"; // Solid green on correct prefix match
       } else {
-        lightColor = "#ff0000"; // Solid red on incorrect prefix
+        lightColor = isPureGoldChallenge ? "#7e22ce" : "#ff0000";
       }
     }
 
@@ -7095,7 +7158,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.fill();
     
     // Keypad grid
-    ctx.fillStyle = "#555";
+    ctx.fillStyle = isPureGoldChallenge ? "#250742" : "#555";
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
         ctx.fillRect(-45 + c * 7, -73 + r * 7, 5, 5);
@@ -7119,14 +7182,12 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     const sweep = Math.sin(t * 2);
     const laserY = -50 + sweep * 60; // sweep mostly along the new height
     
-    ctx.strokeStyle = "rgba(255, 0, 0, 0.6)";
+    ctx.strokeStyle = isPureGoldChallenge ? "rgba(168, 85, 247, 0.85)" : "rgba(255, 0, 0, 0.6)";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(-80, laserY);
     ctx.lineTo(80, laserY);
     ctx.stroke();
-    
-    // Laser glow removed per request (laser is shooting from the inside side of the base, perpendicular to POV)
     
     ctx.restore();
   }
@@ -7151,7 +7212,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.save();
       ctx.translate(xPos, 15); // Anchor to ground
       
-      // Base pedestal (pure gold texture)
+      // Base pedestal
       ctx.fillStyle = fillGold;
       ctx.beginPath();
       ctx.moveTo(-20, 0);
@@ -7174,7 +7235,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       
       // Inner glowing core track (exposed center)
       const pulse = (Math.sin(t * 5) + 1) / 2;
-      ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`;
+      ctx.fillStyle = isPureGoldChallenge ? `rgba(147, 51, 234, ${0.5 + pulse * 0.5})` : `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`;
       ctx.beginPath();
       ctx.moveTo(-4, -20);
       ctx.lineTo(4, -20);
@@ -7184,11 +7245,11 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.fill();
       
       // Top energy sphere
-      ctx.fillStyle = `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
+      ctx.fillStyle = isPureGoldChallenge ? `rgba(168, 85, 247, ${0.8 + pulse * 0.2})` : `rgba(255, 50, 50, ${0.8 + pulse * 0.2})`;
       ctx.beginPath();
       ctx.arc(0, -155, 4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowColor = "#ff0000";
+      ctx.shadowColor = isPureGoldChallenge ? "#9333ea" : "#ff0000";
       ctx.shadowBlur = 10;
       ctx.fill();
       
@@ -7199,7 +7260,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     drawObeliskPylon(165);
     
     // Animated lightning arcs to shield
-    ctx.strokeStyle = "rgba(255, 50, 50, 0.8)"; // Red color
+    ctx.strokeStyle = isPureGoldChallenge ? "rgba(192, 132, 252, 0.85)" : "rgba(255, 50, 50, 0.8)";
     ctx.lineWidth = 2;
       
     // Arc from left pylon top sphere (-165, 15 - 155 = -140)
@@ -7228,8 +7289,6 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     drawT6Drones(true, "lights");
   }
 
-
-  
   // --- Tier 6: Hovering Security Drones ---
   if (t6 > 0) {
     drawT6Drones(false);
@@ -7278,13 +7337,13 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     keypadCtx.scale(zoomFactor, zoomFactor);
 
     // Keypad body
-    keypadCtx.fillStyle = "#111111";
+    keypadCtx.fillStyle = isPureGoldChallenge ? "#0f031e" : "#111111";
     keypadCtx.fillRect(-12.5, -18, 25, 36);
 
     // Status light on zoomed keypad
     const zoomSeq = getVaultSequence();
     const zoomTarget = "7887773346665553";
-    let zoomLightColor = "#ff0000"; // Solid red by default/idle
+    let zoomLightColor = isPureGoldChallenge ? "#9333ea" : "#ff0000"; // Solid red/purple by default/idle
     
     if (zoomSeq === zoomTarget) {
       zoomLightColor = "#00ff00"; // Solid green
@@ -7293,7 +7352,7 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       if (matchLen > 0) {
         zoomLightColor = "#00ff00"; // Solid green on correct prefix match
       } else {
-        zoomLightColor = "#ff0000"; // Solid red on incorrect prefix
+        zoomLightColor = isPureGoldChallenge ? "#7e22ce" : "#ff0000";
       }
     }
     
@@ -7330,11 +7389,13 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
 
         const isHovered = currentHoveredNum === btnNum;
         const isHighlighted = isHovered || lastHotkeyNum === btnNum;
-        keypadCtx.fillStyle = isHighlighted ? "#656565" : "#434343";
+        keypadCtx.fillStyle = isHighlighted
+          ? (isPureGoldChallenge ? "#581c87" : "#656565")
+          : (isPureGoldChallenge ? "#250742" : "#434343");
         keypadCtx.fillRect(bx, by, 5, 5);
 
         if (isHighlighted) {
-          keypadCtx.strokeStyle = "#00ffff";
+          keypadCtx.strokeStyle = isPureGoldChallenge ? "#a855f7" : "#00ffff";
           keypadCtx.lineWidth = 0.5;
           keypadCtx.strokeRect(bx, by, 5, 5);
         }
