@@ -126,7 +126,7 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.DEPTH,
         name: "Depth Waterwheel",
         image: "img/waterwheels/waterwheel_depth.webp",
-        baseReq: "1e200",
+        baseReq: "1e180",
         unlocked: false,
         styleKey: "depth",
         customUnlockCheck: () => {
