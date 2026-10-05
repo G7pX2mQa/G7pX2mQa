@@ -540,12 +540,12 @@ export function updateSellTab() {
             }
         }
     }
+	
     if (seenChanged) {
         try {
             lsSetItem(`ccc:sellSeenMaterials:${slotKey}`, JSON.stringify(seenMaterials));
         } catch {}
     }
-
 
     for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
         const t = UC_MATERIAL_DATA[i];
