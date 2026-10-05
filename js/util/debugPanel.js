@@ -5756,6 +5756,18 @@ function buildFlowDebug(container) {
     });
 }
 
+function getPrismatiumBuildingName(level = getBuildingLevel("prismatium")) {
+    const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
+    let tier = 0;
+    const num = levelBigNumToNumber(level);
+    for (let i = 0; i < TIERS.length; i++) {
+        if (num >= TIERS[i]) tier = i + 1;
+    }
+    if (tier >= 8) return "Hexeract";
+    if (tier >= 4) return "Penteract";
+    return "Tesseract";
+}
+
 function buildBuildingsDebug(container) {
     const slot = getActiveSlot();
     if (slot == null) {
@@ -5771,15 +5783,7 @@ function buildBuildingsDebug(container) {
         
         let buildingName = BUILDING_NAMES[id] || id;
         if (id === "prismatium") {
-            const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
-            let tier = 0;
-            const num = levelBigNumToNumber(currentLevel);
-            for (let i = 0; i < TIERS.length; i++) {
-                if (num >= TIERS[i]) tier = i + 1;
-            }
-            if (tier >= 8) buildingName = "Hexeract";
-            else if (tier >= 4) buildingName = "Penteract";
-            else buildingName = "Tesseract";
+            buildingName = getPrismatiumBuildingName(currentLevel);
             BUILDING_NAMES[id] = buildingName;
         }
         
@@ -5830,8 +5834,9 @@ function buildBuildingsDebug(container) {
 
                 if (!bigNumEquals(prev, latest)) {
                     flagDebugUsage();
+                    const actionName = id === "prismatium" ? getPrismatiumBuildingName(latest) : (BUILDING_NAMES[id] || id);
                     logAction(
-                        `Modified Building ${title} Level (Underwater Cavern) ${formatNumber(prev)} → ${formatNumber(latest)}`,
+                        `Modified Building ${actionName} Level (Underwater Cavern) ${formatNumber(prev)} → ${formatNumber(latest)}`,
                     );
                 }
             },
@@ -5849,15 +5854,7 @@ function buildBuildingsDebug(container) {
                 const lvl = getBuildingLevel(id);
                 row.setValue(lvl);
                 if (id === "prismatium") {
-                    const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
-                    let tier = 0;
-                    const num = levelBigNumToNumber(lvl);
-                    for (let i = 0; i < TIERS.length; i++) {
-                        if (num >= TIERS[i]) tier = i + 1;
-                    }
-                    let name = "Tesseract";
-                    if (tier >= 8) name = "Hexeract";
-                    else if (tier >= 4) name = "Penteract";
+                    const name = getPrismatiumBuildingName(lvl);
                     
                     if (BUILDING_NAMES[id] !== name) {
                         BUILDING_NAMES[id] = name;
@@ -6982,9 +6979,13 @@ function buildUnlocksContent(content) {
     content.appendChild(createSubsection("Buildings", (buildingsContent) => {
         BUILDING_IDS.forEach((id) => {
             let buildingName = BUILDING_NAMES[id] || id;
+            if (id === "prismatium") {
+                buildingName = getPrismatiumBuildingName();
+                BUILDING_NAMES[id] = buildingName;
+            }
             const subsectionTitle = buildingName;
 
-            buildingsContent.appendChild(createSubsection(subsectionTitle, (buildingContent) => {
+            const subContainer = createSubsection(subsectionTitle, (buildingContent) => {
                 for (let tier = 1; tier <= 8; tier++) {
                     let tierLabel;
                     if (id === "prismatium") {
@@ -7005,7 +7006,29 @@ function buildUnlocksContent(content) {
                     };
                     buildingContent.appendChild(createUnlockToggleRow(rowDef));
                 }
-            }));
+            });
+
+            if (id === "prismatium") {
+                const toggleBtn = subContainer.querySelector(".debug-panel-subsection-toggle");
+                registerLiveBinding({
+                    type: "building-level",
+                    slot,
+                    id: id,
+                    refresh: () => {
+                        if (slot !== getActiveSlot()) return;
+                        const lvl = getBuildingLevel(id);
+                        const name = getPrismatiumBuildingName(lvl);
+                        if (BUILDING_NAMES[id] !== name) {
+                            BUILDING_NAMES[id] = name;
+                        }
+                        if (toggleBtn) {
+                            toggleBtn.textContent = name;
+                        }
+                    },
+                });
+            }
+
+            buildingsContent.appendChild(subContainer);
         });
     }));
 
@@ -7426,6 +7449,13 @@ window.addEventListener("saveData:imported", (e) => {
     const slot = e.detail?.slot;
     if (slot == null) return;
     clearDebugLocksForSlot(slot);
+    const targetSlot = getActiveSlot();
+    try {
+        refreshLiveBindings((binding) => binding.slot === targetSlot || binding.slot == null);
+    } catch {}
+    if (debugPanelOpen) {
+        buildDebugPanel();
+    }
 });
 
 window.addEventListener("boot:complete", () => {
