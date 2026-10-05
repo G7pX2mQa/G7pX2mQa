@@ -712,6 +712,20 @@ export function unlockPpSystem() {
     return true;
 }
 if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => {
+        ensureStateLoaded(true);
+        updatePpRequirement();
+        updateHud();
+    });
+    window.addEventListener("saveData:imported", (e) => {
+        const slot = e.detail?.slot;
+        const activeSlot = getActiveSlot();
+        if (slot == null || slot === activeSlot) {
+            ensureStateLoaded(true);
+            updatePpRequirement();
+            updateHud();
+        }
+    });
     window.addEventListener("collapse:challenge:exit", () => {
         ensureStateLoaded(true);
         updateHud();
