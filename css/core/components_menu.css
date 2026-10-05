@@ -63,6 +63,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  transition: background 90ms ease, border-color 90ms ease;
 }
 
 .slot-card:hover {
@@ -244,9 +245,6 @@ html.is-mobile {
 .btn:hover{ background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
 .btn:active{ transform: none; }
 
-.btn-ghost{ opacity:.9; transition: none; }
-.btn-ghost:hover{ opacity:1; background: rgba(18, 26, 46, 0.74); }
-
 #manage-saves {
   position: relative;
   border: 1px solid transparent !important;
@@ -317,7 +315,7 @@ html.is-mobile {
 
 #manage-saves:hover {
   --manage-overlay: rgba(18, 26, 46, 0.74);
-  --btn-bg-current: #414141;
+  --btn-bg-current: #404040;
 }
 
 #manage-saves:active {
