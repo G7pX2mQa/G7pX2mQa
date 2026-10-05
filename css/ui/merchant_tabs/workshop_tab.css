@@ -62,7 +62,7 @@ html:not(.is-mobile) {
   display: none; /* Hidden by default on small screens */
   pointer-events: none; /* purely decorative */
   border: 2px solid #6a6a6a;
-  border-radius: 4px;
+  border-radius: 6px;
   z-index: 5;
 }
 
@@ -100,7 +100,7 @@ html:not(.is-mobile) {
 .workshop-info-panel {
   background-color: #333;
   padding: 16px;
-  border-radius: 4px;
+  border-radius: 6px;
   border: 2px solid #6a6a6a;
 }
 
