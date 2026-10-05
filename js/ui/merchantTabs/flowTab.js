@@ -343,12 +343,9 @@ function syncWaterwheelDecorations(container) {
         targetCounts[key] = count;
         totalWheels += count;
     }
-    // Adjust borders
-    if (totalWheels === 0) {
-        container.style.border = "none";
-    } else {
-        container.style.border = "2px solid rgba(72, 209, 204, 0.4)";
-    }
+    // Adjust visibility instead of hardcoding borders
+    container.style.opacity = totalWheels === 0 ? "0" : "1";
+    container.style.border = ""; // Let CSS handle the border
     // Update visualPool based on targetCounts
     for (const type of WATERWHEEL_ORDER) {
         const targetCount = targetCounts[type];
