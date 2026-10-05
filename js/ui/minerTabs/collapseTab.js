@@ -1007,6 +1007,16 @@ The Green Coral Level you enter this Collapse Challenge with should not impact i
 Effect: Gold Waterwheel becomes evil, dividing the values of all things Waterwheels boost, and is forced ON
 Goal: Reach Pressure: 50atm
 Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
+    } else if (id === "pure_gold") {
+        baseDescText = `The Challenge of ${capitalName}; the fourth Collapse Challenge
+The numbers are starting to grow large, but things have only just begun
+You will soon discover the final Material and witness the final Building
+
+As usual, prepare your Lab Nodes and things before starting for a faster completion
+
+Effect: The Vault Building becomes infused with Magic, and traps a logarithmic half of all currencies inside it
+Goal: ???atm [placeholder]
+Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
