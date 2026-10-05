@@ -5,7 +5,6 @@ import {
     isCurrencyLocked,
     isStorageKeyLocked,
     markSaveSlotModified,
-    isGoldLockedToZero,
     isResourceLockedToZero,
 } from "../util/storage.js";
 import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../ui/minerTabs/collapseTab.js";
