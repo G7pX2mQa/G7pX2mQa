@@ -837,7 +837,7 @@ function showLoader(text = "Loading assets...", onSkip) {
         width: "min(420px, 70vw)",
         height: "10px",
         background: "rgba(255,255,255,.15)",
-        borderRadius: "999px",
+        borderRadius: "0",
         margin: "12px auto 6px",
         overflow: "hidden",
     });
