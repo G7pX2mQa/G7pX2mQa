@@ -7,34 +7,24 @@ export function setBankAddInterceptor(fn) {
     bankAddInterceptor = fn;
 }
 
-export let ironLockActive = false;
-export let goldLockedToZero = false;
+export let challengeOfIronTransitionLockActive = false;
 
 export function isResourceLockedToZero(key) {
     const isTarget = key === "coins" || key === "xp" || key === "gold" || key === "magic" || key === "scrap";
     if (!isTarget) return false;
-    if (ironLockActive || goldLockedToZero) return true;
+    if (challengeOfIronTransitionLockActive) return true;
     const slot = getActiveSlot();
     if (slot != null) {
-        if (lsGetItem(`ccc:ironLockedToZero:${slot}`) === "1" || lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
+        if (lsGetItem(`ccc:challengeOfIronTransitionLockActive:${slot}`) === "1") {
             return true;
         }
     }
     return false;
 }
 
-export function isGoldLockedToZero() {
-    return isResourceLockedToZero("gold");
-}
-
-export function setGoldLockedToZero(val) {
-    setIronLockActive(val);
-}
-
-export function setIronLockActive(val) {
-    ironLockActive = !!val;
-    goldLockedToZero = !!val;
-    if (ironLockActive) {
+export function setChallengeOfIronTransitionLockActive(val) {
+    challengeOfIronTransitionLockActive = !!val;
+    if (challengeOfIronTransitionLockActive) {
         if (typeof setCurrency === "function") {
             setCurrency("coins", BigNum.fromInt(0));
             setCurrency("gold", BigNum.fromInt(0));
