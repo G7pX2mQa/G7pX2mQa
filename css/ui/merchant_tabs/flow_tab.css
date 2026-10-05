@@ -48,8 +48,8 @@
   pointer-events: none;
   -webkit-user-select: none;
   user-select: none;
-  border: 2px solid rgba(72, 209, 204, 0.4);
-  border-radius: 12px;
+  border: 2px solid #48D1CC;
+  border-radius: 6px;
   z-index: 5;
 }
 
@@ -83,8 +83,8 @@
   color: #e6f5ff;
   background: rgba(64, 224, 208, 0.15);
   padding: 10px 16px;
-  border-radius: 12px;
-  border: 1px solid #48D1CC;
+  border-radius: 6px;
+  border: 2px solid #48D1CC;
   max-width: 800px;
   width: 100%;
   flex-shrink: 0;
