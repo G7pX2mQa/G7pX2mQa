@@ -47,6 +47,19 @@ export function setIronLockActive(val) {
     }
 }
 
+export function isPureGoldChallengeActive(slot = getActiveSlot()) {
+    if (slot == null) return false;
+    if (typeof localStorage === "undefined") return false;
+    try {
+        if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive && window.resetSystem?.getActiveCollapseChallengeType) {
+            return window.resetSystem.isCollapseChallengeActive(slot) && window.resetSystem.getActiveCollapseChallengeType(slot) === "pure_gold";
+        }
+        return lsGetItem(`ccc:collapseChallengeActive:${slot}`) === "pure_gold";
+    } catch {
+        return false;
+    }
+}
+
 const MULT_SCALE = BigNum.DEFAULT_PRECISION;
 const MULT_SCALE_TAG = "XM:";
 const STORAGE_WATCH_INTERVAL_MS = 140;
@@ -929,12 +942,12 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot(), { force
     if (!bigNumEquals(prev, effective)) {
         if (typeof window !== "undefined" && window.__isSimulationActive) {
             if (!window.__simulatedMultiplierChanges) window.__simulatedMultiplierChanges = new Map();
-            window.__simulatedMultiplierChanges.set(key, { key, mult: intFromScaled(effective), slot });
+            window.__simulatedMultiplierChanges.set(key, { key, mult: getCurrencyMultiplierBN(key), slot });
         } else {
             try {
                 window.dispatchEvent(
                     new CustomEvent("currency:multiplier", {
-                        detail: { key, mult: intFromScaled(effective), slot },
+                        detail: { key, mult: getCurrencyMultiplierBN(key), slot },
                     }),
                 );
             } catch {}
@@ -943,7 +956,12 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot(), { force
 }
 
 export function getCurrencyMultiplierBN(key) {
-    return intFromScaled(getMultiplierScaled(key));
+    let mult = intFromScaled(getMultiplierScaled(key));
+    if (isPureGoldChallengeActive()) {
+        mult = mult.sqrt().floorToInteger();
+        if (mult.isZero()) mult = BigNum.fromInt(1);
+    }
+    return mult;
 }
 
 export function getCurrencyMultiplierScaledBN(key) {
@@ -993,8 +1011,8 @@ function makeCurrencyHandle(key) {
     // amount mutations
     fn.add = function add(x) {
         if (isResourceLockedToZero(key)) return this.value;
-        if (bankAddInterceptor) bankAddInterceptor(key, x);
         const amt = BigNum.fromAny(x);
+        if (bankAddInterceptor) bankAddInterceptor(key, amt);
         const next = this.value.add(amt);
         const effective = setCurrency(key, next, { delta: amt, previous: this.value });
         return effective;
