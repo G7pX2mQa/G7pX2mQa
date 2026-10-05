@@ -16,6 +16,7 @@ import { settingsManager } from "../../game/settingsManager.js";
 import { getLevelNumber } from "../../game/upgrades.js";
 import { AUTOMATION_AREA_KEY, MULTI_WATERWHEEL_FLOW_ID } from "../../game/automationUpgrades.js";
 import { isCollapseChallengeActive, getActiveCollapseChallengeType, isCollapseUnlocked } from "../minerTabs/collapseTab.js";
+import { isBuildingUnlocked } from "../minerTabs/buildingsTab.js";
 /* =========================================
    CONSTANTS & KEYS
    ========================================= */
@@ -140,7 +141,22 @@ export const WATERWHEEL_DEFS = {
         },
         customUnlockText: () => {
             try {
-                if (!isCollapseUnlocked()) return "???";
+                let cleared = isWaterwheelMysteriousCleared(WATERWHEELS.DEPTH);
+                if (!cleared) {
+                    if (shouldAutoClearDepthMysterious()) {
+                        cleared = true;
+                        setWaterwheelMysteriousCleared(WATERWHEELS.DEPTH, true);
+                    }
+                }
+                if (!cleared) return "???";
+
+                let hasUnlockedIron = false;
+                try {
+                    hasUnlockedIron = isBuildingUnlocked("iron");
+                } catch {}
+                return hasUnlockedIron
+                    ? "Complete the Challenge of Iron"
+                    : "Complete the Challenge of [Unknown]";
             } catch {}
             return "Complete the Challenge of Iron";
         },
@@ -188,6 +204,16 @@ function shouldAutoClearScrapMysterious() {
     }
 }
 
+function shouldAutoClearDepthMysterious() {
+    try {
+        const slot = getActiveSlot();
+        if (slot == null) return false;
+        return isCollapseUnlocked(slot);
+    } catch {
+        return false;
+    }
+}
+
 /* =========================================
    STATE
    ========================================= */
@@ -197,28 +223,40 @@ let flowSystemInitialized = false;
 let flowTabInitialized = false;
 let flowPanel = null;
 let flowDomCache = null;
-let unwatchMysteriousCleared = null;
+let unwatchMysteriousCleared = [];
 let watchedMysteriousSlot = null;
 function refreshMysteriousWatcher() {
     const slot = getActiveSlot();
-    if (watchedMysteriousSlot === slot && unwatchMysteriousCleared) return;
-    if (unwatchMysteriousCleared) {
-        try {
-            unwatchMysteriousCleared();
-        } catch {}
-        unwatchMysteriousCleared = null;
+    if (watchedMysteriousSlot === slot && unwatchMysteriousCleared.length > 0) return;
+    if (unwatchMysteriousCleared.length > 0) {
+        unwatchMysteriousCleared.forEach((unwatch) => {
+            try {
+                unwatch();
+            } catch {}
+        });
+        unwatchMysteriousCleared = [];
     }
     watchedMysteriousSlot = slot;
     if (slot == null) return;
-    const key = `ccc:flow:mysteriousCleared:${WATERWHEELS.SCRAP}:${slot}`;
-    unwatchMysteriousCleared = watchStorageKey(key, {
-        onChange: () => {
-            if (flowTabInitialized && flowPanel) updateFlowTab();
-        },
+    const keysToWatch = [
+        `ccc:flow:mysteriousCleared:${WATERWHEELS.SCRAP}:${slot}`,
+        `ccc:flow:mysteriousCleared:${WATERWHEELS.DEPTH}:${slot}`,
+        `ccc:collapseUnlocked:${slot}`,
+        `ccc:building:itemUnlocked:iron:${slot}`,
+    ];
+    keysToWatch.forEach((key) => {
+        const unwatch = watchStorageKey(key, {
+            onChange: () => {
+                if (flowTabInitialized && flowPanel) updateFlowTab();
+            },
+        });
+        if (typeof unwatch === "function") {
+            unwatchMysteriousCleared.push(unwatch);
+        }
+        try {
+            primeStorageWatcherSnapshot(key);
+        } catch {}
     });
-    try {
-        primeStorageWatcherSnapshot(key);
-    } catch {}
 }
 
 const animatedWaterwheels = new Map();
@@ -1095,6 +1133,28 @@ function onTick(dt) {
     if (!isWaterwheelMysteriousCleared(WATERWHEELS.SCRAP) && shouldAutoClearScrapMysterious()) {
         setWaterwheelMysteriousCleared(WATERWHEELS.SCRAP, true);
         uiTextChanged = true;
+    }
+    if (!isWaterwheelMysteriousCleared(WATERWHEELS.DEPTH) && shouldAutoClearDepthMysterious()) {
+        setWaterwheelMysteriousCleared(WATERWHEELS.DEPTH, true);
+        uiTextChanged = true;
+    }
+    if (flowTabInitialized && flowPanel) {
+        for (const id in WATERWHEEL_DEFS) {
+            const ch = state.waterwheels[id];
+            if (ch && !ch.unlocked) {
+                const def = WATERWHEEL_DEFS[id];
+                const cache = flowDomCache && flowDomCache[id];
+                const elName = cache ? cache.name : flowPanel.querySelector(`#flow-name-${id}`);
+                if (elName) {
+                    const newText = getWaterwheelUnlockRequirementText(def);
+                    if (elName.innerHTML !== newText) {
+                        elName.innerHTML = newText;
+                        elName.classList.add("flow-locked-text");
+                        uiTextChanged = true;
+                    }
+                }
+            }
+        }
     }
     // Unlock Logic
     // Check XP unlock condition: Coin Waterwheel Level >= 1000
@@ -2067,8 +2127,28 @@ export function initFlowSystem() {
                 updateFlowTab();
             }
         });
+        window.addEventListener("dp:change", () => {
+            if (flowTabInitialized && flowPanel) {
+                updateFlowTab();
+            }
+        });
+        window.addEventListener("level:change", () => {
+            if (flowTabInitialized && flowPanel) {
+                updateFlowTab();
+            }
+        });
+        window.addEventListener("unlock:change", () => {
+            if (flowTabInitialized && flowPanel) {
+                updateFlowTab();
+            }
+        });
     }
     if (typeof document !== "undefined") {
+        document.addEventListener("building:change", () => {
+            if (flowTabInitialized && flowPanel) {
+                updateFlowTab();
+            }
+        });
         document.addEventListener("ccc:upgrades:changed", () => {
             // Guard: if the flow system hasn't loaded state for the current
             // active slot yet (e.g. during a slot transition where the upgrades
