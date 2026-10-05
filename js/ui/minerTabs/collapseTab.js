@@ -1,5 +1,5 @@
 import { lsSetItem, lsGetItem, lsRemoveItem } from "../../main.js";
-import { getActiveSlot, bank, setGoldLockedToZero } from "../../util/storage.js";
+import { getActiveSlot, bank, setChallengeOfIronTransitionLockActive } from "../../util/storage.js";
 import { getSaveDataForSlot, applySaveDataToSlot } from "../../util/slotsManager.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
 import { setupDragToClose, ensureCustomScrollbar } from "../shopOverlay.js";
@@ -25,18 +25,17 @@ const COLLAPSE_UNLOCKED_KEY_BASE = "ccc:collapseUnlocked";
 
 let cachedCollapseUnlockedStates = {};
 
-let ironLockTicks = 0;
+let challengeOfIronTransitionLockTicks = 0;
 if (typeof window !== "undefined") {
     registerTick(() => {
-        if (ironLockTicks > 0) {
-            setGoldLockedToZero(true);
-            ironLockTicks--;
-            if (ironLockTicks <= 0) {
-                setGoldLockedToZero(false);
+        if (challengeOfIronTransitionLockTicks > 0) {
+            setChallengeOfIronTransitionLockActive(true);
+            challengeOfIronTransitionLockTicks--;
+            if (challengeOfIronTransitionLockTicks <= 0) {
+                setChallengeOfIronTransitionLockActive(false);
                 const slot = getActiveSlot();
                 if (slot != null) {
-                    lsRemoveItem(`ccc:goldLockedToZero:${slot}`);
-                    lsRemoveItem(`ccc:ironLockedToZero:${slot}`);
+                    lsRemoveItem(`ccc:challengeOfIronTransitionLockActive:${slot}`);
                 }
             }
         }
@@ -80,12 +79,12 @@ if (typeof window !== "undefined") {
         const slot = e?.detail?.slot ?? getActiveSlot();
         if (slot != null) {
             try {
-                if (lsGetItem(`ccc:ironLockedToZero:${slot}`) === "1" || lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1") {
-                    ironLockTicks = 60;
-                    setGoldLockedToZero(true);
+                if (lsGetItem(`ccc:challengeOfIronTransitionLockActive:${slot}`) === "1") {
+                    challengeOfIronTransitionLockTicks = 60;
+                    setChallengeOfIronTransitionLockActive(true);
                 } else {
-                    ironLockTicks = 0;
-                    setGoldLockedToZero(false);
+                    challengeOfIronTransitionLockTicks = 0;
+                    setChallengeOfIronTransitionLockActive(false);
                 }
             } catch {}
         }
@@ -93,9 +92,9 @@ if (typeof window !== "undefined") {
     window.addEventListener("unlock:change", invalidateCollapseCache);
     try {
         const slot = getActiveSlot();
-        if (slot != null && (lsGetItem(`ccc:ironLockedToZero:${slot}`) === "1" || lsGetItem(`ccc:goldLockedToZero:${slot}`) === "1")) {
-            ironLockTicks = 60;
-            setGoldLockedToZero(true);
+        if (slot != null && (lsGetItem(`ccc:challengeOfIronTransitionLockActive:${slot}`) === "1")) {
+            challengeOfIronTransitionLockTicks = 60;
+            setChallengeOfIronTransitionLockActive(true);
         }
     } catch {}
 }
@@ -332,12 +331,11 @@ export function startCollapseChallenge(materialName) {
     }
 
     if (materialName === "iron") {
-        ironLockTicks = 60;
-        setGoldLockedToZero(true);
+        challengeOfIronTransitionLockTicks = 60;
+        setChallengeOfIronTransitionLockActive(true);
         const slot = getActiveSlot();
         if (slot != null) {
-            lsSetItem(`ccc:goldLockedToZero:${slot}`, "1");
-            lsSetItem(`ccc:ironLockedToZero:${slot}`, "1");
+            lsSetItem(`ccc:challengeOfIronTransitionLockActive:${slot}`, "1");
         }
     }
 
@@ -442,12 +440,11 @@ export function startCollapseChallenge(materialName) {
             setWaterwheelLevel(WATERWHEELS.GOLD, 0);
             setWaterwheelFp(WATERWHEELS.GOLD, 0);
         } catch {}
-        ironLockTicks = 60; // 3 entire seconds
-        setGoldLockedToZero(true);
+        challengeOfIronTransitionLockTicks = 60; // 3 entire seconds
+        setChallengeOfIronTransitionLockActive(true);
         const slot = getActiveSlot();
         if (slot != null) {
-            lsSetItem(`ccc:goldLockedToZero:${slot}`, "1");
-            lsSetItem(`ccc:ironLockedToZero:${slot}`, "1");
+            lsSetItem(`ccc:challengeOfIronTransitionLockActive:${slot}`, "1");
         }
     }
 
