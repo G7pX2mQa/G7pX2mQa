@@ -1010,9 +1010,9 @@ Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else if (id === "pure_gold") {
         baseDescText = `The Challenge of ${capitalName}; the fourth Collapse Challenge
 The numbers are starting to grow large, but things have only just begun
-You will soon discover the final Material and witness the final Building
+You will soon discover the final Material, and you will soon witness the final Building
 
-As usual, prepare your Lab Nodes and things before starting for a faster completion
+As usual, prepare your Lab Nodes and other things before starting for a faster completion
 
 Effect: The Vault Building becomes infused with Magic, and traps a logarithmic half of all currencies inside it
 Goal: ???atm [placeholder]
