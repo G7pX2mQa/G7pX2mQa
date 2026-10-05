@@ -2757,7 +2757,7 @@ export function initResetSystem() {
         }
     });
     if (typeof window !== "undefined") {
-        window.addEventListener("saveSlot:change", () => {
+        const handleSlotOrImport = () => {
             const nextSlot = getActiveSlot();
             resetState.slot = nextSlot;
             resetPendingGoldSignature();
@@ -2777,6 +2777,14 @@ export function initResetSystem() {
             updateResetPanel({ immediate: true });
             checkAchievements();
             checkSecretAchievements();
+        };
+        window.addEventListener("saveSlot:change", handleSlotOrImport);
+        window.addEventListener("saveData:imported", (e) => {
+            const slot = e.detail?.slot;
+            const activeSlot = getActiveSlot();
+            if (slot == null || slot === activeSlot) {
+                handleSlotOrImport();
+            }
         });
     }
 }
