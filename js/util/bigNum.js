@@ -412,6 +412,48 @@ export class BigNum {
     return new BigNum(sigQuotient, { base: resultBase }, this.p);
   }
 
+  sqrt() {
+    if (this._isNaN || this.isNegative()) return new BigNum(NaN, 0, this.p);
+    if (this.inf) return this.clone();
+    if (this.isZero()) return BigNum.zero(this.p);
+
+    const e = this.e;
+    let k, S;
+    if (e % 2 !== 0) {
+      k = (e - 1) / 2;
+      S = this.sig * 10;
+    } else {
+      k = e / 2;
+      S = this.sig;
+    }
+    const rootSig = Math.sqrt(S);
+    return new BigNum(rootSig, { base: k }, this.p);
+  }
+
+  pow(exponent) {
+    const power = Number(exponent);
+    if (this._isNaN || Number.isNaN(power)) return new BigNum(NaN, 0, this.p);
+    if (this.isNegative?.() && power % 1 !== 0) return new BigNum(NaN, 0, this.p);
+    if (this.inf) {
+      if (power === 0) return BigNum.fromInt(1, this.p);
+      if (power < 0) return BigNum.zero(this.p);
+      return this.clone();
+    }
+    if (this.isZero()) {
+      if (power === 0) return BigNum.fromInt(1, this.p);
+      if (power < 0) return new BigNum(1, { base: BigNum.MAX_E, inf: true }, this.p);
+      return BigNum.zero(this.p);
+    }
+    if (power === 0) return BigNum.fromInt(1, this.p);
+    if (power === 1) return this.clone();
+
+    const logVal = approxLog10BigNum(this);
+    if (!Number.isFinite(logVal)) {
+      return logVal > 0 ? BigNum.fromAny('Infinity', this.p) : BigNum.zero(this.p);
+    }
+    return bigNumFromLog10(logVal * power, false);
+  }
+
   cmp(b) {
     b = BigNum.fromAny(b, this.p);
     if (this._isNaN || b._isNaN) return NaN;
