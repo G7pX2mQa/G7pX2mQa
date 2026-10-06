@@ -435,7 +435,7 @@ export function renderBuildingsGrid(gridEl) {
         if (b.isLocked) {
             card.btn.title = "Hidden Building";
             card.btn.addEventListener("click", () => {
-                openMysteriousBuildingOverlay(b.mysteriousText);
+                openMysteriousBuildingOverlay(b.id, b.mysteriousText);
             });
         } else {
             card.btn.title = "Left-click: View Building • Right-click: Buy Max";
@@ -543,6 +543,13 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
     });
     window.addEventListener("unlock:change", (e) => {
         if (e.detail?.key === "compress") {
+            if (currentMysteriousBuildingId === "crystal") {
+                const mysteryOverlay = document.getElementById("mysterious-building-overlay");
+                if (mysteryOverlay && mysteryOverlay.classList.contains("is-open")) {
+                    closeMysteriousBuildingOverlay(true);
+                    openBuildingDetailOverlay("crystal", true);
+                }
+            }
             if (panel.classList.contains("is-active") && isBuildingsUnlocked()) {
                 renderBuildingsGrid(grid);
             }
@@ -573,6 +580,14 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
                     if (conditionMet) {
                         setBuildingUnlocked(mat.name, true);
                         newlyUnlocked = true;
+                        
+                        if (currentMysteriousBuildingId === mat.name) {
+                            const mysteryOverlay = document.getElementById("mysterious-building-overlay");
+                            if (mysteryOverlay && mysteryOverlay.classList.contains("is-open")) {
+                                closeMysteriousBuildingOverlay(true);
+                                openBuildingDetailOverlay(mat.name, true);
+                            }
+                        }
                     }
                 }
             }
@@ -933,14 +948,19 @@ function applyBuildingOverlayTransition(sheet, transition = BUILDING_OVERLAY_OPE
     sheet.style.transition = transition;
 }
 
-function openBuildingOverlaySheet(overlay, sheet) {
+function openBuildingOverlaySheet(overlay, sheet, instant = false) {
     if (!overlay || !sheet) return;
     applyBuildingOverlayTransition(sheet);
     overlay.classList.add("is-open");
     overlay.style.pointerEvents = "auto";
-    sheet.style.transform = "translateY(100%)";
-    void sheet.offsetHeight;
-    sheet.style.transform = "translateY(0)";
+    if (instant === true) {
+        sheet.style.transition = "none";
+        sheet.style.transform = "translateY(0)";
+    } else {
+        sheet.style.transform = "translateY(100%)";
+        void sheet.offsetHeight;
+        sheet.style.transform = "translateY(0)";
+    }
 }
 
 function finishBuildingOverlayClose(overlay, onClosed) {
@@ -986,10 +1006,11 @@ function ensureMysteriousBuildingOverlay() {
     setupDragToClose(grabber, sheet, () => overlay.classList.contains("is-open"), closeMysteriousBuildingOverlay);
 }
 
-function openMysteriousBuildingOverlay(mysteriousText) {
+function openMysteriousBuildingOverlay(id, mysteriousText) {
     const existingOverlay = document.getElementById("mysterious-building-overlay");
     if (existingOverlay && existingOverlay.classList.contains("is-open")) return;
     lastMysteriousOpenTime = Date.now();
+    currentMysteriousBuildingId = id;
     ensureMysteriousBuildingOverlay();
     const overlay = document.getElementById("mysterious-building-overlay");
     const sheet = overlay.querySelector(".upg-sheet");
@@ -1010,15 +1031,22 @@ function openMysteriousBuildingOverlay(mysteriousText) {
     openBuildingOverlaySheet(overlay, sheet);
 }
 
-function closeMysteriousBuildingOverlay() {
+function closeMysteriousBuildingOverlay(instant = false) {
     const overlay = document.getElementById("mysterious-building-overlay");
     if (!overlay) return;
     if (overlay.style.pointerEvents === "none") return;
     overlay.style.pointerEvents = "none";
     const sheet = overlay.querySelector(".upg-sheet");
-    applyBuildingOverlayTransition(sheet);
-    sheet.style.transform = "translateY(100%)";
-    finishBuildingOverlayClose(overlay);
+    currentMysteriousBuildingId = null;
+    if (instant === true) {
+        sheet.style.transition = "none";
+        sheet.style.transform = "translateY(100%)";
+        overlay.classList.remove("is-open");
+    } else {
+        applyBuildingOverlayTransition(sheet);
+        sheet.style.transform = "translateY(100%)";
+        finishBuildingOverlayClose(overlay);
+    }
 }
 // ----------------- Building Math & State ----------------- //
 export function getBuildingLevel(id) {
@@ -1122,6 +1150,7 @@ let overlayEl = null;
 let currentBuildingId = null;
 let lastBuildingOpenTime = 0;
 let lastMysteriousOpenTime = 0;
+let currentMysteriousBuildingId = null;
 let buildingVisualsModule = null; // Cached reference for synchronous isTierUpLocked checks
 export const BUILDING_NAMES = {
     core: "Black Hole",
@@ -1489,7 +1518,7 @@ export function initBuildingOverlay() {
     });
 }
 
-export function openBuildingDetailOverlay(id) {
+export function openBuildingDetailOverlay(id, instant = false) {
     if (overlayEl && overlayEl.classList.contains("is-open") && currentBuildingId === id) return;
     lastBuildingOpenTime = Date.now();
     initBuildingOverlay();
@@ -1514,7 +1543,7 @@ export function openBuildingDetailOverlay(id) {
     }
     header.innerHTML = `<div class="upg-title">${properName} Building: ${buildingName}</div>`;
     updateOverlayUi();
-    openBuildingOverlaySheet(overlayEl, sheet);
+    openBuildingOverlaySheet(overlayEl, sheet, instant);
     import("../../misc/buildingVisuals.js").then((module) => {
         buildingVisualsModule = module;
         const levelBn = getBuildingLevel(id);
