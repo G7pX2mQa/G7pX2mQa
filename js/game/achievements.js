@@ -221,6 +221,7 @@ export function checkAchievements(slot = getActiveSlot()) {
                     showNotification(
                         `Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
                         achievement.icon,
+                        6000
                     );
                 } else if (typeof window !== "undefined") {
                     window.__delayedAchievementNotifications = window.__delayedAchievementNotifications || [];
@@ -242,6 +243,7 @@ export function showDelayedAchievementNotifications() {
             showNotification(
                 `Achievement: "${notif.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
                 notif.icon,
+                6000
             );
         }
         window.__delayedAchievementNotifications = [];
