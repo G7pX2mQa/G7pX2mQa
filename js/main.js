@@ -2287,6 +2287,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/sc_upg_icons/coin_val_hm2.webp",
             "img/sc_upg_icons/coin_val_hm3.webp",
             "img/sc_upg_icons/dna_val_dna.webp",
+			"img/sc_upg_icons/eac_coral_reef.webp",
             "img/sc_upg_icons/eac_uc.webp",
             "img/sc_upg_icons/effective_auto_collect.webp",
             "img/sc_upg_icons/effective_auto_sell.webp",
