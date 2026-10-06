@@ -643,6 +643,11 @@ html.is-mobile {
 .upg-desc.centered.lock-desc {
 }
 
+#secret-achievement-details-overlay .upg-desc.centered,
+#secret-achievement-details-overlay .upg-line {
+  --upg-scale: 0.85;
+}
+
 .upg-sheet.is-locked-hidden .upg-info {
   display: none;
 }
