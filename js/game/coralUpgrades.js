@@ -22,8 +22,8 @@ export const CORAL_REGISTRY = [
             const normalizedLevel = Math.max(0, Number(level) || 0);
             if (normalizedLevel === 0) return BigNum.fromInt(10);
             if (normalizedLevel === 1) return BigNum.fromInt(1000);
-            if (normalizedLevel === 2) return BigNum.fromAny("1e6");
-            if (normalizedLevel === 3) return BigNum.fromAny("1e9");
+            if (normalizedLevel === 2) return BigNum.fromAny(1e6);
+            if (normalizedLevel === 3) return BigNum.fromAny(1e9);
             return BigNum.fromAny("Infinity");
         },
         nextCostAfter(_, nextLevel) {
@@ -301,10 +301,10 @@ export const CORAL_REGISTRY = [
         effectType: "red_coral_value",
         icon: "img/coral_upg_icons/red_coral_link.webp",
         costAtLevel() {
-            return BigNum.fromAny("1e6");
+            return BigNum.fromAny(1e6);
         },
         nextCostAfter() {
-            return BigNum.fromAny("1e6");
+            return BigNum.fromAny(1e6);
         },
         computeLockState() {
             if (isGclpSystemUnlocked()) {
@@ -359,10 +359,10 @@ export const CORAL_REGISTRY = [
         effectType: "green_coral_value",
         icon: "img/coral_upg_icons/green_coral_link.webp",
         costAtLevel() {
-            return BigNum.fromAny("1e12");
+            return BigNum.fromAny(1e12);
         },
         nextCostAfter() {
-            return BigNum.fromAny("1e12");
+            return BigNum.fromAny(1e12);
         },
         computeLockState() {
             if (isGclpSystemUnlocked()) {
