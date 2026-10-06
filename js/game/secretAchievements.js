@@ -248,7 +248,7 @@ const _rawSecretAchievements = [
         id: 9,
         title: "The Vault's Secret",
         get desc() {
-            return "On the Vault building’s interactable keypad, enter the numbers '7887773346665553' consecutively to open the Vault. Once the Vault is open, collect the treasure inside.";
+            return "On the Vault Building’s interactable keypad, enter the numbers '7887773346665553' consecutively to open the Vault. Once the Vault is open, collect the treasure inside.";
         },
         icon: "img/misc/the_vaults_secret.webp",
         extraHint: "Extra hint: Need help? Dial 1-800-PUREGOLD today!",
