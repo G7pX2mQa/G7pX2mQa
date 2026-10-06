@@ -3,7 +3,8 @@ import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
 import { isCurrencyUnlocked, CURRENCIES } from "../util/storage.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
-import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoinCollected, checkSecretAchievements } from "../game/secretAchievements.js";
+import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoinCollected, checkSecretAchievements, getPureGoldVaultCollected, setPureGoldVaultCollected } from "../game/secretAchievements.js";
+import { showNotification } from "../ui/notifications.js";
 import { createCursorTrail } from "../game/cursorTrail.js";
 import { getPreRenderedItem } from "../game/spawnerCore.js";
 import { settingsManager } from "../game/settingsManager.js";
@@ -758,7 +759,8 @@ export function startCanvasLoop(id, canvasEl, initialLevelNum) {
     isVaultOpening = false;
     vaultOpeningTime = 0;
     isVaultOpen = false;
-    vaultCoinCollectedLocal = getVaultCoinCollected();
+    const isPureGoldChallengeInit = typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "pure_gold";
+    vaultCoinCollectedLocal = isPureGoldChallengeInit ? getPureGoldVaultCollected() : getVaultCoinCollected();
 
     canvasClickListener = (e) => {
       handleVaultCanvasClick(e);
@@ -1158,9 +1160,18 @@ function loop(currentTime) {
       if (isHit) {
         cursor = 'pointer';
         vaultCoinCollectedLocal = true;
-        setVaultCoinCollected(true);
+        
+        if (isPureGoldChallenge) {
+          setPureGoldVaultCollected(true);
+          if (typeof showNotification !== "undefined") {
+            showNotification("The Vault's Secret v2", "img/misc/the_vaults_secret.webp", 7500);
+          }
+        } else {
+          setVaultCoinCollected(true);
+          checkSecretAchievements();
+        }
+        
         playAudio("sounds/coin_pickup_size5.ogg");
-        checkSecretAchievements();
         
         // Restore ONLY Close Button
         const closeBtn = document.querySelector('#building-detail-overlay .shop-close');
@@ -6202,7 +6213,12 @@ function handleVaultCanvasKeyDown(e) {
       vaultOpeningTime = 5.0;
       keypadZoomedIn = false;
       vaultCoinCollectedLocal = false;
-      setVaultCoinCollected(false);
+      const isPureGoldChallengeVaultOpen = typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "pure_gold";
+      if (isPureGoldChallengeVaultOpen) {
+        setPureGoldVaultCollected(false);
+      } else {
+        setVaultCoinCollected(false);
+      }
       populateVaultEasterEgg();
       playAudio("sounds/opening.ogg");
       window.dispatchEvent(new CustomEvent('audio:stopMusic'));
@@ -6273,7 +6289,12 @@ function handleVaultCanvasClick(e) {
             vaultOpeningTime = 5.0;
             keypadZoomedIn = false;
             vaultCoinCollectedLocal = false;
-            setVaultCoinCollected(false);
+            const isPureGoldChallengeVaultOpenClick = typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "pure_gold";
+            if (isPureGoldChallengeVaultOpenClick) {
+              setPureGoldVaultCollected(false);
+            } else {
+              setVaultCoinCollected(false);
+            }
             populateVaultEasterEgg();
             playAudio("sounds/opening.ogg");
             window.dispatchEvent(new CustomEvent('audio:stopMusic'));
