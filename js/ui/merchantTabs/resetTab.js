@@ -22,6 +22,7 @@ import {
     setLevel,
     approxLog10BigNum,
     bigNumFromLog10,
+    batchUpgradeOperations,
 } from "../../game/upgrades.js";
 import {
     initMutationSystem,
@@ -1021,20 +1022,22 @@ export function canPerformInfuseReset() {
 
 function resetUpgrades({ resetGold = false, resetMagic = false } = {}) {
     const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
-    for (const upg of upgrades) {
-        if (!upg) continue;
-        const tieKey = upg.tieKey || upg.tie;
-        if (
-            tieKey === UPGRADE_TIES.UNLOCK_XP ||
-            tieKey === UPGRADE_TIES.UNLOCK_FORGE ||
-            tieKey === UPGRADE_TIES.UNLOCK_INFUSE ||
-            tieKey === UPGRADE_TIES.UNLOCK_SURGE
-        )
-            continue;
-        if (upg.costType === "gold" && !resetGold) continue;
-        if (upg.costType === "magic" && !resetMagic) continue;
-        setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
-    }
+    batchUpgradeOperations(() => {
+        for (const upg of upgrades) {
+            if (!upg) continue;
+            const tieKey = upg.tieKey || upg.tie;
+            if (
+                tieKey === UPGRADE_TIES.UNLOCK_XP ||
+                tieKey === UPGRADE_TIES.UNLOCK_FORGE ||
+                tieKey === UPGRADE_TIES.UNLOCK_INFUSE ||
+                tieKey === UPGRADE_TIES.UNLOCK_SURGE
+            )
+                continue;
+            if (upg.costType === "gold" && !resetGold) continue;
+            if (upg.costType === "magic" && !resetMagic) continue;
+            setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
+        }
+    });
 }
 
 function applyForgeResetEffects({ resetGold = false, resetMagic = false } = {}) {
