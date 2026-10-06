@@ -1,10 +1,11 @@
-import { computeDefaultUpgradeCost, E } from "./upgrades.js";
+import { computeDefaultUpgradeCost, E, getLevelNumber } from "./upgrades.js";
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../util/bigNum.js";
 import { formatMultForUi, formatNumber } from "../util/numFormat.js";
 import { isRclpSystemUnlocked, unlockRclpSystem, getRclpState } from "./rclpSystem.js";
 import { isGclpSystemUnlocked } from "./gclpSystem.js";
 import { getActiveSlot, bank } from "../util/storage.js";
 import { lsSetItem, lsGetItem } from "../main.js";
+import { isBuildingUnlocked } from "../ui/minerTabs/buildingsTab.js";
 
 export const CORAL_AREA_KEY = "coral_reef";
 export const CORAL_REGISTRY = [
@@ -342,7 +343,12 @@ export const CORAL_REGISTRY = [
             try {
                 const log10 = approxLog10BigNum(unspentGreen);
                 if (Number.isNaN(log10) || log10 <= 0) return BigNum.fromInt(1);
-                return bigNumFromLog10(log10 / 3);
+                
+                let power = 1 / 3;
+                try {
+                    if (getLevelNumber(CORAL_AREA_KEY, 11) > 0) power = 0.5;
+                } catch {}
+                return bigNumFromLog10(log10 * power);
             } catch {
                 return BigNum.fromInt(1);
             }
@@ -400,7 +406,12 @@ export const CORAL_REGISTRY = [
             try {
                 const log10 = approxLog10BigNum(unspentRed);
                 if (Number.isNaN(log10) || log10 <= 0) return BigNum.fromInt(1);
-                return bigNumFromLog10(log10 / 3);
+                
+                let power = 1 / 3;
+                try {
+                    if (getLevelNumber(CORAL_AREA_KEY, 12) > 0) power = 0.5;
+                } catch {}
+                return bigNumFromLog10(log10 * power);
             } catch {
                 return BigNum.fromInt(1);
             }
@@ -500,6 +511,106 @@ export const CORAL_REGISTRY = [
                     window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: "pure_gold", visible: true } }));
                 } catch {}
             }
+        },
+        effectSummary() {
+            return "";
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 11,
+        title: "Enhanced Red Coral Link",
+        desc: "Red Coral Link has a stronger formula",
+        lvlCap: 1,
+        costType: "green_coral",
+        upgType: "NM",
+        icon: "img/coral_upg_icons/enhanced_red_coral_link.webp",
+        costAtLevel() {
+            return BigNum.fromAny("1e33");
+        },
+        nextCostAfter() {
+            return BigNum.fromAny("1e33");
+        },
+        computeLockState() {
+            let isPureGoldCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isPureGoldCompleted = lsGetItem(`ccc:collapseChallengeCompleted:pure_gold:${slotKey}`) === "1";
+            } catch {}
+
+            if (isPureGoldCompleted) {
+                return { state: "unlocked" };
+            }
+            
+            try {
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 91) {
+                        let hasUnlockedPureGold = false;
+                        try {
+                            hasUnlockedPureGold = isBuildingUnlocked("pure_gold");
+                        } catch {}
+                        
+                        return { 
+                            state: "mysterious", 
+                            unlockReqText: hasUnlockedPureGold ? "Complete the Challenge of Pure Gold to reveal this upgrade" : "Complete the Challenge of [Unknown] to reveal this upgrade" 
+                        };
+                    }
+                }
+            } catch {}
+
+            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 91 to reveal this upgrade" };
+        },
+        effectSummary() {
+            return "";
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 12,
+        title: "Enhanced Green Coral Link",
+        desc: "Green Coral Link has a stronger formula",
+        lvlCap: 1,
+        costType: "red_coral",
+        upgType: "NM",
+        icon: "img/coral_upg_icons/enhanced_green_coral_link.webp",
+        costAtLevel() {
+            return BigNum.fromAny("1e51");
+        },
+        nextCostAfter() {
+            return BigNum.fromAny("1e51");
+        },
+        computeLockState() {
+            let isPureGoldCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isPureGoldCompleted = lsGetItem(`ccc:collapseChallengeCompleted:pure_gold:${slotKey}`) === "1";
+            } catch {}
+
+            if (isPureGoldCompleted) {
+                return { state: "unlocked" };
+            }
+            
+            try {
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 91) {
+                        let hasUnlockedPureGold = false;
+                        try {
+                            hasUnlockedPureGold = isBuildingUnlocked("pure_gold");
+                        } catch {}
+                        
+                        return { 
+                            state: "mysterious", 
+                            unlockReqText: hasUnlockedPureGold ? "Complete the Challenge of Pure Gold to reveal this upgrade" : "Complete the Challenge of [Unknown] to reveal this upgrade" 
+                        };
+                    }
+                }
+            } catch {}
+
+            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 91 to reveal this upgrade" };
         },
         effectSummary() {
             return "";
