@@ -530,9 +530,6 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
         renderBuildingsGrid(grid);
     }
     document.addEventListener("ccc:buildings:changed", () => {
-        if (panel.classList.contains("is-active") && isBuildingsUnlocked()) {
-            renderBuildingsGrid(grid);
-        }
         // Update the building overlay if it is open
         if (currentBuildingId) {
             updateOverlayUi();
