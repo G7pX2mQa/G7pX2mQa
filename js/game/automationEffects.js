@@ -22,6 +22,7 @@ import {
     AUTOBUY_STONE_BUILDING_ID,
     AUTOBUY_COPPER_BUILDING_ID,
     AUTOBUY_IRON_BUILDING_ID,
+    AUTOBUY_PURE_GOLD_BUILDING_ID,
 } from "./automationUpgrades.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { performFreeBuildingAutobuy, batchBuildingOperations } from "../ui/minerTabs/buildingsTab.js";
@@ -352,6 +353,13 @@ function updateAutobuyers(dt) {
             if (ironBuildingAutobuy) {
                 if (getCollectiveAutobuyerState("iron") === 1) {
                     performFreeBuildingAutobuy("iron");
+                }
+            }
+            // Process Pure Gold Building Autobuy
+            const pureGoldBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_PURE_GOLD_BUILDING_ID) > 0;
+            if (pureGoldBuildingAutobuy) {
+                if (getCollectiveAutobuyerState("pure_gold") === 1) {
+                    performFreeBuildingAutobuy("pure_gold");
                 }
             }
         });
