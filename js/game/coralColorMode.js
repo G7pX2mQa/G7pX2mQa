@@ -35,6 +35,5 @@ export function getNextCoralColor(current) {
 }
 
 export function getCoralCurrencyKey(mode) {
-    if (mode === "green") return "green_coral";
-    return "red_coral";
+    return `${mode}_coral`;
 }
