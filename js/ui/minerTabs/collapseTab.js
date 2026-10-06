@@ -318,6 +318,7 @@ function getWhitelistPrefixes() {
 
 // --- Challenge Start/Exit ---
 export function startCollapseChallenge(materialName) {
+    const slot = getActiveSlot();
 
     // Block interactions to prevent spamming
     blockCollapseInteractions();
@@ -333,7 +334,6 @@ export function startCollapseChallenge(materialName) {
     if (materialName === "iron") {
         challengeOfIronTransitionLockTicks = 60;
         setChallengeOfIronTransitionLockActive(true);
-        const slot = getActiveSlot();
         if (slot != null) {
             lsSetItem(`ccc:challengeOfIronTransitionLockActive:${slot}`, "1");
         }
@@ -407,7 +407,6 @@ export function startCollapseChallenge(materialName) {
     // We must preserve lab state during a collapse reset since lab nodes are not supposed to be reset by it
     let preChallengeLabData = {};
     try {
-        const slot = getActiveSlot();
         if (slot != null) {
             const data = getSaveDataForSlot(slot);
             for (const key of Object.keys(data)) {
@@ -442,7 +441,6 @@ export function startCollapseChallenge(materialName) {
         } catch {}
         challengeOfIronTransitionLockTicks = 60; // 3 entire seconds
         setChallengeOfIronTransitionLockActive(true);
-        const slot = getActiveSlot();
         if (slot != null) {
             lsSetItem(`ccc:challengeOfIronTransitionLockActive:${slot}`, "1");
         }
@@ -566,7 +564,6 @@ function exitCollapseChallenge(materialName) {
 
     // Clear rubble upgrade levels (temporary upgrades)
     try {
-        const slot = getActiveSlot();
         if (slot != null) {
             for (const upg of RUBBLE_REGISTRY) {
                 setLevel(RUBBLE_AREA_KEY, upg.id, 0);
