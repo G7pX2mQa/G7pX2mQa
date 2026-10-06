@@ -2066,7 +2066,7 @@ function updateFlowVisuals() {
                 if (isInfiniteLevel) {
                     cache.tooltip.innerHTML = "wow";
                 } else if (isMaxed) {
-                    cache.tooltip.innerHTML = "Spinning at maximum speeds";
+                    cache.tooltip.innerHTML = "Spinning at maximum speed";
                 } else {
                     let flooredCurrent = fpValForTooltip.clone().floorToInteger();
                     let flooredReq = reqBn.clone().floorToInteger();
