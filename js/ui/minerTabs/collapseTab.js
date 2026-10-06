@@ -1009,7 +1009,7 @@ You will soon discover the final Material, and you will soon witness the final B
 As usual, prepare your Lab Nodes and other things before starting for a faster completion
 
 Effect: The Vault Building becomes infused with Magic, and traps a logarithmic half of all currencies inside it
-Effect Modifier: reach Surge 250 to make it only trap a logarithmic third (^½ → ^⅔ currency multipliers)
+Effect Modifier: Reach Surge 250 to make it only trap a logarithmic third (^½ → ^⅔ currency multipliers)
 Goal: Reach Pressure: 65atm
 Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else {
