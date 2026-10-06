@@ -8,7 +8,7 @@ import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider 
 import { addExternalDpMultiplierProvider } from "../../game/dpSystem.js";
 import { trackBinaryFlowSequence } from "../../game/secretAchievements.js";
 import { applyStatMultiplierOverride } from "../../util/debugPanel.js";
-import { syncCurrencyMultipliersFromUpgrades } from "../../game/upgradeEffects.js";
+import { syncCurrencyMultipliersFromUpgrades, addExternalCoresMultiplierProvider } from "../../game/upgradeEffects.js";
 import { WaterwheelRenderer } from "../../game/webgl/waterwheelRenderer.js";
 import { getSurgeBarLevel, predictSurgeLevel, resetState } from "./resetTab.js";
 import { isNodeLocked } from "../mapOverlay.js";
@@ -54,6 +54,7 @@ export const WATERWHEELS = {
     MAGIC: "magic",
     SCRAP: "scrap",
     DEPTH: "depth",
+    CORE: "core",
 };
 
 export const WATERWHEEL_DEFS = {
@@ -161,6 +162,44 @@ export const WATERWHEEL_DEFS = {
             return "Complete the Challenge of Iron";
         },
     },
+    [WATERWHEELS.CORE]: {
+        id: WATERWHEELS.CORE,
+        name: "Core Waterwheel",
+        image: "img/waterwheels/waterwheel_core.webp",
+        baseReq: "1e9999",
+        unlocked: false,
+        styleKey: "cores",
+        customUnlockCheck: () => {
+            try {
+                const slot = getActiveSlot();
+                if (slot == null) return false;
+                return lsGetItem(`ccc:collapseChallengeCompleted:pure_gold:${slot}`) === "1";
+            } catch {
+                return false;
+            }
+        },
+        customUnlockText: () => {
+            try {
+                let cleared = isWaterwheelMysteriousCleared(WATERWHEELS.CORE);
+                if (!cleared) {
+                    if (shouldAutoClearCoreMysterious()) {
+                        cleared = true;
+                        setWaterwheelMysteriousCleared(WATERWHEELS.CORE, true);
+                    }
+                }
+                if (!cleared) return "???";
+
+                let hasUnlockedPureGold = false;
+                try {
+                    hasUnlockedPureGold = isBuildingUnlocked("pure_gold");
+                } catch {}
+                return hasUnlockedPureGold
+                    ? "Complete the Challenge of Pure Gold"
+                    : "Complete the Challenge of [Unknown]";
+            } catch {}
+            return "Complete the Challenge of Pure Gold";
+        },
+    },
 };
 
 export function isWaterwheelMysteriousCleared(id) {
@@ -214,6 +253,16 @@ function shouldAutoClearDepthMysterious() {
     }
 }
 
+function shouldAutoClearCoreMysterious() {
+    try {
+        const slot = getActiveSlot();
+        if (slot == null) return false;
+        return isCollapseUnlocked(slot);
+    } catch {
+        return false;
+    }
+}
+
 /* =========================================
    STATE
    ========================================= */
@@ -241,6 +290,7 @@ function refreshMysteriousWatcher() {
     const keysToWatch = [
         `ccc:flow:mysteriousCleared:${WATERWHEELS.SCRAP}:${slot}`,
         `ccc:flow:mysteriousCleared:${WATERWHEELS.DEPTH}:${slot}`,
+        `ccc:flow:mysteriousCleared:${WATERWHEELS.CORE}:${slot}`,
         `ccc:collapseUnlocked:${slot}`,
         `ccc:building:itemUnlocked:iron:${slot}`,
     ];
@@ -274,6 +324,7 @@ export const WATERWHEEL_ORDER = [
     WATERWHEELS.MAGIC,
     WATERWHEELS.SCRAP,
     WATERWHEELS.DEPTH,
+    WATERWHEELS.CORE,
 ];
 function syncWaterwheelDecorations(container) {
     if (!container) return;
@@ -495,6 +546,13 @@ const state = {
             isMain: false,
             unlocked: false,
         },
+        [WATERWHEELS.CORE]: {
+            level: BigNum.fromInt(0),
+            fp: 0,
+            active: false,
+            isMain: false,
+            unlocked: false,
+        },
     },
     visuals: {
         [WATERWHEELS.COIN]: {
@@ -523,6 +581,11 @@ const state = {
             isMax: false,
         },
         [WATERWHEELS.DEPTH]: {
+            rotation: 0,
+            speed: 0,
+            isMax: false,
+        },
+        [WATERWHEELS.CORE]: {
             rotation: 0,
             speed: 0,
             isMax: false,
@@ -1135,6 +1198,10 @@ function onTick(dt) {
         setWaterwheelMysteriousCleared(WATERWHEELS.DEPTH, true);
         uiTextChanged = true;
     }
+    if (!isWaterwheelMysteriousCleared(WATERWHEELS.CORE) && shouldAutoClearCoreMysterious()) {
+        setWaterwheelMysteriousCleared(WATERWHEELS.CORE, true);
+        uiTextChanged = true;
+    }
     if (flowTabInitialized && flowPanel) {
         for (const id in WATERWHEEL_DEFS) {
             const ch = state.waterwheels[id];
@@ -1291,21 +1358,14 @@ function onTick(dt) {
             // gainBn is gain per tick (approx 0.05s).
             // gainPerSec = gainBn / dt
             // speed = gainPerSec / req = (gainBn / dt) / req
-            let gainVal = 0;
-            try {
-                gainVal = Number(gainBn.toScientific(5));
-            } catch {
-                gainVal = 0;
-            }
-            let reqVal = 0;
-            try {
-                reqVal = Number(reqBn.toScientific(5));
-            } catch {
-                reqVal = 0;
-            }
-            // Avoid division by zero
-            if (dt > 0 && reqVal > 0 && Number.isFinite(reqVal)) {
-                state.visuals[id].speed = gainVal / dt / reqVal;
+            if (dt > 0 && reqBn.cmp(0) > 0) {
+                const ratioBn = gainBn.div(reqBn).div(dt);
+                try {
+                    const speed = Number(ratioBn.toScientific(5));
+                    state.visuals[id].speed = Number.isFinite(speed) && !isNaN(speed) ? speed : 0;
+                } catch {
+                    state.visuals[id].speed = 0;
+                }
             } else {
                 state.visuals[id].speed = 0;
             }
@@ -1983,24 +2043,12 @@ function updateFlowVisuals() {
                 }
             }
 
-            let fpValForTooltip = ch.fp;
+            let fpValForTooltip = ch.fp instanceof BigNum ? ch.fp.clone() : BigNum.fromAny(ch.fp || 0);
             if (isMaxed) {
                 pct = 100;
             } else {
-                let fpVal = ch.fp;
-                if (fpVal instanceof BigNum) {
-                    if (fpVal.isInfinite()) fpVal = Infinity;
-                    else
-                        try {
-                            fpVal = Number(fpVal.toScientific(5));
-                        } catch {
-                            fpVal = 0;
-                        }
-                }
-                fpValForTooltip = fpVal;
                 if (reqBn.cmp(0) > 0) {
-                    let fpBn = ch.fp instanceof BigNum ? ch.fp : BigNum.fromAny(ch.fp || 0);
-                    let ratio = fpBn.div(reqBn);
+                    let ratio = fpValForTooltip.div(reqBn);
                     let pctVal = 0;
                     try {
                         pctVal = Number(ratio.toScientific(5)) * 100;
@@ -2016,27 +2064,15 @@ function updateFlowVisuals() {
             }
             if (cache.tooltip) {
                 if (isInfiniteLevel) {
-                    cache.tooltip.innerText = "wow";
+                    cache.tooltip.innerHTML = "wow";
                 } else if (isMaxed) {
-                    cache.tooltip.innerText = "Spinning at maximum speeds";
+                    cache.tooltip.innerHTML = "Spinning at maximum speeds";
                 } else {
-                    let flooredCurrent = fpValForTooltip;
-                    let flooredReq = req;
-                    if (flooredCurrent instanceof BigNum) {
-                        flooredCurrent = flooredCurrent.floor();
-                    } else if (typeof flooredCurrent === "number") {
-                        flooredCurrent = Math.floor(flooredCurrent);
-                    }
-                    if (flooredReq instanceof BigNum) {
-                        flooredReq = flooredReq.floor();
-                    } else if (typeof flooredReq === "number") {
-                        flooredReq = Math.floor(flooredReq);
-                    }
-                    if (!(flooredCurrent instanceof BigNum)) flooredCurrent = BigNum.fromAny(flooredCurrent);
-                    if (!(flooredReq instanceof BigNum)) flooredReq = BigNum.fromAny(flooredReq);
+                    let flooredCurrent = fpValForTooltip.clone().floorToInteger();
+                    let flooredReq = reqBn.clone().floorToInteger();
                     const currentStr = formatNumber(flooredCurrent);
                     const reqStr = formatNumber(flooredReq);
-                    cache.tooltip.innerText = `Current progress: ${currentStr} / ${reqStr} FP`;
+                    cache.tooltip.innerHTML = `Current progress: ${currentStr} / ${reqStr} FP`;
                 }
             }
         }
@@ -2197,6 +2233,7 @@ export function initFlowSystem() {
     addExternalCoinMultiplierProvider((params) => getWaterwheelCoinMultiplier(params));
     addExternalXpGainMultiplierProvider((params) => getWaterwheelXpMultiplier(params));
     addExternalDpMultiplierProvider((mult) => getWaterwheelDepthMultiplier(mult));
+    addExternalCoresMultiplierProvider((mult) => getWaterwheelCoreMultiplier(mult));
 }
 
 export function initFlowTab(panelEl) {
@@ -2250,6 +2287,18 @@ export function getWaterwheelDepthMultiplier(baseValue) {
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
     if (typeof applyStatMultiplierOverride === "function") {
         val = applyStatMultiplierOverride("depth", val);
+    }
+    return val.mulBigNumInteger(mult);
+}
+
+export function getWaterwheelCoreMultiplier(baseValue) {
+    const level = state.waterwheels[WATERWHEELS.CORE]?.level || BigNum.fromInt(0);
+    const mult = BigNum.fromInt(1).add(level);
+    let val = baseValue;
+    if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
+    if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
+    if (typeof applyStatMultiplierOverride === "function") {
+        val = applyStatMultiplierOverride("cores", val);
     }
     return val.mulBigNumInteger(mult);
 }
