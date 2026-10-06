@@ -451,5 +451,58 @@ export const CORAL_REGISTRY = [
         effectSummary() {
             return "";
         },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 10,
+        title: "Challenge of Pure Gold",
+        desc: "Unlocks the Challenge of Pure Gold",
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "img/materials/pure_gold.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            let isIronCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isIronCompleted = lsGetItem(`ccc:collapseChallengeCompleted:iron:${slotKey}`) === "1";
+            } catch {}
+
+            if (!isIronCompleted) {
+                return { state: "locked" };
+            }
+
+            try {
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 91) {
+                        return { state: "unlocked" };
+                    }
+                    return { state: "mysterious", unlockReqText: "Reach Red Coral Level 91 to reveal this upgrade" };
+                }
+            } catch {}
+            
+            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 91 to reveal this upgrade" };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    const slot = getActiveSlot() ?? "default";
+                    lsSetItem(`ccc:collapseChallengeVisible:pure_gold:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: "pure_gold", visible: true } }));
+                } catch {}
+            }
+        },
+        effectSummary() {
+            return "";
+        },
     }
 ];
