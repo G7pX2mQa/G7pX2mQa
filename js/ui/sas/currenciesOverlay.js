@@ -23,7 +23,13 @@ function getToggleKey(currency, type) {
 // Ensures default values for these keys exist
 
 function getUnlockedCurrencies() {
-    return Object.values(CURRENCIES).filter((c) => isCurrencyUnlocked(c));
+    return Object.values(CURRENCIES).filter((c) => {
+        if (!isCurrencyUnlocked(c)) return false;
+        if (c === "rubble" && !window.resetSystem?.isCollapseChallengeActive?.()) {
+            return false;
+        }
+        return true;
+    });
 }
 
 function ensureCurrencySettings() {
