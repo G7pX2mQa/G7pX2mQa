@@ -948,7 +948,22 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot(), { force
 export function getCurrencyMultiplierBN(key) {
     let mult = intFromScaled(getMultiplierScaled(key));
     if (isPureGoldChallengeActive()) {
-        mult = mult.sqrt().floorToInteger();
+        const slot = getActiveSlot() || "default";
+        let surgeLevel = 0;
+        if (typeof window !== "undefined" && window.resetSystem && typeof window.resetSystem.getCurrentSurgeLevel === "function") {
+            surgeLevel = window.resetSystem.getCurrentSurgeLevel();
+        } else {
+            const raw = lsGetItem(`ccc:surgeBarLevel:${slot}`);
+            if (raw === "Infinity") surgeLevel = Infinity;
+            else surgeLevel = Number(raw) || 0;
+        }
+        
+        if (surgeLevel >= 250) {
+            mult = mult.pow(2/3).floorToInteger();
+        } else {
+            mult = mult.sqrt().floorToInteger();
+        }
+        
         if (mult.isZero()) mult = BigNum.fromInt(1);
     }
     return mult;
