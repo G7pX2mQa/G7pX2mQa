@@ -1,692 +1,455 @@
-import { settingsManager } from "./settingsManager.js";
-import { isSurgeUnlocked } from "../ui/merchantTabs/resetTab.js";
-import { E } from "./upgrades.js";
-import { formatNumber } from "../util/numFormat.js";
-import { BigNum } from "../util/bigNum.js";
-import { getActiveSlot } from "../util/storage.js";
-import { isCollapseUnlocked } from "../ui/minerTabs/collapseTab.js";
-import { lsGetItem } from "../main.js";
-import { isBuildingUnlocked } from "../ui/minerTabs/buildingsTab.js";
+import { computeDefaultUpgradeCost, E } from "./upgrades.js";
+import { BigNum, approxLog10BigNum, bigNumFromLog10 } from "../util/bigNum.js";
+import { formatMultForUi, formatNumber } from "../util/numFormat.js";
+import { isRclpSystemUnlocked, unlockRclpSystem, getRclpState } from "./rclpSystem.js";
+import { isGclpSystemUnlocked } from "./gclpSystem.js";
+import { getActiveSlot, bank } from "../util/storage.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 
-export const AUTOMATION_AREA_KEY = "automation";
-export const EFFECTIVE_AUTO_COLLECT_ID = 1;
-export const AUTOBUY_COIN_UPGRADES_ID = 2;
-export const AUTOBUY_BOOK_UPGRADES_ID = 3;
-export const AUTOBUY_GOLD_UPGRADES_ID = 4;
-export const AUTOBUY_MAGIC_UPGRADES_ID = 5;
-export const AUTOBUY_WORKSHOP_LEVELS_ID = 6;
-export const AUTOBUY_DNA_UPGRADES_ID = 7;
-export const AUTOBUY_EVOLVE_UPGRADES_ID = 8;
-export const AUTOBUY_SCRAP_UPGRADES_ID = 9;
-export const UNDERWATER_CAVERN_EAC_ID = 10;
-export const EFFECTIVE_AUTO_SELL_ID = 11;
-export const MULTI_WATERWHEEL_FLOW_ID = 12;
-export const AUTOBUY_CORE_BUILDING_ID = 13;
-export const AUTOBUY_CRYSTAL_BUILDING_ID = 14;
-export const AUTOBUY_STONE_BUILDING_ID = 15;
-export const AUTOBUY_COPPER_BUILDING_ID = 16;
-export const AUTOBUY_IRON_BUILDING_ID = 17;
-export const AUTOBUY_PURE_GOLD_BUILDING_ID = 18;
-
-// export ties specifically for upgrades who break the norm
-export const AUTOMATION_TIES = {
-    EFFECTIVE_AUTO_COLLECT: "effective_auto_collect",
-    AUTOBUY_COIN_UPGRADES: "autobuy_coin_upgrades",
-    UNDERWATER_CAVERN_EAC: "underwater_cavern_eac",
-    EFFECTIVE_AUTO_SELL: "effective_auto_sell",
-    MULTI_WATERWHEEL_FLOW: "multi_waterwheel_flow",
-};
-
-// Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
-export const MASTER_AUTOBUY_IDS = {
-    [AUTOBUY_COIN_UPGRADES_ID]: "coins",
-    [AUTOBUY_BOOK_UPGRADES_ID]: "books",
-    [AUTOBUY_GOLD_UPGRADES_ID]: "gold",
-    [AUTOBUY_MAGIC_UPGRADES_ID]: "magic",
-    [AUTOBUY_DNA_UPGRADES_ID]: "dna",
-    [AUTOBUY_SCRAP_UPGRADES_ID]: "scrap",
-    [MULTI_WATERWHEEL_FLOW_ID]: "waterwheels",
-    [AUTOBUY_CORE_BUILDING_ID]: "cores",
-    [AUTOBUY_CRYSTAL_BUILDING_ID]: "crystals",
-    [AUTOBUY_STONE_BUILDING_ID]: "stone",
-    [AUTOBUY_COPPER_BUILDING_ID]: "copper",
-    [AUTOBUY_IRON_BUILDING_ID]: "iron",
-    [AUTOBUY_PURE_GOLD_BUILDING_ID]: "pure_gold",
-};
-
-const STANDARD_AUTOMATION_SHRINK = [
-    { min: 600, max: 1500, scale: 0.6 },
-    { min: 1500, max: 1920, scale: 0.725 },
-    { min: 1920, max: 2000, scale: 0.8 },
-];
-
-const LESSER_AUTOMATION_SHRINK = [
-    { min: 600, max: 1500, scale: 0.8 },
-    { min: 1500, max: 1920, scale: 0.9 },
-    { min: 1920, max: 2000, scale: 0.95 },
-];
-
-const UPGRADE_DEFINITIONS = [
+export const CORAL_AREA_KEY = "coral_reef";
+export const CORAL_REGISTRY = [
     {
-        area: AUTOMATION_AREA_KEY,
-        id: EFFECTIVE_AUTO_COLLECT_ID,
-        tie: AUTOMATION_TIES.EFFECTIVE_AUTO_COLLECT,
-        title: "Effective Auto-Collect",
-        desc: "Generates the equivalent of collecting a Coin on an interval\nEach level of this upgrade will reduce the generation interval\nAs a bonus, anything passively generated accumulates offline",
-        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
-        icon: "img/sc_upg_icons/effective_auto_collect.webp",
-        lvlCap: 20,
+        area: CORAL_AREA_KEY,
+        id: 1,
+        title: "Faster Coral",
+        desc: "Multiplies Bubble Spawn Rate by a certain amount per level\nBubbles float up, hit the Coral Ceiling, and spawn a Coral when they pop",
+        lvlCap: 4,
+        costType: "red_coral",
+        upgType: "NM",
+        effectType: "bubble_spawn",
+        icon: "img/coral_upg_icons/faster_coral.webp",
+        costAtLevel(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            if (normalizedLevel === 0) return BigNum.fromInt(10);
+            if (normalizedLevel === 1) return BigNum.fromInt(1000);
+            if (normalizedLevel === 2) return BigNum.fromAny(1e6);
+            if (normalizedLevel === 3) return BigNum.fromAny(1e9);
+            return BigNum.fromAny("Infinity");
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        computeLockState() {
+            return { state: "unlocked" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `Bubble Spawn Rate bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            if (normalizedLevel === 0) return 1;
+            if (normalizedLevel === 1) return 2;
+            if (normalizedLevel === 2) return 5;
+            if (normalizedLevel === 3) return 10;
+            if (normalizedLevel >= 4) return 20;
+            return 1;
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 2,
+        title: "Unlock Red Coral Level",
+        desc: "Unlocks the Red Coral Level system; collect Red Coral to contribute to it (gain RCLP)\nThat is, RCLP (progress) gain directly depends on the amount of Red Coral you collect\nEach Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value\nAnd lastly, each atm of Pressure after 31 doubles Red Coral value",
+        descScale: 0.7,
+        ignoreDescScaleAt: 1920,
+        shrinkBetween: { min: 1920, max: 2000, scale: 0.925 },
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "",
+        baseIconOverride: "img/stats/rclp/rclp_plus_base.webp",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            if (isRclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+            
+            let metCoral = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+            } catch {}
+            
+            if (metCoral) {
+                return { state: "unlocked" };
+            }
+            return { state: "mysterious", unlockReqText: "Explore the Delve menu to reveal this upgrade" };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    unlockRclpSystem();
+                } catch {}
+            }
+        },
+        effectSummary() {
+            return "";
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 3,
+        title: "Scrap Value",
+        get desc() {
+            let text = `Multiplies Scrap value by ${formatNumber(BigNum.fromAny("1e20"))}x`;
+            let depth = 0;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                const dpLvlStr = lsGetItem(`ccc:dpLevel:${slotKey}`);
+                if (dpLvlStr) {
+                    if (dpLvlStr.startsWith("BN:infinite") || dpLvlStr === "Infinity") {
+                        depth = Infinity;
+                    } else if (dpLvlStr.startsWith("BN:")) {
+                        const expPart = dpLvlStr.slice(dpLvlStr.lastIndexOf(":") + 1);
+                        const caret = expPart.indexOf("^");
+                        if (caret >= 0) {
+                            depth = parseFloat(expPart.slice(0, caret)) * Math.pow(10, parseFloat(expPart.slice(caret + 1)));
+                        } else {
+                            depth = parseFloat(expPart);
+                        }
+                    } else {
+                        depth = parseFloat(dpLvlStr);
+                    }
+                }
+            } catch (e) {}
+            if (depth < 800) {
+                text += "\nThis will make it easier to reach Depth: 800m";
+            }
+            return text;
+        },
+        lvlCap: 1,
         baseCost: 100,
-        costType: "gears",
+        costType: "red_coral",
         upgType: "NM",
-        scaling: { ratio: 2 },
+        effectType: "scrap_value",
+        icon: "img/lab_icons/scrap_val0.webp",
         costAtLevel(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            return BigNum.fromInt(100).mulBigNumInteger(E.powPerLevel(2)(lvl));
+            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
-        effectSummary(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            if (lvl === 0) return "Generation interval: None";
-            const intervalMs = Math.round(1000 / lvl);
-            return `Generation interval: ${formatNumber(BigNum.fromAny(intervalMs))}ms`;
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_COIN_UPGRADES_ID,
-        tie: AUTOMATION_TIES.AUTOBUY_COIN_UPGRADES,
-        title: "Autobuy Coin Upgrades",
-        desc: "Automatically buys Coin upgrades, but with a twist:\nAutobuys upgrades for free, as long as you can afford the cost\nThis is how all future autobuyers will work",
-        shrinkBetween: LESSER_AUTOMATION_SHRINK,
-        icon: "img/sc_upg_icons/autobuy_coin.webp",
-        lvlCap: 1,
-        baseCost: 1e6,
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromInt(1e6);
-        },
-        effectSummary() {
-            return null;
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_BOOK_UPGRADES_ID,
-        title: "Autobuy Book Upgrades",
-        desc: "Automatically buys Book upgrades",
-        icon: "img/sc_upg_icons/autobuy_book.webp",
-        lvlCap: 1,
-        baseCost: 1e9,
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromInt(1e9);
-        },
-        effectSummary() {
-            return null;
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_GOLD_UPGRADES_ID,
-        title: "Autobuy Gold Upgrades",
-        desc: "Automatically buys Gold upgrades",
-        icon: "img/sc_upg_icons/autobuy_gold.webp",
-        lvlCap: 1,
-        baseCost: 1e12,
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e12");
-        },
-        effectSummary() {
-            return null;
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_MAGIC_UPGRADES_ID,
-        title: "Autobuy Magic Upgrades",
-        desc: "Automatically buys Magic upgrades",
-        icon: "img/sc_upg_icons/autobuy_magic.webp",
-        lvlCap: 1,
-        baseCost: 1e15,
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e15");
-        },
-        effectSummary() {
-            return null;
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_WORKSHOP_LEVELS_ID,
-        title: "Autobuy Workshop Levels",
-        desc: "Automatically buys Workshop Levels",
-        icon: "img/sc_upg_icons/autobuy_workshop_level.webp",
-        lvlCap: 1,
-        baseCost: 1e18,
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e18");
-        },
-        effectSummary() {
-            return null;
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_DNA_UPGRADES_ID,
-        title: "Autobuy DNA Upgrades",
-        desc: "Automatically buys DNA upgrades",
-        icon: "img/sc_upg_icons/autobuy_dna.webp",
-        lvlCap: 1,
-        baseCost: 1e27,
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e27");
-        },
-        effectSummary() {
-            return null;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 11 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 11) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 11 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_EVOLVE_UPGRADES_ID,
-        title: "Auto-Evolve Upgrades",
-        desc: "Automatically evolves upgrades when they are ready",
-        icon: "img/sc_upg_icons/autobuy_evolve.webp",
-        lvlCap: 1,
-        baseCost: 1e126,
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e126");
-        },
-        effectSummary() {
-            return null;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 60 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 60) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 60 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_SCRAP_UPGRADES_ID,
-        title: "Autobuy Scrap Upgrades",
-        desc: "Automatically buys Scrap upgrades",
-        icon: "img/sc_upg_icons/autobuy_scrap.webp",
-        lvlCap: 1,
-        baseCost: "1e250",
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e250");
-        },
-        effectSummary() {
-            return null;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 150 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 150) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 150 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: UNDERWATER_CAVERN_EAC_ID,
-        tie: AUTOMATION_TIES.UNDERWATER_CAVERN_EAC,
-        title: "Underwater Cavern EAC",
-        desc: "Generates the equivalent of collecting a Material on an interval\nUC EAC also generates its own Materials dependent on Depth\nEach level of this upgrade will reduce the generation interval",
-        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
-        icon: "img/sc_upg_icons/eac_uc.webp",
-        requiredNodeId: "cavern",
-        lvlCap: 20,
-        baseCost: "1e25",
-        costType: "gears",
-        upgType: "NM",
-        scaling: { ratio: "1e25" },
-        costAtLevel(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            return BigNum.fromAny("1e25").mulBigNumInteger(E.powPerLevel("1e25")(lvl));
-        },
-        effectSummary(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            if (lvl === 0) return "Generation interval: None";
-            const intervalMs = Math.round(1000 / lvl);
-            return `Generation interval: ${formatNumber(BigNum.fromAny(intervalMs))}ms`;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 150 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 150) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 150 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: EFFECTIVE_AUTO_SELL_ID,
-        tie: AUTOMATION_TIES.EFFECTIVE_AUTO_SELL,
-        title: "Effective Auto-Sell",
-        desc: "Every game tick, generates Scrap based on owned Materials\nGenerates at 0.0001%/0.01%/1%/100% efficiency depending on level",
-        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
-        icon: "img/sc_upg_icons/effective_auto_sell.webp",
-        requiredNodeId: "cavern",
-        lvlCap: 4,
-        baseCost: "1e250",
-        costType: "gears",
-        upgType: "NM",
-        scaling: { ratio: "1e250" },
-        costAtLevel(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            return BigNum.fromAny("1e250").mulBigNumInteger(E.powPerLevel("1e250")(lvl));
-        },
-        effectSummary(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            if (lvl === 0) return "Effective Auto-Sell efficiency: 0%";
-            let eff = "0%";
-            if (lvl === 1) eff = "0.0001%";
-            else if (lvl === 2) eff = "0.01%";
-            else if (lvl === 3) eff = "1%";
-            else if (lvl >= 4) eff = "100%";
-            const autoSellSetting = settingsManager.get("auto_sell_efficiency");
-            if (autoSellSetting !== undefined && autoSellSetting < 100) {
-                if (autoSellSetting === 0) return `Effective Auto-Sell efficiency: 0% (nerfed by setting)`;
-                let numVal = parseFloat(eff);
-                let nerfedVal = numVal * (autoSellSetting / 100);
-                return `Effective Auto-Sell efficiency: ${nerfedVal}% (nerfed by setting)`;
-            }
-            return `Effective Auto-Sell efficiency: ${eff}`;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 150 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 150) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 150 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: MULTI_WATERWHEEL_FLOW_ID,
-        tie: AUTOMATION_TIES.MULTI_WATERWHEEL_FLOW,
-        title: "Multi-Waterwheel Flow",
-        desc: "Every single Waterwheel can now be active at the same time\nHowever, every Waterwheel other than your main focus is weakened\nWeakened Waterwheels flow at 0.001%/0.01%/0.1%/1% efficiency depending on level",
-        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
-        icon: "img/sc_upg_icons/multi_waterwheel_flow.webp",
-        lvlCap: 4,
-        baseCost: "1e250",
-        costType: "gears",
-        upgType: "NM",
-        scaling: { ratio: "1e250" },
-        costAtLevel(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            return BigNum.fromAny("1e250").mulBigNumInteger(E.powPerLevel("1e250")(lvl));
-        },
-        effectSummary(level) {
-            const lvl = Math.max(0, Math.floor(Number(level) || 0));
-            if (lvl === 0) return "Weakened Waterwheel efficiency: 0%";
-            let eff = "0%";
-            if (lvl === 1) eff = "0.001%";
-            else if (lvl === 2) eff = "0.01%";
-            else if (lvl === 3) eff = "0.1%";
-            else if (lvl >= 4) eff = "1%";
-            return `Weakened Waterwheel efficiency: ${eff}`;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 150 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 150) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 150 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_CORE_BUILDING_ID,
-        title: "Autobuy Core Building",
-        desc: "Automatically buys levels of the Core Building",
-        icon: "img/sc_upg_icons/autobuy_core.webp",
-        lvlCap: 1,
-        baseCost: "1e1000",
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e1000");
-        },
-        effectSummary() {
-            return null;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 500 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 500) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 500 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_CRYSTAL_BUILDING_ID,
-        title: "Autobuy Crystal Building",
-        desc: "Automatically buys levels of the Crystal Building",
-        icon: "img/sc_upg_icons/autobuy_crystal.webp",
-        lvlCap: 1,
-        baseCost: "1e1000",
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e1000");
-        },
-        effectSummary() {
-            return null;
-        },
-        computeLockState(ctx) {
-            const sl = ctx.surgeLevel;
-            let isUnlocked = false;
-
-            if (typeof sl === "number") {
-                if (sl >= 750 || sl === Infinity) isUnlocked = true;
-            } else if (typeof sl === "string") {
-                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
-                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 750) isUnlocked = true;
-            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
-                isUnlocked = true;
-            }
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isSurgeUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 750 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_STONE_BUILDING_ID,
-        title: "Autobuy Stone Building",
-        desc: "Automatically buys levels of the Stone Building",
-        icon: "img/materials/stone.webp",
-        extraIcon: "img/misc/gear_icon_for_materials.webp",
-        lvlCap: 1,
-        baseCost: "1e1000",
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e1000");
-        },
-        effectSummary() {
-            return null;
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
         },
         computeLockState() {
-            let isUnlocked = false;
+            if (isRclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+            let metCoral = false;
             try {
-                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:stone:${getActiveSlot() ?? "default"}`) === "1";
+                const slotKey = getActiveSlot() ?? "default";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
             } catch {}
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isCollapseUnlocked()) {
+            
+            if (!metCoral) {
                 return { state: "locked" };
             }
-
-            const revealText = "Complete the Challenge of Stone to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
+            return { state: "mysterious", unlockReqText: "Unlock the Red Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `Scrap value bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            return normalizedLevel > 0 ? BigNum.fromAny("1e20") : 1;
         },
     },
     {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_COPPER_BUILDING_ID,
-        title: "Autobuy Copper Building",
-        desc: "Automatically buys levels of the Copper Building",
+        area: CORAL_AREA_KEY,
+        id: 4,
+        title: "Advanced Researching II",
+        get desc() {
+            return `Improves RP value by ${formatNumber(BigNum.fromAny("1e200"))}x per level`;
+        },
+        lvlCap: 5,
+        baseCost: 1000,
+        costType: "red_coral",
+        upgType: "NM",
+        effectType: "rp_value",
+        icon: "img/uc_upg_icons/rp_val1.webp",
+        costAtLevel(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            if (normalizedLevel >= this.lvlCap) return BigNum.fromAny("Infinity");
+            return BigNum.fromInt(Math.floor(this.baseCost * Math.pow(33.3333333333, normalizedLevel)));
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        computeLockState() {
+            if (isRclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+            let metCoral = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+            } catch {}
+            
+            if (!metCoral) {
+                return { state: "locked" };
+            }
+            return { state: "mysterious", unlockReqText: "Unlock the Red Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `RP value bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            return E.powPerLevel("1e200")(level);
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 5,
+        title: "PP Value",
+        desc: "Quintuples PP value per level",
+        lvlCap: 10,
+        baseCost: 1000,
+        costType: "red_coral",
+        upgType: "NM",
+        effectType: "pp_value",
+        icon: "img/lab_icons/pp_val0.webp",
+        costAtLevel(level) {
+            const mult = E.powPerLevel(5)(level);
+            if (mult && typeof mult.mulSmall === "function") {
+                return mult.mulSmall(1000);
+            }
+            return BigNum.fromAny(mult).mulSmall(1000);
+        },
+        nextCostAfter(_, nextLevel) {
+            return this.costAtLevel(nextLevel);
+        },
+        computeLockState() {
+            if (isRclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+            let metCoral = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                metCoral = lsGetItem(`ccc:coral_reefMet:${slotKey}`) === "1";
+            } catch {}
+            
+            if (!metCoral) {
+                return { state: "locked" };
+            }
+            return { state: "mysterious", unlockReqText: "Unlock the Red Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `PP value bonus: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            return E.powPerLevel(5)(level);
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 6,
+        title: "Challenge of Copper",
+        desc: "Unlocks the Challenge of Copper",
+        lvlCap: 1,
+        upgType: "NM",
         icon: "img/materials/copper.webp",
-        extraIcon: "img/misc/gear_icon_for_materials.webp",
-        lvlCap: 1,
-        baseCost: "1e1000",
-        costType: "gears",
-        upgType: "NM",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        unlockUpgrade: true,
         costAtLevel() {
-            return BigNum.fromAny("1e1000");
+            return BigNum.fromInt(0);
         },
-        effectSummary() {
-            return null;
+        nextCostAfter() {
+            return BigNum.fromInt(0);
         },
         computeLockState() {
-            let isUnlocked = false;
             try {
-                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:copper:${getActiveSlot() ?? "default"}`) === "1";
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 31) {
+                        return { state: "unlocked" };
+                    }
+                    return { state: "mysterious", unlockReqText: "Reach Red Coral Level 31 to reveal this upgrade" };
+                }
             } catch {}
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isCollapseUnlocked()) {
-                return { state: "locked" };
+            
+            return { state: "locked" };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    const slot = getActiveSlot() ?? "default";
+                    lsSetItem(`ccc:collapseChallengeVisible:copper:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: "copper", visible: true } }));
+                } catch {}
             }
-
-            let hasUnlockedCopper = false;
-            try {
-                hasUnlockedCopper = isBuildingUnlocked("copper");
-            } catch {}
-
-            const revealText = hasUnlockedCopper
-                ? "Complete the Challenge of Copper to reveal this upgrade"
-                : "Complete the Challenge of [Unknown] to reveal this upgrade";
-
-            return { state: "mysterious", unlockReqText: revealText };
+        },
+        effectSummary() {
+            return "";
         },
     },
     {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_IRON_BUILDING_ID,
-        title: "Autobuy Iron Building",
-        desc: "Automatically buys levels of the Iron Building",
+        area: CORAL_AREA_KEY,
+        id: 7,
+        title: "Red Coral Link",
+        desc: "Unspent Green Coral boosts Red Coral value",
+        lvlCap: 1,
+        costType: "green_coral",
+        upgType: "NM",
+        effectType: "red_coral_value",
+        icon: "img/coral_upg_icons/red_coral_link.webp",
+        costAtLevel() {
+            return BigNum.fromAny(1e6);
+        },
+        nextCostAfter() {
+            return BigNum.fromAny(1e6);
+        },
+        computeLockState() {
+            if (isGclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+
+            let isCopperCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isCopperCompleted = lsGetItem(`ccc:collapseChallengeCompleted:copper:${slotKey}`) === "1";
+            } catch {}
+
+            if (!isCopperCompleted) {
+                return { state: "locked" };
+            }
+
+            return { state: "mysterious", unlockReqText: "Unlock the Green Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `Red Coral value: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            if (normalizedLevel === 0) return BigNum.fromInt(1);
+            let unspentGreen = BigNum.fromInt(0);
+            try {
+                unspentGreen = bank.green_coral?.value || BigNum.fromInt(0);
+            } catch {
+                unspentGreen = BigNum.fromInt(0);
+            }
+            
+            if (!unspentGreen || unspentGreen.isZero?.() || unspentGreen === 0) return BigNum.fromInt(1);
+            
+            try {
+                const log10 = approxLog10BigNum(unspentGreen);
+                if (Number.isNaN(log10) || log10 <= 0) return BigNum.fromInt(1);
+                return bigNumFromLog10(log10 / 3);
+            } catch {
+                return BigNum.fromInt(1);
+            }
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 8,
+        title: "Green Coral Link",
+        desc: "Unspent Red Coral boosts Green Coral value",
+        lvlCap: 1,
+        costType: "red_coral",
+        upgType: "NM",
+        effectType: "green_coral_value",
+        icon: "img/coral_upg_icons/green_coral_link.webp",
+        costAtLevel() {
+            return BigNum.fromAny(1e12);
+        },
+        nextCostAfter() {
+            return BigNum.fromAny(1e12);
+        },
+        computeLockState() {
+            if (isGclpSystemUnlocked()) {
+                return { state: "unlocked" };
+            }
+
+            let isCopperCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isCopperCompleted = lsGetItem(`ccc:collapseChallengeCompleted:copper:${slotKey}`) === "1";
+            } catch {}
+
+            if (!isCopperCompleted) {
+                return { state: "locked" };
+            }
+
+            return { state: "mysterious", unlockReqText: "Unlock the Green Coral Level system to reveal this upgrade" };
+        },
+        effectSummary(level) {
+            const mult = this.effectMultiplier(level);
+            return `Green Coral value: ${formatMultForUi(mult)}x`;
+        },
+        effectMultiplier(level) {
+            const normalizedLevel = Math.max(0, Number(level) || 0);
+            if (normalizedLevel === 0) return BigNum.fromInt(1);
+            let unspentRed = BigNum.fromInt(0);
+            try {
+                unspentRed = bank.red_coral?.value || BigNum.fromInt(0);
+            } catch {
+                unspentRed = BigNum.fromInt(0);
+            }
+            
+            if (!unspentRed || unspentRed.isZero?.() || unspentRed === 0) return BigNum.fromInt(1);
+            
+            try {
+                const log10 = approxLog10BigNum(unspentRed);
+                if (Number.isNaN(log10) || log10 <= 0) return BigNum.fromInt(1);
+                return bigNumFromLog10(log10 / 3);
+            } catch {
+                return BigNum.fromInt(1);
+            }
+        },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 9,
+        title: "Challenge of Iron",
+        desc: "Unlocks the Challenge of Iron",
+        lvlCap: 1,
+        upgType: "NM",
         icon: "img/materials/iron.webp",
-        extraIcon: "img/misc/gear_icon_for_materials.webp",
-        lvlCap: 1,
-        baseCost: "1e1000",
-        costType: "gears",
-        upgType: "NM",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        unlockUpgrade: true,
         costAtLevel() {
-            return BigNum.fromAny("1e1000");
+            return BigNum.fromInt(0);
         },
-        effectSummary() {
-            return null;
+        nextCostAfter() {
+            return BigNum.fromInt(0);
         },
         computeLockState() {
-            let isUnlocked = false;
-            try {
-                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:iron:${getActiveSlot() ?? "default"}`) === "1";
-            } catch {}
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isCollapseUnlocked()) {
+            if (!isGclpSystemUnlocked()) {
                 return { state: "locked" };
             }
-
-            let hasUnlockedIron = false;
             try {
-                hasUnlockedIron = isBuildingUnlocked("iron");
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 51) {
+                        return { state: "unlocked" };
+                    }
+                    return { state: "mysterious", unlockReqText: "Reach Red Coral Level 51 to reveal this upgrade" };
+                }
             } catch {}
-
-            const revealText = hasUnlockedIron
-                ? "Complete the Challenge of Iron to reveal this upgrade"
-                : "Complete the Challenge of [Unknown] to reveal this upgrade";
-
-            return { state: "mysterious", unlockReqText: revealText };
+            
+            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 51 to reveal this upgrade" };
         },
-    },
-    {
-        area: AUTOMATION_AREA_KEY,
-        id: AUTOBUY_PURE_GOLD_BUILDING_ID,
-        title: "Autobuy Pure Gold Building",
-        desc: "Automatically buys levels of the Pure Gold Building",
-        icon: "img/materials/pure_gold.webp",
-        extraIcon: "img/misc/gear_icon_for_materials.webp",
-        lvlCap: 1,
-        baseCost: "1e1000",
-        costType: "gears",
-        upgType: "NM",
-        costAtLevel() {
-            return BigNum.fromAny("1e1000");
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    const slot = getActiveSlot() ?? "default";
+                    lsSetItem(`ccc:collapseChallengeVisible:iron:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: "iron", visible: true } }));
+                } catch {}
+            }
         },
         effectSummary() {
-            return null;
+            return "";
         },
-        computeLockState() {
-            let isUnlocked = false;
-            try {
-                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:pure_gold:${getActiveSlot() ?? "default"}`) === "1";
-            } catch {}
-
-            if (isUnlocked) return { state: "unlocked" };
-
-            if (!isCollapseUnlocked()) {
-                return { state: "locked" };
-            }
-
-            let hasUnlockedPureGold = false;
-            try {
-                hasUnlockedPureGold = isBuildingUnlocked("pure_gold");
-            } catch {}
-
-            const revealText = hasUnlockedPureGold
-                ? "Complete the Challenge of Pure Gold to reveal this upgrade"
-                : "Complete the Challenge of [Unknown] to reveal this upgrade";
-
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
+    }
 ];
-
-export const REGISTRY = UPGRADE_DEFINITIONS.map((u) => ({
-    ...u,
-    icon: u.icon,
-}));
