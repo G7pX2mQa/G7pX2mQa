@@ -1,729 +1,1026 @@
-import { unlockDpSystem, isDpSystemUnlocked, getDpState } from "./dpSystem.js";
-import { getPpState, isPpSystemUnlocked } from "./ppSystem.js";
+import { lsSetItem, lsGetItem } from "../main.js";
 import {
-    AREA_KEYS,
-    HM_EVOLUTION_INTERVAL,
-    safeHasMetMiner,
-    UPGRADE_TIES,
-    computeDefaultUpgradeCost,
-    costAtLevelUsingScaling,
-    getLevelNumber,
-    E,
-} from "./upgrades.js";
-import { isBuildingsUnlocked } from "../ui/minerTabs/buildingsTab.js";
-import { hasDoneCombineReset, hasDoneCompressReset } from "../ui/minerTabs/resetTab.js";
-import { BigNum, bigNumIsInfinite, bigNumFromLog10 } from "../util/bigNum.js";
-import { showWideNotification } from "../ui/notifications.js";
-import { isResearchNodeActive } from "./labNodes.js";
-import { formatNumber, formatMultForUi } from "../util/numFormat.js";
-import { isSellUnlocked, hasViewedSellTab } from "../ui/minerTabs/sellTab.js";
-import { getCurrentSurgeLevel } from "../ui/merchantTabs/resetTab.js";
-import { isCollapseUnlocked } from "../ui/minerTabs/collapseTab.js";
-import { getActiveSlot } from "../util/storage.js";
-import { lsGetItem, lsSetItem } from "../main.js";
-
-export const UC_AREA_KEY = "underwater_cavern";
-
-export const UC_REGISTRY = [
-    {
-        area: UC_AREA_KEY,
-        id: 1,
-
-        title: "Faster Materials",
-        desc: "Increases Material Spawn Rate by +9% per level",
-        lvlCap: 100,
-        baseCost: 10,
-        costType: "scrap",
-        upgType: "NM",
-        effectType: "material_spawn",
-        icon: "img/uc_upg_icons/faster_materials.webp",
-        costAtLevel(level) {
-            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `Material Spawn Rate bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return 1 + 0.09 * normalizedLevel;
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 2,
-
-        title: "Unlock Sell",
-        desc: "Unlocks the Sell tab in the Delve menu",
-        lvlCap: 1,
-        upgType: "NM",
-        icon: "",
-        baseIconOverride: "img/misc/sell_plus_base.webp",
-        unlockUpgrade: true,
-        costAtLevel() {
-            return BigNum.fromInt(0);
-        },
-        nextCostAfter() {
-            return BigNum.fromInt(0);
-        },
-        computeLockState() {
-            if (safeHasMetMiner()) {
-                return { state: "unlocked" };
-            }
-            const revealText = "Explore the Delve menu to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        onLevelChange({ newLevel }) {
-            if ((newLevel ?? 0) >= 1) {
-                try {
-                    if (typeof window.onSellUpgradeUnlocked === "function") window.onSellUpgradeUnlocked();
-                } catch {}
-            }
-        },
-        effectSummary() {
-            return "";
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 3,
-
-        title: "Unlock Depth",
-        desc: "Unlocks the Depth system; Collect Materials for DP; Go deeper to find new Materials\nEach meter of Depth boosts Material accumulator speed (see Sell tab)\nEach meter of Depth additionally boosts FP 1.1x compounding\nAlso you should go look in the Flow tab (important)",
-        descScale: 0.725,
-        ignoreDescScaleAt: 1920,
-        shrinkBetween: { min: 1920, max: 2000, scale: 0.967 },
-        lvlCap: 1,
-        upgType: "NM",
-        icon: "",
-        baseIconOverride: "img/stats/dp/dp_plus_base.webp",
-
-        unlockUpgrade: true,
-        costAtLevel() {
-            return BigNum.fromInt(0);
-        },
-        nextCostAfter() {
-            return BigNum.fromInt(0);
-        },
-        computeLockState() {
-            if (isDpSystemUnlocked()) {
-                return { state: "unlocked" };
-            }
-            if (!isSellUnlocked()) {
-                return { state: "locked" };
-            }
-            if (!hasViewedSellTab()) {
-                const revealText = "Visit the Sell tab to reveal this upgrade";
-                return { state: "mysterious", unlockReqText: revealText };
-            }
-            return { state: "unlocked" };
-        },
-        onLevelChange({ newLevel }) {
-            if ((newLevel ?? 0) >= 1) {
-                try {
-                    unlockDpSystem();
-                } catch {}
-            }
-        },
-        effectSummary() {
-            return "";
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 4,
-
-        title: "Coin Value IV",
-        get desc() {
-            let text = `Multiplies Coin value by ${formatNumber(BigNum.fromInt(100000))}x`;
-            let endlessFpLevel = 0;
-            try {
-                endlessFpLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_FP);
-            } catch (e) {}
-            if (endlessFpLevel < 400) {
-                text += "\nThis will make it easier to reach level 400 of Endless FP";
-            }
-            return text;
-        },
-        lvlCap: 1,
-        baseCost: 100,
-        costType: "scrap",
-        upgType: "NM",
-        effectType: "coin_value",
-        icon: "img/lab_icons/coin_val0.webp",
-        costAtLevel(level) {
-            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        computeLockState() {
-            if (isDpSystemUnlocked()) {
-                return { state: "unlocked" };
-            }
-            if (!isSellUnlocked() || !hasViewedSellTab()) {
-                return { state: "locked" };
-            }
-            return { state: "mysterious", unlockReqText: "Unlock the Depth system to reveal this upgrade" };
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `Coin value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return normalizedLevel > 0 ? 100000 : 1;
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 5,
-
-        title: "DP Value",
-        desc: "Triples DP value per level",
-        lvlCap: 10,
-        baseCost: 1000,
-        costType: "scrap",
-        upgType: "NM",
-        effectType: "dp_value",
-        icon: "img/uc_upg_icons/dp_val1.webp",
-        costAtLevel(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return BigNum.fromInt(this.baseCost).mulBigNumInteger(E.powPerLevel(3)(normalizedLevel));
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        computeLockState() {
-            if (isDpSystemUnlocked()) {
-                return { state: "unlocked" };
-            }
-            if (!isSellUnlocked() || !hasViewedSellTab()) {
-                return { state: "locked" };
-            }
-            return { state: "mysterious", unlockReqText: "Unlock the Depth system to reveal this upgrade" };
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `DP value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return E.powPerLevel(3)(normalizedLevel);
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 6,
-
-        title: "Unlock Combine",
-        desc: "Unlocks the Reset tab and Combine reset in the Delve menu",
-        descScale: 0.9,
-        ignoreDescScaleAt: 1500,
-        lvlCap: 1,
-        upgType: "NM",
-        icon: "",
-        baseIconOverride: "img/misc/combine_plus_base.webp",
-        revealRequirement: "Reach Depth: 31m to reveal this upgrade",
-        unlockUpgrade: true,
-        costAtLevel() {
-            return BigNum.fromInt(0);
-        },
-        nextCostAfter() {
-            return BigNum.fromInt(0);
-        },
-        computeLockState() {
-            let dp31 = false;
-            try {
-                const dpState = getDpState();
-                dp31 =
-                    (bigNumIsInfinite(dpState.dpLevel)
-                        ? Infinity
-                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)) >= 31;
-            } catch {}
-
-            if (dp31) {
-                return { state: "unlocked" };
-            }
-
-            if (!isDpSystemUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Depth: 31m to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        onLevelChange({ newLevel }) {
-            if ((newLevel ?? 0) >= 1) {
-                try {
-                    if (typeof window.onCombineUpgradeUnlocked === "function") window.onCombineUpgradeUnlocked();
-                } catch {}
-            }
-        },
-        effectSummary() {
-            return "";
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 7,
-
-        title: "Endless DP",
-        desc: "Multiplies DP value by 1.1x per level",
-        lvlCap: HM_EVOLUTION_INTERVAL,
-        baseCost: 1e9,
-        costType: "scrap",
-        upgType: "HM",
-        effectType: "dp_value",
-        scalingPreset: "HM",
-        icon: "img/uc_upg_icons/dp_val_hm.webp",
-        costAtLevel(level) {
-            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        computeLockState() {
-            let dp31 = false;
-            try {
-                const dpState = getDpState();
-                dp31 =
-                    (bigNumIsInfinite(dpState.dpLevel)
-                        ? Infinity
-                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)) >= 31;
-            } catch {}
-
-            if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-                return { state: "unlocked" };
-            }
-
-            if (!dp31) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Perform a Combine reset to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `DP value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return E.powPerLevel(1.1)(normalizedLevel);
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 8,
-
-        title: "XP Value IV",
-        get desc() {
-            let text = `Multiplies XP value by 200x per level`;
-            let sl = 0;
-            try {
-                sl = getCurrentSurgeLevel();
-            } catch (e) {}
-            if (sl < 200) {
-                text += "\nThis will make it easier to reach Surge 200";
-            }
-            return text;
-        },
-        lvlCap: 10,
-        baseCost: 1e14,
-        costType: "scrap",
-        upgType: "NM",
-        effectType: "xp_value",
-        icon: "img/sc_upg_icons/xp_val1.webp",
-        costAtLevel(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return BigNum.fromAny(this.baseCost).mulBigNumInteger(E.powPerLevel(200)(normalizedLevel));
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        computeLockState() {
-            let dp31 = false;
-            try {
-                const dpState = getDpState();
-                dp31 =
-                    (bigNumIsInfinite(dpState.dpLevel)
-                        ? Infinity
-                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)) >= 31;
-            } catch {}
-
-            if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-                return { state: "unlocked" };
-            }
-
-            if (!dp31) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Perform a Combine reset to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `XP value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return E.powPerLevel(200)(normalizedLevel);
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 9,
-
-        title: "Advanced Researching",
-        desc: `Improves RP value by ${formatNumber(BigNum.fromAny("1e1000"))}x per level`,
-        lvlCap: 10,
-        baseCost: 1e19,
-        costType: "scrap",
-        upgType: "NM",
-        effectType: "rp_value",
-        icon: "img/uc_upg_icons/rp_val1.webp",
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `RP value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            const log10 = 1000 * normalizedLevel;
-            return bigNumFromLog10(log10);
-        },
-        costAtLevel(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            const log10 = 15 * normalizedLevel;
-            const thousands = bigNumFromLog10(log10);
-            return BigNum.fromAny(this.baseCost).mulBigNumInteger(thousands);
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        onLevelChange({ oldLevel, newLevel }) {
-            if (oldLevel === 0 && newLevel >= 1) {
-                import("../ui/minerTabs/resetTab.js").then(({ hasDoneCompressReset }) => {
-                    if (hasDoneCompressReset()) return;
-                    if (isResearchNodeActive(19)) return;
-
-                    const notif = showWideNotification("By the way, you need to toggle Lab Node 19 to make some progress", 10000);
-
-                    const listener = (e) => {
-                        if (e.detail.id === 19 && e.detail.active) {
-                            notif.close();
-                            window.removeEventListener("lab:node:active", listener);
-                        }
-                    };
-
-                    window.addEventListener("lab:node:active", listener);
-                    setTimeout(() => {
-                        window.removeEventListener("lab:node:active", listener);
-                    }, 11000);
-                });
-            }
-        },
-        computeLockState() {
-            let dp31 = false;
-            try {
-                const dpState = getDpState();
-                dp31 =
-                    (bigNumIsInfinite(dpState.dpLevel)
-                        ? Infinity
-                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)) >= 31;
-            } catch {}
-
-            if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-                return { state: "unlocked" };
-            }
-
-            if (!dp31) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Perform a Combine reset to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 10,
-
-        title: "Unlock Compress",
-        desc: "Unlocks the Compress reset and Crystal Building",
-        lvlCap: 1,
-        upgType: "NM",
-        icon: "",
-        baseIconOverride: "img/misc/compress_plus_base.webp",
-        revealRequirement: "Reach Surge 200 to reveal this upgrade",
-        unlockUpgrade: true,
-        costAtLevel() {
-            return BigNum.fromInt(0);
-        },
-        nextCostAfter() {
-            return BigNum.fromInt(0);
-        },
-        computeLockState() {
-            let surge200 = false;
-            try {
-                surge200 = getCurrentSurgeLevel() >= 200;
-            } catch {}
-
-            if (surge200) {
-                return { state: "unlocked" };
-            }
-
-            if (!(hasDoneCombineReset() || isBuildingsUnlocked())) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Reach Surge 200 to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        onLevelChange({ newLevel }) {
-            if ((newLevel ?? 0) >= 1) {
-                try {
-                    if (typeof window.onCompressUpgradeUnlocked === "function") window.onCompressUpgradeUnlocked();
-                } catch {}
-            }
-        },
-        effectSummary() {
-            return "";
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 11,
-
-        title: "Endless PP",
-        desc: "Multiplies PP value by 1.1x per level",
-        lvlCap: HM_EVOLUTION_INTERVAL,
-        baseCost: 1e39,
-        costType: "scrap",
-        upgType: "HM",
-        effectType: "pp_value",
-        scalingPreset: "HM",
-        icon: "img/uc_upg_icons/pp_val_hm.webp",
-        costAtLevel(level) {
-            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        computeLockState() {
-            let surge200 = false;
-            try {
-                surge200 = getCurrentSurgeLevel() >= 200;
-            } catch {}
-
-            if (hasDoneCompressReset()) {
-                return { state: "unlocked" };
-            }
-
-            if (!surge200) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Perform a Compress reset to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `PP value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return E.powPerLevel(1.1)(normalizedLevel);
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 12,
-
-        title: "FP Value",
-        get desc() {
-            let text = `Multiplies FP value by 100x`;
-            let surgeLevel = 0;
-            try {
-                surgeLevel = getCurrentSurgeLevel();
-            } catch (e) {}
-            if (surgeLevel < 250) {
-                text += "\nThis will make it easier to reach Surge 250";
-            }
-            return text;
-        },
-        lvlCap: 1,
-        baseCost: 1e50,
-        costType: "scrap",
-        upgType: "NM",
-        effectType: "fp_value",
-        icon: "img/lab_icons/fp_val0.webp",
-        costAtLevel(level) {
-            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        computeLockState() {
-            let surge200 = false;
-            try {
-                surge200 = getCurrentSurgeLevel() >= 200;
-            } catch {}
-
-            if (hasDoneCompressReset()) {
-                return { state: "unlocked" };
-            }
-
-            if (!surge200) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Perform a Compress reset to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        effectSummary(level) {
-            const mult = this.effectMultiplier(level);
-            return `FP value bonus: ${formatMultForUi(mult)}x`;
-        },
-        effectMultiplier(level) {
-            const normalizedLevel = Math.max(0, Number(level) || 0);
-            return normalizedLevel > 0 ? 100 : 1;
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 13,
-
-        title: "Unlock Collapse",
-        desc: "Unlocks the Collapse tab",
-        lvlCap: 1,
-        upgType: "NM",
-        icon: "",
-        baseIconOverride: "img/currencies/rubble/rubble_plus_base.webp",
-        revealRequirement: "Reach Pressure: 31atm to reveal this upgrade",
-        unlockUpgrade: true,
-        costAtLevel() {
-            return BigNum.fromInt(0);
-        },
-        nextCostAfter() {
-            return BigNum.fromInt(0);
-        },
-        computeLockState() {
-            const unlocked = isPpSystemUnlocked();
-            if (!unlocked) {
-                return { state: "locked" };
-            }
-            
-            const ppState = getPpState();
-            let ppLevel = 0;
-            if (ppState && ppState.ppLevel) {
-                ppLevel = Number(ppState.ppLevel.toString());
-            }
-
-            if (ppLevel >= 31) {
-                return { state: "unlocked" };
-            }
-
-            const revealText = "Reach Pressure: 31atm to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        onLevelChange({ newLevel }) {
-            if ((newLevel ?? 0) >= 1) {
-                try {
-                    if (typeof window !== "undefined" && window.onCollapseUpgradeUnlocked) {
-                        window.onCollapseUpgradeUnlocked();
-                    }
-                } catch {}
-            }
-        },
-    },
-    {
-        area: UC_AREA_KEY,
-        id: 14,
-
-        title: "Unlock Coral Reef",
-        get desc() {
-            let currentLevel = 0;
-            try {
-                currentLevel = getLevelNumber(UC_AREA_KEY, this.tie);
-            } catch (e) {}
-            if (currentLevel >= 1) {
-                return "Unlocks new area: Coral Reef\nNot reset upon Combine, Compress, or CC start";
-            }
-            let descText = `Unlocks new area: Coral Reef\nThis area must be purchased using Scrap`;
-            let purchasedOnce = false;
-            try {
-                const slot = getActiveSlot();
-                if (slot != null) {
-                    purchasedOnce = lsGetItem(`ccc:coralReefPurchasedOnce:${slot}`) === "1";
-                }
-            } catch {}
-            if (!purchasedOnce) {
-                descText += "\nThis upgrade will be automated after you buy it once";
-            }
-            return descText;
-        },
-        lvlCap: 1,
-        baseCost: 1e250,
-        costType: "scrap",
-        upgType: "NM",
-        icon: "",
-        baseIconOverride: "img/currencies/coral/coral_red_plus_base.webp",
-        costAtLevel(level) {
-            return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
-        },
-        nextCostAfter(_, nextLevel) {
-            return this.costAtLevel(nextLevel);
-        },
-        computeLockState() {
-            let isUnlocked = false;
-            try {
-                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:stone:${getActiveSlot() ?? "default"}`) === "1";
-            } catch {}
-
-            if (isUnlocked) {
-                return { state: "unlocked" };
-            }
-
-            if (!isCollapseUnlocked()) {
-                return { state: "locked" };
-            }
-
-            const revealText = "Complete the Challenge of Stone to reveal this upgrade";
-            return { state: "mysterious", unlockReqText: revealText };
-        },
-        onLevelChange({ newLevel }) {
-            if ((newLevel ?? 0) >= 1) {
-                try {
-                    const slot = getActiveSlot();
-                    if (slot != null) {
-                        lsSetItem(`ccc:coralReefPurchasedOnce:${slot}`, "1");
-                    }
-                    import("../ui/mapOverlay.js").then(({ setNodeLocked }) => {
-                        setNodeLocked("coral", false);
-                        if (typeof window !== "undefined" && slot != null) {
-                            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:coral", state: true, slot } }));
-                        }
-                    });
-                } catch {}
-            } else if ((newLevel ?? 0) === 0) {
-                try {
-                    const slot = getActiveSlot();
-                    import("../ui/mapOverlay.js").then(({ setNodeLocked }) => {
-                        setNodeLocked("coral", true);
-                        if (typeof window !== "undefined" && slot != null) {
-                            window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "map:coral", state: false, slot } }));
-                        }
-                    });
-                } catch {}
-            }
-        },
-        effectSummary() {
-            return "";
-        },
-    },
+    createBaseSpawner,
+    CUBIC_BEZIER,
+    getPreRenderedItem,
+    getPreRenderedItemUrl,
+    getPreRenderedImageBitmap,
+    clearPreRenderedItems,
+    getDynamicMaxCapacity,
+} from "./spawnerCore.js";
+import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
+import { playAudio } from "../util/audioManager.js";
+import { getActiveSlot, UC_MATERIALS } from "../util/storage.js";
+import { settingsManager } from "./settingsManager.js";
+import { hasDoneCompressReset } from "../ui/minerTabs/resetTab.js";
+import { bigNumIsInfinite } from "../util/bigNum.js";
+export const UC_MATERIAL_DATA = [
+    { name: "stone", start: 0, max: 0, value: 1 },
+    { name: "copper", start: 1, max: 24, value: 1e2 },
+    { name: "iron", start: 25, max: 49, value: 1e4 },
+    { name: "pure_gold", start: 50, max: 99, value: 1e8 },
+    { name: "diamond", start: 100, max: 199, value: "1e16" },
+    { name: "emerald", start: 200, max: 399, value: "1e32" },
+    { name: "ruby", start: 400, max: 799, value: "1e64" },
+    { name: "sapphire", start: 800, max: 1599, value: "1e128" },
+    { name: "unobtainium", start: 1600, max: 3199, value: "1e256" },
+    { name: "prismatium", start: 3200, max: 5000, value: "1e512" },
 ];
+export function resetUcMaterialAccumulators() {
+    window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+    try {
+        const slot = getActiveSlot();
+        if (slot != null)
+            lsSetItem(`ccc:ucMaterialAccumulators:${slot}`, JSON.stringify(window._ucMaterialAccumulators));
+    } catch {}
+}
+
+export function resetUcEacMaterialAccumulators() {
+    window._ucEacMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+    try {
+        const slot = getActiveSlot();
+        if (slot != null)
+            lsSetItem(`ccc:ucEacMaterialAccumulators:${slot}`, JSON.stringify(window._ucEacMaterialAccumulators));
+    } catch {}
+}
+
+export function resetUcEacYieldAccumulators() {
+    window._ucEacYieldAccumulators = new Array(UC_MATERIALS.length).fill(0);
+    try {
+        const slot = getActiveSlot();
+        if (slot != null)
+            lsSetItem(`ccc:ucEacYieldAccumulators:${slot}`, JSON.stringify(window._ucEacYieldAccumulators));
+    } catch {}
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("saveSlot:change", () => {
+        window._ucMaterialAccumulators = null;
+        window._ucEacMaterialAccumulators = null;
+        window._ucEacYieldAccumulators = null;
+    });
+}
+
+export function getUcMaterialAccumulators() {
+    if (!window._ucMaterialAccumulators) {
+        try {
+            const slot = getActiveSlot();
+            const stored = slot != null ? lsGetItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
+            if (stored) {
+                window._ucMaterialAccumulators = JSON.parse(stored);
+            } else {
+                window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+            }
+        } catch {
+            window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+        }
+    }
+    return window._ucMaterialAccumulators || new Array(UC_MATERIALS.length).fill(0);
+}
+
+export function getUcEacMaterialAccumulators() {
+    if (!window._ucEacMaterialAccumulators) {
+        try {
+            const slot = getActiveSlot();
+            const stored = slot != null ? lsGetItem(`ccc:ucEacMaterialAccumulators:${slot}`) : null;
+            if (stored) {
+                window._ucEacMaterialAccumulators = JSON.parse(stored);
+            } else {
+                window._ucEacMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+            }
+        } catch {
+            window._ucEacMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+        }
+    }
+    return window._ucEacMaterialAccumulators || new Array(UC_MATERIALS.length).fill(0);
+}
+
+export function saveUcEacMaterialAccumulators() {
+    try {
+        if (window._ucEacMaterialAccumulators) {
+            const slot = getActiveSlot();
+            if (slot != null)
+                lsSetItem(`ccc:ucEacMaterialAccumulators:${slot}`, JSON.stringify(window._ucEacMaterialAccumulators));
+        }
+    } catch {}
+}
+
+// Yield accumulators: accumulate fractional material values (from efficiency slider)
+// and only deposit into the bank when a whole integer is reached.
+export function getUcEacYieldAccumulators() {
+    if (!window._ucEacYieldAccumulators) {
+        try {
+            const slot = getActiveSlot();
+            const stored = slot != null ? lsGetItem(`ccc:ucEacYieldAccumulators:${slot}`) : null;
+            if (stored) {
+                window._ucEacYieldAccumulators = JSON.parse(stored);
+            } else {
+                window._ucEacYieldAccumulators = new Array(UC_MATERIALS.length).fill(0);
+            }
+        } catch {
+            window._ucEacYieldAccumulators = new Array(UC_MATERIALS.length).fill(0);
+        }
+    }
+    return window._ucEacYieldAccumulators || new Array(UC_MATERIALS.length).fill(0);
+}
+
+export function saveUcEacYieldAccumulators() {
+    try {
+        if (window._ucEacYieldAccumulators) {
+            const slot = getActiveSlot();
+            if (slot != null)
+                lsSetItem(`ccc:ucEacYieldAccumulators:${slot}`, JSON.stringify(window._ucEacYieldAccumulators));
+        }
+    } catch {}
+}
+
+export function createUcSpawner(config = {}) {
+    // If settings are enabled, start with an initialBurst so there's no dead wait at startup.
+    const overrides = {};
+    if (settingsManager.get("spawn_vessels") && !config.initialBurst) {
+        overrides.initialBurst = 1;
+    }
+
+    const {
+        playfieldSelector = ".playfield",
+        materialsHost = ".materials-layer",
+        baseSize = 40,
+        animationDurationMs = 1500,
+        materialsPerSecond = 0.2,
+        perFrameBudget = 5,
+        maxActiveMaterials = getDynamicMaxCapacity,
+        initialBurst = 0,
+        materialTtlMs = 1e99,
+        shouldAutoResume = () => true,
+        soundMinIntervalMs = 10,
+    } = { ...config, ...overrides };
+    let soundLastAt = 0;
+    const soundURL = "sounds/got_our_pickaxe_swinging_from_side_to_side.ogg";
+    const basePickaxeSoundVolume = 0.3;
+    const spawnRateAtWhichTheVolumeIsNormal = 0.2;
+    const spawnRateAtWhichTheVolumeIsOneSixthOfNormal = 2;
+    let pickaxeSize = 64;
+    function updatePickaxeSize() {
+        pickaxeSize = Math.min(256, Math.max(64, window.innerHeight * 0.12));
+        const pickaxe = document.getElementById("uc-pickaxe");
+        if (pickaxe) {
+            pickaxe.style.width = `${pickaxeSize}px`;
+            pickaxe.style.height = `${pickaxeSize}px`;
+        }
+    }
+    window.addEventListener("resize", updatePickaxeSize);
+    updatePickaxeSize();
+    window.addEventListener("compress:status", (e) => {
+        const pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+        if (pickaxe) {
+            pickaxe.src = e.detail?.completed ? "img/misc/prismatic_pickaxe.webp" : "img/misc/pickaxe.webp";
+        }
+    });
+    let cachedRate = -1;
+    let cachedVolume = basePickaxeSoundVolume;
+    function getPickaxeSoundVolume() {
+        if (currentRate === cachedRate) {
+            return cachedVolume;
+        }
+        cachedRate = currentRate;
+        const fadeProgress = clamp(
+            (currentRate - spawnRateAtWhichTheVolumeIsNormal) /
+                (spawnRateAtWhichTheVolumeIsOneSixthOfNormal - spawnRateAtWhichTheVolumeIsNormal),
+            0,
+            1,
+        );
+        // A quadratic ease-out curve (drops quickly early on, then gently eases into the cap)
+        // Drops down to ~16.6% volume (6x quieter) at the max spawn rate.
+        const easeOut = fadeProgress * (2 - fadeProgress);
+        cachedVolume = basePickaxeSoundVolume * (1 - easeOut * (5 / 6));
+        return cachedVolume;
+    }
+
+    let activePickaxeSounds = [];
+    let volumeUpdateTimeout = null;
+    function playSpawnSound() {
+        const now = performance.now();
+        if (now - soundLastAt < soundMinIntervalMs) return;
+        soundLastAt = now;
+        const audioObj = playAudio(soundURL, { volume: getPickaxeSoundVolume(), type: "spawn_vessel" });
+        if (audioObj) {
+            activePickaxeSounds.push(audioObj);
+            if (activePickaxeSounds.length > 20) {
+                activePickaxeSounds.shift();
+            }
+        }
+    }
+    settingsManager.subscribe("graphics_quality", () => {
+        clearPreRenderedItems();
+        const activeCoins = base.getActiveItems();
+        for (let i = 0; i < activeCoins.length; i++) {
+            const c = activeCoins[i];
+            if (c && c.el && !c.settled && !c.isRemoved) {
+                if (c.el.firstChild) {
+                    c.el.firstChild.src = getPreRenderedItemUrl(c.src, c.size || config.coinSize || 40);
+                }
+            }
+        }
+        base.forceCanvasRedraw();
+    });
+    settingsManager.subscribe("spawn_vessels", (val) => {
+        const pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+        if (pickaxe) {
+            pickaxe.style.display = val ? "block" : "none";
+        }
+    });
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    let currentRate = materialsPerSecond;
+    function updateUcMetrics() {
+        const playfieldNode = document.querySelector(playfieldSelector);
+        if (playfieldNode) {
+            window._cachedUcPfRect = playfieldNode.getBoundingClientRect();
+            const waterNode = document.querySelector("#water-background");
+            window._cachedUcWRect = waterNode ? waterNode.getBoundingClientRect() : null;
+            const hud = document.getElementById("hud-bottom-wrapper") || document.getElementById("hud-bottom");
+            const hudHeight = hud ? hud.getBoundingClientRect().height : 0;
+            window._cachedUcSafeBottom = window._cachedUcPfRect.height - hudHeight;
+            const rubbleLayer = document.querySelector(".rubble-layer");
+            window._cachedUcRubbleRect = rubbleLayer ? rubbleLayer.getBoundingClientRect() : null;
+            window._lastUcMetricsTime = performance.now();
+        }
+    }
+    if (!window._ucMetricsObserver) {
+        window._ucMetricsObserver = new ResizeObserver(() => {
+            updateUcMetrics();
+        });
+        const pf = document.querySelector(playfieldSelector);
+        if (pf) window._ucMetricsObserver.observe(pf);
+        const rl = document.querySelector(".rubble-layer");
+        if (rl) window._ucMetricsObserver.observe(rl);
+        window.addEventListener("resize", updateUcMetrics);
+    }
+    if (!window._cachedUcPfRect) {
+        updateUcMetrics();
+    }
+
+    const base = createBaseSpawner({
+        playfieldSelector,
+        waterSelector: "#water-background",
+        itemsHostSelector: materialsHost,
+        baseItemSize: baseSize,
+        animationDurationMs,
+        itemsPerSecond: materialsPerSecond,
+        perFrameBudget,
+        maxActiveItems: maxActiveMaterials,
+        initialBurst,
+        itemTtlMs: materialTtlMs,
+        shouldAutoResume,
+        numLayers: UC_MATERIALS.length,
+        onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems, batchLength = 0) => {
+            if (window._prismaticCinematicActive) return [];
+            const MATERIAL_MARGIN = 12;
+            const pfW = M.pfW;
+            const wRect =
+                M.wRect && M.wRect.height > 0
+                    ? M.wRect
+                    : { top: M.pfRect.top, left: M.pfRect.left, height: M.pfRect.height * 0.35 };
+            const waterToPfTop = wRect.top - M.pfRect.top;
+            const spawnY = Math.max(0, waterToPfTop);
+            const maxSize = baseSize * Math.pow(1.1, UC_MATERIALS.length - 1);
+            const sharedMinX = MATERIAL_MARGIN;
+            const sharedMaxX = Math.max(sharedMinX, pfW - maxSize - MATERIAL_MARGIN);
+            
+            let sharedSpawnX;
+            if (window._restrictNextSpawnToLeft) {
+                window._restrictNextSpawnToLeft = false;
+                const limitX = sharedMinX + (sharedMaxX - sharedMinX) * 0.15;
+                sharedSpawnX = sharedMinX + Math.random() * (limitX - sharedMinX);
+            } else {
+                sharedSpawnX = sharedMinX + Math.random() * (sharedMaxX - sharedMinX);
+            }
+
+            // Return one placeholder item representing the strike intent.
+            const spawns = [
+                {
+                    isStrikePlaceholder: true,
+                    coin: { x0: sharedSpawnX, y0: spawnY, jitterMs: 0 },
+                },
+            ];
+            const itemsToAdd = spawns.length + batchLength;
+            if (maxActiveItems !== Infinity && activeItems.length - garbageCount + itemsToAdd > maxActiveItems) {
+                let strictOverflow = activeItems.length - garbageCount + itemsToAdd - maxActiveItems;
+                let bufferToRemove = Math.floor(maxActiveItems * 0.05);
+                let totalToRemove = strictOverflow + bufferToRemove;
+                // Sweep 1: Only settled items (avoid deleting falling materials)
+                let b = 0;
+                while (totalToRemove > 0 && b < UC_MATERIALS.length) {
+                    let targetForThisLayer = b === 0 ? totalToRemove : strictOverflow;
+                    if (targetForThisLayer > 0) {
+                        for (let i = 0, len = activeItems.length; i < len && targetForThisLayer > 0; i++) {
+                            const c = activeItems[i];
+                            if (
+                                c &&
+                                !c.isRemoved &&
+                                !c.isStrikePlaceholder &&
+                                !c.isHiddenPreAllocated &&
+                                c.settled &&
+                                (c.sizeIndex || 0) === b
+                            ) {
+                                removeItem(c, i);
+                                strictOverflow--;
+                                totalToRemove--;
+                                targetForThisLayer--;
+                            }
+                        }
+                    }
+                    b++;
+                }
+                // Sweep 2: Fallback to unsettled ONLY if we strictly need to clear space
+                b = 0;
+                while (strictOverflow > 0 && b < UC_MATERIALS.length) {
+                    for (let i = 0, len = activeItems.length; i < len && strictOverflow > 0; i++) {
+                        const c = activeItems[i];
+                        if (
+                            c &&
+                            !c.isRemoved &&
+                            !c.isStrikePlaceholder &&
+                            !c.isHiddenPreAllocated &&
+                            (c.sizeIndex || 0) === b
+                        ) {
+                            removeItem(c, i);
+                            strictOverflow--;
+                        }
+                    }
+                    b++;
+                }
+            }
+            return spawns;
+        },
+        onCommitBatch: (batch, activeItems, getItem, refs, animationDurationMs) => {
+            const frag = document.createDocumentFragment();
+            const newItems = [];
+            const now = performance.now();
+            let playedSoundInBatch = false;
+            // Override animation duration to match spawn rate cycle
+            const cycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
+            for (const item of batch) {
+                if (item.isStrikePlaceholder) {
+                    // Create strike placeholder
+                    const strikeObj = {
+                        isStrikePlaceholder: true,
+                        startX: item.coin.x0,
+                        startY: item.coin.y0,
+                        startTime: now + item.coin.jitterMs + cycleMs,
+                        jitterMs: item.coin.jitterMs,
+                        isRemoved: false,
+                        settled: false,
+                        dieAt: now + Math.max(200, cycleMs * 2), // remove relatively soon
+                        size: baseSize,
+                        preAllocatedItems: [],
+                    };
+                    strikeObj.index = activeItems.length;
+                    activeItems.push(strikeObj);
+                    newItems.push(strikeObj);
+                    if (!playedSoundInBatch) playedSoundInBatch = true;
+                    // Pre-allocate items for all potential drops to properly use spawnerCore's object pool
+                    for (let j = 0; j < UC_MATERIALS.length; j++) {
+                        const preAllocObj = {
+                            el: null,
+                            isHiddenPreAllocated: true,
+                            isPreAllocatedMaterial: true,
+                            isRemoved: false,
+                            settled: false,
+                            dieAt: now + Math.max(200, cycleMs * 2), // dies with placeholder if unused
+                            startTime: now + cycleMs * 2,
+                        };
+                        preAllocObj.index = activeItems.length;
+                        activeItems.push(preAllocObj);
+                        strikeObj.preAllocatedItems.push(preAllocObj);
+                    }
+                }
+            }
+            refs.c.appendChild(frag);
+            // Pickaxe Logic moved to onItemUpdate
+        },
+        onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
+            if (window._wasCinematicActive) {
+                window._wasCinematicActive = false;
+                
+                // Discard any stale placeholders that were queued BEFORE the cinematic paused the spawner
+                for (let i = activeItems.length - 1; i >= 0; i--) {
+                    const c = activeItems[i];
+                    if (c && !c.isRemoved && !c.settled) {
+                        if (c.isStrikePlaceholder || c.isPreAllocatedMaterial) {
+                            removeItem(c, i);
+                        }
+                    }
+                }
+
+                setTimeout(() => {
+                    if (base) {
+                        if (typeof base.clearBacklog === "function") base.clearBacklog();
+                        window._restrictNextSpawnToLeft = true;
+                        if (typeof base.spawnBurst === "function") base.spawnBurst(1);
+                    }
+                }, 0);
+            }
+            let pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+
+            let firstPlaceholder = null;
+            for (let i = 0; i < activeItems.length; i++) {
+                const c = activeItems[i];
+                if (c && !c.isRemoved && c.isStrikePlaceholder && !c.settled) {
+                    firstPlaceholder = c;
+                    break;
+                }
+            }
+
+            if (firstPlaceholder) {
+                if (!window._cachedUcRubbleRect || window._cachedUcRubbleRect.height === 0) {
+                    const rl = document.querySelector(".rubble-layer");
+                    if (rl) {
+                        const rect = rl.getBoundingClientRect();
+                        if (rect.height > 0 || !window._cachedUcRubbleRect) {
+                            window._cachedUcRubbleRect = rect;
+                        }
+                    }
+                }
+
+                const rubbleRect = window._cachedUcRubbleRect;
+                if (rubbleRect) {
+                    const pfRect =
+                        window._cachedUcPfRect ||
+                        document.querySelector(playfieldSelector).getBoundingClientRect();
+                    const pfW = pfRect.width;
+
+                    if (!pickaxe) {
+                        pickaxe = document.createElement("img");
+                        window._ucPickaxeElement = pickaxe;
+                        pickaxe.id = "uc-pickaxe";
+                        pickaxe.src = hasDoneCompressReset() ? "img/misc/prismatic_pickaxe.webp" : "img/misc/pickaxe.webp";
+                        pickaxe.style.position = "absolute";
+                        pickaxe.style.width = `${pickaxeSize}px`;
+                        pickaxe.style.height = `${pickaxeSize}px`;
+                        pickaxe.style.transformOrigin = "bottom center";
+                        pickaxe.style.zIndex = "400";
+                        pickaxe.style.pointerEvents = "none";
+                        pickaxe.style.willChange = "transform";
+                        document.querySelector(playfieldSelector).appendChild(pickaxe);
+                    }
+
+                    const isNewTarget = pickaxe._currentTarget !== firstPlaceholder;
+                    if (isNewTarget || pickaxe._isInvalidlyHigh) {
+                        pickaxe._currentTarget = firstPlaceholder;
+                        const cycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
+
+                        if (isNewTarget && pickaxe._elapsedTime !== undefined && !pickaxe._playedSound) {
+                            playSpawnSound();
+                        }
+
+                        const item = firstPlaceholder;
+                        const visibleRubbleTop = Math.max(pfRect.top, rubbleRect.top);
+                        const visibleRubbleHeight = Math.max(0, rubbleRect.bottom - visibleRubbleTop);
+                        const pickY = visibleRubbleTop + visibleRubbleHeight * 0.5 + window.innerHeight * 0.025;
+
+                        const itemMiddleAbsoluteX = pfRect.left + item.startX + item.size / 2;
+                        const isLeft = itemMiddleAbsoluteX < window.innerWidth / 2;
+
+                        const chargeRotation = isLeft ? 60 : -60;
+                        const strikeRotation = isLeft ? -60 : 60;
+                        const localPickY = pickY - pfRect.top;
+
+                        const scaleFactor = pickaxeSize / 64;
+                        const offsetX = (isLeft ? 39 : -103) * scaleFactor;
+                        const offsetY = -60 * scaleFactor;
+
+                        if (pickaxe._needsFlightToNextTarget) {
+                            pickaxe._needsFlightToNextTarget = false;
+                            const flightMs = cycleMs * 0.8;
+                            pickaxe.style.transition = `left ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), top ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1), transform ${flightMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`;
+                            pickaxe._isFlying = true;
+
+                            if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+                            pickaxe._flightTimeoutId = setTimeout(() => {
+                                if (pickaxe) {
+                                    pickaxe.style.transition = "";
+                                    pickaxe._isFlying = false;
+                                }
+                            }, flightMs);
+                        } else if (pickaxe.style.transition) {
+                            pickaxe.style.transition = "";
+                            pickaxe._isFlying = false;
+                            if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+                        }
+
+                        pickaxe.style.left = `${item.startX + offsetX}px`;
+                        pickaxe.style.top = `${localPickY + offsetY}px`;
+                        if (pickaxe._isFlying) {
+                            pickaxe.style.transform = `rotate(${chargeRotation}deg)`;
+                        } else {
+                            pickaxe.style.transform = "rotate(0deg)";
+                        }
+
+                        pickaxe._cycleMs = cycleMs;
+                        if (!settingsManager.get("spawn_vessels")) pickaxe.style.display = "none";
+                        else pickaxe.style.display = "block";
+                        pickaxe._chargeRotation = chargeRotation;
+                        pickaxe._strikeRotation = strikeRotation;
+                        if (isNewTarget) {
+                            pickaxe._elapsedTime = 0;
+                            pickaxe._playedSound = false;
+                        }
+                        pickaxe._isInvalidlyHigh = (visibleRubbleHeight === 0);
+                    }
+                }
+            }
+            if (pickaxe && pickaxe._elapsedTime !== undefined) {
+                const currentCycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
+                if (pickaxe._cycleMs !== currentCycleMs) {
+                    const oldCycleMs = pickaxe._cycleMs;
+                    const currentRatio = oldCycleMs > 0 ? pickaxe._elapsedTime / oldCycleMs : 0;
+                    pickaxe._cycleMs = currentCycleMs;
+                    pickaxe._elapsedTime = currentRatio * currentCycleMs;
+                    
+                    // The time remaining to the strike was `oldCycleMs - (currentRatio * oldCycleMs)`
+                    // The new time remaining is `currentCycleMs - pickaxe._elapsedTime`
+                    // The net shift in the scheduled future timestamp is the difference between these.
+                    const shiftMs = (currentCycleMs - pickaxe._elapsedTime) - (oldCycleMs - (currentRatio * oldCycleMs));
+
+                    // Also adjust any pending placeholders so they don't expire or trigger early/late
+                    for (let i = 0; i < activeItems.length; i++) {
+                        const item = activeItems[i];
+                        if (item && !item.isRemoved && !item.settled) {
+                            if (item.isStrikePlaceholder || item.isPreAllocatedMaterial) {
+                                const timeRemainingBefore = item.startTime - now;
+                                if (timeRemainingBefore > 0) {
+                                     item.startTime += shiftMs;
+                                     item.dieAt += shiftMs;
+                                }
+                            }
+                        }
+                    }
+                }
+                pickaxe._elapsedTime += dt * 1000;
+
+                // Sync exactly to the upcoming strike placeholder to avoid dt-capping lag desync
+                for (let i = 0; i < activeItems.length; i++) {
+                    const c = activeItems[i];
+                    if (c && !c.isRemoved && c.isStrikePlaceholder && !c.settled) {
+                        const timeRemaining = c.startTime - now;
+                        if (timeRemaining <= pickaxe._cycleMs) {
+                            pickaxe._elapsedTime = pickaxe._cycleMs - timeRemaining;
+                        }
+                        break;
+                    }
+                }
+
+                // elapsed line replaced
+                const ratio = Math.min(pickaxe._elapsedTime / pickaxe._cycleMs, 1);
+                if (ratio <= 0.8) {
+                    // Charging phase
+                    pickaxe._playedSound = false;
+                    const chargeRatio = ratio / 0.8;
+                    const easeOutCubic = 1 - Math.pow(1 - chargeRatio, 3);
+                    const currentRot = pickaxe._chargeRotation * easeOutCubic;
+                    if (pickaxe.style.display !== "none" && !pickaxe._isFlying) {
+                        pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                    }
+                } else {
+                    // Striking phase
+                    if (pickaxe._isFlying) {
+                        pickaxe.style.transition = "";
+                        pickaxe._isFlying = false;
+                        if (pickaxe._flightTimeoutId) clearTimeout(pickaxe._flightTimeoutId);
+                    }
+                    const strikeRatio = (ratio - 0.8) / 0.2;
+                    const easeInCubic = strikeRatio * strikeRatio * strikeRatio;
+                    const currentRot =
+                        pickaxe._chargeRotation + (pickaxe._strikeRotation - pickaxe._chargeRotation) * easeInCubic;
+                    if (pickaxe.style.display !== "none") {
+                        pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                    }
+                    if (ratio === 1 && !pickaxe._playedSound) {
+                        playSpawnSound();
+                        pickaxe._playedSound = true;
+                    }
+                }
+            }
+
+            const activeItemsToActivate = [];
+            for (let i = activeItems.length - 1; i >= 0; i--) {
+                const c = activeItems[i];
+                if (!c) continue;
+                if (now >= c.dieAt) {
+                    removeItem(c, i);
+                    continue;
+                }
+                if (c.settled) continue;
+                if (c.isStrikePlaceholder) {
+                    const elapsed = now - c.startTime;
+                    if (elapsed >= 0) {
+                        // Execute DP Checks and Spawn Logic right at strike
+                        if (!window._ucMaterialAccumulators) {
+                            try {
+                                const slot = getActiveSlot();
+                                const stored =
+                                    slot != null ? lsGetItem(`ccc:ucMaterialAccumulators:${slot}`) : null;
+                                if (stored) {
+                                    window._ucMaterialAccumulators = JSON.parse(stored);
+                                } else {
+                                    window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+                                }
+                            } catch {
+                                window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+                            }
+                        }
+
+                        let dpLevelNum = 0;
+                        if (window.dpSystem && typeof window.dpSystem.getDpState === "function") {
+                            const dpState = window.dpSystem.getDpState();
+                            if (dpState && dpState.dpLevel) {
+                                try {
+                                    dpLevelNum = bigNumIsInfinite(dpState.dpLevel)
+                                        ? Infinity
+                                        : dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e);
+                                } catch {}
+                            }
+                        }
+                        // Use cached layout values if available (spawnerCore updates M in its loop)
+                        const pfRect = window._cachedUcPfRect || {
+                            width: window.innerWidth,
+                            height: window.innerHeight,
+                            left: 0,
+                            top: 0,
+                        };
+
+                        const wRect = window._cachedUcWRect !== undefined ? window._cachedUcWRect : null;
+                        const safeBottom =
+                            window._cachedUcSafeBottom !== undefined ? window._cachedUcSafeBottom : pfRect.height - 100;
+                        let allocatedIndex = 0;
+                        for (let j = 0; j < UC_MATERIALS.length; j++) {
+                            const t = UC_MATERIAL_DATA[j];
+                            if (j === 0) {
+                                window._ucMaterialAccumulators[j] = 1.0;
+                            } else {
+                                if (dpLevelNum >= t.max) {
+                                    window._ucMaterialAccumulators[j] += 1.0;
+                                } else if (dpLevelNum >= t.start) {
+                                    const progress = (dpLevelNum - t.start) / (t.max - t.start);
+                                    const gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
+                                    window._ucMaterialAccumulators[j] += gain + 1e-9;
+                                }
+                            }
+                            if (window._ucMaterialAccumulators[j] > 1.99) {
+                                window._ucMaterialAccumulators[j] = 1.99;
+                            }
+                            if (window._ucMaterialAccumulators[j] >= 1.0) {
+                                window._ucMaterialAccumulators[j] -= 1.0;
+                                const size = baseSize * Math.pow(1.1, j);
+                                const drift = Math.random() * 200 - 100;
+                                const spawnX = c.startX;
+                                const MATERIAL_MARGIN = 12;
+                                const minX = MATERIAL_MARGIN;
+                                let endX;
+                                if (size >= pfRect.width) {
+                                    endX = (pfRect.width - size) / 2;
+                                } else {
+                                    const mx = pfRect.width - size - MATERIAL_MARGIN;
+                                    if (minX >= mx) endX = (pfRect.width - size) / 2;
+                                    else endX = clamp(spawnX + drift, minX, mx);
+                                }
+
+                                const fallbackWaterH = pfRect.height * 0.35;
+                                const actualWaterH = wRect && wRect.height > 0 ? wRect.height : fallbackWaterH;
+                                const effectiveWaterH = Math.min(actualWaterH, pfRect.height * 0.3);
+                                const minY = Math.max(effectiveWaterH + 80, 120);
+                                const maxY = Math.max(minY + 40, safeBottom - size - 6);
+                                const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
+                                // Use pre-allocated item
+                                const preAlloc = c.preAllocatedItems[allocatedIndex];
+                                if (preAlloc) {
+                                    allocatedIndex++;
+                                    preAlloc.isHiddenPreAllocated = false;
+                                    preAlloc.dieAt = now + materialTtlMs;
+                                    preAlloc.startTime = now;
+                                    preAlloc.duration = animationDurationMs;
+                                    preAlloc.jitterMs = 0;
+                                    preAlloc.size = size;
+                                    preAlloc.sizeIndex = j;
+                                    preAlloc.startX = spawnX;
+                                    preAlloc.startY = c.startY;
+                                    preAlloc.endX = endX;
+                                    preAlloc.endY = endY;
+                                    preAlloc.x = spawnX;
+                                    preAlloc.y = c.startY;
+                                    preAlloc.rot = -10;
+                                    preAlloc.scale = 0.96;
+                                    preAlloc.src = `img/materials/${UC_MATERIALS[j]}.webp`;
+                                    preAlloc.srcId = j;
+                                    preAlloc.bMinX = Math.min(spawnX, endX) - size;
+                                    preAlloc.bMaxX = Math.max(spawnX, endX) + size;
+                                    preAlloc.bMinY = Math.min(c.startY, endY) - size;
+                                    preAlloc.bMaxY = Math.max(c.startY, endY) + size;
+                                    // No DOM element needed, handled by spawnerCore canvas rendering
+                                    activeItemsToActivate.push(preAlloc);
+                                }
+                            }
+                        }
+                        // Remove unused pre-allocated items
+                        for (let k = allocatedIndex; k < c.preAllocatedItems.length; k++) {
+                            removeItem(c.preAllocatedItems[k], -1);
+                        }
+                        try {
+                            if (!window._lastUcStorageSaveTime || now - window._lastUcStorageSaveTime > 2000) {
+                                window._lastUcStorageSaveTime = now;
+                                const slot = getActiveSlot();
+                                if (slot != null) {
+                                    const dataToSave = JSON.stringify(window._ucMaterialAccumulators);
+                                    setTimeout(() => {
+                                        lsSetItem(`ccc:ucMaterialAccumulators:${slot}`, dataToSave);
+                                    }, 0);
+                                }
+                            }
+                        } catch {}
+                        removeItem(c, i);
+                        continue;
+                    } else {
+                        continue;
+                    }
+                }
+                if (c.isHiddenPreAllocated) continue;
+                const elapsed = now - c.startTime;
+                if (elapsed < 0 && !settingsManager.get("insta_teleport")) continue;
+                let t = elapsed / c.duration;
+                if (t >= 1 || settingsManager.get("insta_teleport")) {
+                    c.settled = true;
+                    c.x = c.endX;
+                    c.y = c.endY;
+                    c.rot = 0;
+                    c.scale = 1;
+                    if (c.el) {
+                        releaseItem(c.el);
+                        c.el = null;
+                    }
+                    newlySettledBuffer.push(c);
+                    continue;
+                }
+            }
+            if (activeItemsToActivate.length > 0) {
+                const domItems = activeItemsToActivate.filter((c) => c.el);
+                if (domItems.length > 0) {
+                    void domItems[0].el.offsetHeight;
+                    requestAnimationFrame(() => {
+                        for (const c of domItems) {
+                            if (!c.el) continue;
+                            if (settingsManager.get("insta_teleport")) {
+                                c.el.style.transition = "none";
+                            } else {
+                                c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} 0ms`;
+                            }
+                            c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
+                        }
+                    });
+                }
+            }
+        },
+        onDrawSingleSettledItem: (ctx, c) => {
+            const size = c.size || baseSize;
+            if (c.src) {
+                const renderable = getPreRenderedImageBitmap(c.src, size);
+                if (renderable) {
+                    if (c.rot || c.scale !== 1) {
+                        let halfSize = size / 2;
+                        ctx.save();
+                        ctx.translate(c.x + halfSize, c.y + halfSize);
+                        if (c.rot) ctx.rotate((c.rot * Math.PI) / 180);
+                        if (c.scale !== 1) ctx.scale(c.scale, c.scale);
+                        ctx.drawImage(renderable, -halfSize, -halfSize, size, size);
+                        ctx.restore();
+                    } else {
+                        ctx.drawImage(renderable, c.x, c.y, size, size);
+                    }
+                }
+            }
+        },
+        onDrawHitbox: (ctx, c, cx, cy, size) => {
+            ctx.beginPath();
+            const rx = size * 0.5;
+            const ry = size * 0.25;
+            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        },
+        onEnsureItemVisual: (el, c) => {
+            const size = c.size || baseSize;
+            el.style.width = `${size}px`;
+            el.style.height = `${size}px`;
+            el.className = `material material--${UC_MATERIALS[c.sizeIndex || 0]}`;
+            el.style.transition = "";
+            el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
+            if (el.firstChild) {
+                el.firstChild.src = getPreRenderedItemUrl(c.src, size);
+            }
+            el.style.opacity = "1";
+            el.style.display = "block";
+        },
+        onClearPlayfield: (activeItems, removeItem, resetType) => {
+            for (let i = activeItems.length - 1; i >= 0; i--) {
+                const c = activeItems[i];
+                if (!c) continue;
+                if (resetType === "underwater_cavern" && (c.isStrikePlaceholder || (c.isPreAllocatedMaterial && c.isHiddenPreAllocated))) continue;
+                removeItem(activeItems[i], i);
+            }
+
+            const pickaxe = document.getElementById("uc-pickaxe");
+            if (pickaxe && pickaxe.parentNode && resetType === "leave_area") {
+                pickaxe.parentNode.removeChild(pickaxe);
+                window._ucPickaxeElement = null;
+            }
+        },
+    });
+    return {
+        start: base.start,
+        stop: base.stop,
+        setRate: (n) => {
+            currentRate = Math.max(0, Number(n) || 0);
+            base.setRate(currentRate);
+            
+            if (currentRate === 0) {
+                // Instantly cancel any ongoing pickaxe swing
+                const pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
+                if (pickaxe) {
+                    pickaxe._elapsedTime = undefined;
+                    pickaxe.style.transform = "rotate(0deg)";
+                }
+                
+                // Clear any pending placeholders so stragglers don't spawn
+                const activeItems = base.getActiveItems();
+                for (let i = activeItems.length - 1; i >= 0; i--) {
+                    const c = activeItems[i];
+                    if (c && (c.isStrikePlaceholder || (c.isPreAllocatedMaterial && c.isHiddenPreAllocated))) {
+                        base.removeItemTarget(c, i);
+                    }
+                }
+            }
+
+            if (volumeUpdateTimeout) {
+                clearTimeout(volumeUpdateTimeout);
+            }
+            volumeUpdateTimeout = setTimeout(() => {
+                const newVol = getPickaxeSoundVolume();
+                for (const audioObj of activePickaxeSounds) {
+                    if (audioObj && audioObj.setVolume) {
+                        audioObj.setVolume(newVol);
+                    }
+                }
+            }, 50);
+        },
+        clearBacklog: base.clearBacklog,
+        clearPlayfield: base.clearPlayfield,
+        getItemTransform: base.getItemTransform,
+        ensureItemVisual: base.ensureItemVisual,
+        removeItemTarget: base.removeItemTarget,
+        detachItem: base.detachItem,
+        recycleItem: base.recycleItem,
+        spawnBurst: base.spawnBurst,
+        getActiveItems: base.getActiveItems,
+        findItemTargetsInRadius: (x, y, radius, isVisualHitbox) => {
+            let searchRadius = radius;
+            if (isVisualHitbox) {
+                searchRadius = Math.max(radius, 260);
+            }
+            // Add padding for the material size
+            searchRadius += baseSize / 2;
+            const activeItems = base.getActiveItems();
+            const results = [];
+            const count = activeItems.length;
+            const now = performance.now();
+            const minX = x - searchRadius;
+            const maxX = x + searchRadius;
+            const minY = y - searchRadius;
+            const maxY = y + searchRadius;
+            for (let i = count - 1; i >= 0; i--) {
+                const c = activeItems[i];
+                if (!c || c.isRemoved || c.isHiddenPreAllocated || c.isStrikePlaceholder) continue;
+                if (now < c.startTime) continue;
+                if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                    continue;
+                }
+
+                const w = c.size;
+                const h = c.size;
+                let curX, curY;
+                if (c.settled) {
+                    curX = c.x;
+                    curY = c.y;
+                } else {
+                    const s = base.getItemState(c, now);
+                    curX = s.x;
+                    curY = s.y;
+                }
+
+                const cx = curX + w / 2;
+                const cy = curY + h / 2;
+                if (cx < minX || cx > maxX) continue;
+                if (cy < minY || cy > maxY) continue;
+                const dx = cx - x;
+                const dy = cy - y;
+                let hit = false;
+                if (isVisualHitbox) {
+                    const scaledDy = dy * 2;
+                    const effectiveR = Math.max(w * 0.5, radius);
+                    const limitSq = effectiveR * effectiveR;
+                    if (dx * dx + scaledDy * scaledDy <= limitSq) hit = true;
+                } else {
+                    if (dx * dx + dy * dy <= radius * radius) hit = true;
+                }
+                if (hit) {
+                    results.push(c);
+                }
+            }
+            return results;
+        },
+        findItemTargetsInPath: (x1, y1, x2, y2, radius, isVisualHitbox) => {
+            let searchRadius = radius;
+            if (isVisualHitbox) {
+                searchRadius = Math.max(radius, 260);
+            }
+            // Add padding for the material size
+            searchRadius += baseSize / 2;
+            const activeItems = base.getActiveItems();
+            const results = [];
+            const count = activeItems.length;
+            const now = performance.now();
+            const minX = Math.min(x1, x2) - searchRadius;
+            const maxX = Math.max(x1, x2) + searchRadius;
+            const minY = Math.min(y1, y2) - searchRadius;
+            const maxY = Math.max(y1, y2) + searchRadius;
+            const vx = x2 - x1;
+            const vy = y2 - y1;
+            const lenSq = vx * vx + vy * vy;
+            for (let i = count - 1; i >= 0; i--) {
+                const c = activeItems[i];
+                if (!c || c.isRemoved || c.isHiddenPreAllocated || c.isStrikePlaceholder) continue;
+                if (now < c.startTime) continue;
+                if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                    continue;
+                }
+
+                const w = c.size;
+                const h = c.size;
+                let curX, curY;
+                if (c.settled) {
+                    curX = c.x;
+                    curY = c.y;
+                } else {
+                    const s = base.getItemState(c, now);
+                    curX = s.x;
+                    curY = s.y;
+                }
+
+                const cx = curX + w / 2;
+                const cy = curY + h / 2;
+                if (cx < minX || cx > maxX) continue;
+                if (cy < minY || cy > maxY) continue;
+                const wx = cx - x1;
+                const wy = cy - y1;
+                let hit = false;
+                if (isVisualHitbox) {
+                    const scaledWy = wy * 2;
+                    const scaledVy = vy * 2;
+                    const scaledDot = wx * vx + scaledWy * scaledVy;
+                    const scaledLenSq = vx * vx + scaledVy * scaledVy;
+                    const effectiveR = Math.max(w * 0.5, radius);
+                    const limitSq = effectiveR * effectiveR;
+                    if (scaledDot <= 0) {
+                        if (wx * wx + scaledWy * scaledWy <= limitSq) hit = true;
+                    } else if (scaledDot >= scaledLenSq) {
+                        const dx = cx - x2;
+                        const dy = cy - y2;
+                        const scaledDy = dy * 2;
+                        if (dx * dx + scaledDy * scaledDy <= limitSq) hit = true;
+                    } else {
+                        const cross = wx * scaledVy - scaledWy * vx;
+                        if (cross * cross <= limitSq * scaledLenSq) hit = true;
+                    }
+                } else {
+                    const dot = wx * vx + wy * vy;
+                    const limitSq = radius * radius;
+                    if (dot <= 0) {
+                        if (wx * wx + wy * wy <= limitSq) hit = true;
+                    } else if (dot >= lenSq) {
+                        const dx = cx - x2;
+                        const dy = cy - y2;
+                        if (dx * dx + dy * dy <= limitSq) hit = true;
+                    } else {
+                        const cross = wx * vy - wy * vx;
+                        if (cross * cross <= limitSq * lenSq) hit = true;
+                    }
+                }
+                if (hit) {
+                    results.push(c);
+                }
+            }
+            return results;
+        },
+        findCoinsInRadius: (x, y, radius) => {
+            // Unused normally, only fallback if using visual DOM elements
+            return [];
+        },
+    };
+}
