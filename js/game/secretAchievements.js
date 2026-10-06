@@ -121,6 +121,21 @@ export function setVaultCoinCollected(val, slot = getActiveSlot()) {
     } catch {}
 }
 
+export function getPureGoldVaultCollected(slot = getActiveSlot()) {
+    if (slot == null) return false;
+    try {
+        return lsGetItem(`ccc:secretAchievements:pureGoldVaultCollected:${slot}`) === "1";
+    } catch {}
+    return false;
+}
+
+export function setPureGoldVaultCollected(val, slot = getActiveSlot()) {
+    if (slot == null) return;
+    try {
+        lsSetItem(`ccc:secretAchievements:pureGoldVaultCollected:${slot}`, val ? "1" : "0");
+    } catch {}
+}
+
 const _rawSecretAchievements = [
     {
         id: 1,
@@ -321,6 +336,7 @@ export function checkSecretAchievements(slot = getActiveSlot()) {
                     showNotification(
                         `Secret Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
                         achievement.icon,
+                        7500
                     );
                 } else if (typeof window !== "undefined") {
                     window.__delayedSecretAchievementNotifications =
@@ -343,6 +359,7 @@ export function showDelayedSecretAchievementNotifications() {
             showNotification(
                 `Secret Achievement: "${notif.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`,
                 notif.icon,
+                7500
             );
         }
         window.__delayedSecretAchievementNotifications = [];
