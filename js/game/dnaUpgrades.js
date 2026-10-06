@@ -115,7 +115,7 @@ export const REGISTRY = [
     title: "DNA DNA Value",
     desc: "Multiplies DNA value by 1.1x per level",
     lvlCap: 1000,
-    baseCost: 1e63,
+    baseCost: "1e63",
     costType: "dna",
     upgType: "HM",
     scalingPreset: 'HM',
