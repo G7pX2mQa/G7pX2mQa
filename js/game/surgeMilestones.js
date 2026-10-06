@@ -340,6 +340,14 @@ export const SURGE_MILESTONES = [
             "Unlocks a new automation upgrade",
         ],
     },
+    {
+        id: 42,
+        surgeLevel: 1000,
+        affectedByTsunami: false,
+        description: [
+            "Unlocks a new automation upgrade",
+        ],
+    },
 ];
 export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES.filter((m) => m.affectedByTsunami).map((m) => m.id);
 const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
