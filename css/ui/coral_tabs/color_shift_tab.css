@@ -30,13 +30,13 @@
 }
 
 .color-shift-card.is-red {
-    background: linear-gradient(180deg, hsl(0 80% 45%), hsl(0 70% 28%));
+    background: linear-gradient(180deg, hsl(0 80% 45%), hsl(0 75% 35%));
     border-color: hsl(0 80% 55% / 0.85);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .color-shift-card.is-green {
-    background: linear-gradient(180deg, hsl(120 80% 45%), hsl(120 70% 28%));
+    background: linear-gradient(180deg, hsl(120 80% 45%), hsl(120 75% 35%));
     border-color: hsl(120 80% 55% / 0.85);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
