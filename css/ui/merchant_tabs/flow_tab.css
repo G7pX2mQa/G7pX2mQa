@@ -276,6 +276,9 @@
 #flow-fill-depth {
   background: linear-gradient(90deg, #8d745c, #564330);
 }
+#flow-fill-core {
+  background: linear-gradient(90deg, #1a1a1a, #000000);
+}
 
 .flow-locked-text {
   color: #aaa !important;
@@ -589,4 +592,9 @@
 /* Flow custom scrollbar integration */
 .merchant-sheet:not(.is-flow-active) .flow-scrollbar {
   display: none !important;
+}
+
+/* Make waterwheel tooltips wider */
+.flow-tab .setting-info-tooltip {
+  max-width: 400px;
 }
