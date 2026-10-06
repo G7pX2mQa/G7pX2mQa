@@ -90,7 +90,7 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.MAGIC,
         name: "Magic Waterwheel",
         image: "img/waterwheels/waterwheel_magic.webp",
-        baseReq: 1e16,
+        baseReq: "1e16",
         unlocked: false,
         prev: WATERWHEELS.GOLD,
         unlockReq: 1e9,
@@ -100,7 +100,7 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.SCRAP,
         name: "Scrap Waterwheel",
         image: "img/waterwheels/waterwheel_scrap.webp",
-        baseReq: 1e24,
+        baseReq: "1e24",
         unlocked: false,
         styleKey: "scrap",
         customUnlockCheck: () => {
@@ -166,7 +166,7 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.CORE,
         name: "Core Waterwheel",
         image: "img/waterwheels/waterwheel_core.webp",
-        baseReq: "1e9999",
+        baseReq: "1e285",
         unlocked: false,
         styleKey: "cores",
         customUnlockCheck: () => {
@@ -385,7 +385,7 @@ function syncWaterwheelDecorations(container) {
         let count = 0;
         if (lvl.cmp(0) > 0) {
             let numLvl = 0;
-            if (lvl.cmp(BigNum.fromAny("1e30")) > 0) numLvl = 1e30;
+            if (lvl.cmp(BigNum.fromAny("1e30")) > 0) numLvl = "1e30";
             else numLvl = lvl.inf || lvl.e >= BigNum.DEFAULT_PRECISION ? Infinity : Number(lvl.toPlainIntegerString());
             // Formula: Log10(Level * 10), max 10 per type
             const logVal = Math.floor(Math.log10(numLvl * 10));
