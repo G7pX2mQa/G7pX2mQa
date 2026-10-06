@@ -974,7 +974,7 @@ Collapse Challenge completions are permanent (will never be reset) and each comp
 
 The Challenge of ${capitalName}; the first Collapse Challenge
 Starting a Collapse Challenge resets everything Compress does as well as Crystals, the Crystal Building, and Pressure/PP
-Once you have started this Collapse Challenge, visit the Sell tab for required information to complete it (important)
+Once you've started this Collapse Challenge, visit the Sell tab for required information to complete it (important)
 
 Persistence of Lab Nodes when starting a Collapse Challenge will assist your recovery greatly
 
