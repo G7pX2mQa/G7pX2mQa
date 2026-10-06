@@ -23,7 +23,9 @@ import {
     AUTOBUY_COPPER_BUILDING_ID,
     AUTOBUY_IRON_BUILDING_ID,
     AUTOBUY_PURE_GOLD_BUILDING_ID,
+    CORAL_REEF_EAC_ID,
 } from "./automationUpgrades.js";
+import { getCoralColorMode, getCoralCurrencyKey } from "./coralColorMode.js";
 import { performFreeGenerationUpgrade } from "../ui/merchantTabs/workshopTab.js";
 import { performFreeBuildingAutobuy, batchBuildingOperations } from "../ui/minerTabs/buildingsTab.js";
 import { getWaterwheelsCollectiveState, setAllWaterwheelsState } from "../ui/merchantTabs/flowTab.js";
@@ -882,4 +884,100 @@ registerPassiveSystem({
         }
         return {};
     },
+});
+
+let coralReefEacFractionAcc = 0;
+
+// Register Coral Reef EAC
+registerPassiveSystem({
+    id: "coral_reef_eac",
+    getEfficiencyMultiplier: getEacEfficiencyMultiplier,
+    getRate: () => {
+        const level = getLevelNumber(AUTOMATION_AREA_KEY, CORAL_REEF_EAC_ID) || 0;
+        return level;
+    },
+    getAmountMultiplier: () => 1,
+    onTick: (collectCount, dt) => {
+        if (collectCount <= 0) return;
+        const currentMode = getCoralColorMode();
+        const currencyKey = getCoralCurrencyKey(currentMode);
+        
+        let isLocked = false;
+        try {
+            isLocked = globalThis?.__cccLockedStorageKeys?.has?.("ccc:" + currencyKey);
+        } catch {}
+        
+        if (!isLocked) {
+            const handle = bank[currencyKey];
+            if (handle) {
+                const mult = handle.mult.get();
+                
+                const rawGain = mult.mulDecimal(collectCount);
+                const intGain = rawGain.floorToInteger();
+                let frac = 0;
+                if (!rawGain.inf && rawGain.decExp < 6) {
+                    frac = parseFloat(rawGain.sub(intGain).toScientific());
+                    if (!Number.isFinite(frac)) frac = 0;
+                }
+                
+                coralReefEacFractionAcc += frac;
+                const extraInt = Math.floor(coralReefEacFractionAcc);
+                if (extraInt > 0) coralReefEacFractionAcc -= extraInt;
+                
+                const totalGain = intGain.add(BigNum.fromInt(extraInt));
+                
+                if (totalGain.cmp(0) > 0) {
+                    handle.add(totalGain);
+                    if (currentMode === "red") {
+                        try {
+                            import("./rclpSystem.js").then(({ addRclp }) => {
+                                addRclp(totalGain);
+                            }).catch(()=>{});
+                        } catch {}
+                    } else if (currentMode === "green") {
+                        try {
+                            import("./gclpSystem.js").then(({ addGclp }) => {
+                                addGclp(totalGain);
+                            }).catch(()=>{});
+                        } catch {}
+                    }
+                }
+            }
+        }
+    },
+    onOffline: (secondsBn, totalPassives) => {
+        if (totalPassives <= 0) return {};
+        const currentMode = getCoralColorMode();
+        const currencyKey = getCoralCurrencyKey(currentMode);
+        let isLocked = false;
+        try {
+            isLocked = globalThis?.__cccLockedStorageKeys?.has?.("ccc:" + currencyKey);
+        } catch {}
+        if (isLocked) return {};
+        
+        const handle = bank[currencyKey];
+        if (!handle) return {};
+        
+        const mult = handle.mult.get();
+        const coralEarned = BigNum.fromInt(1).mulBigNumInteger(mult).mulBigNumInteger(BigNum.fromAny(totalPassives));
+        
+        const rewards = {};
+        if (coralEarned.cmp(0) > 0) {
+            rewards[currencyKey] = coralEarned;
+            if (currentMode === "red") {
+                try {
+                    import("./rclpSystem.js").then(({ addRclp }) => {
+                        addRclp(coralEarned);
+                    }).catch(()=>{});
+                } catch {}
+            } else if (currentMode === "green") {
+                try {
+                    import("./gclpSystem.js").then(({ addGclp }) => {
+                        addGclp(coralEarned);
+                    }).catch(()=>{});
+                } catch {}
+            }
+        }
+        return rewards;
+    }
 });
