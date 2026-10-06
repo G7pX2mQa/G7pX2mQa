@@ -44,6 +44,8 @@ let lastHotkeyNum = null;
 let lastHoveredNum = null;
 let canvasMouseX = 0;
 let canvasMouseY = 0;
+let lastCanvasMouseX = null;
+let lastCanvasMouseY = null;
 const coinImg = new Image();
 coinImg.src = 'img/currencies/coin/coin.webp';
 
@@ -596,6 +598,8 @@ function initUnobtainiumPattern(ctx) {
 }
 
 export function startCanvasLoop(id, canvasEl, initialLevelNum) {
+  lastCanvasMouseX = null;
+  lastCanvasMouseY = null;
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   window.currentCavernLayout = null;
   activeCanvas = canvasEl;
@@ -1135,7 +1139,23 @@ function loop(currentTime) {
         radius = 34 * scale; // Easter egg cluster is visually much larger
       }
       
-      if (dx * dx + dy * dy <= radius * radius) {
+      let isHit = false;
+      if (lastCanvasMouseX !== null && lastCanvasMouseY !== null) {
+        const l2 = (canvasMouseX - lastCanvasMouseX) ** 2 + (canvasMouseY - lastCanvasMouseY) ** 2;
+        if (l2 === 0) {
+          if (dx * dx + dy * dy <= radius * radius) isHit = true;
+        } else {
+          let t_seg = ((coin_cx - lastCanvasMouseX) * (canvasMouseX - lastCanvasMouseX) + (coin_cy - lastCanvasMouseY) * (canvasMouseY - lastCanvasMouseY)) / l2;
+          t_seg = Math.max(0, Math.min(1, t_seg));
+          const projX = lastCanvasMouseX + t_seg * (canvasMouseX - lastCanvasMouseX);
+          const projY = lastCanvasMouseY + t_seg * (canvasMouseY - lastCanvasMouseY);
+          if ((coin_cx - projX) ** 2 + (coin_cy - projY) ** 2 <= radius * radius) isHit = true;
+        }
+      } else {
+        if (dx * dx + dy * dy <= radius * radius) isHit = true;
+      }
+      
+      if (isHit) {
         cursor = 'pointer';
         vaultCoinCollectedLocal = true;
         setVaultCoinCollected(true);
@@ -1183,7 +1203,7 @@ function loop(currentTime) {
       const right = centerX - 23 * scale;
       const top = floorY - (88 + dy) * scale;
       const bottom = floorY - (52 + dy) * scale;
-      if (canvasMouseX >= left && canvasMouseX <= right && canvasMouseY >= top && canvasMouseY <= bottom && getTier() >= 2) {
+      if (!isVaultOpen && canvasMouseX >= left && canvasMouseX <= right && canvasMouseY >= top && canvasMouseY <= bottom && getTier() >= 2) {
         cursor = 'pointer';
       }
     }
@@ -1238,6 +1258,9 @@ function loop(currentTime) {
     }
     updateDomOverlays(logicalW, logicalH, time);
   }
+
+  lastCanvasMouseX = canvasMouseX;
+  lastCanvasMouseY = canvasMouseY;
 
   animationFrameId = requestAnimationFrame(loop);
 }
