@@ -27,6 +27,7 @@ export const AUTOBUY_STONE_BUILDING_ID = 15;
 export const AUTOBUY_COPPER_BUILDING_ID = 16;
 export const AUTOBUY_IRON_BUILDING_ID = 17;
 export const AUTOBUY_PURE_GOLD_BUILDING_ID = 18;
+export const CORAL_REEF_EAC_ID = 26;
 
 // export ties specifically for upgrades who break the norm
 export const AUTOMATION_TIES = {
@@ -35,6 +36,7 @@ export const AUTOMATION_TIES = {
     UNDERWATER_CAVERN_EAC: "underwater_cavern_eac",
     EFFECTIVE_AUTO_SELL: "effective_auto_sell",
     MULTI_WATERWHEEL_FLOW: "multi_waterwheel_flow",
+    CORAL_REEF_EAC: "coral_reef_eac",
 };
 
 // Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
@@ -681,6 +683,52 @@ const UPGRADE_DEFINITIONS = [
                 ? "Complete the Challenge of Pure Gold to reveal this upgrade"
                 : "Complete the Challenge of [Unknown] to reveal this upgrade";
 
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+    },
+    {
+        area: AUTOMATION_AREA_KEY,
+        id: CORAL_REEF_EAC_ID,
+        tie: AUTOMATION_TIES.CORAL_REEF_EAC,
+        title: "Coral Reef EAC",
+        desc: "Generates the equivalent of collecting a Coral on an interval\nColor of the generated Coral depends on active color mode\nEach level of this upgrade will reduce the generation interval",
+        shrinkBetween: STANDARD_AUTOMATION_SHRINK,
+        icon: "img/sc_upg_icons/eac_coral_reef.webp",
+        lvlCap: 20,
+        baseCost: "1e1000",
+        costType: "gears",
+        upgType: "NM",
+        scaling: { ratio: "1e1000" },
+        costAtLevel(level) {
+            const lvl = Math.max(0, Math.floor(Number(level) || 0));
+            return BigNum.fromAny("1e1000").mulBigNumInteger(E.powPerLevel("1e1000")(lvl));
+        },
+        effectSummary(level) {
+            const lvl = Math.max(0, Math.floor(Number(level) || 0));
+            if (lvl === 0) return "Generation interval: None";
+            const intervalMs = Math.round(1000 / lvl);
+            return `Generation interval: ${formatNumber(BigNum.fromAny(intervalMs))}ms`;
+        },
+        computeLockState(ctx) {
+            const sl = ctx.surgeLevel;
+            let isUnlocked = false;
+
+            if (typeof sl === "number") {
+                if (sl >= 1000 || sl === Infinity) isUnlocked = true;
+            } else if (typeof sl === "string") {
+                if (sl === "Infinity" || parseFloat(sl) === Infinity) isUnlocked = true;
+                else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 1000) isUnlocked = true;
+            } else if (sl && typeof sl.isInfinite === "function" && sl.isInfinite()) {
+                isUnlocked = true;
+            }
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            if (!isCollapseUnlocked()) {
+                return { state: "locked" };
+            }
+
+            const revealText = `Reach Surge ${formatNumber(1000)} to reveal this upgrade`;
             return { state: "mysterious", unlockReqText: revealText };
         },
     },
