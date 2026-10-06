@@ -219,6 +219,8 @@ export const UPGRADE_TIES = {
     FASTER_CORAL: "coral_reef_1",
     RED_CORAL_LINK: "coral_reef_7",
     GREEN_CORAL_LINK: "coral_reef_8",
+    ENHANCED_RED_CORAL_LINK: "coral_reef_11",
+    ENHANCED_GREEN_CORAL_LINK: "coral_reef_12",
 };
 
 const HM_MILESTONES_STARTER_COVE = [
