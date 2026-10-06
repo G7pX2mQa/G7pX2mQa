@@ -120,10 +120,10 @@ const BASE_VALUES = {
     pure_gold: 1e6,
     diamond: 1e10,
     emerald: 1e15,
-    ruby: 1e21,
-    sapphire: 1e28,
-    unobtainium: 1e36,
-    prismatium: 1e45,
+    ruby: "1e21",
+    sapphire: "1e28",
+    unobtainium: "1e36",
+    prismatium: "1e45",
 };
 
 const DROPDOWN_OPTIONS = [
