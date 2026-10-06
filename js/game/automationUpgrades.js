@@ -26,6 +26,7 @@ export const AUTOBUY_CRYSTAL_BUILDING_ID = 14;
 export const AUTOBUY_STONE_BUILDING_ID = 15;
 export const AUTOBUY_COPPER_BUILDING_ID = 16;
 export const AUTOBUY_IRON_BUILDING_ID = 17;
+export const AUTOBUY_PURE_GOLD_BUILDING_ID = 18;
 
 // export ties specifically for upgrades who break the norm
 export const AUTOMATION_TIES = {
@@ -50,6 +51,7 @@ export const MASTER_AUTOBUY_IDS = {
     [AUTOBUY_STONE_BUILDING_ID]: "stone",
     [AUTOBUY_COPPER_BUILDING_ID]: "copper",
     [AUTOBUY_IRON_BUILDING_ID]: "iron",
+    [AUTOBUY_PURE_GOLD_BUILDING_ID]: "pure_gold",
 };
 
 const STANDARD_AUTOMATION_SHRINK = [
@@ -636,6 +638,47 @@ const UPGRADE_DEFINITIONS = [
 
             const revealText = hasUnlockedIron
                 ? "Complete the Challenge of Iron to reveal this upgrade"
+                : "Complete the Challenge of [Unknown] to reveal this upgrade";
+
+            return { state: "mysterious", unlockReqText: revealText };
+        },
+    },
+    {
+        area: AUTOMATION_AREA_KEY,
+        id: AUTOBUY_PURE_GOLD_BUILDING_ID,
+        title: "Autobuy Pure Gold Building",
+        desc: "Automatically buys levels of the Pure Gold Building",
+        icon: "img/materials/pure_gold.webp",
+        extraIcon: "img/misc/gear_icon_for_materials.webp",
+        lvlCap: 1,
+        baseCost: "1e1000",
+        costType: "gears",
+        upgType: "NM",
+        costAtLevel() {
+            return BigNum.fromAny("1e1000");
+        },
+        effectSummary() {
+            return null;
+        },
+        computeLockState() {
+            let isUnlocked = false;
+            try {
+                isUnlocked = lsGetItem(`ccc:collapseChallengeCompleted:pure_gold:${getActiveSlot() ?? "default"}`) === "1";
+            } catch {}
+
+            if (isUnlocked) return { state: "unlocked" };
+
+            if (!isCollapseUnlocked()) {
+                return { state: "locked" };
+            }
+
+            let hasUnlockedPureGold = false;
+            try {
+                hasUnlockedPureGold = isBuildingUnlocked("pure_gold");
+            } catch {}
+
+            const revealText = hasUnlockedPureGold
+                ? "Complete the Challenge of Pure Gold to reveal this upgrade"
                 : "Complete the Challenge of [Unknown] to reveal this upgrade";
 
             return { state: "mysterious", unlockReqText: revealText };
