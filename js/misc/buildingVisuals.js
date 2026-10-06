@@ -6327,7 +6327,6 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
   let t8 = getProg(8);
 
   if (isVaultOpening || isVaultOpen) {
-    t1 = 0;
     t2 = 0;
     t3 = 0;
     t4 = 0;
@@ -6576,6 +6575,79 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
+  const drawVaultDoor = (alpha) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    ctx.save();
+    if (isVaultOpening || isVaultOpen) {
+      const prog = isVaultOpen ? 1.0 : (5.0 - vaultOpeningTime) / 5.0;
+      const maxAngle = Math.acos(-0.5); // 120 degrees
+      const doorScaleX = Math.cos(prog * maxAngle);
+      ctx.translate(-50, 0);
+      ctx.scale(doorScaleX, 1);
+      ctx.translate(50, 0);
+    }
+    
+    // Vault door fill (using pure gold texture or purple texture)
+    ctx.fillStyle = fillGold;
+    ctx.fillRect(-50, -90, 100, 80);
+    
+    // Vault door outline
+    ctx.strokeStyle = isPureGoldChallenge ? "#250742" : "#000000";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-50, -90, 100, 80);
+    
+    // Central mechanical dial
+    ctx.fillStyle = isPureGoldChallenge ? "#18042e" : "#000000";
+    ctx.beginPath();
+    ctx.arc(0, -50, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isPureGoldChallenge ? "#9333ea" : "#fff";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // Dial markers
+    ctx.save();
+    ctx.translate(0, -50);
+    ctx.rotate(t * 0.5); // Slow mechanical turn
+    ctx.strokeStyle = isPureGoldChallenge ? "#c084fc" : "#fff";
+    for (let i = 0; i < 12; i++) {
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(18, 0);
+      ctx.stroke();
+      ctx.rotate((Math.PI * 2) / 12);
+    }
+    ctx.restore();
+    
+    // Handle (rounded rectangle)
+    const drawRoundRect = (x, y, w, h, r) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    };
+    
+    drawRoundRect(31, -62, 8, 24, 4);
+    ctx.fillStyle = isPureGoldChallenge ? "#18042e" : "#000000";
+    ctx.fill();
+    ctx.strokeStyle = isPureGoldChallenge ? "#581c87" : "#000000";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    ctx.restore(); // restore door swing
+    ctx.restore(); // restore global alpha
+  };
+
   // --- Tier 0: Classic Safe ---
   const drawT0Vault = (alpha) => {
     if (alpha <= 0) return;
@@ -6650,71 +6722,9 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     }
     
     // Now draw the door (which swings open)
-    ctx.save();
-    if (isVaultOpening || isVaultOpen) {
-      const prog = isVaultOpen ? 1.0 : (5.0 - vaultOpeningTime) / 5.0;
-      const maxAngle = Math.acos(-0.5); // 120 degrees
-      const doorScaleX = Math.cos(prog * maxAngle);
-      ctx.translate(-50, 0);
-      ctx.scale(doorScaleX, 1);
-      ctx.translate(50, 0);
+    if (!isVaultOpening && !isVaultOpen) {
+      drawVaultDoor(alpha);
     }
-    
-    // Vault door fill (using pure gold texture or purple texture)
-    ctx.fillStyle = fillGold;
-    ctx.fillRect(-50, -90, 100, 80);
-    
-    // Vault door outline
-    ctx.strokeStyle = isPureGoldChallenge ? "#250742" : "#000000";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-50, -90, 100, 80);
-    
-    // Central mechanical dial
-    ctx.fillStyle = isPureGoldChallenge ? "#18042e" : "#000000";
-    ctx.beginPath();
-    ctx.arc(0, -50, 20, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = isPureGoldChallenge ? "#9333ea" : "#fff";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // Dial markers
-    ctx.save();
-    ctx.translate(0, -50);
-    ctx.rotate(t * 0.5); // Slow mechanical turn
-    ctx.strokeStyle = isPureGoldChallenge ? "#c084fc" : "#fff";
-    for (let i = 0; i < 12; i++) {
-      ctx.beginPath();
-      ctx.moveTo(10, 0);
-      ctx.lineTo(18, 0);
-      ctx.stroke();
-      ctx.rotate((Math.PI * 2) / 12);
-    }
-    ctx.restore();
-    
-    // Handle (rounded rectangle)
-    const drawRoundRect = (x, y, w, h, r) => {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-    };
-    
-    drawRoundRect(31, -62, 8, 24, 4);
-    ctx.fillStyle = isPureGoldChallenge ? "#18042e" : "#000000";
-    ctx.fill();
-    ctx.strokeStyle = isPureGoldChallenge ? "#581c87" : "#000000";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    
-    ctx.restore(); // restore door swing
     
     ctx.restore(); // restore global alpha
   };
@@ -7178,6 +7188,10 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     }
     
     ctx.restore();
+  }
+
+  if (isVaultOpening || isVaultOpen) {
+    drawVaultDoor(1);
   }
 
   // --- Tier 2: Electronic Upgrade ---
