@@ -152,7 +152,7 @@ export const RESEARCH_NODES = [
         id: 11,
         title: "Node 11: Experimental Coin Value II",
         desc: "Multiplies Coin value by 3x per level\nThis node scales 10x RP per level",
-        baseRpReq: 1e23,
+        baseRpReq: "1e23",
         scale: 10.0,
         maxLevel: 10,
         x: -2000,
@@ -165,7 +165,7 @@ export const RESEARCH_NODES = [
         id: 12,
         title: "Node 12: Experimental XP Value II",
         desc: "Multiplies XP value by 3x per level\nThis node scales 10x RP per level",
-        baseRpReq: 1e24,
+        baseRpReq: "1e24",
         scale: 10.0,
         maxLevel: 10,
         x: 2000,
@@ -178,7 +178,7 @@ export const RESEARCH_NODES = [
         id: 13,
         title: "Node 13: Experimental Gold Value II",
         desc: "Multiplies Gold value by 4x per level\nThis node scales 10x RP per level",
-        baseRpReq: 1e34,
+        baseRpReq: "1e34",
         scale: 10.0,
         maxLevel: 10,
         x: -2000,
@@ -191,7 +191,7 @@ export const RESEARCH_NODES = [
         id: 14,
         title: "Node 14: Experimental Magic Value II",
         desc: "Multiplies Magic value by 4x per level\nThis node scales 10x RP per level",
-        baseRpReq: 1e35,
+        baseRpReq: "1e35",
         scale: 10.0,
         maxLevel: 10,
         x: 2000,
@@ -204,7 +204,7 @@ export const RESEARCH_NODES = [
         id: 15,
         title: "Node 15: Experimental DNA Value",
         desc: "Multiplies DNA value by 1.5x per level\nThis node scales 25x RP per level",
-        baseRpReq: 1e45,
+        baseRpReq: "1e45",
         scale: 25.0,
         maxLevel: 10,
         x: -2000,
@@ -217,7 +217,7 @@ export const RESEARCH_NODES = [
         id: 16,
         title: "Node 16: Experimental DNA Value II",
         desc: "Multiplies DNA value by 1.5x per level\nThis node scales 25x RP per level",
-        baseRpReq: 1e46,
+        baseRpReq: "1e46",
         scale: 25.0,
         maxLevel: 10,
         x: 2000,
@@ -230,7 +230,7 @@ export const RESEARCH_NODES = [
         id: 17,
         title: "Node 17: Experimental FP Value",
         desc: "Multiplies FP value by 1.25x per level\nThis node scales 25x RP per level",
-        baseRpReq: 1e59,
+        baseRpReq: "1e59",
         scale: 25.0,
         maxLevel: 10,
         x: -2000,
@@ -243,7 +243,7 @@ export const RESEARCH_NODES = [
         id: 18,
         title: "Node 18: Experimental FP Value II",
         desc: "Multiplies FP value by 1.25x per level\nThis node scales 25x RP per level",
-        baseRpReq: 1e60,
+        baseRpReq: "1e60",
         scale: 25.0,
         maxLevel: 10,
         x: 2000,
@@ -588,7 +588,7 @@ export function tickResearch(dt) {
     if (!isResearchNodeVisible(node.id)) return;
     if (getResearchNodeLevel(node.id) >= node.maxLevel) return;
     const labLvl = getLabLevel();
-    if (labLvl && (labLvl.isInfinite?.() || labLvl.cmp(1e308) >= 0 || labLvl.e >= BigNum.MAX_E)) {
+    if (labLvl && (labLvl.isInfinite?.() || labLvl.cmp("1e308") >= 0 || labLvl.e >= BigNum.MAX_E)) {
         setResearchNodeLevel(node.id, node.maxLevel);
         setResearchNodeRp(node.id, BigNum.fromInt(0));
         return;
