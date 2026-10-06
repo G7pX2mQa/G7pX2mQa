@@ -7,4 +7,5 @@
 - Never use BigInt.
 - For CSS, make sure to reference `html.is-mobile` when referring to mobile, and make sure to not redundantly declare box-sizing: border-box on any new css elements, because there is already a global selector in one of the css files that applies this globally.
 - Additionally for CSS, try and use very conservative rounded borders (exactly 5px border radius), NEVER pill shapes unless explicitly instructed, and also don't add translateY on active hover of a button unless explicitly instructed.
+- When typing numbers for code, generally use the rule of thumb to use a normal number for 1e15 or below (1e15) or a string for above ("1e16"). See other numbers in the codebase for reference.
 - Most importantly, NEVER use `git checkout`. I never use this command and so using it will drastically destroy file data.
