@@ -1,5 +1,6 @@
 import { IS_MOBILE, IS_FIREFOX } from "../util/platformChecker.js";
 import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
+import { isCurrencyUnlocked, CURRENCIES } from "../util/storage.js";
 import { levelBigNumToNumber } from "../game/upgrades.js";
 import { playAudio } from "../util/audioManager.js";
 import { getVaultSequence, setVaultSequence, getVaultCoinCollected, setVaultCoinCollected, checkSecretAchievements } from "../game/secretAchievements.js";
@@ -1123,11 +1124,16 @@ function loop(currentTime) {
       const floorY = rect.height - 260;
       const coin_cy = floorY - (getTier() >= 1 ? 65 : 50) * scale;
       
-      // Hitbox is a circular radius of 20 * scale representing the coin's physical boundaries.
+      // Hitbox is a circular radius representing the coin's physical boundaries.
       // This ensures collecting the coin is perfectly accurate and works responsive from any direction.
       const dx = canvasMouseX - coin_cx;
       const dy = canvasMouseY - coin_cy;
-      const radius = 20 * scale;
+      let radius = 20 * scale;
+      
+      const isPureGoldChallenge = typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "pure_gold";
+      if (isPureGoldChallenge) {
+        radius = 34 * scale; // Easter egg cluster is visually much larger
+      }
       
       if (dx * dx + dy * dy <= radius * radius) {
         cursor = 'pointer';
@@ -1884,14 +1890,8 @@ function drawCavern(ctx, w, h, t) {
       topY / 2,
       glowRadius,
     );
-    const isPureGoldChallenge = currentBuildingId === "pure_gold" && typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.() && window.resetSystem?.getActiveCollapseChallengeType?.() === "pure_gold";
-    if (isPureGoldChallenge) {
-      glowGrad.addColorStop(0, "rgba(147, 51, 234, 0.22)");
-      glowGrad.addColorStop(1, "rgba(88, 28, 135, 0)");
-    } else {
-      glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
-      glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
-    }
+    glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
+    glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = glowGrad;
     ctx.beginPath();
     ctx.arc(glowOffsetX, topY / 2, glowRadius, 0, Math.PI * 2);
@@ -6144,10 +6144,22 @@ if (typeof window !== 'undefined') {
   };
 }
 
+function populateVaultEasterEgg() {
+  const images = [];
+  for (const key of Object.values(CURRENCIES)) {
+    if (isCurrencyUnlocked(key)) {
+      const reg = RESOURCE_REGISTRY.find(r => r.key === key);
+      if (reg && reg.icon) images.push(reg.icon);
+    }
+  }
+  globalThis._easterEggImages = images;
+}
+
 function handleVaultCanvasKeyDown(e) {
   if (settingsManager.get('only_show_building')) return;
   if (!keypadZoomedIn || isVaultOpening || isVaultOpen) return;
   const key = e.key;
+
   if (key >= '1' && key <= '9') {
     const btnNum = parseInt(key, 10);
     lastHotkeyNum = btnNum;
@@ -6168,6 +6180,7 @@ function handleVaultCanvasKeyDown(e) {
       keypadZoomedIn = false;
       vaultCoinCollectedLocal = false;
       setVaultCoinCollected(false);
+      populateVaultEasterEgg();
       playAudio("sounds/opening.ogg");
       window.dispatchEvent(new CustomEvent('audio:stopMusic'));
       
@@ -6238,6 +6251,7 @@ function handleVaultCanvasClick(e) {
             keypadZoomedIn = false;
             vaultCoinCollectedLocal = false;
             setVaultCoinCollected(false);
+            populateVaultEasterEgg();
             playAudio("sounds/opening.ogg");
             window.dispatchEvent(new CustomEvent('audio:stopMusic'));
             
@@ -6581,16 +6595,55 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
       ctx.lineWidth = 2;
       ctx.strokeRect(-50, -90, 100, 80);
       
-      // Draw spinning coin
+      // Draw spinning coin (or Easter egg)
       if ((isVaultOpening || isVaultOpen) && !vaultCoinCollectedLocal) {
         ctx.save();
         ctx.translate(0, -50);
         ctx.scale(Math.sin(time * 5), 1);
-        const prCoin = getPreRenderedItem('img/currencies/coin/coin.webp', 40);
-        if (prCoin) {
-          ctx.drawImage(prCoin, -20, -20, 40, 40);
+        
+        if (isPureGoldChallenge) {
+          ctx.rotate(time * 1.5);
+          const images = globalThis._easterEggImages || [];
+          if (images.length > 0) {
+            let rings = [];
+            let itemsLeft = [...images];
+            let currentRing = 0;
+            while (itemsLeft.length > 0) {
+              let capacity = currentRing === 0 ? 1 : currentRing * 6;
+              rings.push(itemsLeft.slice(0, Math.min(capacity, itemsLeft.length)));
+              itemsLeft = itemsLeft.slice(capacity);
+              currentRing++;
+            }
+            
+            let spacing = rings.length > 2 ? 10.45 : 13.3;
+            let size = rings.length > 2 ? 13.3 : 15.2;
+            
+            for (let r = 0; r < rings.length; r++) {
+              let ringItems = rings[r];
+              if (r === 0) {
+                const prImg = getPreRenderedItem(ringItems[0], size);
+                if (prImg) ctx.drawImage(prImg, -size / 2, -size / 2, size, size);
+              } else {
+                let ringRadius = r * spacing;
+                let numItems = ringItems.length;
+                for (let i = 0; i < numItems; i++) {
+                  let angleOffset = (r % 2 === 0) ? 0 : (Math.PI / numItems);
+                  let angle = angleOffset + (i / numItems) * Math.PI * 2;
+                  let x = Math.cos(angle) * ringRadius;
+                  let y = Math.sin(angle) * ringRadius;
+                  const prImg = getPreRenderedItem(ringItems[i], size);
+                  if (prImg) ctx.drawImage(prImg, x - size / 2, y - size / 2, size, size);
+                }
+              }
+            }
+          }
         } else {
-          ctx.drawImage(coinImg, -15, -15, 30, 30);
+          const prCoin = getPreRenderedItem('img/currencies/coin/coin.webp', 40);
+          if (prCoin) {
+            ctx.drawImage(prCoin, -20, -20, 40, 40);
+          } else {
+            ctx.drawImage(coinImg, -15, -15, 30, 30);
+          }
         }
         ctx.restore();
       }
@@ -7139,16 +7192,16 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     // Blinking status lights
     const seq = getVaultSequence();
     const target = "7887773346665553";
-    let lightColor = isPureGoldChallenge ? "#9333ea" : "#ff0000"; // Solid red or purple by default/idle
+    let lightColor = isPureGoldChallenge ? "#581c87" : "#ff0000"; // Dark purple or red by default/idle
     
     if (seq === target) {
-      lightColor = "#00ff00"; // Solid green
+      lightColor = isPureGoldChallenge ? "#a855f7" : "#00ff00"; // Light purple or green
     } else if (seq && seq !== "0000000000000000" && seq.length > 0) {
       const matchLen = getMatchLength(seq, target);
       if (matchLen > 0) {
-        lightColor = "#00ff00"; // Solid green on correct prefix match
+        lightColor = isPureGoldChallenge ? "#a855f7" : "#00ff00"; // Light purple or green on correct prefix match
       } else {
-        lightColor = isPureGoldChallenge ? "#7e22ce" : "#ff0000";
+        lightColor = isPureGoldChallenge ? "#4c1d95" : "#ff0000"; // Even darker purple or red on incorrect
       }
     }
 
@@ -7343,16 +7396,16 @@ function drawVault(ctx, keypadCtx, w, h, t, tier, prevTier, animProgress) {
     // Status light on zoomed keypad
     const zoomSeq = getVaultSequence();
     const zoomTarget = "7887773346665553";
-    let zoomLightColor = isPureGoldChallenge ? "#9333ea" : "#ff0000"; // Solid red/purple by default/idle
+    let zoomLightColor = isPureGoldChallenge ? "#581c87" : "#ff0000"; // Dark purple or red by default/idle
     
     if (zoomSeq === zoomTarget) {
-      zoomLightColor = "#00ff00"; // Solid green
+      zoomLightColor = isPureGoldChallenge ? "#a855f7" : "#00ff00"; // Light purple or green
     } else if (zoomSeq && zoomSeq !== "0000000000000000" && zoomSeq.length > 0) {
       const matchLen = getMatchLength(zoomSeq, zoomTarget);
       if (matchLen > 0) {
-        zoomLightColor = "#00ff00"; // Solid green on correct prefix match
+        zoomLightColor = isPureGoldChallenge ? "#a855f7" : "#00ff00"; // Light purple or green on correct prefix match
       } else {
-        zoomLightColor = isPureGoldChallenge ? "#7e22ce" : "#ff0000";
+        zoomLightColor = isPureGoldChallenge ? "#4c1d95" : "#ff0000"; // Even darker purple or red on incorrect
       }
     }
     
