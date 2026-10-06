@@ -152,7 +152,7 @@ function setCollapseChallengeActive(materialName, slot = getActiveSlot()) {
 
 function registerCoinDebuff() {
     if (coinDebuffUnregister) return; // Already registered
-    const divisor = BigNum.fromAny("1e100");
+    const divisor = BigNum.fromAny(1e100);
     coinDebuffUnregister = addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
         try {
             // Divide the base multiplier by 1e100
@@ -965,7 +965,7 @@ function openChallengeOverlay(id, forceRedraw = false) {
     const desc = document.createElement("div");
     desc.className = "collapse-overlay-desc";
     
-    const formattedNum = formatNumber(BigNum.fromAny("1e100"));
+    const formattedNum = formatNumber(BigNum.fromAny(1e100));
     
     let baseDescText = "";
     if (id === "stone") {
@@ -1011,7 +1011,7 @@ As usual, prepare your Lab Nodes and other things before starting for a faster c
 Effect: The Vault Building becomes infused with Magic, and traps a logarithmic half of all currencies inside it
 Effect Modifier: Reach Surge 250 to make it only trap a logarithmic third (^½ → ^⅔ currency multipliers)
 Goal: Reach Pressure: 65atm
-Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
+Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
@@ -1251,6 +1251,9 @@ Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
             ).replace(
                 "Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade",
                 `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade</span>`
+            ).replace(
+                "Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + unlocks a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + unlocks a new automation upgrade</span>`
             );
         }
         desc.innerHTML = finalHtml;
