@@ -408,6 +408,25 @@ export function updateAutomation(dt) {
 }
 
 let lastUcEacSaveTime = 0;
+
+// Offline-sim batching for uc_eac DP/PP gains (see uc_eac onTick).
+const SIM_DP_PP_FLUSH_TICKS = 20;
+let _simPendingDp = 0;
+let _simPendingPp = 0;
+let _simPendingTicks = 0;
+export function flushUcEacSimPending() {
+    const dp = _simPendingDp;
+    const pp = _simPendingPp;
+    _simPendingDp = 0;
+    _simPendingPp = 0;
+    _simPendingTicks = 0;
+    if (dp > 0 && typeof window !== "undefined" && window.dpSystem && typeof window.dpSystem.addDp === "function") {
+        window.dpSystem.addDp(dp);
+    }
+    if (pp > 0) {
+        addPp(pp);
+    }
+}
 export function saveUcEacAccumulator() {
     try {
         let acc = 0;
@@ -527,7 +546,7 @@ registerPassiveSystem({
     },
 	// to clarify, Underwater Cavern EAC should NOT be buffed by the EAC buffs to the Cove's EAC
     onTick: (collectCount, dt) => {
-        // Read the shared EAC efficiency slider as a yield multiplier (0–1)
+        // Read the shared EAC efficiency slider as a yield multiplier (0-1)
         const eacEfficiency = settingsManager.get("eac_efficiency");
         const yieldMult = eacEfficiency !== undefined ? eacEfficiency / 100 : 1;
         if (yieldMult === 0) return;
@@ -613,11 +632,22 @@ registerPassiveSystem({
             // DP and PP also scaled by the yield multiplier
             const scaledCount = collectCount * yieldMult;
             if (scaledCount > 0) {
-                if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
-                    window.dpSystem.addDp(scaledCount);
-                }
-                if (isPpSystemUnlocked()) {
-                    addPp(scaledCount);
+                if (typeof window !== "undefined" && window.__isSimulationActive) {
+                    // addDp/addPp each persist state, redraw the HUD and dispatch several events,
+                    // so during the offline sim we batch them and flush periodically.
+                    _simPendingDp += scaledCount;
+                    if (isPpSystemUnlocked()) _simPendingPp += scaledCount;
+                    _simPendingTicks++;
+                    if (_simPendingTicks >= SIM_DP_PP_FLUSH_TICKS) {
+                        flushUcEacSimPending();
+                    }
+                } else {
+                    if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
+                        window.dpSystem.addDp(scaledCount);
+                    }
+                    if (isPpSystemUnlocked()) {
+                        addPp(scaledCount);
+                    }
                 }
             }
         }
@@ -743,6 +773,11 @@ registerPassiveSystem({
         // User efficiency mult is handled by system wrapper now
         const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
         let totalGainPerTick = BigNum.fromInt(0);
+        let rubbleVal = null;
+        if (isRubbleMode) {
+            const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+            rubbleVal = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1);
+        }
         for (let j = 0; j < UC_MATERIALS.length; j++) {
             const matKey = UC_MATERIALS[j];
             const matData = UC_MATERIAL_DATA[j];
@@ -751,8 +786,6 @@ registerPassiveSystem({
                 let potentialOutput;
                 
                 if (isRubbleMode) {
-                    const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
-                    const rubbleVal = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1);
                     potentialOutput = owned.mulBigNumInteger(rubbleVal);
                 } else {
                     const materialValue = BigNum.fromAny(matData.value || 0);
@@ -819,6 +852,11 @@ registerPassiveSystem({
         // User efficiency mult is handled by system wrapper now
         const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
         let totalGainPerTick = BigNum.fromInt(0);
+        let rubbleVal = null;
+        if (isRubbleMode) {
+            const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+            rubbleVal = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1);
+        }
         for (let j = 0; j < UC_MATERIALS.length; j++) {
             const matKey = UC_MATERIALS[j];
             const matData = UC_MATERIAL_DATA[j];
@@ -827,8 +865,6 @@ registerPassiveSystem({
                 let potentialOutput;
                 
                 if (isRubbleMode) {
-                    const mults = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
-                    const rubbleVal = mults.rubbleValue ? mults.rubbleValue.clone?.() ?? mults.rubbleValue : BigNum.fromInt(1);
                     potentialOutput = owned.mulBigNumInteger(rubbleVal);
                 } else {
                     const materialValue = BigNum.fromAny(matData.value || 0);
