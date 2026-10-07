@@ -353,6 +353,9 @@ function init() {
     window.addEventListener("saveSlot:change", () => runIntegrityCheck());
     window.addEventListener("saveIntegrity:rebuildSnapshot", (e) => rebuildExpectedStateForSlot(e.detail.slot));
     window.addEventListener("saveIntegrity:slotRemove", (e) => afterSlotRemove(e.detail.key));
+    if (typeof window !== "undefined") {
+        window.__fastSlotWriteListener = afterSlotWrite;
+    }
     window.addEventListener("saveIntegrity:slotWrite", (e) => afterSlotWrite(e.detail.key, e.detail.value));
     if (typeof document !== "undefined") {
         document.addEventListener("visibilitychange", () => {
