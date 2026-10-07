@@ -1,6 +1,7 @@
 // js/game/settingsManager.js
 import { lsSetItem, lsRemoveItem, lsGetItem, activeStorageKeys } from "../main.js";
-import { showNotification } from "../ui/notifications.js";
+import { showNotification, showWideNotification } from "../ui/notifications.js";
+import { isCollapseChallengeActive, getActiveCollapseChallengeType } from "../ui/minerTabs/collapseTab.js";
 import { getActiveSlot, CURRENCIES } from "../util/storage.js";
 import { PALETTES } from "./mutationColorPalettes.js";
 import { isLabUnlocked } from "./surgeEffects.js";
@@ -860,6 +861,27 @@ class SettingsManager {
             const slot = getActiveSlot();
             if (slot != null) {
                 lsSetItem(`ccc:surge150_screen_wipe_message_hidden:${slot}`, "1");
+            }
+        }
+
+        if (key === "eac_efficiency" && value === 0 && this.settings[key] !== 0) {
+            const slot = getActiveSlot();
+            if (slot != null && isCollapseChallengeActive(slot) && getActiveCollapseChallengeType(slot) === "iron") {
+                if (lsGetItem(`ccc:veryCleverShown:${slot}`) === "1" && 
+                    lsGetItem(`ccc:eacVeryClever:${slot}`) !== "1" && 
+                    lsGetItem(`ccc:endlessFpVeryClever:${slot}`) !== "1") {
+                    lsSetItem(`ccc:endlessFpVeryClever:${slot}`, "1");
+                }
+                
+                if (lsGetItem(`ccc:eacVeryClever:${slot}`) !== "1") {
+                    lsSetItem(`ccc:eacVeryClever:${slot}`, "1");
+                    if (lsGetItem(`ccc:veryCleverShown:${slot}`) === "1") {
+                        showWideNotification("Even more very clever", 5000);
+                    } else {
+                        lsSetItem(`ccc:veryCleverShown:${slot}`, "1");
+                        showWideNotification("Very clever", 5000);
+                    }
+                }
             }
         }
 
