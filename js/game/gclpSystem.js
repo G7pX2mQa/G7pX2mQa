@@ -288,75 +288,95 @@ import { setHtmlOrText, stripHtml } from "../util/uiHelpers.js";
 import { syncRclpGclpHudLayout } from "../ui/hudLayout.js";
 
 export function updateGclpHud() {
-    if (!ensureHudRefs()) return;
-    const { container, bar, fill, levelValue, progress } = hudRefs;
-    if (!container) return;
+    const containers = document.querySelectorAll(".gclp-counter");
+    if (!containers.length) return;
     
-    // Only show in coral reef area
-    if (!container.closest(".area-coral")) {
-        container.setAttribute("hidden", "");
-        syncRclpGclpHudLayout();
-        return;
-    }
+    let isHiddenState = false;
+    let anyMainHidden = false;
     
     const state = ensureState();
     const slot = getActiveSlot();
     const hasFirstShift = slot != null && lsGetItem(`ccc:colorShiftFirstGreen:${slot}`) === "1";
     
-    if (!state || !hasFirstShift) {
-        container.setAttribute("hidden", "");
-        if (fill) {
-            fill.style.setProperty("--gclp-fill", "0%");
-            fill.style.width = "0%";
+    const mainContainer = document.querySelector(".gclp-counter[data-gclp-hud]");
+    if (mainContainer) {
+        if (!mainContainer.closest(".area-coral") || !state || !hasFirstShift) {
+            isHiddenState = true;
+            mainContainer.setAttribute("hidden", "");
+            anyMainHidden = true;
+        } else {
+            mainContainer.removeAttribute("hidden");
         }
-        if (levelValue) setHtmlOrText(levelValue, "0");
+        if (anyMainHidden) {
+            syncRclpGclpHudLayout();
+        }
+    }
+    
+    containers.forEach(container => {
+        const bar = container.querySelector(".gclp-bar");
+        const fill = container.querySelector(".gclp-bar__fill");
+        const levelValue = container.querySelector(".gclp-level-value");
+        const progress = container.querySelector("[data-gclp-progress]");
+        
+        if (!container.hasAttribute("data-gclp-hud")) {
+            if (!state || !hasFirstShift) {
+                container.setAttribute("hidden", "");
+            } else {
+                container.removeAttribute("hidden");
+            }
+        }
+        
+        if (!state || !hasFirstShift) {
+            if (fill) {
+                fill.style.setProperty("--gclp-fill", "0%");
+                fill.style.width = "0%";
+            }
+            if (levelValue) setHtmlOrText(levelValue, "0");
+            if (progress) {
+                const reqHtml = formatNumber(BigNum.fromInt(10));
+                setHtmlOrText(
+                    progress,
+                    `<span class="gclp-progress-current">0</span><span class="gclp-progress-separator">/</span><span class="gclp-progress-required">${reqHtml}</span><span class="gclp-progress-suffix">GCLP</span>`
+                );
+            }
+            if (bar) {
+                bar.setAttribute("aria-valuenow", "0");
+                bar.setAttribute("aria-valuetext", `0 / 10 GCLP`);
+            }
+            return;
+        }
+        
+        const requirement = getGclpRequirement();
+        
+        let ratio = 0;
+        if (!requirement.isZero?.() && state.gclpProg) {
+            ratio = Number(state.gclpProg.div(requirement).toScientific?.() ?? "0");
+        }
+        ratio = Math.min(1, Math.max(0, ratio));
+        
+        const pct = `${(ratio * 100).toFixed(2)}%`;
+        if (fill) {
+            fill.style.setProperty("--gclp-fill", pct);
+            fill.style.width = pct;
+        }
+        if (levelValue) {
+            setHtmlOrText(levelValue, formatNumber(state.gclpLevel));
+        }
         if (progress) {
-            const reqHtml = formatNumber(BigNum.fromInt(10));
+            const currentHtml = formatNumber(state.gclpProg);
+            const reqHtml = formatNumber(requirement);
             setHtmlOrText(
                 progress,
-                `<span class="gclp-progress-current">0</span><span class="gclp-progress-separator">/</span><span class="gclp-progress-required">${reqHtml}</span><span class="gclp-progress-suffix">GCLP</span>`
+                `<span class="gclp-progress-current">${currentHtml}</span><span class="gclp-progress-separator">/</span><span class="gclp-progress-required">${reqHtml}</span><span class="gclp-progress-suffix">GCLP</span>`
             );
         }
         if (bar) {
-            bar.setAttribute("aria-valuenow", "0");
-            bar.setAttribute("aria-valuetext", `0 / 10 GCLP`);
+            bar.setAttribute("aria-valuenow", (ratio * 100).toFixed(2));
+            const currPlain = stripHtml(formatNumber(state.gclpProg));
+            const reqPlain = stripHtml(formatNumber(requirement));
+            bar.setAttribute("aria-valuetext", `${currPlain} / ${reqPlain} GCLP`);
         }
-        syncRclpGclpHudLayout();
-        return;
-    }
-    
-    container.removeAttribute("hidden");
-    const requirement = getGclpRequirement();
-    
-    let ratio = 0;
-    if (!requirement.isZero?.() && state.gclpProg) {
-        ratio = Number(state.gclpProg.div(requirement).toScientific?.() ?? "0");
-    }
-    ratio = Math.min(1, Math.max(0, ratio));
-    
-    const pct = `${(ratio * 100).toFixed(2)}%`;
-    if (fill) {
-        fill.style.setProperty("--gclp-fill", pct);
-        fill.style.width = pct;
-    }
-    if (levelValue) {
-        setHtmlOrText(levelValue, formatNumber(state.gclpLevel));
-    }
-    if (progress) {
-        const currentHtml = formatNumber(state.gclpProg);
-        const reqHtml = formatNumber(requirement);
-        setHtmlOrText(
-            progress,
-            `<span class="gclp-progress-current">${currentHtml}</span><span class="gclp-progress-separator">/</span><span class="gclp-progress-required">${reqHtml}</span><span class="gclp-progress-suffix">GCLP</span>`
-        );
-    }
-    if (bar) {
-        bar.setAttribute("aria-valuenow", (ratio * 100).toFixed(2));
-        const currPlain = stripHtml(formatNumber(state.gclpProg));
-        const reqPlain = stripHtml(formatNumber(requirement));
-        bar.setAttribute("aria-valuetext", `${currPlain} / ${reqPlain} GCLP`);
-    }
-    syncRclpGclpHudLayout();
+    });
 }
 
 export function initGclpSystem() {
