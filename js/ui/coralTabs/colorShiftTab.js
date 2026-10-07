@@ -226,7 +226,7 @@ function renderColorShiftCard(card, firstTimeText) {
         topCloneWrap.style.justifyContent = "flex-end";
         topCloneWrap.style.alignItems = "center";
         topCloneWrap.style.marginTop = "0";
-        topCloneWrap.style.marginBottom = "calc(var(--coin-h) - var(--coin-plus-size) + 20px)";
+        topCloneWrap.style.marginBottom = "calc(var(--coin-h) - var(--coin-plus-size) + var(--bar-y-nudge) + 20px)";
         topCloneWrap.style.paddingBottom = "0";
 
         if (!bottomCloneWrap) {
@@ -265,7 +265,7 @@ function renderColorShiftCard(card, firstTimeText) {
             bottomCloneWrap.innerHTML = "";
             const clone = realProgress.cloneNode(true);
             clone.style.display = "flex";
-            clone.style.marginTop = `calc(32px - (${plusSizeVar} - ${barHVar}) / 2)`;
+            clone.style.marginTop = `calc(41px - (${plusSizeVar} - ${barHVar}) / 2)`;
             clone.removeAttribute("id");
             clone.removeAttribute("data-rclp-hud");
             clone.removeAttribute("data-gclp-hud");
