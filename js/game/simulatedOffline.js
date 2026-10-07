@@ -47,6 +47,7 @@ let _simulateLabUpdate = null;
 let _simulateLabResearch = null;
 let _simulateFlowTick = null;
 let _simulateWorkshopTick = null;
+let _flushUcEacSimPending = null;
 let _RESEARCH_NODES = null;
 let _WATERWHEEL_DEFS = null;
 let _isResearchNodeActive = null;
@@ -81,6 +82,7 @@ async function ensureTickImports() {
     _WATERWHEEL_DEFS = flowMod.WATERWHEEL_DEFS;
     _getFpMultiplier = flowMod.getFpMultiplier;
     _simulateWorkshopTick = workshopMod.simulateWorkshopTick;
+    _flushUcEacSimPending = autoMod.flushUcEacSimPending;
     _getGearsProductionRate = workshopMod.getGearsProductionRate;
     _getCurrentSurgeLevel = resetMod.getCurrentSurgeLevel;
 }
@@ -476,6 +478,7 @@ class SimulatedOfflineRunner {
                 this._featureTime[f.id] = 0;
                 this._featureCalls[f.id] = 0;
             }
+            if (typeof window !== "undefined") window.__simPassiveProfile = {};
         }
     }
 
@@ -1316,6 +1319,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
     let uiHandle = null;
 
     function handleSkip() {
+        try { _flushUcEacSimPending?.(); } catch {}
         window.__isSimulationActive = false;
         // Process remaining time via rate-based fallback
         const remSeconds = runner.remainingSeconds;
@@ -1334,6 +1338,7 @@ export async function startSimulatedOffline(totalOfflineMs, options = {}) {
     }
 
     function finishSimulation() {
+        try { _flushUcEacSimPending?.(); } catch {}
         window.__isSimulationActive = false;
         delete window.__simAutobuyerPurchaseCount;
         runner.running = false;
