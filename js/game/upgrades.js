@@ -180,6 +180,7 @@ export const UPGRADE_TIES = {
     COIN_VALUE_IV: "underwater_cavern_4",
     XP_VALUE_IV: "underwater_cavern_5",
     ENDLESS_MATERIALS: "underwater_cavern_8",
+    FP_VALUE: "underwater_cavern_12",
     UNLOCK_CORAL_REEF: "underwater_cavern_14",
 
     // === COIN ===
