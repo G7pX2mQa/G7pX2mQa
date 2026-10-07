@@ -2482,13 +2482,33 @@ export function openUpgradeOverlay(upgDef, mode = "standard") {
                         setAllAutobuyersForCostType(masterCostType, newState);
                     } else {
                         setAutobuyerToggle(upgDef.area, upgDef.id, val);
+                        if (!newState && upgDef.tie === UPGRADE_TIES.FP_VALUE) {
+                            const slot = getActiveSlot();
+                            if (slot != null && isCollapseChallengeActive(slot) && getActiveCollapseChallengeType(slot) === "iron") {
+                                if (lsGetItem(`ccc:hmmShown:${slot}`) !== "1") {
+                                    lsSetItem(`ccc:hmmShown:${slot}`, "1");
+                                    showWideNotification("Hmm", 5000);
+                                }
+                            }
+                        }
+                        
                         if (!newState && isEndlessFp) {
                             const slot = getActiveSlot();
                             if (slot != null && isCollapseChallengeActive(slot) && getActiveCollapseChallengeType(slot) === "iron") {
-                                const alreadyShown = lsGetItem(`ccc:veryCleverShown:${slot}`) === "1";
-                                if (!alreadyShown) {
-                                    lsSetItem(`ccc:veryCleverShown:${slot}`, "1");
-                                    showWideNotification("Very clever", 5000);
+                                if (lsGetItem(`ccc:veryCleverShown:${slot}`) === "1" && 
+                                    lsGetItem(`ccc:eacVeryClever:${slot}`) !== "1" && 
+                                    lsGetItem(`ccc:endlessFpVeryClever:${slot}`) !== "1") {
+                                    lsSetItem(`ccc:endlessFpVeryClever:${slot}`, "1");
+                                }
+                                
+                                if (lsGetItem(`ccc:endlessFpVeryClever:${slot}`) !== "1") {
+                                    lsSetItem(`ccc:endlessFpVeryClever:${slot}`, "1");
+                                    if (lsGetItem(`ccc:veryCleverShown:${slot}`) === "1") {
+                                        showWideNotification("Even more very clever", 5000);
+                                    } else {
+                                        lsSetItem(`ccc:veryCleverShown:${slot}`, "1");
+                                        showWideNotification("Very clever", 5000);
+                                    }
                                 }
                             }
                         }
