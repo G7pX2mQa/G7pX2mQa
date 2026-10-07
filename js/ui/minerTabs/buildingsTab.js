@@ -1858,10 +1858,13 @@ export function performFreeBuildingAutobuy(id) {
     if (levelsToAddCmp) {
         const oldLevel = getBuildingLevel(id);
         const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
+        if (typeof window !== "undefined" && window.__isSimulationActive && window.__simAutobuyerPurchaseCount !== undefined) {
+            window.__simAutobuyerPurchaseCount++;
+        }
         document.dispatchEvent(new CustomEvent("building:change", { detail: { id, levelsGained: BigNum.fromAny(levelsToAdd) } }));
         if (isBuildingBatching) {
             pendingBuildingNotify = true;
-        } else {
+        } else if (typeof window === "undefined" || !window.__isSimulationActive) {
             document.dispatchEvent(new CustomEvent("ccc:buildings:changed"));
         }
         const oldNum = levelBigNumToNumber(oldLevel);
