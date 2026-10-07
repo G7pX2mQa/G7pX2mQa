@@ -371,7 +371,6 @@ function calculateCoinValue(spawnLevelStr) {
     const base = isCoinsLocked ? BigNum.fromInt(0) : (BASE_COIN_VALUE.clone?.() ?? BigNum.fromInt(1));
     let inc = isCoinsLocked ? BigNum.fromInt(0) : applyCoinMultiplier(base);
     let xpInc = isResourceLockedToZero("xp") ? BigNum.fromInt(0) : cloneBn(XP_PER_COIN);
-    refreshMpValueMultiplierCache();
     // If spawnLevelStr is null/undefined, use current mutation level (passive generation)
     const levelStr = spawnLevelStr ?? mutationCurrentLevelStr;
     const mutationMultiplier = computeMutationMultiplier(levelStr);
@@ -651,7 +650,6 @@ export function initCoinPickup({
         if (!items || !items.length) return;
         if (typeof currentArea !== "undefined" && typeof AREAS !== "undefined" && currentArea !== AREAS.STARTER_COVE)
             return;
-        refreshMpValueMultiplierCache();
         // Find best sound and max size in batch
         let bestSoundSrc = resolvedSrc;
         let maxSizeIndex = -1;
