@@ -358,7 +358,7 @@ export function addPp(amount, { silent = false } = {}) {
             requirement: requirementBn,
             slot,
         };
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("pp:change", { detail }));
                 window.dispatchEvent(
@@ -412,7 +412,7 @@ export function addPp(amount, { silent = false } = {}) {
             slot,
         };
         notifyPpSubscribers(detail);
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("pp:change", { detail }));
                 window.dispatchEvent(
@@ -451,7 +451,7 @@ export function addPp(amount, { silent = false } = {}) {
             slot,
         };
         notifyPpSubscribers(detail);
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("pp:change", { detail }));
                 window.dispatchEvent(
@@ -563,7 +563,7 @@ export function addPp(amount, { silent = false } = {}) {
             slot,
         };
         notifyPpSubscribers(detail);
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("pp:change", { detail }));
                 window.dispatchEvent(
@@ -599,7 +599,7 @@ export function addPp(amount, { silent = false } = {}) {
         slot,
     };
     notifyPpSubscribers(detail);
-    if (!silent && typeof window !== "undefined") {
+    if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
         try {
             window.dispatchEvent(new CustomEvent("pp:change", { detail }));
             window.dispatchEvent(
