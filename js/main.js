@@ -471,6 +471,7 @@ function updateScrapHudCounter() {
         }
     });
 }
+
 function initScrapHudCounter() {
     updateScrapHudCounter();
     if (scrapHudListenerBound || typeof window === "undefined") return;
