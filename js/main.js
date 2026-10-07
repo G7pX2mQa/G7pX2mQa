@@ -137,7 +137,9 @@ export function flushLocalStorageBuffer() {
             try {
                 realValue = Storage.prototype.getItem.call(localStorage, key);
             } catch { continue; }
-            if (realValue !== expectedValue) {
+            
+            const expectedStr = expectedValue === REMOVED_SYMBOL ? null : expectedValue;
+            if (realValue !== expectedStr) {
                 // External modification detected — import the new value into the buffer
                 // so the game sees it on the next lsGetItem call
                 if (realValue === null) {
@@ -277,7 +279,13 @@ export function lsGetItem(key) {
         const val = localStorageBuffer.get(key);
         return val === REMOVED_SYMBOL ? null : val;
     }
-    return Storage.prototype.getItem.call(localStorage, key);
+    if (lastFlushedState.has(key)) {
+        const val = lastFlushedState.get(key);
+        return val === REMOVED_SYMBOL ? null : val;
+    }
+    const val = Storage.prototype.getItem.call(localStorage, key);
+    lastFlushedState.set(key, val === null ? REMOVED_SYMBOL : val);
+    return val;
 }
 
 localStorage.getItem = function (key) {
@@ -302,9 +310,13 @@ export function lsSetItemForce(key, value) {
     let finalValue = String(value);
     localStorageBuffer.set(key, finalValue);
     activeStorageKeys.add(key);
-    try {
-        window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
-    } catch {}
+    if (typeof window !== "undefined" && window.__fastSlotWriteListener) {
+        window.__fastSlotWriteListener(key, finalValue);
+    } else {
+        try {
+            window.dispatchEvent(new CustomEvent("saveIntegrity:slotWrite", { detail: { key, value: finalValue } }));
+        } catch {}
+    }
 }
 
 export function lsRemoveItem(key) {
