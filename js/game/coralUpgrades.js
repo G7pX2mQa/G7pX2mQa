@@ -615,5 +615,58 @@ export const CORAL_REGISTRY = [
         effectSummary() {
             return "";
         },
+    },
+    {
+        area: CORAL_AREA_KEY,
+        id: 13,
+        title: "Challenge of Diamond",
+        desc: "Unlocks the Challenge of Diamond",
+        lvlCap: 1,
+        upgType: "NM",
+        icon: "img/materials/diamond.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        unlockUpgrade: true,
+        costAtLevel() {
+            return BigNum.fromInt(0);
+        },
+        nextCostAfter() {
+            return BigNum.fromInt(0);
+        },
+        computeLockState() {
+            let isPureGoldCompleted = false;
+            try {
+                const slotKey = getActiveSlot() ?? "default";
+                isPureGoldCompleted = lsGetItem(`ccc:collapseChallengeCompleted:pure_gold:${slotKey}`) === "1";
+            } catch {}
+
+            if (!isPureGoldCompleted) {
+                return { state: "locked" };
+            }
+
+            try {
+                const state = getRclpState();
+                if (state && state.unlocked) {
+                    const numLevel = Math.max(0, Number(state.rclpLevel?.toString() || 0));
+                    if (numLevel >= 221) {
+                        return { state: "unlocked" };
+                    }
+                    return { state: "mysterious", unlockReqText: "Reach Red Coral Level 221 to reveal this upgrade" };
+                }
+            } catch {}
+            
+            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 221 to reveal this upgrade" };
+        },
+        onLevelChange({ newLevel }) {
+            if ((newLevel ?? 0) >= 1) {
+                try {
+                    const slot = getActiveSlot() ?? "default";
+                    lsSetItem(`ccc:collapseChallengeVisible:diamond:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("debug:challenge:change", { detail: { id: "diamond", visible: true } }));
+                } catch {}
+            }
+        },
+        effectSummary() {
+            return "";
+        },
     }
 ];
