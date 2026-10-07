@@ -1183,6 +1183,7 @@ export function simulateFlowTick(dt) {
 
 function onTick(dt) {
     if (!isFlowUnlocked()) return;
+    const isSimulating = typeof window !== "undefined" && window.__isSimulationActive;
     let changes = false;
     let visualUpdate = false;
     let uiTextChanged = false;
@@ -1202,7 +1203,7 @@ function onTick(dt) {
         setWaterwheelMysteriousCleared(WATERWHEELS.CORE, true);
         uiTextChanged = true;
     }
-    if (flowTabInitialized && flowPanel) {
+    if (!isSimulating && flowTabInitialized && flowPanel) {
         for (const id in WATERWHEEL_DEFS) {
             const ch = state.waterwheels[id];
             if (ch && !ch.unlocked) {
@@ -1751,6 +1752,7 @@ function buildUI(panel) {
 }
 
 export function updateFlowTab() {
+    if (typeof window !== "undefined" && window.__isSimulationActive) return;
     if (!flowTabInitialized || !flowPanel) return;
     const showSideContainers = settingsManager.get("show_side_containers");
     const leftCol = flowPanel.querySelector(".flow-side-left");
@@ -1807,6 +1809,7 @@ export function updateFlowTab() {
 }
 
 function updateWaterwheelVisuals() {
+    if (typeof window !== "undefined" && window.__isSimulationActive) return;
     if (!flowPanel) return;
     const unlocked = [];
     for (const id in state.waterwheels) {
@@ -1915,6 +1918,7 @@ function alignFlowColumns() {
 }
 
 function updateFlowVisuals() {
+    if (typeof window !== "undefined" && window.__isSimulationActive) return;
     if (!flowTabInitialized || !flowPanel || !flowDomCache) return;
     const fpMult = getFpMultiplier();
     for (const id in WATERWHEEL_DEFS) {
