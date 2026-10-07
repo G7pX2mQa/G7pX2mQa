@@ -279,72 +279,96 @@ import { setHtmlOrText, stripHtml } from "../util/uiHelpers.js";
 import { syncRclpGclpHudLayout } from "../ui/hudLayout.js";
 
 export function updateRclpHud() {
-    if (!ensureHudRefs()) return;
-    const { container, bar, fill, levelValue, progress } = hudRefs;
-    if (!container) return;
+    const containers = document.querySelectorAll(".rclp-counter");
+    if (!containers.length) return;
     
-    // Only show in coral reef area
-    if (!container.closest(".area-coral")) {
-        container.setAttribute("hidden", "");
-        syncRclpGclpHudLayout();
-        return;
-    }
+    let isHiddenState = false;
+    let anyMainHidden = false;
     
     const state = ensureState();
-    if (!state || !state.unlocked) {
-        container.setAttribute("hidden", "");
-        if (fill) {
-            fill.style.setProperty("--rclp-fill", "0%");
-            fill.style.width = "0%";
+    
+    // Check main container hiding logic based on area and state
+    const mainContainer = document.querySelector(".rclp-counter[data-rclp-hud]");
+    if (mainContainer) {
+        if (!mainContainer.closest(".area-coral") || !state || !state.unlocked) {
+            isHiddenState = true;
+            mainContainer.setAttribute("hidden", "");
+            anyMainHidden = true;
+        } else {
+            mainContainer.removeAttribute("hidden");
         }
-        if (levelValue) setHtmlOrText(levelValue, "0");
+        if (anyMainHidden) {
+            syncRclpGclpHudLayout();
+        }
+    }
+    
+    containers.forEach(container => {
+        const bar = container.querySelector(".rclp-bar");
+        const fill = container.querySelector(".rclp-bar__fill");
+        const levelValue = container.querySelector(".rclp-level-value");
+        const progress = container.querySelector("[data-rclp-progress]");
+        
+        // Clones inside the merchant panel shouldn't be hidden based on the .area-coral rule,
+        // but they should be hidden if the system is fully locked.
+        if (!container.hasAttribute("data-rclp-hud")) {
+            if (!state || !state.unlocked) {
+                container.setAttribute("hidden", "");
+            } else {
+                container.removeAttribute("hidden");
+            }
+        }
+
+        if (!state || !state.unlocked) {
+            if (fill) {
+                fill.style.setProperty("--rclp-fill", "0%");
+                fill.style.width = "0%";
+            }
+            if (levelValue) setHtmlOrText(levelValue, "0");
+            if (progress) {
+                const reqHtml = formatNumber(BigNum.fromInt(10));
+                setHtmlOrText(
+                    progress,
+                    `<span class="rclp-progress-current">0</span><span class="rclp-progress-separator">/</span><span class="rclp-progress-required">${reqHtml}</span><span class="rclp-progress-suffix">RCLP</span>`
+                );
+            }
+            if (bar) {
+                bar.setAttribute("aria-valuenow", "0");
+                bar.setAttribute("aria-valuetext", `0 / 10 RCLP`);
+            }
+            return;
+        }
+
+        const requirement = getRclpRequirement();
+        
+        let ratio = 0;
+        if (!requirement.isZero?.() && state.rclpProg) {
+            ratio = Number(state.rclpProg.div(requirement).toScientific?.() ?? "0");
+        }
+        ratio = Math.min(1, Math.max(0, ratio));
+        
+        const pct = `${(ratio * 100).toFixed(2)}%`;
+        if (fill) {
+            fill.style.setProperty("--rclp-fill", pct);
+            fill.style.width = pct;
+        }
+        if (levelValue) {
+            setHtmlOrText(levelValue, formatNumber(state.rclpLevel));
+        }
         if (progress) {
-            const reqHtml = formatNumber(BigNum.fromInt(10));
+            const currentHtml = formatNumber(state.rclpProg);
+            const reqHtml = formatNumber(requirement);
             setHtmlOrText(
                 progress,
-                `<span class="rclp-progress-current">0</span><span class="rclp-progress-separator">/</span><span class="rclp-progress-required">${reqHtml}</span><span class="rclp-progress-suffix">RCLP</span>`
+                `<span class="rclp-progress-current">${currentHtml}</span><span class="rclp-progress-separator">/</span><span class="rclp-progress-required">${reqHtml}</span><span class="rclp-progress-suffix">RCLP</span>`
             );
         }
         if (bar) {
-            bar.setAttribute("aria-valuenow", "0");
-            bar.setAttribute("aria-valuetext", `0 / 10 RCLP`);
+            bar.setAttribute("aria-valuenow", (ratio * 100).toFixed(2));
+            const currPlain = stripHtml(formatNumber(state.rclpProg));
+            const reqPlain = stripHtml(formatNumber(requirement));
+            bar.setAttribute("aria-valuetext", `${currPlain} / ${reqPlain} RCLP`);
         }
-        syncRclpGclpHudLayout();
-        return;
-    }
-    
-    container.removeAttribute("hidden");
-    const requirement = getRclpRequirement();
-    
-    let ratio = 0;
-    if (!requirement.isZero?.() && state.rclpProg) {
-        ratio = Number(state.rclpProg.div(requirement).toScientific?.() ?? "0");
-    }
-    ratio = Math.min(1, Math.max(0, ratio));
-    
-    const pct = `${(ratio * 100).toFixed(2)}%`;
-    if (fill) {
-        fill.style.setProperty("--rclp-fill", pct);
-        fill.style.width = pct;
-    }
-    if (levelValue) {
-        setHtmlOrText(levelValue, formatNumber(state.rclpLevel));
-    }
-    if (progress) {
-        const currentHtml = formatNumber(state.rclpProg);
-        const reqHtml = formatNumber(requirement);
-        setHtmlOrText(
-            progress,
-            `<span class="rclp-progress-current">${currentHtml}</span><span class="rclp-progress-separator">/</span><span class="rclp-progress-required">${reqHtml}</span><span class="rclp-progress-suffix">RCLP</span>`
-        );
-    }
-    if (bar) {
-        bar.setAttribute("aria-valuenow", (ratio * 100).toFixed(2));
-        const currPlain = stripHtml(formatNumber(state.rclpProg));
-        const reqPlain = stripHtml(formatNumber(requirement));
-        bar.setAttribute("aria-valuetext", `${currPlain} / ${reqPlain} RCLP`);
-    }
-    syncRclpGclpHudLayout();
+    });
 }
 
 export function initRclpSystem() {
