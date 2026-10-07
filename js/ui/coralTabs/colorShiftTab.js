@@ -3,6 +3,8 @@ import { syncCoinMultiplierWithXpLevel } from "../../game/xpSystem.js";
 import { getActiveSlot } from "../../util/storage.js";
 import { playAudio } from "../../util/audioManager.js";
 import { getCoralColorMode, getNextCoralColor, setCoralColorMode } from "../../game/coralColorMode.js";
+import { getLevelNumber } from "../../game/upgrades.js";
+import { AUTOMATION_AREA_KEY, CORAL_REEF_EAC_ID } from "../../game/automationUpgrades.js";
 
 const sk = (base) => base + ":" + (getActiveSlot() ?? "default");
 
@@ -204,6 +206,74 @@ function renderColorShiftCard(card, firstTimeText) {
     const shiftBtnText = card.querySelector(".color-shift-btn-text");
     if (shiftBtnText) {
         shiftBtnText.textContent = `Shift`;
+    }
+    
+    const eacLevel = getLevelNumber(AUTOMATION_AREA_KEY, CORAL_REEF_EAC_ID);
+    let topCloneWrap = card.querySelector(".color-shift-clone-top");
+    let bottomCloneWrap = card.querySelector(".color-shift-clone-bottom");
+    
+    if (eacLevel >= 1) {
+        if (!topCloneWrap) {
+            topCloneWrap = document.createElement("div");
+            topCloneWrap.className = "color-shift-clone-top";
+            const layout = card.querySelector(".color-shift-layout");
+            if (layout) layout.appendChild(topCloneWrap);
+        }
+        topCloneWrap.style.gridRow = "2";
+        topCloneWrap.style.alignSelf = "stretch";
+        topCloneWrap.style.display = "flex";
+        topCloneWrap.style.flexDirection = "column";
+        topCloneWrap.style.justifyContent = "flex-end";
+        topCloneWrap.style.alignItems = "center";
+        topCloneWrap.style.marginTop = "0";
+        topCloneWrap.style.marginBottom = "calc(var(--coin-h) - var(--coin-plus-size) + 20px)";
+        topCloneWrap.style.paddingBottom = "0";
+
+        if (!bottomCloneWrap) {
+            bottomCloneWrap = document.createElement("div");
+            bottomCloneWrap.className = "color-shift-clone-bottom";
+            const layout = card.querySelector(".color-shift-layout");
+            if (layout) layout.appendChild(bottomCloneWrap);
+        }
+        const plusSizeVar = mode === "red" ? "var(--rclp-plus-size)" : "var(--gclp-plus-size)";
+        const barHVar = mode === "red" ? "var(--rclp-bar-h)" : "var(--gclp-bar-h)";
+        
+        bottomCloneWrap.style.gridRow = "4";
+        bottomCloneWrap.style.alignSelf = "stretch";
+        bottomCloneWrap.style.display = "flex";
+        bottomCloneWrap.style.flexDirection = "column";
+        bottomCloneWrap.style.justifyContent = "flex-start";
+        bottomCloneWrap.style.alignItems = "center";
+        bottomCloneWrap.style.marginTop = "0";
+        bottomCloneWrap.style.marginBottom = `calc((${barHVar} - ${plusSizeVar}) / 2)`;
+        bottomCloneWrap.style.paddingTop = "0";
+        
+        const counterClass = mode === "red" ? ".red-coral-counter" : ".green-coral-counter";
+        const progressClass = mode === "red" ? ".rclp-counter" : ".gclp-counter";
+        
+        const realCounter = document.querySelector(`.hud-top ${counterClass}`);
+        const realProgress = document.querySelector(progressClass);
+        
+        if (realCounter && topCloneWrap) {
+            topCloneWrap.innerHTML = "";
+            const clone = realCounter.cloneNode(true);
+            clone.style.display = ""; // remove the old forced flex if present
+            topCloneWrap.appendChild(clone);
+        }
+        
+        if (realProgress && bottomCloneWrap) {
+            bottomCloneWrap.innerHTML = "";
+            const clone = realProgress.cloneNode(true);
+            clone.style.display = "flex";
+            clone.style.marginTop = `calc(32px - (${plusSizeVar} - ${barHVar}) / 2)`;
+            clone.removeAttribute("id");
+            clone.removeAttribute("data-rclp-hud");
+            clone.removeAttribute("data-gclp-hud");
+            bottomCloneWrap.appendChild(clone);
+        }
+    } else {
+        if (topCloneWrap) topCloneWrap.remove();
+        if (bottomCloneWrap) bottomCloneWrap.remove();
     }
 }
 
