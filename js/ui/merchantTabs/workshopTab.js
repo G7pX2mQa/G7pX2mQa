@@ -508,6 +508,7 @@ function buildWorkshopUI(container) {
 }
 
 export function updateWorkshopTab() {
+    if (typeof window !== "undefined" && window.__isSimulationActive) return;
     if (!workshopEl) return;
     const verbEl = workshopEl.querySelector('[data-workshop="production-verb"]');
     if (verbEl) {
