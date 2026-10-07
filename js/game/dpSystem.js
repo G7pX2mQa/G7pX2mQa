@@ -774,7 +774,7 @@ export function addDp(amount, { silent = false } = {}) {
             requirement: requirementBn,
             slot,
         };
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("dp:change", { detail }));
                 window.dispatchEvent(
@@ -829,7 +829,7 @@ export function addDp(amount, { silent = false } = {}) {
             slot,
         };
         notifyDpSubscribers(detail);
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("dp:change", { detail }));
                 window.dispatchEvent(
@@ -868,7 +868,7 @@ export function addDp(amount, { silent = false } = {}) {
             slot,
         };
         notifyDpSubscribers(detail);
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("dp:change", { detail }));
                 window.dispatchEvent(
@@ -1014,7 +1014,7 @@ export function addDp(amount, { silent = false } = {}) {
             slot,
         };
         notifyDpSubscribers(detail);
-        if (!silent && typeof window !== "undefined") {
+        if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
             try {
                 window.dispatchEvent(new CustomEvent("dp:change", { detail }));
                 window.dispatchEvent(
@@ -1050,7 +1050,7 @@ export function addDp(amount, { silent = false } = {}) {
         slot,
     };
     notifyDpSubscribers(detail);
-    if (!silent && typeof window !== "undefined") {
+    if (!silent && typeof window !== "undefined" && !window.__isSimulationActive) {
         try {
             window.dispatchEvent(new CustomEvent("dp:change", { detail }));
             window.dispatchEvent(
