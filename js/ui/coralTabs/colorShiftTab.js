@@ -245,7 +245,7 @@ function renderColorShiftCard(card, firstTimeText) {
         bottomCloneWrap.style.justifyContent = "flex-start";
         bottomCloneWrap.style.alignItems = "center";
         bottomCloneWrap.style.marginTop = "0";
-        bottomCloneWrap.style.marginBottom = `calc((${barHVar} - ${plusSizeVar}) / 2)`;
+        bottomCloneWrap.style.marginBottom = "0";
         bottomCloneWrap.style.paddingTop = "0";
         
         const counterClass = mode === "red" ? ".red-coral-counter" : ".green-coral-counter";
@@ -266,14 +266,21 @@ function renderColorShiftCard(card, firstTimeText) {
             const clone = realProgress.cloneNode(true);
             clone.style.display = "flex";
             clone.style.marginTop = `calc(41px - (${plusSizeVar} - ${barHVar}) / 2)`;
+            clone.style.marginBottom = "0";
             clone.removeAttribute("id");
             clone.removeAttribute("data-rclp-hud");
             clone.removeAttribute("data-gclp-hud");
             bottomCloneWrap.appendChild(clone);
+            
+            // Grid items cannot shrink below their physical content box size, so negative margins
+            // fail to pull the grid boundary up. Instead, we dynamically shrink the card's native
+            // bottom padding so the scroll boundary perfectly matches the top padding symmetry.
+            card.style.paddingBottom = `calc(22px - (${plusSizeVar} - ${barHVar}) / 2)`;
         }
     } else {
         if (topCloneWrap) topCloneWrap.remove();
         if (bottomCloneWrap) bottomCloneWrap.remove();
+        card.style.paddingBottom = "";
     }
 }
 
