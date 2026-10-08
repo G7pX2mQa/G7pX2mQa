@@ -1199,7 +1199,11 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = "NM") {
 const DEFAULT_SCALING_PRESETS = {
     STANDARD(upg) {
         const upgType = `${upg?.upgType ?? ""}`.toUpperCase();
-        const harshness = upg && upg.scalingHarshness && upg.scalingHarshness > 0 ? upg.scalingHarshness : 1;
+        let harshness = 1;
+        if (upg) {
+            if (typeof upg.scalingHarshness === "function") harshness = upg.scalingHarshness(upg);
+            else if (upg.scalingHarshness > 0) harshness = upg.scalingHarshness;
+        }
         if (upgType === "HM") {
             const evol = activeEvolutionsForUpgrade(upg);
             const evolThreshold = 1000; // Corresponds to level 1M
@@ -1217,7 +1221,11 @@ const DEFAULT_SCALING_PRESETS = {
     },
     HM(upg) {
         const evol = activeEvolutionsForUpgrade(upg);
-        const harshness = upg && upg.scalingHarshness && upg.scalingHarshness > 0 ? upg.scalingHarshness : 1;
+        let harshness = 1;
+        if (upg) {
+            if (typeof upg.scalingHarshness === "function") harshness = upg.scalingHarshness(upg);
+            else if (upg.scalingHarshness > 0) harshness = upg.scalingHarshness;
+        }
         // Relaxed linear scaling for Phase 1 & 2 (up to 1,000,000 evolutions / Level 1B)
         let ratio = (1.5 + 0.1 * evol) * harshness;
         // Phase 3: Double-Exponential Softcap starting at Level 1 Billion
@@ -3044,14 +3052,21 @@ export const REGISTRY = [
         id: 24,
         title: "Coin Rubble Value",
 
-        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
+        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade has quintuple the Harshness as usual",
         
         lvlCap: 1000,
         baseCost: 1000,
         costType: "coins",
         upgType: "HM",
         scalingPreset: "HM",
-        scalingHarshness: 5,
+        scalingHarshness: (upg) => {
+            const rs = typeof window !== "undefined" ? window.resetSystem : null;
+            if (rs && rs.isCollapseChallengeActive?.()) {
+                const type = rs.getActiveCollapseChallengeType?.();
+                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
+            }
+            return 5;
+        },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/coin/coin_base.webp",
         effectType: "rubble_value",
@@ -3078,13 +3093,21 @@ export const REGISTRY = [
         id: 25,
         title: "Book Rubble Value",
 
-        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade does not scale similarly to Endless FP",
+        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade has quintuple the Harshness as usual",
         
         lvlCap: 1000,
         baseCost: 1000,
         costType: "books",
         upgType: "HM",
         scalingPreset: "HM",
+        scalingHarshness: (upg) => {
+            const rs = typeof window !== "undefined" ? window.resetSystem : null;
+            if (rs && rs.isCollapseChallengeActive?.()) {
+                const type = rs.getActiveCollapseChallengeType?.();
+                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 5;
+            }
+            return 1;
+        },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/book/book_base.webp",
         effectType: "rubble_value",
@@ -3111,14 +3134,21 @@ export const REGISTRY = [
         id: 26,
         title: "Gold Rubble Value",
 
-        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
+        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade has quintuple the Harshness as usual",
         
         lvlCap: 1000,
         baseCost: 1000,
         costType: "gold",
         upgType: "HM",
         scalingPreset: "HM",
-        scalingHarshness: 5,
+        scalingHarshness: (upg) => {
+            const rs = typeof window !== "undefined" ? window.resetSystem : null;
+            if (rs && rs.isCollapseChallengeActive?.()) {
+                const type = rs.getActiveCollapseChallengeType?.();
+                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
+            }
+            return 5;
+        },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/gold/gold_base.webp",
         effectType: "rubble_value",
@@ -3145,14 +3175,21 @@ export const REGISTRY = [
         id: 27,
         title: "Magic Rubble Value",
 
-        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
+        desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade has quintuple the Harshness as usual",
         
         lvlCap: 1000,
         baseCost: 1000,
         costType: "magic",
         upgType: "HM",
         scalingPreset: "HM",
-        scalingHarshness: 5,
+        scalingHarshness: (upg) => {
+            const rs = typeof window !== "undefined" ? window.resetSystem : null;
+            if (rs && rs.isCollapseChallengeActive?.()) {
+                const type = rs.getActiveCollapseChallengeType?.();
+                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
+            }
+            return 5;
+        },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/magic/magic_base.webp",
         effectType: "rubble_value",
