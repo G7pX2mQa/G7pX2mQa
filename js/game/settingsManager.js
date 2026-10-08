@@ -828,10 +828,10 @@ class SettingsManager {
 
         if (
             !raw &&
-            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport") && 
+            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels") && 
             this.settings["spreadsheet_mode"] === true
         ) {
-            // For show_side_containers and show_building_visuals, we want it OFF (false)
+            // For show_side_containers, show_building_visuals, and spawn_vessels, we want it OFF (false)
             // For disable_webgl (Reduced GPU) and insta_teleport, we want it ON (true)
             return (key === "disable_webgl" || key === "insta_teleport") ? true : false;
         }
