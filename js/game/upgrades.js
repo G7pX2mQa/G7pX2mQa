@@ -2467,7 +2467,7 @@ export const REGISTRY = [
         id: 7,
 
         title: "Unlock Forge",
-        desc: "Unlocks the Reset tab and Forge reset in the Delve menu\nAlso unlocks new Shop upgrades related to Forge",
+        desc: "Unlocks the Reset tab and Forge reset in the Delve menu\nAlso reveals new Shop upgrades related to Forge",
         lvlCap: 1,
         upgType: "NM",
         icon: "img/misc/forge.webp",
@@ -2638,7 +2638,7 @@ export const REGISTRY = [
         id: 13,
 
         title: "Unlock Infuse",
-        desc: "Unlocks the Infuse reset\nAlso unlocks new Shop upgrades related to Infuse",
+        desc: "Unlocks the Infuse reset\nAlso reveals new Shop upgrades related to Infuse",
         lvlCap: 1,
         upgType: "NM",
         icon: "img/misc/infuse.webp",
@@ -4903,6 +4903,9 @@ export function performFreeAutobuy(areaKey, upgId) {
             ? (walletValue.clone?.() ?? BigNum.fromAny(walletValue))
             : BigNum.fromAny(walletValue ?? 0);
     if (wallet.isZero?.()) return { bought: 0 };
+    if (state.nextCostBn && typeof wallet.cmp === "function" && wallet.cmp(state.nextCostBn) < 0) {
+        return { bought: 0 };
+    }
     if (wallet.isInfinite?.()) {
         let targetLevelBn;
         if (upg.upgType === "HM") {
