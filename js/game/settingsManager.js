@@ -536,6 +536,15 @@ export const SETTING_DEFINITIONS = {
         default: false,
         unlockCondition: () => true,
     },
+    collectible_z_index_continuity: {
+        type: "toggle",
+        label: "Collectible Z-Index Continuity",
+        overlay: "performance",
+        hasExtraInfo: true,
+        info: "If OFF, collectibles that spawn will use Painter's Algorithm to determine z-index instead of using offscreen canvases to maintain consistent z-index layers. The effectiveness of this setting (how much GPU is saved) heavily depends on the current area you're located in. Particularly, this setting will be more effective the more collectibles the area's spawner can spawn.",
+        default: true,
+        unlockCondition: () => true,
+    },
     spreadsheet_mode: {
         type: "toggle",
         label: "Spreadsheet Mode (Maximum Performance)",
@@ -828,10 +837,10 @@ class SettingsManager {
 
         if (
             !raw &&
-            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels") && 
+            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels" || key === "collectible_z_index_continuity") && 
             this.settings["spreadsheet_mode"] === true
         ) {
-            // For show_side_containers, show_building_visuals, and spawn_vessels, we want it OFF (false)
+            // For show_side_containers, show_building_visuals, spawn_vessels, and collectible_z_index_continuity, we want it OFF (false)
             // For disable_webgl (Reduced GPU) and insta_teleport, we want it ON (true)
             return (key === "disable_webgl" || key === "insta_teleport") ? true : false;
         }
