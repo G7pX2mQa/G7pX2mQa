@@ -1021,7 +1021,7 @@ You know what to do
 
 Effect: Waves are entirely unobtainable from Surge resets
 Goal: Reach Pressure: 999atm
-Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift + reveals a new automation upgrade`.trim();
+Reward: Reveals three new Coral Reef upgrades + adds a new color to Color Shift + reveals a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
@@ -1271,6 +1271,9 @@ Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift 
             ).replace(
                 "Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade",
                 `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade</span>`
+            ).replace(
+                "Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift + reveals a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift + reveals a new automation upgrade</span>`
             );
         }
         desc.innerHTML = finalHtml;
