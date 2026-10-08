@@ -1014,7 +1014,7 @@ Goal: Reach Pressure: 65atm
 Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade`.trim();
     } else if (id === "diamond") {
         baseDescText = `The Challenge of ${capitalName}; the fifth Collapse Challenge
-Coral Reef has gone long enough without the final color, it's been waiting so long
+Coral Reef has gone long enough without the final color; it's been waiting so long
 Can you guess what the final color might be? Or have you already figured it out?
 
 You know what to do
