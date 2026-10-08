@@ -667,6 +667,9 @@ function completeCollapseChallenge(materialName) {
             : [materialName];
 
         for (const mat of materialsToReset) {
+            // EXCEPTION: Diamond challenge should not reset waves or surge
+            if (mat === 'diamond') continue;
+
             const rubbleUpg = getRubbleUpgradeForChallenge(mat);
             if (rubbleUpg) {
                 const boostedCurrency = getBoostedCurrencyForRubbleUpgrade(rubbleUpg);
@@ -1021,7 +1024,7 @@ You know what to do
 
 Effect: Waves are entirely unobtainable from Surge resets
 Effect Modifier: Rubble Upgrades inside this and all future Collapse Challenges scale 5x more harshly
-Goal: Reach Pressure: 999atm
+Goal: Reach Pressure: 110atm
 Reward: Reveals three new Coral Reef upgrades + adds a new color to Color Shift + reveals a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
@@ -1071,7 +1074,7 @@ Reward: Reveals three new Coral Reef upgrades + adds a new color to Color Shift 
         }
         if (challengeId === "diamond") {
             try {
-                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(999) >= 0) {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(110) >= 0) {
                     return true;
                 }
             } catch {}
