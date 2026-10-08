@@ -491,6 +491,7 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
 }
 
 function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
+    if (lsGetItem(`ccc:collapseChallengeActive:${getActiveSlot()}`) === "diamond") return bnZero();
     const xpLevel = levelToNumber(xpLevelBn);
     if (xpLevel < 201) return bnZero();
     // Formula: 10 * 10^((XP - 201)/35) * Multipliers
@@ -978,7 +979,19 @@ export function isExperimentUnlocked() {
 export function getCurrentSurgeLevel() {
     const slot = ensureResetSlot();
     if (slot == null) return 0;
-    return getSurgeBarLevel(slot);
+    const base = getSurgeBarLevel(slot);
+    if (base === Infinity) return Infinity;
+
+    let freeSurge = 0;
+    try {
+        if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.()) {
+            if (AREA_KEYS && AREA_KEYS.RUBBLE) {
+                freeSurge = getLevelNumber(AREA_KEYS.RUBBLE, 5) || 0;
+            }
+        }
+    } catch {}
+
+    return base + freeSurge;
 }
 
 export function hasDoneForgeReset() {
@@ -2183,12 +2196,34 @@ function updateSurgeCard() {
         }
     }
     if (el.header) {
+        let freeSurge = 0;
+        try {
+            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.()) {
+                if (AREA_KEYS && AREA_KEYS.RUBBLE) {
+                    freeSurge = getLevelNumber(AREA_KEYS.RUBBLE, 5) || 0;
+                }
+            }
+        } catch {}
+
         const isInf =
             barLevel === Infinity ||
             (typeof barLevel.isInfinite === "function" && barLevel.isInfinite()) ||
             String(barLevel) === "Infinity";
-        const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : formatBn(barLevel);
-        let newContent = `You are at Surge <span class="surge-level-display" data-surge-level>${sLevel}</span>`;
+        
+        let sLevel;
+        let baseText = "";
+        if (isInf) {
+            sLevel = '<span class="surge-infinity-symbol">∞</span>';
+        } else {
+            if (freeSurge > 0) {
+                sLevel = formatBn(barLevel + freeSurge);
+                baseText = ` (base: ${formatBn(barLevel)})`;
+            } else {
+                sLevel = formatBn(barLevel);
+            }
+        }
+        
+        let newContent = `You are at Surge <span class="surge-level-display" data-surge-level>${sLevel}</span>${baseText}`;
         if (!isInf) {
             const pending = resetState.pendingWaves;
             if (pending && !pending.isZero?.()) {
@@ -2202,9 +2237,19 @@ function updateSurgeCard() {
                     } catch {}
                 }
                 if (isIncrease) {
-                    const pLevel =
-                        predicted === Infinity ? '<span class="surge-infinity-symbol">∞</span>' : formatBn(predicted);
-                    newContent = `Your Surge will increase from <span class="surge-level-display">${sLevel}</span> to <span class="surge-level-display">${pLevel}</span>`;
+                    let pLevel;
+                    let pBaseText = "";
+                    if (predicted === Infinity) {
+                        pLevel = '<span class="surge-infinity-symbol">∞</span>';
+                    } else {
+                        if (freeSurge > 0) {
+                            pLevel = formatBn(predicted + freeSurge);
+                            pBaseText = ` (base: ${formatBn(predicted)})`;
+                        } else {
+                            pLevel = formatBn(predicted);
+                        }
+                    }
+                    newContent = `Your Surge will increase from <span class="surge-level-display">${sLevel}</span>${baseText} to <span class="surge-level-display">${pLevel}</span>${pBaseText}`;
                 }
             }
         }
@@ -2226,7 +2271,7 @@ function updateSurgeCard() {
             `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves, true)} / <img src="${WAVES_ICON_SRC}">${formatBn(req, true)}</span>`,
         );
     if (el.milestones) {
-        const visible = getVisibleMilestones(barLevel, {
+        const visible = getVisibleMilestones(getCurrentSurgeLevel(), {
             pendingGold: getPendingGoldWithMultiplier(),
             pendingMagic: getPendingMagicWithMultiplier(),
             pendingDna: resetState.pendingDna,
