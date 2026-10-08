@@ -528,9 +528,11 @@ export function createCoralSpawner(config = {}) {
             el.className = "coral";
             el.style.width = c.size + "px";
             el.style.height = c.size + "px";
-            el.style.backgroundImage = `url("${c.src}")`;
-            el.style.backgroundSize = "contain";
-            el.style.backgroundRepeat = "no-repeat";
+            el.style.backgroundImage = "none";
+            if (el.firstChild) {
+                el.firstChild.src = c.src;
+                el.firstChild.style.display = "";
+            }
         },
 
         onClearPlayfield: (activeItems, removeItem, resetType) => {
