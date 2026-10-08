@@ -89,7 +89,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
             infoIcon.addEventListener("mouseenter", () => {
                 const currentInfo = typeof def.info === "function" ? def.info() : def.info;
                 if (
-                    (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport") &&
+                    (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels") &&
                     settingsManager.get("spreadsheet_mode", true)
                 ) {
                     infoTooltip.textContent = currentInfo + " Automatically handled by Spreadsheet Mode setting.";
