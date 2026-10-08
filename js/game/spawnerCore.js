@@ -396,6 +396,10 @@ export function createBaseSpawner(config = {}) {
             }
         }
 
+        if (typeof settingsManager !== "undefined") {
+            settingsManager.refresh("playfield_capacity");
+        }
+
         return true;
     }
 
@@ -409,7 +413,18 @@ export function createBaseSpawner(config = {}) {
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-    const getMaxActiveItems = () => typeof maxActiveItems === 'function' ? maxActiveItems() : maxActiveItems;
+    const getMaxActiveItems = () => {
+        const baseMax = typeof maxActiveItems === 'function' ? maxActiveItems() : maxActiveItems;
+        if (typeof settingsManager !== 'undefined') {
+            const val = settingsManager.get("playfield_capacity");
+            if (val === 4 || val === undefined) return baseMax;
+            if (val === 3) return 1000;
+            if (val === 2) return 500;
+            if (val === 1) return 250;
+            return 100;
+        }
+        return baseMax;
+    };
     const getPoolMax = () => Math.max(2000, getMaxActiveItems() * 3);
     const itemPool = [];
 
