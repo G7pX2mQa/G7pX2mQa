@@ -93,6 +93,8 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
                     settingsManager.get("spreadsheet_mode", true)
                 ) {
                     infoTooltip.textContent = currentInfo + " Automatically handled by Spreadsheet Mode setting.";
+                } else if (key === "graphics_quality" && settingsManager.get("spreadsheet_mode", true)) {
+                    infoTooltip.textContent = currentInfo + " Completely obliterated by Spreadsheet Mode.";
                 } else {
                     infoTooltip.textContent = currentInfo;
                 }
