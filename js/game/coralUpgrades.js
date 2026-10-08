@@ -560,7 +560,7 @@ export const CORAL_REGISTRY = [
                 }
             } catch {}
 
-            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 91 to reveal this upgrade" };
+            return { state: "locked" };
         },
         effectSummary() {
             return "";
@@ -610,7 +610,7 @@ export const CORAL_REGISTRY = [
                 }
             } catch {}
 
-            return { state: "mysterious", unlockReqText: "Reach Red Coral Level 91 to reveal this upgrade" };
+            return { state: "locked" };
         },
         effectSummary() {
             return "";
