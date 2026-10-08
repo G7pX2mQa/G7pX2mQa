@@ -124,7 +124,7 @@ export const SETTING_DEFINITIONS = {
         type: "toggle",
         label: "Realistic Offline Simulation",
         hasExtraInfo: true,
-        info: "Offline progress will be realistically simulated using a granular tick-based system. If for whatever reason you want to disable this system and have the offline rewards always yield instantly (which is highly inaccurate), then you can turn this setting OFF.",
+        info: "Offline progress will be realistically simulated using a granular tick-based system. If you ever want to disable this system and have the offline rewards always yield instantly (which is highly inaccurate), then you can turn this setting OFF.",
         default: true,
         unlockCondition: () => {
             try {
