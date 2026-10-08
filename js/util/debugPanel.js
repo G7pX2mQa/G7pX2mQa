@@ -2044,6 +2044,7 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
     const row = document.createElement("div");
     row.className = "debug-panel-row debug-unlock-row";
     row.dataset.unlockId = labelText;
+    row._unlockDef = { labelText, description, isUnlocked, onEnable, onDisable, slot };
 
     const toggle = document.createElement("label");
     toggle.className = "flag-toggle";
@@ -6843,7 +6844,7 @@ const unlocksPaintbrush = createPaintbrush({
         let toggled = 0;
         affectedRows.forEach(row => {
             const unlockId = row.dataset.unlockId;
-            const def = allDefs.find(d => d.labelText === unlockId);
+            const def = row._unlockDef || allDefs.find(d => d.labelText === unlockId);
             if (!def) return;
             
             let unlocked = false;
