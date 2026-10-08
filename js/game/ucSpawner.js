@@ -423,11 +423,12 @@ export function createUcSpawner(config = {}) {
             let pickaxe = window._ucPickaxeElement || document.getElementById("uc-pickaxe");
 
             let firstPlaceholder = null;
-            for (let i = 0; i < activeItems.length; i++) {
+            for (let i = activeItems.length - 1; i >= 0; i--) {
                 const c = activeItems[i];
-                if (c && !c.isRemoved && c.isStrikePlaceholder && !c.settled) {
+                if (!c) continue;
+                if (c.settled) break; // Optimization: all placeholders are at the end
+                if (!c.isRemoved && c.isStrikePlaceholder) {
                     firstPlaceholder = c;
-                    break;
                 }
             }
 
@@ -543,9 +544,11 @@ export function createUcSpawner(config = {}) {
                     const shiftMs = (currentCycleMs - pickaxe._elapsedTime) - (oldCycleMs - (currentRatio * oldCycleMs));
 
                     // Also adjust any pending placeholders so they don't expire or trigger early/late
-                    for (let i = 0; i < activeItems.length; i++) {
+                    for (let i = activeItems.length - 1; i >= 0; i--) {
                         const item = activeItems[i];
-                        if (item && !item.isRemoved && !item.settled) {
+                        if (!item) continue;
+                        if (item.settled) break;
+                        if (!item.isRemoved) {
                             if (item.isStrikePlaceholder || item.isPreAllocatedMaterial) {
                                 const timeRemainingBefore = item.startTime - now;
                                 if (timeRemainingBefore > 0) {
@@ -559,14 +562,15 @@ export function createUcSpawner(config = {}) {
                 pickaxe._elapsedTime += dt * 1000;
 
                 // Sync exactly to the upcoming strike placeholder to avoid dt-capping lag desync
-                for (let i = 0; i < activeItems.length; i++) {
+                for (let i = activeItems.length - 1; i >= 0; i--) {
                     const c = activeItems[i];
-                    if (c && !c.isRemoved && c.isStrikePlaceholder && !c.settled) {
+                    if (!c) continue;
+                    if (c.settled) break;
+                    if (!c.isRemoved && c.isStrikePlaceholder) {
                         const timeRemaining = c.startTime - now;
                         if (timeRemaining <= pickaxe._cycleMs) {
                             pickaxe._elapsedTime = pickaxe._cycleMs - timeRemaining;
                         }
-                        break;
                     }
                 }
 
