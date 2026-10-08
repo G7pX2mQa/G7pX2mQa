@@ -1,4 +1,4 @@
-import { formatMultForUi } from '../util/numFormat.js';
+import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from "../util/bigNum.js";
 
 
@@ -149,14 +149,21 @@ export const REGISTRY = [
     id: 6,
     title: "DNA Rubble Value",
 
-    desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade scales similarly to Endless FP",
+    desc: "Multiplies Rubble value by 1.1x per level\nThis upgrade has quintuple the Harshness as usual",
     
     lvlCap: 1000,
     baseCost: 1000,
     costType: "dna",
     upgType: "HM",
     scalingPreset: 'HM',
-    scalingHarshness: 5,
+    scalingHarshness: (upg) => {
+        const rs = typeof window !== "undefined" ? window.resetSystem : null;
+        if (rs && rs.isCollapseChallengeActive?.()) {
+            const type = rs.getActiveCollapseChallengeType?.();
+            if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
+        }
+        return 5;
+    },
     icon: "img/misc/rubble_value.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
     effectType: "rubble_value",
