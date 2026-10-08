@@ -61,7 +61,7 @@ export const SURGE_MILESTONES = [
         affectedByTsunami: true,
         description: [
             "Generates Books based on XP Level instead of earning a flat amount of Books on level up",
-            "Unlocks a new Book upgrade",
+            "Reveals a new Book upgrade",
         ],
     },
     {
@@ -75,7 +75,7 @@ export const SURGE_MILESTONES = [
     {
         id: 5,
         surgeLevel: 5,
-        description: ["Unlocks a new Gold upgrade"],
+        description: ["Reveals a new Gold upgrade"],
     },
     {
         id: 6,
@@ -92,7 +92,7 @@ export const SURGE_MILESTONES = [
         id: 7,
         surgeLevel: 7,
         description: [
-            "Unlocks a new Magic upgrade",
+            "Reveals a new Magic upgrade",
             "Makes each Workshop Level triple Gear production instead of doubling it",
         ],
     },
@@ -110,13 +110,13 @@ export const SURGE_MILESTONES = [
     {
         id: 10,
         surgeLevel: 10,
-        description: ["Unlocks new DNA upgrades"],
+        description: ["Reveals new DNA upgrades"],
     },
     {
         id: 11,
         surgeLevel: 11,
         description: [
-            "Unlocks a new automation upgrade",
+            "Reveals a new automation upgrade",
             "Makes each Workshop Level quadruple Gear production instead of tripling it",
         ],
     },
@@ -183,7 +183,7 @@ export const SURGE_MILESTONES = [
     {
         id: 19,
         surgeLevel: 19,
-        description: ["Unlocks a new DNA upgrade", "Doubles XP value (immune to exponent)"],
+        description: ["Reveals a new DNA upgrade", "Doubles XP value (immune to exponent)"],
     },
     {
         id: 20,
@@ -191,7 +191,7 @@ export const SURGE_MILESTONES = [
         description: [
             'Unlocks the <span style="color:#00fffa">Flow</span> tab',
             "Unlocks new Lab Nodes",
-            "Unlocks a new Coin upgrade",
+            "Reveals a new Coin upgrade",
             "Unlocks a new Merchant dialogue",
             "Combo no longer decays and Combo is hidden when at max Combo",
         ],
@@ -264,7 +264,7 @@ export const SURGE_MILESTONES = [
         affectedByTsunami: false,
         description: [
             "Unlocks Evolve: Milestone-type upgrades can be evolved every 1000 levels for a huge stat boost and a higher level cap",
-            "Unlocks a new automation upgrade",
+            "Reveals a new automation upgrade",
         ],
     },
     {
@@ -294,7 +294,7 @@ export const SURGE_MILESTONES = [
         surgeLevel: 150,
         affectedByTsunami: false,
         description: [
-            "Unlocks four new automation upgrades",
+            "Reveals four new automation upgrades",
             "Makes each Workshop Level quintuple Gear production instead of quadrupling it",
         ],
     },
@@ -328,7 +328,7 @@ export const SURGE_MILESTONES = [
         affectedByTsunami: true,
         description: [
             'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Cores per second',
-            "Unlocks a new automation upgrade",
+            "Reveals a new automation upgrade",
         ],
     },
     {
@@ -337,7 +337,7 @@ export const SURGE_MILESTONES = [
         affectedByTsunami: true,
         description: [
             'Activates generator: Passively generates <span style="color:#00e5ff">0.1%</span> of pending Crystals per second',
-            "Unlocks a new automation upgrade",
+            "Reveals a new automation upgrade",
         ],
     },
     {
@@ -345,7 +345,7 @@ export const SURGE_MILESTONES = [
         surgeLevel: 1000,
         affectedByTsunami: false,
         description: [
-            "Unlocks a new automation upgrade",
+            "Reveals a new automation upgrade",
         ],
     },
 ];
@@ -364,7 +364,7 @@ export const getSurge9Description = (slot) => {
 export const getSurge10Description = (slot) => {
     const state = getSurge10State(slot);
     if (state === 0) return "This milestone is hidden until you research Lab Node 4";
-    return "Unlocks new DNA upgrades";
+    return "Reveals new DNA upgrades";
 };
 
 function getSurge9State(slot) {
