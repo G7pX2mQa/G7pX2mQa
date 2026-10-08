@@ -1020,7 +1020,7 @@ Can you guess what the final color might be? Or have you already figured it out?
 You know what to do
 
 Effect: Waves are entirely unobtainable from Surge resets
-Goal: Reach Pressure: ???atm [placeholder]
+Goal: Reach Pressure: 999atm
 Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift + reveals a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
@@ -1064,6 +1064,13 @@ Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift 
         if (challengeId === "pure_gold") {
             try {
                 if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(65) >= 0) {
+                    return true;
+                }
+            } catch {}
+        }
+        if (challengeId === "diamond") {
+            try {
+                if (typeof window.ppSystem !== "undefined" && window.ppSystem.getPpState().ppLevel.cmp(999) >= 0) {
                     return true;
                 }
             } catch {}
