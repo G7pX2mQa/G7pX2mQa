@@ -431,6 +431,11 @@ export function updateGameProgressBar() {
                 if (goal.unlocksUpgradeText) {
                     notifText += '<br><span class="notification-subtext">A new upgrade has appeared!</span>';
                 }
+                
+                if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("goal:completed", { detail: { id: goal.id } }));
+                }
+
                 if (!settingsManager.get("game_progress_bar")) {
                     lsSetItem(notifKey, "1");
                 } else {
