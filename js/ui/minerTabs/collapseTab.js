@@ -1012,6 +1012,16 @@ Effect: The Vault Building becomes infused with Magic, and traps a logarithmic h
 Effect Modifier: Reach Surge 250 to make it only trap a logarithmic third (^½ → ^⅔ currency multipliers)
 Goal: Reach Pressure: 65atm
 Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade`.trim();
+    } else if (id === "diamond") {
+        baseDescText = `The Challenge of ${capitalName}; the fifth Collapse Challenge
+Coral Reef has gone long enough without the final color, it's been waiting so long
+Can you guess what the final color might be? Or have you already figured it out?
+
+You know what to do
+
+Effect: Waves are entirely unobtainable from Surge resets
+Goal: Reach Pressure: ???atm [placeholder]
+Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift + reveals a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
