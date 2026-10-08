@@ -542,7 +542,7 @@ export const SETTING_DEFINITIONS = {
         label: "Collectible Z-Index Continuity",
         overlay: "performance",
         hasExtraInfo: true,
-        info: "If OFF, collectibles that spawn will use Painter's Algorithm to determine z-index instead of using offscreen canvases to maintain consistent z-index layers. The effectiveness of this setting (how much GPU usage is reduced) depends on the current area you're located in. Particularly, this setting will be more effective the more collectibles the area's spawner can spawn. It's important to note that this setting trades moderate up-front GPU usage for variable CPU usage based on how many collectibles currently exist on the playfield. Because of that, you should reduce the Playfield Capacity with this setting OFF.",
+        info: "If OFF, collectibles that spawn will use Painter's Algorithm to determine z-index instead of using offscreen canvases to maintain consistent z-index layers. The effectiveness of this setting (how much GPU usage is reduced) depends on the current area you're located in. Particularly, this setting will be more effective the more collectibles the area's spawner can spawn. It's important to note that this setting trades moderate up-front GPU usage for variable CPU usage based on how many collectibles currently exist on the playfield. Because of that, you should reduce the Playfield Capacity if this setting is OFF.",
         default: true,
         unlockCondition: () => true,
     },
