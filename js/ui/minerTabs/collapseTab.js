@@ -1257,25 +1257,13 @@ Reward: Reveals three new Coral Reef upgrades + adds a new color to Color Shift 
             textToUse = `Scroll down further to see everything\n\n${baseDescText}`;
         }
         
-        let finalHtml = textToUse.replace(/\n/g, "<br>");
         if (isCompleted) {
-            finalHtml = finalHtml.replace(
-                "Reward: Reveals a new UC upgrade that unlocks the third area + reveals a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals a new UC upgrade that unlocks the third area + reveals a new automation upgrade</span>`
-            ).replace(
-                "Reward: Unlocks a new tab in Coral Reef + reveals a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new tab in Coral Reef + reveals a new automation upgrade</span>`
-            ).replace(
-                "Reward: Unlocks a new Waterwheel + reveals a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new Waterwheel + reveals a new automation upgrade</span>`
-            ).replace(
-                "Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade</span>`
-            ).replace(
-                "Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift + reveals a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals three new Coral Reef upgrades + adds a new color in Color Shift + reveals a new automation upgrade</span>`
-            );
+            textToUse = textToUse.replace(/^Reward:.*$/gm, match => {
+                return `<span style="color:#00ff00; font-weight:bold;">${match}</span>`;
+            });
         }
+        
+        let finalHtml = textToUse.replace(/\n/g, "<br>");
         desc.innerHTML = finalHtml;
         
         if (currentScroll > 0) {
