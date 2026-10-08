@@ -527,6 +527,14 @@ export function createCursorTrail(playfield, options = {}) {
             lastEmitY = lastSpawnY;
         }
 
+        const loopEnd = performance.now();
+        if (loopEnd - now > 5) {
+            window._cursorProfileCount = (window._cursorProfileCount || 0) + 1;
+            if (window._cursorProfileCount % 60 === 0) {
+                console.warn(`[Profiler] cursorTrail loop took ${(loopEnd - now).toFixed(2)}ms`);
+            }
+        }
+
         rafId = requestAnimationFrame(loop);
     };
 
