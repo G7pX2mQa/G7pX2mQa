@@ -595,6 +595,9 @@ if (typeof window !== "undefined") {
     window.addEventListener("unlock:change", () => {
         updateHelpOverlay();
     });
+    window.addEventListener("goal:completed", () => {
+        updateHelpOverlay();
+    });
     window.addEventListener("setting:changed", (e) => {
         if (e.detail && e.detail.key === "nerd_mode") {
             updateHelpOverlay();
