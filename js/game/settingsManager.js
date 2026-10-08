@@ -11,6 +11,7 @@ import { getHighestMutationLevel, levelToNumber } from "./mutationSystem.js";
 import { setNumberNotation, formatNumber } from "../util/numFormat.js";
 import { BigNum } from "../util/bigNum.js";
 import { IS_MOBILE } from "../util/platformChecker.js";
+import { getDynamicMaxCapacity } from "./spawnerCore.js";
 import { getMagnetLevel, getLevelNumber } from "./upgrades.js";
 import {
     AUTOMATION_AREA_KEY,
@@ -541,7 +542,7 @@ export const SETTING_DEFINITIONS = {
         label: "Collectible Z-Index Continuity",
         overlay: "performance",
         hasExtraInfo: true,
-        info: "If OFF, collectibles that spawn will use Painter's Algorithm to determine z-index instead of using offscreen canvases to maintain consistent z-index layers. The effectiveness of this setting (how much GPU is saved) heavily depends on the current area you're located in. Particularly, this setting will be more effective the more collectibles the area's spawner can spawn.",
+        info: "If OFF, collectibles that spawn will use Painter's Algorithm to determine z-index instead of using offscreen canvases to maintain consistent z-index layers. The effectiveness of this setting (how much GPU usage is reduced) depends on the current area you're located in. Particularly, this setting will be more effective the more collectibles the area's spawner can spawn. It's important to note that this setting trades moderate up-front GPU usage for variable CPU usage based on how many collectibles currently exist on the playfield. Because of that, you should reduce the Playfield Capacity with this setting OFF.",
         default: true,
         unlockCondition: () => true,
     },
@@ -550,7 +551,7 @@ export const SETTING_DEFINITIONS = {
         label: "Spreadsheet Mode (Maximum Performance)",
         overlay: "performance",
         hasExtraInfo: true,
-        info: "Obliterates visual fluff, like a spreadsheet. All core logic remains the same, but many visual elements are worsened or removed. Improves game performance significantly.",
+        info: "Obliterates visual fluff, like a spreadsheet. All core logic remains the same, but many visual elements are worsened or removed. Improves game performance significantly. Further optimization can be achieved by turning \"Collectible Z-Index Continuity\" OFF and reducing the Playfield Capacity.",
         default: false,
         unlockCondition: () => true,
     },
@@ -558,11 +559,31 @@ export const SETTING_DEFINITIONS = {
         type: "slider",
         label: "Graphics Quality",
         overlay: "performance",
-        hasExtraInfo: false,
+        hasExtraInfo: true,
+        info: "Adjusts rendering resolution and image smoothing quality of various things. The lower the number of Graphics Quality, the more GPU usage is reduced.",
         min: 0,
         max: 10,
         step: 1,
         default: 10,
+        unlockCondition: () => true,
+    },
+    playfield_capacity: {
+        type: "slider",
+        label: "Playfield Capacity",
+        overlay: "performance",
+        hasExtraInfo: true,
+        info: "Determines the maximum number of collectibles that the playfield can hold before discarding collectibles. Default maximum is calculated based on viewport size, but discrete sizes of 1000, 500, 250, and 100 are offered by this slider.",
+        min: 0,
+        max: 4,
+        step: 1,
+        default: 4,
+        formatLabel: (val) => {
+            if (val === 4) return formatNumber(getDynamicMaxCapacity());
+            if (val === 3) return formatNumber(1000);
+            if (val === 2) return formatNumber(500);
+            if (val === 1) return formatNumber(250);
+            return formatNumber(100);
+        },
         unlockCondition: () => true,
     },
     forge_confirmation: {
@@ -837,10 +858,10 @@ class SettingsManager {
 
         if (
             !raw &&
-            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels" || key === "collectible_z_index_continuity") && 
+            (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels") && 
             this.settings["spreadsheet_mode"] === true
         ) {
-            // For show_side_containers, show_building_visuals, spawn_vessels, and collectible_z_index_continuity, we want it OFF (false)
+            // For show_side_containers, show_building_visuals, and spawn_vessels, we want it OFF (false)
             // For disable_webgl (Reduced GPU) and insta_teleport, we want it ON (true)
             return (key === "disable_webgl" || key === "insta_teleport") ? true : false;
         }
