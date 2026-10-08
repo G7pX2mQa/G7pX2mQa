@@ -643,7 +643,7 @@ registerPassiveSystem({
                     }
                 } else {
                     if (window.dpSystem && typeof window.dpSystem.addDp === "function") {
-                        window.dpSystem.addDp(scaledCount);
+                        window.dpSystem.addDp(scaledCount, { silent: true });
                     }
                     if (isPpSystemUnlocked()) {
                         addPp(scaledCount);
