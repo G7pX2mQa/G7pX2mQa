@@ -2238,18 +2238,16 @@ function updateSurgeCard() {
                 }
                 if (isIncrease) {
                     let pLevel;
-                    let pBaseText = "";
                     if (predicted === Infinity) {
                         pLevel = '<span class="surge-infinity-symbol">∞</span>';
                     } else {
                         if (freeSurge > 0) {
                             pLevel = formatBn(predicted + freeSurge);
-                            pBaseText = ` (base: ${formatBn(predicted)})`;
                         } else {
                             pLevel = formatBn(predicted);
                         }
                     }
-                    newContent = `Your Surge will increase from <span class="surge-level-display">${sLevel}</span>${baseText} to <span class="surge-level-display">${pLevel}</span>${pBaseText}`;
+                    newContent = `Your Surge${baseText} will increase from <span class="surge-level-display">${sLevel}</span> to <span class="surge-level-display">${pLevel}</span>`;
                 }
             }
         }
