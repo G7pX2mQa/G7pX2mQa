@@ -817,6 +817,25 @@ export function createBaseSpawner(config = {}) {
         if (!rafId) return;
         cancelAnimationFrame(rafId);
         rafId = null;
+
+        // Free massive full-screen GPU textures instantly while in other areas
+        canvases.forEach(canvas => {
+            if (canvas) {
+                canvas.width = 1;
+                canvas.height = 1;
+            }
+        });
+        for (let i = 0; i < inMemoryCanvases.length; i++) {
+            const canvas = inMemoryCanvases[i];
+            if (canvas) {
+                canvas.width = 1;
+                canvas.height = 1;
+            }
+        }
+        if (fxCanvas) {
+            fxCanvas.width = 1;
+            fxCanvas.height = 1;
+        }
     }
 
     function setRate(n) {
