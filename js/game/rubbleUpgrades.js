@@ -145,22 +145,48 @@ export const RUBBLE_REGISTRY = [
         area: RUBBLE_AREA_KEY,
         id: 4,
         title: "Rubble Magic Value",
-        desc: `Multiplies Magic value by ${formatNumber(1e100)}x per level`,
+        desc: `Multiplies Magic value by ${formatNumber("1e100")}x per level`,
         lvlCap: Infinity,
-        baseCost: 1e20,
+        baseCost: "1e20",
         costType: "rubble",
         upgType: "NM",
         scalingPreset: 'NM',
-        scaling: { ratio: 1e20 },
+        scaling: { ratio: "1e20" },
         effectType: "magic_value",
         challengeMaterial: "pure_gold",
         icon: "img/lab_icons/magic_val0.webp",
         baseIconOverride: "img/currencies/rubble/rubble_base.webp",
-        _baseEffectVal: 1e100,
+        _baseEffectVal: "1e100",
         _costScaling: true,
         bonusLine: (level, total) => `Magic value bonus: ${formatMultForUi(total)}x`,
         computeLockState() {
             return computeRubbleLockState(this.challengeMaterial);
         }
     },
+    {
+        area: RUBBLE_AREA_KEY,
+        id: 5,
+        title: "Rubble Free Surge",
+        desc: "Grants +1 free Surge per level\nFree Surges do not affect Wave requirement",
+        lvlCap: Infinity,
+        baseCost: "1e900",
+        costType: "rubble",
+        upgType: "NM",
+        scalingPreset: 'NM',
+        scaling: { ratio: "1e4" },
+        effectType: "free_surge",
+        challengeMaterial: "diamond",
+        icon: "img/lab_icons/wave_val0.webp",
+        baseIconOverride: "img/currencies/rubble/rubble_base.webp",
+        _baseEffectVal: 1, 
+        _costScaling: true,
+        effectMultiplier: (level) => {
+            if (level && typeof level.toNumber === 'function') return level.toNumber();
+            return Number(level || 0);
+        },
+        bonusLine: (level, total) => `Free Surges: +${formatNumber(total)}`,
+        computeLockState() {
+            return computeRubbleLockState(this.challengeMaterial);
+        }
+    }
 ];
