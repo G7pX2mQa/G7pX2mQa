@@ -283,7 +283,6 @@ export function updateRclpHud() {
     if (!containers.length) return;
     
     let isHiddenState = false;
-    let anyMainHidden = false;
     
     const state = ensureState();
     
@@ -293,13 +292,10 @@ export function updateRclpHud() {
         if (!mainContainer.closest(".area-coral") || !state || !state.unlocked) {
             isHiddenState = true;
             mainContainer.setAttribute("hidden", "");
-            anyMainHidden = true;
         } else {
             mainContainer.removeAttribute("hidden");
         }
-        if (anyMainHidden) {
-            syncRclpGclpHudLayout();
-        }
+        syncRclpGclpHudLayout();
     }
     
     containers.forEach(container => {
