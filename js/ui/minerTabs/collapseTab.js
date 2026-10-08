@@ -980,7 +980,7 @@ Persistence of Lab Nodes when starting a Collapse Challenge will assist your rec
 
 Effect: Coin value is divided by ${formattedNum}x
 Goal: Reach Pressure: 31atm
-Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade`.trim();
+Reward: Reveals a new UC upgrade that unlocks the third area + reveals a new automation upgrade`.trim();
     } else if (id === "copper") {
         baseDescText = `The Challenge of ${capitalName}; the second Collapse Challenge
 You’ve gotten familiar with Coral Reef, now things are starting to get interesting
@@ -990,7 +990,7 @@ You can exit a Collapse Challenge at any time to recover stats you had before st
 
 Effect: Books become Coins and Coins become Books
 Goal: Reach Pressure: 50atm
-Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade`.trim();
+Reward: Unlocks a new tab in Coral Reef + reveals a new automation upgrade`.trim();
     } else if (id === "iron") {
         baseDescText = `The Challenge of ${capitalName}; the third Collapse Challenge
 You’ve mastered the Red and you’ve mastered the Green
@@ -1000,7 +1000,7 @@ The Green Coral Level you enter this Collapse Challenge with should not impact i
 
 Effect: Gold Waterwheel becomes evil, dividing the values of all things Waterwheels boost, and is forced ON
 Goal: Reach Pressure: 50atm
-Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
+Reward: Unlocks a new Waterwheel + reveals a new automation upgrade`.trim();
     } else if (id === "pure_gold") {
         baseDescText = `The Challenge of ${capitalName}; the fourth Collapse Challenge
 The numbers are starting to grow large, but things have only just begun
@@ -1011,7 +1011,7 @@ As usual, prepare your Lab Nodes and other things before starting for a faster c
 Effect: The Vault Building becomes infused with Magic, and traps a logarithmic half of all currencies inside it
 Effect Modifier: Reach Surge 250 to make it only trap a logarithmic third (^½ → ^⅔ currency multipliers)
 Goal: Reach Pressure: 65atm
-Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + unlocks a new automation upgrade`.trim();
+Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
@@ -1243,17 +1243,17 @@ Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + unlocks
         let finalHtml = textToUse.replace(/\n/g, "<br>");
         if (isCompleted) {
             finalHtml = finalHtml.replace(
-                "Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals a new UC upgrade that unlocks the third area + unlocks a new automation upgrade</span>`
+                "Reward: Reveals a new UC upgrade that unlocks the third area + reveals a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals a new UC upgrade that unlocks the third area + reveals a new automation upgrade</span>`
             ).replace(
-                "Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new tab in Coral Reef + unlocks a new automation upgrade</span>`
+                "Reward: Unlocks a new tab in Coral Reef + reveals a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new tab in Coral Reef + reveals a new automation upgrade</span>`
             ).replace(
-                "Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new Waterwheel + unlocks a new automation upgrade</span>`
+                "Reward: Unlocks a new Waterwheel + reveals a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Unlocks a new Waterwheel + reveals a new automation upgrade</span>`
             ).replace(
-                "Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + unlocks a new automation upgrade",
-                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + unlocks a new automation upgrade</span>`
+                "Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade",
+                `<span style="color:#00ff00; font-weight:bold;">Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals a new automation upgrade</span>`
             );
         }
         desc.innerHTML = finalHtml;
