@@ -89,7 +89,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
             infoIcon.addEventListener("mouseenter", () => {
                 const currentInfo = typeof def.info === "function" ? def.info() : def.info;
                 if (
-                    (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels" || key === "collectible_z_index_continuity") &&
+                    (key === "show_side_containers" || key === "disable_webgl" || key === "show_building_visuals" || key === "insta_teleport" || key === "spawn_vessels") &&
                     settingsManager.get("spreadsheet_mode", true)
                 ) {
                     infoTooltip.textContent = currentInfo + " Automatically handled by Spreadsheet Mode setting.";
@@ -235,18 +235,27 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
             const visualTrack = document.createElement("div");
             visualTrack.className = "setting-slider-visual-track";
 
+            const formatLabel = (val) => {
+                if (typeof def.formatLabel === "function") {
+                    return def.formatLabel(val);
+                }
+                return val;
+            };
+
             const updateSliderProgress = () => {
                 let val = parseFloat(sliderInput.value);
                 const min = parseFloat(sliderInput.min);
                 const max = parseFloat(sliderInput.max);
                 let percentage = ((val - min) / (max - min)) * 100;
 
+                let displayVal = val;
                 if (key === "graphics_quality" && settingsManager.get("spreadsheet_mode")) {
-                    val = "💀";
+                    displayVal = "💀";
                     percentage = 0;
                     sliderInput.disabled = true;
                     sliderInput.value = min;
                 } else {
+                    displayVal = formatLabel(val);
                     sliderInput.disabled = false;
                 }
 
@@ -254,7 +263,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
                 sliderContainer.style.setProperty("--slider-progress", `${percentage}%`);
 
                 // Update the thumb label text
-                thumbLabel.textContent = val;
+                thumbLabel.textContent = displayVal;
 
                 // Since the input range is now wider by exactly 36px (width of thumb)
                 // and shifted left by 18px, the center of the thumb natively travels exactly
@@ -329,22 +338,29 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
                 pointerDownPos = null;
             });
 
-            const labelsContainer = document.createElement("div");
-            labelsContainer.className = "setting-slider-labels";
+
+            const updateLabels = (min, max) => {
+                const pMin = parseFloat(min);
+                const pMax = parseFloat(max);
+                const mid = (pMin + pMax) / 2;
+                minLabel.innerHTML = `<span>${formatLabel(pMin)}</span>`;
+                midLabel.innerHTML = `<span>${formatLabel(mid)}</span>`;
+                maxLabel.innerHTML = `<span>${formatLabel(pMax)}</span>`;
+            };
 
             const minLabel = document.createElement("div");
             minLabel.className = "slider-label slider-label-min";
-            minLabel.innerHTML = `<span>${defMin}</span>`;
 
-            const midVal = (parseFloat(defMin) + parseFloat(defMax)) / 2;
             const midLabel = document.createElement("div");
             midLabel.className = "slider-label slider-label-mid";
-            midLabel.innerHTML = `<span>${midVal}</span>`;
 
             const maxLabel = document.createElement("div");
             maxLabel.className = "slider-label slider-label-max";
-            maxLabel.innerHTML = `<span>${defMax}</span>`;
 
+            updateLabels(defMin, defMax);
+
+            const labelsContainer = document.createElement("div");
+            labelsContainer.className = "setting-slider-labels";
             labelsContainer.append(minLabel, midLabel, maxLabel);
 
             const unsub = settingsManager.subscribe(key, (newVal) => {
@@ -353,12 +369,8 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
                     sliderInput.max = currentDefMax;
                     const currentDefMin = typeof def.min === "function" ? def.min() : def.min;
                     sliderInput.min = currentDefMin;
-                    const currentMidVal = (parseFloat(currentDefMin) + parseFloat(currentDefMax)) / 2;
-
-                    minLabel.innerHTML = `<span>${currentDefMin}</span>`;
-                    midLabel.innerHTML = `<span>${currentMidVal}</span>`;
-                    maxLabel.innerHTML = `<span>${currentDefMax}</span>`;
                 }
+                updateLabels(sliderInput.min, sliderInput.max);
                 sliderInput.value = newVal;
                 updateSliderProgress();
             });
