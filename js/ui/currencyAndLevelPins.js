@@ -9,6 +9,7 @@ import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 import { bank, UC_MATERIALS, getActiveSlot } from '../util/storage.js';
 import { setHtmlOrText } from '../util/uiHelpers.js';
+import { registerTick } from '../game/gameLoop.js';
 
 let pinnedContainer = null;
 let currencySubscriptions = {};
@@ -316,14 +317,6 @@ export function layoutPinnedCurrencies() {
   layoutPinnedAll();
 }
 
-// Ensure values are updated if there's no event dispatching by polling
-// Alternatively, we could hook into the game loop
-setInterval(() => {
-  if (pinnedContainer && pinnedContainer.style.display !== 'none') {
-    refreshPinnedCurrenciesValues();
-  }
-}, 100);
-
 function refreshPinnedCurrenciesValues() {
   if (!pinnedContainer) return;
   const children = pinnedContainer.querySelectorAll('.pinned-currency-wrapper');
@@ -593,11 +586,14 @@ export function layoutPinnedLevels() {
   layoutPinnedAll();
 }
 
-setInterval(() => {
+registerTick(() => {
+  if (pinnedContainer && pinnedContainer.style.display !== 'none') {
+    refreshPinnedCurrenciesValues();
+  }
   if (pinnedLevelsContainer && pinnedLevelsContainer.style.display !== 'none') {
     refreshPinnedLevelsValues();
   }
-}, 100);
+});
 
 function refreshPinnedLevelsValues() {
   if (!pinnedLevelsContainer) return;
@@ -614,7 +610,11 @@ function refreshPinnedLevelsValues() {
         const fill = el.querySelector('.pinned-level-fill');
         if (bar && fill) {
           const ratio = getLevelProgRatio(prefix);
-          fill.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
+          const pct = `${(ratio * 100).toFixed(2)}%`;
+          if (fill.__lastPct !== pct) {
+             fill.__lastPct = pct;
+             fill.style.setProperty('--progress', pct);
+          }
         }
     }
   });
