@@ -77,7 +77,7 @@ const HELP_ENTRIES = [
         progressionGoal: "Unlock the XP system, then reach XP Level 31",
         get text() {
             let base =
-                "The main way you'll progress through the game is through buying Shop upgrades and interacting with the Merchant (via clicking the Delve button in the Shop) when necessary. You'll need to left-click on an upgrade's icon to access an upgrade's overlay, from which you can spend currency on that upgrade.";
+                "The main way you'll progress through the game is through buying Shop upgrades and interacting with the Merchant (via clicking the Delve button in the Shop) when necessary. You'll need to left-click on an upgrade's icon to access an upgrade's overlay, and then you can spend currency on that upgrade.";
             let hasShortcuts = false;
             try {
                 hasShortcuts = !IS_MOBILE;
@@ -90,7 +90,7 @@ const HELP_ENTRIES = [
         },
         hasMobileVariant: true,
         mobileText:
-            "The main way you'll progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to tap on an upgrade's icon to access an upgrade's overlay, from which you can spend currency on that upgrade.",
+            "The main way you'll progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to tap on an upgrade's icon to access an upgrade's overlay, and then you can spend currency on that upgrade.",
         nerdModeText: `<div style="margin-bottom:12px;"><strong>Normal Upgrade Level Cost</strong><br><code>Cost = BaseCost * (1.2 ^ UpgLevel)</code>.</div><div style="margin-bottom:12px;"><strong>XP Requirement</strong><br><code>Requirement = 10 * (1.1 ^ XPLevel) * (2.5 ^ Floor(XPLevel / 10))</code><br>After XPLevel 1e12: <code>Requirement = 10 * (1.1 ^ XPLevel) * (2.5 ^ Floor(XPLevel / 10)) * 5 * e^(2.36034e-10 * (XPLevel - 1e12))</code>.</div><div style="margin-bottom:12px;"><strong>XP Level Coin Multiplier</strong><br><code>Total Multiplier = (1.1 ^ XPLevel) + XPLevel</code>.<br></div><div><strong>Buy Max / Buy Cheap / Buy Next Logic</strong><br><strong>Buy Max:</strong> Buys the maximum possible amount of UpgLevels that can be afforded.<br><strong>Buy Cheap:</strong> Buys as many UpgLevels as possible such that the cost of the <em>last purchased UpgLevel</em> does not exceed 10% of the <em>remaining wallet balance</em> after the previous UpgLevels are purchased.<br><strong>Buy Next:</strong> Only applies to milestone-type upgrades; calculates the exact amount of UpgLevels to buy to reach the next milestone or falls back to Buy Max if not enough in wallet.</div>`,
         themeClass: "is-welcome",
         isVisible: () => true, // Always unlocked
