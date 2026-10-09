@@ -404,7 +404,7 @@ function dpRequirementForDpLevel(dpLevelInput) {
         const intPart = Math.floor(totalLog10);
         const fracPart = totalLog10 - intPart;
         const mantissa = Math.pow(10, fracPart);
-        return new BigNum(Number(Math.round(mantissa * 1e14)), { base: intPart - 14 });
+        return new BigNum(Number(Math.round(mantissa * 1e14)), intPart - 14);
     }
 }
 
