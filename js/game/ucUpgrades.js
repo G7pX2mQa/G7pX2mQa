@@ -153,7 +153,8 @@ export const UC_REGISTRY = [
         costType: "scrap",
         upgType: "NM",
         effectType: "coin_value",
-        icon: "img/lab_icons/coin_val0.webp",
+        icon: "img/currencies/coin/coin.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel(level) {
             return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
@@ -189,7 +190,8 @@ export const UC_REGISTRY = [
         costType: "scrap",
         upgType: "NM",
         effectType: "dp_value",
-        icon: "img/uc_upg_icons/dp_val1.webp",
+        icon: "img/stats/dp/dp.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
             return BigNum.fromInt(this.baseCost).mulBigNumInteger(E.powPerLevel(3)(normalizedLevel));
@@ -279,7 +281,8 @@ export const UC_REGISTRY = [
         upgType: "HM",
         effectType: "dp_value",
         scalingPreset: "HM",
-        icon: "img/uc_upg_icons/dp_val_hm.webp",
+        icon: "img/stats/dp/dp.webp",
+        extraIcon: "img/extra_icons/ei_hm.webp",
         costAtLevel(level) {
             return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
@@ -337,7 +340,8 @@ export const UC_REGISTRY = [
         costType: "scrap",
         upgType: "NM",
         effectType: "xp_value",
-        icon: "img/sc_upg_icons/xp_val1.webp",
+        icon: "img/stats/xp/xp.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
             return BigNum.fromAny(this.baseCost).mulBigNumInteger(E.powPerLevel(200)(normalizedLevel));
@@ -386,7 +390,8 @@ export const UC_REGISTRY = [
         costType: "scrap",
         upgType: "NM",
         effectType: "rp_value",
-        icon: "img/uc_upg_icons/rp_val1.webp",
+        icon: "img/stats/rp/rp.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         effectSummary(level) {
             const mult = this.effectMultiplier(level);
             return `RP value bonus: ${formatMultForUi(mult)}x`;
@@ -507,7 +512,8 @@ export const UC_REGISTRY = [
         upgType: "HM",
         effectType: "pp_value",
         scalingPreset: "HM",
-        icon: "img/uc_upg_icons/pp_val_hm.webp",
+        icon: "img/stats/pp/pp.webp",
+        extraIcon: "img/extra_icons/ei_hm.webp",
         costAtLevel(level) {
             return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
@@ -561,7 +567,8 @@ export const UC_REGISTRY = [
         costType: "scrap",
         upgType: "NM",
         effectType: "fp_value",
-        icon: "img/lab_icons/fp_val0.webp",
+        icon: "img/stats/fp/fp.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel(level) {
             return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
