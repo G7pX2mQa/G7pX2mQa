@@ -1025,7 +1025,7 @@ You know what to do; make sure you're prepared
 Effect: Waves are entirely unobtainable from Surge resets
 Effect Modifier: Rubble Upgrades inside this and all future Collapse Challenges scale 5x more harshly
 Goal: Reach Pressure: 110atm
-Reward: Unlocks the final color in Color Shift + reveals a new automation upgrade`.trim();
+Reward: Reveals a new Coral Reef upgrade + Unlocks the final color in Color Shift + reveals a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
