@@ -1,7 +1,7 @@
 import { getActiveSlot } from "../util/storage.js";
 import { lsGetItem, lsSetItem } from "../main.js";
 
-export const CORAL_COLOR_ORDER = ["red", "green"];
+export const CORAL_COLOR_ORDER = ["red", "green", "blue"];
 
 export function getCoralColorMode(slot = getActiveSlot()) {
     if (slot == null) return "red";
