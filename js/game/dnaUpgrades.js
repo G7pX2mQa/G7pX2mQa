@@ -166,6 +166,7 @@ export const REGISTRY = [
     },
     icon: "img/misc/rubble_value.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
+    preventPermaUnlock: true,
     effectType: "rubble_value",
     _baseEffectVal: 1.1,
     _costScaling: "HM",
