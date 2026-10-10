@@ -22,8 +22,8 @@ import { settingsManager } from "../../game/settingsManager.js";
 import { safeMultiplyBigNum } from "../../game/upgrades.js";
 import { getRpValueMultiplierBn } from "../../game/upgradeEffects.js";
 import { setHtmlOrText } from "../../util/uiHelpers.js";
-const CAM_MAX_COORD = 1e308;
-const CAM_MAX_ZOOM = 1e300;
+const CAM_MAX_COORD = "1e308";
+const CAM_MAX_ZOOM = "1e300";
 const CAM_MIN_ZOOM = 1e-300;
 const LAB_INTRO_SEEN_KEY = (slot) => `ccc:lab:introSeen:${slot}`;
 const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
@@ -797,6 +797,18 @@ class LabSystem {
             }
             if (img.complete && img.naturalWidth !== 0) {
                 ctx.drawImage(img, cx - imgScreenSize / 2, cy - imgScreenSize / 2, imgScreenSize, imgScreenSize);
+            }
+            if (node.extraIcon) {
+                const extraKey = `${node.id}_extra`;
+                let extraImg = this.nodeImages[extraKey];
+                if (!extraImg) {
+                    extraImg = new Image();
+                    extraImg.src = node.extraIcon;
+                    this.nodeImages[extraKey] = extraImg;
+                }
+                if (extraImg.complete && extraImg.naturalWidth !== 0) {
+                    ctx.drawImage(extraImg, cx - imgScreenSize / 2, cy - imgScreenSize / 2, imgScreenSize, imgScreenSize);
+                }
             }
             // Draw Active Progress Bar
             if (hasBar) {
