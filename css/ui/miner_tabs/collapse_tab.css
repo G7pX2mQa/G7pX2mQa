@@ -81,26 +81,7 @@
 .collapse-start-btn:not(:disabled):focus-visible {
 }
 
-@keyframes collapseBrownPulse {
-    0% {
-      box-shadow:
-        0 0 20px 4px rgba(60, 30, 10, 0.5),
-        0 6px 0 hsl(30 40% 4%),
-        0 0 0 3px hsla(30, 50%, 2%, 0.9);
-    }
-    50% {
-      box-shadow:
-        0 0 40px 12px rgba(90, 40, 15, 0.7),
-        0 6px 0 hsl(30 40% 4%),
-        0 0 0 3px hsla(30, 50%, 2%, 0.9);
-    }
-    100% {
-      box-shadow:
-        0 0 20px 4px rgba(60, 30, 10, 0.5),
-        0 6px 0 hsl(30 40% 4%),
-        0 0 0 3px hsla(30, 50%, 2%, 0.9);
-    }
-}
+
 
 .collapse-fracture-overlay {
     position: fixed;
