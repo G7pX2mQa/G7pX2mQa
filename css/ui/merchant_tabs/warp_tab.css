@@ -120,26 +120,7 @@
     background-color: hsl(220 32% 10% / 1);
 }
 
-@keyframes surgeWavePulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px hsl(213 100% 60% / 0.3),
-      0 6px 0 hsl(213 90% 20%),
-      0 0 0 3px hsl(213 96% 10% / 0.9);
-  }
-  50% {
-    box-shadow:
-      0 0 18px 5px hsl(193 100% 65% / 0.55),
-      0 6px 0 hsl(213 90% 20%),
-      0 0 0 3px hsl(213 96% 12% / 1);
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px hsl(213 100% 60% / 0.3),
-      0 6px 0 hsl(213 90% 20%),
-      0 0 0 3px hsl(213 96% 10% / 0.9);
-  }
-}
+
 
 .warp-desc,
 .warp-timer,
