@@ -2612,6 +2612,15 @@ function bindGlobalEvents() {
     window.addEventListener("menu:scrollStop", () => {
         updateResetPanel();
     });
+    window.addEventListener("upgrade:change", (e) => {
+        if (e.detail?.area === AREA_KEYS.RUBBLE && e.detail?.id === 5) {
+            try {
+                const slot = getActiveSlot();
+                const level = getSurgeBarLevel(slot);
+                window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level } }));
+            } catch {}
+        }
+    });
     window.addEventListener("surge:level:change", (e) => {
         triggerSurgeBarAnimation();
         recomputePendingDna();
