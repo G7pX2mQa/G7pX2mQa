@@ -18,6 +18,7 @@ import {
     AREA_KEYS,
     UPGRADE_TIES,
     getUpgradesForArea,
+    getUpgrade,
     getLevelNumber,
     setLevel,
     approxLog10BigNum,
@@ -2612,14 +2613,29 @@ function bindGlobalEvents() {
     window.addEventListener("menu:scrollStop", () => {
         updateResetPanel();
     });
-    window.addEventListener("upgrade:change", (e) => {
-        if (e.detail?.area === AREA_KEYS.RUBBLE && e.detail?.id === 5) {
-            try {
-                const slot = getActiveSlot();
-                const level = getSurgeBarLevel(slot);
-                window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level } }));
-            } catch {}
-        }
+    let cachedFreeSurge = -1;
+    window.addEventListener("ccc:upgrades:changed", () => {
+        try {
+            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.()) {
+                let currentFreeSurge = 0;
+                const upgrades = getUpgradesForArea(AREA_KEYS.RUBBLE);
+                if (upgrades) {
+                    for (const upg of upgrades) {
+                        if (upg?.effectType === "free_surge") {
+                            currentFreeSurge += getLevelNumber(AREA_KEYS.RUBBLE, upg.id) || 0;
+                        }
+                    }
+                }
+                if (currentFreeSurge !== cachedFreeSurge) {
+                    cachedFreeSurge = currentFreeSurge;
+                    const slot = getActiveSlot();
+                    const level = getSurgeBarLevel(slot);
+                    window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level } }));
+                }
+            } else {
+                cachedFreeSurge = 0;
+            }
+        } catch {}
     });
     window.addEventListener("surge:level:change", (e) => {
         triggerSurgeBarAnimation();
