@@ -147,6 +147,7 @@ import { setHtmlOrText } from "./uiHelpers.js";
 import { createPaintbrush } from "../ui/sas/paintbrushUtils.js";
 import { getRclpState, isRclpSystemUnlocked, unlockRclpSystem, applyRclpState } from "../game/rclpSystem.js";
 import { getGclpState, isGclpSystemUnlocked, unlockGclpSystem, applyGclpState } from "../game/gclpSystem.js";
+import { getBclpState, isBclpSystemUnlocked, unlockBclpSystem, applyBclpState } from "../game/bclpSystem.js";
 
 const debugPanelStatSetters = [];
 let isBuildingStats = false;
@@ -433,6 +434,17 @@ function setupLiveBindingListeners() {
     addDebugPanelCleanup(() => {
         window.removeEventListener("ccc:gclp:progress", gclpHandler);
         window.removeEventListener("ccc:gclp:unlocked", gclpHandler);
+    });
+
+    const bclpHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => (binding.type === "bclp-level" || binding.type === "bclp-progress") && binding.slot === targetSlot);
+    };
+    window.addEventListener("ccc:bclp:progress", bclpHandler, { passive: true });
+    window.addEventListener("ccc:bclp:unlocked", bclpHandler, { passive: true });
+    addDebugPanelCleanup(() => {
+        window.removeEventListener("ccc:bclp:progress", bclpHandler);
+        window.removeEventListener("ccc:bclp:unlocked", bclpHandler);
     });
 
     const upgradeHandler = () => {
@@ -3316,6 +3328,73 @@ function buildAreaStats(container, area) {
             },
         });
         container.appendChild(gclProgressRow.row);
+
+        const bclpState = getBclpState() || { bclpLevel: BigNum.fromInt(0), bclpProg: BigNum.fromInt(0) };
+        
+        const bclLevelKey = `ccc:bclLevel:${slot}`;
+        const bclLevelRow = createInputRow(
+            "Blue Coral Level",
+            bclpState.bclpLevel,
+            (value, { setValue }) => {
+                const prev = getBclpState()?.bclpLevel?.clone?.() ?? BigNum.fromInt(0);
+                let valToApply = value;
+                if (valToApply instanceof BigNum && typeof valToApply.floorToInteger === "function") {
+                    valToApply = valToApply.floorToInteger();
+                } else if (typeof valToApply === "number" || typeof valToApply === "string") {
+                    valToApply = Math.floor(Number(valToApply));
+                }
+                if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "number" && valToApply >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                } else if (typeof valToApply === "string" && Number(valToApply) >= 4.5e12) {
+                    valToApply = BigNum.fromAny("Infinity");
+                }
+                applyBclpState({ bclpLevel: valToApply, unlocked: true });
+                const latest = getBclpState();
+                setValue(latest.bclpLevel);
+                if (!bigNumEquals(prev, latest.bclpLevel)) {
+                    flagDebugUsage();
+                    logAction(`Modified Blue Coral Level (${area.title}) ${formatNumber(prev)} -> ${formatNumber(latest.bclpLevel)}`);
+                }
+            },
+            { storageKey: bclLevelKey },
+        );
+        registerLiveBinding({
+            type: "bclp-level",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                bclLevelRow.setValue(getBclpState()?.bclpLevel ?? BigNum.fromInt(0));
+            },
+        });
+        container.appendChild(bclLevelRow.row);
+
+        const bclpProgressKey = `ccc:bclpProgress:${slot}`;
+        const bclProgressRow = createInputRow(
+            "BCLP",
+            bclpState.bclpProg,
+            (value, { setValue }) => {
+                const prev = getBclpState()?.bclpProg?.clone?.() ?? BigNum.fromInt(0);
+                applyBclpState({ bclpProg: value, unlocked: true });
+                const latest = getBclpState();
+                setValue(latest.bclpProg);
+                if (!bigNumEquals(prev, latest.bclpProg)) {
+                    flagDebugUsage();
+                    logAction(`Modified BCLP (${area.title}) ${formatNumber(prev)} -> ${formatNumber(latest.bclpProg)}`);
+                }
+            },
+            { storageKey: bclpProgressKey },
+        );
+        registerLiveBinding({
+            type: "bclp-progress",
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                bclProgressRow.setValue(getBclpState()?.bclpProg ?? BigNum.fromInt(0));
+            },
+        });
+        container.appendChild(bclProgressRow.row);
     }
 
     const xp = getXpState();
@@ -4164,6 +4243,35 @@ function getUnlockRowDefinitions(slot) {
                     window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "gclp", slot } }));
                     if (typeof window !== "undefined") {
                         window.dispatchEvent(new CustomEvent('ccc:gclp:unlocked'));
+                    }
+                }
+            },
+            slot,
+        },
+        {
+            labelText: "Unlock Blue Coral Level",
+            description: "If true, unlocks the BCLP system",
+            isUnlocked: () => {
+                const slot = getActiveSlot();
+                return slot != null && lsGetItem(`ccc:colorShiftFirstBlue:${slot}`) === "1";
+            },
+            onEnable: () => {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    lsSetItem(`ccc:colorShiftFirstBlue:${slot}`, "1");
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "bclp", slot } }));
+                    if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent('ccc:bclp:unlocked'));
+                    }
+                }
+            },
+            onDisable: () => {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    lsSetItem(`ccc:colorShiftFirstBlue:${slot}`, "0");
+                    window.dispatchEvent(new CustomEvent("unlock:change", { detail: { key: "bclp", slot } }));
+                    if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent('ccc:bclp:unlocked'));
                     }
                 }
             },
