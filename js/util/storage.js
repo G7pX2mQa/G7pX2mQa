@@ -456,6 +456,7 @@ export const CURRENCIES = {
     RUBBLE: "rubble",
     RED_CORAL: "red_coral",
     GREEN_CORAL: "green_coral",
+    BLUE_CORAL: "blue_coral",
 };
 
 export const UC_MATERIALS = [
@@ -490,6 +491,7 @@ export const CURRENCY_AREAS = {
     [CURRENCIES.RUBBLE]: "underwater_cavern",
     [CURRENCIES.RED_CORAL]: "coral_reef",
     [CURRENCIES.GREEN_CORAL]: "coral_reef",
+    [CURRENCIES.BLUE_CORAL]: "coral_reef",
 };
 
 let _activeSlotCache = undefined;
@@ -996,7 +998,7 @@ export function peekCurrency(slot, key) {
 }
 // -------------------- BANK FACADE --------------------
 function makeCurrencyHandle(key) {
-    // callable preview: bank.coins("1e3")
+    // callable preview: bank.coins(1e3)
     const fn = (x) => {
         try {
             const bn = BigNum.fromAny(x);
