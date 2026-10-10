@@ -1020,12 +1020,12 @@ Reward: Reveals two new Coral Reef upgrades + unlocks a new Waterwheel + reveals
 Coral Reef has gone long enough without the final color; it's been waiting so long
 Can you guess what the final color might be? Or have you already figured it out?
 
-You know what to do
+You know what to do; make sure you're prepared
 
 Effect: Waves are entirely unobtainable from Surge resets
 Effect Modifier: Rubble Upgrades inside this and all future Collapse Challenges scale 5x more harshly
 Goal: Reach Pressure: 110atm
-Reward: Reveals three new Coral Reef upgrades + adds a new color to Color Shift + reveals a new automation upgrade`.trim();
+Reward: Unlocks the final color in Color Shift + reveals a new automation upgrade`.trim();
     } else {
         baseDescText = `The Challenge of ${capitalName}
 [Placeholder challenge text]`.trim();
