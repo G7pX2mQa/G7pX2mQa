@@ -417,6 +417,7 @@ let initDpSystem;
 let initPpSystem;
 let initRclpSystem;
 let initGclpSystem;
+let initBclpSystem;
 let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
 let initPopups;
@@ -553,17 +554,58 @@ function initGreenCoralHudCounter() {
     window.addEventListener("saveSlot:change", updateGreenCoralHudCounter);
 }
 
+let blueCoralHudListenerBound = false;
+function updateBlueCoralHudCounter() {
+    if (!bank) return;
+    const amountEls = document.querySelectorAll(".blue-coral-amount");
+    if (!amountEls.length) return;
+
+    let formatted = "0";
+    try {
+        formatted = bank.blue_coral?.fmt?.(bank.blue_coral.value) ?? "0";
+    } catch {}
+
+    amountEls.forEach((amountEl) => {
+        setHtmlOrText(amountEl, formatted);
+    });
+}
+
+function initBlueCoralHudCounter() {
+    updateBlueCoralHudCounter();
+    if (blueCoralHudListenerBound || typeof window === "undefined") return;
+    blueCoralHudListenerBound = true;
+    window.addEventListener("currency:change", (event) => {
+        if (event?.detail?.key !== "blue_coral") return;
+        updateBlueCoralHudCounter();
+    });
+    window.addEventListener("setting:changed", (event) => {
+        if (event?.detail?.key === "number_notation") {
+            updateBlueCoralHudCounter();
+        }
+    });
+    window.addEventListener("saveSlot:change", updateBlueCoralHudCounter);
+}
+
 function updateCoralHudVisibility() {
     if (currentArea !== AREAS.CORAL_REEF) return;
     const mode = getCoralColorMode();
     const redCounter = document.querySelector(".hud-top .red-coral-counter");
     const greenCounter = document.querySelector(".hud-top .green-coral-counter");
+    const blueCounter = document.querySelector(".hud-top .blue-coral-counter");
+    
     if (mode === "green") {
         if (redCounter) redCounter.style.display = "none";
+        if (blueCounter) blueCounter.style.display = "none";
         if (greenCounter) greenCounter.style.display = "";
         updateGreenCoralHudCounter();
+    } else if (mode === "blue") {
+        if (redCounter) redCounter.style.display = "none";
+        if (greenCounter) greenCounter.style.display = "none";
+        if (blueCounter) blueCounter.style.display = "";
+        updateBlueCoralHudCounter();
     } else {
         if (greenCounter) greenCounter.style.display = "none";
+        if (blueCounter) blueCounter.style.display = "none";
         if (redCounter) redCounter.style.display = "";
         updateRedCoralHudCounter();
     }
@@ -1376,6 +1418,11 @@ export function enterArea(areaID, fadeDuration = 0) {
                 initGclpSystem();
             } catch {}
         }
+        if (typeof initBclpSystem === "function") {
+            try {
+                initBclpSystem();
+            } catch {}
+        }
 
         // Determine the correct playfield selector based on the active area
         let playfieldSelector = ".playfield";
@@ -1553,6 +1600,8 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (redCoralCounter) redCoralCounter.style.display = "none";
             const greenCoralCounter = document.querySelector(".hud-top .green-coral-counter");
             if (greenCoralCounter) greenCoralCounter.style.display = "none";
+            const blueCoralCounter = document.querySelector(".hud-top .blue-coral-counter");
+            if (blueCoralCounter) blueCoralCounter.style.display = "none";
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "";
 
@@ -1656,6 +1705,8 @@ export function enterArea(areaID, fadeDuration = 0) {
             if (redCoralCounter) redCoralCounter.style.display = "none";
             const greenCoralCounter = document.querySelector(".hud-top .green-coral-counter");
             if (greenCoralCounter) greenCoralCounter.style.display = "none";
+            const blueCoralCounter = document.querySelector(".hud-top .blue-coral-counter");
+            if (blueCoralCounter) blueCoralCounter.style.display = "none";
             updateScrapHudCounter();
             const coinCounter = document.querySelector(".coin-counter");
             if (coinCounter) coinCounter.style.display = "none";
@@ -2164,6 +2215,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         import("./game/coralPickup.js"),
         import("./game/rclpSystem.js"),
         import("./game/gclpSystem.js"),
+        import("./game/bclpSystem.js"),
     ]);
 
     const ASSET_MANIFEST = {
@@ -2183,6 +2235,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 			"img/currencies/coral/coral_green_base.webp",
 			"img/currencies/coral/coral_green_ceiling.webp",
 			"img/currencies/coral/coral_green_plus_base.webp",
+			"img/currencies/coral/coral_blue.webp",
+			"img/currencies/coral/coral_blue_base.webp",
+			"img/currencies/coral/coral_blue_ceiling.webp",
+			"img/currencies/coral/coral_blue_plus_base.webp",
 			"img/currencies/coral/coral_red.webp",
 			"img/currencies/coral/coral_red_base.webp",
 			"img/currencies/coral/coral_red_ceiling.webp",
@@ -2330,6 +2386,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             "img/stats/fp/fp_plus_base.webp",
 			"img/stats/gclp/gclp.webp",
 			"img/stats/gclp/gclp_plus_base.webp",
+			"img/stats/bclp/bclp.webp",
+			"img/stats/bclp/bclp_plus_base.webp",
             "img/stats/mp/mp.webp",
             "img/stats/mp/mp_base.webp",
             "img/stats/mp/mp_plus_base.webp",
@@ -2475,6 +2533,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         coralPickupModule,
         rclpSystemModule,
         gclpSystemModule,
+        bclpSystemModule,
     ] = await modulePromise;
 
     ({ initSlots } = slotsModule);
@@ -2500,6 +2559,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initScrapHudCounter();
     initRedCoralHudCounter();
     initGreenCoralHudCounter();
+    initBlueCoralHudCounter();
     void saveIntegrityModule;
     ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged, AREA_KEYS } = upgradesModule);
     ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
@@ -2508,6 +2568,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ({ initPpSystem } = ppModule);
     ({ initRclpSystem } = rclpSystemModule);
     ({ initGclpSystem } = gclpSystemModule);
+    ({ initBclpSystem } = bclpSystemModule);
     ({ initResetSystem: initResetSystemGame } = resetModule);
     ({
         initMutationSystem,
@@ -3236,3 +3297,4 @@ window.addEventListener("webglcontextlost", (e) => {
 }, true);
 
 window.enterArea = enterArea;
+
