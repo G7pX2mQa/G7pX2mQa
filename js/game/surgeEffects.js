@@ -6,6 +6,7 @@ import {
     addExternalXpGainMultiplierProvider,
     getXpState,
     setExternalBookRewardProvider,
+    syncCoinMultiplierWithXpLevel,
 } from "./xpSystem.js";
 import { syncCurrencyMultipliersFromUpgrades } from "./upgradeEffects.js";
 import { addExternalMutationGainMultiplierProvider, addFinalMutationGainMultiplierProvider, getTotalCumulativeMp, getMutationState } from "./mutationSystem.js";
@@ -664,7 +665,7 @@ export function getNormalBookProductionRate() {
         baseRate = BigNum.fromAny("Infinity");
     } else {
         // BigNum-safe logic for 10^(0.086... * xpLevel)
-        if (xpLevelBn.cmp(1e16) > 0) {
+        if (xpLevelBn.cmp("1e16") > 0) {
             // Exponent E = floor(xpLevel * 0.086858...)
             // We can calculate this using BigNum math.
             const logValBn = xpLevelBn.mulDecimal(String(LOG10_EXP_0_2), BigNum.DEFAULT_PRECISION);
@@ -1013,6 +1014,9 @@ export function initSurgeEffects() {
             } else if (wasActive && !isActive) {
                 setTsunamiNerf(1.0);
             }
+            try {
+                syncCoinMultiplierWithXpLevel(true);
+            } catch {}
         });
         window.addEventListener("lab:node:change", () => {
             updateMultiplier();
