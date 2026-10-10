@@ -8,7 +8,7 @@ import { settingsManager } from "./settingsManager.js";
 const CORAL_ASSETS = {
     red: "img/currencies/coral/coral_red.webp",
     green: "img/currencies/coral/coral_green.webp",
-    // future: blue, etc.
+    blue: "img/currencies/coral/coral_blue.webp",
 };
 
 const SINE_TABLE_SIZE = 4096;
