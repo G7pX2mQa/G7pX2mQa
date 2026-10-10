@@ -119,23 +119,7 @@ html.is-mobile {
     filter: grayscale(0.8);
 }
 
-@keyframes voidSurgeWavePulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px rgba(0, 0, 0, 0.4),
-      0 6px 0 hsl(0 0% 5%);
-  }
-  50% {
-    box-shadow:
-      0 0 18px 5px rgba(0, 0, 0, 0.8),
-      0 6px 0 hsl(0 0% 5%);
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px rgba(0, 0, 0, 0.4),
-      0 6px 0 hsl(0 0% 5%);
-  }
-}
+
 /* Void Gem Altar Visual Effects (Portal/Gateway) */
 .void-overlay {
     position: fixed;
