@@ -409,7 +409,7 @@ html.is-mobile {
 .merchant-tab {
   flex-shrink: 0;
   padding: 6px 12px;
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--merchant-border);
   background: hsl(0 0% 100% / .04);
   color: #fff;
@@ -455,7 +455,7 @@ html.is-mobile {
   align-items: start;
   text-align: left;
   padding: clamp(8px,1.2vw,12px) clamp(10px,2vw,14px);
-  border-radius: 6px;
+  border-radius: 4px;
   border: 2px solid var(--merchant-border, rgba(255,255,255,.12));
   color: #fff;
   cursor: pointer;
