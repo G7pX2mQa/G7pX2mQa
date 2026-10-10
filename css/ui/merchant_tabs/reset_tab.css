@@ -351,68 +351,11 @@
     0 1px 0 rgba(0,0,0,0.55);
 }
 
-@keyframes forgeFirePulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px hsl(28 100% 60% / 0.3),
-      0 6px 0 hsl(24 90% 20%),
-      0 0 0 3px hsl(24 96% 10% / 0.9);
-  }
-  50% {
-    box-shadow:
-      0 0 18px 5px hsl(28 100% 65% / 0.55),
-      0 6px 0 hsl(24 90% 20%),
-      0 0 0 3px hsl(24 96% 12% / 1);
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px hsl(28 100% 60% / 0.3),
-      0 6px 0 hsl(24 90% 20%),
-      0 0 0 3px hsl(24 96% 10% / 0.9);
-  }
-}
 
-@keyframes infuseMagicPulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px hsl(270 100% 60% / 0.3),
-      0 6px 0 hsl(260 90% 20%),
-      0 0 0 3px hsl(260 96% 10% / 0.9);
-  }
-  50% {
-    box-shadow:
-      0 0 18px 5px hsl(270 100% 65% / 0.55),
-      0 6px 0 hsl(260 90% 20%),
-      0 0 0 3px hsl(260 96% 12% / 1);
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px hsl(270 100% 60% / 0.3),
-      0 6px 0 hsl(260 90% 20%),
-      0 0 0 3px hsl(260 96% 10% / 0.9);
-  }
-}
 
-@keyframes surgeWavePulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px hsl(213 100% 60% / 0.3),
-      0 6px 0 hsl(213 90% 20%),
-      0 0 0 3px hsl(213 96% 10% / 0.9);
-  }
-  50% {
-    box-shadow:
-      0 0 18px 5px hsl(193 100% 65% / 0.55),
-      0 6px 0 hsl(213 90% 20%),
-      0 0 0 3px hsl(213 96% 12% / 1);
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px hsl(213 100% 60% / 0.3),
-      0 6px 0 hsl(213 90% 20%),
-      0 0 0 3px hsl(213 96% 10% / 0.9);
-  }
-}
+
+
+
 
 .merchant-reset__action.disabled,
 .merchant-reset__action:disabled {
@@ -801,26 +744,7 @@ html.is-mobile {
   box-shadow: inset 0 0 0 2px rgba(42, 82, 152, 0.65);
 }
 
-@keyframes experimentPulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px #3b6cc94d,
-      0 6px 0 #0e1622,
-      0 0 0 3px #101a2ee6;
-  }
-  50% {
-    box-shadow:
-      0 0 18px 5px #4a7bd88c,
-      0 6px 0 #0e1622,
-      0 0 0 3px #0a1020;
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px #3b6cc94d,
-      0 6px 0 #0e1622,
-      0 0 0 3px #101a2ee6;
-  }
-}
+
 
 .btn-dna-shop {
   appearance: none;
@@ -1012,26 +936,7 @@ html.is-mobile {
   box-shadow: inset 0 0 0 2px rgba(80, 80, 80, 0.65);
 }
 
-@keyframes combinePulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px rgba(80,80,80,0.3),
-      0 6px 0 #000000,
-      0 0 0 3px rgba(10,10,10,0.9);
-  }
-  50% {
-    box-shadow:
-      0 0 18px 5px rgba(100,100,100,0.5),
-      0 6px 0 #000000,
-      0 0 0 3px #050505;
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px rgba(80,80,80,0.3),
-      0 6px 0 #000000,
-      0 0 0 3px rgba(10,10,10,0.9);
-  }
-}
+
 
 /* Compress Theme */
 .merchant-reset__card.is-compress {
@@ -1061,26 +966,7 @@ html.is-mobile {
   box-shadow: inset 0 0 0 2px rgba(255, 120, 180, 0.65);
 }
 
-@keyframes compressPulse {
-  0% {
-    box-shadow:
-      0 0 10px 2px hsl(330 90% 60% / 0.3),
-      0 6px 0 hsl(310 90% 20%),
-      0 0 0 3px hsl(310 96% 10% / 0.9);
-  }
-  50% {
-    box-shadow:
-      0 0 25px 8px hsl(330 100% 65% / 0.6),
-      0 6px 0 hsl(310 90% 20%),
-      0 0 0 3px hsl(310 100% 15%);
-  }
-  100% {
-    box-shadow:
-      0 0 10px 2px hsl(330 90% 60% / 0.3),
-      0 6px 0 hsl(310 90% 20%),
-      0 0 0 3px hsl(310 96% 10% / 0.9);
-  }
-}
+
 
 .merchant-reset__action::before {
     content: "";
