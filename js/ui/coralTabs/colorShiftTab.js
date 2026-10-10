@@ -187,8 +187,7 @@ function renderColorShiftCard(card, firstTimeText) {
         firstTimeText.style.color = "";
         firstTimeText.style.display = "";
     } else if (mode === "green" && lsGetItem(sk("ccc:colorShiftFirstBlue")) !== "1" && nextMode === "blue") {
-        firstTimeText.innerHTML = "Color Shifting for the first time will unlock Blue Coral Level and new Shop upgrades<br>More information about Blue Coral Level can be found post-shift";
-        firstTimeText.style.color = "#0000FF";
+        firstTimeText.innerHTML = "Color Shifting for the first time will unlock Blue Coral Level<br>More information about Blue Coral Level can be found post-shift";
         firstTimeText.style.display = "";
     } else {
         firstTimeText.style.display = "none";
