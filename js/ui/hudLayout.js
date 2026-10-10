@@ -39,22 +39,30 @@ export function syncDpPpHudLayout() {
   }
 }
 
-export function syncRclpGclpHudLayout() {
+export function syncCoralHudLayout() {
   if (typeof document === 'undefined') return;
   const hud = document.querySelector('.hud-top');
   if (!hud) return;
 
   const rclpEl = document.querySelector('[data-rclp-hud]');
   const gclpEl = document.querySelector('[data-gclp-hud]');
+  const bclpEl = document.querySelector('[data-bclp-hud]');
   const gameRoot = document.getElementById('game-root');
   const isCoralHud = (gameRoot && gameRoot.classList.contains('area-coral')) || !!hud.closest('.area-coral');
   const rclpVisible = isCoralHud && !!(rclpEl && !rclpEl.hasAttribute('hidden'));
   const gclpVisible = isCoralHud && !!(gclpEl && !gclpEl.hasAttribute('hidden'));
+  const bclpVisible = isCoralHud && !!(bclpEl && !bclpEl.hasAttribute('hidden'));
 
-  hud.classList.toggle('hud-top--rclp-only', rclpVisible && !gclpVisible);
-  hud.classList.toggle('hud-top--rclp-gclp', rclpVisible && gclpVisible);
+  let count = 0;
+  if (rclpVisible) count++;
+  if (gclpVisible) count++;
+  if (bclpVisible) count++;
 
-  if (!rclpVisible && !gclpVisible) {
-    hud.classList.remove('hud-top--rclp-only', 'hud-top--rclp-gclp');
+  hud.classList.toggle('hud-top--1-coral', count === 1);
+  hud.classList.toggle('hud-top--2-coral', count === 2);
+  hud.classList.toggle('hud-top--3-coral', count === 3);
+
+  if (count === 0) {
+    hud.classList.remove('hud-top--1-coral', 'hud-top--2-coral', 'hud-top--3-coral');
   }
 }
