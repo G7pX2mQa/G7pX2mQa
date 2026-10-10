@@ -169,7 +169,7 @@ export const RUBBLE_REGISTRY = [
         title: "Rubble Free Surge",
         desc: "Grants +1 free Surge per level\nFree Surges do not affect Wave requirement",
         lvlCap: Infinity,
-        baseCost: "1e888",
+        baseCost: "1e900",
         costType: "rubble",
         upgType: "NM",
         scalingPreset: 'NM',
