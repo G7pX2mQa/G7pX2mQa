@@ -1,11 +1,11 @@
 - Do **not** modify `styles.css` or `bundle.js`; these files are generated automatically. Any requested changes to styling or JavaScript should be made in the source files that feed the build process, not in the generated bundles.
 - If a change appears to require editing the generated files, stop and ask for clarification instead.
-- Do **not** modify `package-lock.json` ever.
+- Do **not** modify `package-lock.json`; this current repo doesn't have a license but prod will.
 - When creating new keys to save to localStorage, it is VERY important that all entries start with the prefix ccc and end with the current slot number. Also don't use the native localStorage setters or removers or getters, but use the custom functions `lsSetItem` or `lsRemoveItem` or `lsGetItem`.
 - I cannot stress this enough, NEVER use anything other than `lsSetItem`/`lsRemoveItem`/`lsGetItem` unless the user explicitly approves.
 - When applicable, make sure to not ever save things to localStorage if the current save slot is null.
 - Never use BigInt.
 - For CSS, make sure to reference `html.is-mobile` when referring to mobile, and make sure to not redundantly declare box-sizing: border-box on any new css elements, because there is already a global selector in one of the css files that applies this globally.
 - Additionally for CSS, try and use very conservative rounded borders (exactly 5px border radius), NEVER pill shapes unless explicitly instructed, and also don't add translateY on active hover of a button unless explicitly instructed.
-- When typing numbers for code, generally use the rule of thumb to use a normal number for 1e15 or below (1e15) or a string for above ("1e16"). See other numbers in the codebase for reference.
+- When typing numbers for code (specifically numbers that pass through BigNum.fromAny), generally use the rule of thumb to use a normal number for 1e15 or below (1e15) or a string for above ("1e16"). See other numbers in the codebase for reference.
 - Most importantly, NEVER use `git checkout`. I never use this command and so using it will drastically destroy file data.
