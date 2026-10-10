@@ -129,7 +129,8 @@ export const CORAL_REGISTRY = [
         costType: "red_coral",
         upgType: "NM",
         effectType: "scrap_value",
-        icon: "img/lab_icons/scrap_val0.webp",
+        icon: "img/currencies/scrap/scrap.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel(level) {
             return computeDefaultUpgradeCost(this.baseCost, level, this.upgType);
         },
@@ -172,7 +173,8 @@ export const CORAL_REGISTRY = [
         costType: "red_coral",
         upgType: "NM",
         effectType: "rp_value",
-        icon: "img/uc_upg_icons/rp_val1.webp",
+        icon: "img/stats/rp/rp.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel(level) {
             const normalizedLevel = Math.max(0, Number(level) || 0);
             if (normalizedLevel >= this.lvlCap) return BigNum.fromAny("Infinity");
@@ -214,7 +216,8 @@ export const CORAL_REGISTRY = [
         costType: "red_coral",
         upgType: "NM",
         effectType: "pp_value",
-        icon: "img/lab_icons/pp_val0.webp",
+        icon: "img/stats/pp/pp.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel(level) {
             const mult = E.powPerLevel(5)(level);
             if (mult && typeof mult.mulSmall === "function") {
@@ -300,7 +303,8 @@ export const CORAL_REGISTRY = [
         costType: "green_coral",
         upgType: "NM",
         effectType: "red_coral_value",
-        icon: "img/coral_upg_icons/red_coral_link.webp",
+        icon: "img/currencies/coral/coral_red.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel() {
             return BigNum.fromAny(1e6);
         },
@@ -363,7 +367,8 @@ export const CORAL_REGISTRY = [
         costType: "red_coral",
         upgType: "NM",
         effectType: "green_coral_value",
-        icon: "img/coral_upg_icons/green_coral_link.webp",
+        icon: "img/currencies/coral/coral_green.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         costAtLevel() {
             return BigNum.fromAny(1e12);
         },
@@ -524,7 +529,8 @@ export const CORAL_REGISTRY = [
         lvlCap: 1,
         costType: "green_coral",
         upgType: "NM",
-        icon: "img/coral_upg_icons/enhanced_red_coral_link.webp",
+        icon: "img/currencies/coral/coral_red.webp",
+        extraIcon: "img/extra_icons/ei_enhanced_value.webp",
         costAtLevel() {
             return BigNum.fromAny("1e33");
         },
@@ -574,7 +580,8 @@ export const CORAL_REGISTRY = [
         lvlCap: 1,
         costType: "red_coral",
         upgType: "NM",
-        icon: "img/coral_upg_icons/enhanced_green_coral_link.webp",
+        icon: "img/currencies/coral/coral_green.webp",
+        extraIcon: "img/extra_icons/ei_enhanced_value.webp",
         costAtLevel() {
             return BigNum.fromAny("1e51");
         },
