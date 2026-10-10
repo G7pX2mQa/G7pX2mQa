@@ -47,6 +47,13 @@ export function ensureGameDom(layerCount, startZ) {
           </div>
         </div>
 
+        <div class="blue-coral-counter" style="display: none;">
+          <img src="img/currencies/coral/coral_blue_plus_base.webp" alt="" class="blue-coral-plus"/>
+          <div class="blue-coral-bar">
+            <span class="blue-coral-amount">0</span>
+          </div>
+        </div>
+
         <div class="xp-counter" data-xp-hud hidden>
           <img src="img/stats/xp/xp_plus_base.webp" alt="" class="xp-plus"/>
 
@@ -162,6 +169,26 @@ export function ensureGameDom(layerCount, startZ) {
 
               <div class="gclp-bar__progress" data-gclp-progress>
                 0<span class="gclp-progress-separator">/</span>10<span class="gclp-progress-suffix">GCLP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bclp-counter" data-bclp-hud hidden>
+          <img src="img/stats/bclp/bclp_plus_base.webp" alt="" class="bclp-plus"/>
+
+          <div class="bclp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 BCLP">
+            <div class="bclp-bar__fill" style="width: 0%"></div>
+
+            <div class="bclp-bar__frame">
+              <div class="bclp-bar__level">
+                ${RESOURCE_REGISTRY.find((c) => c.key === "bclp_levels")?.barText?.replace("{val}", "0") || 'Blue Coral Level <span class="bclp-level-value">0</span>'}
+              </div>
+
+              <div class="bclp-bar__divider" aria-hidden="true"></div>
+
+              <div class="bclp-bar__progress" data-bclp-progress>
+                0<span class="bclp-progress-separator">/</span>10<span class="bclp-progress-suffix">BCLP</span>
               </div>
             </div>
           </div>
