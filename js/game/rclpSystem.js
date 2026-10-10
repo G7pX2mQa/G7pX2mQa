@@ -162,12 +162,12 @@ export function addRclp(amountBn) {
                     } else {
                         high = mid - 1;
                     }
-                    if (midLog === Number.POSITIVE_INFINITY) break;
+
                 }
 
                 const estimatedGain = best - currentLevelNum;
                 if (estimatedGain > 10) {
-                    const safeGain = Math.max(0, estimatedGain - 5);
+                    const safeGain = (best >= 4.5e12) ? estimatedGain : Math.max(0, estimatedGain - 5);
                     if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
                         const safeGainBn = BigNum.fromAny(safeGain.toString());
                         state.rclpLevel = state.rclpLevel.add(safeGainBn);
