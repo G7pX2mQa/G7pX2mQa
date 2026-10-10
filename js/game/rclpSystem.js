@@ -84,7 +84,7 @@ function computeRclpRequirement(levelBn) {
     }
     
     let totalLog10 = 1 + L * Math.log10(2);
-    const softcapStart = 4e12; // 4 Trillion
+    const softcapStart = 1e12; // 1 Trillion
     if (L > softcapStart) {
         const softcapDeltaNum = L - softcapStart;
         const baseSoftcapLog = 5;
@@ -128,8 +128,8 @@ export function addRclp(amountBn) {
     if (!levelLocked && !progressLocked && state.rclpProg.cmp(req) >= 0) {
         const getLogForLevel = (levelNum) => {
             let totalLog = 1 + levelNum * Math.log10(2);
-            if (levelNum > 4e12) {
-                const softcapDelta = levelNum - 4e12;
+            if (levelNum > 1e12) {
+                const softcapDelta = levelNum - 1e12;
                 totalLog += 5 * Math.exp(2.36034e-10 * softcapDelta);
             }
             return totalLog;
