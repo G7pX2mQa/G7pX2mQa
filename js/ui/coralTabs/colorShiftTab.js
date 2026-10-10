@@ -178,24 +178,20 @@ function renderColorShiftCard(card, firstTimeText) {
     
     card.className = `color-shift-card is-${mode}`;
     
+    let currentColorStr = mode.charAt(0).toUpperCase() + mode.slice(1);
+    let nextMode = getNextCoralColor(mode);
+    let nextColorStr = nextMode.charAt(0).toUpperCase() + nextMode.slice(1);
+
     if (mode === "red" && lsGetItem(sk("ccc:colorShiftFirstGreen")) !== "1") {
         firstTimeText.innerHTML = "Color Shifting for the first time will unlock Green Coral Level and new Shop upgrades<br>More information about Green Coral Level can be found post-shift";
         firstTimeText.style.color = "";
         firstTimeText.style.display = "";
-    } else if (mode === "green" && lsGetItem(sk("ccc:colorShiftFirstBlue")) !== "1") {
+    } else if (mode === "green" && lsGetItem(sk("ccc:colorShiftFirstBlue")) !== "1" && nextMode === "blue") {
         firstTimeText.innerHTML = "Color Shifting for the first time will unlock Blue Coral Level and new Shop upgrades<br>More information about Blue Coral Level can be found post-shift";
         firstTimeText.style.color = "#0000FF";
         firstTimeText.style.display = "";
     } else {
         firstTimeText.style.display = "none";
-    }
-    
-    let currentColorStr = mode.charAt(0).toUpperCase() + mode.slice(1); // "Red", "Green", "Blue"
-    let nextColorStr = "Green";
-    if (mode === "green") {
-        nextColorStr = "Blue";
-    } else if (mode === "blue") {
-        nextColorStr = "Red";
     }
     
     const modeDesc = card.querySelector(".color-shift-mode-desc");
@@ -298,7 +294,7 @@ function renderColorShiftCard(card, firstTimeText) {
 
 if (typeof window !== "undefined") {
     window.addEventListener("unlock:change", (e) => {
-        if (e.detail?.key === "gclp") {
+        if (e.detail?.key === "gclp" || e.detail?.key === "bclp") {
             const card = document.querySelector("#coral-panel-colorshift .color-shift-card");
             const firstTimeText = document.querySelector("#coral-panel-colorshift .color-shift-first-time");
             if (card && firstTimeText) {
