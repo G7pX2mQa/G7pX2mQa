@@ -628,6 +628,15 @@ export const RESOURCE_REGISTRY = [
         type: "currency",
     },
     {
+        key: "blue_coral",
+        bgGradient: "linear-gradient(to bottom, #0000bb 0%, #0000dd 15%, #0000ff 50%, #0000dd 85%, #0000bb 100%)",
+        icon: "img/currencies/coral/coral_blue.webp",
+        baseIcon: "img/currencies/coral/coral_blue_plus_base.webp",
+        singular: "Blue Coral",
+        plural: "Blue Coral",
+        type: "currency",
+    },
+    {
         key: "rclp",
         icon: "img/stats/rclp/rclp.webp",
         singular: "RCLP",
@@ -716,6 +725,51 @@ export const RESOURCE_REGISTRY = [
         plural: "Green Coral Levels",
         type: "levelStat",
         barText: 'Green Coral Level <span class="gclp-level-value">{val}</span>',
+    },
+    {
+        key: "bclp",
+        icon: "img/stats/bclp/bclp.webp",
+        singular: "BCLP",
+        plural: "BCLP",
+        type: "levelProg",
+        simEventName: "ccc:bclp:progress",
+        simEventExtract: (e) => ({
+            levels: e.detail?.levelsGained,
+            progress: e.detail?.delta,
+        }),
+        pinBgGradient: "linear-gradient(180deg, #000066 0%, #000044 100%)",
+        bgGradient: "linear-gradient(to bottom, #0000bb 0%, #0000dd 15%, #0000ff 50%, #0000dd 85%, #0000bb 100%)",
+        fillGradient: "linear-gradient(180deg, #0000ff 0%, #0000dd 45%, #0000bb 100%)",
+        barOutline: "3px",
+        borderColor: "#000000",
+        barBoxShadow: "inset 0 6px 10px rgba(128,128,255,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)",
+        glassBg: "linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0))",
+        glassOpacity: "0.22",
+        getState: () => {
+            const state = window.bclpSystem?.getBclpState();
+            if (!state) return null;
+            const req = window.bclpSystem?.getBclpRequirement();
+            let ratio = 0;
+            if (req && !req.isZero?.()) {
+                const ratioBn = state.bclpProg.div(req);
+                ratio = Number(ratioBn.toScientific?.() ?? "0");
+            }
+            return {
+                level: state.bclpLevel,
+                progress: state.bclpProg,
+                requirement: req,
+                isUnlocked: window.bclpSystem?.isBclpSystemUnlocked?.() ?? false,
+                ratio: Math.min(1, Math.max(0, ratio)),
+            };
+        },
+    },
+    {
+        key: "bclp_levels",
+        icon: "img/stats/bclp/bclp.webp",
+        singular: "Blue Coral Level",
+        plural: "Blue Coral Levels",
+        type: "levelStat",
+        barText: 'Blue Coral Level <span class="bclp-level-value">{val}</span>',
     },
 ];
 
