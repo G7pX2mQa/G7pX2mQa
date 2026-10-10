@@ -2457,7 +2457,8 @@ export const REGISTRY = [
         costType: "coins",
         upgType: "NM",
         effectType: "xp_value",
-        icon: "img/sc_upg_icons/xp_val1.webp",
+        icon: "img/stats/xp/xp.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         requiresUnlockXp: true,
         costAtLevel(level) {
             return nmCostBN(this, level);
@@ -2617,7 +2618,8 @@ export const REGISTRY = [
         costType: "coins",
         upgType: "HM",
         effectType: "xp_value",
-        icon: "img/sc_upg_icons/xp_val_hm.webp",
+        icon: "img/stats/xp/xp.webp",
+        extraIcon: "img/extra_icons/ei_hm.webp",
         requiresUnlockXp: true,
         scalingPreset: "HM",
         costAtLevel(level) {
@@ -2785,7 +2787,8 @@ export const REGISTRY = [
         costType: "coins",
         upgType: "HM",
         effectType: "mp_value",
-        icon: "img/sc_upg_icons/mp_val_hm.webp",
+        icon: "img/stats/mp/mp.webp",
+        extraIcon: "img/extra_icons/ei_hm.webp",
         requiresUnlockXp: true,
         scalingPreset: "HM",
         costAtLevel(level) {
@@ -3006,7 +3009,8 @@ export const REGISTRY = [
         costType: "coins",
         upgType: "HM",
         effectType: "fp_value",
-        icon: "img/sc_upg_icons/fp_val_hm.webp",
+        icon: "img/stats/fp/fp.webp",
+        extraIcon: "img/extra_icons/ei_hm.webp",
         scalingPreset: "HM",
         scalingHarshness: 5,
         costAtLevel(level) {
@@ -3061,14 +3065,19 @@ export const REGISTRY = [
         upgType: "HM",
         scalingPreset: "HM",
         scalingHarshness: (upg) => {
-            const rs = typeof window !== "undefined" ? window.resetSystem : null;
-            if (rs && rs.isCollapseChallengeActive?.()) {
-                const type = rs.getActiveCollapseChallengeType?.();
-                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
+            let type = null;
+            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive) {
+                if (window.resetSystem.isCollapseChallengeActive()) type = window.resetSystem.getActiveCollapseChallengeType();
+            } else {
+                const activeSlot = typeof getActiveSlot !== "undefined" ? getActiveSlot() ?? "default" : "default";
+                const val = lsGetItem(`ccc:collapseChallengeActive:${activeSlot}`);
+                if (val && val !== "") type = val;
             }
+            if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
             return 5;
         },
-        icon: "img/misc/rubble_value.webp",
+        icon: "img/currencies/rubble/rubble.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         baseIconOverride: "img/currencies/coin/coin_base.webp",
         preventPermaUnlock: true,
         effectType: "rubble_value",
@@ -3103,14 +3112,19 @@ export const REGISTRY = [
         upgType: "HM",
         scalingPreset: "HM",
         scalingHarshness: (upg) => {
-            const rs = typeof window !== "undefined" ? window.resetSystem : null;
-            if (rs && rs.isCollapseChallengeActive?.()) {
-                const type = rs.getActiveCollapseChallengeType?.();
-                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 5;
+            let type = null;
+            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive) {
+                if (window.resetSystem.isCollapseChallengeActive()) type = window.resetSystem.getActiveCollapseChallengeType();
+            } else {
+                const activeSlot = typeof getActiveSlot !== "undefined" ? getActiveSlot() ?? "default" : "default";
+                const val = lsGetItem(`ccc:collapseChallengeActive:${activeSlot}`);
+                if (val && val !== "") type = val;
             }
+            if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 5;
             return 1;
         },
-        icon: "img/misc/rubble_value.webp",
+        icon: "img/currencies/rubble/rubble.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         baseIconOverride: "img/currencies/book/book_base.webp",
         preventPermaUnlock: true,
         effectType: "rubble_value",
@@ -3145,14 +3159,19 @@ export const REGISTRY = [
         upgType: "HM",
         scalingPreset: "HM",
         scalingHarshness: (upg) => {
-            const rs = typeof window !== "undefined" ? window.resetSystem : null;
-            if (rs && rs.isCollapseChallengeActive?.()) {
-                const type = rs.getActiveCollapseChallengeType?.();
-                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
+            let type = null;
+            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive) {
+                if (window.resetSystem.isCollapseChallengeActive()) type = window.resetSystem.getActiveCollapseChallengeType();
+            } else {
+                const activeSlot = typeof getActiveSlot !== "undefined" ? getActiveSlot() ?? "default" : "default";
+                const val = lsGetItem(`ccc:collapseChallengeActive:${activeSlot}`);
+                if (val && val !== "") type = val;
             }
+            if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
             return 5;
         },
-        icon: "img/misc/rubble_value.webp",
+        icon: "img/currencies/rubble/rubble.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         baseIconOverride: "img/currencies/gold/gold_base.webp",
         preventPermaUnlock: true,
         effectType: "rubble_value",
@@ -3187,14 +3206,19 @@ export const REGISTRY = [
         upgType: "HM",
         scalingPreset: "HM",
         scalingHarshness: (upg) => {
-            const rs = typeof window !== "undefined" ? window.resetSystem : null;
-            if (rs && rs.isCollapseChallengeActive?.()) {
-                const type = rs.getActiveCollapseChallengeType?.();
-                if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
+            let type = null;
+            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive) {
+                if (window.resetSystem.isCollapseChallengeActive()) type = window.resetSystem.getActiveCollapseChallengeType();
+            } else {
+                const activeSlot = typeof getActiveSlot !== "undefined" ? getActiveSlot() ?? "default" : "default";
+                const val = lsGetItem(`ccc:collapseChallengeActive:${activeSlot}`);
+                if (val && val !== "") type = val;
             }
+            if (type && !["stone", "copper", "iron", "pure_gold"].includes(type)) return 25;
             return 5;
         },
-        icon: "img/misc/rubble_value.webp",
+        icon: "img/currencies/rubble/rubble.webp",
+        extraIcon: "img/extra_icons/ei_value.webp",
         baseIconOverride: "img/currencies/magic/magic_base.webp",
         preventPermaUnlock: true,
         effectType: "rubble_value",
