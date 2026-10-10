@@ -23,6 +23,7 @@ import {
     AUTOBUY_COPPER_BUILDING_ID,
     AUTOBUY_IRON_BUILDING_ID,
     AUTOBUY_PURE_GOLD_BUILDING_ID,
+    AUTOBUY_DIAMOND_BUILDING_ID,
     CORAL_REEF_EAC_ID,
 } from "./automationUpgrades.js";
 import { getCoralColorMode, getCoralCurrencyKey } from "./coralColorMode.js";
@@ -362,6 +363,13 @@ function updateAutobuyers(dt) {
             if (pureGoldBuildingAutobuy) {
                 if (getCollectiveAutobuyerState("pure_gold") === 1) {
                     performFreeBuildingAutobuy("pure_gold");
+                }
+            }
+            // Process Diamond Building Autobuy
+            const diamondBuildingAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_DIAMOND_BUILDING_ID) > 0;
+            if (diamondBuildingAutobuy) {
+                if (getCollectiveAutobuyerState("diamond") === 1) {
+                    performFreeBuildingAutobuy("diamond");
                 }
             }
         });
@@ -976,6 +984,12 @@ registerPassiveSystem({
                                 addGclp(totalGain);
                             }).catch(()=>{});
                         } catch {}
+                    } else if (currentMode === "blue") {
+                        try {
+                            import("./bclpSystem.js").then(({ addBclp }) => {
+                                addBclp(totalGain);
+                            }).catch(()=>{});
+                        } catch {}
                     }
                 }
             }
@@ -1012,8 +1026,15 @@ registerPassiveSystem({
                         addGclp(coralEarned);
                     }).catch(()=>{});
                 } catch {}
+            } else if (currentMode === "blue") {
+                try {
+                    import("./bclpSystem.js").then(({ addBclp }) => {
+                        addBclp(coralEarned);
+                    }).catch(()=>{});
+                } catch {}
             }
         }
         return rewards;
     }
 });
+
