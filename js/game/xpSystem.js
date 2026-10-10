@@ -708,12 +708,12 @@ function normalizeProgress(applyRewards = false) {
                 } else {
                     high = mid - 1;
                 }
-                if (midLog === Number.POSITIVE_INFINITY) break;
+
             }
 
             const estimatedGain = best - currentLevelNum;
             if (estimatedGain > 10) {
-                const safeGain = Math.max(0, estimatedGain - 5);
+                const safeGain = (best >= 4500000000000) ? estimatedGain : Math.max(0, estimatedGain - 5);
                 if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
                     const safeGainBn = BigNum.fromAny(safeGain.toString());
                     xpState.xpLevel = xpState.xpLevel.add(safeGainBn);
@@ -1404,13 +1404,13 @@ export function addXp(amount, { silent = false } = {}) {
                     } else {
                         high = mid - 1;
                     }
-                    if (midLog === Number.POSITIVE_INFINITY) break;
+
                 }
 
                 const estimatedGain = best - currentLevelNum;
                 if (estimatedGain > 10) {
                     // Leave a 5 level buffer for safety, so the while loop cleans up exactly
-                    const safeGain = Math.max(0, estimatedGain - 5);
+                    const safeGain = (best >= 4500000000000) ? estimatedGain : Math.max(0, estimatedGain - 5);
                     // Only process if it is a safe integer to avoid precision drops on huge numbers
                     if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
                         const safeGainBn = BigNum.fromAny(safeGain.toString());
