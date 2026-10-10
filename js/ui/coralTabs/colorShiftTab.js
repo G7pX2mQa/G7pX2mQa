@@ -133,6 +133,8 @@ export function updateColorShiftVisibility() {
             if (nextMode === "green") {
                 lsSetItem(sk("ccc:colorShiftFirstGreen"), "1");
                 window.gclpSystem?.unlockGclpSystem?.();
+            } else if (nextMode === "blue") {
+                lsSetItem(sk("ccc:colorShiftFirstBlue"), "1");
             }
             
             if (window.coralSpawner) {
@@ -177,16 +179,23 @@ function renderColorShiftCard(card, firstTimeText) {
     card.className = `color-shift-card is-${mode}`;
     
     if (mode === "red" && lsGetItem(sk("ccc:colorShiftFirstGreen")) !== "1") {
+        firstTimeText.innerHTML = "Color Shifting for the first time will unlock Green Coral Level and new Shop upgrades<br>More information about Green Coral Level can be found post-shift";
+        firstTimeText.style.color = "";
+        firstTimeText.style.display = "";
+    } else if (mode === "green" && lsGetItem(sk("ccc:colorShiftFirstBlue")) !== "1") {
+        firstTimeText.innerHTML = "Color Shifting for the first time will unlock Blue Coral Level and new Shop upgrades<br>More information about Blue Coral Level can be found post-shift";
+        firstTimeText.style.color = "#0000FF";
         firstTimeText.style.display = "";
     } else {
         firstTimeText.style.display = "none";
     }
     
-    let currentColorStr = mode === "red" ? "Red" : "Green";
+    let currentColorStr = mode.charAt(0).toUpperCase() + mode.slice(1); // "Red", "Green", "Blue"
     let nextColorStr = "Green";
     if (mode === "green") {
-        const hasBlue = lsGetItem(sk("ccc:blueCoralUnlocked")) === "1";
-        nextColorStr = hasBlue ? "Blue" : "Red";
+        nextColorStr = "Blue";
+    } else if (mode === "blue") {
+        nextColorStr = "Red";
     }
     
     const modeDesc = card.querySelector(".color-shift-mode-desc");
@@ -198,6 +207,8 @@ function renderColorShiftCard(card, firstTimeText) {
             breakdown = `\n\nRed Coral breakdown:\n- Red Coral Level doubles Coin, XP, Book, Gold, MP, Magic, Gear, Wave, and RP value per level\n- Red Coral value is doubled per atm of Pressure after 31`;
         } else if (mode === "green") {
             breakdown = `\n\nGreen Coral breakdown:\n- Green Coral Level doubles DNA, FP, Scrap, Stone, Copper, Iron, Pure Gold, Diamond, and Emerald value per level\n- Green Coral value is doubled per 2 atms of Pressure after 31`;
+        } else if (mode === "blue") {
+            breakdown = `\n\nBlue Coral breakdown:\n- Blue Coral Level doubles Ruby, Sapphire, Unobtainium, Prismatium, Core, DP, Crystal, PP, and Rubble value per level\n- Blue Coral value is doubled per 3 atms of Pressure after 31`;
         }
         
         modeDesc.innerText = `You are currently in ${currentColorStr} mode, ${actionWord} the button below to change to ${nextColorStr} mode${breakdown}`;
@@ -235,8 +246,8 @@ function renderColorShiftCard(card, firstTimeText) {
             const layout = card.querySelector(".color-shift-layout");
             if (layout) layout.appendChild(bottomCloneWrap);
         }
-        const plusSizeVar = mode === "red" ? "var(--rclp-plus-size)" : "var(--gclp-plus-size)";
-        const barHVar = mode === "red" ? "var(--rclp-bar-h)" : "var(--gclp-bar-h)";
+        const plusSizeVar = mode === "red" ? "var(--rclp-plus-size)" : mode === "green" ? "var(--gclp-plus-size)" : "var(--bclp-plus-size)";
+        const barHVar = mode === "red" ? "var(--rclp-bar-h)" : mode === "green" ? "var(--gclp-bar-h)" : "var(--bclp-bar-h)";
         
         bottomCloneWrap.style.gridRow = "4";
         bottomCloneWrap.style.alignSelf = "stretch";
@@ -248,8 +259,8 @@ function renderColorShiftCard(card, firstTimeText) {
         bottomCloneWrap.style.marginBottom = "0";
         bottomCloneWrap.style.paddingTop = "0";
         
-        const counterClass = mode === "red" ? ".red-coral-counter" : ".green-coral-counter";
-        const progressClass = mode === "red" ? ".rclp-counter" : ".gclp-counter";
+        const counterClass = mode === "red" ? ".red-coral-counter" : mode === "green" ? ".green-coral-counter" : ".blue-coral-counter";
+        const progressClass = mode === "red" ? ".rclp-counter" : mode === "green" ? ".gclp-counter" : ".bclp-counter";
         
         const realCounter = document.querySelector(`.hud-top ${counterClass}`);
         const realProgress = document.querySelector(progressClass);
@@ -270,6 +281,7 @@ function renderColorShiftCard(card, firstTimeText) {
             clone.removeAttribute("id");
             clone.removeAttribute("data-rclp-hud");
             clone.removeAttribute("data-gclp-hud");
+            clone.removeAttribute("data-bclp-hud");
             bottomCloneWrap.appendChild(clone);
             
             // Grid items cannot shrink below their physical content box size, so negative margins
@@ -295,3 +307,4 @@ if (typeof window !== "undefined") {
         }
     });
 }
+
