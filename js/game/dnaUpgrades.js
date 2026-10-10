@@ -164,7 +164,8 @@ export const REGISTRY = [
         }
         return 5;
     },
-    icon: "img/misc/rubble_value.webp",
+    icon: "img/currencies/rubble/rubble.webp",
+    extraIcon: "img/extra_icons/ei_value.webp",
     baseIconOverride: "img/currencies/dna/dna_base.webp",
     preventPermaUnlock: true,
     effectType: "rubble_value",
