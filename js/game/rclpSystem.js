@@ -1,4 +1,4 @@
-import { BigNum, bigNumFromLog10 } from "../util/bigNum.js";
+import { BigNum, bigNumFromLog10, approxLog10BigNum } from "../util/bigNum.js";
 import { getActiveSlot, isStorageKeyLocked } from "../util/storage.js";
 import { lsGetItem, lsSetItem } from "../main.js";
 import { E, levelBigNumToNumber } from "./upgrades.js";
@@ -84,7 +84,7 @@ function computeRclpRequirement(levelBn) {
     }
     
     let totalLog10 = 1 + L * Math.log10(2);
-    const softcapStart = 1e12; // 1 Trillion
+    const softcapStart = 4e12; // 4 Trillion
     if (L > softcapStart) {
         const softcapDeltaNum = L - softcapStart;
         const baseSoftcapLog = 5;
@@ -125,18 +125,78 @@ export function addRclp(amountBn) {
     let levelsGainedBn = BigNum.fromInt(0);
     let leveledUp = false;
     
-    let guard = 0;
-    const limit = 10000;
-    while (!levelLocked && state.rclpProg.cmp(req) >= 0 && guard < limit) {
-        if (state.rclpProg.inf || req.inf) break;
-        if (progressLocked) break;
+    if (!levelLocked && !progressLocked && state.rclpProg.cmp(req) >= 0) {
+        const getLogForLevel = (levelNum) => {
+            let totalLog = 1 + levelNum * Math.log10(2);
+            if (levelNum > 4e12) {
+                const softcapDelta = levelNum - 4e12;
+                totalLog += 5 * Math.exp(2.36034e-10 * softcapDelta);
+            }
+            return totalLog;
+        };
+
+        const currentProgressLog = approxLog10BigNum(state.rclpProg);
+        const reqLog = approxLog10BigNum(req);
+
+        if (currentProgressLog - reqLog > 2) {
+            const baseLevelBn = state.rclpLevel;
+            let currentLevelNum;
+            try {
+                currentLevelNum = baseLevelBn.inf
+                    ? Infinity
+                    : baseLevelBn.sig * Math.pow(10, baseLevelBn.e);
+            } catch {
+                currentLevelNum = 0;
+            }
+
+            if (Number.isFinite(currentLevelNum)) {
+                let low = currentLevelNum;
+                let high = Math.max(currentLevelNum, 4.5e12);
+                let best = currentLevelNum;
+                for (let i = 0; i < 60; i++) {
+                    const mid = Math.floor((low + high) / 2);
+                    const midLog = getLogForLevel(mid);
+                    if (midLog <= currentProgressLog) {
+                        best = mid;
+                        low = mid + 1;
+                    } else {
+                        high = mid - 1;
+                    }
+                    if (midLog === Number.POSITIVE_INFINITY) break;
+                }
+
+                const estimatedGain = best - currentLevelNum;
+                if (estimatedGain > 10) {
+                    const safeGain = Math.max(0, estimatedGain - 5);
+                    if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
+                        const safeGainBn = BigNum.fromAny(safeGain.toString());
+                        state.rclpLevel = state.rclpLevel.add(safeGainBn);
+                        levelsGainedBn = levelsGainedBn.add(safeGainBn);
+                        req = computeRclpRequirement(state.rclpLevel);
+                        leveledUp = true;
+                    }
+                }
+            }
+        }
         
-        state.rclpProg = state.rclpProg.sub(req);
-        state.rclpLevel = state.rclpLevel.add(1);
-        levelsGainedBn = levelsGainedBn.add(1);
-        req = computeRclpRequirement(state.rclpLevel);
-        leveledUp = true;
-        guard++;
+        let guard = 0;
+        const limit = 500;
+        while (state.rclpProg.cmp(req) >= 0 && guard < limit) {
+            if (state.rclpProg.inf || req.inf) break;
+            
+            state.rclpProg = state.rclpProg.sub(req);
+            state.rclpLevel = state.rclpLevel.add(1);
+            levelsGainedBn = levelsGainedBn.add(1);
+            req = computeRclpRequirement(state.rclpLevel);
+            leveledUp = true;
+            guard++;
+        }
+
+        if (state.rclpLevel && typeof state.rclpLevel.cmp === "function" && state.rclpLevel.cmp(4.5e12) >= 0) {
+            state.rclpLevel = BigNum.fromAny("Infinity");
+            state.rclpProg = BigNum.fromAny("Infinity");
+            req = computeRclpRequirement(state.rclpLevel);
+        }
     }
     
     saveState(state);
@@ -276,7 +336,7 @@ function ensureHudRefs() {
 
 import { formatNumber } from "../util/numFormat.js";
 import { setHtmlOrText, stripHtml } from "../util/uiHelpers.js";
-import { syncRclpGclpHudLayout } from "../ui/hudLayout.js";
+import { syncCoralHudLayout } from "../ui/hudLayout.js";
 
 export function updateRclpHud() {
     const containers = document.querySelectorAll(".rclp-counter");
@@ -295,7 +355,7 @@ export function updateRclpHud() {
         } else {
             mainContainer.removeAttribute("hidden");
         }
-        syncRclpGclpHudLayout();
+        syncCoralHudLayout();
     }
     
     containers.forEach(container => {
