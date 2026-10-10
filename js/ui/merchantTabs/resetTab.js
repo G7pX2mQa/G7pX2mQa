@@ -977,22 +977,30 @@ export function isExperimentUnlocked() {
     return isLabExperimentUnlocked();
 }
 
+export function getFreeSurgeLevel(slot = ensureResetSlot()) {
+    if (slot == null) return 0;
+    let freeSurge = 0;
+    try {
+        if (AREA_KEYS && AREA_KEYS.RUBBLE) {
+            const upgrades = getUpgradesForArea(AREA_KEYS.RUBBLE);
+            if (upgrades) {
+                for (const upg of upgrades) {
+                    if (upg?.effectType === "free_surge") {
+                        freeSurge += getLevelNumber(AREA_KEYS.RUBBLE, upg.id) || 0;
+                    }
+                }
+            }
+        }
+    } catch {}
+    return freeSurge;
+}
+
 export function getCurrentSurgeLevel() {
     const slot = ensureResetSlot();
     if (slot == null) return 0;
     const base = getSurgeBarLevel(slot);
     if (base === Infinity) return Infinity;
-
-    let freeSurge = 0;
-    try {
-        if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.()) {
-            if (AREA_KEYS && AREA_KEYS.RUBBLE) {
-                freeSurge = getLevelNumber(AREA_KEYS.RUBBLE, 5) || 0;
-            }
-        }
-    } catch {}
-
-    return base + freeSurge;
+    return base + getFreeSurgeLevel(slot);
 }
 
 export function hasDoneForgeReset() {
@@ -1601,7 +1609,8 @@ function updateWaveBar() {
             lsSetItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toStorage?.() ?? barLevel.toString());
         } catch {}
         try {
-            window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: barLevel } }));
+            const totalSurge = barLevel === Infinity ? Infinity : (barLevel + getFreeSurgeLevel(slot));
+            window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: totalSurge } }));
         } catch {}
         try {
             window.dispatchEvent(
@@ -2197,14 +2206,7 @@ function updateSurgeCard() {
         }
     }
     if (el.header) {
-        let freeSurge = 0;
-        try {
-            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.()) {
-                if (AREA_KEYS && AREA_KEYS.RUBBLE) {
-                    freeSurge = getLevelNumber(AREA_KEYS.RUBBLE, 5) || 0;
-                }
-            }
-        } catch {}
+        let freeSurge = getFreeSurgeLevel(slot);
 
         const isInf =
             barLevel === Infinity ||
@@ -2608,35 +2610,27 @@ function triggerSurgeBarAnimation() {
     );
 }
 
+let globalResetEventsBound = false;
 function bindGlobalEvents() {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || globalResetEventsBound) return;
+    globalResetEventsBound = true;
     window.addEventListener("menu:scrollStop", () => {
         updateResetPanel();
     });
     let cachedFreeSurge = -1;
-    window.addEventListener("ccc:upgrades:changed", () => {
+    const handleUpgradesChanged = () => {
         try {
-            if (typeof window !== "undefined" && window.resetSystem?.isCollapseChallengeActive?.()) {
-                let currentFreeSurge = 0;
-                const upgrades = getUpgradesForArea(AREA_KEYS.RUBBLE);
-                if (upgrades) {
-                    for (const upg of upgrades) {
-                        if (upg?.effectType === "free_surge") {
-                            currentFreeSurge += getLevelNumber(AREA_KEYS.RUBBLE, upg.id) || 0;
-                        }
-                    }
-                }
-                if (currentFreeSurge !== cachedFreeSurge) {
-                    cachedFreeSurge = currentFreeSurge;
-                    const slot = getActiveSlot();
-                    const level = getSurgeBarLevel(slot);
-                    window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level } }));
-                }
-            } else {
-                cachedFreeSurge = 0;
+            const currentFreeSurge = getFreeSurgeLevel();
+            if (currentFreeSurge !== cachedFreeSurge) {
+                cachedFreeSurge = currentFreeSurge;
+                const slot = getActiveSlot();
+                const totalSurge = getCurrentSurgeLevel();
+                window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: totalSurge } }));
             }
         } catch {}
-    });
+    };
+    window.addEventListener("ccc:upgrades:changed", handleUpgradesChanged);
+    document.addEventListener("ccc:upgrades:changed", handleUpgradesChanged);
     window.addEventListener("surge:level:change", (e) => {
         triggerSurgeBarAnimation();
         recomputePendingDna();
@@ -2889,6 +2883,7 @@ if (typeof window !== "undefined") {
         setSurgeResetCompleted,
         hasDoneSurgeReset,
         getCurrentSurgeLevel,
+        getFreeSurgeLevel,
         hasDoneExperimentReset,
         setExperimentResetCompleted,
         isExperimentUnlocked,
