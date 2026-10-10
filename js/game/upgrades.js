@@ -421,6 +421,7 @@ function classifyUpgradeStatus(lockState) {
 }
 
 function upgradeRevealKey(areaKey, upg) {
+    if (upg?.preventPermaUnlock) return null;
     const normArea = normalizeAreaKey(areaKey || upg?.area);
     if (!normArea) return null;
     const tieKey = normalizeUpgradeTie(upg?.tie ?? upg?.tieKey);
@@ -3069,6 +3070,7 @@ export const REGISTRY = [
         },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/coin/coin_base.webp",
+        preventPermaUnlock: true,
         effectType: "rubble_value",
         _baseEffectVal: 1.1,
         _costScaling: "HM",
@@ -3110,6 +3112,7 @@ export const REGISTRY = [
         },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/book/book_base.webp",
+        preventPermaUnlock: true,
         effectType: "rubble_value",
         _baseEffectVal: 1.1,
         _costScaling: "HM",
@@ -3151,6 +3154,7 @@ export const REGISTRY = [
         },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/gold/gold_base.webp",
+        preventPermaUnlock: true,
         effectType: "rubble_value",
         _baseEffectVal: 1.1,
         _costScaling: "HM",
@@ -3192,6 +3196,7 @@ export const REGISTRY = [
         },
         icon: "img/misc/rubble_value.webp",
         baseIconOverride: "img/currencies/magic/magic_base.webp",
+        preventPermaUnlock: true,
         effectType: "rubble_value",
         _baseEffectVal: 1.1,
         _costScaling: "HM",
