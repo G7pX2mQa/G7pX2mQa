@@ -12,6 +12,7 @@ import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/works
 import { getPpState, isPpSystemUnlocked, addExternalPpMultiplierProvider } from './ppSystem.js';
 import { getRclpMultiplier } from './rclpSystem.js';
 import { getGclpMultiplier } from './gclpSystem.js';
+import { getBclpMultiplier } from './bclpSystem.js';
 import {
   addExternalCoinMultiplierProvider,
   addExternalXpGainMultiplierProvider,
@@ -88,7 +89,7 @@ export function onUpgradesChanged(cb) {
 export function bookValueMultiplierBn(level) {
   const L = ensureLevelBigNum(level);
   try {
-    const plain = L?.inf || L?.e >= BigNum.DEFAULT_PRECISION ? 'Infinity' : L?.toPlainIntegerString?.();
+    const plain = L?.inf  ? 'Infinity' : L?.toPlainIntegerString?.();
     if (plain && plain !== 'Infinity' && plain.length <= 15) {
       const lvl = Math.max(0, Number(plain));
       return bigNumFromLog10(lvl * Math.log10(2)).floorToInteger();
@@ -155,6 +156,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     rpValue: BigNum.fromInt(1),
     redCoralValue: BigNum.fromInt(1),
     greenCoralValue: BigNum.fromInt(1),
+    blueCoralValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     materialSpawn: 1.0,
     bubbleSpawn: 1.0,
@@ -253,6 +255,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.redCoralValue = safeMultiplyBigNum(acc.redCoralValue, baseEffect);
     } else if (upg.effectType === 'green_coral_value') {
       acc.greenCoralValue = safeMultiplyBigNum(acc.greenCoralValue, baseEffect);
+    } else if (upg.effectType === 'blue_coral_value') {
+      acc.blueCoralValue = safeMultiplyBigNum(acc.blueCoralValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
       let val = 0;
       if (baseEffect instanceof BigNum) {
@@ -300,6 +304,19 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
           acc.rpValue = safeMultiplyBigNum(acc.rpValue, rclpMult);
       }
   } catch {}
+
+  // BCLP bonuses
+  try {
+      const bclpMult = getBclpMultiplier();
+      if (!bclpMult.isZero?.() && bclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+          acc.dpValue = safeMultiplyBigNum(acc.dpValue, bclpMult);
+          acc.ppValue = safeMultiplyBigNum(acc.ppValue, bclpMult);
+          acc.rubbleValue = safeMultiplyBigNum(acc.rubbleValue, bclpMult);
+          acc.coresValue = safeMultiplyBigNum(acc.coresValue, bclpMult);
+          acc.crystalsValue = safeMultiplyBigNum(acc.crystalsValue, bclpMult);
+      }
+  } catch {}
+
   for (const provider of externalSpawnRateProviders) {
     try {
       const val = provider();
@@ -330,6 +347,7 @@ export function computeUpgradeEffects(areaKey) {
     allMaterialsValueMultiplier: mults.allMaterialsValue,
     coresValueMultiplier: mults.coresValue,
     crystalsValueMultiplier: mults.crystalsValue,
+    rubbleValueMultiplier: mults.rubbleValue,
     scrapValueMultiplier: mults.scrapValue,
     dpValueMultiplier: mults.dpValue,
     ppValueMultiplier: mults.ppValue,
@@ -357,7 +375,7 @@ export function scheduleSyncCurrencyMultipliers() {
 
 export function syncCurrencyMultipliersFromUpgrades() {
   _syncCurrencyMultipliersScheduled = false;
-  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue, bookValue, redCoralValue, greenCoralValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue, rubbleValue, bookValue, redCoralValue, greenCoralValue, blueCoralValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -457,9 +475,16 @@ try {
       bank.cores.mult.set(finalCoresValue);
     }
   } catch {}
+    try {
+      if (bank.rubble?.mult?.set) {
+        let finalRubbleValue = rubbleValue;
+        finalRubbleValue = applyCurrencyMultiplierOverride('rubble', finalRubbleValue);
+        bank.rubble.mult.set(finalRubbleValue);
+      }
+    } catch {}
 
-  try {
-    if (bank.crystals?.mult?.set) {
+    try {
+      if (bank.crystals?.mult?.set) {
       let finalCrystalsValue = crystalsValue;
       for (const provider of externalCrystalsMultiplierProviders) {
         try {
@@ -574,6 +599,32 @@ try {
   } catch {}
 
   try {
+    if (bank.blue_coral?.mult?.set) {
+      let blueCoralMult = BigNum.fromInt(1);
+      if (isPpSystemUnlocked()) {
+          const ppLevel = getPpState().ppLevel;
+          if (ppLevel && !ppLevel.isZero() && ppLevel.cmp(31) > 0) {
+              const atmAfter31 = ppLevel.sub(BigNum.fromInt(31));
+              // Doubles per 3 atms: 2^((ppLevel - 31) / 3)
+              const doublings = parseFloat(atmAfter31.toScientific(14)) / 3;
+              const log10Result = doublings * Math.log10(2) + 1e-9;
+              if (!Number.isFinite(log10Result) || log10Result === Infinity) {
+                  blueCoralMult = BigNum.fromAny('Infinity');
+              } else {
+                  const factor = bigNumFromLog10(log10Result).floorToInteger();
+                  blueCoralMult = safeMultiplyBigNum(blueCoralMult, factor).floorToInteger();
+              }
+          }
+      }
+      if (blueCoralValue) {
+          blueCoralMult = safeMultiplyBigNum(blueCoralMult, blueCoralValue);
+      }
+      blueCoralMult = applyCurrencyMultiplierOverride('blue_coral', blueCoralMult);
+      bank.blue_coral.mult.set(blueCoralMult);
+    }
+  } catch {}
+
+  try {
     for (const mat of UC_MATERIALS) {
       if (bank[mat]?.mult?.set) {
         // Individual material multipliers can be multiplied here in the future
@@ -614,6 +665,12 @@ try {
                 const gclpMult = getGclpMultiplier();
                 if (!gclpMult.isZero?.() && gclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
                     finalMatValue = safeMultiplyBigNum(finalMatValue, gclpMult);
+                }
+            }
+            if (['ruby', 'sapphire', 'unobtainium', 'prismatium', 'core', 'crystal'].includes(mat)) {
+                const bclpMult = getBclpMultiplier();
+                if (!bclpMult.isZero?.() && bclpMult.cmp?.(BigNum.fromInt(1)) > 0) {
+                    finalMatValue = safeMultiplyBigNum(finalMatValue, bclpMult);
                 }
             }
         } catch {}
